@@ -3,9 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Systems; // Add this
-using System.Collections.Generic;
-using System;
+using ChaosWarlords.Source.Systems;
 
 namespace ChaosWarlords
 {
@@ -16,9 +14,12 @@ namespace ChaosWarlords
         private Texture2D _pixelTexture;
         private SpriteFont _defaultFont; 
 
-        // Game State
-        private List<Card> _hand = new List<Card>();
-        private MapManager _mapManager; // Replaces List<MapNode>
+        // SYSTEMS
+        private MapManager _mapManager;
+        
+        // STATE
+        private Player _activePlayer; // <--- NEW: Using the Player class
+        private bool _wasMousePressed = false; // To prevent clicking through card onto map
 
         public Game1()
         {
@@ -44,56 +45,124 @@ namespace ChaosWarlords
 
             try { _defaultFont = Content.Load<SpriteFont>("fonts/DefaultFont"); } catch { }
 
-            // --- INIT MAP ---
+            // --- SETUP PLAYER ---
+            _activePlayer = new Player(PlayerColor.Red);
+            
+            // --- FIX: Add Soldiers FIRST so we have Power in hand ---
+            for(int i=0; i<3; i++) _activePlayer.Deck.Add(CardFactory.CreateSoldier(_pixelTexture));
+            for(int i=0; i<7; i++) _activePlayer.Deck.Add(CardFactory.CreateNoble(_pixelTexture));
+            
+            // Draw opening hand
+            _activePlayer.DrawCards(5);
+            ArrangeHandVisuals(); 
+
+            // --- SETUP MAP ---
             var nodes = MapFactory.CreateTestMap(_pixelTexture);
             _mapManager = new MapManager(nodes);
-            _mapManager.PixelTexture = _pixelTexture; // Give it the texture for lines
-
-            // --- INIT CARDS ---
-            var card1 = CardFactory.CreateSoldier(_pixelTexture);
-            card1.Position = new Vector2(100, 500);
-            var card2 = CardFactory.CreateNoble(_pixelTexture);
-            card2.Position = new Vector2(260, 500); 
-            _hand.Add(card1);
-            _hand.Add(card2);
+            _mapManager.PixelTexture = _pixelTexture;
         }
 
         protected override void Update(GameTime gameTime)
         {
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                Exit();
+            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape)) Exit();
 
             var mouseState = Mouse.GetState();
+            bool isClicking = mouseState.LeftButton == ButtonState.Pressed;
+            bool clickHandled = false;
 
-            // Handle Map Logic (Presence, Clicking, etc)
-            // We are pretending to be "PlayerColor.Red"
-            _mapManager.Update(mouseState, PlayerColor.Red);
+            // 1. UPDATE HAND (Click to Play)
+            for (int i = _activePlayer.Hand.Count - 1; i >= 0; i--)
+            {
+                var card = _activePlayer.Hand[i];
+                card.Update(gameTime, mouseState);
 
-            foreach (var card in _hand)
+                if (isClicking && !_wasMousePressed && card.IsHovered)
+                {
+                    PlayCard(card);
+                    clickHandled = true; 
+                    break; 
+                }
+            }
+
+            // 2. FIX: UPDATE PLAYED CARDS (So highlights don't get stuck)
+            foreach (var card in _activePlayer.PlayedCards)
             {
                 card.Update(gameTime, mouseState);
             }
 
+            // 3. UPDATE MAP (Click to Deploy)
+            if (!clickHandled)
+            {
+                _mapManager.Update(mouseState, _activePlayer);
+            }
+
+            // 4. FIX: DEBUG UI IN WINDOW TITLE
+            // If the font fails, this ensures you still know your stats
+            Window.Title = $"ChaosWarlords | Power: {_activePlayer.Power} | Influence: {_activePlayer.Influence} | Deck: {_activePlayer.Deck.Count}";
+
+            _wasMousePressed = isClicking;
             base.Update(gameTime);
+        }
+
+        private void ArrangeHandVisuals()
+        {
+            int startX = 100;
+            int gap = 160;
+            for (int i = 0; i < _activePlayer.Hand.Count; i++)
+            {
+                _activePlayer.Hand[i].Position = new Vector2(startX + (i * gap), 500);
+            }
+        }
+
+        private void PlayCard(Card card)
+        {
+            // Move from Hand to Played
+            _activePlayer.Hand.Remove(card);
+            _activePlayer.PlayedCards.Add(card);
+            card.Position = new Vector2(100 + (_activePlayer.PlayedCards.Count * 50), 300); // Move to "Played Area"
+
+            // EXECUTE EFFECTS
+            foreach(var effect in card.Effects)
+            {
+                if(effect.Type == EffectType.GainResource)
+                {
+                    if(effect.TargetResource == ResourceType.Power) 
+                        _activePlayer.Power += effect.Amount;
+                    if(effect.TargetResource == ResourceType.Influence) 
+                        _activePlayer.Influence += effect.Amount;
+                }
+            }
+            
+            // Re-arrange hand to fill the gap
+            ArrangeHandVisuals();
         }
 
         protected override void Draw(GameTime gameTime)
         {
             GraphicsDevice.Clear(Color.DarkSlateBlue); 
-
             _spriteBatch.Begin();
 
-            // 1. Draw Map (Manager handles nodes and lines now)
+            // 1. Draw Map (Bottom Layer)
             _mapManager.Draw(_spriteBatch);
 
-            // 2. Draw Cards
-            foreach (var card in _hand)
+            // 2. Draw Played Cards (Middle Layer)
+            foreach (var card in _activePlayer.PlayedCards) card.Draw(_spriteBatch, _defaultFont);
+
+            // 3. Draw Hand (Top Layer)
+            foreach (var card in _activePlayer.Hand) card.Draw(_spriteBatch, _defaultFont);
+
+            // 4. Draw UI Overlay (Very Top)
+            if(_defaultFont != null)
             {
-                card.Draw(_spriteBatch, _defaultFont);
+                // Draw a small background box for the UI so it's readable
+                _spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, 1280, 40), Color.Black * 0.5f);
+                
+                _spriteBatch.DrawString(_defaultFont, $"Power: {_activePlayer.Power}", new Vector2(20, 10), Color.Orange);
+                _spriteBatch.DrawString(_defaultFont, $"Influence: {_activePlayer.Influence}", new Vector2(150, 10), Color.Cyan);
+                _spriteBatch.DrawString(_defaultFont, $"Deck: {_activePlayer.Deck.Count}", new Vector2(300, 10), Color.White);
             }
 
             _spriteBatch.End();
-
             base.Draw(gameTime);
         }
     }

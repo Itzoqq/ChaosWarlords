@@ -19,43 +19,48 @@ namespace ChaosWarlords.Source.Systems
             _nodes = nodes;
         }
 
-        public void Update(MouseState mouseState, PlayerColor currentPlayer)
+        public void Update(MouseState mouseState, Player currentPlayer)
         {
-            // 1. Handle Hover Logic for all nodes
-            foreach (var node in _nodes)
-            {
-                node.Update(mouseState);
-            }
+            foreach (var node in _nodes) node.Update(mouseState);
 
-            // 2. Handle Click Logic (Deployment)
             bool isClicking = mouseState.LeftButton == ButtonState.Pressed;
 
-            // Only trigger on the specific frame the button is pressed (not held down)
             if (isClicking && !_wasClicking)
             {
-                HandleClick(currentPlayer);
+                HandleClick(currentPlayer); // Pass the player
             }
 
             _wasClicking = isClicking;
         }
 
-        private void HandleClick(PlayerColor currentPlayer)
+        // UPDATE 1: Change the signature to accept the full Player object
+        private void HandleClick(Player currentPlayer)
         {
             foreach (var node in _nodes)
             {
                 if (node.IsHovered)
                 {
-                    // RULE CHECK: Can we deploy here?
-                    if (CanDeployAt(node, currentPlayer))
+                    // RULE CHECK 1: Can we deploy based on position?
+                    if (CanDeployAt(node, currentPlayer.Color))
                     {
-                        node.Occupant = currentPlayer;
+                        // RULE CHECK 2: Can we afford it? (Cost is 1 Power)
+                        if (currentPlayer.Power >= 1)
+                        {
+                            // SUCCESS: Spend resource and place unit
+                            currentPlayer.Power -= 1;
+                            node.Occupant = currentPlayer.Color;
+                            System.Diagnostics.Debug.WriteLine($"Deployed! Remaining Power: {currentPlayer.Power}");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine("Not enough Power!");
+                        }
                     }
                     else
                     {
-                        // Optional: Play an "Error" sound or flash red later
                         System.Diagnostics.Debug.WriteLine("Invalid Deployment: No Presence!");
                     }
-                    return; // We handled the click, stop checking other nodes
+                    return; 
                 }
             }
         }

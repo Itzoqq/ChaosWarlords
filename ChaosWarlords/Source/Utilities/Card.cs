@@ -63,26 +63,44 @@ namespace ChaosWarlords.Source.Entities
 
         public void Draw(SpriteBatch spriteBatch, SpriteFont font = null)
         {
-            // Background Color based on Aspect (visual debugging)
-            Color bgColor = Aspect switch
+            // 1. Dynamic Background Color
+            Color bgColor = Color.Gray;
+            // Check effects to determine color
+            foreach (var effect in Effects)
             {
-                CardAspect.Warlord => Color.Crimson,
-                CardAspect.Sorcery => Color.Purple,
-                CardAspect.Shadow => Color.Black,
-                _ => Color.Gray
-            };
+                if (effect.TargetResource == ResourceType.Power) bgColor = Color.Firebrick; // Red for Power
+                if (effect.TargetResource == ResourceType.Influence) bgColor = Color.CornflowerBlue; // Blue for Influence
+            }
 
+            // Hover Highlight
             if (IsHovered) bgColor = Color.Lerp(bgColor, Color.White, 0.3f);
 
-            // Draw Card Body
+            // 2. Draw Card Body
             if (_texture != null)
                 spriteBatch.Draw(_texture, _bounds, bgColor);
 
-            // Draw Text (If we have a font loaded, otherwise skip for now)
+            // 3. Draw Text Information
             if (font != null)
             {
-                spriteBatch.DrawString(font, Name, Position + new Vector2(10, 10), Color.White);
-                spriteBatch.DrawString(font, $"{Cost} Inf", Position + new Vector2(10, Height - 25), Color.Gold);
+                // A. Draw Name at top
+                spriteBatch.DrawString(font, Name, Position + new Vector2(5, 5), Color.White);
+
+                // B. Draw Effect Text in the middle
+                string effectText = "";
+                foreach (var effect in Effects)
+                {
+                    if (effect.Type == EffectType.GainResource)
+                    {
+                        if (effect.TargetResource == ResourceType.Power) effectText += $"+{effect.Amount} Power\n";
+                        if (effect.TargetResource == ResourceType.Influence) effectText += $"+{effect.Amount} Influence\n";
+                    }
+                }
+                
+                // Draw the effect text centered-ish
+                spriteBatch.DrawString(font, effectText, Position + new Vector2(10, 50), Color.Yellow);
+
+                // C. Draw Cost at bottom
+                spriteBatch.DrawString(font, $"Cost: {Cost}", Position + new Vector2(10, Height - 25), Color.LightGray);
             }
         }
     }
