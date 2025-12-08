@@ -1,0 +1,25 @@
+# --- Build Output ---
+[Bb]in/
+[Oo]bj/
+
+# --- User-Specific Files ---
+*.user
+*.userosscache
+*.sln.docstates
+
+# --- Visual Studio & VS Code ---
+.vs/
+.vscode/
+# Note: You might want to remove '.vscode/' from here if you want to share 
+# launch configurations (launch.json) with teammates. 
+# If so, ignore specific files inside it instead.
+
+# --- OS Generated ---
+.DS_Store
+Thumbs.db
+
+# --- MonoGame Specific ---
+# If you use the Content Pipeline tool (MGCB), 
+# usually you WANT to commit the .mgcb file, but ignore the temporary build folder:
+**/Content/bin/
+**/Content/obj/
