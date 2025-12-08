@@ -38,4 +38,14 @@ namespace ChaosWarlords.Source.Utilities
         DrawCard,           // Draw X cards
         Devour              // Trash a card from hand/discard
     }
+
+    public enum PlayerColor
+    {
+        None,       // Empty space
+        Neutral,    // White troops (Unaligned enemies)
+        Red,        // Player 1
+        Blue,       // Player 2
+        Black,      // Player 3
+        Orange      // Player 4
+    }
 }
