@@ -45,12 +45,6 @@ namespace ChaosWarlords.Source.Entities
             // We check if the distance between mouse and center is less than radius
             float distance = Vector2.Distance(new Vector2(mouseState.X, mouseState.Y), Position);
             IsHovered = distance < Radius;
-
-            // Debug interaction: Click to deploy a Red troop
-            if (IsHovered && mouseState.LeftButton == ButtonState.Pressed && Occupant == PlayerColor.None)
-            {
-                Occupant = PlayerColor.Red;
-            }
         }
 
         public void Draw(SpriteBatch spriteBatch)

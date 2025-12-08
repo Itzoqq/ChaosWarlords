@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Systems; // Add this
 using System.Collections.Generic;
 using System;
 
@@ -12,14 +13,12 @@ namespace ChaosWarlords
     {
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
-
-        // Assets
         private Texture2D _pixelTexture;
         private SpriteFont _defaultFont; 
 
         // Game State
         private List<Card> _hand = new List<Card>();
-        private List<MapNode> _mapNodes = new List<MapNode>(); // <--- NEW: Map Data
+        private MapManager _mapManager; // Replaces List<MapNode>
 
         public Game1()
         {
@@ -43,19 +42,20 @@ namespace ChaosWarlords
             _pixelTexture = new Texture2D(GraphicsDevice, 1, 1);
             _pixelTexture.SetData(new[] { Color.White });
 
-            try { _defaultFont = Content.Load<SpriteFont>("fonts/DefaultFont"); } 
-            catch { }
+            try { _defaultFont = Content.Load<SpriteFont>("fonts/DefaultFont"); } catch { }
+
+            // --- INIT MAP ---
+            var nodes = MapFactory.CreateTestMap(_pixelTexture);
+            _mapManager = new MapManager(nodes);
+            _mapManager.PixelTexture = _pixelTexture; // Give it the texture for lines
 
             // --- INIT CARDS ---
             var card1 = CardFactory.CreateSoldier(_pixelTexture);
-            card1.Position = new Vector2(100, 500); // Moved down to make room for map
+            card1.Position = new Vector2(100, 500);
             var card2 = CardFactory.CreateNoble(_pixelTexture);
             card2.Position = new Vector2(260, 500); 
             _hand.Add(card1);
             _hand.Add(card2);
-
-            // --- INIT MAP ---
-            _mapNodes = MapFactory.CreateTestMap(_pixelTexture);
         }
 
         protected override void Update(GameTime gameTime)
@@ -65,16 +65,13 @@ namespace ChaosWarlords
 
             var mouseState = Mouse.GetState();
 
-            // Update Cards
+            // Handle Map Logic (Presence, Clicking, etc)
+            // We are pretending to be "PlayerColor.Red"
+            _mapManager.Update(mouseState, PlayerColor.Red);
+
             foreach (var card in _hand)
             {
                 card.Update(gameTime, mouseState);
-            }
-
-            // Update Map Nodes
-            foreach (var node in _mapNodes)
-            {
-                node.Update(mouseState);
             }
 
             base.Update(gameTime);
@@ -86,23 +83,10 @@ namespace ChaosWarlords
 
             _spriteBatch.Begin();
 
-            // 1. Draw Map Connections (Lines) FIRST so they are behind nodes
-            foreach (var node in _mapNodes)
-            {
-                foreach(var neighbor in node.Neighbors)
-                {
-                    // Draw a line between node and neighbor
-                    DrawLine(_spriteBatch, node.Position, neighbor.Position, Color.DarkGray, 3);
-                }
-            }
+            // 1. Draw Map (Manager handles nodes and lines now)
+            _mapManager.Draw(_spriteBatch);
 
-            // 2. Draw Map Nodes
-            foreach(var node in _mapNodes)
-            {
-                node.Draw(_spriteBatch);
-            }
-
-            // 3. Draw Cards (UI Layer on top)
+            // 2. Draw Cards
             foreach (var card in _hand)
             {
                 card.Draw(_spriteBatch, _defaultFont);
@@ -111,22 +95,6 @@ namespace ChaosWarlords
             _spriteBatch.End();
 
             base.Draw(gameTime);
-        }
-
-        // Helper to draw lines using just a pixel texture
-        private void DrawLine(SpriteBatch spriteBatch, Vector2 start, Vector2 end, Color color, int thickness)
-        {
-            Vector2 edge = end - start;
-            float angle = (float)Math.Atan2(edge.Y, edge.X);
-            
-            spriteBatch.Draw(_pixelTexture,
-                new Rectangle((int)start.X, (int)start.Y, (int)edge.Length(), thickness),
-                null,
-                color,
-                angle,
-                new Vector2(0, 0.5f), // Origin at left-middle
-                SpriteEffects.None,
-                0);
         }
     }
 }
