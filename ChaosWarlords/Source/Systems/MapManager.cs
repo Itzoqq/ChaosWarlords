@@ -45,27 +45,65 @@ namespace ChaosWarlords.Source.Systems
                 {
                     if (CanDeployAt(node, currentPlayer.Color))
                     {
-                        if (currentPlayer.Power >= 1)
+                        // CHECK: Do we have the resources AND the troops?
+                        if (currentPlayer.Power >= 1 && currentPlayer.TroopsInBarracks > 0)
                         {
                             currentPlayer.Power -= 1;
-                            node.Occupant = currentPlayer.Color;
-                            GameLogger.Log($"Deployed Troop at Node {node.Id}. Remaining Power: {currentPlayer.Power}", LogChannel.Combat);
+                            currentPlayer.TroopsInBarracks--; // Remove from supply
 
-                            // TRIGGER UPDATE with the player who made the move
+                            node.Occupant = currentPlayer.Color;
+
+                            GameLogger.Log($"Deployed Troop at Node {node.Id}. Supply: {currentPlayer.TroopsInBarracks}", LogChannel.Combat);
+
                             UpdateSiteControl(currentPlayer);
+
+                            // Check Game End Condition (Rulebook pg 14)
+                            if (currentPlayer.TroopsInBarracks == 0)
+                            {
+                                GameLogger.Log("FINAL TROOP DEPLOYED! Game ends this round.", LogChannel.General);
+                            }
+                        }
+                        else if (currentPlayer.TroopsInBarracks == 0)
+                        {
+                            GameLogger.Log("Cannot Deploy: Barracks Empty!", LogChannel.Error);
                         }
                         else
                         {
                             GameLogger.Log("Cannot Deploy: Not enough Power!", LogChannel.Economy);
                         }
                     }
-                    else
-                    {
-                        GameLogger.Log($"Invalid Deployment at Node {node.Id}: No Presence!", LogChannel.Error);
-                    }
-                    return;
                 }
             }
+        }
+
+        public void Assassinate(MapNode node, Player attacker)
+        {
+            if (node.Occupant == PlayerColor.None) return;
+            if (node.Occupant == attacker.Color) return; // Can't kill self
+
+            // Remove from board
+            node.Occupant = PlayerColor.None;
+
+            // Add to Attacker's Trophy Hall (Points at end of game)
+            attacker.TrophyHall++;
+
+            GameLogger.Log($"Assassinated enemy at Node {node.Id}. Trophy Hall: {attacker.TrophyHall}", LogChannel.Combat);
+
+            // Recalculate control since a unit was removed
+            UpdateSiteControl(attacker);
+        }
+
+        public void ReturnTroop(MapNode node, Player ownerOfTroop)
+        {
+            // "Return" means sending it back to the OWNER'S barracks (Rulebook pg 13)
+            if (node.Occupant != ownerOfTroop.Color) return;
+
+            node.Occupant = PlayerColor.None;
+            ownerOfTroop.TroopsInBarracks++;
+
+            GameLogger.Log($"Returned troop at Node {node.Id} to barracks.", LogChannel.Combat);
+
+            UpdateSiteControl(ownerOfTroop);
         }
 
         private void UpdateSiteControl(Player activePlayer)

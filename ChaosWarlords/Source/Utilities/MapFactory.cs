@@ -123,7 +123,7 @@ namespace ChaosWarlords.Source.Utilities
             node2.AddNeighbor(node3);
 
             // Note: Commented out the blocker so you can test control
-            // node2.Occupant = PlayerColor.Neutral; 
+            //node2.Occupant = PlayerColor.Neutral;
 
             nodes.Add(node1);
             nodes.Add(node2);

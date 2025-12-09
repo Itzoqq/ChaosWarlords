@@ -44,12 +44,24 @@ namespace ChaosWarlords.Source.Systems
             // Background
             spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, ScreenWidth, 40), Color.Black * 0.5f);
 
-            // Stats
+            // Stats (Left)
             spriteBatch.DrawString(_defaultFont, $"Power: {player.Power}", new Vector2(20, 10), Color.Orange);
             spriteBatch.DrawString(_defaultFont, $"Influence: {player.Influence}", new Vector2(150, 10), Color.Cyan);
             spriteBatch.DrawString(_defaultFont, $"VP: {player.VictoryPoints}", new Vector2(300, 10), Color.Lime);
-            spriteBatch.DrawString(_defaultFont, $"Deck: {player.Deck.Count}", new Vector2(400, 10), Color.White);
-            spriteBatch.DrawString(_defaultFont, $"Discard: {player.DiscardPile.Count}", new Vector2(500, 10), Color.Gray);
+
+            // Deck Info (Center-ish)
+            spriteBatch.DrawString(_defaultFont, $"Deck: {player.Deck.Count}", new Vector2(450, 10), Color.White);
+            spriteBatch.DrawString(_defaultFont, $"Discard: {player.DiscardPile.Count}", new Vector2(550, 10), Color.Gray);
+
+            // --- NEW: Troops Counter (Right Corner) ---
+            string troopsText = $"Troops: {player.TroopsInBarracks} / 40";
+            Vector2 textSize = _defaultFont.MeasureString(troopsText);
+
+            // Position: ScreenWidth - TextWidth - Padding
+            float rightX = ScreenWidth - textSize.X - 20;
+
+            Color troopColor = (player.TroopsInBarracks == 0) ? Color.Red : Color.LightGreen;
+            spriteBatch.DrawString(_defaultFont, troopsText, new Vector2(rightX, 10), troopColor);
         }
 
         public void DrawMarketButton(SpriteBatch spriteBatch, bool isOpen)
