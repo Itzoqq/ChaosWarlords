@@ -223,7 +223,8 @@ namespace ChaosWarlords.Source.Systems
             {
                 foreach (var site in Sites)
                 {
-                    site.Draw(spriteBatch, font);
+                    // --- Add 'PixelTexture' as the 3rd argument ---
+                    site.Draw(spriteBatch, font, PixelTexture);
                 }
             }
         }

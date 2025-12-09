@@ -33,10 +33,11 @@ namespace ChaosWarlords.Source.Utilities
     public class SiteData
     {
         public string Name { get; set; }
+        public bool IsCity { get; set; }
         public List<int> NodeIds { get; set; }
-        public string ControlResource { get; set; } // Read as string -> Enum
+        public string ControlResource { get; set; }
         public int ControlAmount { get; set; }
-        public string TotalControlResource { get; set; } // Read as string -> Enum
+        public string TotalControlResource { get; set; }
         public int TotalControlAmount { get; set; }
     }
 
@@ -76,11 +77,14 @@ namespace ChaosWarlords.Source.Utilities
                 {
                     foreach (var s in data.Sites)
                     {
-                        // Parse Enums (Default to VP if missing/invalid)
                         System.Enum.TryParse(s.ControlResource, out ResourceType cType);
                         System.Enum.TryParse(s.TotalControlResource, out ResourceType tType);
 
                         var newSite = new Site(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
+
+                        // --- ADD THIS LINE ---
+                        newSite.IsCity = s.IsCity;
+                        // ---------------------
 
                         foreach (int nodeId in s.NodeIds)
                         {

@@ -2,18 +2,38 @@
     "Nodes": [
         {
             "Id": 1,
-            "X": 600,
-            "Y": 300
-        },
-        {
-            "Id": 2,
-            "X": 700,
+            "X": 300,
             "Y": 200
         },
         {
+            "Id": 2,
+            "X": 380,
+            "Y": 280
+        },
+        {
             "Id": 3,
+            "X": 220,
+            "Y": 280
+        },
+        {
+            "Id": 4,
+            "X": 500,
+            "Y": 350
+        },
+        {
+            "Id": 5,
+            "X": 600,
+            "Y": 450
+        },
+        {
+            "Id": 6,
             "X": 800,
-            "Y": 300
+            "Y": 500
+        },
+        {
+            "Id": 7,
+            "X": 880,
+            "Y": 500
         }
     ],
     "Routes": [
@@ -24,18 +44,53 @@
         {
             "From": 2,
             "To": 3
+        },
+        {
+            "From": 3,
+            "To": 1
+        },
+        {
+            "From": 2,
+            "To": 4
+        },
+        {
+            "From": 4,
+            "To": 5
+        },
+        {
+            "From": 5,
+            "To": 6
+        },
+        {
+            "From": 6,
+            "To": 7
         }
     ],
     "Sites": [
         {
-            "Name": "Menzoberranzan",
+            "Name": "City of Gold",
+            "IsCity": true,
             "NodeIds": [
                 1,
                 2,
                 3
             ],
-            "ControlVP": 2,
-            "TotalControlVP": 2
+            "ControlResource": "Influence",
+            "ControlAmount": 1,
+            "TotalControlResource": "VictoryPoints",
+            "TotalControlAmount": 2
+        },
+        {
+            "Name": "City of Shadows",
+            "IsCity": false,
+            "NodeIds": [
+                6,
+                7
+            ],
+            "ControlResource": "VictoryPoints",
+            "ControlAmount": 1,
+            "TotalControlResource": "VictoryPoints",
+            "TotalControlAmount": 3
         }
     ]
 }
