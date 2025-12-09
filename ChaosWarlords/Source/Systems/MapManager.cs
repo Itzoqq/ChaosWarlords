@@ -49,16 +49,16 @@ namespace ChaosWarlords.Source.Systems
                             // SUCCESS: Spend resource and place unit
                             currentPlayer.Power -= 1;
                             node.Occupant = currentPlayer.Color;
-                            System.Diagnostics.Debug.WriteLine($"Deployed! Remaining Power: {currentPlayer.Power}");
+                            GameLogger.Log($"Deployed Unit at Node {node.Id}. Power: {currentPlayer.Power}", LogChannel.Combat);
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine("Not enough Power!");
+                            GameLogger.Log("Deployment Failed: Not enough Power!", LogChannel.Economy);
                         }
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine("Invalid Deployment: No Presence!");
+                        GameLogger.Log("Invalid Deployment: No Presence!", LogChannel.Error);
                     }
                     return; 
                 }

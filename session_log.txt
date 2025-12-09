@@ -1,0 +1,8 @@
+--- CHAOS WARLORDS SESSION START: 9.12.2025. 19:28:20 ---
+[19:28:20] [General] Logger Initialized
+[19:28:21] [Combat] Played card: Corrupt Noble
+[19:28:21] [Combat] Played card: Chaos Grunt
+[19:28:22] [Combat] Deployed Unit at Node 1. Power: 0
+[19:28:22] [Error] Invalid Deployment: No Presence!
+[19:28:22] [Error] Invalid Deployment: No Presence!
+[19:28:24] [General] Session Ended. Flushing logs.

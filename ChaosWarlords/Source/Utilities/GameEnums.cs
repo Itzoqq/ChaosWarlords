@@ -48,4 +48,14 @@ namespace ChaosWarlords.Source.Utilities
         Black,      // Player 3
         Orange      // Player 4
     }
+
+    public enum LogChannel
+    {
+        General,
+        Input,
+        Combat,
+        Economy,
+        AI,
+        Error
+    }
 }

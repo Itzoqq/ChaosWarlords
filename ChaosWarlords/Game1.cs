@@ -45,6 +45,8 @@ namespace ChaosWarlords
 
             try { _defaultFont = Content.Load<SpriteFont>("fonts/DefaultFont"); } catch { }
 
+            GameLogger.Initialize();
+
             // --- SETUP PLAYER ---
             _activePlayer = new Player(PlayerColor.Red);
             
@@ -60,6 +62,13 @@ namespace ChaosWarlords
             var nodes = MapFactory.CreateTestMap(_pixelTexture);
             _mapManager = new MapManager(nodes);
             _mapManager.PixelTexture = _pixelTexture;
+        }
+
+        protected override void UnloadContent()
+        {
+            GameLogger.Log("Session Ended. Flushing logs.", LogChannel.General);
+            GameLogger.FlushToFile();
+            base.UnloadContent();
         }
 
         protected override void Update(GameTime gameTime)
@@ -116,6 +125,8 @@ namespace ChaosWarlords
 
         private void PlayCard(Card card)
         {
+            GameLogger.Log($"Played card: {card.Name}", LogChannel.Combat);
+
             // Move from Hand to Played
             _activePlayer.Hand.Remove(card);
             _activePlayer.PlayedCards.Add(card);
@@ -132,7 +143,7 @@ namespace ChaosWarlords
                         _activePlayer.Influence += effect.Amount;
                 }
             }
-            
+ 
             // Re-arrange hand to fill the gap
             ArrangeHandVisuals();
         }
