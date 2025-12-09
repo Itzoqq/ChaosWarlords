@@ -8,7 +8,11 @@
     "DeckVP": 1,
     "InnerCircleVP": 2,
     "Effects": [
-      { "Type": "GainResource", "Amount": 2, "TargetResource": "Power" }
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Power"
+      }
     ]
   },
   {
@@ -20,7 +24,11 @@
     "DeckVP": 1,
     "InnerCircleVP": 2,
     "Effects": [
-      { "Type": "GainResource", "Amount": 2, "TargetResource": "Influence" }
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Influence"
+      }
     ]
   },
   {
@@ -32,7 +40,11 @@
     "DeckVP": 1,
     "InnerCircleVP": 3,
     "Effects": [
-      { "Type": "DeployUnit", "Amount": 1, "TargetResource": "Influence" } 
+      {
+        "Type": "DeployUnit",
+        "Amount": 1,
+        "TargetResource": "Influence"
+      }
     ]
   }
 ]

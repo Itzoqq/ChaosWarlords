@@ -10,13 +10,17 @@ namespace ChaosWarlords.Source.Systems
     public class MapManager
     {
         private List<MapNode> _nodes;
-        
-        // This tracks which mouse button state we are in to prevent "rapid fire" clicks
+
+        // FIX: Changed from 'private List<Site> _sites' to a Public Property
+        public List<Site> Sites { get; private set; }
+
         private bool _wasClicking = false;
 
-        public MapManager(List<MapNode> nodes)
+        // FIX: Updated constructor to assign to the new Property
+        public MapManager(List<MapNode> nodes, List<Site> sites)
         {
             _nodes = nodes;
+            Sites = sites;
         }
 
         public void Update(MouseState mouseState, Player currentPlayer)
@@ -27,81 +31,143 @@ namespace ChaosWarlords.Source.Systems
 
             if (isClicking && !_wasClicking)
             {
-                HandleClick(currentPlayer); // Pass the player
+                HandleClick(currentPlayer);
             }
 
             _wasClicking = isClicking;
         }
 
-        // UPDATE 1: Change the signature to accept the full Player object
         private void HandleClick(Player currentPlayer)
         {
             foreach (var node in _nodes)
             {
                 if (node.IsHovered)
                 {
-                    // RULE CHECK 1: Can we deploy based on position?
                     if (CanDeployAt(node, currentPlayer.Color))
                     {
-                        // RULE CHECK 2: Can we afford it? (Cost is 1 Power)
                         if (currentPlayer.Power >= 1)
                         {
-                            // SUCCESS: Spend resource and place unit
                             currentPlayer.Power -= 1;
                             node.Occupant = currentPlayer.Color;
-                            GameLogger.Log($"Deployed Unit at Node {node.Id}. Power: {currentPlayer.Power}", LogChannel.Combat);
+                            GameLogger.Log($"Deployed Troop at Node {node.Id}. Remaining Power: {currentPlayer.Power}", LogChannel.Combat);
+                            
+                            // TRIGGER UPDATE with the player who made the move
+                            UpdateSiteControl(currentPlayer);
                         }
                         else
                         {
-                            GameLogger.Log("Deployment Failed: Not enough Power!", LogChannel.Economy);
+                            GameLogger.Log("Cannot Deploy: Not enough Power!", LogChannel.Economy);
                         }
                     }
                     else
                     {
-                        GameLogger.Log("Invalid Deployment: No Presence!", LogChannel.Error);
+                        GameLogger.Log($"Invalid Deployment at Node {node.Id}: No Presence!", LogChannel.Error);
                     }
                     return; 
                 }
             }
         }
 
-        // --- THE GOLDEN RULE: PRESENCE ---
+        private void UpdateSiteControl(Player activePlayer)
+        {
+            if (Sites == null) return;
+
+            foreach (var site in Sites)
+            {
+                // 1. Snapshot CURRENT state before recalculating
+                PlayerColor previousOwner = site.Owner;
+                bool previousTotal = site.HasTotalControl;
+
+                // 2. Count Troops
+                int redCount = 0;
+                int blueCount = 0; 
+                int neutralCount = 0;
+                int totalSpots = site.Nodes.Count;
+
+                foreach (var node in site.Nodes)
+                {
+                    if (node.Occupant == PlayerColor.Red) redCount++;
+                    if (node.Occupant == PlayerColor.Blue) blueCount++;
+                    if (node.Occupant == PlayerColor.Neutral) neutralCount++;
+                }
+
+                // 3. Determine NEW State
+                PlayerColor newOwner = PlayerColor.None;
+                if (redCount > blueCount && redCount > neutralCount) newOwner = PlayerColor.Red;
+                else if (blueCount > redCount && blueCount > neutralCount) newOwner = PlayerColor.Blue;
+
+                bool newTotalControl = (newOwner == PlayerColor.Red && redCount == totalSpots) ||
+                                       (newOwner == PlayerColor.Blue && blueCount == totalSpots);
+
+                // 4. APPLY CHANGES & IMMEDIATE REWARDS
+                
+                // Case A: Control Gained (Majority)
+                if (newOwner != previousOwner)
+                {
+                    site.Owner = newOwner; // Update state
+                    
+                    if (newOwner == activePlayer.Color)
+                    {
+                        // IMMEDIATE REWARD!
+                        ApplyReward(activePlayer, site.ControlResource, site.ControlAmount);
+                        GameLogger.Log($"Seized Control of {site.Name}! +{site.ControlAmount} {site.ControlResource}", LogChannel.Economy);
+                    }
+                    else if (newOwner != PlayerColor.None)
+                    {
+                        // Someone else took it
+                         GameLogger.Log($"{site.Name} was taken by {newOwner}!", LogChannel.Combat);
+                    }
+                }
+
+                // Case B: Total Control Achieved
+                if (newTotalControl != previousTotal)
+                {
+                    site.HasTotalControl = newTotalControl; // Update state
+
+                    if (newTotalControl && newOwner == activePlayer.Color)
+                    {
+                        // IMMEDIATE BONUS!
+                        ApplyReward(activePlayer, site.TotalControlResource, site.TotalControlAmount);
+                        GameLogger.Log($"Total Control established in {site.Name}! +{site.TotalControlAmount} {site.TotalControlResource}", LogChannel.Economy);
+                    }
+                }
+            }
+        }
+
+        private void ApplyReward(Player player, ResourceType type, int amount)
+        {
+            if (type == ResourceType.Power) player.Power += amount;
+            if (type == ResourceType.Influence) player.Influence += amount;
+            if (type == ResourceType.VictoryPoints) player.VictoryPoints += amount;
+        }
+
+        // PRESENCE LOGIC
         public bool CanDeployAt(MapNode targetNode, PlayerColor player)
         {
-            // Rule 1: The spot must be empty
-            if (targetNode.Occupant != PlayerColor.None)
-                return false;
+            if (targetNode.Occupant != PlayerColor.None) return false;
 
-            // Rule 2: If we have NO troops on the entire board, we can deploy anywhere (Start of game rule)
-            // We check if the player exists anywhere on the map
             bool hasAnyTroops = false;
-            foreach(var n in _nodes)
+            foreach (var n in _nodes)
             {
-                if (n.Occupant == player) 
+                if (n.Occupant == player)
                 {
                     hasAnyTroops = true;
                     break;
                 }
             }
 
-            if (!hasAnyTroops) return true; // First deployment is free
+            if (!hasAnyTroops) return true;
 
-            // Rule 3: Must have "Presence" (an adjacent friendly unit)
-            // (Later we will add Spies and Site control to this check)
             foreach (var neighbor in targetNode.Neighbors)
             {
-                if (neighbor.Occupant == player)
-                {
-                    return true; // We found a buddy next door!
-                }
+                if (neighbor.Occupant == player) return true;
             }
 
             return false;
         }
 
-        public void Draw(SpriteBatch spriteBatch)
+        public void Draw(SpriteBatch spriteBatch, SpriteFont font)
         {
-            // Draw connections first
             foreach (var node in _nodes)
             {
                 foreach (var neighbor in node.Neighbors)
@@ -110,10 +176,17 @@ namespace ChaosWarlords.Source.Systems
                 }
             }
 
-            // Draw nodes on top
             foreach (var node in _nodes)
             {
                 node.Draw(spriteBatch);
+            }
+
+            if (Sites != null)
+            {
+                foreach (var site in Sites)
+                {
+                    site.Draw(spriteBatch, font);
+                }
             }
         }
 
@@ -123,19 +196,17 @@ namespace ChaosWarlords.Source.Systems
 
             Vector2 edge = end - start;
             float angle = (float)System.Math.Atan2(edge.Y, edge.X);
-            
+
             spriteBatch.Draw(PixelTexture,
                 new Rectangle((int)start.X, (int)start.Y, (int)edge.Length(), thickness),
                 null,
                 color,
                 angle,
-                new Vector2(0, 0.5f), 
+                new Vector2(0, 0.5f),
                 SpriteEffects.None,
                 0);
         }
-        
-        // Actually, to make DrawLine work easily without passing textures around constantly:
-        // Let's add a public Texture2D PixelTexture property to this class.
+
         public Texture2D PixelTexture { get; set; }
     }
 }
