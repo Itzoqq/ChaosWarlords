@@ -17,3 +17,8 @@
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor
 /build:fonts/DefaultFont.spritefont
+
+#begin fonts/SmallFont.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/build:fonts/SmallFont.spritefont

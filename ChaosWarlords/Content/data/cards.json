@@ -1,0 +1,38 @@
+[
+  {
+    "Id": "core_house_guard",
+    "Name": "House Guard",
+    "Description": "Gain 2 Power",
+    "Cost": 3,
+    "Aspect": "Warlord",
+    "DeckVP": 1,
+    "InnerCircleVP": 2,
+    "Effects": [
+      { "Type": "GainResource", "Amount": 2, "TargetResource": "Power" }
+    ]
+  },
+  {
+    "Id": "core_priestess",
+    "Name": "Priestess of Lolth",
+    "Description": "Gain 2 Influence",
+    "Cost": 3,
+    "Aspect": "Sorcery",
+    "DeckVP": 1,
+    "InnerCircleVP": 2,
+    "Effects": [
+      { "Type": "GainResource", "Amount": 2, "TargetResource": "Influence" }
+    ]
+  },
+  {
+    "Id": "drow_spy_master",
+    "Name": "Spy Master",
+    "Description": "Place a Spy",
+    "Cost": 2,
+    "Aspect": "Shadow",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "Effects": [
+      { "Type": "DeployUnit", "Amount": 1, "TargetResource": "Influence" } 
+    ]
+  }
+]
