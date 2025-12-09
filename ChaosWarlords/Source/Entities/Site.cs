@@ -9,21 +9,21 @@ namespace ChaosWarlords.Source.Entities
     {
         public string Name { get; private set; }
 
-        // --- NEW: Flexible Rewards ---
         public ResourceType ControlResource { get; private set; }
         public int ControlAmount { get; private set; }
-        public bool IsCity { get; set; }
 
         public ResourceType TotalControlResource { get; private set; }
         public int TotalControlAmount { get; private set; }
+
+        public bool IsCity { get; set; }
 
         public List<MapNode> Nodes { get; private set; } = new List<MapNode>();
         public PlayerColor Owner { get; set; } = PlayerColor.None;
         public bool HasTotalControl { get; set; } = false;
 
-        public Vector2 LabelPosition { get; set; }
+        // Visual Bounds
+        public Rectangle Bounds { get; private set; }
 
-        // Updated Constructor
         public Site(string name,
                     ResourceType controlType, int controlAmt,
                     ResourceType totalType, int totalAmt)
@@ -38,71 +38,78 @@ namespace ChaosWarlords.Source.Entities
         public void AddNode(MapNode node)
         {
             Nodes.Add(node);
-            RecalculateCenter();
+            RecalculateBounds();
         }
 
-        private void RecalculateCenter()
+        // --- FIX: CHANGED TO PUBLIC ---
+        public void RecalculateBounds()
         {
             if (Nodes.Count == 0) return;
-            Vector2 sum = Vector2.Zero;
-            foreach (var node in Nodes) sum += node.Position;
-            LabelPosition = sum / Nodes.Count;
+
+            float minX = float.MaxValue, minY = float.MaxValue;
+            float maxX = float.MinValue, maxY = float.MinValue;
+
+            foreach (var node in Nodes)
+            {
+                if (node.Position.X < minX) minX = node.Position.X;
+                if (node.Position.Y < minY) minY = node.Position.Y;
+                if (node.Position.X > maxX) maxX = node.Position.X;
+                if (node.Position.Y > maxY) maxY = node.Position.Y;
+            }
+
+            // --- FIX: Asymmetrical Padding ---
+            int sidePadding = 35;
+            int topPadding = 70; // Extra space at top for the Name!
+            int bottomPadding = 35;
+
+            int width = (int)(maxX - minX) + (sidePadding * 2);
+            int height = (int)(maxY - minY) + topPadding + bottomPadding;
+
+            // Shift Y up by 'topPadding' to create the header space
+            Bounds = new Rectangle((int)minX - sidePadding, (int)minY - topPadding, width, height);
         }
 
         public void Draw(SpriteBatch spriteBatch, SpriteFont font, Texture2D pixelTexture)
         {
-            Color primaryColor = (Owner == PlayerColor.None) ? Color.Gray : GetColor(Owner);
-            Vector2 drawPos = LabelPosition;
+            // 1. Draw Background Rectangle
+            spriteBatch.Draw(pixelTexture, Bounds, Color.Black * 0.5f);
 
-            // --- VISUAL: CITY CONTROL MARKER ---
-            // If it is a City, we draw a "Big Circle" (Control Marker slot)
-            if (IsCity)
-            {
-                int radius = 35; // Bigger than troop nodes (20)
+            // 2. Draw Border (Gray if empty, Player Color if owned)
+            Color borderColor = (Owner == PlayerColor.None) ? Color.Gray : GetColor(Owner);
 
-                // Draw filled background (Black if empty, Player Color if owned)
-                Color fillColor = (Owner == PlayerColor.None) ? Color.Black * 0.5f : primaryColor;
+            // Draw 4 lines for the border
+            spriteBatch.Draw(pixelTexture, new Rectangle(Bounds.X, Bounds.Y, Bounds.Width, 2), borderColor); // Top
+            spriteBatch.Draw(pixelTexture, new Rectangle(Bounds.X, Bounds.Bottom, Bounds.Width, 2), borderColor); // Bottom
+            spriteBatch.Draw(pixelTexture, new Rectangle(Bounds.X, Bounds.Y, 2, Bounds.Height), borderColor); // Left
+            spriteBatch.Draw(pixelTexture, new Rectangle(Bounds.Right, Bounds.Y, 2, Bounds.Height), borderColor); // Right
 
-                // Draw Circle (Simple approximation using the pixel texture scaled)
-                // In a real game, you would load a specific "SiteCircle.png"
-                Rectangle circleRect = new Rectangle(
-                    (int)drawPos.X - radius,
-                    (int)drawPos.Y - radius,
-                    radius * 2,
-                    radius * 2);
-
-                spriteBatch.Draw(pixelTexture, circleRect, fillColor);
-
-                // Shift text down so it doesn't overlap the marker
-                drawPos.Y += 45;
-            }
-
-            // --- TEXT LABEL ---
+            // 3. Draw Text (Upper Left Corner)
             string text = Name.ToUpper();
 
-            // Append Resource Info
+            // --- FIX: VISUALIZE ADDITIVE REWARDS ---
             if (Owner != PlayerColor.None)
             {
-                string reward = HasTotalControl
-                    ? $"+{TotalControlAmount} {TotalControlResource} (MAX)"
-                    : $"+{ControlAmount} {ControlResource}";
-                text += $"\n{reward}";
+                // A. Always show the Base Control Reward
+                text += $"\n[Control: +{ControlAmount} {ControlResource}]";
+
+                // B. If Total Control, APPEND the Bonus (Don't replace!)
+                if (HasTotalControl)
+                {
+                    text += $"\n[TOTAL BONUS: +{TotalControlAmount} {TotalControlResource}]";
+                }
             }
             else
             {
-                // Show potential
+                // Neutral view
                 text += $"\n({ControlAmount} {ControlResource})";
             }
 
-            Vector2 textSize = font.MeasureString(text);
-
-            // Center the text
-            Vector2 textOrigin = new Vector2(textSize.X / 2, textSize.Y / 2);
+            Vector2 textPos = new Vector2(Bounds.X + 10, Bounds.Y + 10);
 
             // Draw Shadow
-            spriteBatch.DrawString(font, text, drawPos + new Vector2(1, 1), Color.Black, 0f, textOrigin, 1f, SpriteEffects.None, 0f);
-            // Draw Text
-            spriteBatch.DrawString(font, text, drawPos, IsCity ? Color.Gold : Color.LightGray, 0f, textOrigin, 1f, SpriteEffects.None, 0f);
+            spriteBatch.DrawString(font, text, textPos + new Vector2(1, 1), Color.Black);
+            // Draw Text (Gold for Cities, LightGray for Sites)
+            spriteBatch.DrawString(font, text, textPos, IsCity ? Color.Gold : Color.LightGray);
         }
 
         private Color GetColor(PlayerColor p)

@@ -18,13 +18,11 @@ namespace ChaosWarlords
         private SpriteFont _defaultFont;
         private SpriteFont _smallFont;
 
-        // SYSTEMS
         private InputManager _inputManager;
         private UIManager _uiManager;
         private MapManager _mapManager;
         private MarketManager _marketManager;
 
-        // STATE
         private Player _activePlayer;
         private bool _isMarketOpen = false;
 
@@ -57,25 +55,21 @@ namespace ChaosWarlords
 
             GameLogger.Initialize();
 
-            // 1. INIT SYSTEMS
             _inputManager = new InputManager();
             _uiManager = new UIManager(GraphicsDevice, _defaultFont, _smallFont);
 
-            // 2. LOAD DATA
             string cardJsonPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Content", "data", "cards.json");
             CardDatabase.Load(cardJsonPath, _pixelTexture);
 
             _marketManager = new MarketManager();
             _marketManager.InitializeDeck(CardDatabase.GetAllMarketCards());
 
-            // 3. SETUP PLAYER
             _activePlayer = new Player(PlayerColor.Red);
             for (int i = 0; i < 3; i++) _activePlayer.Deck.Add(CardFactory.CreateSoldier(_pixelTexture));
             for (int i = 0; i < 7; i++) _activePlayer.Deck.Add(CardFactory.CreateNoble(_pixelTexture));
             _activePlayer.DrawCards(5);
             ArrangeHandVisuals();
 
-            // 4. SETUP MAP
             string mapPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Content", "data", "map.json");
             if (File.Exists(mapPath))
             {
@@ -84,9 +78,10 @@ namespace ChaosWarlords
             }
             else
             {
+                // Fallback test
                 var nodes = MapFactory.CreateTestMap(_pixelTexture);
                 var sites = new List<Site>();
-                var testSite = new Site("Test City", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
+                var testSite = new Site("Test City", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2) { IsCity = true };
                 testSite.AddNode(nodes[0]);
                 testSite.AddNode(nodes[1]);
                 sites.Add(testSite);
@@ -113,25 +108,21 @@ namespace ChaosWarlords
 
         protected override void Update(GameTime gameTime)
         {
-            // 1. UPDATE INPUT
             _inputManager.Update();
 
             if (_inputManager.IsKeyJustPressed(Keys.Escape)) Exit();
 
-            // 2. END TURN (Enter)
             if (_inputManager.IsKeyJustPressed(Keys.Enter))
             {
                 EndTurn();
             }
 
-            // 3. UI TOGGLES
             if (_inputManager.IsLeftMouseJustClicked() && _uiManager.IsMarketButtonHovered(_inputManager))
             {
                 _isMarketOpen = !_isMarketOpen;
-                return; // Stop processing this click
+                return;
             }
 
-            // 4. GAMEPLAY LOGIC
             if (_isMarketOpen)
             {
                 UpdateMarketLogic();
@@ -146,12 +137,8 @@ namespace ChaosWarlords
 
         private void UpdateMarketLogic()
         {
-            // Only update the market logic (hovering, buying)
-            // Note: We pass the raw mouse state for compatibility with existing managers for now, 
-            // but eventually managers should use InputManager too.
             _marketManager.Update(_inputManager.GetMouseState(), _activePlayer);
 
-            // Close if clicked outside
             if (_inputManager.IsLeftMouseJustClicked())
             {
                 bool clickedOnCard = false;
@@ -160,7 +147,6 @@ namespace ChaosWarlords
                     if (card.IsHovered) clickedOnCard = true;
                 }
 
-                // If clicked void and NOT button (handled in main update)
                 if (!clickedOnCard && !_uiManager.IsMarketButtonHovered(_inputManager))
                 {
                     _isMarketOpen = false;
@@ -172,7 +158,6 @@ namespace ChaosWarlords
         {
             bool clickHandled = false;
 
-            // A. Update Hand (Play Cards)
             for (int i = _activePlayer.Hand.Count - 1; i >= 0; i--)
             {
                 var card = _activePlayer.Hand[i];
@@ -186,13 +171,11 @@ namespace ChaosWarlords
                 }
             }
 
-            // B. Update Map (Deploy)
             if (!clickHandled)
             {
                 _mapManager.Update(_inputManager.GetMouseState(), _activePlayer);
             }
 
-            // C. Visual Updates
             foreach (var card in _activePlayer.PlayedCards) card.Update(gameTime, _inputManager.GetMouseState());
         }
 
@@ -218,15 +201,15 @@ namespace ChaosWarlords
         {
             GameLogger.Log("--- TURN ENDED ---", LogChannel.General);
 
-            // Clean up old resources first
+            // Clean up old resources
             _activePlayer.CleanUpTurn();
 
-            // Collect Income for new turn
+            // Collect Income for new turn (ONLY for Cities!)
             if (_mapManager.Sites != null)
             {
                 foreach (var site in _mapManager.Sites)
                 {
-                    if (site.Owner == _activePlayer.Color)
+                    if (site.Owner == _activePlayer.Color && site.IsCity) // <--- FIX: Added !site.IsCity check
                     {
                         ApplyReward(site.ControlResource, site.ControlAmount);
                         GameLogger.Log($"Site Control: {site.Name} gave +{site.ControlAmount} {site.ControlResource}", LogChannel.Economy);
@@ -258,21 +241,17 @@ namespace ChaosWarlords
             GraphicsDevice.Clear(Color.DarkSlateBlue);
             _spriteBatch.Begin();
 
-            // 1. Draw World
             _mapManager.Draw(_spriteBatch, _defaultFont);
 
-            // Draw Hand (Behind market)
             foreach (var card in _activePlayer.Hand) card.Draw(_spriteBatch, _defaultFont);
             foreach (var card in _activePlayer.PlayedCards) card.Draw(_spriteBatch, _defaultFont);
 
-            // 2. Draw Market Overlay
             if (_isMarketOpen)
             {
                 _uiManager.DrawMarketOverlay(_spriteBatch);
                 _marketManager.Draw(_spriteBatch, _defaultFont);
             }
 
-            // 3. Draw UI Chrome
             _uiManager.DrawMarketButton(_spriteBatch, _isMarketOpen);
             _uiManager.DrawTopBar(_spriteBatch, _activePlayer);
 

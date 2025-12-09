@@ -82,9 +82,15 @@ namespace ChaosWarlords.Source.Utilities
 
                         var newSite = new Site(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
 
-                        // --- ADD THIS LINE ---
-                        newSite.IsCity = s.IsCity;
-                        // ---------------------
+                        // LOGIC: Set IsCity based on Name
+                        if (s.Name.Contains("City"))
+                        {
+                            newSite.IsCity = true;
+                        }
+                        else
+                        {
+                            newSite.IsCity = false;
+                        }
 
                         foreach (int nodeId in s.NodeIds)
                         {
