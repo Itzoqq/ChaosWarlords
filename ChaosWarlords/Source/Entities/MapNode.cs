@@ -12,7 +12,7 @@ namespace ChaosWarlords.Source.Entities
         public int Id { get; private set; }
         public Vector2 Position { get; set; }
         public PlayerColor Occupant { get; set; } = PlayerColor.None;
-        
+
         // Navigation: Which other nodes are connected to this one?
         // We will use this later to calculate "Presence"
         public List<MapNode> Neighbors { get; private set; } = new List<MapNode>();
@@ -35,7 +35,7 @@ namespace ChaosWarlords.Source.Entities
             {
                 Neighbors.Add(node);
                 // Bi-directional connection
-                node.Neighbors.Add(this); 
+                node.Neighbors.Add(this);
             }
         }
 
@@ -60,13 +60,13 @@ namespace ChaosWarlords.Source.Entities
 
             // Draw the circle (centered)
             Vector2 origin = new Vector2(_texture.Width / 2f, _texture.Height / 2f);
-            
+
             // Scale: simple math to make our 1x1 pixel into a circle of 'Radius' size
             // (Note: In a real game we would load a circular PNG, but we are using the magic pixel for now)
             Rectangle rect = new Rectangle(
-                (int)(Position.X - Radius), 
-                (int)(Position.Y - Radius), 
-                Radius * 2, 
+                (int)(Position.X - Radius),
+                (int)(Position.Y - Radius),
+                Radius * 2,
                 Radius * 2);
 
             spriteBatch.Draw(_texture, rect, drawColor);

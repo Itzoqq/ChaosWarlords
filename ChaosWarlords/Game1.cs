@@ -40,9 +40,19 @@ namespace ChaosWarlords
 
         protected override void Initialize()
         {
-            _graphics.PreferredBackBufferWidth = 1280;
-            _graphics.PreferredBackBufferHeight = 720;
+            // 1. Set resolution to the user's native screen resolution
+            _graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+            _graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+
+            // 2. Enable Fullscreen
+            _graphics.IsFullScreen = true;
+
+            // 3. "HardwareModeSwitch = false" creates a Borderless Window (Soft Fullscreen)
+            // If you set this to 'true', it gives you Exclusive Fullscreen (harder to Alt-Tab)
+            _graphics.HardwareModeSwitch = false;
+
             _graphics.ApplyChanges();
+
             base.Initialize();
         }
 
@@ -107,17 +117,36 @@ namespace ChaosWarlords
 
             _mapManager.PixelTexture = _pixelTexture;
 
+            // --- Center the map on the screen ---
+            _mapManager.CenterMap(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
+
             // 6. UI SETUP
-            _marketButtonRect = new Rectangle(0, (720 / 2) - 50, 40, 100);
+            int screenHeight = _graphics.PreferredBackBufferHeight;
+            int btnHeight = 100;
+
+            // Mathematically center on the Y axis
+            _marketButtonRect = new Rectangle(0, (screenHeight / 2) - (btnHeight / 2), 40, btnHeight);
         }
 
         private void ArrangeHandVisuals()
         {
-            int startX = 100;
-            int gap = 160;
+            int cardWidth = 150; // Defined in Card.cs
+            int gap = 10;        // Space between cards
+            int totalHandWidth = (_activePlayer.Hand.Count * cardWidth) + ((_activePlayer.Hand.Count - 1) * gap);
+
+            int screenWidth = _graphics.GraphicsDevice.Viewport.Width;
+            int screenHeight = _graphics.GraphicsDevice.Viewport.Height;
+
+            // Calculate Start X so the whole block is centered
+            int startX = (screenWidth - totalHandWidth) / 2;
+
+            // Calculate Y so it sits at the bottom with some padding
+            int startY = screenHeight - 200 - 20; // Height - CardHeight - Padding
+
             for (int i = 0; i < _activePlayer.Hand.Count; i++)
             {
-                _activePlayer.Hand[i].Position = new Vector2(startX + (i * gap), 500);
+                // Calculate position for each card
+                _activePlayer.Hand[i].Position = new Vector2(startX + (i * (cardWidth + gap)), startY);
             }
         }
 
@@ -231,7 +260,7 @@ namespace ChaosWarlords
             // 2. COLLECT SITE INCOME (For the NEXT turn)
             if (_mapManager.Sites != null)
             {
-                foreach (var site in _mapManager.Sites) 
+                foreach (var site in _mapManager.Sites)
                 {
                     if (site.Owner == _activePlayer.Color)
                     {
@@ -252,7 +281,7 @@ namespace ChaosWarlords
             // 3. Draw new Hand
             _activePlayer.DrawCards(5);
             ArrangeHandVisuals();
-            
+
             GameLogger.Log($"New Hand Drawn. Deck: {_activePlayer.Deck.Count}. Current VP: {_activePlayer.VictoryPoints}", LogChannel.General);
         }
 
@@ -281,7 +310,10 @@ namespace ChaosWarlords
             // --- MARKET OVERLAY ---
             if (_isMarketOpen)
             {
-                _spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, 1280, 720), Color.Black * 0.7f);
+                int w = GraphicsDevice.Viewport.Width;
+                int h = GraphicsDevice.Viewport.Height;
+
+                _spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, w, h), Color.Black * 0.7f);
                 _marketManager.Draw(_spriteBatch, _defaultFont);
                 if (_defaultFont != null)
                     _spriteBatch.DrawString(_defaultFont, "MARKET (Buy Cards)", new Vector2(580, 20), Color.Gold);
@@ -310,8 +342,6 @@ namespace ChaosWarlords
                 _spriteBatch.DrawString(_defaultFont, $"VP: {_activePlayer.VictoryPoints}", new Vector2(300, 10), Color.Lime);
                 _spriteBatch.DrawString(_defaultFont, $"Deck: {_activePlayer.Deck.Count}", new Vector2(400, 10), Color.White);
             }
-
-            GameLogger.Draw(_spriteBatch, _defaultFont);
 
             _spriteBatch.End();
             base.Draw(gameTime);

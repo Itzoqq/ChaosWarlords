@@ -14,7 +14,7 @@ namespace ChaosWarlords.Source.Entities
         public string Description { get; set; }
         public int Cost { get; private set; }
         public CardAspect Aspect { get; private set; }
-        
+
         // Victory Points
         public int DeckVP { get; private set; }      // Points if in deck at end
         public int InnerCircleVP { get; private set; } // Points if promoted
@@ -95,7 +95,7 @@ namespace ChaosWarlords.Source.Entities
                         if (effect.TargetResource == ResourceType.Influence) effectText += $"+{effect.Amount} Influence\n";
                     }
                 }
-                
+
                 // Draw the effect text centered-ish
                 spriteBatch.DrawString(font, effectText, Position + new Vector2(10, 50), Color.Yellow);
 

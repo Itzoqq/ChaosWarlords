@@ -36,19 +36,19 @@ namespace ChaosWarlords.Source.Utilities
         public static void Load(string filePath, Texture2D defaultTexture)
         {
             _defaultTexture = defaultTexture;
-            
-            try 
+
+            try
             {
                 string jsonString = File.ReadAllText(filePath);
                 var cards = JsonSerializer.Deserialize<List<CardData>>(jsonString);
-                
-                foreach(var c in cards)
+
+                foreach (var c in cards)
                 {
                     _definitions[c.Id] = c;
                 }
                 GameLogger.Log($"Loaded {_definitions.Count} card definitions.", LogChannel.General);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 GameLogger.Log(ex);
             }
@@ -63,7 +63,7 @@ namespace ChaosWarlords.Source.Utilities
             }
 
             var data = _definitions[cardId];
-            
+
             // Parse Enums
             Enum.TryParse(data.Aspect, out CardAspect aspect);
 
@@ -71,7 +71,7 @@ namespace ChaosWarlords.Source.Utilities
             card.Description = data.Description;
             card.SetTexture(_defaultTexture); // In future, load specific texture by ID
 
-            foreach(var effData in data.Effects)
+            foreach (var effData in data.Effects)
             {
                 Enum.TryParse(effData.Type, out EffectType eType);
                 Enum.TryParse(effData.TargetResource, out ResourceType rType);
@@ -80,15 +80,15 @@ namespace ChaosWarlords.Source.Utilities
 
             return card;
         }
-        
+
         public static List<Card> GetAllMarketCards()
         {
             // For now, return a list of all loaded cards to populate the market deck
             List<Card> allCards = new List<Card>();
-            foreach(var key in _definitions.Keys)
+            foreach (var key in _definitions.Keys)
             {
                 // In a real game, you'd check if the card belongs to the "Market Deck" vs "Starter Deck"
-                if(!key.StartsWith("starter")) 
+                if (!key.StartsWith("starter"))
                     allCards.Add(CreateCard(key));
             }
             return allCards;

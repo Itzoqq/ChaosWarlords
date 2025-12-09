@@ -10,10 +10,10 @@ namespace ChaosWarlords.Source.Utilities
         {
             // Equivalent to Tyrants "Minion"
             var card = new Card("starter_soldier", "Chaos Grunt", 0, CardAspect.Neutral, 0, 1);
-            
+
             // Effect: +1 Power
             card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Power));
-            
+
             card.SetTexture(texture);
             card.Description = "+1 Power";
             return card;
@@ -23,10 +23,10 @@ namespace ChaosWarlords.Source.Utilities
         {
             // Equivalent to Tyrants "Noble"
             var card = new Card("starter_noble", "Corrupt Noble", 0, CardAspect.Neutral, 1, 2);
-            
+
             // Effect: +1 Influence
             card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Influence));
-            
+
             card.SetTexture(texture);
             card.Description = "+1 Influence";
             return card;

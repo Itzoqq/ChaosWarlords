@@ -12,7 +12,7 @@ catch (Exception ex)
     // 1. Initialize logger if the crash happened BEFORE LoadContent
     // (This is safe to call multiple times because of your specific implementation)
     // But ideally, we just try to log.
-    
+
     // 2. Log the fatal error
     GameLogger.Log("FATAL CRASH DETECTED", LogChannel.Error);
     GameLogger.Log(ex);

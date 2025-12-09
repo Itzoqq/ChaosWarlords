@@ -50,7 +50,7 @@ namespace ChaosWarlords.Source.Systems
                             currentPlayer.Power -= 1;
                             node.Occupant = currentPlayer.Color;
                             GameLogger.Log($"Deployed Troop at Node {node.Id}. Remaining Power: {currentPlayer.Power}", LogChannel.Combat);
-                            
+
                             // TRIGGER UPDATE with the player who made the move
                             UpdateSiteControl(currentPlayer);
                         }
@@ -63,7 +63,7 @@ namespace ChaosWarlords.Source.Systems
                     {
                         GameLogger.Log($"Invalid Deployment at Node {node.Id}: No Presence!", LogChannel.Error);
                     }
-                    return; 
+                    return;
                 }
             }
         }
@@ -80,7 +80,7 @@ namespace ChaosWarlords.Source.Systems
 
                 // 2. Count Troops
                 int redCount = 0;
-                int blueCount = 0; 
+                int blueCount = 0;
                 int neutralCount = 0;
                 int totalSpots = site.Nodes.Count;
 
@@ -100,12 +100,12 @@ namespace ChaosWarlords.Source.Systems
                                        (newOwner == PlayerColor.Blue && blueCount == totalSpots);
 
                 // 4. APPLY CHANGES & IMMEDIATE REWARDS
-                
+
                 // Case A: Control Gained (Majority)
                 if (newOwner != previousOwner)
                 {
                     site.Owner = newOwner; // Update state
-                    
+
                     if (newOwner == activePlayer.Color)
                     {
                         // IMMEDIATE REWARD!
@@ -115,7 +115,7 @@ namespace ChaosWarlords.Source.Systems
                     else if (newOwner != PlayerColor.None)
                     {
                         // Someone else took it
-                         GameLogger.Log($"{site.Name} was taken by {newOwner}!", LogChannel.Combat);
+                        GameLogger.Log($"{site.Name} was taken by {newOwner}!", LogChannel.Combat);
                     }
                 }
 
@@ -205,6 +205,52 @@ namespace ChaosWarlords.Source.Systems
                 new Vector2(0, 0.5f),
                 SpriteEffects.None,
                 0);
+        }
+
+        public void CenterMap(int screenWidth, int screenHeight)
+        {
+            if (_nodes.Count == 0) return;
+
+            // 1. Find the bounds of the current map
+            float minX = float.MaxValue, minY = float.MaxValue;
+            float maxX = float.MinValue, maxY = float.MinValue;
+
+            foreach (var node in _nodes)
+            {
+                if (node.Position.X < minX) minX = node.Position.X;
+                if (node.Position.Y < minY) minY = node.Position.Y;
+                if (node.Position.X > maxX) maxX = node.Position.X;
+                if (node.Position.Y > maxY) maxY = node.Position.Y;
+            }
+
+            // 2. Calculate the center of the map bounds
+            float mapCenterX = (minX + maxX) / 2f;
+            float mapCenterY = (minY + maxY) / 2f;
+
+            // 3. Calculate the center of the screen
+            float screenCenterX = screenWidth / 2f;
+            float screenCenterY = screenHeight / 2f;
+
+            // 4. Determine the offset needed
+            Vector2 offset = new Vector2(screenCenterX - mapCenterX, screenCenterY - mapCenterY);
+
+            // 5. Apply offset to ALL nodes
+            foreach (var node in _nodes)
+            {
+                node.Position += offset;
+            }
+
+            // 6. Recalculate Site centers (since nodes moved)
+            if (Sites != null)
+            {
+                foreach (var site in Sites)
+                {
+                    // We need to re-run the internal centering logic. 
+                    // Since that logic is private in Site.cs, we can either make it public or just 
+                    // manually update the label position by the same offset.
+                    site.LabelPosition += offset;
+                }
+            }
         }
 
         public Texture2D PixelTexture { get; set; }
