@@ -218,27 +218,6 @@ namespace ChaosWarlords.Source.Systems
 
             UpdateSiteControl(requestingPlayer);
         }
-        public bool HasPresence(MapNode targetNode, PlayerColor player)
-        {
-            // Rule: If board is empty of your troops, you have presence everywhere
-            bool hasAnyTroops = false;
-            foreach (var n in _nodes)
-            {
-                if (n.Occupant == player)
-                {
-                    hasAnyTroops = true;
-                    break;
-                }
-            }
-            if (!hasAnyTroops) return true;
-
-            // Otherwise, check neighbors
-            foreach (var neighbor in targetNode.Neighbors)
-            {
-                if (neighbor.Occupant == player) return true;
-            }
-            return false;
-        }
 
         public void Supplant(MapNode node, Player attacker)
         {
@@ -256,10 +235,22 @@ namespace ChaosWarlords.Source.Systems
             UpdateSiteControl(attacker);
         }
 
-        public bool CanDeployAt(MapNode targetNode, PlayerColor player)
+        public bool CanAssassinate(MapNode target, Player attacker)
         {
-            if (targetNode.Occupant != PlayerColor.None) return false;
+            // Must be occupied
+            if (target.Occupant == PlayerColor.None) return false;
 
+            // Cannot assassinate yourself
+            if (target.Occupant == attacker.Color) return false;
+
+            // Must have "Presence" (Site-aware adjacency)
+            return HasPresence(target, attacker.Color);
+        }
+
+        // 2. UPDATE/REPLACE THIS METHOD
+        public bool HasPresence(MapNode targetNode, PlayerColor player)
+        {
+            // Rule: If board is empty of your troops, you have presence everywhere
             bool hasAnyTroops = false;
             foreach (var n in _nodes)
             {
@@ -269,15 +260,45 @@ namespace ChaosWarlords.Source.Systems
                     break;
                 }
             }
-
             if (!hasAnyTroops) return true;
 
-            foreach (var neighbor in targetNode.Neighbors)
+            // --- NEW LOGIC START ---
+
+            // Determine Scope: Are we targeting a specific Node, or the whole Site?
+            Site parentSite = GetSiteForNode(targetNode);
+            List<MapNode> nodesToCheck = new List<MapNode>();
+
+            if (parentSite != null)
             {
-                if (neighbor.Occupant == player) return true;
+                // If the node is part of a Site, we check adjacency to ANY node in that Site
+                nodesToCheck.AddRange(parentSite.Nodes);
+            }
+            else
+            {
+                // Otherwise, just check the single node
+                nodesToCheck.Add(targetNode);
             }
 
+            // Check neighbors of the defined scope
+            foreach (var node in nodesToCheck)
+            {
+                foreach (var neighbor in node.Neighbors)
+                {
+                    if (neighbor.Occupant == player) return true;
+                }
+            }
+            // --- NEW LOGIC END ---
+
             return false;
+        }
+
+        // 3. (Optional but Recommended) UPDATE THIS METHOD TO USE THE FIX
+        public bool CanDeployAt(MapNode targetNode, PlayerColor player)
+        {
+            if (targetNode.Occupant != PlayerColor.None) return false;
+
+            // Reuse the new site-aware logic!
+            return HasPresence(targetNode, player);
         }
 
         public MapNode GetHoveredNode()

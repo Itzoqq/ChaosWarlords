@@ -221,10 +221,8 @@ namespace ChaosWarlords
 
                     if (_currentState == GameState.TargetingAssassinate)
                     {
-                        // Rule: Enemy + Presence
-                        if (target.Occupant != PlayerColor.None &&
-                            target.Occupant != _activePlayer.Color &&
-                            _mapManager.HasPresence(target, _activePlayer.Color))
+                        // UPDATED: Now calls MapManager to check Site-wide adjacency rules
+                        if (_mapManager.CanAssassinate(target, _activePlayer))
                         {
                             _mapManager.Assassinate(target, _activePlayer);
                             success = true;
@@ -232,7 +230,7 @@ namespace ChaosWarlords
                     }
                     else if (_currentState == GameState.TargetingReturn)
                     {
-                        // Rule: Occupied + Presence + Not Neutral
+                        // UPDATED: Relies on the fixed HasPresence() in MapManager to work across Sites
                         if (target.Occupant != PlayerColor.None &&
                             _mapManager.HasPresence(target, _activePlayer.Color))
                         {
@@ -249,10 +247,8 @@ namespace ChaosWarlords
                     }
                     else if (_currentState == GameState.TargetingSupplant)
                     {
-                        // Rule: Enemy + Presence + Supply
-                        if (target.Occupant != PlayerColor.None &&
-                            target.Occupant != _activePlayer.Color &&
-                            _mapManager.HasPresence(target, _activePlayer.Color))
+                        // UPDATED: Uses CanAssassinate to verify valid enemy target + Presence
+                        if (_mapManager.CanAssassinate(target, _activePlayer))
                         {
                             if (_activePlayer.TroopsInBarracks > 0)
                             {
@@ -274,7 +270,7 @@ namespace ChaosWarlords
                             ResolveCardEffects(_pendingCard);
                             MoveCardToPlayed(_pendingCard);
                         }
-                        // Handle POWER Usage (Global Action)
+                        // Handle POWER Usage (Global Action: Kill Button)
                         else if (_currentState == GameState.TargetingAssassinate)
                         {
                             _activePlayer.Power -= 3;
@@ -287,14 +283,24 @@ namespace ChaosWarlords
                     }
                     else
                     {
-                        // If logic failed (e.g. no presence, neutral target), 
-                        // we intentionally DO NOT reset state, allowing the player to try again.
+                        // Error Logging / Feedback
                         if (target.Occupant == PlayerColor.None)
+                        {
                             GameLogger.Log("Invalid Target: Empty Node.", LogChannel.Error);
-                        else if (!success && target.Occupant == PlayerColor.Neutral && _currentState == GameState.TargetingReturn)
-                        { /* Already logged above */ }
+                        }
+                        else if (!success && _currentState == GameState.TargetingReturn && target.Occupant == PlayerColor.Neutral)
+                        {
+                            // Already logged specific error above
+                        }
+                        else if (!success && _currentState == GameState.TargetingSupplant && _activePlayer.TroopsInBarracks == 0)
+                        {
+                            // Already logged barracks error
+                        }
                         else if (!success)
-                            GameLogger.Log("Invalid Target! (Check Presence rules)", LogChannel.Error);
+                        {
+                            // General fallback for "No Presence" or "Invalid Target"
+                            GameLogger.Log("Invalid Target! (Check Presence/Adjacency rules)", LogChannel.Error);
+                        }
                     }
                 }
             }
