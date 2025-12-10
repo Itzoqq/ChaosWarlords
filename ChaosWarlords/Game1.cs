@@ -243,83 +243,94 @@ namespace ChaosWarlords
         {
             _mapManager.Update(_inputManager.GetMouseState(), _activePlayer);
 
-            // EVERYTHING must happen strictly on Click
             if (_inputManager.IsLeftMouseJustClicked())
             {
                 MapNode targetNode = _mapManager.GetHoveredNode();
                 Site targetSite = _mapManager.GetHoveredSite(_inputManager.MousePosition);
                 bool success = false;
 
-                // --- 1. TROOP TARGETING ACTIONS ---
-                if (targetNode != null)
+                // --- LOGIC SPLIT BY STATE, NOT BY HIT ---
+
+                // GROUP A: Actions that target NODES (Troops)
+                if (_currentState == GameState.TargetingAssassinate ||
+                    _currentState == GameState.TargetingReturn ||
+                    _currentState == GameState.TargetingSupplant)
                 {
-                    if (_currentState == GameState.TargetingAssassinate)
+                    if (targetNode != null)
                     {
-                        if (_mapManager.CanAssassinate(targetNode, _activePlayer))
+                        if (_currentState == GameState.TargetingAssassinate)
                         {
-                            _mapManager.Assassinate(targetNode, _activePlayer);
-                            success = true;
-                        }
-                        else GameLogger.Log("Invalid Target! Need Presence or cannot target self/empty.", LogChannel.Error);
-                    }
-                    else if (_currentState == GameState.TargetingReturn)
-                    {
-                        if (targetNode.Occupant != PlayerColor.None && _mapManager.HasPresence(targetNode, _activePlayer.Color))
-                        {
-                            if (targetNode.Occupant == PlayerColor.Neutral) GameLogger.Log("Cannot return Neutral troops.", LogChannel.Error);
-                            else
+                            if (_mapManager.CanAssassinate(targetNode, _activePlayer))
                             {
-                                _mapManager.ReturnTroop(targetNode, _activePlayer);
+                                _mapManager.Assassinate(targetNode, _activePlayer);
                                 success = true;
                             }
+                            else GameLogger.Log("Invalid Target! Need Presence or cannot target self/empty.", LogChannel.Error);
                         }
-                        else GameLogger.Log("Invalid Return Target.", LogChannel.Error);
-                    }
-                    else if (_currentState == GameState.TargetingSupplant)
-                    {
-                        if (_mapManager.CanAssassinate(targetNode, _activePlayer))
+                        else if (_currentState == GameState.TargetingReturn)
                         {
-                            if (_activePlayer.TroopsInBarracks > 0)
+                            if (targetNode.Occupant != PlayerColor.None && _mapManager.HasPresence(targetNode, _activePlayer.Color))
                             {
-                                _mapManager.Supplant(targetNode, _activePlayer);
+                                if (targetNode.Occupant == PlayerColor.Neutral) GameLogger.Log("Cannot return Neutral troops.", LogChannel.Error);
+                                else
+                                {
+                                    _mapManager.ReturnTroop(targetNode, _activePlayer);
+                                    success = true;
+                                }
+                            }
+                            else GameLogger.Log("Invalid Return Target.", LogChannel.Error);
+                        }
+                        else if (_currentState == GameState.TargetingSupplant)
+                        {
+                            if (_mapManager.CanAssassinate(targetNode, _activePlayer))
+                            {
+                                if (_activePlayer.TroopsInBarracks > 0)
+                                {
+                                    _mapManager.Supplant(targetNode, _activePlayer);
+                                    success = true;
+                                }
+                                else GameLogger.Log("Barracks Empty!", LogChannel.Error);
+                            }
+                        }
+                    }
+                }
+                // GROUP B: Actions that target SITES (Spies)
+                else if (_currentState == GameState.TargetingPlaceSpy ||
+                         _currentState == GameState.TargetingReturnSpy)
+                {
+                    // FIX: If we clicked a Node, we likely meant the Site underneath it.
+                    // If targetSite is null but targetNode is NOT, check if the node belongs to a site.
+                    // (But usually GetHoveredSite works on bounds, so targetSite should ALREADY be valid 
+                    // even if clicking a node, as long as we don't 'else' it away!)
+
+                    if (targetSite != null)
+                    {
+                        if (_currentState == GameState.TargetingPlaceSpy)
+                        {
+                            if (targetSite.Spies.Contains(_activePlayer.Color))
+                            {
+                                GameLogger.Log("You already have a spy here.", LogChannel.Error);
+                            }
+                            else if (_activePlayer.SpiesInBarracks > 0)
+                            {
+                                _mapManager.PlaceSpy(targetSite, _activePlayer);
                                 success = true;
                             }
-                            else GameLogger.Log("Barracks Empty!", LogChannel.Error);
+                            else GameLogger.Log("No Spies in Barracks!", LogChannel.Error);
+                        }
+                        else if (_currentState == GameState.TargetingReturnSpy)
+                        {
+                            if (_mapManager.ReturnSpy(targetSite, _activePlayer))
+                            {
+                                success = true;
+                            }
                         }
                     }
                 }
 
-                // --- 2. SITE TARGETING ACTIONS ---
-                else if (targetSite != null)
-                {
-                    // This was MISSING in your previous code
-                    if (_currentState == GameState.TargetingPlaceSpy)
-                    {
-                        // Check if we already have a spy here
-                        if (targetSite.Spies.Contains(_activePlayer.Color))
-                        {
-                            GameLogger.Log("You already have a spy here.", LogChannel.Error);
-                        }
-                        else if (_activePlayer.SpiesInBarracks > 0)
-                        {
-                            _mapManager.PlaceSpy(targetSite, _activePlayer);
-                            success = true;
-                        }
-                        else GameLogger.Log("No Spies in Barracks!", LogChannel.Error);
-                    }
-                    else if (_currentState == GameState.TargetingReturnSpy)
-                    {
-                        if (_mapManager.ReturnSpy(targetSite, _activePlayer))
-                        {
-                            success = true;
-                        }
-                    }
-                }
-
-                // --- 3. FINALIZE ---
+                // --- FINALIZE ---
                 if (success)
                 {
-                    // If triggered by a specific button (No card) -> Pay Power
                     if (_pendingCard == null)
                     {
                         if (_currentState == GameState.TargetingAssassinate || _currentState == GameState.TargetingReturnSpy)
@@ -328,7 +339,6 @@ namespace ChaosWarlords
                             GameLogger.Log("Power deducted: 3", LogChannel.Economy);
                         }
                     }
-                    // If triggered by a Card -> Resolve Effects
                     else
                     {
                         ResolveCardEffects(_pendingCard);
