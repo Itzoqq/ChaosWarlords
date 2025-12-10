@@ -19,6 +19,7 @@ namespace ChaosWarlords.Source.Entities
 
         public List<MapNode> Nodes { get; private set; } = new List<MapNode>();
         public PlayerColor Owner { get; set; } = PlayerColor.None;
+        public HashSet<PlayerColor> Spies { get; private set; } = new HashSet<PlayerColor>();
         public bool HasTotalControl { get; set; } = false;
 
         // Visual Bounds
@@ -110,6 +111,31 @@ namespace ChaosWarlords.Source.Entities
             spriteBatch.DrawString(font, text, textPos + new Vector2(1, 1), Color.Black);
             // Draw Text (Gold for Cities, LightGray for Sites)
             spriteBatch.DrawString(font, text, textPos, IsCity ? Color.Gold : Color.LightGray);
+
+            // 4. Draw Spies (Top Left Corner, below text)
+            int spySize = 12;
+            int startX = Bounds.X - (spySize / 2);
+            int startY = Bounds.Y - (spySize / 2);
+            int i = 0;
+
+            foreach (var spyColor in Spies)
+            {
+                Color drawColor = GetColor(spyColor);
+
+                // Position: Top Left, moving slightly right for each additional spy
+                Vector2 spyPos = new Vector2(startX + (i * (spySize + 2)), startY);
+
+                // Draw Spy (Circle representation)
+                // Since we use a 1x1 pixel, we draw a small square to represent the unit/spy for now
+                Rectangle spyRect = new Rectangle((int)spyPos.X, (int)spyPos.Y, spySize, spySize);
+
+                // Draw a black outline for visibility
+                spriteBatch.Draw(pixelTexture, new Rectangle(spyRect.X - 1, spyRect.Y - 1, spyRect.Width + 2, spyRect.Height + 2), Color.Black);
+                // Draw the spy color
+                spriteBatch.Draw(pixelTexture, spyRect, drawColor);
+
+                i++;
+            }
         }
 
         private Color GetColor(PlayerColor p)

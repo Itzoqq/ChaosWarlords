@@ -37,7 +37,8 @@ namespace ChaosWarlords.Source.Utilities
         Supplant,
         Promote,
         DrawCard,
-        Devour
+        Devour,
+        PlaceSpy
     }
 
     public enum PlayerColor

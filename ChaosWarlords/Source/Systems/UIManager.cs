@@ -11,6 +11,7 @@ namespace ChaosWarlords.Source.Systems
         private Texture2D _pixelTexture;
         private Rectangle _marketButtonRect;
         private Rectangle _assassinateButtonRect;
+        private Rectangle _returnSpyButtonRect;
 
         public int ScreenWidth { get; private set; }
         public int ScreenHeight { get; private set; }
@@ -26,22 +27,34 @@ namespace ChaosWarlords.Source.Systems
             ScreenWidth = graphicsDevice.Viewport.Width;
             ScreenHeight = graphicsDevice.Viewport.Height;
 
-            // Define Market Button Position (Left Edge, Centered)
             int btnHeight = 100;
-            _marketButtonRect = new Rectangle(0, (ScreenHeight / 2) - (btnHeight / 2), 40, btnHeight);
-            _assassinateButtonRect = new Rectangle(ScreenWidth - 40, (ScreenHeight / 2) - (btnHeight / 2), 40, btnHeight);
+            int btnWidth = 40;
+            int verticalGap = 25; // Add a explicit gap between center and buttons
+
+            // 1. Market (Left - Centered)
+            _marketButtonRect = new Rectangle(0, (ScreenHeight / 2) - (btnHeight / 2), btnWidth, btnHeight);
+
+            // 2. Assassinate (Right - Shifted UP by gap)
+            _assassinateButtonRect = new Rectangle(
+                ScreenWidth - btnWidth,
+                (ScreenHeight / 2) - btnHeight - verticalGap,
+                btnWidth,
+                btnHeight
+            );
+
+            // 3. Return Spy (Right - Shifted DOWN by gap)
+            _returnSpyButtonRect = new Rectangle(
+                ScreenWidth - btnWidth,
+                (ScreenHeight / 2) + verticalGap,
+                btnWidth,
+                btnHeight
+            );
         }
 
         // LOGIC: Did we click the toggle button?
-        public bool IsMarketButtonHovered(InputManager input)
-        {
-            return input.IsMouseOver(_marketButtonRect);
-        }
-
-        public bool IsAssassinateButtonHovered(InputManager input)
-        {
-            return input.IsMouseOver(_assassinateButtonRect);
-        }
+        public bool IsMarketButtonHovered(InputManager input) => input.IsMouseOver(_marketButtonRect);
+        public bool IsAssassinateButtonHovered(InputManager input) => input.IsMouseOver(_assassinateButtonRect);
+        public bool IsReturnSpyButtonHovered(InputManager input) => input.IsMouseOver(_returnSpyButtonRect);
 
         // DRAWING METHODS
         public void DrawTopBar(SpriteBatch spriteBatch, Player player)
@@ -57,21 +70,31 @@ namespace ChaosWarlords.Source.Systems
             spriteBatch.DrawString(_defaultFont, $"VP: {player.VictoryPoints}", new Vector2(300, 10), Color.Lime);
 
             // Kill count
-            spriteBatch.DrawString(_defaultFont, $"Trophies: {player.TrophyHall}", new Vector2(350, 10), Color.Red);
+            spriteBatch.DrawString(_defaultFont, $"Trophies: {player.TrophyHall}", new Vector2(400, 10), Color.Red); // Shifted X slightly to make room
 
             // Deck Info (Center-ish)
-            spriteBatch.DrawString(_defaultFont, $"Deck: {player.Deck.Count}", new Vector2(450, 10), Color.White);
-            spriteBatch.DrawString(_defaultFont, $"Discard: {player.DiscardPile.Count}", new Vector2(550, 10), Color.Gray);
+            spriteBatch.DrawString(_defaultFont, $"Deck: {player.Deck.Count}", new Vector2(500, 10), Color.White);
+            spriteBatch.DrawString(_defaultFont, $"Discard: {player.DiscardPile.Count}", new Vector2(600, 10), Color.Gray);
 
-            // --- NEW: Troops Counter (Right Corner) ---
+            // --- RIGHT SIDE: SUPPLIES ---
+
+            // 1. Troops Counter (Rightmost)
             string troopsText = $"Troops: {player.TroopsInBarracks} / 40";
-            Vector2 textSize = _defaultFont.MeasureString(troopsText);
-
-            // Position: ScreenWidth - TextWidth - Padding
-            float rightX = ScreenWidth - textSize.X - 20;
+            Vector2 troopsSize = _defaultFont.MeasureString(troopsText);
+            float troopsX = ScreenWidth - troopsSize.X - 20;
 
             Color troopColor = (player.TroopsInBarracks == 0) ? Color.Red : Color.LightGreen;
-            spriteBatch.DrawString(_defaultFont, troopsText, new Vector2(rightX, 10), troopColor);
+            spriteBatch.DrawString(_defaultFont, troopsText, new Vector2(troopsX, 10), troopColor);
+
+            // 2. Spies Counter (To the left of Troops) <--- NEW
+            string spiesText = $"Spies: {player.SpiesInBarracks} / 5";
+            Vector2 spiesSize = _defaultFont.MeasureString(spiesText);
+
+            // Position: Left of troops text with 30px padding
+            float spiesX = troopsX - spiesSize.X - 30;
+
+            Color spyColor = (player.SpiesInBarracks == 0) ? Color.Red : Color.Violet; // Violet for spies (drow theme)
+            spriteBatch.DrawString(_defaultFont, spiesText, new Vector2(spiesX, 10), spyColor);
         }
 
         public void DrawMarketButton(SpriteBatch spriteBatch, bool isOpen)
@@ -92,13 +115,17 @@ namespace ChaosWarlords.Source.Systems
             }
         }
 
-        public void DrawAssassinateButton(SpriteBatch spriteBatch, Player player)
+        public void DrawActionButtons(SpriteBatch spriteBatch, Player player)
         {
-            bool canAfford = player.Power >= 3;
-            Color btnColor = canAfford ? Color.Red : Color.DarkRed * 0.5f;
-
-            spriteBatch.Draw(_pixelTexture, _assassinateButtonRect, btnColor);
+            // 1. Draw Assassinate Button
+            bool canAffordKill = player.Power >= 3;
+            spriteBatch.Draw(_pixelTexture, _assassinateButtonRect, canAffordKill ? Color.Red : Color.DarkRed * 0.5f);
             DrawVerticalText(spriteBatch, "K\nI\nL\nL\n\n3", _assassinateButtonRect);
+
+            // 2. Draw Return Spy Button <--- NEW
+            bool canAffordSpy = player.Power >= 3;
+            spriteBatch.Draw(_pixelTexture, _returnSpyButtonRect, canAffordSpy ? Color.Violet : Color.Purple * 0.5f);
+            DrawVerticalText(spriteBatch, "H\nU\nN\nT\n\n3", _returnSpyButtonRect);
         }
 
         private void DrawVerticalText(SpriteBatch spriteBatch, string text, Rectangle rect)

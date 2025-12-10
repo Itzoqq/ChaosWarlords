@@ -17,7 +17,7 @@
   },
   {
     "Id": "core_priestess",
-    "Name": "Priestess of Lolth",
+    "Name": "Priestess of Light",
     "Description": "Gain 2 Influence",
     "Cost": 3,
     "Aspect": "Sorcery",
@@ -41,9 +41,8 @@
     "InnerCircleVP": 3,
     "Effects": [
       {
-        "Type": "DeployUnit",
-        "Amount": 1,
-        "TargetResource": "Influence"
+        "Type": "PlaceSpy",
+        "Amount": 1
       }
     ]
   },

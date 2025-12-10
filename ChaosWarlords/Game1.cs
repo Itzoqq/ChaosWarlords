@@ -16,7 +16,9 @@ namespace ChaosWarlords
         Normal,
         TargetingAssassinate,
         TargetingReturn,
-        TargetingSupplant
+        TargetingSupplant,
+        TargetingPlaceSpy,
+        TargetingReturnSpy
     }
 
     public class Game1 : Game
@@ -97,6 +99,19 @@ namespace ChaosWarlords
             }
             _mapManager.PixelTexture = _pixelTexture;
             _mapManager.CenterMap(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
+
+            if (_mapManager.Sites != null)
+            {
+                foreach (var site in _mapManager.Sites)
+                {
+                    // Case-insensitive check for the city name
+                    if (site.Name.ToLower().Contains("city of gold"))
+                    {
+                        site.Spies.Add(PlayerColor.Blue);
+                        GameLogger.Log("TESTING: Blue Spy added to City of Gold.", LogChannel.General);
+                    }
+                }
+            }
         }
 
         private void ArrangeHandVisuals()
@@ -129,32 +144,48 @@ namespace ChaosWarlords
 
             if (_inputManager.IsKeyJustPressed(Keys.Enter)) EndTurn();
 
-            // 1. Market Toggle
-            if (_inputManager.IsLeftMouseJustClicked() && _uiManager.IsMarketButtonHovered(_inputManager))
+            // --- UI BUTTON CLICKS ---
+            if (_inputManager.IsLeftMouseJustClicked())
             {
-                _isMarketOpen = !_isMarketOpen;
-                return;
-            }
-
-            // 2. Assassinate Button (Global Action) -- NEW
-            if (_inputManager.IsLeftMouseJustClicked() && _uiManager.IsAssassinateButtonHovered(_inputManager))
-            {
-                if (_currentState == GameState.Normal && !_isMarketOpen)
+                // 1. Market Toggle
+                if (_uiManager.IsMarketButtonHovered(_inputManager))
                 {
-                    if (_activePlayer.Power >= 3)
+                    _isMarketOpen = !_isMarketOpen;
+                    return;
+                }
+
+                // Only check Action buttons if Market is closed and Normal state
+                if (!_isMarketOpen && _currentState == GameState.Normal)
+                {
+                    // 2. Assassinate Button
+                    if (_uiManager.IsAssassinateButtonHovered(_inputManager))
                     {
-                        _currentState = GameState.TargetingAssassinate;
-                        _pendingCard = null; // No card involved, pure power!
-                        GameLogger.Log("Select a target to Assassinate (Cost: 3 Power)...", LogChannel.General);
+                        if (_activePlayer.Power >= 3)
+                        {
+                            _currentState = GameState.TargetingAssassinate;
+                            _pendingCard = null;
+                            GameLogger.Log("Select a TROOP to Assassinate (Cost: 3 Power)...", LogChannel.General);
+                        }
+                        else GameLogger.Log("Not enough Power! Need 3.", LogChannel.Economy);
+                        return;
                     }
-                    else
+
+                    // 3. Return Spy Button <--- NEW
+                    if (_uiManager.IsReturnSpyButtonHovered(_inputManager))
                     {
-                        GameLogger.Log("Not enough Power! Need 3.", LogChannel.Economy);
+                        if (_activePlayer.Power >= 3)
+                        {
+                            _currentState = GameState.TargetingReturnSpy;
+                            _pendingCard = null;
+                            GameLogger.Log("Select a SITE to remove Enemy Spy (Cost: 3 Power)...", LogChannel.General);
+                        }
+                        else GameLogger.Log("Not enough Power! Need 3.", LogChannel.Economy);
+                        return;
                     }
                 }
-                return;
             }
 
+            // --- GAME LOOP ---
             if (_isMarketOpen)
             {
                 UpdateMarketLogic();
@@ -164,7 +195,7 @@ namespace ChaosWarlords
                 if (_currentState == GameState.Normal)
                     UpdateNormalGameplay(gameTime);
                 else
-                    UpdateTargetingLogic();
+                    UpdateTargetingLogic(); // <--- This method is fixed below
             }
 
             base.Update(gameTime);
@@ -212,96 +243,101 @@ namespace ChaosWarlords
         {
             _mapManager.Update(_inputManager.GetMouseState(), _activePlayer);
 
+            // EVERYTHING must happen strictly on Click
             if (_inputManager.IsLeftMouseJustClicked())
             {
-                MapNode target = _mapManager.GetHoveredNode();
-                if (target != null)
-                {
-                    bool success = false;
+                MapNode targetNode = _mapManager.GetHoveredNode();
+                Site targetSite = _mapManager.GetHoveredSite(_inputManager.MousePosition);
+                bool success = false;
 
+                // --- 1. TROOP TARGETING ACTIONS ---
+                if (targetNode != null)
+                {
                     if (_currentState == GameState.TargetingAssassinate)
                     {
-                        // UPDATED: Now calls MapManager to check Site-wide adjacency rules
-                        if (_mapManager.CanAssassinate(target, _activePlayer))
+                        if (_mapManager.CanAssassinate(targetNode, _activePlayer))
                         {
-                            _mapManager.Assassinate(target, _activePlayer);
+                            _mapManager.Assassinate(targetNode, _activePlayer);
                             success = true;
                         }
+                        else GameLogger.Log("Invalid Target! Need Presence or cannot target self/empty.", LogChannel.Error);
                     }
                     else if (_currentState == GameState.TargetingReturn)
                     {
-                        // UPDATED: Relies on the fixed HasPresence() in MapManager to work across Sites
-                        if (target.Occupant != PlayerColor.None &&
-                            _mapManager.HasPresence(target, _activePlayer.Color))
+                        if (targetNode.Occupant != PlayerColor.None && _mapManager.HasPresence(targetNode, _activePlayer.Color))
                         {
-                            if (target.Occupant == PlayerColor.Neutral)
-                            {
-                                GameLogger.Log("Invalid Target: Cannot Return Neutral troops!", LogChannel.Error);
-                            }
+                            if (targetNode.Occupant == PlayerColor.Neutral) GameLogger.Log("Cannot return Neutral troops.", LogChannel.Error);
                             else
                             {
-                                _mapManager.ReturnTroop(target, _activePlayer);
+                                _mapManager.ReturnTroop(targetNode, _activePlayer);
                                 success = true;
                             }
                         }
+                        else GameLogger.Log("Invalid Return Target.", LogChannel.Error);
                     }
                     else if (_currentState == GameState.TargetingSupplant)
                     {
-                        // UPDATED: Uses CanAssassinate to verify valid enemy target + Presence
-                        if (_mapManager.CanAssassinate(target, _activePlayer))
+                        if (_mapManager.CanAssassinate(targetNode, _activePlayer))
                         {
                             if (_activePlayer.TroopsInBarracks > 0)
                             {
-                                _mapManager.Supplant(target, _activePlayer);
+                                _mapManager.Supplant(targetNode, _activePlayer);
                                 success = true;
                             }
-                            else
-                            {
-                                GameLogger.Log("Cannot Supplant: Barracks Empty!", LogChannel.Error);
-                            }
+                            else GameLogger.Log("Barracks Empty!", LogChannel.Error);
                         }
                     }
+                }
 
-                    if (success)
+                // --- 2. SITE TARGETING ACTIONS ---
+                else if (targetSite != null)
+                {
+                    // This was MISSING in your previous code
+                    if (_currentState == GameState.TargetingPlaceSpy)
                     {
-                        // Handle CARD Usage
-                        if (_pendingCard != null)
+                        // Check if we already have a spy here
+                        if (targetSite.Spies.Contains(_activePlayer.Color))
                         {
-                            ResolveCardEffects(_pendingCard);
-                            MoveCardToPlayed(_pendingCard);
+                            GameLogger.Log("You already have a spy here.", LogChannel.Error);
                         }
-                        // Handle POWER Usage (Global Action: Kill Button)
-                        else if (_currentState == GameState.TargetingAssassinate)
+                        else if (_activePlayer.SpiesInBarracks > 0)
+                        {
+                            _mapManager.PlaceSpy(targetSite, _activePlayer);
+                            success = true;
+                        }
+                        else GameLogger.Log("No Spies in Barracks!", LogChannel.Error);
+                    }
+                    else if (_currentState == GameState.TargetingReturnSpy)
+                    {
+                        if (_mapManager.ReturnSpy(targetSite, _activePlayer))
+                        {
+                            success = true;
+                        }
+                    }
+                }
+
+                // --- 3. FINALIZE ---
+                if (success)
+                {
+                    // If triggered by a specific button (No card) -> Pay Power
+                    if (_pendingCard == null)
+                    {
+                        if (_currentState == GameState.TargetingAssassinate || _currentState == GameState.TargetingReturnSpy)
                         {
                             _activePlayer.Power -= 3;
-                            GameLogger.Log("Expended 3 Power.", LogChannel.Economy);
+                            GameLogger.Log("Power deducted: 3", LogChannel.Economy);
                         }
-
-                        _currentState = GameState.Normal;
-                        _pendingCard = null;
-                        GameLogger.Log("Targeting Complete.", LogChannel.General);
                     }
+                    // If triggered by a Card -> Resolve Effects
                     else
                     {
-                        // Error Logging / Feedback
-                        if (target.Occupant == PlayerColor.None)
-                        {
-                            GameLogger.Log("Invalid Target: Empty Node.", LogChannel.Error);
-                        }
-                        else if (!success && _currentState == GameState.TargetingReturn && target.Occupant == PlayerColor.Neutral)
-                        {
-                            // Already logged specific error above
-                        }
-                        else if (!success && _currentState == GameState.TargetingSupplant && _activePlayer.TroopsInBarracks == 0)
-                        {
-                            // Already logged barracks error
-                        }
-                        else if (!success)
-                        {
-                            // General fallback for "No Presence" or "Invalid Target"
-                            GameLogger.Log("Invalid Target! (Check Presence/Adjacency rules)", LogChannel.Error);
-                        }
+                        ResolveCardEffects(_pendingCard);
+                        MoveCardToPlayed(_pendingCard);
                     }
+
+                    _currentState = GameState.Normal;
+                    _pendingCard = null;
+                    GameLogger.Log("Action Complete.", LogChannel.General);
                 }
             }
         }
@@ -330,6 +366,13 @@ namespace ChaosWarlords
                     _currentState = GameState.TargetingSupplant;
                     _pendingCard = card;
                     GameLogger.Log("Select a target to Supplant... (Right Click to Cancel)", LogChannel.General);
+                    return;
+                }
+                else if (effect.Type == EffectType.PlaceSpy)
+                {
+                    _currentState = GameState.TargetingPlaceSpy;
+                    _pendingCard = card;
+                    GameLogger.Log("Select a Site to Place a Spy... (Right Click to Cancel)", LogChannel.General);
                     return;
                 }
             }
@@ -414,32 +457,31 @@ namespace ChaosWarlords
             GraphicsDevice.Clear(Color.DarkSlateBlue);
             _spriteBatch.Begin();
 
-            // 1. Draw World
             _mapManager.Draw(_spriteBatch, _defaultFont);
 
-            // Draw Hand (Behind market)
             foreach (var card in _activePlayer.Hand) card.Draw(_spriteBatch, _defaultFont);
             foreach (var card in _activePlayer.PlayedCards) card.Draw(_spriteBatch, _defaultFont);
 
-            // 2. Draw Market Overlay
             if (_isMarketOpen)
             {
                 _uiManager.DrawMarketOverlay(_spriteBatch);
                 _marketManager.Draw(_spriteBatch, _defaultFont);
             }
 
-            // 3. Draw UI Chrome
             _uiManager.DrawMarketButton(_spriteBatch, _isMarketOpen);
-            _uiManager.DrawAssassinateButton(_spriteBatch, _activePlayer);
+
+            // UPDATED: Draw the Action Buttons
+            _uiManager.DrawActionButtons(_spriteBatch, _activePlayer);
+
             _uiManager.DrawTopBar(_spriteBatch, _activePlayer);
 
-            // 4. Draw Targeting Cursor (Optional, helps player know state)
+            // Debug Text for State
             if (_currentState != GameState.Normal && _defaultFont != null)
             {
-                string targetText = "SELECT TARGET";
-                if (_currentState == GameState.TargetingAssassinate) targetText = "ASSASSINATE TARGET";
-                if (_currentState == GameState.TargetingReturn) targetText = "RETURN TROOP";
-                if (_currentState == GameState.TargetingSupplant) targetText = "SUPPLANT TARGET";
+                string targetText = "TARGETING...";
+                if (_currentState == GameState.TargetingAssassinate) targetText = "CLICK TROOP TO KILL";
+                if (_currentState == GameState.TargetingPlaceSpy) targetText = "CLICK SITE TO PLACE SPY";
+                if (_currentState == GameState.TargetingReturnSpy) targetText = "CLICK SITE TO HUNT SPY";
 
                 Vector2 mousePos = _inputManager.MousePosition;
                 _spriteBatch.DrawString(_defaultFont, targetText, mousePos + new Vector2(20, 20), Color.Red);

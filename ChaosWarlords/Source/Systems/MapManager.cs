@@ -133,44 +133,42 @@ namespace ChaosWarlords.Source.Systems
                 if (redCount > blueCount && redCount > neutralCount) newOwner = PlayerColor.Red;
                 else if (blueCount > redCount && blueCount > neutralCount) newOwner = PlayerColor.Blue;
 
-                bool newTotalControl = (newOwner == PlayerColor.Red && redCount == totalSpots) ||
-                                       (newOwner == PlayerColor.Blue && blueCount == totalSpots);
+                bool ownsAllNodes = (newOwner == PlayerColor.Red && redCount == totalSpots) ||
+                                    (newOwner == PlayerColor.Blue && blueCount == totalSpots);
+
+                bool hasEnemySpy = false;
+                if (newOwner != PlayerColor.None)
+                {
+                    foreach (var spy in site.Spies)
+                    {
+                        if (spy != newOwner) hasEnemySpy = true;
+                    }
+                }
+
+                bool newTotalControl = ownsAllNodes && !hasEnemySpy;
 
                 // Check Control Change
                 if (newOwner != previousOwner)
                 {
                     site.Owner = newOwner;
-                    if (newOwner == activePlayer.Color)
+                    if (newOwner == activePlayer.Color && site.IsCity)
                     {
-                        // --- FIX: Only CITIES give immediate rewards ---
-                        if (site.IsCity)
-                        {
-                            ApplyReward(activePlayer, site.ControlResource, site.ControlAmount);
-                            GameLogger.Log($"Seized Control of {site.Name}! +{site.ControlAmount} {site.ControlResource}", LogChannel.Economy);
-                        }
-                        else
-                        {
-                            GameLogger.Log($"Seized Control of {site.Name} (Scoring at Game End)", LogChannel.Combat);
-                        }
+                        ApplyReward(activePlayer, site.ControlResource, site.ControlAmount);
+                        GameLogger.Log($"Seized Control of {site.Name}!", LogChannel.Economy);
                     }
                 }
 
-                // Check Total Control Change
                 if (newTotalControl != previousTotal)
                 {
                     site.HasTotalControl = newTotalControl;
-                    if (newTotalControl && newOwner == activePlayer.Color)
+                    if (newTotalControl && newOwner == activePlayer.Color && site.IsCity)
                     {
-                        // --- FIX: Only CITIES give immediate bonuses ---
-                        if (site.IsCity)
-                        {
-                            ApplyReward(activePlayer, site.TotalControlResource, site.TotalControlAmount);
-                            GameLogger.Log($"Total Control established in {site.Name}! +{site.TotalControlAmount} {site.TotalControlResource}", LogChannel.Economy);
-                        }
-                        else
-                        {
-                            GameLogger.Log($"Total Control established in {site.Name} (Scoring at Game End)", LogChannel.Combat);
-                        }
+                        ApplyReward(activePlayer, site.TotalControlResource, site.TotalControlAmount);
+                        GameLogger.Log($"Total Control established in {site.Name}!", LogChannel.Economy);
+                    }
+                    else if (!newTotalControl && previousTotal && previousOwner == activePlayer.Color)
+                    {
+                        GameLogger.Log($"Lost Total Control of {site.Name} (Spies or Troops lost).", LogChannel.Combat);
                     }
                 }
             }
@@ -217,6 +215,70 @@ namespace ChaosWarlords.Source.Systems
             }
 
             UpdateSiteControl(requestingPlayer);
+        }
+
+        public void PlaceSpy(Site site, Player player)
+        {
+            // Rule: Can only place 1 spy per site per player
+            if (site.Spies.Contains(player.Color))
+            {
+                GameLogger.Log("You already have a spy at this site.", LogChannel.Error);
+                return;
+            }
+
+            if (player.SpiesInBarracks > 0)
+            {
+                player.SpiesInBarracks--;
+                site.Spies.Add(player.Color);
+                GameLogger.Log($"Spy placed at {site.Name}.", LogChannel.Combat);
+
+                // Placing a spy might break someone else's Total Control
+                UpdateSiteControl(player);
+            }
+            else
+            {
+                GameLogger.Log("No Spies left in supply!", LogChannel.Error);
+            }
+        }
+
+        public bool ReturnSpy(Site site, Player activePlayer)
+        {
+            // 1. Check for Presence at the site
+            // (We can check presence on any node within the site, as presence is site-wide)
+            if (site.Nodes.Count > 0 && !HasPresence(site.Nodes[0], activePlayer.Color))
+            {
+                GameLogger.Log("Cannot return spy: No Presence at this Site!", LogChannel.Error);
+                return false;
+            }
+
+            // 2. Find an enemy spy
+            PlayerColor spyToRemove = PlayerColor.None;
+            foreach (var spyColor in site.Spies)
+            {
+                if (spyColor != activePlayer.Color && spyColor != PlayerColor.None)
+                {
+                    spyToRemove = spyColor;
+                    break; // Just remove the first enemy found for now
+                }
+            }
+
+            if (spyToRemove == PlayerColor.None)
+            {
+                GameLogger.Log("Invalid Target: No enemy spies at this Site.", LogChannel.Error);
+                return false;
+            }
+
+            // 3. Execute Removal
+            site.Spies.Remove(spyToRemove);
+
+            // In a full multiplayer game, we would find the Player object for 'spyToRemove' 
+            // and increment their SpiesInBarracks. For 2-player local, we assume it's the opponent.
+            GameLogger.Log($"Returned {spyToRemove} Spy from {site.Name} to barracks.", LogChannel.Combat);
+
+            // 4. Recalculate Control (Removing a spy might grant Total Control)
+            UpdateSiteControl(activePlayer);
+
+            return true;
         }
 
         public void Supplant(MapNode node, Player attacker)
@@ -306,6 +368,16 @@ namespace ChaosWarlords.Source.Systems
             foreach (var node in _nodes)
             {
                 if (node.IsHovered) return node;
+            }
+            return null;
+        }
+
+        public Site GetHoveredSite(Vector2 mousePos)
+        {
+            if (Sites == null) return null;
+            foreach (var site in Sites)
+            {
+                if (site.Bounds.Contains(mousePos)) return site;
             }
             return null;
         }

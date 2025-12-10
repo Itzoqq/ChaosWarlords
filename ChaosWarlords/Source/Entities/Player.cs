@@ -14,6 +14,7 @@ namespace ChaosWarlords.Source.Entities
 
         // --- Military ---
         public int TroopsInBarracks { get; set; } = 40; // Starting limit per rules
+        public int SpiesInBarracks { get; set; } = 5; // Starting limit per rules
         public int TrophyHall { get; set; } = 0; // Count of enemy troops assassinated
 
         // --- Card Piles ---
