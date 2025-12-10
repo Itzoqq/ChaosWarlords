@@ -30,13 +30,14 @@ namespace ChaosWarlords.Source.Utilities
     // The command pattern: what does this card actually DO?
     public enum EffectType
     {
-        GainResource,       // +2 Power
-        DeployUnit,         // Place unit on board
-        Assassinate,        // Remove enemy unit
-        ReturnUnit,         // Return unit to hand
-        Promote,            // Move card to Inner Circle (Trash for VP)
-        DrawCard,           // Draw X cards
-        Devour              // Trash a card from hand/discard
+        GainResource,
+        DeployUnit,
+        Assassinate,
+        ReturnUnit,
+        Supplant,
+        Promote,
+        DrawCard,
+        Devour
     }
 
     public enum PlayerColor

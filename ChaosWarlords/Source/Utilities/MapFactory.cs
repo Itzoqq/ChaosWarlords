@@ -22,6 +22,7 @@ namespace ChaosWarlords.Source.Utilities
         public int Id { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
+        public string Occupant { get; set; }
     }
 
     public class RouteData
@@ -58,7 +59,18 @@ namespace ChaosWarlords.Source.Utilities
                 // A. Create Nodes
                 foreach (var n in data.Nodes)
                 {
-                    nodes.Add(new MapNode(n.Id, new Vector2(n.X, n.Y), nodeTexture));
+                    var newNode = new MapNode(n.Id, new Vector2(n.X, n.Y), nodeTexture);
+
+                    // NEW: Check for pre-set occupants
+                    if (!string.IsNullOrEmpty(n.Occupant))
+                    {
+                        if (System.Enum.TryParse(n.Occupant, out PlayerColor color))
+                        {
+                            newNode.Occupant = color;
+                        }
+                    }
+
+                    nodes.Add(newNode);
                 }
 
                 // B. Create Routes (Connections)

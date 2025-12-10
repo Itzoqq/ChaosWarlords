@@ -3,12 +3,14 @@
         {
             "Id": 1,
             "X": 150,
-            "Y": 300
+            "Y": 300,
+            "Occupant": "Neutral"
         },
         {
             "Id": 2,
             "X": 220,
-            "Y": 300
+            "Y": 300,
+            "Occupant": "Neutral"
         },
         {
             "Id": 3,

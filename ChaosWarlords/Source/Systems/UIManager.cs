@@ -10,6 +10,7 @@ namespace ChaosWarlords.Source.Systems
         private SpriteFont _smallFont;
         private Texture2D _pixelTexture;
         private Rectangle _marketButtonRect;
+        private Rectangle _assassinateButtonRect;
 
         public int ScreenWidth { get; private set; }
         public int ScreenHeight { get; private set; }
@@ -28,12 +29,18 @@ namespace ChaosWarlords.Source.Systems
             // Define Market Button Position (Left Edge, Centered)
             int btnHeight = 100;
             _marketButtonRect = new Rectangle(0, (ScreenHeight / 2) - (btnHeight / 2), 40, btnHeight);
+            _assassinateButtonRect = new Rectangle(ScreenWidth - 40, (ScreenHeight / 2) - (btnHeight / 2), 40, btnHeight);
         }
 
         // LOGIC: Did we click the toggle button?
         public bool IsMarketButtonHovered(InputManager input)
         {
             return input.IsMouseOver(_marketButtonRect);
+        }
+
+        public bool IsAssassinateButtonHovered(InputManager input)
+        {
+            return input.IsMouseOver(_assassinateButtonRect);
         }
 
         // DRAWING METHODS
@@ -48,6 +55,9 @@ namespace ChaosWarlords.Source.Systems
             spriteBatch.DrawString(_defaultFont, $"Power: {player.Power}", new Vector2(20, 10), Color.Orange);
             spriteBatch.DrawString(_defaultFont, $"Influence: {player.Influence}", new Vector2(150, 10), Color.Cyan);
             spriteBatch.DrawString(_defaultFont, $"VP: {player.VictoryPoints}", new Vector2(300, 10), Color.Lime);
+
+            // Kill count
+            spriteBatch.DrawString(_defaultFont, $"Trophies: {player.TrophyHall}", new Vector2(350, 10), Color.Red);
 
             // Deck Info (Center-ish)
             spriteBatch.DrawString(_defaultFont, $"Deck: {player.Deck.Count}", new Vector2(450, 10), Color.White);
@@ -79,6 +89,27 @@ namespace ChaosWarlords.Source.Systems
                 float textY = _marketButtonRect.Y + (_marketButtonRect.Height - textSize.Y) / 2;
 
                 spriteBatch.DrawString(btnFont, btnText, new Vector2(textX, textY), Color.Black);
+            }
+        }
+
+        public void DrawAssassinateButton(SpriteBatch spriteBatch, Player player)
+        {
+            bool canAfford = player.Power >= 3;
+            Color btnColor = canAfford ? Color.Red : Color.DarkRed * 0.5f;
+
+            spriteBatch.Draw(_pixelTexture, _assassinateButtonRect, btnColor);
+            DrawVerticalText(spriteBatch, "K\nI\nL\nL\n\n3", _assassinateButtonRect);
+        }
+
+        private void DrawVerticalText(SpriteBatch spriteBatch, string text, Rectangle rect)
+        {
+            SpriteFont btnFont = _smallFont ?? _defaultFont;
+            if (btnFont != null)
+            {
+                Vector2 textSize = btnFont.MeasureString(text);
+                float textX = rect.X + (rect.Width - textSize.X) / 2;
+                float textY = rect.Y + (rect.Height - textSize.Y) / 2;
+                spriteBatch.DrawString(btnFont, text, new Vector2(textX, textY), Color.Black);
             }
         }
 

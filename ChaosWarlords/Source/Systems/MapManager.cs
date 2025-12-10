@@ -195,15 +195,65 @@ namespace ChaosWarlords.Source.Systems
             UpdateSiteControl(attacker);
         }
 
-        public void ReturnTroop(MapNode node, Player ownerOfTroop)
+        public void ReturnTroop(MapNode node, Player requestingPlayer)
         {
-            if (node.Occupant != ownerOfTroop.Color) return;
+            // Safety Check (Should be caught by Game1, but good to have)
+            if (node.Occupant == PlayerColor.Neutral) return;
+
+            // If it is my troop
+            if (node.Occupant == requestingPlayer.Color)
+            {
+                node.Occupant = PlayerColor.None;
+                requestingPlayer.TroopsInBarracks++;
+                GameLogger.Log($"Returned friendly troop at Node {node.Id} to barracks.", LogChannel.Combat);
+            }
+            // If it is an enemy troop (Not Neutral, Not None)
+            else if (node.Occupant != PlayerColor.None)
+            {
+                PlayerColor enemyColor = node.Occupant;
+                node.Occupant = PlayerColor.None;
+                // In a full game, we would find Player(enemyColor) and ++ their barracks
+                GameLogger.Log($"Returned {enemyColor} troop at Node {node.Id} to their barracks.", LogChannel.Combat);
+            }
+
+            UpdateSiteControl(requestingPlayer);
+        }
+        public bool HasPresence(MapNode targetNode, PlayerColor player)
+        {
+            // Rule: If board is empty of your troops, you have presence everywhere
+            bool hasAnyTroops = false;
+            foreach (var n in _nodes)
+            {
+                if (n.Occupant == player)
+                {
+                    hasAnyTroops = true;
+                    break;
+                }
+            }
+            if (!hasAnyTroops) return true;
+
+            // Otherwise, check neighbors
+            foreach (var neighbor in targetNode.Neighbors)
+            {
+                if (neighbor.Occupant == player) return true;
+            }
+            return false;
+        }
+
+        public void Supplant(MapNode node, Player attacker)
+        {
+            // 1. Assassinate Logic
+            if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
 
             node.Occupant = PlayerColor.None;
-            ownerOfTroop.TroopsInBarracks++;
-            GameLogger.Log($"Returned troop at Node {node.Id} to barracks.", LogChannel.Combat);
+            attacker.TrophyHall++;
+            GameLogger.Log($"Supplanted enemy at Node {node.Id} (Added to Trophy Hall)", LogChannel.Combat);
 
-            UpdateSiteControl(ownerOfTroop);
+            // 2. Deploy Logic (Free, no power cost, supply checked in Game1)
+            node.Occupant = attacker.Color;
+            attacker.TroopsInBarracks--;
+
+            UpdateSiteControl(attacker);
         }
 
         public bool CanDeployAt(MapNode targetNode, PlayerColor player)
@@ -228,6 +278,15 @@ namespace ChaosWarlords.Source.Systems
             }
 
             return false;
+        }
+
+        public MapNode GetHoveredNode()
+        {
+            foreach (var node in _nodes)
+            {
+                if (node.IsHovered) return node;
+            }
+            return null;
         }
 
         public void Draw(SpriteBatch spriteBatch, SpriteFont font)

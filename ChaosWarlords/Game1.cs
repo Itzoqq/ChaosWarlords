@@ -10,6 +10,15 @@ using System;
 
 namespace ChaosWarlords
 {
+    // 1. Define the States
+    public enum GameState
+    {
+        Normal,
+        TargetingAssassinate,
+        TargetingReturn,
+        TargetingSupplant
+    }
+
     public class Game1 : Game
     {
         private GraphicsDeviceManager _graphics;
@@ -25,6 +34,10 @@ namespace ChaosWarlords
 
         private Player _activePlayer;
         private bool _isMarketOpen = false;
+
+        // --- STATE MACHINE VARIABLES ---
+        private GameState _currentState = GameState.Normal;
+        private Card _pendingCard; // The card waiting to be resolved
 
         public Game1()
         {
@@ -46,7 +59,6 @@ namespace ChaosWarlords
         protected override void LoadContent()
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
-
             _pixelTexture = new Texture2D(GraphicsDevice, 1, 1);
             _pixelTexture.SetData(new[] { Color.White });
 
@@ -54,7 +66,6 @@ namespace ChaosWarlords
             try { _smallFont = Content.Load<SpriteFont>("fonts/SmallFont"); } catch { }
 
             GameLogger.Initialize();
-
             _inputManager = new InputManager();
             _uiManager = new UIManager(GraphicsDevice, _defaultFont, _smallFont);
 
@@ -65,11 +76,13 @@ namespace ChaosWarlords
             _marketManager.InitializeDeck(CardDatabase.GetAllMarketCards());
 
             _activePlayer = new Player(PlayerColor.Red);
+            // Give starter deck
             for (int i = 0; i < 3; i++) _activePlayer.Deck.Add(CardFactory.CreateSoldier(_pixelTexture));
             for (int i = 0; i < 7; i++) _activePlayer.Deck.Add(CardFactory.CreateNoble(_pixelTexture));
             _activePlayer.DrawCards(5);
             ArrangeHandVisuals();
 
+            // Map Setup
             string mapPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Content", "data", "map.json");
             if (File.Exists(mapPath))
             {
@@ -78,16 +91,10 @@ namespace ChaosWarlords
             }
             else
             {
-                // Fallback test
                 var nodes = MapFactory.CreateTestMap(_pixelTexture);
-                var sites = new List<Site>();
-                var testSite = new Site("Test City", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2) { IsCity = true };
-                testSite.AddNode(nodes[0]);
-                testSite.AddNode(nodes[1]);
-                sites.Add(testSite);
+                var sites = new List<Site>(); // empty fallback
                 _mapManager = new MapManager(nodes, sites);
             }
-
             _mapManager.PixelTexture = _pixelTexture;
             _mapManager.CenterMap(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
         }
@@ -112,14 +119,39 @@ namespace ChaosWarlords
 
             if (_inputManager.IsKeyJustPressed(Keys.Escape)) Exit();
 
-            if (_inputManager.IsKeyJustPressed(Keys.Enter))
+            // Cancel Target
+            if (_inputManager.IsRightMouseJustClicked() && _currentState != GameState.Normal)
             {
-                EndTurn();
+                _currentState = GameState.Normal;
+                _pendingCard = null;
+                GameLogger.Log("Targeting Cancelled.", LogChannel.General);
             }
 
+            if (_inputManager.IsKeyJustPressed(Keys.Enter)) EndTurn();
+
+            // 1. Market Toggle
             if (_inputManager.IsLeftMouseJustClicked() && _uiManager.IsMarketButtonHovered(_inputManager))
             {
                 _isMarketOpen = !_isMarketOpen;
+                return;
+            }
+
+            // 2. Assassinate Button (Global Action) -- NEW
+            if (_inputManager.IsLeftMouseJustClicked() && _uiManager.IsAssassinateButtonHovered(_inputManager))
+            {
+                if (_currentState == GameState.Normal && !_isMarketOpen)
+                {
+                    if (_activePlayer.Power >= 3)
+                    {
+                        _currentState = GameState.TargetingAssassinate;
+                        _pendingCard = null; // No card involved, pure power!
+                        GameLogger.Log("Select a target to Assassinate (Cost: 3 Power)...", LogChannel.General);
+                    }
+                    else
+                    {
+                        GameLogger.Log("Not enough Power! Need 3.", LogChannel.Economy);
+                    }
+                }
                 return;
             }
 
@@ -129,7 +161,10 @@ namespace ChaosWarlords
             }
             else
             {
-                UpdateGameplayLogic(gameTime);
+                if (_currentState == GameState.Normal)
+                    UpdateNormalGameplay(gameTime);
+                else
+                    UpdateTargetingLogic();
             }
 
             base.Update(gameTime);
@@ -138,26 +173,19 @@ namespace ChaosWarlords
         private void UpdateMarketLogic()
         {
             _marketManager.Update(_inputManager.GetMouseState(), _activePlayer);
-
             if (_inputManager.IsLeftMouseJustClicked())
             {
                 bool clickedOnCard = false;
-                foreach (var card in _marketManager.MarketRow)
-                {
-                    if (card.IsHovered) clickedOnCard = true;
-                }
-
-                if (!clickedOnCard && !_uiManager.IsMarketButtonHovered(_inputManager))
-                {
-                    _isMarketOpen = false;
-                }
+                foreach (var card in _marketManager.MarketRow) { if (card.IsHovered) clickedOnCard = true; }
+                if (!clickedOnCard && !_uiManager.IsMarketButtonHovered(_inputManager)) _isMarketOpen = false;
             }
         }
 
-        private void UpdateGameplayLogic(GameTime gameTime)
+        private void UpdateNormalGameplay(GameTime gameTime)
         {
             bool clickHandled = false;
 
+            // 1. Play Cards
             for (int i = _activePlayer.Hand.Count - 1; i >= 0; i--)
             {
                 var card = _activePlayer.Hand[i];
@@ -171,6 +199,7 @@ namespace ChaosWarlords
                 }
             }
 
+            // 2. Deploy Logic
             if (!clickHandled)
             {
                 _mapManager.Update(_inputManager.GetMouseState(), _activePlayer);
@@ -179,13 +208,133 @@ namespace ChaosWarlords
             foreach (var card in _activePlayer.PlayedCards) card.Update(gameTime, _inputManager.GetMouseState());
         }
 
+        private void UpdateTargetingLogic()
+        {
+            _mapManager.Update(_inputManager.GetMouseState(), _activePlayer);
+
+            if (_inputManager.IsLeftMouseJustClicked())
+            {
+                MapNode target = _mapManager.GetHoveredNode();
+                if (target != null)
+                {
+                    bool success = false;
+
+                    if (_currentState == GameState.TargetingAssassinate)
+                    {
+                        // Rule: Enemy + Presence
+                        if (target.Occupant != PlayerColor.None &&
+                            target.Occupant != _activePlayer.Color &&
+                            _mapManager.HasPresence(target, _activePlayer.Color))
+                        {
+                            _mapManager.Assassinate(target, _activePlayer);
+                            success = true;
+                        }
+                    }
+                    else if (_currentState == GameState.TargetingReturn)
+                    {
+                        // Rule: Occupied + Presence + Not Neutral
+                        if (target.Occupant != PlayerColor.None &&
+                            _mapManager.HasPresence(target, _activePlayer.Color))
+                        {
+                            if (target.Occupant == PlayerColor.Neutral)
+                            {
+                                GameLogger.Log("Invalid Target: Cannot Return Neutral troops!", LogChannel.Error);
+                            }
+                            else
+                            {
+                                _mapManager.ReturnTroop(target, _activePlayer);
+                                success = true;
+                            }
+                        }
+                    }
+                    else if (_currentState == GameState.TargetingSupplant)
+                    {
+                        // Rule: Enemy + Presence + Supply
+                        if (target.Occupant != PlayerColor.None &&
+                            target.Occupant != _activePlayer.Color &&
+                            _mapManager.HasPresence(target, _activePlayer.Color))
+                        {
+                            if (_activePlayer.TroopsInBarracks > 0)
+                            {
+                                _mapManager.Supplant(target, _activePlayer);
+                                success = true;
+                            }
+                            else
+                            {
+                                GameLogger.Log("Cannot Supplant: Barracks Empty!", LogChannel.Error);
+                            }
+                        }
+                    }
+
+                    if (success)
+                    {
+                        // Handle CARD Usage
+                        if (_pendingCard != null)
+                        {
+                            ResolveCardEffects(_pendingCard);
+                            MoveCardToPlayed(_pendingCard);
+                        }
+                        // Handle POWER Usage (Global Action)
+                        else if (_currentState == GameState.TargetingAssassinate)
+                        {
+                            _activePlayer.Power -= 3;
+                            GameLogger.Log("Expended 3 Power.", LogChannel.Economy);
+                        }
+
+                        _currentState = GameState.Normal;
+                        _pendingCard = null;
+                        GameLogger.Log("Targeting Complete.", LogChannel.General);
+                    }
+                    else
+                    {
+                        // If logic failed (e.g. no presence, neutral target), 
+                        // we intentionally DO NOT reset state, allowing the player to try again.
+                        if (target.Occupant == PlayerColor.None)
+                            GameLogger.Log("Invalid Target: Empty Node.", LogChannel.Error);
+                        else if (!success && target.Occupant == PlayerColor.Neutral && _currentState == GameState.TargetingReturn)
+                        { /* Already logged above */ }
+                        else if (!success)
+                            GameLogger.Log("Invalid Target! (Check Presence rules)", LogChannel.Error);
+                    }
+                }
+            }
+        }
+
         private void PlayCard(Card card)
         {
-            GameLogger.Log($"Played Card: {card.Name}", LogChannel.Combat);
-            _activePlayer.Hand.Remove(card);
-            _activePlayer.PlayedCards.Add(card);
-            card.Position = new Vector2(100 + (_activePlayer.PlayedCards.Count * 160), 300);
+            // 1. Check for Interactive Effects
+            foreach (var effect in card.Effects)
+            {
+                if (effect.Type == EffectType.Assassinate)
+                {
+                    _currentState = GameState.TargetingAssassinate;
+                    _pendingCard = card;
+                    GameLogger.Log("Select a target to Assassinate... (Right Click to Cancel)", LogChannel.General);
+                    return;
+                }
+                else if (effect.Type == EffectType.ReturnUnit)
+                {
+                    _currentState = GameState.TargetingReturn;
+                    _pendingCard = card;
+                    GameLogger.Log("Select a unit to Return... (Right Click to Cancel)", LogChannel.General);
+                    return;
+                }
+                else if (effect.Type == EffectType.Supplant)
+                {
+                    _currentState = GameState.TargetingSupplant;
+                    _pendingCard = card;
+                    GameLogger.Log("Select a target to Supplant... (Right Click to Cancel)", LogChannel.General);
+                    return;
+                }
+            }
 
+            // 2. If no interactions, resolve immediately
+            ResolveCardEffects(card);
+            MoveCardToPlayed(card);
+        }
+
+        private void ResolveCardEffects(Card card)
+        {
             foreach (var effect in card.Effects)
             {
                 if (effect.Type == EffectType.GainResource)
@@ -194,22 +343,39 @@ namespace ChaosWarlords
                     if (effect.TargetResource == ResourceType.Influence) _activePlayer.Influence += effect.Amount;
                 }
             }
+        }
+
+        private void MoveCardToPlayed(Card card)
+        {
+            GameLogger.Log($"Played Card: {card.Name}", LogChannel.Combat);
+            _activePlayer.Hand.Remove(card);
+            _activePlayer.PlayedCards.Add(card);
+            card.Position = new Vector2(100 + (_activePlayer.PlayedCards.Count * 160), 300);
             ArrangeHandVisuals();
         }
 
+        // --- RESTORED ENDTURN METHOD ---
         private void EndTurn()
         {
+            // Safety: Reset Targeting if user hits Enter mid-action
+            if (_currentState != GameState.Normal)
+            {
+                _currentState = GameState.Normal;
+                _pendingCard = null;
+                GameLogger.Log("Targeting Cancelled due to End Turn.", LogChannel.General);
+            }
+
             GameLogger.Log("--- TURN ENDED ---", LogChannel.General);
 
-            // Clean up old resources
+            // 1. Clean up old resources
             _activePlayer.CleanUpTurn();
 
-            // Collect Income for new turn (ONLY for Cities!)
+            // 2. Collect Income for new turn (ONLY for Cities!)
             if (_mapManager.Sites != null)
             {
                 foreach (var site in _mapManager.Sites)
                 {
-                    if (site.Owner == _activePlayer.Color && site.IsCity) // <--- FIX: Added !site.IsCity check
+                    if (site.Owner == _activePlayer.Color && site.IsCity)
                     {
                         ApplyReward(site.ControlResource, site.ControlAmount);
                         GameLogger.Log($"Site Control: {site.Name} gave +{site.ControlAmount} {site.ControlResource}", LogChannel.Economy);
@@ -223,6 +389,7 @@ namespace ChaosWarlords
                 }
             }
 
+            // 3. Draw new Hand
             _activePlayer.DrawCards(5);
             ArrangeHandVisuals();
 
@@ -241,19 +408,36 @@ namespace ChaosWarlords
             GraphicsDevice.Clear(Color.DarkSlateBlue);
             _spriteBatch.Begin();
 
+            // 1. Draw World
             _mapManager.Draw(_spriteBatch, _defaultFont);
 
+            // Draw Hand (Behind market)
             foreach (var card in _activePlayer.Hand) card.Draw(_spriteBatch, _defaultFont);
             foreach (var card in _activePlayer.PlayedCards) card.Draw(_spriteBatch, _defaultFont);
 
+            // 2. Draw Market Overlay
             if (_isMarketOpen)
             {
                 _uiManager.DrawMarketOverlay(_spriteBatch);
                 _marketManager.Draw(_spriteBatch, _defaultFont);
             }
 
+            // 3. Draw UI Chrome
             _uiManager.DrawMarketButton(_spriteBatch, _isMarketOpen);
+            _uiManager.DrawAssassinateButton(_spriteBatch, _activePlayer);
             _uiManager.DrawTopBar(_spriteBatch, _activePlayer);
+
+            // 4. Draw Targeting Cursor (Optional, helps player know state)
+            if (_currentState != GameState.Normal && _defaultFont != null)
+            {
+                string targetText = "SELECT TARGET";
+                if (_currentState == GameState.TargetingAssassinate) targetText = "ASSASSINATE TARGET";
+                if (_currentState == GameState.TargetingReturn) targetText = "RETURN TROOP";
+                if (_currentState == GameState.TargetingSupplant) targetText = "SUPPLANT TARGET";
+
+                Vector2 mousePos = _inputManager.MousePosition;
+                _spriteBatch.DrawString(_defaultFont, targetText, mousePos + new Vector2(20, 20), Color.Red);
+            }
 
             _spriteBatch.End();
             base.Draw(gameTime);
