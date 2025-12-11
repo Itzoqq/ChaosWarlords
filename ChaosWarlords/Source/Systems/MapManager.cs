@@ -106,7 +106,7 @@ namespace ChaosWarlords.Source.Systems
             return true; // Action successful
         }
 
-        private void UpdateSiteControl(Player activePlayer)
+        public void UpdateSiteControl(Player activePlayer)
         {
             if (Sites == null) return;
 

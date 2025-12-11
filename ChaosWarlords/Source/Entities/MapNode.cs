@@ -20,7 +20,7 @@ namespace ChaosWarlords.Source.Entities
         // Visuals
         private const int Radius = 20; // Size of the circle
         private Texture2D _texture;
-        public bool IsHovered { get; private set; }
+        public bool IsHovered { get; set; }
 
         public MapNode(int id, Vector2 position, Texture2D texture)
         {
