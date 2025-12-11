@@ -1,5 +1,17 @@
 namespace ChaosWarlords.Source.Utilities
 {
+
+    // 1. Define the States
+    public enum ActionState
+    {
+        Normal,
+        TargetingAssassinate,
+        TargetingReturn,
+        TargetingSupplant,
+        TargetingPlaceSpy,
+        TargetingReturnSpy
+    }
+
     // Replaces the "Suits" (Conquest, Malice, Guile, Obedience)
     public enum CardAspect
     {

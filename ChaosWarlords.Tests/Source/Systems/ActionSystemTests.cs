@@ -49,7 +49,7 @@ namespace ChaosWarlords.Tests.Systems
         {
             _player1.Power = 3;
             _actionSystem.TryStartAssassinate();
-            Assert.AreEqual(GameState.TargetingAssassinate, _actionSystem.CurrentState);
+            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
         }
 
         [TestMethod]
@@ -57,7 +57,7 @@ namespace ChaosWarlords.Tests.Systems
         {
             _player1.Power = 2;
             _actionSystem.TryStartAssassinate();
-            Assert.AreEqual(GameState.Normal, _actionSystem.CurrentState);
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
         }
 
         [TestMethod]
@@ -65,7 +65,7 @@ namespace ChaosWarlords.Tests.Systems
         {
             _player1.Power = 3;
             _actionSystem.TryStartReturnSpy();
-            Assert.AreEqual(GameState.TargetingReturnSpy, _actionSystem.CurrentState);
+            Assert.AreEqual(ActionState.TargetingReturnSpy, _actionSystem.CurrentState);
         }
 
         [TestMethod]
@@ -73,7 +73,7 @@ namespace ChaosWarlords.Tests.Systems
         {
             _player1.Power = 2;
             _actionSystem.TryStartReturnSpy();
-            Assert.AreEqual(GameState.Normal, _actionSystem.CurrentState);
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
         }
 
         #endregion
@@ -86,7 +86,7 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange: Start a UI-based assassination (no card)
             _player1.Power = 3;
             _actionSystem.TryStartAssassinate();
-            Assert.AreEqual(GameState.TargetingAssassinate, _actionSystem.CurrentState);
+            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
 
             // Set up a valid target
             _node1.Occupant = _player1.Color; // Presence
@@ -107,7 +107,7 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange: Start a card-based assassination
             var card = new Card("Assassin", "Assassin Name", 0, CardAspect.Shadow, 0, 0);
             _player1.Power = 3; // Has power, but shouldn't be used
-            _actionSystem.StartTargeting(GameState.TargetingAssassinate, card);
+            _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card);
 
             // Set up a valid target
             _node1.Occupant = _player1.Color; // Presence
@@ -126,7 +126,7 @@ namespace ChaosWarlords.Tests.Systems
         public void HandleTargetClick_PlaceSpy_SucceedsOnSiteAndFailsOnNode()
         {
             // Arrange: Start a Place Spy action
-            _actionSystem.StartTargeting(GameState.TargetingPlaceSpy, null);
+            _actionSystem.StartTargeting(ActionState.TargetingPlaceSpy, null);
             _player1.SpiesInBarracks = 1;
 
             // Act 1: Click a valid site
@@ -140,7 +140,7 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange 2: Reset and try to click a node
             _siteA.Spies.Clear();
             _player1.SpiesInBarracks = 1;
-            _actionSystem.StartTargeting(GameState.TargetingPlaceSpy, null);
+            _actionSystem.StartTargeting(ActionState.TargetingPlaceSpy, null);
 
             // Act 2: Click a node (invalid target for this action)
             bool successOnNode = _actionSystem.HandleTargetClick(_node1, null);
@@ -154,7 +154,7 @@ namespace ChaosWarlords.Tests.Systems
         public void HandleTargetClick_Fails_WithInvalidTarget()
         {
             // Arrange: Try to assassinate a friendly troop
-            _actionSystem.StartTargeting(GameState.TargetingAssassinate, null);
+            _actionSystem.StartTargeting(ActionState.TargetingAssassinate, null);
             _node1.Occupant = _player1.Color; // Friendly troop
 
             // Act

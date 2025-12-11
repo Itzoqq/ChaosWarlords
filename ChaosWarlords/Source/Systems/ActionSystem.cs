@@ -5,7 +5,7 @@ namespace ChaosWarlords.Source.Systems
 {
     public class ActionSystem
     {
-        public GameState CurrentState { get; private set; } = GameState.Normal;
+        public ActionState CurrentState { get; private set; } = ActionState.Normal;
         public Card PendingCard { get; private set; }
 
         private readonly Player _activePlayer;
@@ -26,7 +26,7 @@ namespace ChaosWarlords.Source.Systems
                 return;
             }
 
-            StartTargeting(GameState.TargetingAssassinate);
+            StartTargeting(ActionState.TargetingAssassinate);
             GameLogger.Log($"Select a TROOP to Assassinate (Cost: {cost} Power)...", LogChannel.General);
         }
 
@@ -39,27 +39,26 @@ namespace ChaosWarlords.Source.Systems
                 return;
             }
 
-            StartTargeting(GameState.TargetingReturnSpy);
+            StartTargeting(ActionState.TargetingReturnSpy);
             GameLogger.Log($"Select a SITE to remove Enemy Spy (Cost: {cost} Power)...", LogChannel.General);
         }
 
-        public void StartTargeting(GameState state, Card card = null)
+        public void StartTargeting(ActionState state, Card card = null)
         {
             CurrentState = state;
             PendingCard = card;
-            // Logging is handled by the caller (Game1)
         }
 
         public void CancelTargeting()
         {
-            CurrentState = GameState.Normal;
+            CurrentState = ActionState.Normal;
             PendingCard = null;
             GameLogger.Log("Targeting Cancelled.", LogChannel.General);
         }
 
         public bool IsTargeting()
         {
-            return CurrentState != GameState.Normal;
+            return CurrentState != ActionState.Normal;
         }
 
         /// <summary>
@@ -70,15 +69,15 @@ namespace ChaosWarlords.Source.Systems
         {
             switch (CurrentState)
             {
-                case GameState.TargetingAssassinate:
+                case ActionState.TargetingAssassinate:
                     return HandleAssassinate(targetNode);
-                case GameState.TargetingReturn:
+                case ActionState.TargetingReturn:
                     return HandleReturn(targetNode);
-                case GameState.TargetingSupplant:
+                case ActionState.TargetingSupplant:
                     return HandleSupplant(targetNode);
-                case GameState.TargetingPlaceSpy:
+                case ActionState.TargetingPlaceSpy:
                     return HandlePlaceSpy(targetSite);
-                case GameState.TargetingReturnSpy:
+                case ActionState.TargetingReturnSpy:
                     return HandleReturnSpy(targetSite);
                 default:
                     return false;
@@ -88,57 +87,33 @@ namespace ChaosWarlords.Source.Systems
         private bool HandleAssassinate(MapNode targetNode)
         {
             if (targetNode == null) return false;
-
             if (_mapManager.CanAssassinate(targetNode, _activePlayer))
             {
-                // If this action was started from a UI button (no pending card), pay the cost.
-                if (PendingCard == null)
-                {
-                    const int cost = 3; // This cost should eventually be data-driven.
-                    _activePlayer.Power -= cost;
-                    GameLogger.Log($"Power deducted: {cost}", LogChannel.Economy);
-                }
+                if (PendingCard == null) _activePlayer.Power -= 3;
                 _mapManager.Assassinate(targetNode, _activePlayer);
                 return true;
             }
-            GameLogger.Log("Invalid Target! Need Presence or cannot target self/empty.", LogChannel.Error);
+            GameLogger.Log("Invalid Target!", LogChannel.Error);
             return false;
         }
 
         private bool HandleReturn(MapNode targetNode)
         {
             if (targetNode == null) return false;
-
             if (targetNode.Occupant != PlayerColor.None && _mapManager.HasPresence(targetNode, _activePlayer.Color))
             {
-                if (targetNode.Occupant == PlayerColor.Neutral)
-                {
-                    GameLogger.Log("Cannot return Neutral troops.", LogChannel.Error);
-                    return false;
-                }
+                if (targetNode.Occupant == PlayerColor.Neutral) return false;
                 _mapManager.ReturnTroop(targetNode, _activePlayer);
                 return true;
             }
-            GameLogger.Log("Invalid Return Target.", LogChannel.Error);
             return false;
         }
 
         private bool HandleSupplant(MapNode targetNode)
         {
             if (targetNode == null) return false;
-
-            if (!_mapManager.CanAssassinate(targetNode, _activePlayer))
-            {
-                // CanAssassinate already checks for valid enemy target and presence.
-                return false;
-            }
-
-            if (_activePlayer.TroopsInBarracks <= 0)
-            {
-                GameLogger.Log("Barracks Empty!", LogChannel.Error);
-                return false;
-            }
-
+            if (!_mapManager.CanAssassinate(targetNode, _activePlayer)) return false;
+            if (_activePlayer.TroopsInBarracks <= 0) return false;
             _mapManager.Supplant(targetNode, _activePlayer);
             return true;
         }
@@ -146,19 +121,8 @@ namespace ChaosWarlords.Source.Systems
         private bool HandlePlaceSpy(Site targetSite)
         {
             if (targetSite == null) return false;
-
-            if (targetSite.Spies.Contains(_activePlayer.Color))
-            {
-                GameLogger.Log("You already have a spy here.", LogChannel.Error);
-                return false;
-            }
-
-            if (_activePlayer.SpiesInBarracks <= 0)
-            {
-                GameLogger.Log("No Spies in Barracks!", LogChannel.Error);
-                return false;
-            }
-
+            if (targetSite.Spies.Contains(_activePlayer.Color)) return false;
+            if (_activePlayer.SpiesInBarracks <= 0) return false;
             _mapManager.PlaceSpy(targetSite, _activePlayer);
             return true;
         }
@@ -166,17 +130,9 @@ namespace ChaosWarlords.Source.Systems
         private bool HandleReturnSpy(Site targetSite)
         {
             if (targetSite == null) return false;
-
-            // ReturnSpy internally checks for presence and logs errors.
             if (_mapManager.ReturnSpy(targetSite, _activePlayer))
             {
-                // If this action was started from a UI button (no pending card), pay the cost.
-                if (PendingCard == null)
-                {
-                    const int cost = 3;
-                    _activePlayer.Power -= cost;
-                    GameLogger.Log($"Power deducted: {cost}", LogChannel.Economy);
-                }
+                if (PendingCard == null) _activePlayer.Power -= 3;
                 return true;
             }
             return false;
