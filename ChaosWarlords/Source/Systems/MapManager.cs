@@ -34,6 +34,20 @@ namespace ChaosWarlords.Source.Systems
         {
             if (_nodes.Count == 0) return;
 
+            // 1. Calculate Bounds
+            var bounds = CalculateMapBounds();
+
+            // 2. Calculate Offset required to center
+            Vector2 mapCenter = new Vector2((bounds.MinX + bounds.MaxX) / 2f, (bounds.MinY + bounds.MaxY) / 2f);
+            Vector2 screenCenter = new Vector2(screenWidth / 2f, screenHeight / 2f);
+            Vector2 offset = screenCenter - mapCenter;
+
+            // 3. Apply
+            ApplyOffset(offset);
+        }
+
+        private (float MinX, float MinY, float MaxX, float MaxY) CalculateMapBounds()
+        {
             float minX = float.MaxValue, minY = float.MaxValue;
             float maxX = float.MinValue, maxY = float.MinValue;
 
@@ -45,12 +59,11 @@ namespace ChaosWarlords.Source.Systems
                 if (node.Position.Y > maxY) maxY = node.Position.Y;
             }
 
-            float mapCenterX = (minX + maxX) / 2f;
-            float mapCenterY = (minY + maxY) / 2f;
-            float screenCenterX = screenWidth / 2f;
-            float screenCenterY = screenHeight / 2f;
-            Vector2 offset = new Vector2(screenCenterX - mapCenterX, screenCenterY - mapCenterY);
+            return (minX, minY, maxX, maxY);
+        }
 
+        private void ApplyOffset(Vector2 offset)
+        {
             foreach (var node in _nodes)
             {
                 node.Position += offset;

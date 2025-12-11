@@ -119,6 +119,13 @@ namespace ChaosWarlords.Source.States
 
         private bool HandleGlobalInput()
         {
+            if (HandleKeyboardInput()) return true;
+            if (HandleMouseInput()) return true;
+            return false;
+        }
+
+        private bool HandleKeyboardInput()
+        {
             if (_inputManager.IsKeyJustPressed(Keys.Escape))
             {
                 _game.Exit();
@@ -130,28 +137,40 @@ namespace ChaosWarlords.Source.States
                 EndTurn();
                 return true;
             }
+            return false;
+        }
 
-            // Right Click Cancel
+        private bool HandleMouseInput()
+        {
+            // 1. Right Click (Cancel)
             if (_inputManager.IsRightMouseJustClicked() && _actionSystem.IsTargeting())
             {
                 _actionSystem.CancelTargeting();
                 return true;
             }
 
-            // UI Click Handling
+            // 2. Left Click (Interaction)
             if (_inputManager.IsLeftMouseJustClicked())
             {
-                if (_uiManager.IsMarketButtonHovered(_inputManager))
-                {
-                    _isMarketOpen = !_isMarketOpen;
-                    return true; // Input consumed
-                }
+                return HandleLeftClick();
+            }
 
-                // Only check action buttons if we aren't busy elsewhere
-                if (!_isMarketOpen && !_actionSystem.IsTargeting())
-                {
-                    if (CheckActionButtons()) return true;
-                }
+            return false;
+        }
+
+        private bool HandleLeftClick()
+        {
+            // A. Market Toggle
+            if (_uiManager.IsMarketButtonHovered(_inputManager))
+            {
+                _isMarketOpen = !_isMarketOpen;
+                return true;
+            }
+
+            // B. Action Buttons (Only if not busy)
+            if (!_isMarketOpen && !_actionSystem.IsTargeting())
+            {
+                if (CheckActionButtons()) return true;
             }
 
             return false;
@@ -174,11 +193,11 @@ namespace ChaosWarlords.Source.States
 
         public void Draw(SpriteBatch spriteBatch)
         {
+            // 1. World
             _mapManager.Draw(spriteBatch, _defaultFont);
+            DrawCards(spriteBatch);
 
-            foreach (var card in _activePlayer.Hand) card.Draw(spriteBatch, _defaultFont);
-            foreach (var card in _activePlayer.PlayedCards) card.Draw(spriteBatch, _defaultFont);
-
+            // 2. Interfaces
             if (_isMarketOpen)
             {
                 _uiManager.DrawMarketOverlay(spriteBatch);
@@ -189,18 +208,38 @@ namespace ChaosWarlords.Source.States
             _uiManager.DrawActionButtons(spriteBatch, _activePlayer);
             _uiManager.DrawTopBar(spriteBatch, _activePlayer);
 
-            // Debug/Targeting Text
-            if (_actionSystem.IsTargeting() && _defaultFont != null)
-            {
-                var currentState = _actionSystem.CurrentState;
-                string targetText = "TARGETING...";
-                if (currentState == ActionState.TargetingAssassinate) targetText = "CLICK TROOP TO KILL";
-                if (currentState == ActionState.TargetingPlaceSpy) targetText = "CLICK SITE TO PLACE SPY";
-                if (currentState == ActionState.TargetingReturnSpy) targetText = "CLICK SITE TO HUNT SPY";
+            // 3. Overlays
+            DrawTargetingHint(spriteBatch);
+        }
 
-                Vector2 mousePos = _inputManager.MousePosition;
-                spriteBatch.DrawString(_defaultFont, targetText, mousePos + new Vector2(20, 20), Color.Red);
-            }
+        private void DrawCards(SpriteBatch spriteBatch)
+        {
+            foreach (var card in _activePlayer.Hand) card.Draw(spriteBatch, _defaultFont);
+            foreach (var card in _activePlayer.PlayedCards) card.Draw(spriteBatch, _defaultFont);
+        }
+
+        private void DrawTargetingHint(SpriteBatch spriteBatch)
+        {
+            if (!_actionSystem.IsTargeting() || _defaultFont == null) return;
+
+            string targetText = GetTargetingText(_actionSystem.CurrentState);
+            Vector2 mousePos = _inputManager.MousePosition;
+
+            // Draw offset slightly from mouse
+            spriteBatch.DrawString(_defaultFont, targetText, mousePos + new Vector2(20, 20), Color.Red);
+        }
+
+        private string GetTargetingText(ActionState state)
+        {
+            return state switch
+            {
+                ActionState.TargetingAssassinate => "CLICK TROOP TO KILL",
+                ActionState.TargetingPlaceSpy => "CLICK SITE TO PLACE SPY",
+                ActionState.TargetingReturnSpy => "CLICK SITE TO HUNT SPY",
+                ActionState.TargetingReturn => "CLICK TROOP TO RETURN",
+                ActionState.TargetingSupplant => "CLICK TROOP TO SUPPLANT",
+                _ => "TARGETING..."
+            };
         }
 
         // --- Helper Methods (Copied from previous Game1) ---

@@ -25,10 +25,7 @@
 
   <Target Name="CleanTestReports" BeforeTargets="VSTest">
     <Message Text="Cleaning old coverage and test reports..." Importance="high" />
-
-    <RemoveDir Directories="$(MSBuildProjectDirectory)/TestReport" />
     <RemoveDir Directories="$(MSBuildProjectDirectory)/TestResults" />
-
     <RemoveDir Directories="$(MSBuildProjectDirectory)/../coveragereport" />
   </Target>
 
