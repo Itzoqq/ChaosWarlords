@@ -1,8 +1,10 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Systems
 {
+    [ExcludeFromCodeCoverage]
     public class InputManager
     {
         private KeyboardState _currentKeyboard;

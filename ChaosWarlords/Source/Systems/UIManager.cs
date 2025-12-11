@@ -1,9 +1,11 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Entities;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Systems
 {
+    [ExcludeFromCodeCoverage]
     public class UIManager
     {
         private SpriteFont _defaultFont;

@@ -9,7 +9,7 @@ namespace ChaosWarlords.Source.Systems
 {
     public class MarketManager
     {
-        private List<Card> _marketDeck = new List<Card>();
+        public List<Card> MarketDeck { get; private set; } = new List<Card>();
         public List<Card> MarketRow { get; private set; } = new List<Card>();
 
         // Positions for the 6 market slots
@@ -26,17 +26,17 @@ namespace ChaosWarlords.Source.Systems
 
         public void InitializeDeck(List<Card> allCards)
         {
-            _marketDeck = allCards;
+            MarketDeck = allCards;
             // Shuffle logic here later...
             RefillMarket();
         }
 
         public void RefillMarket()
         {
-            while (MarketRow.Count < 6 && _marketDeck.Count > 0)
+            while (MarketRow.Count < 6 && MarketDeck.Count > 0)
             {
-                Card newCard = _marketDeck[0];
-                _marketDeck.RemoveAt(0);
+                Card newCard = MarketDeck[0];
+                MarketDeck.RemoveAt(0);
                 newCard.Location = CardLocation.Market;
                 MarketRow.Add(newCard);
             }
@@ -52,24 +52,17 @@ namespace ChaosWarlords.Source.Systems
         {
             bool isClicking = mouseState.LeftButton == ButtonState.Pressed;
 
+            // Iterate backwards to safely remove
             for (int i = MarketRow.Count - 1; i >= 0; i--)
             {
                 var card = MarketRow[i];
-                card.Update(null, mouseState); // Pass null gametime if not needed yet
+                card.Update(null, mouseState);
 
                 if (card.IsHovered && isClicking)
                 {
-                    // BUY LOGIC
-                    if (activePlayer.Influence >= card.Cost)
-                    {
-                        BuyCard(activePlayer, card);
-                        // Prevent click-through
-                        return;
-                    }
-                    else
-                    {
-                        // Log "Not enough influence" only once per click (needs debounce logic in Game1 really)
-                    }
+                    // DELEGATE to the new testable method
+                    TryBuyCard(activePlayer, card);
+                    return; // Prevent multi-buy
                 }
             }
         }
@@ -85,6 +78,23 @@ namespace ChaosWarlords.Source.Systems
             // Immediately refill? Or wait for end of turn? 
             // Tyrants rules: "Immediately replace it" (Rulebook pg 12 "Recruit a Card")
             RefillMarket();
+        }
+
+        public bool TryBuyCard(Player player, Card card)
+        {
+            if (player.Influence >= card.Cost)
+            {
+                player.Influence -= card.Cost;
+                player.DiscardPile.Add(card);
+                MarketRow.Remove(card);
+
+                // Use simple null check for Logger so tests don't crash if Logger isn't initialized
+                try { GameLogger.Log($"Bought {card.Name}", LogChannel.Economy); } catch { }
+
+                RefillMarket();
+                return true;
+            }
+            return false;
         }
 
         public void Draw(SpriteBatch spriteBatch, SpriteFont font)

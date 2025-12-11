@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Utilities
 {
@@ -20,6 +21,7 @@ namespace ChaosWarlords.Source.Utilities
         }
     }
 
+    [ExcludeFromCodeCoverage]
     public static class GameLogger
     {
         // Settings

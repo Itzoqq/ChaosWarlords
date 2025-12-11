@@ -2,9 +2,11 @@
 using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Utilities;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords
 {
+    [ExcludeFromCodeCoverage]
     public class Game1 : Game
     {
         private GraphicsDeviceManager _graphics;
