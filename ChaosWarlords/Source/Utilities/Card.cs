@@ -16,8 +16,8 @@ namespace ChaosWarlords.Source.Entities
         public CardAspect Aspect { get; private set; }
 
         // Victory Points
-        public int DeckVP { get; private set; }      // Points if in deck at end
-        public int InnerCircleVP { get; private set; } // Points if promoted
+        public int DeckVP { get; private set; }
+        public int InnerCircleVP { get; private set; }
 
         // Logic
         public List<CardEffect> Effects { get; private set; } = new List<CardEffect>();
@@ -61,47 +61,77 @@ namespace ChaosWarlords.Source.Entities
             IsHovered = _bounds.Contains(mouseState.Position);
         }
 
+        // --- REFACTORED DRAW METHOD ---
         public void Draw(SpriteBatch spriteBatch, SpriteFont font = null)
         {
-            // 1. Dynamic Background Color
-            Color bgColor = Color.Gray;
-            // Check effects to determine color
-            foreach (var effect in Effects)
+            // 1. Draw Background
+            Color bgColor = DetermineBackgroundColor();
+            if (_texture != null)
             {
-                if (effect.TargetResource == ResourceType.Power) bgColor = Color.Firebrick; // Red for Power
-                if (effect.TargetResource == ResourceType.Influence) bgColor = Color.CornflowerBlue; // Blue for Influence
+                spriteBatch.Draw(_texture, _bounds, bgColor);
             }
 
-            // Hover Highlight
-            if (IsHovered) bgColor = Color.Lerp(bgColor, Color.White, 0.3f);
-
-            // 2. Draw Card Body
-            if (_texture != null)
-                spriteBatch.Draw(_texture, _bounds, bgColor);
-
-            // 3. Draw Text Information
+            // 2. Draw Text
             if (font != null)
             {
-                // A. Draw Name at top
-                spriteBatch.DrawString(font, Name, Position + new Vector2(5, 5), Color.White);
-
-                // B. Draw Effect Text in the middle
-                string effectText = "";
-                foreach (var effect in Effects)
-                {
-                    if (effect.Type == EffectType.GainResource)
-                    {
-                        if (effect.TargetResource == ResourceType.Power) effectText += $"+{effect.Amount} Power\n";
-                        if (effect.TargetResource == ResourceType.Influence) effectText += $"+{effect.Amount} Influence\n";
-                    }
-                }
-
-                // Draw the effect text centered-ish
-                spriteBatch.DrawString(font, effectText, Position + new Vector2(10, 50), Color.Yellow);
-
-                // C. Draw Cost at bottom
-                spriteBatch.DrawString(font, $"Cost: {Cost}", Position + new Vector2(10, Height - 25), Color.LightGray);
+                DrawTextContent(spriteBatch, font);
             }
+        }
+
+        private Color DetermineBackgroundColor()
+        {
+            Color color = Color.Gray;
+
+            // Simple logic: Change color based on primary resource gain
+            // (You could expand this to check Aspects instead for better theming)
+            foreach (var effect in Effects)
+            {
+                if (effect.TargetResource == ResourceType.Power) color = Color.Firebrick;
+                else if (effect.TargetResource == ResourceType.Influence) color = Color.CornflowerBlue;
+            }
+
+            if (IsHovered)
+            {
+                color = Color.Lerp(color, Color.White, 0.3f);
+            }
+
+            return color;
+        }
+
+        private void DrawTextContent(SpriteBatch spriteBatch, SpriteFont font)
+        {
+            // A. Name (Top)
+            spriteBatch.DrawString(font, Name, Position + new Vector2(5, 5), Color.White);
+
+            // B. Effect Description (Middle)
+            string effectText = BuildEffectText();
+            spriteBatch.DrawString(font, effectText, Position + new Vector2(10, 50), Color.Yellow);
+
+            // C. Cost (Bottom)
+            spriteBatch.DrawString(font, $"Cost: {Cost}", Position + new Vector2(10, Height - 25), Color.LightGray);
+        }
+
+        private string BuildEffectText()
+        {
+            // If the card has a static description (from JSON), prefer that.
+            if (!string.IsNullOrEmpty(Description))
+                return Description;
+
+            // Otherwise, generate text dynamically from effects
+            string text = "";
+            foreach (var effect in Effects)
+            {
+                if (effect.Type == EffectType.GainResource)
+                {
+                    text += $"+{effect.Amount} {effect.TargetResource}\n";
+                }
+                else
+                {
+                    // Fallback for other effects
+                    text += $"{effect.Type}\n";
+                }
+            }
+            return text;
         }
     }
 }

@@ -137,7 +137,7 @@ namespace ChaosWarlords.Source.Utilities
             List<LogEntry> logsToDraw;
             lock (_lock)
             {
-                logsToDraw = new List<LogEntry>(_logs);
+                logsToDraw = [.. _logs];
             }
 
             var visibleLogs = new List<LogEntry>();
