@@ -33,13 +33,10 @@ namespace ChaosWarlords
         private UIManager _uiManager;
         private MapManager _mapManager;
         private MarketManager _marketManager;
+        private ActionSystem _actionSystem;
 
         private Player _activePlayer;
         private bool _isMarketOpen = false;
-
-        // --- STATE MACHINE VARIABLES ---
-        private GameState _currentState = GameState.Normal;
-        private Card _pendingCard; // The card waiting to be resolved
 
         public Game1()
         {
@@ -100,6 +97,8 @@ namespace ChaosWarlords
             _mapManager.PixelTexture = _pixelTexture;
             _mapManager.CenterMap(GraphicsDevice.Viewport.Width, GraphicsDevice.Viewport.Height);
 
+            _actionSystem = new ActionSystem(_activePlayer, _mapManager);
+
             if (_mapManager.Sites != null)
             {
                 foreach (var site in _mapManager.Sites)
@@ -135,11 +134,9 @@ namespace ChaosWarlords
             if (_inputManager.IsKeyJustPressed(Keys.Escape)) Exit();
 
             // Cancel Target
-            if (_inputManager.IsRightMouseJustClicked() && _currentState != GameState.Normal)
+            if (_inputManager.IsRightMouseJustClicked() && _actionSystem.IsTargeting())
             {
-                _currentState = GameState.Normal;
-                _pendingCard = null;
-                GameLogger.Log("Targeting Cancelled.", LogChannel.General);
+                _actionSystem.CancelTargeting();
             }
 
             if (_inputManager.IsKeyJustPressed(Keys.Enter)) EndTurn();
@@ -155,15 +152,14 @@ namespace ChaosWarlords
                 }
 
                 // Only check Action buttons if Market is closed and Normal state
-                if (!_isMarketOpen && _currentState == GameState.Normal)
+                if (!_isMarketOpen && !_actionSystem.IsTargeting())
                 {
                     // 2. Assassinate Button
                     if (_uiManager.IsAssassinateButtonHovered(_inputManager))
                     {
                         if (_activePlayer.Power >= 3)
                         {
-                            _currentState = GameState.TargetingAssassinate;
-                            _pendingCard = null;
+                            _actionSystem.StartTargeting(GameState.TargetingAssassinate);
                             GameLogger.Log("Select a TROOP to Assassinate (Cost: 3 Power)...", LogChannel.General);
                         }
                         else GameLogger.Log("Not enough Power! Need 3.", LogChannel.Economy);
@@ -175,8 +171,7 @@ namespace ChaosWarlords
                     {
                         if (_activePlayer.Power >= 3)
                         {
-                            _currentState = GameState.TargetingReturnSpy;
-                            _pendingCard = null;
+                            _actionSystem.StartTargeting(GameState.TargetingReturnSpy);
                             GameLogger.Log("Select a SITE to remove Enemy Spy (Cost: 3 Power)...", LogChannel.General);
                         }
                         else GameLogger.Log("Not enough Power! Need 3.", LogChannel.Economy);
@@ -192,7 +187,7 @@ namespace ChaosWarlords
             }
             else
             {
-                if (_currentState == GameState.Normal)
+                if (!_actionSystem.IsTargeting())
                     UpdateNormalGameplay(gameTime);
                 else
                     UpdateTargetingLogic(); // <--- This method is fixed below
@@ -250,113 +245,43 @@ namespace ChaosWarlords
         {
             _mapManager.Update(_inputManager.GetMouseState());
 
-            if (_inputManager.IsLeftMouseJustClicked())
+            if (!_inputManager.IsLeftMouseJustClicked()) return;
+
+            MapNode targetNode = _mapManager.GetHoveredNode();
+            Site targetSite = _mapManager.GetHoveredSite(_inputManager.MousePosition);
+
+            // If a node is clicked inside a site, the target is the site.
+            // This handles cases where site-targeting actions are intended but a node is clicked.
+            if (targetNode != null && targetSite == null)
             {
-                MapNode targetNode = _mapManager.GetHoveredNode();
-                Site targetSite = _mapManager.GetHoveredSite(_inputManager.MousePosition);
-                bool success = false;
-
-                // --- LOGIC SPLIT BY STATE, NOT BY HIT ---
-
-                // GROUP A: Actions that target NODES (Troops)
-                if (_currentState == GameState.TargetingAssassinate ||
-                    _currentState == GameState.TargetingReturn ||
-                    _currentState == GameState.TargetingSupplant)
-                {
-                    if (targetNode != null)
-                    {
-                        if (_currentState == GameState.TargetingAssassinate)
-                        {
-                            if (_mapManager.CanAssassinate(targetNode, _activePlayer))
-                            {
-                                _mapManager.Assassinate(targetNode, _activePlayer);
-                                success = true;
-                            }
-                            else GameLogger.Log("Invalid Target! Need Presence or cannot target self/empty.", LogChannel.Error);
-                        }
-                        else if (_currentState == GameState.TargetingReturn)
-                        {
-                            if (targetNode.Occupant != PlayerColor.None && _mapManager.HasPresence(targetNode, _activePlayer.Color))
-                            {
-                                if (targetNode.Occupant == PlayerColor.Neutral) GameLogger.Log("Cannot return Neutral troops.", LogChannel.Error);
-                                else
-                                {
-                                    _mapManager.ReturnTroop(targetNode, _activePlayer);
-                                    success = true;
-                                }
-                            }
-                            else GameLogger.Log("Invalid Return Target.", LogChannel.Error);
-                        }
-                        else if (_currentState == GameState.TargetingSupplant)
-                        {
-                            if (_mapManager.CanAssassinate(targetNode, _activePlayer))
-                            {
-                                if (_activePlayer.TroopsInBarracks > 0)
-                                {
-                                    _mapManager.Supplant(targetNode, _activePlayer);
-                                    success = true;
-                                }
-                                else GameLogger.Log("Barracks Empty!", LogChannel.Error);
-                            }
-                        }
-                    }
-                }
-                // GROUP B: Actions that target SITES (Spies)
-                else if (_currentState == GameState.TargetingPlaceSpy ||
-                         _currentState == GameState.TargetingReturnSpy)
-                {
-                    // FIX: If we clicked a Node, we likely meant the Site underneath it.
-                    // If targetSite is null but targetNode is NOT, check if the node belongs to a site.
-                    // (But usually GetHoveredSite works on bounds, so targetSite should ALREADY be valid 
-                    // even if clicking a node, as long as we don't 'else' it away!)
-
-                    if (targetSite != null)
-                    {
-                        if (_currentState == GameState.TargetingPlaceSpy)
-                        {
-                            if (targetSite.Spies.Contains(_activePlayer.Color))
-                            {
-                                GameLogger.Log("You already have a spy here.", LogChannel.Error);
-                            }
-                            else if (_activePlayer.SpiesInBarracks > 0)
-                            {
-                                _mapManager.PlaceSpy(targetSite, _activePlayer);
-                                success = true;
-                            }
-                            else GameLogger.Log("No Spies in Barracks!", LogChannel.Error);
-                        }
-                        else if (_currentState == GameState.TargetingReturnSpy)
-                        {
-                            if (_mapManager.ReturnSpy(targetSite, _activePlayer))
-                            {
-                                success = true;
-                            }
-                        }
-                    }
-                }
-
-                // --- FINALIZE ---
-                if (success)
-                {
-                    if (_pendingCard == null)
-                    {
-                        if (_currentState == GameState.TargetingAssassinate || _currentState == GameState.TargetingReturnSpy)
-                        {
-                            _activePlayer.Power -= 3;
-                            GameLogger.Log("Power deducted: 3", LogChannel.Economy);
-                        }
-                    }
-                    else
-                    {
-                        ResolveCardEffects(_pendingCard);
-                        MoveCardToPlayed(_pendingCard);
-                    }
-
-                    _currentState = GameState.Normal;
-                    _pendingCard = null;
-                    GameLogger.Log("Action Complete.", LogChannel.General);
-                }
+                // This is a potential future improvement: targetSite = _mapManager.GetSiteForNode(targetNode);
             }
+
+            bool success = _actionSystem.HandleTargetClick(targetNode, targetSite);
+
+            if (success)
+            {
+                // Action was successful, now finalize it.
+                if (_actionSystem.PendingCard == null) // Action came from a UI button, not a card.
+                {
+                    // Hardcoded costs for UI actions. This could be improved by storing costs with the action definition.
+                    if (_actionSystem.CurrentState == GameState.TargetingAssassinate || _actionSystem.CurrentState == GameState.TargetingReturnSpy)
+                    {
+                        _activePlayer.Power -= 3;
+                        GameLogger.Log("Power deducted: 3", LogChannel.Economy);
+                    }
+                }
+                else // Action came from a card.
+                {
+                    ResolveCardEffects(_actionSystem.PendingCard);
+                    MoveCardToPlayed(_actionSystem.PendingCard);
+                }
+
+                // Reset state machine
+                _actionSystem.CancelTargeting();
+                GameLogger.Log("Action Complete.", LogChannel.General);
+            }
+            // If not successful, the ActionSystem has already logged the error.
         }
 
         private void PlayCard(Card card)
@@ -366,29 +291,25 @@ namespace ChaosWarlords
             {
                 if (effect.Type == EffectType.Assassinate)
                 {
-                    _currentState = GameState.TargetingAssassinate;
-                    _pendingCard = card;
+                    _actionSystem.StartTargeting(GameState.TargetingAssassinate, card);
                     GameLogger.Log("Select a target to Assassinate... (Right Click to Cancel)", LogChannel.General);
                     return;
                 }
                 else if (effect.Type == EffectType.ReturnUnit)
                 {
-                    _currentState = GameState.TargetingReturn;
-                    _pendingCard = card;
+                    _actionSystem.StartTargeting(GameState.TargetingReturn, card);
                     GameLogger.Log("Select a unit to Return... (Right Click to Cancel)", LogChannel.General);
                     return;
                 }
                 else if (effect.Type == EffectType.Supplant)
                 {
-                    _currentState = GameState.TargetingSupplant;
-                    _pendingCard = card;
+                    _actionSystem.StartTargeting(GameState.TargetingSupplant, card);
                     GameLogger.Log("Select a target to Supplant... (Right Click to Cancel)", LogChannel.General);
                     return;
                 }
                 else if (effect.Type == EffectType.PlaceSpy)
                 {
-                    _currentState = GameState.TargetingPlaceSpy;
-                    _pendingCard = card;
+                    _actionSystem.StartTargeting(GameState.TargetingPlaceSpy, card);
                     GameLogger.Log("Select a Site to Place a Spy... (Right Click to Cancel)", LogChannel.General);
                     return;
                 }
@@ -423,12 +344,9 @@ namespace ChaosWarlords
         // --- RESTORED ENDTURN METHOD ---
         private void EndTurn()
         {
-            // Safety: Reset Targeting if user hits Enter mid-action
-            if (_currentState != GameState.Normal)
+            if (_actionSystem.IsTargeting())
             {
-                _currentState = GameState.Normal;
-                _pendingCard = null;
-                GameLogger.Log("Targeting Cancelled due to End Turn.", LogChannel.General);
+                _actionSystem.CancelTargeting();
             }
 
             GameLogger.Log("--- TURN ENDED ---", LogChannel.General);
@@ -443,12 +361,12 @@ namespace ChaosWarlords
                 {
                     if (site.Owner == _activePlayer.Color && site.IsCity)
                     {
-                        ApplyReward(site.ControlResource, site.ControlAmount);
+                        _mapManager.ApplyReward(_activePlayer, site.ControlResource, site.ControlAmount);
                         GameLogger.Log($"Site Control: {site.Name} gave +{site.ControlAmount} {site.ControlResource}", LogChannel.Economy);
 
                         if (site.HasTotalControl)
                         {
-                            ApplyReward(site.TotalControlResource, site.TotalControlAmount);
+                            _mapManager.ApplyReward(_activePlayer, site.TotalControlResource, site.TotalControlAmount);
                             GameLogger.Log($"Total Control Bonus: {site.Name} gave +{site.TotalControlAmount} {site.TotalControlResource}", LogChannel.Economy);
                         }
                     }
@@ -460,13 +378,6 @@ namespace ChaosWarlords
             ArrangeHandVisuals();
 
             GameLogger.Log($"New Hand Drawn. Total VP: {_activePlayer.VictoryPoints}", LogChannel.General);
-        }
-
-        private void ApplyReward(ResourceType type, int amount)
-        {
-            if (type == ResourceType.VictoryPoints) _activePlayer.VictoryPoints += amount;
-            if (type == ResourceType.Power) _activePlayer.Power += amount;
-            if (type == ResourceType.Influence) _activePlayer.Influence += amount;
         }
 
         protected override void Draw(GameTime gameTime)
@@ -493,12 +404,13 @@ namespace ChaosWarlords
             _uiManager.DrawTopBar(_spriteBatch, _activePlayer);
 
             // Debug Text for State
-            if (_currentState != GameState.Normal && _defaultFont != null)
+            if (_actionSystem.IsTargeting() && _defaultFont != null)
             {
+                var currentState = _actionSystem.CurrentState;
                 string targetText = "TARGETING...";
-                if (_currentState == GameState.TargetingAssassinate) targetText = "CLICK TROOP TO KILL";
-                if (_currentState == GameState.TargetingPlaceSpy) targetText = "CLICK SITE TO PLACE SPY";
-                if (_currentState == GameState.TargetingReturnSpy) targetText = "CLICK SITE TO HUNT SPY";
+                if (currentState == GameState.TargetingAssassinate) targetText = "CLICK TROOP TO KILL";
+                if (currentState == GameState.TargetingPlaceSpy) targetText = "CLICK SITE TO PLACE SPY";
+                if (currentState == GameState.TargetingReturnSpy) targetText = "CLICK SITE TO HUNT SPY";
 
                 Vector2 mousePos = _inputManager.MousePosition;
                 _spriteBatch.DrawString(_defaultFont, targetText, mousePos + new Vector2(20, 20), Color.Red);

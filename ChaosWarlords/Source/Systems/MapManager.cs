@@ -11,12 +11,21 @@ namespace ChaosWarlords.Source.Systems
     {
         private List<MapNode> _nodes;
         public List<Site> Sites { get; private set; }
+        private readonly Dictionary<MapNode, Site> _nodeSiteLookup;
         public Texture2D PixelTexture { get; set; }
 
         public MapManager(List<MapNode> nodes, List<Site> sites)
         {
             _nodes = nodes;
             Sites = sites;
+            _nodeSiteLookup = new Dictionary<MapNode, Site>();
+
+            if (sites != null)
+            {
+                foreach (var site in sites)
+                    foreach (var node in site.Nodes)
+                        _nodeSiteLookup[node] = site;
+            }
         }
 
         public void CenterMap(int screenWidth, int screenHeight)
@@ -62,44 +71,39 @@ namespace ChaosWarlords.Source.Systems
 
         public bool TryDeploy(Player currentPlayer)
         {
-            foreach (var node in _nodes)
+            var hoveredNode = GetHoveredNode();
+            if (hoveredNode == null)
             {
-                if (node.IsHovered)
-                {
-                    if (CanDeployAt(node, currentPlayer.Color))
-                    {
-                        if (currentPlayer.Power >= 1 && currentPlayer.TroopsInBarracks > 0)
-                        {
-                            currentPlayer.Power -= 1;
-                            currentPlayer.TroopsInBarracks--;
-
-                            node.Occupant = currentPlayer.Color;
-                            GameLogger.Log($"Deployed Troop at Node {node.Id}. Supply: {currentPlayer.TroopsInBarracks}", LogChannel.Combat);
-
-                            UpdateSiteControl(currentPlayer);
-
-                            if (currentPlayer.TroopsInBarracks == 0)
-                                GameLogger.Log("FINAL TROOP DEPLOYED! Game ends this round.", LogChannel.General);
-
-                            return true; // Action successful
-                        }
-                        else if (currentPlayer.TroopsInBarracks == 0)
-                        {
-                            GameLogger.Log("Cannot Deploy: Barracks Empty!", LogChannel.Error);
-                        }
-                        else
-                        {
-                            GameLogger.Log("Cannot Deploy: Not enough Power!", LogChannel.Economy);
-                        }
-                    }
-                    else
-                    {
-                        GameLogger.Log($"Invalid Deployment at Node {node.Id}: No Presence!", LogChannel.Error);
-                    }
-                    return false; // Found the node, but failed to deploy
-                }
+                return false; // Clicked on nothing.
             }
-            return false; // Clicked on nothing
+
+            if (!CanDeployAt(hoveredNode, currentPlayer.Color))
+            {
+                GameLogger.Log($"Invalid Deployment at Node {hoveredNode.Id}: Occupied or No Presence.", LogChannel.Error);
+                return false;
+            }
+
+            if (currentPlayer.TroopsInBarracks <= 0)
+            {
+                GameLogger.Log("Cannot Deploy: Barracks Empty!", LogChannel.Error);
+                return false;
+            }
+
+            if (currentPlayer.Power < 1)
+            {
+                GameLogger.Log("Cannot Deploy: Not enough Power!", LogChannel.Economy);
+                return false;
+            }
+
+            // All checks passed, execute deployment
+            currentPlayer.Power -= 1;
+            currentPlayer.TroopsInBarracks--;
+            hoveredNode.Occupant = currentPlayer.Color;
+            GameLogger.Log($"Deployed Troop at Node {hoveredNode.Id}. Supply: {currentPlayer.TroopsInBarracks}", LogChannel.Combat);
+            UpdateSiteControl(currentPlayer);
+            if (currentPlayer.TroopsInBarracks == 0)
+                GameLogger.Log("FINAL TROOP DEPLOYED! Game ends this round.", LogChannel.General);
+            return true; // Action successful
         }
 
         private void UpdateSiteControl(Player activePlayer)
@@ -168,7 +172,7 @@ namespace ChaosWarlords.Source.Systems
             }
         }
 
-        private void ApplyReward(Player player, ResourceType type, int amount)
+        public void ApplyReward(Player player, ResourceType type, int amount)
         {
             if (type == ResourceType.Power) player.Power += amount;
             if (type == ResourceType.Influence) player.Influence += amount;
@@ -424,12 +428,8 @@ namespace ChaosWarlords.Source.Systems
 
         private Site GetSiteForNode(MapNode node)
         {
-            if (Sites == null) return null;
-            foreach (var site in Sites)
-            {
-                if (site.Nodes.Contains(node)) return site;
-            }
-            return null;
+            _nodeSiteLookup.TryGetValue(node, out Site site);
+            return site;
         }
 
         private Vector2 GetIntersection(Rectangle rect, Vector2 start, Vector2 end)
