@@ -447,5 +447,24 @@ namespace ChaosWarlords.Tests.Systems
 
 
         #endregion
+
+        #region Rewards Tests
+
+        [TestMethod]
+        public void DistributeControlRewards_GrantsResourcesForOwnedCities()
+        {
+            // Arrange
+            _siteA.IsCity = true;
+            _siteA.Owner = _player1.Color;
+            _player1.Power = 0;
+
+            // Act
+            _mapManager.DistributeControlRewards(_player1);
+
+            // Assert (SiteA gives 1 Power in setup)
+            Assert.AreEqual(1, _player1.Power);
+        }
+
+        #endregion
     }
 }

@@ -19,7 +19,7 @@ namespace ChaosWarlords.Source.Systems
         {
             _nodes = nodes;
             Sites = sites;
-            _nodeSiteLookup = new Dictionary<MapNode, Site>();
+            _nodeSiteLookup = [];
 
             if (sites != null)
             {
@@ -35,11 +35,11 @@ namespace ChaosWarlords.Source.Systems
             if (_nodes.Count == 0) return;
 
             // 1. Calculate Bounds
-            var bounds = CalculateMapBounds();
+            var (MinX, MinY, MaxX, MaxY) = MapGeometry.CalculateBounds(_nodes);
 
             // 2. Calculate Offset required to center
-            Vector2 mapCenter = new Vector2((bounds.MinX + bounds.MaxX) / 2f, (bounds.MinY + bounds.MaxY) / 2f);
-            Vector2 screenCenter = new Vector2(screenWidth / 2f, screenHeight / 2f);
+            Vector2 mapCenter = new((MinX + MaxX) / 2f, (MinY + MaxY) / 2f);
+            Vector2 screenCenter = new(screenWidth / 2f, screenHeight / 2f);
             Vector2 offset = screenCenter - mapCenter;
 
             // 3. Apply
@@ -226,6 +226,25 @@ namespace ChaosWarlords.Source.Systems
             if (type == ResourceType.VictoryPoints) player.VictoryPoints += amount;
         }
 
+        public void DistributeControlRewards(Player activePlayer)
+        {
+            if (Sites == null) return;
+
+            foreach (var site in Sites)
+            {
+                // Logic: Only apply rewards for sites owned by the active player
+                if (site.Owner == activePlayer.Color && site.IsCity)
+                {
+                    ApplyReward(activePlayer, site.ControlResource, site.ControlAmount);
+
+                    if (site.HasTotalControl)
+                    {
+                        ApplyReward(activePlayer, site.TotalControlResource, site.TotalControlAmount);
+                    }
+                }
+            }
+        }
+
         public void Assassinate(MapNode node, Player attacker)
         {
             if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
@@ -367,13 +386,13 @@ namespace ChaosWarlords.Source.Systems
         // Keeping Draw-related math helpers private (unchanged)
         private Vector2 GetIntersection(Rectangle rect, Vector2 start, Vector2 end)
         {
-            Vector2[] corners = new Vector2[]
-            {
+            Vector2[] corners =
+            [
                 new Vector2(rect.Left, rect.Top),
                 new Vector2(rect.Right, rect.Top),
                 new Vector2(rect.Right, rect.Bottom),
                 new Vector2(rect.Left, rect.Bottom)
-            };
+            ];
 
             float closestDist = float.MaxValue;
             Vector2 closestPoint = end;
@@ -383,7 +402,7 @@ namespace ChaosWarlords.Source.Systems
                 Vector2 p1 = corners[i];
                 Vector2 p2 = corners[(i + 1) % 4];
 
-                if (TryGetLineIntersection(start, end, p1, p2, out Vector2 intersection))
+                if (MapGeometry.TryGetLineIntersection(start, end, p1, p2, out Vector2 intersection))
                 {
                     float d = Vector2.DistanceSquared(start, intersection);
                     if (d < closestDist)
@@ -394,23 +413,6 @@ namespace ChaosWarlords.Source.Systems
                 }
             }
             return closestPoint;
-        }
-
-        private bool TryGetLineIntersection(Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p4, out Vector2 result)
-        {
-            result = Vector2.Zero;
-            float d = (p4.Y - p3.Y) * (p2.X - p1.X) - (p4.X - p3.X) * (p2.Y - p1.Y);
-            if (d == 0) return false;
-
-            float ua = ((p4.X - p3.X) * (p1.Y - p3.Y) - (p4.Y - p3.Y) * (p1.X - p3.X)) / d;
-            float ub = ((p2.X - p1.X) * (p1.Y - p3.Y) - (p2.Y - p1.Y) * (p1.X - p3.X)) / d;
-
-            if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1)
-            {
-                result = new Vector2(p1.X + ua * (p2.X - p1.X), p1.Y + ua * (p2.Y - p1.Y));
-                return true;
-            }
-            return false;
         }
 
         private void DrawLine(SpriteBatch spriteBatch, Vector2 start, Vector2 end, Color color, int thickness)

@@ -381,20 +381,8 @@ namespace ChaosWarlords.Source.States
             GameLogger.Log("--- TURN ENDED ---", LogChannel.General);
             _activePlayer.CleanUpTurn();
 
-            if (_mapManager.Sites != null)
-            {
-                foreach (var site in _mapManager.Sites)
-                {
-                    if (site.Owner == _activePlayer.Color && site.IsCity)
-                    {
-                        _mapManager.ApplyReward(_activePlayer, site.ControlResource, site.ControlAmount);
-                        if (site.HasTotalControl)
-                        {
-                            _mapManager.ApplyReward(_activePlayer, site.TotalControlResource, site.TotalControlAmount);
-                        }
-                    }
-                }
-            }
+            // REFACTORED: Logic delegated to MapManager
+            _mapManager.DistributeControlRewards(_activePlayer);
 
             _activePlayer.DrawCards(5);
             ArrangeHandVisuals();

@@ -31,6 +31,9 @@ session_log.txt
 # --- PDF Files ---
 *.pdf
 
+# --- PowerShell Script Files ---
+*.ps1
+
 # --- MonoGame Specific ---
 # If you use the Content Pipeline tool (MGCB), 
 # usually you WANT to commit the .mgcb file, but ignore the temporary build folder:
