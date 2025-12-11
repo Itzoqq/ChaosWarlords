@@ -316,11 +316,17 @@ namespace ChaosWarlords.Source.Systems
 
         public bool HasPresence(MapNode targetNode, PlayerColor player)
         {
+            // Rule: A player has presence at a location if they have a troop there,
+            // a troop at an adjacent location, or a spy at the site containing the location.
+
+            // 0. Direct occupation
+            if (targetNode.Occupant == player) return true;
+
             // 1. Spies
             Site parentSite = GetSiteForNode(targetNode);
             if (parentSite != null && parentSite.Spies.Contains(player)) return true;
 
-            // 2. Adjacency using LINQ for conciseness
+            // 2. Adjacency (to the node itself or any node in its site)
             var nodesToCheck = parentSite != null ? parentSite.Nodes : new List<MapNode> { targetNode };
 
             // Check if ANY neighbor of ANY relevant node is occupied by us
@@ -408,47 +414,59 @@ namespace ChaosWarlords.Source.Systems
 
         public void Draw(SpriteBatch spriteBatch, SpriteFont font)
         {
-            // 1. Draw Sites (Backgrounds)
-            if (Sites != null)
+            DrawSites(spriteBatch, font);
+            DrawRoutes(spriteBatch);
+            DrawNodes(spriteBatch);
+        }
+
+        private void DrawSites(SpriteBatch spriteBatch, SpriteFont font)
+        {
+            if (Sites == null) return;
+            foreach (var site in Sites)
             {
-                foreach (var site in Sites)
-                {
-                    site.Draw(spriteBatch, font, PixelTexture);
-                }
+                site.Draw(spriteBatch, font, PixelTexture);
             }
+        }
 
-            // 2. Draw Connections (Routes)
-            foreach (var node in _nodes)
-            {
-                foreach (var neighbor in node.Neighbors)
-                {
-                    // Draw only once per pair (Id check prevents double drawing)
-                    if (node.Id < neighbor.Id)
-                    {
-                        Site startSite = GetSiteForNode(node);
-                        Site endSite = GetSiteForNode(neighbor);
-
-                        // Don't draw lines strictly inside a site (visual clutter)
-                        if (startSite != null && startSite == endSite) continue;
-
-                        // Calculate start/end points (Center of Site OR Position of Node)
-                        Vector2 p1 = startSite != null ? startSite.Bounds.Center.ToVector2() : node.Position;
-                        Vector2 p2 = endSite != null ? endSite.Bounds.Center.ToVector2() : neighbor.Position;
-
-                        // Clip lines to the edge of the Site rectangles so they look clean
-                        if (startSite != null) p1 = GetIntersection(startSite.Bounds, p2, p1);
-                        if (endSite != null) p2 = GetIntersection(endSite.Bounds, p1, p2);
-
-                        DrawLine(spriteBatch, p1, p2, Color.DarkGray, 2);
-                    }
-                }
-            }
-
-            // 3. Draw Nodes (Troops)
+        private void DrawNodes(SpriteBatch spriteBatch)
+        {
             foreach (var node in _nodes)
             {
                 node.Draw(spriteBatch);
             }
+        }
+
+        private void DrawRoutes(SpriteBatch spriteBatch)
+        {
+            foreach (var node in _nodes)
+            {
+                foreach (var neighbor in node.Neighbors)
+                {
+                    // Optimization: Only draw connection once per pair
+                    if (node.Id < neighbor.Id)
+                    {
+                        DrawSingleRoute(spriteBatch, node, neighbor);
+                    }
+                }
+            }
+        }
+
+        private void DrawSingleRoute(SpriteBatch spriteBatch, MapNode node, MapNode neighbor)
+        {
+            Site startSite = GetSiteForNode(node);
+            Site endSite = GetSiteForNode(neighbor);
+
+            // Visual Clutter Rule: Don't draw lines strictly inside a single site
+            if (startSite != null && startSite == endSite) return;
+
+            Vector2 p1 = startSite != null ? startSite.Bounds.Center.ToVector2() : node.Position;
+            Vector2 p2 = endSite != null ? endSite.Bounds.Center.ToVector2() : neighbor.Position;
+
+            // Geometry: Clip lines to site edges
+            if (startSite != null) p1 = GetIntersection(startSite.Bounds, p2, p1);
+            if (endSite != null) p2 = GetIntersection(endSite.Bounds, p1, p2);
+
+            DrawLine(spriteBatch, p1, p2, Color.DarkGray, 2);
         }
     }
 }

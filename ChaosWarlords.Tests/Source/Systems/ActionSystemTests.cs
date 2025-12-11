@@ -164,6 +164,72 @@ namespace ChaosWarlords.Tests.Systems
             Assert.IsFalse(success);
             Assert.AreEqual(_player1.Color, _node1.Occupant); // Nothing should have changed
         }
+
+        [TestMethod]
+        public void HandleTargetClick_Supplant_SucceedsWithValidTarget()
+        {
+            // Arrange
+            _actionSystem.StartTargeting(ActionState.TargetingSupplant, null);
+            _node1.Occupant = _player1.Color; // Presence
+            _node2.Occupant = _player2.Color; // Target
+            _player1.TroopsInBarracks = 1;
+            _player1.TrophyHall = 0;
+
+            // Act
+            bool success = _actionSystem.HandleTargetClick(_node2, null);
+
+            // Assert
+            Assert.IsTrue(success);
+            Assert.AreEqual(_player1.Color, _node2.Occupant); // Node was supplanted
+            Assert.AreEqual(1, _player1.TrophyHall);
+            Assert.AreEqual(0, _player1.TroopsInBarracks);
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_Return_SucceedsOnOwnTroop()
+        {
+            // Arrange
+            _actionSystem.StartTargeting(ActionState.TargetingReturn, null);
+            _node1.Occupant = _player1.Color; // Troop to return. This troop provides its own presence.
+            _player1.TroopsInBarracks = 5;
+
+            // Act
+            bool success = _actionSystem.HandleTargetClick(_node1, null);
+
+            // Assert
+            Assert.IsTrue(success);
+            Assert.AreEqual(PlayerColor.None, _node1.Occupant);
+            Assert.AreEqual(6, _player1.TroopsInBarracks);
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_Assassinate_FailsOnEmptyNode()
+        {
+            // Arrange
+            _actionSystem.StartTargeting(ActionState.TargetingAssassinate, null);
+            _node1.Occupant = _player1.Color; // Presence
+            // _node2 is empty by default
+
+            // Act
+            bool success = _actionSystem.HandleTargetClick(_node2, null);
+
+            // Assert
+            Assert.IsFalse(success);
+            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState, "Should remain in targeting state after invalid click.");
+        }
+        #endregion
+
+        #region State Management Tests
+
+        [TestMethod]
+        public void CancelTargeting_ResetsStateAndPendingCard()
+        {
+            var card = new Card("c", "c", 0, CardAspect.Shadow, 0, 0);
+            _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card);
+            _actionSystem.CancelTargeting();
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
+            Assert.IsNull(_actionSystem.PendingCard);
+        }
         #endregion
     }
 }

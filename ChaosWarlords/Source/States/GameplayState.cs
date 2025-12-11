@@ -99,52 +99,77 @@ namespace ChaosWarlords.Source.States
         {
             _inputManager.Update();
 
-            if (_inputManager.IsKeyJustPressed(Keys.Escape)) _game.Exit();
+            // 1. Handle Global Inputs (Exit, End Turn, UI Toggles)
+            if (HandleGlobalInput()) return;
 
-            // Cancel Target
+            // 2. Delegate to specific state logic
+            if (_isMarketOpen)
+            {
+                UpdateMarketLogic();
+            }
+            else if (_actionSystem.IsTargeting())
+            {
+                UpdateTargetingLogic();
+            }
+            else
+            {
+                UpdateNormalGameplay(gameTime);
+            }
+        }
+
+        private bool HandleGlobalInput()
+        {
+            if (_inputManager.IsKeyJustPressed(Keys.Escape))
+            {
+                _game.Exit();
+                return true;
+            }
+
+            if (_inputManager.IsKeyJustPressed(Keys.Enter))
+            {
+                EndTurn();
+                return true;
+            }
+
+            // Right Click Cancel
             if (_inputManager.IsRightMouseJustClicked() && _actionSystem.IsTargeting())
             {
                 _actionSystem.CancelTargeting();
+                return true;
             }
 
-            if (_inputManager.IsKeyJustPressed(Keys.Enter)) EndTurn();
-
-            // UI Interaction
+            // UI Click Handling
             if (_inputManager.IsLeftMouseJustClicked())
             {
                 if (_uiManager.IsMarketButtonHovered(_inputManager))
                 {
                     _isMarketOpen = !_isMarketOpen;
-                    return;
+                    return true; // Input consumed
                 }
 
+                // Only check action buttons if we aren't busy elsewhere
                 if (!_isMarketOpen && !_actionSystem.IsTargeting())
                 {
-                    if (_uiManager.IsAssassinateButtonHovered(_inputManager))
-                    {
-                        _actionSystem.TryStartAssassinate();
-                        return;
-                    }
-                    if (_uiManager.IsReturnSpyButtonHovered(_inputManager))
-                    {
-                        _actionSystem.TryStartReturnSpy();
-                        return;
-                    }
+                    if (CheckActionButtons()) return true;
                 }
             }
 
-            // State Machine
-            if (_isMarketOpen)
+            return false;
+        }
+
+        private bool CheckActionButtons()
+        {
+            if (_uiManager.IsAssassinateButtonHovered(_inputManager))
             {
-                UpdateMarketLogic();
+                _actionSystem.TryStartAssassinate();
+                return true;
             }
-            else
+            if (_uiManager.IsReturnSpyButtonHovered(_inputManager))
             {
-                if (!_actionSystem.IsTargeting())
-                    UpdateNormalGameplay(gameTime);
-                else
-                    UpdateTargetingLogic();
+                _actionSystem.TryStartReturnSpy();
+                return true;
             }
+            return false;
         }
 
         public void Draw(SpriteBatch spriteBatch)

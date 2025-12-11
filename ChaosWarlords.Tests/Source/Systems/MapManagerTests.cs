@@ -134,6 +134,29 @@ namespace ChaosWarlords.Tests.Systems
             Assert.IsTrue(_mapManager.CanDeployAt(_node5, _player1.Color));
         }
 
+        [TestMethod]
+        public void HasPresence_Succeeds_WhenTroopIsOnTargetNode()
+        {
+            // Arrange: Player 1 has a troop on the target node itself.
+            _node1.Occupant = _player1.Color;
+
+            // Act & Assert
+            Assert.IsTrue(_mapManager.HasPresence(_node1, _player1.Color), "Presence should be true if a player's troop is on the target node.");
+        }
+
+        [TestMethod]
+        public void HasPresence_GrantsSiteWidePresence_FromAdjacency()
+        {
+            // Arrange: P1 is at node 2, which is adjacent to node 3 (in Site A).
+            // An enemy is at node 4 (also in Site A).
+            _node2.Occupant = _player1.Color;
+            _node4.Occupant = _player2.Color;
+
+            // Act & Assert: P1 should have presence at node 4, because being adjacent
+            // to any part of a site (node 3) grants presence to the whole site.
+            Assert.IsTrue(_mapManager.HasPresence(_node4, _player1.Color), "Presence at one node of a site should grant presence to the entire site.");
+        }
+
         #endregion
 
         #region Assassination Tests
@@ -233,6 +256,26 @@ namespace ChaosWarlords.Tests.Systems
             Assert.IsFalse(result);
             // FAILURE: Spy should still be THERE -> Contains
             CollectionAssert.Contains(_siteA.Spies.ToList(), _player2.Color);
+        }
+
+        [TestMethod]
+        public void ReturnSpy_ReturnsFirstEnemySpy_WhenMultipleArePresent()
+        {
+            // Arrange
+            var player3 = new Player(PlayerColor.Black);
+            _node2.Occupant = _player1.Color; // P1 has presence at Site A
+            _siteA.Spies.Add(_player2.Color);
+            _siteA.Spies.Add(player3.Color);
+
+            // Act
+            bool result = _mapManager.ReturnSpy(_siteA, _player1);
+
+            // Assert
+            Assert.IsTrue(result);
+            // FirstOrDefault will remove the first one that is not player1. In this case, player2.
+            Assert.DoesNotContain(_player2.Color, _siteA.Spies);
+            Assert.Contains(player3.Color, _siteA.Spies);
+            Assert.HasCount(1, _siteA.Spies);
         }
 
         #endregion
@@ -367,6 +410,41 @@ namespace ChaosWarlords.Tests.Systems
             Assert.IsFalse(_siteA.HasTotalControl);
             Assert.AreEqual(_player1.Color, _siteA.Owner);
         }
+
+        #endregion
+
+        #region Site Control Edge Cases
+
+        [TestMethod]
+        public void UpdateSiteControl_NoOwnerOnTie()
+        {
+            // Arrange: P1 and P2 both place one troop in Site A.
+            _node3.Occupant = _player1.Color;
+            _node4.Occupant = _player2.Color;
+
+            // Act
+            _mapManager.UpdateSiteControl(_player1);
+
+            // Assert
+            Assert.AreEqual(PlayerColor.None, _siteA.Owner, "Site owner should be None on a tie between players.");
+            Assert.IsFalse(_siteA.HasTotalControl);
+        }
+
+        [TestMethod]
+        public void UpdateSiteControl_NoOwnerOnTieWithNeutral()
+        {
+            // Arrange: P1 has one troop, and there is one neutral troop.
+            _node3.Occupant = _player1.Color;
+            _node4.Occupant = PlayerColor.Neutral;
+
+            // Act
+            _mapManager.UpdateSiteControl(_player1);
+
+            // Assert
+            Assert.AreEqual(PlayerColor.None, _siteA.Owner, "Site owner should be None on a tie with neutral troops.");
+        }
+
+
 
         #endregion
     }
