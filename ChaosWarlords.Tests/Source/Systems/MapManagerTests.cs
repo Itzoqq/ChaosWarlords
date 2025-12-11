@@ -112,6 +112,28 @@ namespace ChaosWarlords.Tests.Systems
             Assert.AreEqual(10, _player1.TroopsInBarracks);
         }
 
+        [TestMethod]
+        public void TryDeploy_Fails_WhenNotEnoughTroops()
+        {
+            _player1.TroopsInBarracks = 0;
+            _node1.Occupant = _player1.Color; // Has presence
+            _node2.IsHovered = true; // "Click" on node 2
+
+            bool result = _mapManager.TryDeploy(_player1);
+
+            Assert.IsFalse(result);
+            Assert.AreEqual(PlayerColor.None, _node2.Occupant);
+            Assert.AreEqual(0, _player1.TroopsInBarracks);
+        }
+
+        [TestMethod]
+        public void CanDeployAt_Succeeds_WhenPlayerHasNoTroopsOnBoard()
+        {
+            // No troops for player 1 are on the board.
+            // According to the "Start of Game" rule, they can deploy anywhere.
+            Assert.IsTrue(_mapManager.CanDeployAt(_node5, _player1.Color));
+        }
+
         #endregion
 
         #region Assassination Tests
@@ -177,6 +199,17 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         [TestMethod]
+        public void PlaceSpy_Fails_IfNoSpiesInBarracks()
+        {
+            _player1.SpiesInBarracks = 0;
+
+            _mapManager.PlaceSpy(_siteA, _player1);
+
+            CollectionAssert.DoesNotContain(_siteA.Spies.ToList(), _player1.Color);
+            Assert.AreEqual(0, _player1.SpiesInBarracks);
+        }
+
+        [TestMethod]
         public void ReturnSpy_Succeeds_WithPresence()
         {
             // FIX: Move player to Node 2 so they are adjacent to Site A
@@ -202,6 +235,50 @@ namespace ChaosWarlords.Tests.Systems
             CollectionAssert.Contains(_siteA.Spies.ToList(), _player2.Color);
         }
 
+        #endregion
+
+        #region Other Actions
+
+        [TestMethod]
+        public void Supplant_CorrectlyReplacesEnemyAndUpdatesState()
+        {
+            // Arrange
+            _node2.Occupant = _player2.Color;
+            int initialTroops = _player1.TroopsInBarracks;
+
+            // Act
+            _mapManager.Supplant(_node2, _player1);
+
+            // Assert
+            Assert.AreEqual(_player1.Color, _node2.Occupant); // Node is now occupied by player 1
+            Assert.AreEqual(1, _player1.TrophyHall); // Enemy troop was added to trophy hall
+            Assert.AreEqual(initialTroops - 1, _player1.TroopsInBarracks); // Player 1 used a troop
+        }
+
+        [TestMethod]
+        public void ReturnTroop_ReturnsOwnTroopToBarracks()
+        {
+            // Arrange
+            _node1.Occupant = _player1.Color;
+            int initialTroops = _player1.TroopsInBarracks;
+
+            // Act
+            _mapManager.ReturnTroop(_node1, _player1);
+
+            // Assert
+            Assert.AreEqual(PlayerColor.None, _node1.Occupant);
+            Assert.AreEqual(initialTroops + 1, _player1.TroopsInBarracks);
+        }
+
+        [TestMethod]
+        public void ReturnTroop_ReturnsEnemyTroopToTheirBarracks()
+        {
+            _node1.Occupant = _player2.Color;
+            _mapManager.ReturnTroop(_node1, _player1);
+            // We can't check player2's barracks count easily here,
+            // but we can check that the troop is removed from the board.
+            Assert.AreEqual(PlayerColor.None, _node1.Occupant);
+        }
         #endregion
 
         #region Site Control Tests
@@ -294,5 +371,3 @@ namespace ChaosWarlords.Tests.Systems
         #endregion
     }
 }
-
-

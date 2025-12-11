@@ -122,8 +122,48 @@ namespace ChaosWarlords.Tests.Systems
             Assert.AreEqual(PlayerColor.None, _node2.Occupant);
         }
 
+        [TestMethod]
+        public void HandleTargetClick_PlaceSpy_SucceedsOnSiteAndFailsOnNode()
+        {
+            // Arrange: Start a Place Spy action
+            _actionSystem.StartTargeting(GameState.TargetingPlaceSpy, null);
+            _player1.SpiesInBarracks = 1;
+
+            // Act 1: Click a valid site
+            bool successOnSite = _actionSystem.HandleTargetClick(null, _siteA);
+
+            // Assert 1
+            Assert.IsTrue(successOnSite);
+            Assert.HasCount(1, _siteA.Spies);
+            Assert.AreEqual(0, _player1.SpiesInBarracks);
+
+            // Arrange 2: Reset and try to click a node
+            _siteA.Spies.Clear();
+            _player1.SpiesInBarracks = 1;
+            _actionSystem.StartTargeting(GameState.TargetingPlaceSpy, null);
+
+            // Act 2: Click a node (invalid target for this action)
+            bool successOnNode = _actionSystem.HandleTargetClick(_node1, null);
+
+            // Assert 2
+            Assert.IsFalse(successOnNode);
+            Assert.IsEmpty(_siteA.Spies);
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_Fails_WithInvalidTarget()
+        {
+            // Arrange: Try to assassinate a friendly troop
+            _actionSystem.StartTargeting(GameState.TargetingAssassinate, null);
+            _node1.Occupant = _player1.Color; // Friendly troop
+
+            // Act
+            bool success = _actionSystem.HandleTargetClick(_node1, null);
+
+            // Assert
+            Assert.IsFalse(success);
+            Assert.AreEqual(_player1.Color, _node1.Occupant); // Nothing should have changed
+        }
         #endregion
     }
 }
-
-

@@ -7,6 +7,12 @@
 *.userosscache
 *.sln.docstates
 
+# --- Coverage Files ---
+**/coverage**/
+
+# --- Test results ---
+**/TestResults/
+
 # --- Visual Studio & VS Code ---
 .vs/
 .vscode/
