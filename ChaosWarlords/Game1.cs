@@ -216,7 +216,7 @@ namespace ChaosWarlords
         {
             bool clickHandled = false;
 
-            // 1. Play Cards
+            // 1. Play Cards (Keep existing logic)
             for (int i = _activePlayer.Hand.Count - 1; i >= 0; i--)
             {
                 var card = _activePlayer.Hand[i];
@@ -230,10 +230,17 @@ namespace ChaosWarlords
                 }
             }
 
-            // 2. Deploy Logic
+            // 2. Deploy Logic (UPDATED)
             if (!clickHandled)
             {
-                _mapManager.Update(_inputManager.GetMouseState(), _activePlayer);
+                // A. Visuals: Always update hover effects
+                _mapManager.Update(_inputManager.GetMouseState());
+
+                // B. Logic: Only try to deploy if we clicked!
+                if (_inputManager.IsLeftMouseJustClicked())
+                {
+                    _mapManager.TryDeploy(_activePlayer);
+                }
             }
 
             foreach (var card in _activePlayer.PlayedCards) card.Update(gameTime, _inputManager.GetMouseState());
@@ -241,7 +248,7 @@ namespace ChaosWarlords
 
         private void UpdateTargetingLogic()
         {
-            _mapManager.Update(_inputManager.GetMouseState(), _activePlayer);
+            _mapManager.Update(_inputManager.GetMouseState());
 
             if (_inputManager.IsLeftMouseJustClicked())
             {

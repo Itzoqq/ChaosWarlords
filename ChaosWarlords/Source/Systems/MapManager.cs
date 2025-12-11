@@ -11,7 +11,6 @@ namespace ChaosWarlords.Source.Systems
     {
         private List<MapNode> _nodes;
         public List<Site> Sites { get; private set; }
-        private bool _wasClicking = false;
         public Texture2D PixelTexture { get; set; }
 
         public MapManager(List<MapNode> nodes, List<Site> sites)
@@ -55,21 +54,13 @@ namespace ChaosWarlords.Source.Systems
             }
         }
 
-        public void Update(MouseState mouseState, Player currentPlayer)
+        public void Update(MouseState mouseState)
         {
+            // Only update visual states (hovering), do NOT handle clicks here.
             foreach (var node in _nodes) node.Update(mouseState);
-
-            bool isClicking = mouseState.LeftButton == ButtonState.Pressed;
-
-            if (isClicking && !_wasClicking)
-            {
-                HandleClick(currentPlayer);
-            }
-
-            _wasClicking = isClicking;
         }
 
-        private void HandleClick(Player currentPlayer)
+        public bool TryDeploy(Player currentPlayer)
         {
             foreach (var node in _nodes)
             {
@@ -89,6 +80,8 @@ namespace ChaosWarlords.Source.Systems
 
                             if (currentPlayer.TroopsInBarracks == 0)
                                 GameLogger.Log("FINAL TROOP DEPLOYED! Game ends this round.", LogChannel.General);
+
+                            return true; // Action successful
                         }
                         else if (currentPlayer.TroopsInBarracks == 0)
                         {
@@ -103,9 +96,10 @@ namespace ChaosWarlords.Source.Systems
                     {
                         GameLogger.Log($"Invalid Deployment at Node {node.Id}: No Presence!", LogChannel.Error);
                     }
-                    return;
+                    return false; // Found the node, but failed to deploy
                 }
             }
+            return false; // Clicked on nothing
         }
 
         private void UpdateSiteControl(Player activePlayer)
@@ -312,7 +306,49 @@ namespace ChaosWarlords.Source.Systems
         // 2. UPDATE/REPLACE THIS METHOD
         public bool HasPresence(MapNode targetNode, PlayerColor player)
         {
-            // Rule: If board is empty of your troops, you have presence everywhere
+            // 1. CHECK SPIES (Presence via Subterfuge)
+            // If the target node is in a Site, and we have a spy there, we have presence.
+            Site parentSite = GetSiteForNode(targetNode);
+            if (parentSite != null)
+            {
+                if (parentSite.Spies.Contains(player)) return true;
+            }
+
+            // 2. CHECK ADJACENCY (Presence via Troops)
+            // Determine Scope: Are we targeting a specific Node, or the whole Site?
+            List<MapNode> nodesToCheck = new List<MapNode>();
+
+            if (parentSite != null)
+            {
+                // If targeting a Site node, we check neighbors of the WHOLE Site
+                nodesToCheck.AddRange(parentSite.Nodes);
+            }
+            else
+            {
+                // Otherwise, just check this single node
+                nodesToCheck.Add(targetNode);
+            }
+
+            // Check if any neighbor of the target area contains our troop
+            foreach (var node in nodesToCheck)
+            {
+                foreach (var neighbor in node.Neighbors)
+                {
+                    if (neighbor.Occupant == player) return true;
+                }
+            }
+
+            return false;
+        }
+
+        // 3. (Optional but Recommended) UPDATE THIS METHOD TO USE THE FIX
+        public bool CanDeployAt(MapNode targetNode, PlayerColor player)
+        {
+            // 1. Occupied check
+            if (targetNode.Occupant != PlayerColor.None) return false;
+
+            // 2. "Start of Game" Rule
+            // If we have ZERO troops on the board, we can deploy anywhere (currently, until we implement starting sites (black sites in the Tyrants..)).
             bool hasAnyTroops = false;
             foreach (var n in _nodes)
             {
@@ -322,44 +358,10 @@ namespace ChaosWarlords.Source.Systems
                     break;
                 }
             }
-            if (!hasAnyTroops) return true;
 
-            // --- NEW LOGIC START ---
+            if (!hasAnyTroops) return true; // Allow initial deployment
 
-            // Determine Scope: Are we targeting a specific Node, or the whole Site?
-            Site parentSite = GetSiteForNode(targetNode);
-            List<MapNode> nodesToCheck = new List<MapNode>();
-
-            if (parentSite != null)
-            {
-                // If the node is part of a Site, we check adjacency to ANY node in that Site
-                nodesToCheck.AddRange(parentSite.Nodes);
-            }
-            else
-            {
-                // Otherwise, just check the single node
-                nodesToCheck.Add(targetNode);
-            }
-
-            // Check neighbors of the defined scope
-            foreach (var node in nodesToCheck)
-            {
-                foreach (var neighbor in node.Neighbors)
-                {
-                    if (neighbor.Occupant == player) return true;
-                }
-            }
-            // --- NEW LOGIC END ---
-
-            return false;
-        }
-
-        // 3. (Optional but Recommended) UPDATE THIS METHOD TO USE THE FIX
-        public bool CanDeployAt(MapNode targetNode, PlayerColor player)
-        {
-            if (targetNode.Occupant != PlayerColor.None) return false;
-
-            // Reuse the new site-aware logic!
+            // 3. Standard Rule: Must have Presence
             return HasPresence(targetNode, player);
         }
 
