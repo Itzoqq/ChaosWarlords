@@ -157,24 +157,16 @@ namespace ChaosWarlords
                     // 2. Assassinate Button
                     if (_uiManager.IsAssassinateButtonHovered(_inputManager))
                     {
-                        if (_activePlayer.Power >= 3)
-                        {
-                            _actionSystem.StartTargeting(GameState.TargetingAssassinate);
-                            GameLogger.Log("Select a TROOP to Assassinate (Cost: 3 Power)...", LogChannel.General);
-                        }
-                        else GameLogger.Log("Not enough Power! Need 3.", LogChannel.Economy);
+                        // The ActionSystem now handles the cost check.
+                        _actionSystem.TryStartAssassinate();
                         return;
                     }
 
                     // 3. Return Spy Button <--- NEW
                     if (_uiManager.IsReturnSpyButtonHovered(_inputManager))
                     {
-                        if (_activePlayer.Power >= 3)
-                        {
-                            _actionSystem.StartTargeting(GameState.TargetingReturnSpy);
-                            GameLogger.Log("Select a SITE to remove Enemy Spy (Cost: 3 Power)...", LogChannel.General);
-                        }
-                        else GameLogger.Log("Not enough Power! Need 3.", LogChannel.Economy);
+                        // The ActionSystem now handles the cost check.
+                        _actionSystem.TryStartReturnSpy();
                         return;
                     }
                 }
@@ -262,20 +254,12 @@ namespace ChaosWarlords
             if (success)
             {
                 // Action was successful, now finalize it.
-                if (_actionSystem.PendingCard == null) // Action came from a UI button, not a card.
-                {
-                    // Hardcoded costs for UI actions. This could be improved by storing costs with the action definition.
-                    if (_actionSystem.CurrentState == GameState.TargetingAssassinate || _actionSystem.CurrentState == GameState.TargetingReturnSpy)
-                    {
-                        _activePlayer.Power -= 3;
-                        GameLogger.Log("Power deducted: 3", LogChannel.Economy);
-                    }
-                }
-                else // Action came from a card.
+                if (_actionSystem.PendingCard != null) // Action came from a card.
                 {
                     ResolveCardEffects(_actionSystem.PendingCard);
                     MoveCardToPlayed(_actionSystem.PendingCard);
                 }
+                // If it was a UI action, the cost was already paid inside the ActionSystem.
 
                 // Reset state machine
                 _actionSystem.CancelTargeting();

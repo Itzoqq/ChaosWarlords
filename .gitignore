@@ -22,6 +22,9 @@ Thumbs.db
 session_log.txt
 *.log
 
+# --- PDF Files ---
+*.pdf
+
 # --- MonoGame Specific ---
 # If you use the Content Pipeline tool (MGCB), 
 # usually you WANT to commit the .mgcb file, but ignore the temporary build folder:

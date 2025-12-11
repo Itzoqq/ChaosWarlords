@@ -17,6 +17,32 @@ namespace ChaosWarlords.Source.Systems
             _mapManager = mapManager;
         }
 
+        public void TryStartAssassinate()
+        {
+            const int cost = 3;
+            if (_activePlayer.Power < cost)
+            {
+                GameLogger.Log($"Not enough Power! Need {cost}.", LogChannel.Economy);
+                return;
+            }
+
+            StartTargeting(GameState.TargetingAssassinate);
+            GameLogger.Log($"Select a TROOP to Assassinate (Cost: {cost} Power)...", LogChannel.General);
+        }
+
+        public void TryStartReturnSpy()
+        {
+            const int cost = 3;
+            if (_activePlayer.Power < cost)
+            {
+                GameLogger.Log($"Not enough Power! Need {cost}.", LogChannel.Economy);
+                return;
+            }
+
+            StartTargeting(GameState.TargetingReturnSpy);
+            GameLogger.Log($"Select a SITE to remove Enemy Spy (Cost: {cost} Power)...", LogChannel.General);
+        }
+
         public void StartTargeting(GameState state, Card card = null)
         {
             CurrentState = state;
@@ -65,6 +91,13 @@ namespace ChaosWarlords.Source.Systems
 
             if (_mapManager.CanAssassinate(targetNode, _activePlayer))
             {
+                // If this action was started from a UI button (no pending card), pay the cost.
+                if (PendingCard == null)
+                {
+                    const int cost = 3; // This cost should eventually be data-driven.
+                    _activePlayer.Power -= cost;
+                    GameLogger.Log($"Power deducted: {cost}", LogChannel.Economy);
+                }
                 _mapManager.Assassinate(targetNode, _activePlayer);
                 return true;
             }
@@ -135,7 +168,18 @@ namespace ChaosWarlords.Source.Systems
             if (targetSite == null) return false;
 
             // ReturnSpy internally checks for presence and logs errors.
-            return _mapManager.ReturnSpy(targetSite, _activePlayer);
+            if (_mapManager.ReturnSpy(targetSite, _activePlayer))
+            {
+                // If this action was started from a UI button (no pending card), pay the cost.
+                if (PendingCard == null)
+                {
+                    const int cost = 3;
+                    _activePlayer.Power -= cost;
+                    GameLogger.Log($"Power deducted: {cost}", LogChannel.Economy);
+                }
+                return true;
+            }
+            return false;
         }
     }
 }
