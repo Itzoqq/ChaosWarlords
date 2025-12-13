@@ -1,8 +1,6 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Entities;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Source.Utilities
 {

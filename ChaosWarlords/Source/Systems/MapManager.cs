@@ -2,7 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System.Collections.Generic;
-using System.Linq; // Added for cleaner counting
+using System.Linq;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
 

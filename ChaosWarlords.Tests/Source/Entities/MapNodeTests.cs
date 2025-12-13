@@ -1,8 +1,5 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Entities;
-using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
-using System.Linq;
 
 namespace ChaosWarlords.Tests.Entities
 {
