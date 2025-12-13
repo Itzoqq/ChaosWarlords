@@ -17,7 +17,6 @@ namespace ChaosWarlords.Source.States
         private SpriteFont _smallFont;
         private Texture2D _pixelTexture;
 
-        // Exposed for testing
         internal InputManager _inputManager;
         internal UIManager _uiManager;
         internal MapManager _mapManager;
@@ -54,83 +53,50 @@ namespace ChaosWarlords.Source.States
             var graphicsDevice = _game.GraphicsDevice;
             var content = _game.Content;
 
+            // 1. Visual Assets
             _pixelTexture = new Texture2D(graphicsDevice, 1, 1);
             _pixelTexture.SetData(new[] { Color.White });
 
             try { _defaultFont = content.Load<SpriteFont>("fonts/DefaultFont"); } catch { }
             try { _smallFont = content.Load<SpriteFont>("fonts/SmallFont"); } catch { }
 
+            // 2. Systems Setup
             GameLogger.Initialize();
-            // 1. Create the Real Provider
+
             var inputProvider = new MonoGameInputProvider();
-
-            // 2. Inject it into the Manager
             _inputManager = new InputManager(inputProvider);
-
             _uiManager = new UIManager(graphicsDevice, _defaultFont, _smallFont);
 
-            string cardJsonPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Content", "data", "cards.json");
-            CardDatabase.Load(cardJsonPath, _pixelTexture);
-
-            _marketManager = new MarketManager();
-            _marketManager.InitializeDeck(CardDatabase.GetAllMarketCards());
-
-            _activePlayer = new Player(PlayerColor.Red);
-
-            for (int i = 0; i < 3; i++) _activePlayer.Deck.Add(CardFactory.CreateSoldier(_pixelTexture));
-            for (int i = 0; i < 7; i++) _activePlayer.Deck.Add(CardFactory.CreateNoble(_pixelTexture));
-            _activePlayer.DrawCards(5);
-            ArrangeHandVisuals();
-
+            // 3. World Generation (Delegated to Builder)
+            string cardPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Content", "data", "cards.json");
             string mapPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Content", "data", "map.json");
-            if (File.Exists(mapPath))
-            {
-                var mapData = MapFactory.LoadFromFile(mapPath, _pixelTexture);
-                _mapManager = new MapManager(mapData.Item1, mapData.Item2);
-            }
-            else
-            {
-                var nodes = MapFactory.CreateTestMap(_pixelTexture);
-                var sites = new List<Site>();
-                _mapManager = new MapManager(nodes, sites);
-            }
-            _mapManager.PixelTexture = _pixelTexture;
+
+            var builder = new WorldBuilder(cardPath, mapPath);
+            var worldData = builder.Build(_pixelTexture);
+
+            // 4. Inject World Data
+            _activePlayer = worldData.Player;
+            _marketManager = worldData.MarketManager;
+            _mapManager = worldData.MapManager;
+            _actionSystem = worldData.ActionSystem;
+
+            // 5. Final Visual Layout
+            ArrangeHandVisuals();
             _mapManager.CenterMap(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
-
-            _actionSystem = new ActionSystem(_activePlayer, _mapManager);
-
-            if (_mapManager.Sites != null)
-            {
-                foreach (var site in _mapManager.Sites)
-                {
-                    if (site.Name.ToLower().Contains("city of gold"))
-                        site.Spies.Add(PlayerColor.Blue);
-                }
-            }
         }
 
+        // ... (Rest of the file: UnloadContent, Update, Draw, Helper methods remain unchanged)
         public void UnloadContent() { }
 
         public void Update(GameTime gameTime)
         {
             if (_inputManager == null) return;
-
             _inputManager.Update();
-
             if (HandleGlobalInput()) return;
 
-            if (_isMarketOpen)
-            {
-                UpdateMarketLogic();
-            }
-            else if (_actionSystem.IsTargeting())
-            {
-                UpdateTargetingLogic();
-            }
-            else
-            {
-                UpdateNormalGameplay(gameTime);
-            }
+            if (_isMarketOpen) UpdateMarketLogic();
+            else if (_actionSystem.IsTargeting()) UpdateTargetingLogic();
+            else UpdateNormalGameplay(gameTime);
         }
 
         internal bool HandleGlobalInput()
@@ -147,7 +113,6 @@ namespace ChaosWarlords.Source.States
                 if (_game != null) _game.Exit();
                 return true;
             }
-
             if (_inputManager.IsKeyJustPressed(Keys.Enter))
             {
                 EndTurn();
@@ -163,12 +128,10 @@ namespace ChaosWarlords.Source.States
                 _actionSystem.CancelTargeting();
                 return true;
             }
-
             if (_inputManager.IsLeftMouseJustClicked())
             {
                 return HandleLeftClick();
             }
-
             return false;
         }
 
@@ -179,19 +142,16 @@ namespace ChaosWarlords.Source.States
                 _isMarketOpen = !_isMarketOpen;
                 return true;
             }
-
             if (!_isMarketOpen && !_actionSystem.IsTargeting())
             {
                 if (CheckActionButtons()) return true;
             }
-
             return false;
         }
 
         private bool CheckActionButtons()
         {
             if (_uiManager == null) return false;
-
             if (_uiManager.IsAssassinateButtonHovered(_inputManager))
             {
                 _actionSystem.TryStartAssassinate();
@@ -208,7 +168,6 @@ namespace ChaosWarlords.Source.States
         public void Draw(SpriteBatch spriteBatch)
         {
             if (_game == null) return;
-
             _mapManager.Draw(spriteBatch, _defaultFont);
             DrawCards(spriteBatch);
 
@@ -221,7 +180,6 @@ namespace ChaosWarlords.Source.States
             _uiManager.DrawMarketButton(spriteBatch, _isMarketOpen);
             _uiManager.DrawActionButtons(spriteBatch, _activePlayer);
             _uiManager.DrawTopBar(spriteBatch, _activePlayer);
-
             DrawTargetingHint(spriteBatch);
         }
 
@@ -234,7 +192,6 @@ namespace ChaosWarlords.Source.States
         private void DrawTargetingHint(SpriteBatch spriteBatch)
         {
             if (!_actionSystem.IsTargeting() || _defaultFont == null) return;
-
             string targetText = GetTargetingText(_actionSystem.CurrentState);
             Vector2 mousePos = _inputManager.MousePosition;
             spriteBatch.DrawString(_defaultFont, targetText, mousePos + new Vector2(20, 20), Color.Red);
@@ -256,7 +213,6 @@ namespace ChaosWarlords.Source.States
         private void ArrangeHandVisuals()
         {
             if (_game == null) return;
-
             int cardWidth = 150;
             int gap = 10;
             int totalHandWidth = (_activePlayer.Hand.Count * cardWidth) + ((_activePlayer.Hand.Count - 1) * gap);
@@ -276,10 +232,7 @@ namespace ChaosWarlords.Source.States
             {
                 bool clickedOnCard = false;
                 foreach (var card in _marketManager.MarketRow) { if (card.IsHovered) clickedOnCard = true; }
-
-                // --- FIX: Check if _uiManager is null before accessing ---
                 bool clickedButton = _uiManager != null && _uiManager.IsMarketButtonHovered(_inputManager);
-
                 if (!clickedOnCard && !clickedButton)
                 {
                     _isMarketOpen = false;
@@ -290,12 +243,10 @@ namespace ChaosWarlords.Source.States
         internal void UpdateNormalGameplay(GameTime gameTime)
         {
             bool clickHandled = false;
-
             for (int i = _activePlayer.Hand.Count - 1; i >= 0; i--)
             {
                 var card = _activePlayer.Hand[i];
                 card.Update(gameTime, _inputManager.GetMouseState());
-
                 if (_inputManager.IsLeftMouseJustClicked() && card.IsHovered)
                 {
                     PlayCard(card);
@@ -303,7 +254,6 @@ namespace ChaosWarlords.Source.States
                     break;
                 }
             }
-
             if (!clickHandled)
             {
                 _mapManager.Update(_inputManager.GetMouseState());
@@ -312,21 +262,16 @@ namespace ChaosWarlords.Source.States
                     _mapManager.TryDeploy(_activePlayer);
                 }
             }
-
             foreach (var card in _activePlayer.PlayedCards) card.Update(gameTime, _inputManager.GetMouseState());
         }
 
         internal void UpdateTargetingLogic()
         {
             _mapManager.Update(_inputManager.GetMouseState());
-
             if (!_inputManager.IsLeftMouseJustClicked()) return;
-
             MapNode targetNode = _mapManager.GetHoveredNode();
             Site targetSite = _mapManager.GetHoveredSite(_inputManager.MousePosition);
-
             bool success = _actionSystem.HandleTargetClick(targetNode, targetSite);
-
             if (success)
             {
                 if (_actionSystem.PendingCard != null)
@@ -364,7 +309,6 @@ namespace ChaosWarlords.Source.States
                     return;
                 }
             }
-
             ResolveCardEffects(card);
             MoveCardToPlayed(card);
         }
@@ -391,12 +335,9 @@ namespace ChaosWarlords.Source.States
         internal void EndTurn()
         {
             if (_actionSystem.IsTargeting()) _actionSystem.CancelTargeting();
-
             GameLogger.Log("--- TURN ENDED ---", LogChannel.General);
             _activePlayer.CleanUpTurn();
-
             _mapManager.DistributeControlRewards(_activePlayer);
-
             _activePlayer.DrawCards(5);
             ArrangeHandVisuals();
         }

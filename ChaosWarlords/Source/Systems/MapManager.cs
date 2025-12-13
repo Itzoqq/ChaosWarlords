@@ -10,32 +10,32 @@ namespace ChaosWarlords.Source.Systems
 {
     public class MapManager
     {
-        private List<MapNode> _nodes;
+        internal List<MapNode> Nodes { get; private set; }
         public List<Site> Sites { get; private set; }
-        private readonly Dictionary<MapNode, Site> _nodeSiteLookup;
+        private readonly Dictionary<MapNode, Site> NodesiteLookup;
         public Texture2D PixelTexture { get; set; }
 
         public MapManager(List<MapNode> nodes, List<Site> sites)
         {
-            _nodes = nodes;
+            Nodes = nodes;
             Sites = sites;
-            _nodeSiteLookup = [];
+            NodesiteLookup = [];
 
             if (sites != null)
             {
                 foreach (var site in sites)
                     foreach (var node in site.Nodes)
-                        _nodeSiteLookup[node] = site;
+                        NodesiteLookup[node] = site;
             }
         }
 
         // --- Visual / Setup Methods (Low Complexity) ---
         public void CenterMap(int screenWidth, int screenHeight)
         {
-            if (_nodes.Count == 0) return;
+            if (Nodes.Count == 0) return;
 
             // 1. Calculate Bounds
-            var (MinX, MinY, MaxX, MaxY) = MapGeometry.CalculateBounds(_nodes);
+            var (MinX, MinY, MaxX, MaxY) = MapGeometry.CalculateBounds(Nodes);
 
             // 2. Calculate Offset required to center
             Vector2 mapCenter = new((MinX + MaxX) / 2f, (MinY + MaxY) / 2f);
@@ -51,7 +51,7 @@ namespace ChaosWarlords.Source.Systems
             float minX = float.MaxValue, minY = float.MaxValue;
             float maxX = float.MinValue, maxY = float.MinValue;
 
-            foreach (var node in _nodes)
+            foreach (var node in Nodes)
             {
                 if (node.Position.X < minX) minX = node.Position.X;
                 if (node.Position.Y < minY) minY = node.Position.Y;
@@ -64,7 +64,7 @@ namespace ChaosWarlords.Source.Systems
 
         private void ApplyOffset(Vector2 offset)
         {
-            foreach (var node in _nodes)
+            foreach (var node in Nodes)
             {
                 node.Position += offset;
             }
@@ -77,10 +77,10 @@ namespace ChaosWarlords.Source.Systems
 
         public void Update(MouseState mouseState)
         {
-            foreach (var node in _nodes) node.Update(mouseState);
+            foreach (var node in Nodes) node.Update(mouseState);
         }
 
-        public MapNode GetHoveredNode() => _nodes.FirstOrDefault(n => n.IsHovered);
+        public MapNode GetHoveredNode() => Nodes.FirstOrDefault(n => n.IsHovered);
         public Site GetHoveredSite(Vector2 mousePos) => Sites?.FirstOrDefault(s => s.Bounds.Contains(mousePos));
 
         // --- REFACTORED: Deployment Logic ---
@@ -370,7 +370,7 @@ namespace ChaosWarlords.Source.Systems
             if (targetNode.Occupant != PlayerColor.None) return false;
 
             // "Start of Game" Rule check
-            bool hasAnyTroops = _nodes.Any(n => n.Occupant == player);
+            bool hasAnyTroops = Nodes.Any(n => n.Occupant == player);
             if (!hasAnyTroops) return true;
 
             return HasPresence(targetNode, player);
@@ -379,7 +379,7 @@ namespace ChaosWarlords.Source.Systems
         // --- Helpers ---
         private Site GetSiteForNode(MapNode node)
         {
-            _nodeSiteLookup.TryGetValue(node, out Site site);
+            NodesiteLookup.TryGetValue(node, out Site site);
             return site;
         }
 
@@ -445,7 +445,7 @@ namespace ChaosWarlords.Source.Systems
 
         private void DrawNodes(SpriteBatch spriteBatch)
         {
-            foreach (var node in _nodes)
+            foreach (var node in Nodes)
             {
                 node.Draw(spriteBatch);
             }
@@ -453,7 +453,7 @@ namespace ChaosWarlords.Source.Systems
 
         private void DrawRoutes(SpriteBatch spriteBatch)
         {
-            foreach (var node in _nodes)
+            foreach (var node in Nodes)
             {
                 foreach (var neighbor in node.Neighbors)
                 {

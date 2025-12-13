@@ -3,6 +3,9 @@ using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Utilities;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("ChaosWarlords.Tests")]
 
 namespace ChaosWarlords
 {
