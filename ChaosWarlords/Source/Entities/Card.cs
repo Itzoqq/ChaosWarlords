@@ -9,25 +9,31 @@ namespace ChaosWarlords.Source.Entities
     public class Card
     {
         // --- Data ---
-        public string Id { get; private set; }
-        public string Name { get; private set; }
-        public string Description { get; set; }
-        public int Cost { get; private set; }
-        public CardAspect Aspect { get; private set; }
+        // Changed to 'internal set' so Factory/Tests can set them, but UI cannot.
+        public string Id { get; internal set; }
+        public string Name { get; internal set; }
+        public string Description { get; internal set; }
+        public int Cost { get; internal set; }
+        public CardAspect Aspect { get; internal set; }
 
         // Victory Points
-        public int DeckVP { get; private set; }
-        public int InnerCircleVP { get; private set; }
+        public int DeckVP { get; internal set; }
+        public int InnerCircleVP { get; internal set; }
 
         // Logic
-        public List<CardEffect> Effects { get; private set; } = new List<CardEffect>();
-        public CardLocation Location { get; set; }
+        public List<CardEffect> Effects { get; internal set; } = new List<CardEffect>();
+
+        // Location is managed by Game Logic (internal), not UI
+        public CardLocation Location { get; internal set; }
 
         // --- Rendering ---
         private Texture2D _texture;
-        private Rectangle _bounds;
+
+        // Position stays 'public set' because animations/UI need to move cards freely
         public Vector2 Position { get; set; }
-        public bool IsHovered { get; set; }
+
+        // IsHovered is calculated by logic, UI just reads it
+        public bool IsHovered { get; private set; }
 
         // Constants for drawing
         public const int Width = 150;
@@ -41,7 +47,7 @@ namespace ChaosWarlords.Source.Entities
             Aspect = aspect;
             DeckVP = deckVp;
             InnerCircleVP = innerVp;
-            Location = CardLocation.Market;
+            Location = CardLocation.Deck;
         }
 
         public void SetTexture(Texture2D texture)
@@ -56,43 +62,32 @@ namespace ChaosWarlords.Source.Entities
 
         public void Update(GameTime gameTime, MouseState mouseState)
         {
-            // Simple collision detection
-            _bounds = new Rectangle((int)Position.X, (int)Position.Y, Width, Height);
-            IsHovered = _bounds.Contains(mouseState.Position);
+            // Simple AABB collision for hover detection
+            Rectangle bounds = new Rectangle((int)Position.X, (int)Position.Y, Width, Height);
+            IsHovered = bounds.Contains(mouseState.Position);
         }
 
-        // --- REFACTORED DRAW METHOD ---
-        public void Draw(SpriteBatch spriteBatch, SpriteFont font = null)
+        public void Draw(SpriteBatch spriteBatch, SpriteFont font)
         {
-            // 1. Draw Background
-            Color bgColor = DetermineBackgroundColor();
+            // 1. Draw Background (Texture or Placeholder)
             if (_texture != null)
             {
-                spriteBatch.Draw(_texture, _bounds, bgColor);
+                Color tint = GetTintColor();
+                spriteBatch.Draw(_texture, new Rectangle((int)Position.X, (int)Position.Y, Width, Height), tint);
             }
 
-            // 2. Draw Text
-            if (font != null)
-            {
-                DrawTextContent(spriteBatch, font);
-            }
+            // 2. Draw Text Content
+            DrawTextContent(spriteBatch, font);
         }
 
-        private Color DetermineBackgroundColor()
+        private Color GetTintColor()
         {
-            Color color = Color.Gray;
+            Color color = Color.White;
 
-            // Simple logic: Change color based on primary resource gain
-            // (You could expand this to check Aspects instead for better theming)
-            foreach (var effect in Effects)
-            {
-                if (effect.TargetResource == ResourceType.Power) color = Color.Firebrick;
-                else if (effect.TargetResource == ResourceType.Influence) color = Color.CornflowerBlue;
-            }
-
+            // Highlight if hovered
             if (IsHovered)
             {
-                color = Color.Lerp(color, Color.White, 0.3f);
+                color = Color.Lerp(color, Color.Yellow, 0.3f);
             }
 
             return color;
@@ -101,16 +96,18 @@ namespace ChaosWarlords.Source.Entities
         private void DrawTextContent(SpriteBatch spriteBatch, SpriteFont font)
         {
             // A. Name (Top)
-            spriteBatch.DrawString(font, Name, Position + new Vector2(5, 5), Color.White);
+            spriteBatch.DrawString(font, Name, Position + new Vector2(5, 5), Color.Black);
 
             // B. Effect Description (Middle)
             string effectText = BuildEffectText();
-            spriteBatch.DrawString(font, effectText, Position + new Vector2(10, 50), Color.Yellow);
+            // Using a slightly different color or offset for effect text to make it pop
+            spriteBatch.DrawString(font, effectText, Position + new Vector2(10, 50), Color.DarkRed);
 
             // C. Cost (Bottom)
-            spriteBatch.DrawString(font, $"Cost: {Cost}", Position + new Vector2(10, Height - 25), Color.LightGray);
+            spriteBatch.DrawString(font, $"Cost: {Cost}", Position + new Vector2(10, Height - 25), Color.Blue);
         }
 
+        // Kept 'internal' so tests can verify the text generation if needed
         internal string BuildEffectText()
         {
             // If the card has a static description (from JSON), prefer that.

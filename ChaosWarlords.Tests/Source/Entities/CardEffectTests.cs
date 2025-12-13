@@ -32,7 +32,7 @@ namespace ChaosWarlords.Tests.Source.Entities
             Assert.AreEqual(EffectType.Assassinate, effect.Type);
             Assert.AreEqual(1, effect.Amount);
             // Verify the optional parameter default value from CardEffects.cs
-            Assert.AreEqual(ResourceType.VictoryPoints, effect.TargetResource);
+            Assert.AreEqual(ResourceType.None, effect.TargetResource);
         }
 
         [TestMethod]

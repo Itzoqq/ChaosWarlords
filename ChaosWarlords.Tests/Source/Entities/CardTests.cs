@@ -26,7 +26,7 @@ namespace ChaosWarlords.Tests.Source.Entities
             Assert.AreEqual(CardAspect.Sorcery, _card.Aspect);
             Assert.AreEqual(1, _card.DeckVP);
             Assert.AreEqual(2, _card.InnerCircleVP);
-            Assert.AreEqual(CardLocation.Market, _card.Location); // Default location
+            Assert.AreEqual(CardLocation.Deck, _card.Location); // Default location
             Assert.IsNotNull(_card.Effects);
             Assert.IsEmpty(_card.Effects);
         }

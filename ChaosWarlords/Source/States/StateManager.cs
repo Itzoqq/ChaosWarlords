@@ -1,18 +1,20 @@
-using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System.Collections.Generic;
 
 namespace ChaosWarlords.Source.States
 {
     public class StateManager
     {
-        private readonly Stack<IState> _states = new Stack<IState>();
+        // Internal: Allows Unit Tests to verify "Did the state actually pop?"
+        internal Stack<IState> _states;
+
         private readonly Game _game;
 
-        // We pass the Game reference so states can access GraphicsDevice, Content, etc.
         public StateManager(Game game)
         {
             _game = game;
+            _states = new Stack<IState>();
         }
 
         public void PushState(IState state)
@@ -32,11 +34,13 @@ namespace ChaosWarlords.Source.States
 
         public void ChangeState(IState state)
         {
-            while (_states.Count > 0)
-            {
-                PopState();
-            }
+            PopState();
             PushState(state);
+        }
+
+        public IState GetCurrentState()
+        {
+            return _states.Count > 0 ? _states.Peek() : null;
         }
 
         public void Update(GameTime gameTime)

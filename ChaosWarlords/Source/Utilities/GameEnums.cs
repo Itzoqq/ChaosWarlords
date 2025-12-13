@@ -15,7 +15,7 @@ namespace ChaosWarlords.Source.Utilities
     // Replaces the "Suits" (Conquest, Malice, Guile, Obedience)
     public enum CardAspect
     {
-        Neutral,    // Starter cards (Minions/Nobles)
+        Neutral = 0,    // Starter cards (Minions/Nobles)
         Warlord,    // Aggressive (Conquest)
         Sorcery,    // Magic/Control (Malice)
         Shadow,     // Spies/Assassination (Guile)
@@ -24,6 +24,7 @@ namespace ChaosWarlords.Source.Utilities
 
     public enum ResourceType
     {
+        None = 0,
         Influence,  // Used to buy cards (Spider/Web resource)
         Power,      // Used to deploy units/assassinate (Military resource)
         VictoryPoints
@@ -55,7 +56,7 @@ namespace ChaosWarlords.Source.Utilities
 
     public enum PlayerColor
     {
-        None,       // Empty space
+        None = 0,       // Empty space
         Neutral,    // White troops (Unaligned enemies)
         Red,        // Player 1
         Blue,       // Player 2

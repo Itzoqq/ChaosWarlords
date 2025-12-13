@@ -2,20 +2,19 @@ using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Entities
 {
-    /// <summary>
-    /// Represents a discrete action a card performs.
-    /// </summary>
     public class CardEffect
     {
-        public EffectType Type { get; set; }
-        public int Amount { get; set; }
-        public ResourceType TargetResource { get; set; } // e.g., if GainResource, is it Power or Influence?
+        // Public Read: UI needs to show "Gain 3 Power"
+        // Internal Set: Only CardFactory creates these
+        public EffectType Type { get; internal set; }
+        public int Amount { get; internal set; }
+        public ResourceType TargetResource { get; internal set; }
 
-        public CardEffect(EffectType type, int amount, ResourceType resource = ResourceType.VictoryPoints)
+        public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {
             Type = type;
             Amount = amount;
-            TargetResource = resource;
+            TargetResource = targetResource;
         }
     }
 }
