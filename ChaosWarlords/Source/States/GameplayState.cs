@@ -5,7 +5,6 @@ using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Views;
-using System.Collections.Generic;
 using System.IO;
 using System;
 
@@ -20,6 +19,7 @@ namespace ChaosWarlords.Source.States
 
         internal InputManager _inputManager;
         internal UIManager _uiManager;
+        private UIRenderer _uiRenderer;
         internal MapManager _mapManager;
         internal MarketManager _marketManager;
         internal ActionSystem _actionSystem;
@@ -55,11 +55,12 @@ namespace ChaosWarlords.Source.States
 
             var inputProvider = new MonoGameInputProvider();
             _inputManager = new InputManager(inputProvider);
-            _uiManager = new UIManager(graphicsDevice, _defaultFont, _smallFont);
+            _uiManager = new UIManager(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
 
             // Create Renderers
             _mapRenderer = new MapRenderer(_pixelTexture, _pixelTexture, _defaultFont);
             _cardRenderer = new CardRenderer(_pixelTexture, _defaultFont);
+            _uiRenderer = new UIRenderer(graphicsDevice, _defaultFont, _smallFont);
 
             // Paths
             string cardPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Content", "data", "cards.json");
@@ -332,7 +333,8 @@ namespace ChaosWarlords.Source.States
             // 3. Draw Market
             if (_isMarketOpen)
             {
-                _uiManager.DrawMarketOverlay(spriteBatch);
+                // Handled inside UIRenderer for overlay, or loop here for cards
+                // Ideally, UIRenderer draws the background/overlay, then you draw cards on top
                 foreach (var card in _marketManager.MarketRow)
                 {
                     _cardRenderer.Draw(spriteBatch, card);
@@ -340,9 +342,9 @@ namespace ChaosWarlords.Source.States
             }
 
             // 4. Draw UI
-            _uiManager.DrawMarketButton(spriteBatch, _isMarketOpen);
-            _uiManager.DrawActionButtons(spriteBatch, _activePlayer);
-            _uiManager.DrawTopBar(spriteBatch, _activePlayer);
+            _uiRenderer.Draw(spriteBatch, _uiManager, _activePlayer, _isMarketOpen);
+
+            // 5. Draw Targeting Hint
             DrawTargetingHint(spriteBatch);
         }
 
