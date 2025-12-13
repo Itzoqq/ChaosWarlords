@@ -32,12 +32,13 @@ namespace ChaosWarlords.Source.Utilities
 
     public enum CardLocation
     {
+        None = 0,
         Market,
         Hand,
         Deck,
         DiscardPile,
         InnerCircle,   // The "Promoted" pile (Tyrants' Inner Circle)
-        Void           // Removed from game entirely
+        Void            // Removed from game entirely
     }
 
     // The command pattern: what does this card actually DO?

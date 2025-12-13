@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Views
 {
+    [ExcludeFromCodeCoverage]
     public class MapRenderer
     {
         private Texture2D _pixelTexture;

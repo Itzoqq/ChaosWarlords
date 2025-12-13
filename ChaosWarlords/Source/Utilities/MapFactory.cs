@@ -4,13 +4,16 @@ using System.Text.Json;
 using System.Linq;
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Entities;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Utilities
 {
-    // ... Data Models (MapData, NodeData, etc.) remain unchanged ...
     public class MapData { public List<NodeData> Nodes { get; set; } public List<RouteData> Routes { get; set; } public List<SiteData> Sites { get; set; } }
+    [ExcludeFromCodeCoverage]
     public class NodeData { public int Id { get; set; } public int X { get; set; } public int Y { get; set; } public string Occupant { get; set; } }
+    [ExcludeFromCodeCoverage]
     public class RouteData { public int From { get; set; } public int To { get; set; } }
+    [ExcludeFromCodeCoverage]
     public class SiteData { public string Name { get; set; } public bool IsCity { get; set; } public List<int> NodeIds { get; set; } public string ControlResource { get; set; } public int ControlAmount { get; set; } public string TotalControlResource { get; set; } public int TotalControlAmount { get; set; } }
 
     public static class MapFactory

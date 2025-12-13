@@ -4,9 +4,11 @@ using ChaosWarlords.Source.Utilities;
 using System.Collections.Generic;
 using System.IO;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Systems
 {
+    [ExcludeFromCodeCoverage]
     public class WorldData
     {
         public Player Player { get; set; }
@@ -26,51 +28,41 @@ namespace ChaosWarlords.Source.Systems
             _mapDataPath = mapDataPath;
         }
 
-        public WorldData Build(Texture2D texture)
+        // Texture is NOT used here anymore! 
+        // We can remove the parameter or just ignore it. I'll ignore it to keep signature similar if you want, 
+        // but cleaner to remove. I will remove it.
+        public WorldData Build()
         {
-            // 1. Initialize Databases
-            // NOTE: Cards still use the texture for now (we will refactor Cards in Step 2)
+            // 1. Initialize Databases (No Textures!)
             if (File.Exists(_cardDataPath))
             {
-                CardDatabase.Load(_cardDataPath, texture);
+                CardDatabase.Load(_cardDataPath);
             }
 
             // 2. Setup Market
             var marketManager = new MarketManager();
             marketManager.InitializeDeck(CardDatabase.GetAllMarketCards());
 
-            // 3. Setup Player
+            // 3. Setup Player (No Textures!)
             var player = new Player(PlayerColor.Red);
             // Starter Deck
-            for (int i = 0; i < 3; i++) player.Deck.Add(CardFactory.CreateSoldier(texture));
-            for (int i = 0; i < 7; i++) player.Deck.Add(CardFactory.CreateNoble(texture));
+            for (int i = 0; i < 3; i++) player.Deck.Add(CardFactory.CreateSoldier());
+            for (int i = 0; i < 7; i++) player.Deck.Add(CardFactory.CreateNoble());
             player.DrawCards(5);
 
-            // 4. Setup Map (RENDERING EXTRACTED)
+            // 4. Setup Map
             MapManager mapManager;
-
-            // We hold the nodes/sites data here to pass to the manager
             (List<MapNode>, List<Site>) mapData;
 
-            if (File.Exists(_mapDataPath))
-            {
-                // Updated: No longer takes 'texture'
-                mapData = MapFactory.LoadFromFile(_mapDataPath);
-            }
-            else
-            {
-                // Fallback / Test Map
-                // Updated: No longer takes 'texture' and returns a tuple like LoadFromFile
-                mapData = MapFactory.CreateTestMap();
-            }
+            if (File.Exists(_mapDataPath)) mapData = MapFactory.LoadFromFile(_mapDataPath);
+            else mapData = MapFactory.CreateTestMap();
 
             mapManager = new MapManager(mapData.Item1, mapData.Item2);
-            // Removed: mapManager.PixelTexture = texture; (The renderer handles this now)
 
             // 5. Setup Action System
             var actionSystem = new ActionSystem(player, mapManager);
 
-            // 6. Apply Specific Scenario Rules (e.g. City of Gold)
+            // 6. Scenario Rules
             if (mapManager.Sites != null)
             {
                 foreach (var site in mapManager.Sites)

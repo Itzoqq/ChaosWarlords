@@ -14,7 +14,7 @@ namespace ChaosWarlords.Tests.Systems
 
             // Act
             // Passing null for texture to verify headless support
-            var world = builder.Build(null);
+            var world = builder.Build();
 
             // Assert
             Assert.IsNotNull(world.Player, "Player should be initialized");
@@ -27,7 +27,7 @@ namespace ChaosWarlords.Tests.Systems
         public void Build_InitializesPlayerDeck()
         {
             var builder = new WorldBuilder("dummy_cards.json", "dummy_map.json");
-            var world = builder.Build(null);
+            var world = builder.Build();
 
             // 10 cards total (7 Nobles + 3 Soldiers)
             // 5 in hand, 5 in deck
@@ -40,7 +40,7 @@ namespace ChaosWarlords.Tests.Systems
         public void Build_FallsBackToTestMap_WhenFileMissing()
         {
             var builder = new WorldBuilder("missing.json", "missing.json");
-            var world = builder.Build(null);
+            var world = builder.Build();
 
             // TestMap has 3 nodes
             Assert.HasCount(3, world.MapManager.Nodes);

@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Systems;
-using ChaosWarlords.Source.Views; // Added Reference
+using ChaosWarlords.Source.Views;
 using System.Collections.Generic;
 using System.IO;
 using System;
@@ -26,29 +26,13 @@ namespace ChaosWarlords.Source.States
         internal Player _activePlayer;
         internal bool _isMarketOpen = false;
 
-        // View
+        // Views
         private MapRenderer _mapRenderer;
+        private CardRenderer _cardRenderer;
 
         public GameplayState(Game game)
         {
             _game = game;
-        }
-
-        // Updated InjectDependencies for testing (removed unused ui, added player)
-        internal void InjectDependencies(
-            InputManager input,
-            UIManager ui,
-            MapManager map,
-            MarketManager market,
-            ActionSystem action,
-            Player player)
-        {
-            _inputManager = input;
-            _uiManager = ui;
-            _mapManager = map;
-            _marketManager = market;
-            _actionSystem = action;
-            _activePlayer = player;
         }
 
         public void LoadContent()
@@ -70,15 +54,17 @@ namespace ChaosWarlords.Source.States
             _inputManager = new InputManager(inputProvider);
             _uiManager = new UIManager(graphicsDevice, _defaultFont, _smallFont);
 
-            // Create Renderer
+            // Create Renderers
             _mapRenderer = new MapRenderer(_pixelTexture, _pixelTexture, _defaultFont);
+            _cardRenderer = new CardRenderer(_pixelTexture, _defaultFont);
 
-            // Builder no longer needs texture for map
+            // Paths
             string cardPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Content", "data", "cards.json");
             string mapPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Content", "data", "map.json");
 
+            // Build World (No textures needed for logic anymore!)
             var builder = new WorldBuilder(cardPath, mapPath);
-            var worldData = builder.Build(_pixelTexture); // Texture still needed for Cards currently
+            var worldData = builder.Build();
 
             _activePlayer = worldData.Player;
             _marketManager = worldData.MarketManager;
@@ -112,32 +98,38 @@ namespace ChaosWarlords.Source.States
         internal void UpdateNormalGameplay(GameTime gameTime)
         {
             bool clickHandled = false;
-            // Card logic (Still hybrid for now)
+            Point mousePos = _inputManager.MousePosition.ToPoint();
+
+            // 1. Update Card Hover State & Interactions
+            // Iterate backwards to handle overlapping cards correctly (topmost first)
             for (int i = _activePlayer.Hand.Count - 1; i >= 0; i--)
             {
                 var card = _activePlayer.Hand[i];
-                card.Update(gameTime, _inputManager.GetMouseState());
-                if (_inputManager.IsLeftMouseJustClicked() && card.IsHovered)
+                card.IsHovered = card.Bounds.Contains(mousePos);
+
+                if (!clickHandled && _inputManager.IsLeftMouseJustClicked() && card.IsHovered)
                 {
                     PlayCard(card);
                     clickHandled = true;
+                    // Keep 'break' to only click one card at a time
                     break;
                 }
             }
 
-            if (!clickHandled)
+            // 2. Handle Map Interaction if no card was clicked
+            if (!clickHandled && _inputManager.IsLeftMouseJustClicked())
             {
-                if (_inputManager.IsLeftMouseJustClicked())
+                // Check UI Buttons first
+                if (CheckActionButtons()) return;
+                if (CheckMarketButton()) return;
+
+                // Check Map Nodes
+                var clickedNode = _mapManager.GetNodeAt(_inputManager.MousePosition);
+                if (clickedNode != null)
                 {
-                    // Map interaction via GetNodeAt
-                    var clickedNode = _mapManager.GetNodeAt(_inputManager.MousePosition);
-                    if (clickedNode != null)
-                    {
-                        _mapManager.TryDeploy(_activePlayer, clickedNode);
-                    }
+                    _mapManager.TryDeploy(_activePlayer, clickedNode);
                 }
             }
-            foreach (var card in _activePlayer.PlayedCards) card.Update(gameTime, _inputManager.GetMouseState());
         }
 
         internal void UpdateTargetingLogic()
@@ -161,15 +153,21 @@ namespace ChaosWarlords.Source.States
             }
         }
 
-        // ... (UpdateMarketLogic, PlayCard, EndTurn etc. same as before, simplified slightly) ...
         internal void UpdateMarketLogic()
         {
             _marketManager.Update(_inputManager.GetMouseState(), _activePlayer);
+
             if (_inputManager.IsLeftMouseJustClicked())
             {
                 bool clickedOnCard = false;
-                foreach (var card in _marketManager.MarketRow) { if (card.IsHovered) clickedOnCard = true; }
+                foreach (var card in _marketManager.MarketRow)
+                {
+                    if (card.IsHovered) clickedOnCard = true;
+                }
+
                 bool clickedButton = _uiManager != null && _uiManager.IsMarketButtonHovered(_inputManager);
+
+                // Close market if clicking outside cards and button
                 if (!clickedOnCard && !clickedButton)
                 {
                     _isMarketOpen = false;
@@ -177,16 +175,12 @@ namespace ChaosWarlords.Source.States
             }
         }
 
-        private bool HandleLeftClick()
+        private bool CheckMarketButton()
         {
             if (_uiManager != null && _uiManager.IsMarketButtonHovered(_inputManager))
             {
                 _isMarketOpen = !_isMarketOpen;
                 return true;
-            }
-            if (!_isMarketOpen && !_actionSystem.IsTargeting())
-            {
-                if (CheckActionButtons()) return true;
             }
             return false;
         }
@@ -194,6 +188,7 @@ namespace ChaosWarlords.Source.States
         private bool CheckActionButtons()
         {
             if (_uiManager == null) return false;
+
             if (_uiManager.IsAssassinateButtonHovered(_inputManager))
             {
                 _actionSystem.TryStartAssassinate();
@@ -205,75 +200,6 @@ namespace ChaosWarlords.Source.States
                 return true;
             }
             return false;
-        }
-
-        public void Draw(SpriteBatch spriteBatch)
-        {
-            if (_game == null) return;
-
-            // 1. Draw Map using new Renderer
-            // We need to calculate what is hovered to highlight it
-            MapNode hoveredNode = _mapManager.GetNodeAt(_inputManager.MousePosition);
-            Site hoveredSite = _mapManager.GetSiteAt(_inputManager.MousePosition);
-
-            _mapRenderer.Draw(spriteBatch, _mapManager, hoveredNode, hoveredSite);
-
-            // 2. Draw Cards (Legacy Draw)
-            DrawCards(spriteBatch);
-
-            if (_isMarketOpen)
-            {
-                _uiManager.DrawMarketOverlay(spriteBatch);
-                _marketManager.Draw(spriteBatch, _defaultFont);
-            }
-
-            _uiManager.DrawMarketButton(spriteBatch, _isMarketOpen);
-            _uiManager.DrawActionButtons(spriteBatch, _activePlayer);
-            _uiManager.DrawTopBar(spriteBatch, _activePlayer);
-            DrawTargetingHint(spriteBatch);
-            GameLogger.Draw(spriteBatch, _smallFont);
-        }
-
-        private void DrawCards(SpriteBatch spriteBatch)
-        {
-            foreach (var card in _activePlayer.Hand) card.Draw(spriteBatch, _defaultFont);
-            foreach (var card in _activePlayer.PlayedCards) card.Draw(spriteBatch, _defaultFont);
-        }
-
-        private void DrawTargetingHint(SpriteBatch spriteBatch)
-        {
-            if (!_actionSystem.IsTargeting() || _defaultFont == null) return;
-            string targetText = GetTargetingText(_actionSystem.CurrentState);
-            Vector2 mousePos = _inputManager.MousePosition;
-            spriteBatch.DrawString(_defaultFont, targetText, mousePos + new Vector2(20, 20), Color.Red);
-        }
-
-        internal string GetTargetingText(ActionState state)
-        {
-            return state switch
-            {
-                ActionState.TargetingAssassinate => "CLICK TROOP TO KILL",
-                ActionState.TargetingPlaceSpy => "CLICK SITE TO PLACE SPY",
-                ActionState.TargetingReturnSpy => "CLICK SITE TO HUNT SPY",
-                ActionState.TargetingReturn => "CLICK TROOP TO RETURN",
-                ActionState.TargetingSupplant => "CLICK TROOP TO SUPPLANT",
-                _ => "TARGETING..."
-            };
-        }
-
-        private void ArrangeHandVisuals()
-        {
-            if (_game == null) return;
-            int cardWidth = 150;
-            int gap = 10;
-            int totalHandWidth = (_activePlayer.Hand.Count * cardWidth) + ((_activePlayer.Hand.Count - 1) * gap);
-            int startX = (_game.GraphicsDevice.Viewport.Width - totalHandWidth) / 2;
-            int startY = _game.GraphicsDevice.Viewport.Height - 200 - 20;
-
-            for (int i = 0; i < _activePlayer.Hand.Count; i++)
-            {
-                _activePlayer.Hand[i].Position = new Vector2(startX + (i * (cardWidth + gap)), startY);
-            }
         }
 
         internal void PlayCard(Card card)
@@ -311,11 +237,104 @@ namespace ChaosWarlords.Source.States
         internal void EndTurn()
         {
             if (_actionSystem.IsTargeting()) _actionSystem.CancelTargeting();
+
             GameLogger.Log("--- TURN ENDED ---", LogChannel.General);
+
             _activePlayer.CleanUpTurn();
             _mapManager.DistributeControlRewards(_activePlayer);
             _activePlayer.DrawCards(5);
             ArrangeHandVisuals();
+        }
+
+        private void ArrangeHandVisuals()
+        {
+            if (_game == null) return;
+            int cardWidth = 150;
+            int gap = 10;
+            int totalHandWidth = (_activePlayer.Hand.Count * cardWidth) + ((_activePlayer.Hand.Count - 1) * gap);
+            int startX = (_game.GraphicsDevice.Viewport.Width - totalHandWidth) / 2;
+            int startY = _game.GraphicsDevice.Viewport.Height - 200 - 20;
+
+            for (int i = 0; i < _activePlayer.Hand.Count; i++)
+            {
+                _activePlayer.Hand[i].Position = new Vector2(startX + (i * (cardWidth + gap)), startY);
+            }
+        }
+
+        public void Draw(SpriteBatch spriteBatch)
+        {
+            if (_game == null) return;
+
+            // 1. Draw Map
+            MapNode hoveredNode = _mapManager.GetNodeAt(_inputManager.MousePosition);
+            Site hoveredSite = _mapManager.GetSiteAt(_inputManager.MousePosition);
+
+            _mapRenderer.Draw(spriteBatch, _mapManager, hoveredNode, hoveredSite);
+
+            // 2. Draw Cards
+            DrawCards(spriteBatch);
+
+            // 3. Draw Market
+            if (_isMarketOpen)
+            {
+                _uiManager.DrawMarketOverlay(spriteBatch);
+                foreach (var card in _marketManager.MarketRow)
+                {
+                    _cardRenderer.Draw(spriteBatch, card);
+                }
+            }
+
+            // 4. Draw UI
+            _uiManager.DrawMarketButton(spriteBatch, _isMarketOpen);
+            _uiManager.DrawActionButtons(spriteBatch, _activePlayer);
+            _uiManager.DrawTopBar(spriteBatch, _activePlayer);
+            DrawTargetingHint(spriteBatch);
+        }
+
+        private void DrawCards(SpriteBatch spriteBatch)
+        {
+            foreach (var card in _activePlayer.Hand) _cardRenderer.Draw(spriteBatch, card);
+            foreach (var card in _activePlayer.PlayedCards) _cardRenderer.Draw(spriteBatch, card);
+        }
+
+        private void DrawTargetingHint(SpriteBatch spriteBatch)
+        {
+            if (!_actionSystem.IsTargeting() || _defaultFont == null) return;
+
+            string targetText = GetTargetingText(_actionSystem.CurrentState);
+            Vector2 mousePos = _inputManager.MousePosition;
+
+            spriteBatch.DrawString(_defaultFont, targetText, mousePos + new Vector2(20, 20), Color.Red);
+        }
+
+        internal string GetTargetingText(ActionState state)
+        {
+            return state switch
+            {
+                ActionState.TargetingAssassinate => "CLICK TROOP TO KILL",
+                ActionState.TargetingPlaceSpy => "CLICK SITE TO PLACE SPY",
+                ActionState.TargetingReturnSpy => "CLICK SITE TO HUNT SPY",
+                ActionState.TargetingReturn => "CLICK TROOP TO RETURN",
+                ActionState.TargetingSupplant => "CLICK TROOP TO SUPPLANT",
+                _ => "TARGETING..."
+            };
+        }
+
+        // Helper for Unit Tests to inject mocks
+        internal void InjectDependencies(
+            InputManager input,
+            UIManager ui,
+            MapManager map,
+            MarketManager market,
+            ActionSystem action,
+            Player player)
+        {
+            _inputManager = input;
+            _uiManager = ui;
+            _mapManager = map;
+            _marketManager = market;
+            _actionSystem = action;
+            _activePlayer = player;
         }
     }
 }

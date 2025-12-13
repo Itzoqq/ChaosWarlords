@@ -1,34 +1,56 @@
 using ChaosWarlords.Source.Entities;
-using Microsoft.Xna.Framework.Graphics;
+using System.Collections.Generic;
 
 namespace ChaosWarlords.Source.Utilities
 {
     public static class CardFactory
     {
-        // We will pass the 1x1 pixel texture here for now to act as the card background
-        public static Card CreateSoldier(Texture2D texture)
+        public static Card CreateSoldier()
         {
-            // Equivalent to Tyrants "Minion"
-            var card = new Card("starter_soldier", "Chaos Grunt", 0, CardAspect.Neutral, 0, 1);
+            // "Soldier" is a starter card -> Aspect.Neutral
+            var card = new Card("soldier", "Soldier", 0, CardAspect.Neutral, 0, 0);
 
-            // Effect: +1 Power
+            // FIXED: Order is (Type, Amount, Resource)
             card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Power));
 
-            card.SetTexture(texture);
             card.Description = "+1 Power";
             return card;
         }
 
-        public static Card CreateNoble(Texture2D texture)
+        public static Card CreateNoble()
         {
-            // Equivalent to Tyrants "Noble"
-            var card = new Card("starter_noble", "Corrupt Noble", 0, CardAspect.Neutral, 1, 2);
+            // "Noble" is a starter card -> Aspect.Neutral
+            var card = new Card("noble", "Noble", 0, CardAspect.Neutral, 0, 0);
 
-            // Effect: +1 Influence
+            // Order is (Type, Amount, Resource)
             card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Influence));
 
-            card.SetTexture(texture);
             card.Description = "+1 Influence";
+            return card;
+        }
+
+        public static Card CreateFromData(CardData data)
+        {
+            // This tries to parse string "Warlord", "Sorcery" etc. from JSON into the Enum
+            System.Enum.TryParse(data.Aspect, true, out CardAspect aspect);
+
+            var card = new Card(data.Id, data.Name, data.Cost, aspect, data.VictoryPoints, 0);
+
+            // Simple parsing logic for the "Vertical Slice"
+            if (data.Text.Contains("+") && data.Text.Contains("Power"))
+            {
+                // Assuming +1 for simple parsing if number isn't easily extracted
+                card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Power));
+            }
+            else if (data.Text.Contains("+") && data.Text.Contains("Influence"))
+            {
+                card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Influence));
+            }
+
+            // In a real implementation, you would write a text parser here to read "Gain 3 Power"
+            // and extract the '3' into the amount variable.
+
+            card.Description = data.Text;
             return card;
         }
     }
