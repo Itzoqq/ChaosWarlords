@@ -5,8 +5,8 @@ namespace ChaosWarlords.Source.Systems
 {
     public class ActionSystem
     {
-        public ActionState CurrentState { get; private set; } = ActionState.Normal;
-        public Card PendingCard { get; private set; }
+        public ActionState CurrentState { get; internal set; } = ActionState.Normal;
+        public Card PendingCard { get; internal set; }
 
         private readonly Player _activePlayer;
         private readonly MapManager _mapManager;

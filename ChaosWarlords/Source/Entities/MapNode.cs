@@ -11,7 +11,7 @@ namespace ChaosWarlords.Source.Entities
         // Data
         public int Id { get; private set; }
         public Vector2 Position { get; set; }
-        public PlayerColor Occupant { get; set; } = PlayerColor.None;
+        public PlayerColor Occupant { get; internal set; } = PlayerColor.None;
 
         // Navigation: Which other nodes are connected to this one?
         // We will use this later to calculate "Presence"

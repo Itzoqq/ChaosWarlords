@@ -162,7 +162,7 @@ namespace ChaosWarlords.Source.Systems
             int blueCount = site.Nodes.Count(n => n.Occupant == PlayerColor.Blue);
             int neutralCount = site.Nodes.Count(n => n.Occupant == PlayerColor.Neutral);
 
-            // Tyrants Rule: You must have MORE troops than any other SINGLE faction[cite: 1382].
+            // Rule: You must have MORE troops than any other SINGLE faction.
             // Ties mean NO ONE controls it.
             if (redCount > blueCount && redCount > neutralCount) return PlayerColor.Red;
             if (blueCount > redCount && blueCount > neutralCount) return PlayerColor.Blue;
@@ -175,11 +175,11 @@ namespace ChaosWarlords.Source.Systems
         {
             if (owner == PlayerColor.None) return false;
 
-            // Rule 1: All nodes must be occupied by the owner [cite: 1383]
+            // Rule 1: All nodes must be occupied by the owner
             bool ownsAllNodes = site.Nodes.All(n => n.Occupant == owner);
             if (!ownsAllNodes) return false;
 
-            // Rule 2: No enemy spies present [cite: 1383]
+            // Rule 2: No enemy spies present
             // (Assumes 2 player game for simplicity, logic holds for any enemy)
             bool hasEnemySpy = site.Spies.Any(spyColor => spyColor != owner && spyColor != PlayerColor.None);
 

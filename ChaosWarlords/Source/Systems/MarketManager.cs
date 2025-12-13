@@ -9,8 +9,8 @@ namespace ChaosWarlords.Source.Systems
 {
     public class MarketManager
     {
-        public List<Card> MarketDeck { get; private set; } = new List<Card>();
-        public List<Card> MarketRow { get; private set; } = new List<Card>();
+        internal List<Card> MarketDeck { get; private set; } = new List<Card>();
+        internal List<Card> MarketRow { get; private set; } = new List<Card>();
 
         // Positions for the 6 market slots
         private List<Vector2> _slotPositions = new List<Vector2>();

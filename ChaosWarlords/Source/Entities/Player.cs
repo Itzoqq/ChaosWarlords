@@ -8,20 +8,22 @@ namespace ChaosWarlords.Source.Entities
         public PlayerColor Color { get; private set; }
 
         // --- Economy ---
-        public int Power { get; set; }
-        public int Influence { get; set; }
-        public int VictoryPoints { get; set; }
+        // Public Get (UI needs to see it), Internal Set (Only Logic/Tests change it)
+        public int Power { get; internal set; }
+        public int Influence { get; internal set; }
+        public int VictoryPoints { get; internal set; }
 
         // --- Military ---
-        public int TroopsInBarracks { get; set; } = 40; // Starting limit per rules
-        public int SpiesInBarracks { get; set; } = 5; // Starting limit per rules
-        public int TrophyHall { get; set; } = 0; // Count of enemy troops assassinated
+        public int TroopsInBarracks { get; internal set; } = 40;
+        public int SpiesInBarracks { get; internal set; } = 5;
+        public int TrophyHall { get; internal set; } = 0;
 
         // --- Card Piles ---
-        public List<Card> Deck { get; private set; } = new List<Card>();
-        public List<Card> Hand { get; private set; } = new List<Card>();
-        public List<Card> DiscardPile { get; private set; } = new List<Card>();
-        public List<Card> PlayedCards { get; private set; } = new List<Card>();
+        // Internal: Only Game Logic and Tests can touch the lists directly
+        internal List<Card> Deck { get; private set; } = new List<Card>();
+        internal List<Card> Hand { get; private set; } = new List<Card>();
+        internal List<Card> DiscardPile { get; private set; } = new List<Card>();
+        internal List<Card> PlayedCards { get; private set; } = new List<Card>();
 
         public Player(PlayerColor color)
         {
@@ -47,7 +49,6 @@ namespace ChaosWarlords.Source.Entities
 
         private void ReshuffleDiscard()
         {
-            // Simple shuffle logic (In real game, randomize this list!)
             Deck.AddRange(DiscardPile);
             DiscardPile.Clear();
         }

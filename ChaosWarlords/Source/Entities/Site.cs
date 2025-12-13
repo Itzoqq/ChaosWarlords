@@ -19,9 +19,9 @@ namespace ChaosWarlords.Source.Entities
         public bool IsCity { get; set; }
 
         public List<MapNode> Nodes { get; private set; } = new List<MapNode>();
-        public PlayerColor Owner { get; set; } = PlayerColor.None;
-        public HashSet<PlayerColor> Spies { get; private set; } = new HashSet<PlayerColor>();
-        public bool HasTotalControl { get; set; } = false;
+        public PlayerColor Owner { get; internal set; } = PlayerColor.None;
+        internal List<PlayerColor> Spies { get; private set; } = new List<PlayerColor>();
+        public bool HasTotalControl { get; internal set; } = false;
 
         // Visual Bounds
         public Rectangle Bounds { get; private set; }
