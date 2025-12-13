@@ -134,6 +134,14 @@ namespace ChaosWarlords.Source.States
 
         internal void UpdateTargetingLogic()
         {
+            // FIX START: Allow Right-Click to Cancel Targeting
+            if (_inputManager.IsRightMouseJustClicked())
+            {
+                _actionSystem.CancelTargeting();
+                return;
+            }
+            // FIX END
+
             if (!_inputManager.IsLeftMouseJustClicked()) return;
 
             Vector2 mousePos = _inputManager.MousePosition;
@@ -311,11 +319,11 @@ namespace ChaosWarlords.Source.States
         {
             return state switch
             {
-                ActionState.TargetingAssassinate => "CLICK TROOP TO KILL",
-                ActionState.TargetingPlaceSpy => "CLICK SITE TO PLACE SPY",
-                ActionState.TargetingReturnSpy => "CLICK SITE TO HUNT SPY",
-                ActionState.TargetingReturn => "CLICK TROOP TO RETURN",
-                ActionState.TargetingSupplant => "CLICK TROOP TO SUPPLANT",
+                ActionState.TargetingAssassinate => "CLICK TROOP TO KILL (Right Click to Cancel)",
+                ActionState.TargetingPlaceSpy => "CLICK SITE TO PLACE SPY (Right Click to Cancel)",
+                ActionState.TargetingReturnSpy => "CLICK SITE TO HUNT SPY (Right Click to Cancel)",
+                ActionState.TargetingReturn => "CLICK TROOP TO RETURN (Right Click to Cancel)",
+                ActionState.TargetingSupplant => "CLICK TROOP TO SUPPLANT (Right Click to Cancel)",
                 _ => "TARGETING..."
             };
         }
