@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Utilities
 {
+    [ExcludeFromCodeCoverage]
     public class MapData { public List<NodeData> Nodes { get; set; } public List<RouteData> Routes { get; set; } public List<SiteData> Sites { get; set; } }
     [ExcludeFromCodeCoverage]
     public class NodeData { public int Id { get; set; } public int X { get; set; } public int Y { get; set; } public string Occupant { get; set; } }
