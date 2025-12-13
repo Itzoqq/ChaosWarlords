@@ -73,5 +73,39 @@ namespace ChaosWarlords.Tests.Systems
 
             Assert.Contains(extraCard, _market.MarketRow);
         }
+
+        [TestMethod]
+        public void TryBuyCard_Succeeds_WithExactFunds()
+        {
+            // Arrange
+            _cheapCard = new Card("c1", "Exact", 3, CardAspect.Neutral, 1, 0);
+            _market.MarketRow.Add(_cheapCard);
+            _player.Influence = 3;
+
+            // Act
+            bool result = _market.TryBuyCard(_player, _cheapCard);
+
+            // Assert
+            Assert.IsTrue(result);
+            Assert.AreEqual(0, _player.Influence);
+            Assert.Contains(_cheapCard, _player.DiscardPile);
+        }
+
+        [TestMethod]
+        public void TryBuyCard_Fails_WithZeroFunds()
+        {
+            // Arrange
+            _player.Influence = 0;
+            // Ensure card costs something
+            Assert.IsGreaterThan(0, _cheapCard.Cost);
+
+            // Act
+            bool result = _market.TryBuyCard(_player, _cheapCard);
+
+            // Assert
+            Assert.IsFalse(result);
+            Assert.AreEqual(0, _player.Influence, "Influence should remain 0, not negative.");
+            Assert.DoesNotContain(_cheapCard, _player.DiscardPile);
+        }
     }
 }

@@ -232,6 +232,58 @@ namespace ChaosWarlords.Tests.Systems
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
             Assert.IsNull(_actionSystem.PendingCard);
         }
+
         #endregion
+
+        [TestMethod]
+        public void HandleTargetClick_Assassinate_Fails_IfPowerLostDuringTargeting()
+        {
+            // Arrange: 
+            // 1. Player starts with enough power (3).
+            _player1.Power = 3;
+
+            // 2. Player clicks "Assassinate" button -> Enters Targeting Mode.
+            _actionSystem.TryStartAssassinate();
+            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
+
+            // 3. EDGE CASE: Something else consumes power before the click happens 
+            // (e.g. a triggered event, or a bug in UI logic).
+            _player1.Power = 0;
+
+            // Setup a valid target to ensure it's the Power stopping us, not the map logic.
+            _node1.Occupant = _player1.Color; // Presence
+            _node2.Occupant = _player2.Color; // Enemy
+
+            // Act: Player clicks the target.
+            bool success = _actionSystem.HandleTargetClick(_node2, null);
+
+            // Assert
+            Assert.IsFalse(success, "Action should fail if power dropped below cost during targeting.");
+            Assert.AreEqual(PlayerColor.Blue, _node2.Occupant, "Enemy should still be alive.");
+            Assert.AreEqual(0, _player1.Power, "Power should not go negative.");
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_ReturnSpy_Fails_IfPowerLostDuringTargeting()
+        {
+            // Arrange
+            _player1.Power = 3;
+            _actionSystem.TryStartReturnSpy(); // Enters targeting
+
+            // EDGE CASE: Power is lost
+            _player1.Power = 2;
+
+            // Setup valid target
+            _node2.Occupant = _player1.Color; // Presence at site
+            _siteA.Spies.Add(_player2.Color); // Enemy spy
+
+            // Act
+            bool success = _actionSystem.HandleTargetClick(null, _siteA);
+
+            // Assert
+            Assert.IsFalse(success);
+            Assert.Contains(_player2.Color, _siteA.Spies, "Spy should remain.");
+            Assert.AreEqual(2, _player1.Power, "Power should not decrease.");
+        }
     }
 }

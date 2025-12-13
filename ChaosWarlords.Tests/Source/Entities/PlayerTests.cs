@@ -119,5 +119,19 @@ namespace ChaosWarlords.Tests.Source.Entities
             // 3. Crucial Check: Promoted card is NOT in discard
             CollectionAssert.DoesNotContain(_player.DiscardPile, _card1, "Promoted card should not enter discard cycle.");
         }
+
+        [TestMethod]
+        public void Resources_CannotGoNegative()
+        {
+            _player.Power = 5;
+            _player.Power -= 10; // Should be clamped
+
+            Assert.AreEqual(0, _player.Power, "Power should clamp to 0.");
+
+            _player.Influence = 0;
+            _player.Influence = -1;
+
+            Assert.AreEqual(0, _player.Influence, "Influence should clamp to 0.");
+        }
     }
 }

@@ -87,14 +87,28 @@ namespace ChaosWarlords.Source.Systems
         private bool HandleAssassinate(MapNode targetNode)
         {
             if (targetNode == null) return false;
-            if (_mapManager.CanAssassinate(targetNode, _activePlayer))
+
+            // 1. Verify Logic (Map rules)
+            if (!_mapManager.CanAssassinate(targetNode, _activePlayer))
             {
-                if (PendingCard == null) _activePlayer.Power -= 3;
-                _mapManager.Assassinate(targetNode, _activePlayer);
-                return true;
+                GameLogger.Log("Invalid Target!", LogChannel.Error);
+                return false;
             }
-            GameLogger.Log("Invalid Target!", LogChannel.Error);
-            return false;
+
+            // 2. Verify Cost (Edge Case Protection)
+            // Only check cost if this action isn't free (provided by a Card)
+            if (PendingCard == null && _activePlayer.Power < 3)
+            {
+                GameLogger.Log("Not enough Power to execute Assassinate!", LogChannel.Economy);
+                CancelTargeting(); // Auto-cancel if they can't afford it anymore
+                return false;
+            }
+
+            // 3. Execute
+            if (PendingCard == null) _activePlayer.Power -= 3;
+
+            _mapManager.Assassinate(targetNode, _activePlayer);
+            return true;
         }
 
         private bool HandleReturn(MapNode targetNode)
@@ -130,11 +144,22 @@ namespace ChaosWarlords.Source.Systems
         private bool HandleReturnSpy(Site targetSite)
         {
             if (targetSite == null) return false;
+
+            // 1. Verify Cost First (Optimization: Don't run map logic if broke)
+            if (PendingCard == null && _activePlayer.Power < 3)
+            {
+                GameLogger.Log("Not enough Power to Return Spy!", LogChannel.Economy);
+                CancelTargeting();
+                return false;
+            }
+
+            // 2. Execute Logic
             if (_mapManager.ReturnSpy(targetSite, _activePlayer))
             {
                 if (PendingCard == null) _activePlayer.Power -= 3;
                 return true;
             }
+
             return false;
         }
     }

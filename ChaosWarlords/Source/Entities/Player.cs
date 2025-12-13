@@ -5,11 +5,25 @@ namespace ChaosWarlords.Source.Entities
 {
     public class Player
     {
+        // --- Economy ---
+        // Backing fields
+        private int _power;
+        private int _influence;
+
         public PlayerColor Color { get; private set; }
 
-        // --- Economy ---
-        public int Power { get; internal set; }
-        public int Influence { get; internal set; }
+        // Logic: Clamp to 0 to prevent bugs propagating
+        public int Power
+        {
+            get => _power;
+            internal set => _power = value < 0 ? 0 : value;
+        }
+
+        public int Influence
+        {
+            get => _influence;
+            internal set => _influence = value < 0 ? 0 : value;
+        }
         public int VictoryPoints { get; internal set; }
 
         // --- Military ---
