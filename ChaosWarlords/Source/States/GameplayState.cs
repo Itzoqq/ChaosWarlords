@@ -163,14 +163,47 @@ namespace ChaosWarlords.Source.States
 
         internal void UpdateMarketLogic()
         {
+            // 1. Update Hover States
             _marketManager.Update(_inputManager.GetMouseState(), _activePlayer);
 
+            // 2. Handle Clicks
             if (_inputManager.IsLeftMouseJustClicked())
             {
                 bool clickedOnCard = false;
+                Card cardToBuy = null;
+
+                // Identify if a card was clicked
                 foreach (var card in _marketManager.MarketRow)
                 {
-                    if (card.IsHovered) clickedOnCard = true;
+                    if (card.IsHovered)
+                    {
+                        clickedOnCard = true;
+                        cardToBuy = card;
+                        break; // Only buy one card at a time
+                    }
+                }
+
+                // Attempt to Buy
+                if (cardToBuy != null)
+                {
+                    bool success = _marketManager.TryBuyCard(_activePlayer, cardToBuy);
+
+                    if (success)
+                    {
+                        GameLogger.Log($"Bought {cardToBuy.Name} for {cardToBuy.Cost} Influence.", LogChannel.Economy);
+                    }
+                    else
+                    {
+                        // Log failure reason (usually funds)
+                        if (_activePlayer.Influence < cardToBuy.Cost)
+                        {
+                            GameLogger.Log($"Cannot afford {cardToBuy.Name}. Need {cardToBuy.Cost}, Have {_activePlayer.Influence}.", LogChannel.Economy);
+                        }
+                        else
+                        {
+                            GameLogger.Log($"Could not buy {cardToBuy.Name} (Unknown Reason).", LogChannel.Error);
+                        }
+                    }
                 }
 
                 bool clickedButton = _uiManager != null && _uiManager.IsMarketButtonHovered(_inputManager);

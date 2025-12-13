@@ -5,14 +5,13 @@ using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using System.Collections.Generic;
+using Microsoft.VisualStudio.TestTools.UnitTesting; // Ensure this is present
 
 namespace ChaosWarlords.Tests.States
 {
-
     // Define the Mock Provider inside the Test project
     public class MockInputProvider : IInputProvider
     {
-        // Public fields so we can manipulate them easily in tests
         public MouseState MouseState;
         public KeyboardState KeyboardState;
 
@@ -28,12 +27,8 @@ namespace ChaosWarlords.Tests.States
         private MockInputProvider _mockInputProvider = null!;
         private Player _player = null!;
         private MapManager _mapManager = null!;
+        private MarketManager _marketManager = null!;
         private ActionSystem _actionSystem = null!;
-
-        // Mock dependencies
-        // (Note: In a real environment, we'd mock UIManager specifically to return true/false on button hover)
-        // Since we can't easily mock UIManager without Moq/Interfaces, we'll null it out and test logic that doesn't depend on it
-        // OR we test the internal logic methods directly.
 
         [TestInitialize]
         public void Setup()
@@ -44,13 +39,14 @@ namespace ChaosWarlords.Tests.States
             _input = new InputManager(_mockInputProvider);
             _player = new Player(PlayerColor.Red);
             _mapManager = new MapManager(new List<MapNode>(), new List<Site>());
+            _marketManager = new MarketManager();
             _actionSystem = new ActionSystem(_player, _mapManager);
 
             // Pass null Game to avoid graphics initialization
             _state = new GameplayState(null!);
 
             // Inject our test dependencies
-            _state.InjectDependencies(_input, null!, _mapManager, new MarketManager(), _actionSystem, _player);
+            _state.InjectDependencies(_input, null!, _mapManager, _marketManager, _actionSystem, _player);
         }
 
         [TestMethod]
@@ -60,7 +56,7 @@ namespace ChaosWarlords.Tests.States
             _player.Power = 5;
             _player.Influence = 5;
             _player.Deck.Add(new Card("c1", "Test", 0, CardAspect.Neutral, 0, 0));
-            _player.Hand.Clear(); // Ensure hand starts empty
+            _player.Hand.Clear();
 
             // Act
             _state.EndTurn();
@@ -76,16 +72,14 @@ namespace ChaosWarlords.Tests.States
         {
             // Step 1: Ensure Key is UP (Previous Frame)
             _mockInputProvider.KeyboardState = new KeyboardState();
-            _input.Update(); // InputManager reads "Up"
+            _input.Update();
 
             // Step 2: Press Key DOWN (Current Frame)
             _mockInputProvider.KeyboardState = new KeyboardState(Keys.Enter);
-            _input.Update(); // InputManager reads "Down", so IsKeyJustPressed = true
+            _input.Update();
 
             // Act
-            _player.Power = 10; // Give power to verify it gets reset
-
-            // We call the method that uses IsKeyJustPressed
+            _player.Power = 10;
             _state.HandleGlobalInput();
 
             // Assert
@@ -95,15 +89,12 @@ namespace ChaosWarlords.Tests.States
         [TestMethod]
         public void PlayCard_ResolvesResourceEffects()
         {
-            // Arrange
             var card = new Card("test", "Resource Card", 0, CardAspect.Neutral, 0, 0);
             card.AddEffect(new CardEffect(EffectType.GainResource, 3, ResourceType.Power));
             _player.Hand.Add(card);
 
-            // Act
             _state.PlayCard(card);
 
-            // Assert
             Assert.AreEqual(3, _player.Power);
             Assert.Contains(card, _player.PlayedCards);
             Assert.DoesNotContain(card, _player.Hand);
@@ -112,14 +103,11 @@ namespace ChaosWarlords.Tests.States
         [TestMethod]
         public void PlayCard_TriggersTargeting_ForAssassinate()
         {
-            // Arrange
             var card = new Card("kill", "Assassin", 0, CardAspect.Shadow, 0, 0);
             card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
 
-            // Act
             _state.PlayCard(card);
 
-            // Assert
             Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
             Assert.AreEqual(card, _actionSystem.PendingCard);
         }
@@ -127,23 +115,76 @@ namespace ChaosWarlords.Tests.States
         [TestMethod]
         public void UpdateMarketLogic_ClosesMarket_WhenClickedOutside()
         {
-            // Arrange
             _state._isMarketOpen = true;
 
-            // Simulate a sequence of inputs
-            // Frame 1: Mouse Released
+            // Frame 1: Released
             _mockInputProvider.MouseState = new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
             _input.Update();
 
-            // Frame 2: Mouse Pressed (Click!)
+            // Frame 2: Clicked at (0,0) - assuming no card is there
             _mockInputProvider.MouseState = new MouseState(0, 0, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
             _input.Update();
 
+            _state.UpdateMarketLogic();
+
+            Assert.IsFalse(_state._isMarketOpen);
+        }
+
+        [TestMethod]
+        public void UpdateTargetingLogic_CancelsTargeting_OnRightClick()
+        {
+            // Arrange
+            _actionSystem.StartTargeting(ActionState.TargetingAssassinate);
+            Assert.IsTrue(_actionSystem.IsTargeting());
+
+            // Simulate Right Click
+            // Frame 1: Up
+            _mockInputProvider.MouseState = new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+            _input.Update();
+            // Frame 2: Down (Right Button)
+            _mockInputProvider.MouseState = new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Pressed, ButtonState.Released, ButtonState.Released);
+            _input.Update();
+
             // Act
+            _state.UpdateTargetingLogic();
+
+            // Assert
+            Assert.IsFalse(_actionSystem.IsTargeting(), "Right-click should cancel targeting mode.");
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
+        }
+
+        [TestMethod]
+        public void UpdateMarketLogic_BuysCard_WhenClickedAndAffordable()
+        {
+            // Arrange
+            _state._isMarketOpen = true;
+            _player.Influence = 10;
+
+            // Setup a card in the market at specific coordinates
+            var cardToBuy = new Card("market_card", "Buy Me", 3, CardAspect.Sorcery, 1, 0);
+            cardToBuy.Position = new Vector2(100, 100); // Set position so we can click it
+                                                        // Card.Width is 150, Height is 200 (defined in Card.cs constants)
+
+            _marketManager.MarketRow.Clear();
+            _marketManager.MarketRow.Add(cardToBuy);
+
+            // Simulate Left Click ON the card (110, 110 is inside 100,100 -> 250,300)
+            // Frame 1: Up
+            _mockInputProvider.MouseState = new MouseState(110, 110, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+            _input.Update();
+            // Frame 2: Down
+            _mockInputProvider.MouseState = new MouseState(110, 110, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+            _input.Update();
+
+            // Act
+            // This calls the logic that includes the "TryBuyCard" check we just fixed
             _state.UpdateMarketLogic();
 
             // Assert
-            Assert.IsFalse(_state._isMarketOpen);
+            Assert.AreEqual(7, _player.Influence, "Influence should decrease by cost (10 - 3 = 7).");
+            Assert.Contains(cardToBuy, _player.DiscardPile, "Card should be moved to discard pile.");
+            Assert.DoesNotContain(cardToBuy, _marketManager.MarketRow, "Card should be removed from market row.");
+            Assert.IsTrue(_state._isMarketOpen, "Market should remain open after a valid purchase.");
         }
     }
 }
