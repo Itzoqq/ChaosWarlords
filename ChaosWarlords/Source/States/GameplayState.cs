@@ -105,38 +105,66 @@ namespace ChaosWarlords.Source.States
 
         internal void UpdateNormalGameplay(GameTime gameTime)
         {
-            bool clickHandled = false;
+            // 1. Prepare Input Data
             Point mousePos = _inputManager.MousePosition.ToPoint();
 
-            // 1. Update Card Hover State & Interactions
-            // Iterate backwards to handle overlapping cards correctly (topmost first)
+            // 2. Handle Card Interactions
+            // We return true if a card interaction 'consumed' the input, preventing click-through to the map.
+            if (HandleCardInput(mousePos)) return;
+
+            // 3. Handle World Interactions (UI & Map)
+            // Only process these if the mouse was clicked and no card intercepted it.
+            if (_inputManager.IsLeftMouseJustClicked())
+            {
+                HandleWorldInput();
+            }
+        }
+
+        private bool HandleCardInput(Point mousePos)
+        {
+            bool cardClicked = false;
+
+            // Iterate backwards to handle Z-ordering (topmost cards first)
             for (int i = _activePlayer.Hand.Count - 1; i >= 0; i--)
             {
                 var card = _activePlayer.Hand[i];
+
+                // Update Visual State (Hover)
+                // We update this for every card regardless of clicks to ensure visuals are snappy
                 card.IsHovered = card.Bounds.Contains(mousePos);
 
-                if (!clickHandled && _inputManager.IsLeftMouseJustClicked() && card.IsHovered)
+                // Handle Input
+                // If we haven't clicked a card yet this frame, check this one
+                if (!cardClicked && _inputManager.IsLeftMouseJustClicked() && card.IsHovered)
                 {
                     PlayCard(card);
-                    clickHandled = true;
-                    // Keep 'break' to only click one card at a time
-                    break;
+                    cardClicked = true;
+                    // We don't break immediately so we can ensure other cards 
+                    // update their hover state if necessary (though strictly optimization-wise, breaking is fine)
                 }
             }
 
-            // 2. Handle Map Interaction if no card was clicked
-            if (!clickHandled && _inputManager.IsLeftMouseJustClicked())
-            {
-                // Check UI Buttons first
-                if (CheckActionButtons()) return;
-                if (CheckMarketButton()) return;
+            return cardClicked;
+        }
 
-                // Check Map Nodes
-                var clickedNode = _mapManager.GetNodeAt(_inputManager.MousePosition);
-                if (clickedNode != null)
-                {
-                    _mapManager.TryDeploy(_activePlayer, clickedNode);
-                }
+        private void HandleWorldInput()
+        {
+            // 1. Check UI Overlay Buttons first
+            if (CheckActionButtons()) return;
+            if (CheckMarketButton()) return;
+
+            // 2. Check Game Map (Deployments)
+            HandleMapInteraction();
+        }
+
+        private void HandleMapInteraction()
+        {
+            var clickedNode = _mapManager.GetNodeAt(_inputManager.MousePosition);
+
+            // Deployment Logic
+            if (clickedNode != null)
+            {
+                _mapManager.TryDeploy(_activePlayer, clickedNode);
             }
         }
 
