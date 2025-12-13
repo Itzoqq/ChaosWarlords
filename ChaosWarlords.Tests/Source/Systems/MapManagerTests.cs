@@ -127,6 +127,22 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         [TestMethod]
+        public void TryDeploy_Succeeds_WithValidConditions()
+        {
+            _player1.Power = 1;
+            _player1.TroopsInBarracks = 1;
+            _node1.Occupant = _player1.Color; // Has presence
+            _node2.IsHovered = true; // "Click" on node 2
+
+            bool result = _mapManager.TryDeploy(_player1);
+
+            Assert.IsTrue(result);
+            Assert.AreEqual(_player1.Color, _node2.Occupant);
+            Assert.AreEqual(0, _player1.TroopsInBarracks);
+            Assert.AreEqual(0, _player1.Power);
+        }
+
+        [TestMethod]
         public void CanDeployAt_Succeeds_WhenPlayerHasNoTroopsOnBoard()
         {
             // No troops for player 1 are on the board.
@@ -463,6 +479,27 @@ namespace ChaosWarlords.Tests.Systems
 
             // Assert (SiteA gives 1 Power in setup)
             Assert.AreEqual(1, _player1.Power);
+        }
+
+        #endregion
+
+        #region UI Interaction Tests
+
+        [TestMethod]
+        public void GetHoveredNode_ReturnsCorrectNode()
+        {
+            // Arrange: Set a bounding box for a node
+            _node1.Position = new Microsoft.Xna.Framework.Vector2(100, 100);
+            // Assuming node radius is 15 for hit detection in MapManager.Update
+            var mouseState = new Microsoft.Xna.Framework.Input.MouseState(105, 105, 0, 0, 0, 0, 0, 0);
+
+            // Act
+            _mapManager.Update(mouseState);
+
+            // Assert
+            Assert.IsTrue(_node1.IsHovered);
+            Assert.IsFalse(_node2.IsHovered);
+            Assert.AreSame(_node1, _mapManager.GetHoveredNode());
         }
 
         #endregion

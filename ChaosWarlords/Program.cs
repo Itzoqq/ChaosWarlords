@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using ChaosWarlords.Source.Utilities;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("ChaosWarlords.Tests")]
 
 namespace ChaosWarlords
 {

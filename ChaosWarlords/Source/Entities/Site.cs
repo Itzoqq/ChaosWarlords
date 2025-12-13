@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Utilities;
@@ -43,7 +44,7 @@ namespace ChaosWarlords.Source.Entities
         }
 
         // --- FIX: CHANGED TO PUBLIC ---
-        public void RecalculateBounds()
+        internal void RecalculateBounds()
         {
             if (Nodes.Count == 0) return;
 
@@ -68,6 +69,49 @@ namespace ChaosWarlords.Source.Entities
 
             // Shift Y up by 'topPadding' to create the header space
             Bounds = new Rectangle((int)minX - sidePadding, (int)minY - topPadding, width, height);
+        }
+
+        public int GetTroopCount(PlayerColor color)
+        {
+            return Nodes.Count(n => n.Occupant == color);
+        }
+
+        public PlayerColor GetControllingPlayer()
+        {
+            var troopCounts = Nodes
+                .Where(n => n.Occupant != PlayerColor.None && n.Occupant != PlayerColor.Neutral)
+                .GroupBy(n => n.Occupant)
+                .Select(g => new { Player = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .ToList();
+
+            if (troopCounts.Count == 0)
+            {
+                return PlayerColor.None; // No player troops on site
+            }
+
+            // Check for a tie for the highest count
+            if (troopCounts.Count > 1 && troopCounts[0].Count == troopCounts[1].Count)
+            {
+                return PlayerColor.None;
+            }
+
+            return troopCounts[0].Player; // Clear winner
+        }
+
+        public bool HasSpy(PlayerColor color)
+        {
+            return Spies.Contains(color);
+        }
+
+        public void AddSpy(PlayerColor color)
+        {
+            Spies.Add(color);
+        }
+
+        public bool RemoveSpy(PlayerColor color)
+        {
+            return Spies.Remove(color);
         }
 
         public void Draw(SpriteBatch spriteBatch, SpriteFont font, Texture2D pixelTexture)

@@ -39,6 +39,11 @@ namespace ChaosWarlords.Source.Entities
             }
         }
 
+        public bool IsOccupied()
+        {
+            return Occupant != PlayerColor.None;
+        }
+
         public void Update(MouseState mouseState)
         {
             // Circular collision detection
