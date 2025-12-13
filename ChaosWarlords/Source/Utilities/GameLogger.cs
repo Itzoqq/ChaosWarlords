@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Utilities
 {
+    [ExcludeFromCodeCoverage]
     public struct LogEntry
     {
         public string Timestamp;

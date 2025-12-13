@@ -2,9 +2,11 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Views
 {
+    [ExcludeFromCodeCoverage]
     public class CardRenderer
     {
         private Texture2D _pixelTexture;
