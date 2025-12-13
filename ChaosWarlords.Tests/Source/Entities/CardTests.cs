@@ -109,5 +109,51 @@ namespace ChaosWarlords.Tests.Source.Entities
             Assert.AreEqual("New Desc", _card.Description);
             Assert.AreEqual(CardLocation.Hand, _card.Location);
         }
+
+        [TestMethod]
+        public void BuildEffectText_GeneratesCorrectString_ForResourceGain()
+        {
+            // Arrange
+            var card = new Card("id", "Test", 0, CardAspect.Neutral, 0, 0);
+            card.AddEffect(new CardEffect(EffectType.GainResource, 2, ResourceType.Power));
+
+            // Act
+            // We can call this because of [InternalsVisibleTo]!
+            string text = card.BuildEffectText();
+
+            // Assert
+            StringAssert.Contains(text, "+2 Power");
+        }
+
+        [TestMethod]
+        public void BuildEffectText_UsesStaticDescription_IfAvailable()
+        {
+            // Arrange
+            var card = new Card("id", "Test", 0, CardAspect.Neutral, 0, 0);
+            card.Description = "Static Description Override";
+            card.AddEffect(new CardEffect(EffectType.GainResource, 5, ResourceType.Influence));
+
+            // Act
+            string text = card.BuildEffectText();
+
+            // Assert
+            Assert.AreEqual("Static Description Override", text);
+        }
+
+        [TestMethod]
+        public void BuildEffectText_HandlesMultipleEffects()
+        {
+            // Arrange
+            var card = new Card("id", "Test", 0, CardAspect.Neutral, 0, 0);
+            card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Influence));
+            card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
+
+            // Act
+            string text = card.BuildEffectText();
+
+            // Assert
+            StringAssert.Contains(text, "+1 Influence");
+            StringAssert.Contains(text, "Assassinate");
+        }
     }
 }

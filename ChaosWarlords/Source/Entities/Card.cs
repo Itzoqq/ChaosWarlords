@@ -111,7 +111,7 @@ namespace ChaosWarlords.Source.Entities
             spriteBatch.DrawString(font, $"Cost: {Cost}", Position + new Vector2(10, Height - 25), Color.LightGray);
         }
 
-        private string BuildEffectText()
+        internal string BuildEffectText()
         {
             // If the card has a static description (from JSON), prefer that.
             if (!string.IsNullOrEmpty(Description))
