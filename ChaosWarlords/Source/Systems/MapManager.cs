@@ -96,30 +96,40 @@ namespace ChaosWarlords.Source.Systems
             node.Occupant = player.Color;
 
             GameLogger.Log($"Deployed Troop at Node {node.Id}. Supply: {player.TroopsInBarracks}", LogChannel.Combat);
-            UpdateSiteControl(player);
+
+            // Optimization: Update only the specific site affected
+            RecalculateSiteState(GetSiteForNode(node), player);
 
             if (player.TroopsInBarracks == 0)
                 GameLogger.Log("FINAL TROOP DEPLOYED! Game ends this round.", LogChannel.General);
         }
 
-        public void UpdateSiteControl(Player activePlayer)
+        /// <summary>
+        /// OPTIMIZATION: Only recalculates control for a specific site when a relevant event occurs.
+        /// Replaces the global UpdateSiteControl loop.
+        /// </summary>
+        public void RecalculateSiteState(Site site, Player activePlayer)
         {
-            if (Sites == null) return;
+            // If the action happened on a Route (not a Site), site will be null.
+            // Troops on routes do not affect Site Control, so we can safely return.
+            if (site == null) return;
 
-            foreach (var site in Sites)
-            {
-                PlayerColor previousOwner = site.Owner;
-                bool previousTotal = site.HasTotalControl;
+            PlayerColor previousOwner = site.Owner;
+            bool previousTotal = site.HasTotalControl;
 
-                PlayerColor newOwner = CalculateSiteOwner(site);
-                bool newTotalControl = CalculateTotalControl(site, newOwner);
+            // 1. Determine Controller (Majority)
+            PlayerColor newOwner = CalculateSiteOwner(site);
 
-                site.Owner = newOwner;
-                site.HasTotalControl = newTotalControl;
+            // 2. Determine Total Control (All nodes owned by controller + No Enemy Spies)
+            bool newTotalControl = CalculateTotalControl(site, newOwner);
 
-                HandleControlChange(site, activePlayer, previousOwner, newOwner);
-                HandleTotalControlChange(site, activePlayer, previousTotal, newTotalControl, newOwner);
-            }
+            // 3. Apply State Changes
+            site.Owner = newOwner;
+            site.HasTotalControl = newTotalControl;
+
+            // 4. Trigger Events / Logs / Rewards
+            HandleControlChange(site, activePlayer, previousOwner, newOwner);
+            HandleTotalControlChange(site, activePlayer, previousTotal, newTotalControl, newOwner);
         }
 
         private PlayerColor CalculateSiteOwner(Site site)
@@ -195,10 +205,14 @@ namespace ChaosWarlords.Source.Systems
         public void Assassinate(MapNode node, Player attacker)
         {
             if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
+
             node.Occupant = PlayerColor.None;
             attacker.TrophyHall++;
+
             GameLogger.Log($"Assassinated enemy at Node {node.Id}. Trophy Hall: {attacker.TrophyHall}", LogChannel.Combat);
-            UpdateSiteControl(attacker);
+
+            // Optimization: Update only the specific site affected
+            RecalculateSiteState(GetSiteForNode(node), attacker);
         }
 
         public void ReturnTroop(MapNode node, Player requestingPlayer)
@@ -217,7 +231,9 @@ namespace ChaosWarlords.Source.Systems
                 node.Occupant = PlayerColor.None;
                 GameLogger.Log($"Returned {enemyColor} troop at Node {node.Id} to their barracks.", LogChannel.Combat);
             }
-            UpdateSiteControl(requestingPlayer);
+
+            // Optimization: Update only the specific site affected
+            RecalculateSiteState(GetSiteForNode(node), requestingPlayer);
         }
 
         public void PlaceSpy(Site site, Player player)
@@ -233,7 +249,9 @@ namespace ChaosWarlords.Source.Systems
                 player.SpiesInBarracks--;
                 site.Spies.Add(player.Color);
                 GameLogger.Log($"Spy placed at {site.Name}.", LogChannel.Combat);
-                UpdateSiteControl(player);
+
+                // Optimization: Spy placement directly affects Total Control
+                RecalculateSiteState(site, player);
             }
             else
             {
@@ -259,7 +277,9 @@ namespace ChaosWarlords.Source.Systems
 
             site.Spies.Remove(spyToRemove);
             GameLogger.Log($"Returned {spyToRemove} Spy from {site.Name} to barracks.", LogChannel.Combat);
-            UpdateSiteControl(activePlayer);
+
+            // Optimization: Removing a spy is a key trigger for gaining Total Control
+            RecalculateSiteState(site, activePlayer);
             return true;
         }
 
@@ -273,7 +293,9 @@ namespace ChaosWarlords.Source.Systems
 
             node.Occupant = attacker.Color;
             attacker.TroopsInBarracks--;
-            UpdateSiteControl(attacker);
+
+            // Optimization: Update only the specific site affected
+            RecalculateSiteState(GetSiteForNode(node), attacker);
         }
 
         public bool CanAssassinate(MapNode target, Player attacker)

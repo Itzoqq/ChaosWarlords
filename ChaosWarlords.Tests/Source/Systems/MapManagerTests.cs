@@ -349,7 +349,7 @@ namespace ChaosWarlords.Tests.Systems
             _node3.Occupant = _player1.Color;
 
             // Act: Call the update directly!
-            _mapManager.UpdateSiteControl(_player1);
+            _mapManager.RecalculateSiteState(_siteA, _player1);
 
             // Assert
             Assert.AreEqual(_player1.Color, _siteA.Owner);
@@ -364,7 +364,7 @@ namespace ChaosWarlords.Tests.Systems
             int initialVp = _player1.VictoryPoints;
 
             // Act
-            _mapManager.UpdateSiteControl(_player1);
+            _mapManager.RecalculateSiteState(_siteA, _player1);
 
             // Assert
             Assert.AreEqual(_player1.Color, _siteA.Owner);
@@ -381,7 +381,7 @@ namespace ChaosWarlords.Tests.Systems
             _siteA.Spies.Add(_player2.Color);
 
             // Act
-            _mapManager.UpdateSiteControl(_player1);
+            _mapManager.RecalculateSiteState(_siteA, _player1);
 
             // Assert
             Assert.AreEqual(_player1.Color, _siteA.Owner);
@@ -415,7 +415,7 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange
             _node3.Occupant = _player1.Color;
             _node4.Occupant = _player1.Color;
-            _mapManager.UpdateSiteControl(_player1); // Establish control first
+            _mapManager.RecalculateSiteState(_siteA, _player1); // Establish control first
             Assert.IsTrue(_siteA.HasTotalControl);
 
             // Act: Player 2 assassinates
@@ -439,7 +439,7 @@ namespace ChaosWarlords.Tests.Systems
             _node4.Occupant = _player2.Color;
 
             // Act
-            _mapManager.UpdateSiteControl(_player1);
+            _mapManager.RecalculateSiteState(_siteA, _player1);
 
             // Assert
             Assert.AreEqual(PlayerColor.None, _siteA.Owner, "Site owner should be None on a tie between players.");
@@ -454,7 +454,7 @@ namespace ChaosWarlords.Tests.Systems
             _node4.Occupant = PlayerColor.Neutral;
 
             // Act
-            _mapManager.UpdateSiteControl(_player1);
+            _mapManager.RecalculateSiteState(_siteA, _player1);
 
             // Assert
             Assert.AreEqual(PlayerColor.None, _siteA.Owner, "Site owner should be None on a tie with neutral troops.");
