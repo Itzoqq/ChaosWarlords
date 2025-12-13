@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Entities;
 using System.Collections.Generic;
+using System;
 
 namespace ChaosWarlords.Source.Utilities
 {
@@ -7,50 +8,48 @@ namespace ChaosWarlords.Source.Utilities
     {
         public static Card CreateSoldier()
         {
-            // "Soldier" is a starter card -> Aspect.Neutral
             var card = new Card("soldier", "Soldier", 0, CardAspect.Neutral, 0, 0);
-
-            // FIXED: Order is (Type, Amount, Resource)
             card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Power));
-
             card.Description = "+1 Power";
             return card;
         }
 
         public static Card CreateNoble()
         {
-            // "Noble" is a starter card -> Aspect.Neutral
             var card = new Card("noble", "Noble", 0, CardAspect.Neutral, 0, 0);
-
-            // Order is (Type, Amount, Resource)
             card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Influence));
-
             card.Description = "+1 Influence";
             return card;
         }
 
         public static Card CreateFromData(CardData data)
         {
-            // This tries to parse string "Warlord", "Sorcery" etc. from JSON into the Enum
-            System.Enum.TryParse(data.Aspect, true, out CardAspect aspect);
+            // 1. Parse Aspect
+            Enum.TryParse(data.Aspect, true, out CardAspect aspect);
 
-            var card = new Card(data.Id, data.Name, data.Cost, aspect, data.VictoryPoints, 0);
+            // 2. Create Card (Mapping DeckVP to main VP for now)
+            var card = new Card(data.Id, data.Name, data.Cost, aspect, data.DeckVP, 0);
+            card.Description = data.Description;
 
-            // Simple parsing logic for the "Vertical Slice"
-            if (data.Text.Contains("+") && data.Text.Contains("Power"))
+            // 3. Parse Structured Effects (No more string guessing!)
+            if (data.Effects != null)
             {
-                // Assuming +1 for simple parsing if number isn't easily extracted
-                card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Power));
-            }
-            else if (data.Text.Contains("+") && data.Text.Contains("Influence"))
-            {
-                card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Influence));
+                foreach (var effectData in data.Effects)
+                {
+                    if (Enum.TryParse(effectData.Type, true, out EffectType type))
+                    {
+                        ResourceType resType = ResourceType.None;
+                        if (!string.IsNullOrEmpty(effectData.TargetResource))
+                        {
+                            Enum.TryParse(effectData.TargetResource, true, out resType);
+                        }
+
+                        // Use the correct constructor (Type, Amount, Resource)
+                        card.AddEffect(new CardEffect(type, effectData.Amount, resType));
+                    }
+                }
             }
 
-            // In a real implementation, you would write a text parser here to read "Gain 3 Power"
-            // and extract the '3' into the amount variable.
-
-            card.Description = data.Text;
             return card;
         }
     }
