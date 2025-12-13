@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
+using System.Text;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
@@ -12,8 +13,21 @@ namespace ChaosWarlords.Source.Views
     public class MapRenderer
     {
         private Texture2D _pixelTexture;
-        private Texture2D _nodeTexture; // Ideally a circle sprite, we'll use pixel for now
+        private Texture2D _nodeTexture;
         private SpriteFont _font;
+
+        // --- OPTIMIZATION: Site Text Cache ---
+        // Stores the StringBuilder for each site to avoid per-frame allocations.
+        private class SiteVisualData
+        {
+            public StringBuilder Text { get; } = new StringBuilder();
+            public PlayerColor LastOwner { get; set; } = PlayerColor.None;
+            public bool LastTotalControl { get; set; } = false;
+            // We force an update on the first draw
+            public bool IsDirty { get; set; } = true;
+        }
+
+        private Dictionary<Site, SiteVisualData> _siteCache = new Dictionary<Site, SiteVisualData>();
 
         public MapRenderer(Texture2D pixelTexture, Texture2D nodeTexture, SpriteFont font)
         {
@@ -59,23 +73,62 @@ namespace ChaosWarlords.Source.Views
 
         private void DrawSiteText(SpriteBatch spriteBatch, Site site)
         {
-            string text = site.Name.ToUpper();
+            // 1. Get or Create Cache Entry
+            if (!_siteCache.TryGetValue(site, out SiteVisualData cache))
+            {
+                cache = new SiteVisualData();
+                _siteCache[site] = cache;
+            }
+
+            // 2. Check for changes (Dirty Flag)
+            if (cache.IsDirty || cache.LastOwner != site.Owner || cache.LastTotalControl != site.HasTotalControl)
+            {
+                UpdateSiteText(cache, site);
+                cache.LastOwner = site.Owner;
+                cache.LastTotalControl = site.HasTotalControl;
+                cache.IsDirty = false;
+            }
+
+            // 3. Draw using StringBuilder
+            Vector2 textPos = new Vector2(site.Bounds.X + 10, site.Bounds.Y + 10);
+
+            // Draw Shadow
+            spriteBatch.DrawString(_font, cache.Text, textPos + new Vector2(1, 1), Color.Black);
+            // Draw Text
+            spriteBatch.DrawString(_font, cache.Text, textPos, site.IsCity ? Color.Gold : Color.LightGray);
+        }
+
+        private void UpdateSiteText(SiteVisualData cache, Site site)
+        {
+            var sb = cache.Text;
+            sb.Clear();
+            sb.Append(site.Name.ToUpper());
+
             if (site.Owner != PlayerColor.None)
             {
-                text += $"\n[Control: +{site.ControlAmount} {site.ControlResource}]";
+                sb.Append("\n[Control: +");
+                sb.Append(site.ControlAmount);
+                sb.Append(" ");
+                sb.Append(site.ControlResource);
+                sb.Append("]");
+
                 if (site.HasTotalControl)
                 {
-                    text += $"\n[TOTAL BONUS: +{site.TotalControlAmount} {site.TotalControlResource}]";
+                    sb.Append("\n[TOTAL: +");
+                    sb.Append(site.TotalControlAmount);
+                    sb.Append(" ");
+                    sb.Append(site.TotalControlResource);
+                    sb.Append("]");
                 }
             }
             else
             {
-                text += $"\n({site.ControlAmount} {site.ControlResource})";
+                sb.Append("\n(");
+                sb.Append(site.ControlAmount);
+                sb.Append(" ");
+                sb.Append(site.ControlResource);
+                sb.Append(")");
             }
-
-            Vector2 textPos = new Vector2(site.Bounds.X + 10, site.Bounds.Y + 10);
-            spriteBatch.DrawString(_font, text, textPos + new Vector2(1, 1), Color.Black);
-            spriteBatch.DrawString(_font, text, textPos, site.IsCity ? Color.Gold : Color.LightGray);
         }
 
         private void DrawSpies(SpriteBatch spriteBatch, Site site)
@@ -162,7 +215,6 @@ namespace ChaosWarlords.Source.Views
 
         private Vector2 GetIntersection(Rectangle rect, Vector2 start, Vector2 end)
         {
-            // Re-using the geometry logic extracted from MapManager
             if (MapGeometry.TryGetLineIntersection(start, end, new Vector2(rect.Left, rect.Top), new Vector2(rect.Right, rect.Top), out Vector2 r)) return r;
             if (MapGeometry.TryGetLineIntersection(start, end, new Vector2(rect.Right, rect.Top), new Vector2(rect.Right, rect.Bottom), out r)) return r;
             if (MapGeometry.TryGetLineIntersection(start, end, new Vector2(rect.Right, rect.Bottom), new Vector2(rect.Left, rect.Bottom), out r)) return r;

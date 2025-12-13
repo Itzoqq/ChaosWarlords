@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Entities;
+using ChaosWarlords.Source.Utilities;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Systems
@@ -11,9 +12,22 @@ namespace ChaosWarlords.Source.Systems
         private SpriteFont _defaultFont;
         private SpriteFont _smallFont;
         private Texture2D _pixelTexture;
+
+        // Buttons
         private Rectangle _marketButtonRect;
         private Rectangle _assassinateButtonRect;
         private Rectangle _returnSpyButtonRect;
+
+        // --- OPTIMIZATION: String Caches ---
+        // These replace the string interpolations in Draw()
+        private CachedIntText _powerCache;
+        private CachedIntText _influenceCache;
+        private CachedIntText _vpCache;
+        private CachedIntText _trophyCache;
+        private CachedIntText _deckCache;
+        private CachedIntText _discardCache;
+        private CachedIntText _troopsCache;
+        private CachedIntText _spiesCache;
 
         public int ScreenWidth { get; private set; }
         public int ScreenHeight { get; private set; }
@@ -29,14 +43,18 @@ namespace ChaosWarlords.Source.Systems
             ScreenWidth = graphicsDevice.Viewport.Width;
             ScreenHeight = graphicsDevice.Viewport.Height;
 
+            InitializeLayout();
+            InitializeStringCaches();
+        }
+
+        private void InitializeLayout()
+        {
             int btnHeight = 100;
             int btnWidth = 40;
-            int verticalGap = 25; // Add a explicit gap between center and buttons
+            int verticalGap = 25;
 
-            // 1. Market (Left - Centered)
             _marketButtonRect = new Rectangle(0, (ScreenHeight / 2) - (btnHeight / 2), btnWidth, btnHeight);
 
-            // 2. Assassinate (Right - Shifted UP by gap)
             _assassinateButtonRect = new Rectangle(
                 ScreenWidth - btnWidth,
                 (ScreenHeight / 2) - btnHeight - verticalGap,
@@ -44,7 +62,6 @@ namespace ChaosWarlords.Source.Systems
                 btnHeight
             );
 
-            // 3. Return Spy (Right - Shifted DOWN by gap)
             _returnSpyButtonRect = new Rectangle(
                 ScreenWidth - btnWidth,
                 (ScreenHeight / 2) + verticalGap,
@@ -53,7 +70,20 @@ namespace ChaosWarlords.Source.Systems
             );
         }
 
-        // LOGIC: Did we click the toggle button?
+        private void InitializeStringCaches()
+        {
+            // Initialize with prefixes. The values will update on the first Draw frame.
+            _powerCache = new CachedIntText("Power: ");
+            _influenceCache = new CachedIntText("Influence: ");
+            _vpCache = new CachedIntText("VP: ");
+            _trophyCache = new CachedIntText("Trophies: ");
+            _deckCache = new CachedIntText("Deck: ");
+            _discardCache = new CachedIntText("Discard: ");
+            _troopsCache = new CachedIntText("Troops: ", -1, " / 40");
+            _spiesCache = new CachedIntText("Spies: ", -1, " / 5");
+        }
+
+        // LOGIC methods remain the same
         public bool IsMarketButtonHovered(InputManager input) => input.IsMouseOver(_marketButtonRect);
         public bool IsAssassinateButtonHovered(InputManager input) => input.IsMouseOver(_assassinateButtonRect);
         public bool IsReturnSpyButtonHovered(InputManager input) => input.IsMouseOver(_returnSpyButtonRect);
@@ -63,40 +93,45 @@ namespace ChaosWarlords.Source.Systems
         {
             if (_defaultFont == null) return;
 
+            // 1. Update Caches (Only rebuilds string if numbers changed)
+            _powerCache.Update(player.Power);
+            _influenceCache.Update(player.Influence);
+            _vpCache.Update(player.VictoryPoints);
+            _trophyCache.Update(player.TrophyHall);
+            _deckCache.Update(player.Deck.Count);
+            _discardCache.Update(player.DiscardPile.Count);
+            _troopsCache.Update(player.TroopsInBarracks);
+            _spiesCache.Update(player.SpiesInBarracks);
+
+            // 2. Draw using StringBuilder (Zero Allocation)
             // Background
             spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, ScreenWidth, 40), Color.Black * 0.5f);
 
             // Stats (Left)
-            spriteBatch.DrawString(_defaultFont, $"Power: {player.Power}", new Vector2(20, 10), Color.Orange);
-            spriteBatch.DrawString(_defaultFont, $"Influence: {player.Influence}", new Vector2(150, 10), Color.Cyan);
-            spriteBatch.DrawString(_defaultFont, $"VP: {player.VictoryPoints}", new Vector2(300, 10), Color.Lime);
+            spriteBatch.DrawString(_defaultFont, _powerCache.Output, new Vector2(20, 10), Color.Orange);
+            spriteBatch.DrawString(_defaultFont, _influenceCache.Output, new Vector2(150, 10), Color.Cyan);
+            spriteBatch.DrawString(_defaultFont, _vpCache.Output, new Vector2(300, 10), Color.Lime);
 
             // Kill count
-            spriteBatch.DrawString(_defaultFont, $"Trophies: {player.TrophyHall}", new Vector2(400, 10), Color.Red); // Shifted X slightly to make room
+            spriteBatch.DrawString(_defaultFont, _trophyCache.Output, new Vector2(400, 10), Color.Red);
 
             // Deck Info (Center-ish)
-            spriteBatch.DrawString(_defaultFont, $"Deck: {player.Deck.Count}", new Vector2(500, 10), Color.White);
-            spriteBatch.DrawString(_defaultFont, $"Discard: {player.DiscardPile.Count}", new Vector2(600, 10), Color.Gray);
+            spriteBatch.DrawString(_defaultFont, _deckCache.Output, new Vector2(500, 10), Color.White);
+            spriteBatch.DrawString(_defaultFont, _discardCache.Output, new Vector2(600, 10), Color.Gray);
 
             // --- RIGHT SIDE: SUPPLIES ---
 
-            // 1. Troops Counter (Rightmost)
-            string troopsText = $"Troops: {player.TroopsInBarracks} / 40";
-            Vector2 troopsSize = _defaultFont.MeasureString(troopsText);
+            // 1. Troops Counter
+            Vector2 troopsSize = _defaultFont.MeasureString(_troopsCache.Output);
             float troopsX = ScreenWidth - troopsSize.X - 20;
-
             Color troopColor = (player.TroopsInBarracks == 0) ? Color.Red : Color.LightGreen;
-            spriteBatch.DrawString(_defaultFont, troopsText, new Vector2(troopsX, 10), troopColor);
+            spriteBatch.DrawString(_defaultFont, _troopsCache.Output, new Vector2(troopsX, 10), troopColor);
 
-            // 2. Spies Counter (To the left of Troops) <--- NEW
-            string spiesText = $"Spies: {player.SpiesInBarracks} / 5";
-            Vector2 spiesSize = _defaultFont.MeasureString(spiesText);
-
-            // Position: Left of troops text with 30px padding
+            // 2. Spies Counter
+            Vector2 spiesSize = _defaultFont.MeasureString(_spiesCache.Output);
             float spiesX = troopsX - spiesSize.X - 30;
-
-            Color spyColor = (player.SpiesInBarracks == 0) ? Color.Red : Color.Violet; // Violet for spies (drow theme)
-            spriteBatch.DrawString(_defaultFont, spiesText, new Vector2(spiesX, 10), spyColor);
+            Color spyColor = (player.SpiesInBarracks == 0) ? Color.Red : Color.Violet;
+            spriteBatch.DrawString(_defaultFont, _spiesCache.Output, new Vector2(spiesX, 10), spyColor);
         }
 
         public void DrawMarketButton(SpriteBatch spriteBatch, bool isOpen)
@@ -106,10 +141,10 @@ namespace ChaosWarlords.Source.Systems
             SpriteFont btnFont = _smallFont ?? _defaultFont;
             if (btnFont != null)
             {
+                // This string is a constant literal, so it doesn't allocate new memory at runtime.
                 string btnText = "M\nA\nR\nK\nE\nT";
                 Vector2 textSize = btnFont.MeasureString(btnText);
 
-                // Centering math
                 float textX = _marketButtonRect.X + (_marketButtonRect.Width - textSize.X) / 2;
                 float textY = _marketButtonRect.Y + (_marketButtonRect.Height - textSize.Y) / 2;
 
@@ -124,7 +159,7 @@ namespace ChaosWarlords.Source.Systems
             spriteBatch.Draw(_pixelTexture, _assassinateButtonRect, canAffordKill ? Color.Red : Color.DarkRed * 0.5f);
             DrawVerticalText(spriteBatch, "K\nI\nL\nL\n\n3", _assassinateButtonRect);
 
-            // 2. Draw Return Spy Button <--- NEW
+            // 2. Draw Return Spy Button
             bool canAffordSpy = player.Power >= 3;
             spriteBatch.Draw(_pixelTexture, _returnSpyButtonRect, canAffordSpy ? Color.Violet : Color.Purple * 0.5f);
             DrawVerticalText(spriteBatch, "H\nU\nN\nT\n\n3", _returnSpyButtonRect);
