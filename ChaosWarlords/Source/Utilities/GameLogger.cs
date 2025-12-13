@@ -65,7 +65,7 @@ namespace ChaosWarlords.Source.Utilities
             }
         }
 
-        private static void FlushToFile()
+        public static void FlushToFile()
         {
             try
             {
