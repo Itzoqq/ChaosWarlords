@@ -186,5 +186,39 @@ namespace ChaosWarlords.Tests.States
             Assert.DoesNotContain(cardToBuy, _marketManager.MarketRow, "Card should be removed from market row.");
             Assert.IsTrue(_state._isMarketOpen, "Market should remain open after a valid purchase.");
         }
+
+        [TestMethod]
+        public void MoveCardToPlayed_PreservesXPosition_AndPopsUpY()
+        {
+            // Arrange: Setup the "Screen" logic manually since we have no GraphicsDevice
+            _state._handY = 500;
+            _state._playedY = 400; // The "Pop Up" target
+
+            // Create 2 cards in hand
+            var card1 = new Card("c1", "Left Card", 0, CardAspect.Neutral, 0, 0);
+            var card2 = new Card("c2", "Right Card", 0, CardAspect.Neutral, 0, 0);
+
+            // Manually position them like they would be on screen
+            card1.Position = new Vector2(100, 500); // X=100, Y=HandY
+            card2.Position = new Vector2(250, 500); // X=250, Y=HandY
+
+            _player.Hand.Add(card1);
+            _player.Hand.Add(card2);
+
+            // Act: Play the first card
+            _state.MoveCardToPlayed(card1);
+
+            // Assert 1: Card1 should have moved UP (Y changes) but NOT sideways (X stays 100)
+            Assert.AreEqual(100, card1.Position.X, "Played card should maintain its X position (Visual Gap).");
+            Assert.AreEqual(400, card1.Position.Y, "Played card should move to the Played Y position.");
+
+            // Assert 2: Card2 should NOT have moved at all (Prevents the 'sliding' bug)
+            Assert.AreEqual(250, card2.Position.X, "Remaining cards should not slide over.");
+            Assert.AreEqual(500, card2.Position.Y, "Remaining cards should stay in the hand row.");
+
+            // Assert 3: Lists are correct
+            Assert.Contains(card1, _player.PlayedCards);
+            Assert.DoesNotContain(card1, _player.Hand);
+        }
     }
 }

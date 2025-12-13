@@ -26,6 +26,9 @@ namespace ChaosWarlords.Source.States
         internal Player _activePlayer;
         internal bool _isMarketOpen = false;
 
+        internal int _handY;
+        internal int _playedY;
+
         // Views
         private MapRenderer _mapRenderer;
         private CardRenderer _cardRenderer;
@@ -70,6 +73,10 @@ namespace ChaosWarlords.Source.States
             _marketManager = worldData.MarketManager;
             _mapManager = worldData.MapManager;
             _actionSystem = worldData.ActionSystem;
+
+            int screenH = graphicsDevice.Viewport.Height;
+            _handY = screenH - Card.Height - 20; // Bottom margin
+            _playedY = _handY - (Card.Height / 2);
 
             ArrangeHandVisuals();
             _mapManager.CenterMap(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
@@ -272,7 +279,12 @@ namespace ChaosWarlords.Source.States
         {
             _activePlayer.Hand.Remove(card);
             _activePlayer.PlayedCards.Add(card);
-            ArrangeHandVisuals();
+
+            // We do NOT call ArrangeHandVisuals() here.
+            // This ensures the remaining cards in your hand stay exactly where they are.
+
+            // Use the cached variable (Test friendly!)
+            card.Position = new Vector2(card.Position.X, _playedY);
         }
 
         internal void EndTurn()
@@ -290,15 +302,17 @@ namespace ChaosWarlords.Source.States
         private void ArrangeHandVisuals()
         {
             if (_game == null) return;
-            int cardWidth = 150;
+
+            int cardWidth = Card.Width;
             int gap = 10;
+
             int totalHandWidth = (_activePlayer.Hand.Count * cardWidth) + ((_activePlayer.Hand.Count - 1) * gap);
             int startX = (_game.GraphicsDevice.Viewport.Width - totalHandWidth) / 2;
-            int startY = _game.GraphicsDevice.Viewport.Height - 200 - 20;
 
+            // Use the cached variable
             for (int i = 0; i < _activePlayer.Hand.Count; i++)
             {
-                _activePlayer.Hand[i].Position = new Vector2(startX + (i * (cardWidth + gap)), startY);
+                _activePlayer.Hand[i].Position = new Vector2(startX + (i * (cardWidth + gap)), _handY);
             }
         }
 
