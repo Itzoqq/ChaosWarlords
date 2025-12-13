@@ -36,9 +36,22 @@ namespace ChaosWarlords.Source.Views
             Vector2 pos = new Vector2(card.Bounds.X + 5, card.Bounds.Y + 5);
             sb.DrawString(_font, card.Name, pos, Color.Black);
 
-            string costText = card.Cost > 0 ? $"Cost: {card.Cost}" : "";
-            Vector2 costPos = new Vector2(card.Bounds.Right - 60, card.Bounds.Y + 5);
-            sb.DrawString(_font, costText, costPos, Color.DarkBlue);
+            if (card.Cost > 0)
+            {
+                string costText = $"Cost: {card.Cost}";
+
+                // Measure the text so we can align it to the bottom-right
+                Vector2 costSize = _font.MeasureString(costText);
+
+                // X = Right edge - text width - padding
+                // Y = Bottom edge - text height - padding
+                Vector2 costPos = new Vector2(
+                    card.Bounds.Right - costSize.X - 5,
+                    card.Bounds.Bottom - costSize.Y - 5
+                );
+
+                sb.DrawString(_font, costText, costPos, Color.DarkBlue);
+            }
 
             // 5. Draw Description / Effects
             float yOffset = 30;
@@ -52,7 +65,19 @@ namespace ChaosWarlords.Source.Views
             // 6. Draw Stats (VP)
             if (card.VictoryPoints > 0)
             {
-                sb.DrawString(_font, $"VP: {card.VictoryPoints}", new Vector2(card.Bounds.X + 5, card.Bounds.Bottom - 20), Color.DarkRed);
+                string vpText = $"VP: {card.VictoryPoints}";
+
+                // Measure the text so we can align it exactly like the Cost
+                Vector2 vpSize = _font.MeasureString(vpText);
+
+                // X = Left edge + padding
+                // Y = Bottom edge - text height - padding (Same Y math as Cost)
+                Vector2 vpPos = new Vector2(
+                    card.Bounds.X + 5,
+                    card.Bounds.Bottom - vpSize.Y - 5
+                );
+
+                sb.DrawString(_font, vpText, vpPos, Color.DarkRed);
             }
         }
 
