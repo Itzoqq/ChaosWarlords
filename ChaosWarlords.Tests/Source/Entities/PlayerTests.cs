@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
+using Microsoft.VisualStudio.TestTools.UnitTesting; // Explicitly included based on your file context
 
 namespace ChaosWarlords.Tests.Source.Entities
 {
@@ -13,10 +14,9 @@ namespace ChaosWarlords.Tests.Source.Entities
         public void Setup()
         {
             _player = new Player(PlayerColor.Red);
-            // Using a dummy constructor for Card as it's not in context, similar to other test files.
-            _card1 = new Card("c1", "c1", 0, CardAspect.Shadow, 0, 0);
-            _card2 = new Card("c2", "c2", 0, CardAspect.Shadow, 0, 0);
-            _card3 = new Card("c3", "c3", 0, CardAspect.Shadow, 0, 0);
+            _card1 = new Card("c1", "Card One", 0, CardAspect.Shadow, 1, 2);
+            _card2 = new Card("c2", "Card Two", 0, CardAspect.Shadow, 1, 2);
+            _card3 = new Card("c3", "Card Three", 0, CardAspect.Shadow, 1, 2);
         }
 
         [TestMethod]
@@ -76,6 +76,48 @@ namespace ChaosWarlords.Tests.Source.Entities
             CollectionAssert.Contains(_player.DiscardPile, _card1);
             CollectionAssert.Contains(_player.DiscardPile, _card2);
             CollectionAssert.Contains(_player.DiscardPile, _card3);
+        }
+
+        [TestMethod]
+        public void PromoteCard_MovesCardToInnerCircle()
+        {
+            // Arrange
+            _player.Hand.Add(_card1);
+            Assert.AreEqual(CardLocation.None, _card1.Location); // Or whatever default is
+
+            // Act
+            _player.PromoteCard(_card1);
+
+            // Assert
+            Assert.Contains(_card1, _player.InnerCircle, "Card should be in Inner Circle list");
+            Assert.DoesNotContain(_card1, _player.Hand, "Card should be removed from Hand");
+            Assert.AreEqual(CardLocation.InnerCircle, _card1.Location);
+        }
+
+        [TestMethod]
+        public void PromoteCard_PreventsCardFromGoingToDiscard_OnCleanup()
+        {
+            // Arrange
+            _player.Hand.Add(_card1); // Will be promoted
+            _player.Hand.Add(_card2); // Will be discarded (unused)
+            _player.PlayedCards.Add(_card3); // Will be discarded (played)
+
+            // Act
+            _player.PromoteCard(_card1); // Action happens
+            _player.CleanUpTurn();       // Turn ends
+
+            // Assert
+            // 1. Inner Circle check
+            Assert.HasCount(1, _player.InnerCircle);
+            Assert.AreEqual(_card1, _player.InnerCircle[0]);
+
+            // 2. Discard Pile check
+            Assert.HasCount(2, _player.DiscardPile);
+            CollectionAssert.Contains(_player.DiscardPile, _card2);
+            CollectionAssert.Contains(_player.DiscardPile, _card3);
+
+            // 3. Crucial Check: Promoted card is NOT in discard
+            CollectionAssert.DoesNotContain(_player.DiscardPile, _card1, "Promoted card should not enter discard cycle.");
         }
     }
 }
