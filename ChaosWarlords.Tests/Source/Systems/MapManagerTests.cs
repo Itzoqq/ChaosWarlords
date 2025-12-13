@@ -1,6 +1,10 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Xna.Framework;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -20,19 +24,18 @@ namespace ChaosWarlords.Tests.Systems
         [TestInitialize]
         public void Setup()
         {
-            // This method runs before every single test, giving us a clean slate.
-
             // ARRANGE
             _player1 = new Player(PlayerColor.Red);
             _player2 = new Player(PlayerColor.Blue);
 
             // Create a consistent map for testing
             // Layout: [1] -- [2] -- [3, 4 are in SiteA] -- [5 is in SiteB]
-            _node1 = new MapNode(1, new(10, 10), null);
-            _node2 = new MapNode(2, new(20, 10), null);
-            _node3 = new MapNode(3, new(30, 10), null);
-            _node4 = new MapNode(4, new(40, 10), null);
-            _node5 = new MapNode(5, new(50, 10), null);
+            // UPDATED: Removed 'null' texture argument
+            _node1 = new MapNode(1, new Vector2(10, 10));
+            _node2 = new MapNode(2, new Vector2(20, 10));
+            _node3 = new MapNode(3, new Vector2(30, 10));
+            _node4 = new MapNode(4, new Vector2(40, 10));
+            _node5 = new MapNode(5, new Vector2(50, 10));
 
             _node1.AddNeighbor(_node2);
             _node2.AddNeighbor(_node3);
@@ -100,9 +103,9 @@ namespace ChaosWarlords.Tests.Systems
         {
             _player1.Power = 0;
             _node1.Occupant = _player1.Color; // Has presence
-            _node2.IsHovered = true; // "Click" on node 2
 
-            bool result = _mapManager.TryDeploy(_player1);
+            // UPDATED: Pass target directly, removed IsHovered
+            bool result = _mapManager.TryDeploy(_player1, _node2);
 
             Assert.IsFalse(result);
             Assert.AreEqual(PlayerColor.None, _node2.Occupant);
@@ -114,9 +117,9 @@ namespace ChaosWarlords.Tests.Systems
         {
             _player1.TroopsInBarracks = 0;
             _node1.Occupant = _player1.Color; // Has presence
-            _node2.IsHovered = true; // "Click" on node 2
 
-            bool result = _mapManager.TryDeploy(_player1);
+            // UPDATED: Pass target directly
+            bool result = _mapManager.TryDeploy(_player1, _node2);
 
             Assert.IsFalse(result);
             Assert.AreEqual(PlayerColor.None, _node2.Occupant);
@@ -129,9 +132,9 @@ namespace ChaosWarlords.Tests.Systems
             _player1.Power = 1;
             _player1.TroopsInBarracks = 1;
             _node1.Occupant = _player1.Color; // Has presence
-            _node2.IsHovered = true; // "Click" on node 2
 
-            bool result = _mapManager.TryDeploy(_player1);
+            // UPDATED: Pass target directly
+            bool result = _mapManager.TryDeploy(_player1, _node2);
 
             Assert.IsTrue(result);
             Assert.AreEqual(_player1.Color, _node2.Occupant);
@@ -457,8 +460,6 @@ namespace ChaosWarlords.Tests.Systems
             Assert.AreEqual(PlayerColor.None, _siteA.Owner, "Site owner should be None on a tie with neutral troops.");
         }
 
-
-
         #endregion
 
         #region Rewards Tests
@@ -480,23 +481,22 @@ namespace ChaosWarlords.Tests.Systems
 
         #endregion
 
-        #region UI Interaction Tests
+        #region Hit-Test (Replaces UI Hover)
 
         [TestMethod]
-        public void GetHoveredNode_ReturnsCorrectNode()
+        public void GetNodeAt_ReturnsCorrectNode()
         {
-            // Arrange: Set a bounding box for a node
-            _node1.Position = new Microsoft.Xna.Framework.Vector2(100, 100);
-            // Assuming node radius is 15 for hit detection in MapManager.Update
-            var mouseState = new Microsoft.Xna.Framework.Input.MouseState(105, 105, 0, 0, 0, 0, 0, 0);
+            // Arrange: Place node at 100, 100
+            _node1.Position = new Vector2(100, 100);
 
-            // Act
-            _mapManager.Update(mouseState);
+            // MapNode.Radius is constant 20.
+            // Mouse at 105, 105 is inside.
+            var insidePoint = new Vector2(105, 105);
+            var outsidePoint = new Vector2(200, 200);
 
-            // Assert
-            Assert.IsTrue(_node1.IsHovered);
-            Assert.IsFalse(_node2.IsHovered);
-            Assert.AreSame(_node1, _mapManager.GetHoveredNode());
+            // Act & Assert
+            Assert.AreSame(_node1, _mapManager.GetNodeAt(insidePoint), "Should return node when point is inside radius.");
+            Assert.IsNull(_mapManager.GetNodeAt(outsidePoint), "Should return null when point is outside.");
         }
 
         #endregion

@@ -1,5 +1,7 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Tests.Entities
 {
@@ -12,9 +14,10 @@ namespace ChaosWarlords.Tests.Entities
         [TestInitialize]
         public void Setup()
         {
-            _node1 = new MapNode(1, new(0, 0), null);
-            _node2 = new MapNode(2, new(0, 0), null);
-            _node3 = new MapNode(3, new(0, 0), null);
+            // UPDATED: Removed null texture arg
+            _node1 = new MapNode(1, new Vector2(0, 0));
+            _node2 = new MapNode(2, new Vector2(0, 0));
+            _node3 = new MapNode(3, new Vector2(0, 0));
             _site = new Site("Test Site", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
             _site.AddNode(_node1);
             _site.AddNode(_node2);

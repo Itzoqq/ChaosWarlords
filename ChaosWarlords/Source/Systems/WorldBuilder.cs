@@ -29,7 +29,7 @@ namespace ChaosWarlords.Source.Systems
         public WorldData Build(Texture2D texture)
         {
             // 1. Initialize Databases
-            // We allow texture to be null for unit testing logic
+            // NOTE: Cards still use the texture for now (we will refactor Cards in Step 2)
             if (File.Exists(_cardDataPath))
             {
                 CardDatabase.Load(_cardDataPath, texture);
@@ -46,21 +46,26 @@ namespace ChaosWarlords.Source.Systems
             for (int i = 0; i < 7; i++) player.Deck.Add(CardFactory.CreateNoble(texture));
             player.DrawCards(5);
 
-            // 4. Setup Map
+            // 4. Setup Map (RENDERING EXTRACTED)
             MapManager mapManager;
+
+            // We hold the nodes/sites data here to pass to the manager
+            (List<MapNode>, List<Site>) mapData;
+
             if (File.Exists(_mapDataPath))
             {
-                var mapData = MapFactory.LoadFromFile(_mapDataPath, texture);
-                mapManager = new MapManager(mapData.Item1, mapData.Item2);
+                // Updated: No longer takes 'texture'
+                mapData = MapFactory.LoadFromFile(_mapDataPath);
             }
             else
             {
                 // Fallback / Test Map
-                var nodes = MapFactory.CreateTestMap(texture);
-                var sites = new List<Site>();
-                mapManager = new MapManager(nodes, sites);
+                // Updated: No longer takes 'texture' and returns a tuple like LoadFromFile
+                mapData = MapFactory.CreateTestMap();
             }
-            mapManager.PixelTexture = texture;
+
+            mapManager = new MapManager(mapData.Item1, mapData.Item2);
+            // Removed: mapManager.PixelTexture = texture; (The renderer handles this now)
 
             // 5. Setup Action System
             var actionSystem = new ActionSystem(player, mapManager);

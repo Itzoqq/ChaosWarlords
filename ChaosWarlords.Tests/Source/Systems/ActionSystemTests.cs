@@ -1,6 +1,9 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Xna.Framework;
+using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -22,8 +25,9 @@ namespace ChaosWarlords.Tests.Systems
             _player1 = new Player(PlayerColor.Red);
             _player2 = new Player(PlayerColor.Blue);
 
-            _node1 = new MapNode(1, new(10, 10), null);
-            _node2 = new MapNode(2, new(20, 10), null);
+            // UPDATED: Removed null texture arg
+            _node1 = new MapNode(1, new Vector2(10, 10));
+            _node2 = new MapNode(2, new Vector2(20, 10));
             _node1.AddNeighbor(_node2);
 
             _siteA = new Site("SiteA", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);

@@ -1,5 +1,7 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Tests.Entities
 {
@@ -9,8 +11,9 @@ namespace ChaosWarlords.Tests.Entities
         [TestMethod]
         public void AddNeighbor_AddsToNeighborsListReciprocally()
         {
-            var node1 = new MapNode(1, new(0, 0), null);
-            var node2 = new MapNode(2, new(0, 0), null);
+            // UPDATED: Removed null texture arg
+            var node1 = new MapNode(1, new Vector2(0, 0));
+            var node2 = new MapNode(2, new Vector2(0, 0));
 
             node1.AddNeighbor(node2);
 
@@ -21,7 +24,7 @@ namespace ChaosWarlords.Tests.Entities
         [TestMethod]
         public void IsOccupied_ReturnsCorrectState()
         {
-            var node = new MapNode(1, new(0, 0), null);
+            var node = new MapNode(1, new Vector2(0, 0));
             Assert.IsFalse(node.IsOccupied());
 
             node.Occupant = PlayerColor.Red;

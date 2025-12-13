@@ -1,6 +1,4 @@
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using System.Collections.Generic;
 using System.Linq;
 using ChaosWarlords.Source.Entities;
@@ -13,13 +11,12 @@ namespace ChaosWarlords.Source.Systems
         internal List<MapNode> Nodes { get; private set; }
         public List<Site> Sites { get; private set; }
         private readonly Dictionary<MapNode, Site> NodesiteLookup;
-        public Texture2D PixelTexture { get; set; }
 
         public MapManager(List<MapNode> nodes, List<Site> sites)
         {
             Nodes = nodes;
             Sites = sites;
-            NodesiteLookup = [];
+            NodesiteLookup = new Dictionary<MapNode, Site>();
 
             if (sites != null)
             {
@@ -29,71 +26,50 @@ namespace ChaosWarlords.Source.Systems
             }
         }
 
-        // --- Visual / Setup Methods (Low Complexity) ---
+        // --- Setup Methods ---
         public void CenterMap(int screenWidth, int screenHeight)
         {
             if (Nodes.Count == 0) return;
-
-            // 1. Calculate Bounds
             var (MinX, MinY, MaxX, MaxY) = MapGeometry.CalculateBounds(Nodes);
-
-            // 2. Calculate Offset required to center
             Vector2 mapCenter = new((MinX + MaxX) / 2f, (MinY + MaxY) / 2f);
             Vector2 screenCenter = new(screenWidth / 2f, screenHeight / 2f);
             Vector2 offset = screenCenter - mapCenter;
-
-            // 3. Apply
             ApplyOffset(offset);
-        }
-
-        private (float MinX, float MinY, float MaxX, float MaxY) CalculateMapBounds()
-        {
-            float minX = float.MaxValue, minY = float.MaxValue;
-            float maxX = float.MinValue, maxY = float.MinValue;
-
-            foreach (var node in Nodes)
-            {
-                if (node.Position.X < minX) minX = node.Position.X;
-                if (node.Position.Y < minY) minY = node.Position.Y;
-                if (node.Position.X > maxX) maxX = node.Position.X;
-                if (node.Position.Y > maxY) maxY = node.Position.Y;
-            }
-
-            return (minX, minY, maxX, maxY);
         }
 
         private void ApplyOffset(Vector2 offset)
         {
-            foreach (var node in Nodes)
-            {
-                node.Position += offset;
-            }
-
-            if (Sites != null)
-            {
-                foreach (var site in Sites) site.RecalculateBounds();
-            }
+            foreach (var node in Nodes) node.Position += offset;
+            if (Sites != null) foreach (var site in Sites) site.RecalculateBounds();
         }
 
-        public void Update(MouseState mouseState)
+        // --- Query Methods (Replaces Update Loop) ---
+        public MapNode GetNodeAt(Vector2 position)
         {
-            foreach (var node in Nodes) node.Update(mouseState);
+            // Simple circular collision check against all nodes
+            return Nodes.FirstOrDefault(n => Vector2.Distance(position, n.Position) <= MapNode.Radius);
         }
 
-        public MapNode GetHoveredNode() => Nodes.FirstOrDefault(n => n.IsHovered);
-        public Site GetHoveredSite(Vector2 mousePos) => Sites?.FirstOrDefault(s => s.Bounds.Contains(mousePos));
-
-        // --- REFACTORED: Deployment Logic ---
-        public bool TryDeploy(Player currentPlayer)
+        public Site GetSiteAt(Vector2 position)
         {
-            var hoveredNode = GetHoveredNode();
+            return Sites?.FirstOrDefault(s => s.Bounds.Contains(position));
+        }
 
-            // 1. Validation (Guard Clauses reduce nesting)
-            if (hoveredNode == null) return false;
+        public Site GetSiteForNode(MapNode node)
+        {
+            NodesiteLookup.TryGetValue(node, out Site site);
+            return site;
+        }
 
-            if (!CanDeployAt(hoveredNode, currentPlayer.Color))
+        // --- Logic Methods (Deploy, Control, etc.) ---
+        // (Note: I changed GetHoveredNode to accept a specific node passed from the controller)
+        public bool TryDeploy(Player currentPlayer, MapNode targetNode)
+        {
+            if (targetNode == null) return false;
+
+            if (!CanDeployAt(targetNode, currentPlayer.Color))
             {
-                GameLogger.Log($"Invalid Deployment at Node {hoveredNode.Id}: Occupied or No Presence.", LogChannel.Error);
+                GameLogger.Log($"Invalid Deployment at Node {targetNode.Id}: Occupied or No Presence.", LogChannel.Error);
                 return false;
             }
 
@@ -109,8 +85,7 @@ namespace ChaosWarlords.Source.Systems
                 return false;
             }
 
-            // 2. Execution
-            ExecuteDeploy(hoveredNode, currentPlayer);
+            ExecuteDeploy(targetNode, currentPlayer);
             return true;
         }
 
@@ -121,15 +96,11 @@ namespace ChaosWarlords.Source.Systems
             node.Occupant = player.Color;
 
             GameLogger.Log($"Deployed Troop at Node {node.Id}. Supply: {player.TroopsInBarracks}", LogChannel.Combat);
-
-            UpdateSiteControl(player); // Recalculate control after placement
+            UpdateSiteControl(player);
 
             if (player.TroopsInBarracks == 0)
                 GameLogger.Log("FINAL TROOP DEPLOYED! Game ends this round.", LogChannel.General);
         }
-
-        // --- REFACTORED: Site Control Logic (Complexity Reduction) ---
-        // Originally one massive method, now broken into 4 logical steps.
 
         public void UpdateSiteControl(Player activePlayer)
         {
@@ -137,61 +108,45 @@ namespace ChaosWarlords.Source.Systems
 
             foreach (var site in Sites)
             {
-                // Snapshot previous state
                 PlayerColor previousOwner = site.Owner;
                 bool previousTotal = site.HasTotalControl;
 
-                // 1. Calculate New State
                 PlayerColor newOwner = CalculateSiteOwner(site);
                 bool newTotalControl = CalculateTotalControl(site, newOwner);
 
-                // 2. Apply Changes
                 site.Owner = newOwner;
                 site.HasTotalControl = newTotalControl;
 
-                // 3. Trigger Side Effects (Rewards/Logs)
                 HandleControlChange(site, activePlayer, previousOwner, newOwner);
                 HandleTotalControlChange(site, activePlayer, previousTotal, newTotalControl, newOwner);
             }
         }
 
-        // Extracted Logic: Who owns this site? (Majority Rule)
         private PlayerColor CalculateSiteOwner(Site site)
         {
             int redCount = site.Nodes.Count(n => n.Occupant == PlayerColor.Red);
             int blueCount = site.Nodes.Count(n => n.Occupant == PlayerColor.Blue);
             int neutralCount = site.Nodes.Count(n => n.Occupant == PlayerColor.Neutral);
 
-            // Rule: You must have MORE troops than any other SINGLE faction.
-            // Ties mean NO ONE controls it.
             if (redCount > blueCount && redCount > neutralCount) return PlayerColor.Red;
             if (blueCount > redCount && blueCount > neutralCount) return PlayerColor.Blue;
 
             return PlayerColor.None;
         }
 
-        // Extracted Logic: Is there Total Control?
         private bool CalculateTotalControl(Site site, PlayerColor owner)
         {
             if (owner == PlayerColor.None) return false;
-
-            // Rule 1: All nodes must be occupied by the owner
             bool ownsAllNodes = site.Nodes.All(n => n.Occupant == owner);
             if (!ownsAllNodes) return false;
-
-            // Rule 2: No enemy spies present
-            // (Assumes 2 player game for simplicity, logic holds for any enemy)
             bool hasEnemySpy = site.Spies.Any(spyColor => spyColor != owner && spyColor != PlayerColor.None);
-
             return !hasEnemySpy;
         }
 
-        // Extracted Logic: Handle rewards when ownership flips
         private void HandleControlChange(Site site, Player activePlayer, PlayerColor oldOwner, PlayerColor newOwner)
         {
             if (newOwner != oldOwner)
             {
-                // Only give reward if the active player triggered the change and it is a City
                 if (newOwner == activePlayer.Color && site.IsCity)
                 {
                     ApplyReward(activePlayer, site.ControlResource, site.ControlAmount);
@@ -200,7 +155,6 @@ namespace ChaosWarlords.Source.Systems
             }
         }
 
-        // Extracted Logic: Handle Total Control rewards
         private void HandleTotalControlChange(Site site, Player activePlayer, bool wasTotal, bool isTotal, PlayerColor owner)
         {
             if (isTotal != wasTotal)
@@ -217,8 +171,6 @@ namespace ChaosWarlords.Source.Systems
             }
         }
 
-        // --- Standard Actions (Low Complexity) ---
-
         public void ApplyReward(Player player, ResourceType type, int amount)
         {
             if (type == ResourceType.Power) player.Power += amount;
@@ -229,18 +181,13 @@ namespace ChaosWarlords.Source.Systems
         public void DistributeControlRewards(Player activePlayer)
         {
             if (Sites == null) return;
-
             foreach (var site in Sites)
             {
-                // Logic: Only apply rewards for sites owned by the active player
                 if (site.Owner == activePlayer.Color && site.IsCity)
                 {
                     ApplyReward(activePlayer, site.ControlResource, site.ControlAmount);
-
                     if (site.HasTotalControl)
-                    {
                         ApplyReward(activePlayer, site.TotalControlResource, site.TotalControlAmount);
-                    }
                 }
             }
         }
@@ -248,11 +195,9 @@ namespace ChaosWarlords.Source.Systems
         public void Assassinate(MapNode node, Player attacker)
         {
             if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
-
             node.Occupant = PlayerColor.None;
             attacker.TrophyHall++;
             GameLogger.Log($"Assassinated enemy at Node {node.Id}. Trophy Hall: {attacker.TrophyHall}", LogChannel.Combat);
-
             UpdateSiteControl(attacker);
         }
 
@@ -272,7 +217,6 @@ namespace ChaosWarlords.Source.Systems
                 node.Occupant = PlayerColor.None;
                 GameLogger.Log($"Returned {enemyColor} troop at Node {node.Id} to their barracks.", LogChannel.Combat);
             }
-
             UpdateSiteControl(requestingPlayer);
         }
 
@@ -299,17 +243,15 @@ namespace ChaosWarlords.Source.Systems
 
         public bool ReturnSpy(Site site, Player activePlayer)
         {
-            // Presence check optimization
             if (site.Nodes.Count > 0 && !HasPresence(site.Nodes[0], activePlayer.Color))
             {
                 GameLogger.Log("Cannot return spy: No Presence at this Site!", LogChannel.Error);
                 return false;
             }
 
-            // Find valid target
             PlayerColor spyToRemove = site.Spies.FirstOrDefault(s => s != activePlayer.Color && s != PlayerColor.None);
 
-            if (spyToRemove == PlayerColor.None) // Default struct value
+            if (spyToRemove == PlayerColor.None)
             {
                 GameLogger.Log("Invalid Target: No enemy spies at this Site.", LogChannel.Error);
                 return false;
@@ -325,19 +267,14 @@ namespace ChaosWarlords.Source.Systems
         {
             if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
 
-            // Assassinate
             node.Occupant = PlayerColor.None;
             attacker.TrophyHall++;
             GameLogger.Log($"Supplanted enemy at Node {node.Id} (Added to Trophy Hall)", LogChannel.Combat);
 
-            // Deploy
             node.Occupant = attacker.Color;
             attacker.TroopsInBarracks--;
-
             UpdateSiteControl(attacker);
         }
-
-        // --- Validation Helpers (Low Complexity) ---
 
         public bool CanAssassinate(MapNode target, Player attacker)
         {
@@ -348,140 +285,20 @@ namespace ChaosWarlords.Source.Systems
 
         public bool HasPresence(MapNode targetNode, PlayerColor player)
         {
-            // Rule: A player has presence at a location if they have a troop there,
-            // a troop at an adjacent location, or a spy at the site containing the location.
-
-            // 0. Direct occupation
             if (targetNode.Occupant == player) return true;
-
-            // 1. Spies
             Site parentSite = GetSiteForNode(targetNode);
             if (parentSite != null && parentSite.Spies.Contains(player)) return true;
 
-            // 2. Adjacency (to the node itself or any node in its site)
             var nodesToCheck = parentSite != null ? parentSite.Nodes : new List<MapNode> { targetNode };
-
-            // Check if ANY neighbor of ANY relevant node is occupied by us
             return nodesToCheck.Any(n => n.Neighbors.Any(neighbor => neighbor.Occupant == player));
         }
 
         public bool CanDeployAt(MapNode targetNode, PlayerColor player)
         {
             if (targetNode.Occupant != PlayerColor.None) return false;
-
-            // "Start of Game" Rule check
             bool hasAnyTroops = Nodes.Any(n => n.Occupant == player);
             if (!hasAnyTroops) return true;
-
             return HasPresence(targetNode, player);
-        }
-
-        // --- Helpers ---
-        private Site GetSiteForNode(MapNode node)
-        {
-            NodesiteLookup.TryGetValue(node, out Site site);
-            return site;
-        }
-
-        // Keeping Draw-related math helpers private (unchanged)
-        private Vector2 GetIntersection(Rectangle rect, Vector2 start, Vector2 end)
-        {
-            Vector2[] corners =
-            [
-                new Vector2(rect.Left, rect.Top),
-                new Vector2(rect.Right, rect.Top),
-                new Vector2(rect.Right, rect.Bottom),
-                new Vector2(rect.Left, rect.Bottom)
-            ];
-
-            float closestDist = float.MaxValue;
-            Vector2 closestPoint = end;
-
-            for (int i = 0; i < 4; i++)
-            {
-                Vector2 p1 = corners[i];
-                Vector2 p2 = corners[(i + 1) % 4];
-
-                if (MapGeometry.TryGetLineIntersection(start, end, p1, p2, out Vector2 intersection))
-                {
-                    float d = Vector2.DistanceSquared(start, intersection);
-                    if (d < closestDist)
-                    {
-                        closestDist = d;
-                        closestPoint = intersection;
-                    }
-                }
-            }
-            return closestPoint;
-        }
-
-        private void DrawLine(SpriteBatch spriteBatch, Vector2 start, Vector2 end, Color color, int thickness)
-        {
-            if (PixelTexture == null) return;
-
-            Vector2 edge = end - start;
-            float angle = (float)System.Math.Atan2(edge.Y, edge.X);
-
-            spriteBatch.Draw(PixelTexture,
-                new Rectangle((int)start.X, (int)start.Y, (int)edge.Length(), thickness),
-                null, color, angle, new Vector2(0, 0.5f), SpriteEffects.None, 0);
-        }
-
-        public void Draw(SpriteBatch spriteBatch, SpriteFont font)
-        {
-            DrawSites(spriteBatch, font);
-            DrawRoutes(spriteBatch);
-            DrawNodes(spriteBatch);
-        }
-
-        private void DrawSites(SpriteBatch spriteBatch, SpriteFont font)
-        {
-            if (Sites == null) return;
-            foreach (var site in Sites)
-            {
-                site.Draw(spriteBatch, font, PixelTexture);
-            }
-        }
-
-        private void DrawNodes(SpriteBatch spriteBatch)
-        {
-            foreach (var node in Nodes)
-            {
-                node.Draw(spriteBatch);
-            }
-        }
-
-        private void DrawRoutes(SpriteBatch spriteBatch)
-        {
-            foreach (var node in Nodes)
-            {
-                foreach (var neighbor in node.Neighbors)
-                {
-                    // Optimization: Only draw connection once per pair
-                    if (node.Id < neighbor.Id)
-                    {
-                        DrawSingleRoute(spriteBatch, node, neighbor);
-                    }
-                }
-            }
-        }
-
-        private void DrawSingleRoute(SpriteBatch spriteBatch, MapNode node, MapNode neighbor)
-        {
-            Site startSite = GetSiteForNode(node);
-            Site endSite = GetSiteForNode(neighbor);
-
-            // Visual Clutter Rule: Don't draw lines strictly inside a single site
-            if (startSite != null && startSite == endSite) return;
-
-            Vector2 p1 = startSite != null ? startSite.Bounds.Center.ToVector2() : node.Position;
-            Vector2 p2 = endSite != null ? endSite.Bounds.Center.ToVector2() : neighbor.Position;
-
-            // Geometry: Clip lines to site edges
-            if (startSite != null) p1 = GetIntersection(startSite.Bounds, p2, p1);
-            if (endSite != null) p2 = GetIntersection(endSite.Bounds, p1, p2);
-
-            DrawLine(spriteBatch, p1, p2, Color.DarkGray, 2);
         }
     }
 }

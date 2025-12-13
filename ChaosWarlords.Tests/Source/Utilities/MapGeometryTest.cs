@@ -1,6 +1,8 @@
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Entities;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Source.Utilities
 {
@@ -10,11 +12,12 @@ namespace ChaosWarlords.Tests.Source.Utilities
         [TestMethod]
         public void CalculateBounds_ReturnsCorrectMinMax()
         {
+            // UPDATED: Removed null texture arg
             var nodes = new List<MapNode>
             {
-                new MapNode(1, new Vector2(0, 0), null),
-                new MapNode(2, new Vector2(100, 50), null),
-                new MapNode(3, new Vector2(-50, 200), null)
+                new MapNode(1, new Vector2(0, 0)),
+                new MapNode(2, new Vector2(100, 50)),
+                new MapNode(3, new Vector2(-50, 200))
             };
 
             var bounds = MapGeometry.CalculateBounds(nodes);
