@@ -1,29 +1,36 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
-using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Systems
 {
-    [ExcludeFromCodeCoverage]
     public class InputManager
     {
+        private readonly IInputProvider _provider;
+
         private KeyboardState _currentKeyboard;
         private KeyboardState _previousKeyboard;
         private MouseState _currentMouse;
         private MouseState _previousMouse;
+
+        // Constructor Injection: We MUST have a provider to function.
+        public InputManager(IInputProvider provider)
+        {
+            _provider = provider;
+        }
 
         public Vector2 MousePosition => _currentMouse.Position.ToVector2();
 
         public void Update()
         {
             _previousKeyboard = _currentKeyboard;
-            _currentKeyboard = Keyboard.GetState();
+            // Ask the provider for the state (could be real or fake)
+            _currentKeyboard = _provider.GetKeyboardState();
 
             _previousMouse = _currentMouse;
-            _currentMouse = Mouse.GetState();
+            _currentMouse = _provider.GetMouseState();
         }
 
-        // Returns true ONLY on the frame the key is first pressed
+        // ... Rest of the methods (IsKeyJustPressed, etc.) remain exactly the same ...
         public bool IsKeyJustPressed(Keys key)
         {
             return _currentKeyboard.IsKeyDown(key) && !_previousKeyboard.IsKeyDown(key);
@@ -34,7 +41,6 @@ namespace ChaosWarlords.Source.Systems
             return _currentKeyboard.IsKeyDown(key);
         }
 
-        // Returns true ONLY on the frame the button is first clicked
         public bool IsLeftMouseJustClicked()
         {
             return _currentMouse.LeftButton == ButtonState.Pressed && _previousMouse.LeftButton == ButtonState.Released;
@@ -45,7 +51,6 @@ namespace ChaosWarlords.Source.Systems
             return _currentMouse.RightButton == ButtonState.Pressed && _previousMouse.RightButton == ButtonState.Released;
         }
 
-        // Helper to check if mouse is inside a rectangle
         public bool IsMouseOver(Rectangle rect)
         {
             return rect.Contains(_currentMouse.Position);
