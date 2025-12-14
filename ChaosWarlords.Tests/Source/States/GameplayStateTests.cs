@@ -12,11 +12,86 @@ namespace ChaosWarlords.Tests.States
     // Define the Mock Provider inside the Test project
     public class MockInputProvider : IInputProvider
     {
-        public MouseState MouseState;
-        public KeyboardState KeyboardState;
+        // Backing fields
+        public MouseState MouseState { get; private set; }
+        public KeyboardState KeyboardState { get; private set; }
 
+        public MockInputProvider()
+        {
+            // Initialize with default (Released, 0,0) states
+            MouseState = new MouseState();
+            KeyboardState = new KeyboardState();
+        }
+
+        // Interface Implementation
         public MouseState GetMouseState() => MouseState;
         public KeyboardState GetKeyboardState() => KeyboardState;
+
+        // --- Helper Methods for Tests ---
+
+        // 1. Simulates holding down the Right Mouse Button
+        public void QueueRightClick()
+        {
+            // We must create a NEW MouseState because the struct properties are read-only
+            MouseState = new MouseState(
+                MouseState.X,
+                MouseState.Y,
+                MouseState.ScrollWheelValue,
+                MouseState.LeftButton,
+                MouseState.MiddleButton,
+                ButtonState.Pressed, // <--- Set Right Button to Pressed
+                MouseState.XButton1,
+                MouseState.XButton2
+            );
+        }
+
+        // 2. Simulates holding down the Left Mouse Button
+        public void QueueLeftClick()
+        {
+            MouseState = new MouseState(
+                MouseState.X,
+                MouseState.Y,
+                MouseState.ScrollWheelValue,
+                ButtonState.Pressed, // <--- Set Left Button to Pressed
+                MouseState.MiddleButton,
+                MouseState.RightButton,
+                MouseState.XButton1,
+                MouseState.XButton2
+            );
+        }
+
+        // 3. Moves the mouse to specific coordinates
+        public void SetMousePosition(int x, int y)
+        {
+            MouseState = new MouseState(
+                x,
+                y,
+                MouseState.ScrollWheelValue,
+                MouseState.LeftButton,
+                MouseState.MiddleButton,
+                MouseState.RightButton,
+                MouseState.XButton1,
+                MouseState.XButton2
+            );
+        }
+
+        // 4. Reset everything to Released/Neutral
+        public void Reset()
+        {
+            MouseState = new MouseState();
+            KeyboardState = new KeyboardState();
+        }
+
+        public void SetKeyboardState(params Keys[] keys)
+        {
+            KeyboardState = new KeyboardState(keys);
+        }
+
+        // Allows you to set a raw MouseState if you have complex older tests
+        public void SetMouseState(MouseState state)
+        {
+            MouseState = state;
+        }
     }
 
     [TestClass]
@@ -71,11 +146,11 @@ namespace ChaosWarlords.Tests.States
         public void HandleGlobalInput_EnterKey_EndsTurn()
         {
             // Step 1: Ensure Key is UP (Previous Frame)
-            _mockInputProvider.KeyboardState = new KeyboardState();
+            _mockInputProvider.SetKeyboardState();
             _input.Update();
 
             // Step 2: Press Key DOWN (Current Frame)
-            _mockInputProvider.KeyboardState = new KeyboardState(Keys.Enter);
+            _mockInputProvider.SetKeyboardState(Keys.Enter);
             _input.Update();
 
             // Act
@@ -118,11 +193,11 @@ namespace ChaosWarlords.Tests.States
             _state._isMarketOpen = true;
 
             // Frame 1: Released
-            _mockInputProvider.MouseState = new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+            _mockInputProvider.Reset();
             _input.Update();
 
             // Frame 2: Clicked at (0,0) - assuming no card is there
-            _mockInputProvider.MouseState = new MouseState(0, 0, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+            _mockInputProvider.QueueLeftClick();
             _input.Update();
 
             _state.UpdateMarketLogic();
@@ -137,11 +212,11 @@ namespace ChaosWarlords.Tests.States
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate);
 
             // Step 1: Ensure button starts RELEASED (Frame 1)
-            _mockInputProvider.MouseState = new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+            _mockInputProvider.Reset();
             _input.Update();
 
             // Step 2: Press button DOWN (Frame 2)
-            _mockInputProvider.MouseState = new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Pressed, ButtonState.Released, ButtonState.Released);
+            _mockInputProvider.QueueRightClick();
             _input.Update();
             // Now: Previous = Released, Current = Pressed. This satisfies IsRightMouseJustClicked().
 
@@ -170,10 +245,11 @@ namespace ChaosWarlords.Tests.States
 
             // Simulate Left Click ON the card (110, 110 is inside 100,100 -> 250,300)
             // Frame 1: Up
-            _mockInputProvider.MouseState = new MouseState(110, 110, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+            _mockInputProvider.Reset(); // Ensure buttons are cleared
+            _mockInputProvider.SetMousePosition(110, 110);
             _input.Update();
             // Frame 2: Down
-            _mockInputProvider.MouseState = new MouseState(110, 110, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+            _mockInputProvider.QueueLeftClick(); // Presses Left Button while keeping position at (110, 110)
             _input.Update();
 
             // Act
@@ -219,6 +295,28 @@ namespace ChaosWarlords.Tests.States
             // Assert 3: Lists are correct
             Assert.Contains(card1, _player.PlayedCards);
             Assert.DoesNotContain(card1, _player.Hand);
+        }
+
+        [TestMethod]
+        public void Update_RightClick_CancelsTargetingState()
+        {
+            // 1. Arrange: Put the game into a "Targeting" state
+            // We manually force the system to think we are trying to assassinate someone
+            _actionSystem.StartTargeting(ActionState.TargetingAssassinate, CardFactory.CreateSoldier());
+
+            // Verify initial state is correct (Sanity check)
+            Assert.IsTrue(_actionSystem.IsTargeting(), "Game should be in targeting mode.");
+
+            // 2. Act: Simulate a Right Click (The input we couldn't fake before!)
+            // We assume your MockInputProvider has a method like 'PushRightClick' or you set a property
+            _mockInputProvider.QueueRightClick();
+
+            // Run one frame of logic
+            _state.Update(new GameTime());
+
+            // 3. Assert: The game should have reverted to normal gameplay
+            Assert.IsFalse(_actionSystem.IsTargeting(), "Right-click should have cancelled the targeting state.");
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
         }
     }
 }
