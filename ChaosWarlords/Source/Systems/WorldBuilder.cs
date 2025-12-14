@@ -1,10 +1,8 @@
 using Microsoft.Xna.Framework; // <--- FIXED: Added this for TitleContainer
-using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
 using System.Collections.Generic;
 using System.IO;
-using System;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Systems
