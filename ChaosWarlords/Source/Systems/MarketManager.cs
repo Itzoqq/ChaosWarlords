@@ -55,16 +55,14 @@ namespace ChaosWarlords.Source.Systems
             return true;
         }
 
-        public void Update(MouseState mouse, Player player)
+        public void Update(Vector2 cursorPosition)
         {
-            Point mousePoint = new Point(mouse.X, mouse.Y);
+            Point cursorPoint = cursorPosition.ToPoint();
+
             foreach (var card in MarketRow)
             {
-                card.IsHovered = card.Bounds.Contains(mousePoint);
-                if (card.IsHovered && mouse.LeftButton == ButtonState.Pressed && player.Influence >= card.Cost)
-                {
-                    // Buy Logic would go here (Triggered by UI click usually)
-                }
+                // Logic only: "Is the cursor over this card?"
+                card.IsHovered = card.Bounds.Contains(cursorPoint);
             }
         }
 

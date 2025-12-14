@@ -241,7 +241,7 @@ namespace ChaosWarlords.Source.States
 
         internal void UpdateMarketLogic()
         {
-            _marketManager.Update(_inputManager.GetMouseState(), _activePlayer);
+            _marketManager.Update(_inputManager.MousePosition);
 
             if (_inputManager.IsLeftMouseJustClicked())
             {
