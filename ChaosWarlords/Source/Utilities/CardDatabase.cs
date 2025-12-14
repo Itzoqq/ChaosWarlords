@@ -13,12 +13,12 @@ namespace ChaosWarlords.Source.Utilities
     {
         public string Id { get; set; }
         public string Name { get; set; }
-        public string Description { get; set; } // Was 'Text', fixed to match JSON
+        public string Description { get; set; }
         public int Cost { get; set; }
         public string Aspect { get; set; }
-        public int DeckVP { get; set; }        // Was 'VictoryPoints', fixed to match JSON
+        public int DeckVP { get; set; }
         public int InnerCircleVP { get; set; }
-        public List<CardEffectData> Effects { get; set; } // Added to capture the JSON array
+        public List<CardEffectData> Effects { get; set; }
     }
 
     [ExcludeFromCodeCoverage]
@@ -29,12 +29,13 @@ namespace ChaosWarlords.Source.Utilities
         public string TargetResource { get; set; }
     }
 
-    public static class CardDatabase
+    // REMOVED "static" keyword - Now it implements the interface
+    public class CardDatabase : ICardDatabase
     {
-        private static List<CardData> _cardDataCache;
+        private List<CardData> _cardDataCache;
 
-        [ExcludeFromCodeCoverage] // Exclude the file I/O part from coverage, we test the logic below
-        public static void Load(Stream stream)
+        // No [ExcludeFromCodeCoverage] needed here unless you want to skip IO testing
+        public void Load(Stream stream)
         {
             using (var reader = new StreamReader(stream))
             {
@@ -43,18 +44,13 @@ namespace ChaosWarlords.Source.Utilities
             }
         }
 
-        // Internal method for testability, allowing us to pass JSON directly
-        internal static void LoadFromJson(string json)
+        internal void LoadFromJson(string json)
         {
-            // Case-insensitive matching helps avoid capitalization errors
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             _cardDataCache = JsonSerializer.Deserialize<List<CardData>>(json, options);
         }
 
-        // Helper for tests to reset the static state
-        internal static void ClearCache() => _cardDataCache = null;
-
-        public static List<Card> GetAllMarketCards()
+        public List<Card> GetAllMarketCards()
         {
             var cards = new List<Card>();
             if (_cardDataCache == null) return cards;
@@ -64,6 +60,12 @@ namespace ChaosWarlords.Source.Utilities
                 cards.Add(CardFactory.CreateFromData(data));
             }
             return cards;
+        }
+
+        public Card GetCardById(string id)
+        {
+            var data = _cardDataCache?.FirstOrDefault(c => c.Id == id);
+            return data != null ? CardFactory.CreateFromData(data) : null;
         }
     }
 }

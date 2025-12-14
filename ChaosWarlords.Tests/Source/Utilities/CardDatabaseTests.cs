@@ -5,10 +5,10 @@ using System.Linq;
 
 namespace ChaosWarlords.Tests.Source.Utilities
 {
-    [TestClass]
-    public class CardDatabaseTests
-    {
-        private const string MockCardJson = @"
+  [TestClass]
+  public class CardDatabaseTests
+  {
+    private const string MockCardJson = @"
         [
           {
             ""id"": ""noble"",
@@ -36,36 +36,39 @@ namespace ChaosWarlords.Tests.Source.Utilities
           }
         ]";
 
-        [TestInitialize]
-        public void Setup()
-        {
-            // Clear the static cache before each test to ensure isolation
-            CardDatabase.ClearCache();
-        }
+    // [TestInitialize] is removed because 'new CardDatabase()' inside tests
+    // automatically gives us a clean slate every time. No ClearCache needed!
 
-        [TestMethod]
-        public void LoadFromJson_CreatesCardsViaFactory()
-        {
-            // Arrange
-            CardDatabase.LoadFromJson(MockCardJson);
+    [TestMethod]
+    public void LoadFromJson_CreatesCardsViaFactory()
+    {
+      // Arrange
+      // FIX: Create an instance instead of using static methods
+      var db = new CardDatabase();
 
-            // Act
-            var marketCards = CardDatabase.GetAllMarketCards();
+      // Act
+      db.LoadFromJson(MockCardJson);
+      var marketCards = db.GetAllMarketCards();
 
-            // Assert
-            Assert.HasCount(2, marketCards, "Should create a card for each entry in the JSON.");
-            Assert.IsNotNull(marketCards.FirstOrDefault(c => c.Id == "noble"), "Noble card should be created.");
-            Assert.IsNotNull(marketCards.FirstOrDefault(c => c.Id == "soldier"), "Soldier card should be created.");
-        }
-
-        [TestMethod]
-        public void GetAllMarketCards_ReturnsEmptyList_WhenCacheIsEmpty()
-        {
-            // Act: Don't load anything
-            var marketCards = CardDatabase.GetAllMarketCards();
-
-            // Assert
-            Assert.IsEmpty(marketCards, "Should return an empty list if the database was not loaded.");
-        }
+      // Assert
+      Assert.HasCount(2, marketCards, "Should create a card for each entry in the JSON.");
+      Assert.IsNotNull(marketCards.FirstOrDefault(c => c.Id == "noble"), "Noble card should be created.");
+      Assert.IsNotNull(marketCards.FirstOrDefault(c => c.Id == "soldier"), "Soldier card should be created.");
     }
+
+    [TestMethod]
+    public void GetAllMarketCards_ReturnsEmptyList_WhenCacheIsEmpty()
+    {
+      // Arrange
+      // FIX: Create a fresh instance
+      var db = new CardDatabase();
+
+      // Act: Don't load anything
+      var marketCards = db.GetAllMarketCards();
+
+      // Assert
+      Assert.IsNotNull(marketCards);
+      Assert.IsEmpty(marketCards, "Should return an empty list if the database was not loaded.");
+    }
+  }
 }

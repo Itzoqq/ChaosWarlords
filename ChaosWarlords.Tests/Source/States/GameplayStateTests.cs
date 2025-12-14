@@ -94,6 +94,19 @@ namespace ChaosWarlords.Tests.States
         }
     }
 
+    public class MockCardDatabase : ICardDatabase
+    {
+        public List<Card> GetAllMarketCards()
+        {
+            return new List<Card>(); // Return empty list for tests
+        }
+
+        public Card? GetCardById(string id)
+        {
+            return null;
+        }
+    }
+
     [TestClass]
     public class GameplayStateTests
     {
@@ -108,13 +121,13 @@ namespace ChaosWarlords.Tests.States
         [TestInitialize]
         public void Setup()
         {
-            // 1. Create the Mock
+            // 1. Create the Input Mock
             _mockInputProvider = new MockInputProvider();
 
-            // 2. Inject Mock into Manager
+            // 2. Inject Input Mock into InputManager
             _input = new InputManager(_mockInputProvider);
 
-            // 3. Setup Player with Cards (THE FIX)
+            // 3. Setup Player with Cards
             _player = new Player(PlayerColor.Red);
             // Add 10 Soldiers so we have enough for a hand and a draw pile
             for (int i = 0; i < 10; i++)
@@ -123,11 +136,17 @@ namespace ChaosWarlords.Tests.States
             }
             _player.DrawCards(5); // Now _player.Hand[0] is valid!
 
+            // 4. Setup other Systems
             _mapManager = new MapManager(new List<MapNode>(), new List<Site>());
             _marketManager = new MarketManager();
             _actionSystem = new ActionSystem(_player, _mapManager);
 
-            _state = new GameplayState(null!, _mockInputProvider);
+            // Create the Mock DB
+            var mockDb = new MockCardDatabase();
+
+            // Pass it to the constructor (3 arguments now!)
+            _state = new GameplayState(null!, _mockInputProvider, mockDb);
+
             _state.InjectDependencies(_input, null!, _mapManager, _marketManager, _actionSystem, _player);
         }
 

@@ -15,6 +15,7 @@ namespace ChaosWarlords.Source.States
     {
         private readonly Game _game;
         private readonly IInputProvider _inputProvider; // Store the dependency
+        private readonly ICardDatabase _cardDatabase;
 
         private SpriteFont _defaultFont;
         private SpriteFont _smallFont;
@@ -36,10 +37,11 @@ namespace ChaosWarlords.Source.States
         private CardRenderer _cardRenderer;
 
         // Constructor Injection: We require an InputProvider to exist
-        public GameplayState(Game game, IInputProvider inputProvider)
+        public GameplayState(Game game, IInputProvider inputProvider, ICardDatabase cardDatabase)
         {
             _game = game;
             _inputProvider = inputProvider;
+            _cardDatabase = cardDatabase;
         }
 
         public void LoadContent()
@@ -57,7 +59,6 @@ namespace ChaosWarlords.Source.States
 
             GameLogger.Initialize();
 
-            // Use the injected provider instead of creating a new hardware one
             _inputManager = new InputManager(_inputProvider);
 
             // --- INITIALIZATION ---
@@ -67,7 +68,8 @@ namespace ChaosWarlords.Source.States
             _mapRenderer = new MapRenderer(_pixelTexture, _pixelTexture, _defaultFont);
             _cardRenderer = new CardRenderer(_pixelTexture, _defaultFont);
 
-            var builder = new WorldBuilder("data/cards.json", "data/map.json");
+            // Pass the injected database to the builder
+            var builder = new WorldBuilder(_cardDatabase, "data/map.json");
             var worldData = builder.Build();
 
             _activePlayer = worldData.Player;

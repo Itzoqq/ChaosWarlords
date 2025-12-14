@@ -1,4 +1,4 @@
-using Microsoft.Xna.Framework; // <--- FIXED: Added this for TitleContainer
+using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
 using System.Collections.Generic;
@@ -18,34 +18,25 @@ namespace ChaosWarlords.Source.Systems
 
     public class WorldBuilder
     {
-        private readonly string _cardDataPath;
+        private readonly ICardDatabase _cardDatabase; // Dependency
         private readonly string _mapDataPath;
 
-        public WorldBuilder(string cardDataPath, string mapDataPath)
+        // Constructor now takes the DATABASE, not the file path for cards
+        public WorldBuilder(ICardDatabase cardDatabase, string mapDataPath)
         {
-            _cardDataPath = cardDataPath;
+            _cardDatabase = cardDatabase;
             _mapDataPath = mapDataPath;
         }
 
         public WorldData Build()
         {
-            // 1. Initialize Databases (Using TitleContainer)
-            try
-            {
-                // FIXED: Changed _cardFile to _cardDataPath
-                using (var stream = TitleContainer.OpenStream(Path.Combine("Content", _cardDataPath)))
-                {
-                    CardDatabase.Load(stream);
-                }
-            }
-            catch (FileNotFoundException)
-            {
-                GameLogger.Log("Card data file not found. Ensure 'cards.json' is in the Content folder.", LogChannel.Error);
-            }
+            // 1. Initialize Databases
+            // (CardDatabase is already loaded externally and passed in via constructor)
 
             // 2. Setup Market
             var marketManager = new MarketManager();
-            marketManager.InitializeDeck(CardDatabase.GetAllMarketCards());
+            // Use the injected DB instance
+            marketManager.InitializeDeck(_cardDatabase.GetAllMarketCards());
 
             // 3. Setup Player
             var player = new Player(PlayerColor.Red);
@@ -58,7 +49,6 @@ namespace ChaosWarlords.Source.Systems
             (List<MapNode>, List<Site>) mapData;
             try
             {
-                // FIXED: Changed _mapFile to _mapDataPath
                 using (var stream = TitleContainer.OpenStream(Path.Combine("Content", _mapDataPath)))
                 {
                     mapData = MapFactory.LoadFromStream(stream);
@@ -69,8 +59,6 @@ namespace ChaosWarlords.Source.Systems
                 mapData = MapFactory.CreateTestMap();
             }
 
-            // --- FIXED: This line was missing! ---
-            // We loaded the raw data (mapData), now we must create the Manager.
             var mapManager = new MapManager(mapData.Item1, mapData.Item2);
 
             // 5. Setup Action System
