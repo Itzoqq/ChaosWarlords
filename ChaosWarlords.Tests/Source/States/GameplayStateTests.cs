@@ -409,5 +409,101 @@ namespace ChaosWarlords.Tests.States
             Assert.IsEmpty(_player.PlayedCards, "Played cards should be discarded/cleaned up.");
             Assert.HasCount(5, _player.Hand, "Player should have drawn a new hand of 5.");
         }
+
+        [TestMethod]
+        public void Update_ClickingMapNode_DeploysTroop()
+        {
+            // 1. Arrange
+            var node = new MapNode(1, new Vector2(500, 500));
+            var baseNode = new MapNode(2, new Vector2(550, 550));
+            baseNode.Occupant = PlayerColor.Red;
+
+            node.Neighbors.Add(baseNode);
+            baseNode.Neighbors.Add(node);
+
+            _mapManager.Nodes.Add(node);
+            _mapManager.Nodes.Add(baseNode);
+
+            _player.TroopsInBarracks = 1;
+            // FIX: Deployment costs 1 Power!
+            _player.Power = 1;
+
+            // 2. Act
+            _mockInputProvider.Reset();
+            _mockInputProvider.SetMousePosition(500, 500);
+            _state.Update(new GameTime());
+
+            _mockInputProvider.QueueLeftClick();
+            _state.Update(new GameTime());
+
+            // 3. Assert
+            Assert.AreEqual(PlayerColor.Red, node.Occupant, "Clicking the node should deploy a Red troop.");
+        }
+
+        [TestMethod]
+        public void PlayCard_GainsResources()
+        {
+            // 1. Arrange
+            _player.Influence = 0;
+            _player.Power = 0;
+
+            // FIX: Card Constructor requires 6 arguments.
+            // (id, name, cost, Aspect, VP, Influence)
+            // We use 'CardAspect.Obedience' (or any valid enum value from your GameEnums.cs)
+            var richNoble = new Card("rich_noble", "Rich Noble", 0, CardAspect.Order, 0, 0);
+
+            // FIX: Use Constructor for CardEffect, not object initializer
+            richNoble.Effects.Add(new CardEffect(EffectType.GainResource, 3, ResourceType.Influence));
+
+            _player.Hand.Add(richNoble);
+
+            // 2. Act
+            _state.PlayCard(richNoble);
+
+            // 3. Assert
+            Assert.AreEqual(3, _player.Influence, "Playing the card should grant 3 Influence.");
+        }
+
+        [TestMethod]
+        public void Update_AssassinateTarget_KillsEnemy()
+        {
+            // 1. Arrange
+            var enemyNode = new MapNode(99, new Vector2(600, 600));
+            enemyNode.Occupant = PlayerColor.Blue;
+
+            // Create a neighbor owned by the player so the target is valid (Presence)
+            var myNode = new MapNode(100, new Vector2(650, 650));
+            myNode.Occupant = PlayerColor.Red;
+
+            enemyNode.Neighbors.Add(myNode);
+            myNode.Neighbors.Add(enemyNode);
+
+            _mapManager.Nodes.Add(enemyNode);
+            _mapManager.Nodes.Add(myNode);
+
+            var assassin = new Card("assassin", "Assassin", 0, CardAspect.Shadow, 0, 0);
+            assassin.Effects.Add(new CardEffect(EffectType.Assassinate, 0));
+
+            _player.Hand.Add(assassin);
+
+            // 2. Act
+            _state.PlayCard(assassin);
+
+            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
+
+            // Click Enemy
+            _mockInputProvider.Reset();
+            _mockInputProvider.SetMousePosition(600, 600);
+            _state.Update(new GameTime());
+
+            _mockInputProvider.QueueLeftClick();
+            _state.Update(new GameTime());
+
+            // 3. Assert
+            // FIX: Expect PlayerColor.None (Empty) because the unit was removed.
+            Assert.AreEqual(PlayerColor.None, enemyNode.Occupant, "Enemy should be removed (Empty) after assassination.");
+
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
+        }
     }
 }
