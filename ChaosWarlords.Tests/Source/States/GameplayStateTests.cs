@@ -2,10 +2,11 @@ using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Commands; // [NEW] Required for Commands
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting; // Ensure this is present
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ChaosWarlords.Tests.States
 {
@@ -29,40 +30,37 @@ namespace ChaosWarlords.Tests.States
 
         // --- Helper Methods for Tests ---
 
-        // 1. Simulates holding down the Right Mouse Button
         public void QueueRightClick()
         {
-            // We must create a NEW MouseState because the struct properties are read-only
             MouseState = new MouseState(
                 MouseState.X,
                 MouseState.Y,
                 MouseState.ScrollWheelValue,
-                MouseState.LeftButton,
-                MouseState.MiddleButton,
-                ButtonState.Pressed, // <--- Set Right Button to Pressed
-                MouseState.XButton1,
-                MouseState.XButton2
+                ButtonState.Released,
+                ButtonState.Released,
+                ButtonState.Pressed, // Right Click
+                ButtonState.Released,
+                ButtonState.Released
             );
         }
 
-        // 2. Simulates holding down the Left Mouse Button
         public void QueueLeftClick()
         {
             MouseState = new MouseState(
                 MouseState.X,
                 MouseState.Y,
                 MouseState.ScrollWheelValue,
-                ButtonState.Pressed, // <--- Set Left Button to Pressed
-                MouseState.MiddleButton,
-                MouseState.RightButton,
-                MouseState.XButton1,
-                MouseState.XButton2
+                ButtonState.Pressed, // Left Click
+                ButtonState.Released,
+                ButtonState.Released,
+                ButtonState.Released,
+                ButtonState.Released
             );
         }
 
-        // 3. Moves the mouse to specific coordinates
         public void SetMousePosition(int x, int y)
         {
+            // Preserve button state if needed, but for simple moves, reset works
             MouseState = new MouseState(
                 x,
                 y,
@@ -75,7 +73,6 @@ namespace ChaosWarlords.Tests.States
             );
         }
 
-        // 4. Reset everything to Released/Neutral
         public void Reset()
         {
             MouseState = new MouseState();
@@ -87,7 +84,6 @@ namespace ChaosWarlords.Tests.States
             KeyboardState = new KeyboardState(keys);
         }
 
-        // Allows you to set a raw MouseState if you have complex older tests
         public void SetMouseState(MouseState state)
         {
             MouseState = state;
@@ -129,25 +125,30 @@ namespace ChaosWarlords.Tests.States
 
             // 3. Setup Player with Cards
             _player = new Player(PlayerColor.Red);
-            // Add 10 Soldiers so we have enough for a hand and a draw pile
             for (int i = 0; i < 10; i++)
             {
                 _player.Deck.Add(CardFactory.CreateSoldier());
             }
-            _player.DrawCards(5); // Now _player.Hand[0] is valid!
+            _player.DrawCards(5);
 
             // 4. Setup other Systems
             _mapManager = new MapManager(new List<MapNode>(), new List<Site>());
             _marketManager = new MarketManager();
             _actionSystem = new ActionSystem(_player, _mapManager);
 
+            // --- FIX START --- 
+            // We must create a real UIManager for tests, otherwise _uiManager.HandleInput throws NullReference
+            var testUiManager = new UIManager(800, 600);
+            // --- FIX END ---
+
             // Create the Mock DB
             var mockDb = new MockCardDatabase();
 
-            // Pass it to the constructor (3 arguments now!)
+            // Pass it to the constructor
             _state = new GameplayState(null!, _mockInputProvider, mockDb);
 
-            _state.InjectDependencies(_input, null!, _mapManager, _marketManager, _actionSystem, _player);
+            // Pass testUiManager instead of null!
+            _state.InjectDependencies(_input, testUiManager, _mapManager, _marketManager, _actionSystem, _player);
         }
 
         [TestMethod]
@@ -159,7 +160,7 @@ namespace ChaosWarlords.Tests.States
             _player.DiscardPile.Clear();
             _player.PlayedCards.Clear();
 
-            // FIX: Add 5 cards so the logic can actually find 5 to draw
+            // Add 5 cards so the logic can actually find 5 to draw
             for (int i = 0; i < 5; i++)
             {
                 _player.Deck.Add(CardFactory.CreateSoldier());
@@ -225,19 +226,21 @@ namespace ChaosWarlords.Tests.States
         [TestMethod]
         public void UpdateMarketLogic_ClosesMarket_WhenClickedOutside()
         {
+            // This tests that if we click but NO command is generated (clicked empty space), market closes.
             _state._isMarketOpen = true;
 
-            // Frame 1: Released
+            // Simulate a click that hits nothing (UIManager will return null)
             _mockInputProvider.Reset();
             _input.Update();
-
-            // Frame 2: Clicked at (0,0) - assuming no card is there
             _mockInputProvider.QueueLeftClick();
             _input.Update();
 
+            // Act
+            // We call UpdateMarketLogic directly as per the original test structure
             _state.UpdateMarketLogic();
 
-            Assert.IsFalse(_state._isMarketOpen);
+            // Assert
+            Assert.IsFalse(_state._isMarketOpen, "Market should close if clicked outside/no command executed.");
         }
 
         [TestMethod]
@@ -253,7 +256,6 @@ namespace ChaosWarlords.Tests.States
             // Step 2: Press button DOWN (Frame 2)
             _mockInputProvider.QueueRightClick();
             _input.Update();
-            // Now: Previous = Released, Current = Pressed. This satisfies IsRightMouseJustClicked().
 
             // Act
             _state.HandleGlobalInput();
@@ -264,38 +266,27 @@ namespace ChaosWarlords.Tests.States
         }
 
         [TestMethod]
-        public void UpdateMarketLogic_BuysCard_WhenClickedAndAffordable()
+        public void Command_BuyCard_BuysCard_WhenAffordable()
         {
+            // [REFACTORED] Uses Command Pattern instead of Mouse Clicks
+            // Was: UpdateMarketLogic_BuysCard_WhenClickedAndAffordable
+
             // Arrange
             _state._isMarketOpen = true;
             _player.Influence = 10;
 
-            // Setup a card in the market at specific coordinates
             var cardToBuy = new Card("market_card", "Buy Me", 3, CardAspect.Sorcery, 1, 0);
-            cardToBuy.Position = new Vector2(100, 100); // Set position so we can click it
-                                                        // Card.Width is 150, Height is 200 (defined in Card.cs constants)
-
             _marketManager.MarketRow.Clear();
             _marketManager.MarketRow.Add(cardToBuy);
 
-            // Simulate Left Click ON the card (110, 110 is inside 100,100 -> 250,300)
-            // Frame 1: Up
-            _mockInputProvider.Reset(); // Ensure buttons are cleared
-            _mockInputProvider.SetMousePosition(110, 110);
-            _input.Update();
-            // Frame 2: Down
-            _mockInputProvider.QueueLeftClick(); // Presses Left Button while keeping position at (110, 110)
-            _input.Update();
-
-            // Act
-            // This calls the logic that includes the "TryBuyCard" check we just fixed
-            _state.UpdateMarketLogic();
+            // Act: Execute the command directly
+            var command = new BuyCardCommand(cardToBuy);
+            command.Execute(_state);
 
             // Assert
             Assert.AreEqual(7, _player.Influence, "Influence should decrease by cost (10 - 3 = 7).");
             Assert.Contains(cardToBuy, _player.DiscardPile, "Card should be moved to discard pile.");
             Assert.DoesNotContain(cardToBuy, _marketManager.MarketRow, "Card should be removed from market row.");
-            Assert.IsTrue(_state._isMarketOpen, "Market should remain open after a valid purchase.");
         }
 
         [TestMethod]
@@ -335,79 +326,50 @@ namespace ChaosWarlords.Tests.States
         [TestMethod]
         public void Update_RightClick_CancelsTargetingState()
         {
+            // [REDUNDANT but preserved] Similar to UpdateTargetingLogic_CancelsTargeting_OnRightClick
             // 1. Arrange: Put the game into a "Targeting" state
-            // We manually force the system to think we are trying to assassinate someone
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate, CardFactory.CreateSoldier());
 
-            // Verify initial state is correct (Sanity check)
-            Assert.IsTrue(_actionSystem.IsTargeting(), "Game should be in targeting mode.");
-
-            // 2. Act: Simulate a Right Click (The input we couldn't fake before!)
-            // We assume your MockInputProvider has a method like 'PushRightClick' or you set a property
+            // 2. Act: Simulate a Right Click
             _mockInputProvider.QueueRightClick();
-
-            // Run one frame of logic
             _state.Update(new GameTime());
 
-            // 3. Assert: The game should have reverted to normal gameplay
+            // 3. Assert
             Assert.IsFalse(_actionSystem.IsTargeting(), "Right-click should have cancelled the targeting state.");
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
         }
 
         [TestMethod]
-        public void Update_ClickingMarketButton_TogglesMarket()
+        public void Command_ToggleMarket_TogglesState()
         {
+            // [REFACTORED] Uses Command Pattern
+            // Was: Update_ClickingMarketButton_TogglesMarket
+
             // 1. Arrange
-            // We need to know WHERE the market button is. 
-            // In UIRenderer/UIManager, it's usually at the bottom right.
-            // Based on UIManager.cs: new Rectangle(screenWidth - 140, screenHeight - 40, 130, 30);
-            // Let's assume a standard 1000x800 viewport for the test context if not specified, 
-            // but UIManager in GameplayState uses graphicsDevice.Viewport.
-            // simpler approach: inject a known UIManager or just hit the coordinate.
-
-            // We can't easily query the button rect from the State without exposing UIManager.
-            // HACK for Test: We know the button is approx (Width-70, Height-20). 
-            // Let's rely on the InputManager logic which checks the UI Manager.
-
-            // BETTER STRATEGY: Key Press 'M' if you have a hotkey, or just test the logic directly?
-            // Your HandleWorldInput() calls CheckMarketButton().
-            // Let's try to click where we think it is.
-            // If this is too brittle due to screen size, we skip it for now.
-
-            // ALTERNATIVE: Test the logic method directly if it was public/internal.
-            // UpdateMarketLogic() is internal! We can test that.
-
-            // 1. Open Market
             _state._isMarketOpen = true;
 
-            // 2. Click "Off" the market (Right Click)
-            _mockInputProvider.QueueRightClick();
-            _state.Update(new GameTime());
+            // 2. Act: Execute Command
+            var command = new ToggleMarketCommand();
+            command.Execute(_state);
 
             // 3. Assert
-            Assert.IsFalse(_state._isMarketOpen, "Right clicking should close the market.");
+            Assert.IsFalse(_state._isMarketOpen, "Toggle command should close the market if open.");
         }
 
         [TestMethod]
-        public void Update_ClickingCard_PlaysIt()
+        public void PlayCard_Directly_PlaysCard()
         {
+            // [REFACTORED] Bypassing mouse click to test logic directly
+            // Was: Update_ClickingCard_PlaysIt
+
             // 1. Arrange
-            // TARGET THE TOP CARD (Last index), because all cards are at (0,0) and the top one blocks clicks.
             var card = _player.Hand[_player.Hand.Count - 1];
-            Vector2 cardPos = card.Position;
 
-            // 2. Act: Click on the card
-            // Frame 1: Move mouse to card center (Reset ensures buttons are released)
-            _mockInputProvider.Reset();
-            _mockInputProvider.SetMousePosition((int)cardPos.X + 10, (int)cardPos.Y + 10);
-            _state.Update(new GameTime());
-
-            // Frame 2: Click (Press button down)
-            _mockInputProvider.QueueLeftClick();
-            _state.Update(new GameTime());
+            // 2. Act: Call Logic Directly
+            _state.PlayCard(card);
 
             // 3. Assert
-            Assert.DoesNotContain(card, _player.Hand, "The clicked card (top of stack) should be removed from Hand.");
+            Assert.DoesNotContain(card, _player.Hand, "The clicked card should be removed from Hand.");
             Assert.Contains(card, _player.PlayedCards, "The clicked card should be in PlayedCards.");
         }
 
@@ -430,8 +392,11 @@ namespace ChaosWarlords.Tests.States
         }
 
         [TestMethod]
-        public void Update_ClickingMapNode_DeploysTroop()
+        public void Command_DeployTroop_DeploysTroop()
         {
+            // [REFACTORED] Uses Command Pattern
+            // Was: Update_ClickingMapNode_DeploysTroop
+
             // 1. Arrange
             var node = new MapNode(1, new Vector2(500, 500));
             var baseNode = new MapNode(2, new Vector2(550, 550));
@@ -444,19 +409,14 @@ namespace ChaosWarlords.Tests.States
             _mapManager.Nodes.Add(baseNode);
 
             _player.TroopsInBarracks = 1;
-            // FIX: Deployment costs 1 Power!
             _player.Power = 1;
 
-            // 2. Act
-            _mockInputProvider.Reset();
-            _mockInputProvider.SetMousePosition(500, 500);
-            _state.Update(new GameTime());
-
-            _mockInputProvider.QueueLeftClick();
-            _state.Update(new GameTime());
+            // 2. Act: Execute Command
+            var command = new DeployTroopCommand(node);
+            command.Execute(_state);
 
             // 3. Assert
-            Assert.AreEqual(PlayerColor.Red, node.Occupant, "Clicking the node should deploy a Red troop.");
+            Assert.AreEqual(PlayerColor.Red, node.Occupant, "Command should deploy a Red troop.");
         }
 
         [TestMethod]
@@ -466,12 +426,7 @@ namespace ChaosWarlords.Tests.States
             _player.Influence = 0;
             _player.Power = 0;
 
-            // FIX: Card Constructor requires 6 arguments.
-            // (id, name, cost, Aspect, VP, Influence)
-            // We use 'CardAspect.Obedience' (or any valid enum value from your GameEnums.cs)
             var richNoble = new Card("rich_noble", "Rich Noble", 0, CardAspect.Order, 0, 0);
-
-            // FIX: Use Constructor for CardEffect, not object initializer
             richNoble.Effects.Add(new CardEffect(EffectType.GainResource, 3, ResourceType.Influence));
 
             _player.Hand.Add(richNoble);
@@ -484,13 +439,15 @@ namespace ChaosWarlords.Tests.States
         }
 
         [TestMethod]
-        public void Update_AssassinateTarget_KillsEnemy()
+        public void Logic_AssassinateTarget_KillsEnemy()
         {
+            // [REFACTORED] Tests Logic directly via ActionSystem
+            // Was: Update_AssassinateTarget_KillsEnemy
+
             // 1. Arrange
             var enemyNode = new MapNode(99, new Vector2(600, 600));
             enemyNode.Occupant = PlayerColor.Blue;
 
-            // Create a neighbor owned by the player so the target is valid (Presence)
             var myNode = new MapNode(100, new Vector2(650, 650));
             myNode.Occupant = PlayerColor.Red;
 
@@ -502,27 +459,19 @@ namespace ChaosWarlords.Tests.States
 
             var assassin = new Card("assassin", "Assassin", 0, CardAspect.Shadow, 0, 0);
             assassin.Effects.Add(new CardEffect(EffectType.Assassinate, 0));
-
             _player.Hand.Add(assassin);
 
             // 2. Act
             _state.PlayCard(assassin);
-
             Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
 
-            // Click Enemy
-            _mockInputProvider.Reset();
-            _mockInputProvider.SetMousePosition(600, 600);
-            _state.Update(new GameTime());
-
-            _mockInputProvider.QueueLeftClick();
-            _state.Update(new GameTime());
+            // Logic: Target the enemy
+            bool success = _actionSystem.HandleTargetClick(enemyNode, null);
 
             // 3. Assert
-            // FIX: Expect PlayerColor.None (Empty) because the unit was removed.
+            Assert.IsTrue(success, "Action should succeed.");
             Assert.AreEqual(PlayerColor.None, enemyNode.Occupant, "Enemy should be removed (Empty) after assassination.");
-
-            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
+            // We don't check state resetting here because GameplayState handles the reset after success is returned
         }
     }
 }

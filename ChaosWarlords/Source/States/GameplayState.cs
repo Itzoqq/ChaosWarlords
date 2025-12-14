@@ -5,6 +5,7 @@ using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Views;
+using ChaosWarlords.Source.Commands;
 using System.IO;
 using System;
 using System.Linq;
@@ -89,16 +90,45 @@ namespace ChaosWarlords.Source.States
 
         public void Update(GameTime gameTime)
         {
-            if (_inputManager == null) return;
             _inputManager.Update();
 
-            // Global inputs (Esc, Enter, Right-Click) take priority
             if (HandleGlobalInput()) return;
 
-            if (_isMarketOpen) UpdateMarketLogic();
-            else if (_actionSystem.CurrentState == ActionState.SelectingSpyToReturn) UpdateSpySelectionLogic();
-            else if (_actionSystem.IsTargeting()) UpdateTargetingLogic();
-            else UpdateNormalGameplay(gameTime);
+            // 1. Update Visuals (Hover effects)
+            UpdateHandVisuals();
+            _marketManager.Update(_inputManager.MousePosition); // Market hover logic is inside MarketManager
+
+            // 2. Handle Input (Clicks/Commands)
+            // UPDATED: Pass _activePlayer so UI can check the hand
+            IGameCommand command = _uiManager.HandleInput(_inputManager, _marketManager, _mapManager, _activePlayer);
+
+            if (command != null)
+            {
+                command.Execute(this);
+            }
+        }
+
+        // NEW METHOD: Restores the highlighting functionality
+        private void UpdateHandVisuals()
+        {
+            Point mousePos = _inputManager.MousePosition.ToPoint();
+
+            // We iterate backwards just like the click logic to handle overlap correctly
+            // (Top card gets the hover if they overlap)
+            bool foundHovered = false;
+            for (int i = _activePlayer.Hand.Count - 1; i >= 0; i--)
+            {
+                var card = _activePlayer.Hand[i];
+                if (!foundHovered && card.Bounds.Contains(mousePos))
+                {
+                    card.IsHovered = true;
+                    foundHovered = true; // Only highlight the top-most card under mouse
+                }
+                else
+                {
+                    card.IsHovered = false;
+                }
+            }
         }
 
         internal bool HandleGlobalInput()

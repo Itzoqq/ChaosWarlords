@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities;
 
 namespace ChaosWarlords.Source.Systems
@@ -46,6 +47,38 @@ namespace ChaosWarlords.Source.Systems
                 btnWidth,
                 btnHeight
             );
+        }
+
+        public IGameCommand HandleInput(InputManager input, MarketManager market, MapManager map, Player player)
+        {
+            if (!input.IsLeftMouseJustClicked()) return null;
+            Vector2 mousePos = input.MousePosition;
+
+            // 1. UI Buttons
+            if (IsMarketButtonHovered(input)) return new ToggleMarketCommand();
+
+            // 2. Market Cards
+            foreach (var card in market.MarketRow)
+            {
+                if (card.Bounds.Contains(mousePos)) return new BuyCardCommand(card);
+            }
+
+            // 3. Map Nodes
+            var node = map.GetNodeAt(mousePos);
+            if (node != null) return new DeployTroopCommand(node);
+
+            // 4. Hand Cards (Iterate backwards for overlap z-index)
+            // This handles the CLICK.
+            for (int i = player.Hand.Count - 1; i >= 0; i--)
+            {
+                var card = player.Hand[i];
+                if (card.Bounds.Contains(mousePos))
+                {
+                    return new PlayCardCommand(card);
+                }
+            }
+
+            return null;
         }
 
         // LOGIC: Pure Hit Testing
