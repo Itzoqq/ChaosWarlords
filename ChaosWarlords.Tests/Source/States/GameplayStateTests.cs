@@ -2,7 +2,7 @@ using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Commands; // [NEW] Required for Commands
+using ChaosWarlords.Source.Commands;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using System.Collections.Generic;
@@ -110,6 +110,7 @@ namespace ChaosWarlords.Tests.States
         private InputManager _input = null!;
         private MockInputProvider _mockInputProvider = null!;
         private Player _player = null!;
+        private TurnManager _turnManager = null!;
         private MapManager _mapManager = null!;
         private MarketManager _marketManager = null!;
         private ActionSystem _actionSystem = null!;
@@ -123,7 +124,7 @@ namespace ChaosWarlords.Tests.States
             // 2. Inject Input Mock into InputManager
             _input = new InputManager(_mockInputProvider);
 
-            // 3. Setup Player with Cards
+            // 3. Setup Player (Red - Active Player in tests)
             _player = new Player(PlayerColor.Red);
             for (int i = 0; i < 10; i++)
             {
@@ -131,15 +132,18 @@ namespace ChaosWarlords.Tests.States
             }
             _player.DrawCards(5);
 
+            // Setup Turn Manager
+            _turnManager = new TurnManager(new List<Player> { _player });
+
             // 4. Setup other Systems
             _mapManager = new MapManager(new List<MapNode>(), new List<Site>());
             _marketManager = new MarketManager();
-            _actionSystem = new ActionSystem(_player, _mapManager);
 
-            // --- FIX START --- 
-            // We must create a real UIManager for tests, otherwise _uiManager.HandleInput throws NullReference
+            // 4b. Setup Action System - Needs the ActivePlayer from the TurnManager
+            _actionSystem = new ActionSystem(_turnManager.ActivePlayer, _mapManager);
+
+            // We must create a real UIManager for tests
             var testUiManager = new UIManager(800, 600);
-            // --- FIX END ---
 
             // Create the Mock DB
             var mockDb = new MockCardDatabase();
@@ -147,35 +151,35 @@ namespace ChaosWarlords.Tests.States
             // Pass it to the constructor
             _state = new GameplayState(null!, _mockInputProvider, mockDb);
 
-            // Pass testUiManager instead of null!
-            _state.InjectDependencies(_input, testUiManager, _mapManager, _marketManager, _actionSystem, _player);
+            // FIX: Pass the TurnManager object instead of _player
+            _state.InjectDependencies(_input, testUiManager, _mapManager, _marketManager, _actionSystem, _turnManager);
         }
 
         [TestMethod]
         public void EndTurn_ResetsResources_AndDrawsCards()
         {
-            // 1. Arrange
-            _player.Hand.Clear();
-            _player.Deck.Clear();
-            _player.DiscardPile.Clear();
-            _player.PlayedCards.Clear();
+            // FIX: Use ActivePlayer from TurnManager
+            var activePlayer = _turnManager.ActivePlayer;
+
+            activePlayer.Hand.Clear();
+            activePlayer.Deck.Clear();
+            activePlayer.DiscardPile.Clear();
+            activePlayer.PlayedCards.Clear();
 
             // Add 5 cards so the logic can actually find 5 to draw
             for (int i = 0; i < 5; i++)
             {
-                _player.Deck.Add(CardFactory.CreateSoldier());
+                activePlayer.Deck.Add(CardFactory.CreateSoldier());
             }
 
-            _player.Power = 5;
+            activePlayer.Power = 5;
 
             // 2. Act
             _state.EndTurn();
 
             // 3. Assert
-            Assert.AreEqual(0, _player.Power, "Power should reset to 0.");
-            // Temporary 5 card draw since when you end turn in testing phase
-            // You immediately start a new turn and draw a new hand (5 cards).
-            Assert.HasCount(5, _player.Hand, "Should draw exactly 5 cards.");
+            Assert.AreEqual(0, activePlayer.Power, "Power should reset to 0.");
+            Assert.HasCount(5, activePlayer.Hand, "Should draw exactly 5 cards.");
         }
 
         [TestMethod]
@@ -190,11 +194,13 @@ namespace ChaosWarlords.Tests.States
             _input.Update();
 
             // Act
-            _player.Power = 10;
+            // FIX: Use ActivePlayer from TurnManager
+            _turnManager.ActivePlayer.Power = 10;
             _state.HandleGlobalInput();
 
             // Assert
-            Assert.AreEqual(0, _player.Power, "Power should be 0 after EndTurn triggered by Enter key.");
+            // FIX: Use ActivePlayer from TurnManager
+            Assert.AreEqual(0, _turnManager.ActivePlayer.Power, "Power should be 0 after EndTurn triggered by Enter key.");
         }
 
         [TestMethod]
@@ -202,13 +208,15 @@ namespace ChaosWarlords.Tests.States
         {
             var card = new Card("test", "Resource Card", 0, CardAspect.Neutral, 0, 0);
             card.AddEffect(new CardEffect(EffectType.GainResource, 3, ResourceType.Power));
-            _player.Hand.Add(card);
+            // Use ActivePlayer from TurnManager
+            _turnManager.ActivePlayer.Hand.Add(card);
 
             _state.PlayCard(card);
 
-            Assert.AreEqual(3, _player.Power);
-            Assert.Contains(card, _player.PlayedCards);
-            Assert.DoesNotContain(card, _player.Hand);
+            // Use ActivePlayer from TurnManager
+            Assert.AreEqual(3, _turnManager.ActivePlayer.Power);
+            Assert.Contains(card, _turnManager.ActivePlayer.PlayedCards);
+            Assert.DoesNotContain(card, _turnManager.ActivePlayer.Hand);
         }
 
         [TestMethod]
@@ -268,12 +276,10 @@ namespace ChaosWarlords.Tests.States
         [TestMethod]
         public void Command_BuyCard_BuysCard_WhenAffordable()
         {
-            // [REFACTORED] Uses Command Pattern instead of Mouse Clicks
-            // Was: UpdateMarketLogic_BuysCard_WhenClickedAndAffordable
-
             // Arrange
             _state._isMarketOpen = true;
-            _player.Influence = 10;
+            // FIX: Use ActivePlayer from TurnManager
+            _turnManager.ActivePlayer.Influence = 10;
 
             var cardToBuy = new Card("market_card", "Buy Me", 3, CardAspect.Sorcery, 1, 0);
             _marketManager.MarketRow.Clear();
@@ -284,8 +290,9 @@ namespace ChaosWarlords.Tests.States
             command.Execute(_state);
 
             // Assert
-            Assert.AreEqual(7, _player.Influence, "Influence should decrease by cost (10 - 3 = 7).");
-            Assert.Contains(cardToBuy, _player.DiscardPile, "Card should be moved to discard pile.");
+            // FIX: Use ActivePlayer from TurnManager
+            Assert.AreEqual(7, _turnManager.ActivePlayer.Influence, "Influence should decrease by cost (10 - 3 = 7).");
+            Assert.Contains(cardToBuy, _turnManager.ActivePlayer.DiscardPile, "Card should be moved to discard pile.");
             Assert.DoesNotContain(cardToBuy, _marketManager.MarketRow, "Card should be removed from market row.");
         }
 
@@ -295,6 +302,8 @@ namespace ChaosWarlords.Tests.States
             // Arrange: Setup the "Screen" logic manually since we have no GraphicsDevice
             _state._handY = 500;
             _state._playedY = 400; // The "Pop Up" target
+            // FIX: Use ActivePlayer from TurnManager
+            var activePlayer = _turnManager.ActivePlayer;
 
             // Create 2 cards in hand
             var card1 = new Card("c1", "Left Card", 0, CardAspect.Neutral, 0, 0);
@@ -304,8 +313,8 @@ namespace ChaosWarlords.Tests.States
             card1.Position = new Vector2(100, 500); // X=100, Y=HandY
             card2.Position = new Vector2(250, 500); // X=250, Y=HandY
 
-            _player.Hand.Add(card1);
-            _player.Hand.Add(card2);
+            activePlayer.Hand.Add(card1);
+            activePlayer.Hand.Add(card2);
 
             // Act: Play the first card
             _state.MoveCardToPlayed(card1);
@@ -319,14 +328,13 @@ namespace ChaosWarlords.Tests.States
             Assert.AreEqual(500, card2.Position.Y, "Remaining cards should stay in the hand row.");
 
             // Assert 3: Lists are correct
-            Assert.Contains(card1, _player.PlayedCards);
-            Assert.DoesNotContain(card1, _player.Hand);
+            Assert.Contains(card1, activePlayer.PlayedCards);
+            Assert.DoesNotContain(card1, activePlayer.Hand);
         }
 
         [TestMethod]
         public void Update_RightClick_CancelsTargetingState()
         {
-            // [REDUNDANT but preserved] Similar to UpdateTargetingLogic_CancelsTargeting_OnRightClick
             // 1. Arrange: Put the game into a "Targeting" state
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate, CardFactory.CreateSoldier());
 
@@ -342,9 +350,6 @@ namespace ChaosWarlords.Tests.States
         [TestMethod]
         public void Command_ToggleMarket_TogglesState()
         {
-            // [REFACTORED] Uses Command Pattern
-            // Was: Update_ClickingMarketButton_TogglesMarket
-
             // 1. Arrange
             _state._isMarketOpen = true;
 
@@ -359,27 +364,28 @@ namespace ChaosWarlords.Tests.States
         [TestMethod]
         public void PlayCard_Directly_PlaysCard()
         {
-            // [REFACTORED] Bypassing mouse click to test logic directly
-            // Was: Update_ClickingCard_PlaysIt
-
             // 1. Arrange
-            var card = _player.Hand[_player.Hand.Count - 1];
+            // FIX: Use ActivePlayer from TurnManager
+            var card = _turnManager.ActivePlayer.Hand[_turnManager.ActivePlayer.Hand.Count - 1];
 
             // 2. Act: Call Logic Directly
             _state.PlayCard(card);
 
             // 3. Assert
-            Assert.DoesNotContain(card, _player.Hand, "The clicked card should be removed from Hand.");
-            Assert.Contains(card, _player.PlayedCards, "The clicked card should be in PlayedCards.");
+            // FIX: Use ActivePlayer from TurnManager
+            Assert.DoesNotContain(card, _turnManager.ActivePlayer.Hand, "The clicked card should be removed from Hand.");
+            Assert.Contains(card, _turnManager.ActivePlayer.PlayedCards, "The clicked card should be in PlayedCards.");
         }
 
         [TestMethod]
         public void Update_PressingEnter_EndsTurn()
         {
             // 1. Arrange
-            int initialDeckCount = _player.Deck.Count;
+            // FIX: Use ActivePlayer from TurnManager
+            var activePlayer = _turnManager.ActivePlayer;
+            int initialDeckCount = activePlayer.Deck.Count;
             // Play a card so we have something to clean up
-            var card = _player.Hand[0];
+            var card = activePlayer.Hand[0];
             _state.PlayCard(card);
 
             // 2. Act: Press Enter
@@ -387,16 +393,13 @@ namespace ChaosWarlords.Tests.States
             _state.Update(new GameTime());
 
             // 3. Assert
-            Assert.IsEmpty(_player.PlayedCards, "Played cards should be discarded/cleaned up.");
-            Assert.HasCount(5, _player.Hand, "Player should have drawn a new hand of 5.");
+            Assert.IsEmpty(activePlayer.PlayedCards, "Played cards should be discarded/cleaned up.");
+            Assert.HasCount(5, activePlayer.Hand, "Player should have drawn a new hand of 5.");
         }
 
         [TestMethod]
         public void Command_DeployTroop_DeploysTroop()
         {
-            // [REFACTORED] Uses Command Pattern
-            // Was: Update_ClickingMapNode_DeploysTroop
-
             // 1. Arrange
             var node = new MapNode(1, new Vector2(500, 500));
             var baseNode = new MapNode(2, new Vector2(550, 550));
@@ -408,8 +411,10 @@ namespace ChaosWarlords.Tests.States
             _mapManager.Nodes.Add(node);
             _mapManager.Nodes.Add(baseNode);
 
-            _player.TroopsInBarracks = 1;
-            _player.Power = 1;
+            // FIX: Use ActivePlayer from TurnManager
+            var activePlayer = _turnManager.ActivePlayer;
+            activePlayer.TroopsInBarracks = 1;
+            activePlayer.Power = 1;
 
             // 2. Act: Execute Command
             var command = new DeployTroopCommand(node);
@@ -423,27 +428,26 @@ namespace ChaosWarlords.Tests.States
         public void PlayCard_GainsResources()
         {
             // 1. Arrange
-            _player.Influence = 0;
-            _player.Power = 0;
+            // FIX: Use ActivePlayer from TurnManager
+            var activePlayer = _turnManager.ActivePlayer;
+            activePlayer.Influence = 0;
+            activePlayer.Power = 0;
 
             var richNoble = new Card("rich_noble", "Rich Noble", 0, CardAspect.Order, 0, 0);
             richNoble.Effects.Add(new CardEffect(EffectType.GainResource, 3, ResourceType.Influence));
 
-            _player.Hand.Add(richNoble);
+            activePlayer.Hand.Add(richNoble);
 
             // 2. Act
             _state.PlayCard(richNoble);
 
             // 3. Assert
-            Assert.AreEqual(3, _player.Influence, "Playing the card should grant 3 Influence.");
+            Assert.AreEqual(3, activePlayer.Influence, "Playing the card should grant 3 Influence.");
         }
 
         [TestMethod]
         public void Logic_AssassinateTarget_KillsEnemy()
         {
-            // [REFACTORED] Tests Logic directly via ActionSystem
-            // Was: Update_AssassinateTarget_KillsEnemy
-
             // 1. Arrange
             var enemyNode = new MapNode(99, new Vector2(600, 600));
             enemyNode.Occupant = PlayerColor.Blue;
@@ -459,7 +463,8 @@ namespace ChaosWarlords.Tests.States
 
             var assassin = new Card("assassin", "Assassin", 0, CardAspect.Shadow, 0, 0);
             assassin.Effects.Add(new CardEffect(EffectType.Assassinate, 0));
-            _player.Hand.Add(assassin);
+            // FIX: Use ActivePlayer from TurnManager
+            _turnManager.ActivePlayer.Hand.Add(assassin);
 
             // 2. Act
             _state.PlayCard(assassin);
@@ -471,7 +476,6 @@ namespace ChaosWarlords.Tests.States
             // 3. Assert
             Assert.IsTrue(success, "Action should succeed.");
             Assert.AreEqual(PlayerColor.None, enemyNode.Occupant, "Enemy should be removed (Empty) after assassination.");
-            // We don't check state resetting here because GameplayState handles the reset after success is returned
         }
     }
 }

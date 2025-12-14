@@ -36,7 +36,8 @@ namespace ChaosWarlords.Tests.Systems
             var world = builder.Build();
 
             // Assert
-            Assert.IsNotNull(world.Player, "Player should be initialized");
+            // FIX: Check TurnManager.ActivePlayer instead of world.Player
+            Assert.IsNotNull(world.TurnManager.ActivePlayer, "ActivePlayer should be initialized via TurnManager");
             Assert.IsNotNull(world.MapManager, "MapManager should be initialized");
             Assert.IsNotNull(world.MarketManager, "MarketManager should be initialized");
             Assert.IsNotNull(world.ActionSystem, "ActionSystem should be initialized");
@@ -52,9 +53,10 @@ namespace ChaosWarlords.Tests.Systems
             var world = builder.Build();
 
             // 10 cards total (7 Nobles + 3 Soldiers)
-            Assert.HasCount(5, world.Player.Hand);
-            Assert.HasCount(5, world.Player.Deck);
-            Assert.AreEqual(10, world.Player.Hand.Count + world.Player.Deck.Count);
+            // FIX: Access Hand and Deck via TurnManager.ActivePlayer
+            Assert.HasCount(5, world.TurnManager.ActivePlayer.Hand);
+            Assert.HasCount(5, world.TurnManager.ActivePlayer.Deck);
+            Assert.AreEqual(10, world.TurnManager.ActivePlayer.Hand.Count + world.TurnManager.ActivePlayer.Deck.Count);
         }
 
         [TestMethod]

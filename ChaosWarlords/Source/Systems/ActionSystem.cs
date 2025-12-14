@@ -10,19 +10,28 @@ namespace ChaosWarlords.Source.Systems
         public Card PendingCard { get; internal set; }
         public Site PendingSite { get; private set; }
 
-        private readonly Player _activePlayer;
+        private Player _currentPlayer;
         private readonly MapManager _mapManager;
 
-        public ActionSystem(Player activePlayer, MapManager mapManager)
+        public ActionSystem(Player initialPlayer, MapManager mapManager)
         {
-            _activePlayer = activePlayer;
+            _currentPlayer = initialPlayer;
             _mapManager = mapManager;
+        }
+
+        /// <summary>
+        /// Updates the internal player reference when the turn changes.
+        /// </summary>
+        public void SetCurrentPlayer(Player newPlayer)
+        {
+            _currentPlayer = newPlayer;
+            CancelTargeting(); // Always cancel any pending action when switching players
         }
 
         public void TryStartAssassinate()
         {
             const int cost = 3;
-            if (_activePlayer.Power < cost)
+            if (_currentPlayer.Power < cost)
             {
                 GameLogger.Log($"Not enough Power! Need {cost}.", LogChannel.Economy);
                 return;
@@ -35,7 +44,7 @@ namespace ChaosWarlords.Source.Systems
         public void TryStartReturnSpy()
         {
             const int cost = 3;
-            if (_activePlayer.Power < cost)
+            if (_currentPlayer.Power < cost)
             {
                 GameLogger.Log($"Not enough Power! Need {cost}.", LogChannel.Economy);
                 return;
@@ -91,7 +100,7 @@ namespace ChaosWarlords.Source.Systems
             if (targetNode == null) return false;
 
             // 1. Verify Logic (Map rules)
-            if (!_mapManager.CanAssassinate(targetNode, _activePlayer))
+            if (!_mapManager.CanAssassinate(targetNode, _currentPlayer))
             {
                 GameLogger.Log("Invalid Target!", LogChannel.Error);
                 return false;
@@ -99,7 +108,7 @@ namespace ChaosWarlords.Source.Systems
 
             // 2. Verify Cost (Edge Case Protection)
             // Only check cost if this action isn't free (provided by a Card)
-            if (PendingCard == null && _activePlayer.Power < 3)
+            if (PendingCard == null && _currentPlayer.Power < 3)
             {
                 GameLogger.Log("Not enough Power to execute Assassinate!", LogChannel.Economy);
                 CancelTargeting(); // Auto-cancel if they can't afford it anymore
@@ -107,19 +116,19 @@ namespace ChaosWarlords.Source.Systems
             }
 
             // 3. Execute
-            if (PendingCard == null) _activePlayer.Power -= 3;
+            if (PendingCard == null) _currentPlayer.Power -= 3;
 
-            _mapManager.Assassinate(targetNode, _activePlayer);
+            _mapManager.Assassinate(targetNode, _currentPlayer);
             return true;
         }
 
         private bool HandleReturn(MapNode targetNode)
         {
             if (targetNode == null) return false;
-            if (targetNode.Occupant != PlayerColor.None && _mapManager.HasPresence(targetNode, _activePlayer.Color))
+            if (targetNode.Occupant != PlayerColor.None && _mapManager.HasPresence(targetNode, _currentPlayer.Color))
             {
                 if (targetNode.Occupant == PlayerColor.Neutral) return false;
-                _mapManager.ReturnTroop(targetNode, _activePlayer);
+                _mapManager.ReturnTroop(targetNode, _currentPlayer);
                 return true;
             }
             return false;
@@ -128,18 +137,18 @@ namespace ChaosWarlords.Source.Systems
         private bool HandleSupplant(MapNode targetNode)
         {
             if (targetNode == null) return false;
-            if (!_mapManager.CanAssassinate(targetNode, _activePlayer)) return false;
-            if (_activePlayer.TroopsInBarracks <= 0) return false;
-            _mapManager.Supplant(targetNode, _activePlayer);
+            if (!_mapManager.CanAssassinate(targetNode, _currentPlayer)) return false;
+            if (_currentPlayer.TroopsInBarracks <= 0) return false;
+            _mapManager.Supplant(targetNode, _currentPlayer);
             return true;
         }
 
         private bool HandlePlaceSpy(Site targetSite)
         {
             if (targetSite == null) return false;
-            if (targetSite.Spies.Contains(_activePlayer.Color)) return false;
-            if (_activePlayer.SpiesInBarracks <= 0) return false;
-            _mapManager.PlaceSpy(targetSite, _activePlayer);
+            if (targetSite.Spies.Contains(_currentPlayer.Color)) return false;
+            if (_currentPlayer.SpiesInBarracks <= 0) return false;
+            _mapManager.PlaceSpy(targetSite, _currentPlayer);
             return true;
         }
 
@@ -150,7 +159,7 @@ namespace ChaosWarlords.Source.Systems
             // --- FIX START: Verify Cost (Edge Case Protection) ---
             // Just like Assassinate, we must check if they can still afford it 
             // (e.g., if they lost power between clicking the button and clicking the map)
-            if (PendingCard == null && _activePlayer.Power < 3)
+            if (PendingCard == null && _currentPlayer.Power < 3)
             {
                 GameLogger.Log("Not enough Power to execute Return Spy!", LogChannel.Economy);
                 CancelTargeting(); // Auto-cancel if they can't afford it anymore
@@ -159,7 +168,7 @@ namespace ChaosWarlords.Source.Systems
             // --- FIX END ---
 
             // 1. Get all potential targets
-            var enemySpies = _mapManager.GetEnemySpiesAtSite(targetSite, _activePlayer);
+            var enemySpies = _mapManager.GetEnemySpiesAtSite(targetSite, _currentPlayer);
 
             if (enemySpies.Count == 0)
             {
@@ -173,10 +182,10 @@ namespace ChaosWarlords.Source.Systems
             if (distinctEnemies.Count == 1)
             {
                 // No choice needed, execute immediately
-                bool success = _mapManager.ReturnSpecificSpy(targetSite, _activePlayer, distinctEnemies[0]);
+                bool success = _mapManager.ReturnSpecificSpy(targetSite, _currentPlayer, distinctEnemies[0]);
                 if (success)
                 {
-                    if (PendingCard == null) _activePlayer.Power -= 3;
+                    if (PendingCard == null) _currentPlayer.Power -= 3;
                 }
                 return success;
             }
@@ -201,10 +210,10 @@ namespace ChaosWarlords.Source.Systems
         {
             if (PendingSite == null) return false;
 
-            bool success = _mapManager.ReturnSpecificSpy(PendingSite, _activePlayer, selectedSpyColor);
+            bool success = _mapManager.ReturnSpecificSpy(PendingSite, _currentPlayer, selectedSpyColor);
             if (success)
             {
-                if (PendingCard == null) _activePlayer.Power -= 3;
+                if (PendingCard == null) _currentPlayer.Power -= 3;
             }
             return success;
         }

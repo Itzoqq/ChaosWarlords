@@ -1,16 +1,17 @@
-using Microsoft.Xna.Framework;
-using ChaosWarlords.Source.Entities;
+using Microsoft.Xna.Framework.Content;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Entities;
 using System.Collections.Generic;
 using System.IO;
-using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace ChaosWarlords.Source.Systems
 {
-    [ExcludeFromCodeCoverage]
+    // UPDATED WorldData structure
     public class WorldData
     {
-        public Player Player { get; set; }
+        // Removed: public Player Player { get; set; }
+        public TurnManager TurnManager { get; set; } // NEW: Replaces the single Player object
         public MarketManager MarketManager { get; set; }
         public MapManager MapManager { get; set; }
         public ActionSystem ActionSystem { get; set; }
@@ -18,38 +19,51 @@ namespace ChaosWarlords.Source.Systems
 
     public class WorldBuilder
     {
-        private readonly ICardDatabase _cardDatabase; // Dependency
+        private readonly ICardDatabase _cardDatabase;
         private readonly string _mapDataPath;
 
-        // Constructor now takes the DATABASE, not the file path for cards
         public WorldBuilder(ICardDatabase cardDatabase, string mapDataPath)
         {
             _cardDatabase = cardDatabase;
             _mapDataPath = mapDataPath;
         }
 
+        // MODIFIED Build Method
         public WorldData Build()
         {
-            // 1. Initialize Databases
-            // (CardDatabase is already loaded externally and passed in via constructor)
+            // 1. Initialize Databases (Handled)
 
             // 2. Setup Market
             var marketManager = new MarketManager();
-            // Use the injected DB instance
             marketManager.InitializeDeck(_cardDatabase.GetAllMarketCards());
 
-            // 3. Setup Player
-            var player = new Player(PlayerColor.Red);
-            // Starter Deck
-            for (int i = 0; i < 3; i++) player.Deck.Add(CardFactory.CreateSoldier());
-            for (int i = 0; i < 7; i++) player.Deck.Add(CardFactory.CreateNoble());
-            player.DrawCards(5);
+            // 3. Setup Players (Now two players)
+            var players = new List<Player>();
 
-            // 4. Setup Map
+            // Player 1 (Red)
+            var playerRed = new Player(PlayerColor.Red);
+            for (int i = 0; i < 3; i++) playerRed.Deck.Add(CardFactory.CreateSoldier());
+            for (int i = 0; i < 7; i++) playerRed.Deck.Add(CardFactory.CreateNoble());
+            playerRed.DrawCards(5);
+            players.Add(playerRed);
+
+            // Player 2 (Blue)
+            var playerBlue = new Player(PlayerColor.Blue);
+            for (int i = 0; i < 3; i++) playerBlue.Deck.Add(CardFactory.CreateSoldier());
+            for (int i = 0; i < 7; i++) playerBlue.Deck.Add(CardFactory.CreateNoble());
+            playerBlue.DrawCards(5);
+            // Note: The rulebook says Player 2 draws 6, P3 draws 7, but 5 is fine for testing.
+            players.Add(playerBlue);
+
+            // 4. Setup Turn Manager
+            var turnManager = new TurnManager(players);
+            Player activePlayer = turnManager.ActivePlayer; // This will be Player Red
+
+            // 5. Setup Map
             (List<MapNode>, List<Site>) mapData;
             try
             {
-                using (var stream = TitleContainer.OpenStream(Path.Combine("Content", _mapDataPath)))
+                using (var stream = Microsoft.Xna.Framework.TitleContainer.OpenStream(Path.Combine("Content", _mapDataPath)))
                 {
                     mapData = MapFactory.LoadFromStream(stream);
                 }
@@ -61,25 +75,28 @@ namespace ChaosWarlords.Source.Systems
 
             var mapManager = new MapManager(mapData.Item1, mapData.Item2);
 
-            // 5. Setup Action System
-            var actionSystem = new ActionSystem(player, mapManager);
+            // 6. Setup Action System
+            // ActionSystem is now initialized with the CURRENT active player (Red)
+            var actionSystem = new ActionSystem(activePlayer, mapManager);
 
-            // 6. Scenario Rules
+            // 7. Scenario Rules (Updated to reflect multiple players)
             if (mapManager.Sites != null)
             {
                 foreach (var site in mapManager.Sites)
                 {
                     if (site.Name.ToLower().Contains("city of gold"))
                     {
+                        // Assigning spies to player Blue and Neutral still valid
                         site.Spies.Add(PlayerColor.Blue);
                         site.Spies.Add(PlayerColor.Neutral);
                     }
                 }
             }
 
+            // 8. Return WorldData
             return new WorldData
             {
-                Player = player,
+                TurnManager = turnManager, // Return the new TurnManager
                 MarketManager = marketManager,
                 MapManager = mapManager,
                 ActionSystem = actionSystem

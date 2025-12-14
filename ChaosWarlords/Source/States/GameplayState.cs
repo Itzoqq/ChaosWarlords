@@ -28,7 +28,7 @@ namespace ChaosWarlords.Source.States
         internal MapManager _mapManager;
         internal MarketManager _marketManager;
         internal ActionSystem _actionSystem;
-        internal Player _activePlayer;
+        internal TurnManager _turnManager;
         internal bool _isMarketOpen = false;
 
         internal int _handY;
@@ -73,10 +73,14 @@ namespace ChaosWarlords.Source.States
             var builder = new WorldBuilder(_cardDatabase, "data/map.json");
             var worldData = builder.Build();
 
-            _activePlayer = worldData.Player;
+            // FIX: Assign all newly created systems *before* calling any methods on them.
+            _turnManager = worldData.TurnManager;
+            _actionSystem = worldData.ActionSystem;
             _marketManager = worldData.MarketManager;
             _mapManager = worldData.MapManager;
-            _actionSystem = worldData.ActionSystem;
+
+            // This line is now safe because _actionSystem is fully initialized.
+            _actionSystem.SetCurrentPlayer(_turnManager.ActivePlayer);
 
             int screenH = graphicsDevice.Viewport.Height;
             _handY = screenH - Card.Height - 20;
@@ -98,7 +102,7 @@ namespace ChaosWarlords.Source.States
             _marketManager.Update(_inputManager.MousePosition);
 
             // [UPDATED] Pass _actionSystem to HandleInput
-            IGameCommand command = _uiManager.HandleInput(_inputManager, _marketManager, _mapManager, _activePlayer, _actionSystem);
+            IGameCommand command = _uiManager.HandleInput(_inputManager, _marketManager, _mapManager, _turnManager.ActivePlayer, _actionSystem);
 
             if (command != null)
             {
@@ -114,9 +118,9 @@ namespace ChaosWarlords.Source.States
             // We iterate backwards just like the click logic to handle overlap correctly
             // (Top card gets the hover if they overlap)
             bool foundHovered = false;
-            for (int i = _activePlayer.Hand.Count - 1; i >= 0; i--)
+            for (int i = _turnManager.ActivePlayer.Hand.Count - 1; i >= 0; i--)
             {
-                var card = _activePlayer.Hand[i];
+                var card = _turnManager.ActivePlayer.Hand[i];
                 if (!foundHovered && card.Bounds.Contains(mousePos))
                 {
                     card.IsHovered = true;
@@ -173,9 +177,9 @@ namespace ChaosWarlords.Source.States
         private bool HandleCardInput(Point mousePos)
         {
             bool cardClicked = false;
-            for (int i = _activePlayer.Hand.Count - 1; i >= 0; i--)
+            for (int i = _turnManager.ActivePlayer.Hand.Count - 1; i >= 0; i--)
             {
-                var card = _activePlayer.Hand[i];
+                var card = _turnManager.ActivePlayer.Hand[i];
                 card.IsHovered = card.Bounds.Contains(mousePos);
 
                 if (!cardClicked && _inputManager.IsLeftMouseJustClicked() && card.IsHovered)
@@ -199,7 +203,7 @@ namespace ChaosWarlords.Source.States
             var clickedNode = _mapManager.GetNodeAt(_inputManager.MousePosition);
             if (clickedNode != null)
             {
-                _mapManager.TryDeploy(_activePlayer, clickedNode);
+                _mapManager.TryDeploy(_turnManager.ActivePlayer, clickedNode);
             }
         }
 
@@ -230,7 +234,7 @@ namespace ChaosWarlords.Source.States
                 return;
             }
 
-            var enemies = _mapManager.GetEnemySpiesAtSite(site, _activePlayer).Distinct().ToList();
+            var enemies = _mapManager.GetEnemySpiesAtSite(site, _turnManager.ActivePlayer).Distinct().ToList();
             Vector2 startPos = new Vector2(site.Bounds.X, site.Bounds.Y - 50);
 
             for (int i = 0; i < enemies.Count; i++)
@@ -303,7 +307,7 @@ namespace ChaosWarlords.Source.States
 
                 if (cardToBuy != null)
                 {
-                    bool success = _marketManager.TryBuyCard(_activePlayer, cardToBuy);
+                    bool success = _marketManager.TryBuyCard(_turnManager.ActivePlayer, cardToBuy);
                     if (success) GameLogger.Log($"Bought {cardToBuy.Name}.", LogChannel.Economy);
                 }
 
@@ -352,6 +356,7 @@ namespace ChaosWarlords.Source.States
                 else if (effect.Type == EffectType.Supplant) { _actionSystem.StartTargeting(ActionState.TargetingSupplant, card); return; }
                 else if (effect.Type == EffectType.PlaceSpy) { _actionSystem.StartTargeting(ActionState.TargetingPlaceSpy, card); return; }
             }
+            _turnManager.PlayCard(card); // **FIXED: Changed to PlayCard**
             ResolveCardEffects(card);
             MoveCardToPlayed(card);
         }
@@ -362,27 +367,41 @@ namespace ChaosWarlords.Source.States
             {
                 if (effect.Type == EffectType.GainResource)
                 {
-                    if (effect.TargetResource == ResourceType.Power) _activePlayer.Power += effect.Amount;
-                    if (effect.TargetResource == ResourceType.Influence) _activePlayer.Influence += effect.Amount;
+                    if (effect.TargetResource == ResourceType.Power) _turnManager.ActivePlayer.Power += effect.Amount;
+                    if (effect.TargetResource == ResourceType.Influence) _turnManager.ActivePlayer.Influence += effect.Amount;
                 }
             }
         }
 
         internal void MoveCardToPlayed(Card card)
         {
-            _activePlayer.Hand.Remove(card);
-            _activePlayer.PlayedCards.Add(card);
+            _turnManager.ActivePlayer.Hand.Remove(card);
+            _turnManager.ActivePlayer.PlayedCards.Add(card);
             card.Position = new Vector2(card.Position.X, _playedY);
         }
 
         internal void EndTurn()
         {
             if (_actionSystem.IsTargeting()) _actionSystem.CancelTargeting();
-            GameLogger.Log("--- TURN ENDED ---", LogChannel.General);
-            _activePlayer.CleanUpTurn();
-            _mapManager.DistributeControlRewards(_activePlayer);
-            _activePlayer.DrawCards(5);
-            ArrangeHandVisuals();
+            GameLogger.Log($"--- {_turnManager.ActivePlayer.Color}'s TURN ENDED ---", LogChannel.General);
+
+            // 1. DISTRIBUTE REWARDS BEFORE CLEANUP (Tyrants Rule)
+            _mapManager.DistributeControlRewards(_turnManager.ActivePlayer);
+
+            // 2. CLEANUP AND DRAW
+            _turnManager.ActivePlayer.CleanUpTurn();
+
+            // 3. PASS TURN CONTEXT
+            _turnManager.EndTurn(); // Switches ActivePlayer and resets Focus counters
+
+            // 4. DRAW FOR THE NEW ACTIVE PLAYER
+            _turnManager.ActivePlayer.DrawCards(5);
+
+            // 5. UPDATE DEPENDENT SYSTEMS
+            _actionSystem.SetCurrentPlayer(_turnManager.ActivePlayer); // ActionSystem needs the new player
+
+            // 6. ARRANGE VISUALS
+            ArrangeHandVisuals(); // **FIXED: Method is now defined below**
         }
 
         private void ArrangeHandVisuals()
@@ -390,11 +409,12 @@ namespace ChaosWarlords.Source.States
             if (_game == null) return;
             int cardWidth = Card.Width;
             int gap = 10;
-            int totalHandWidth = (_activePlayer.Hand.Count * cardWidth) + ((_activePlayer.Hand.Count - 1) * gap);
+            // Uses _turnManager.ActivePlayer for multi-player context
+            int totalHandWidth = (_turnManager.ActivePlayer.Hand.Count * cardWidth) + ((_turnManager.ActivePlayer.Hand.Count - 1) * gap);
             int startX = (_game.GraphicsDevice.Viewport.Width - totalHandWidth) / 2;
-            for (int i = 0; i < _activePlayer.Hand.Count; i++)
+            for (int i = 0; i < _turnManager.ActivePlayer.Hand.Count; i++)
             {
-                _activePlayer.Hand[i].Position = new Vector2(startX + (i * (cardWidth + gap)), _handY);
+                _turnManager.ActivePlayer.Hand[i].Position = new Vector2(startX + (i * (cardWidth + gap)), _handY);
             }
         }
 
@@ -422,8 +442,8 @@ namespace ChaosWarlords.Source.States
 
             // 4. Draw UI (USING UI RENDERER)
             _uiRenderer.DrawMarketButton(spriteBatch, _uiManager, _isMarketOpen);
-            _uiRenderer.DrawActionButtons(spriteBatch, _uiManager, _activePlayer);
-            _uiRenderer.DrawTopBar(spriteBatch, _activePlayer, _uiManager.ScreenWidth);
+            _uiRenderer.DrawActionButtons(spriteBatch, _uiManager, _turnManager.ActivePlayer);
+            _uiRenderer.DrawTopBar(spriteBatch, _turnManager.ActivePlayer, _uiManager.ScreenWidth);
             DrawTargetingHint(spriteBatch);
 
             // 5. Draw Selection Overlay (NEW)
@@ -435,8 +455,8 @@ namespace ChaosWarlords.Source.States
 
         private void DrawCards(SpriteBatch spriteBatch)
         {
-            foreach (var card in _activePlayer.Hand) _cardRenderer.Draw(spriteBatch, card);
-            foreach (var card in _activePlayer.PlayedCards) _cardRenderer.Draw(spriteBatch, card);
+            foreach (var card in _turnManager.ActivePlayer.Hand) _cardRenderer.Draw(spriteBatch, card);
+            foreach (var card in _turnManager.ActivePlayer.PlayedCards) _cardRenderer.Draw(spriteBatch, card);
         }
 
         private void DrawTargetingHint(SpriteBatch spriteBatch)
@@ -454,7 +474,7 @@ namespace ChaosWarlords.Source.States
             Site site = _actionSystem.PendingSite;
             if (site == null) return;
 
-            var enemies = _mapManager.GetEnemySpiesAtSite(site, _activePlayer).Distinct().ToList();
+            var enemies = _mapManager.GetEnemySpiesAtSite(site, _turnManager.ActivePlayer).Distinct().ToList();
             Vector2 startPos = new Vector2(site.Bounds.X, site.Bounds.Y - 50);
 
             spriteBatch.DrawString(_smallFont, "CHOOSE SPY TO REMOVE:", startPos + new Vector2(0, -20), Color.White);
@@ -487,14 +507,15 @@ namespace ChaosWarlords.Source.States
             };
         }
 
-        internal void InjectDependencies(InputManager input, UIManager ui, MapManager map, MarketManager market, ActionSystem action, Player player)
+        internal void InjectDependencies(InputManager input, UIManager ui, MapManager map, MarketManager market, ActionSystem action, TurnManager turnManager)
         {
             _inputManager = input;
             _uiManager = ui;
             _mapManager = map;
             _marketManager = market;
             _actionSystem = action;
-            _activePlayer = player;
+            _turnManager = turnManager;
+            _actionSystem.SetCurrentPlayer(_turnManager.ActivePlayer);
         }
     }
 }

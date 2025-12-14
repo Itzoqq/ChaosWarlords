@@ -17,7 +17,8 @@ namespace ChaosWarlords.Source.Commands
 
         public void Execute(GameplayState state)
         {
-            state._marketManager.TryBuyCard(state._activePlayer, _card);
+            // FIX: Access ActivePlayer via TurnManager
+            state._marketManager.TryBuyCard(state._turnManager.ActivePlayer, _card);
         }
     }
 
@@ -28,7 +29,8 @@ namespace ChaosWarlords.Source.Commands
 
         public void Execute(GameplayState state)
         {
-            state._mapManager.TryDeploy(state._activePlayer, _node);
+            // FIX: Access ActivePlayer via TurnManager
+            state._mapManager.TryDeploy(state._turnManager.ActivePlayer, _node);
         }
     }
 
@@ -69,7 +71,8 @@ namespace ChaosWarlords.Source.Commands
             }
             else
             {
-                state._mapManager.TryDeploy(state._activePlayer, _node);
+                // FIX: Access ActivePlayer via TurnManager
+                state._mapManager.TryDeploy(state._turnManager.ActivePlayer, _node);
             }
         }
     }
