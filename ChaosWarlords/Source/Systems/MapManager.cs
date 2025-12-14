@@ -6,22 +6,30 @@ using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Systems
 {
-    public class MapManager
+    public class MapManager : IMapManager
     {
-        internal List<MapNode> Nodes { get; private set; }
-        public List<Site> Sites { get; private set; }
+        // REMOVED: The redundant and uninitialized "public IReadOnlyList<MapNode> Nodes { get; private set; }"
+
+        // CORRECTED IMPLEMENTATION: Internal mutable lists used as backing fields
+        public List<MapNode> NodesInternal { get; private set; }
+        public List<Site> SitesInternal { get; private set; }
+
+        // Explicitly implement the interface properties using the internal fields (Fixes the null reference)
+        IReadOnlyList<MapNode> IMapManager.Nodes => NodesInternal;
+        IReadOnlyList<Site> IMapManager.Sites => SitesInternal;
+
         private readonly Dictionary<MapNode, Site> NodesiteLookup;
 
         public MapManager(List<MapNode> nodes, List<Site> sites)
         {
-            Nodes = nodes;
-            Sites = sites;
+            NodesInternal = nodes;
+            SitesInternal = sites;
             NodesiteLookup = new Dictionary<MapNode, Site>();
 
             if (sites != null)
             {
                 foreach (var site in sites)
-                    foreach (var node in site.Nodes)
+                    foreach (var node in site.NodesInternal)
                         NodesiteLookup[node] = site;
             }
         }
@@ -29,8 +37,8 @@ namespace ChaosWarlords.Source.Systems
         // --- Setup Methods ---
         public void CenterMap(int screenWidth, int screenHeight)
         {
-            if (Nodes.Count == 0) return;
-            var (MinX, MinY, MaxX, MaxY) = MapGeometry.CalculateBounds(Nodes);
+            if (NodesInternal.Count == 0) return;
+            var (MinX, MinY, MaxX, MaxY) = MapGeometry.CalculateBounds(NodesInternal);
             Vector2 mapCenter = new((MinX + MaxX) / 2f, (MinY + MaxY) / 2f);
             Vector2 screenCenter = new(screenWidth / 2f, screenHeight / 2f);
             Vector2 offset = screenCenter - mapCenter;
@@ -39,20 +47,20 @@ namespace ChaosWarlords.Source.Systems
 
         private void ApplyOffset(Vector2 offset)
         {
-            foreach (var node in Nodes) node.Position += offset;
-            if (Sites != null) foreach (var site in Sites) site.RecalculateBounds();
+            foreach (var node in NodesInternal) node.Position += offset;
+            if (SitesInternal != null) foreach (var site in SitesInternal) site.RecalculateBounds();
         }
 
         // --- Query Methods (Replaces Update Loop) ---
         public MapNode GetNodeAt(Vector2 position)
         {
             // Simple circular collision check against all nodes
-            return Nodes.FirstOrDefault(n => Vector2.Distance(position, n.Position) <= MapNode.Radius);
+            return NodesInternal.FirstOrDefault(n => Vector2.Distance(position, n.Position) <= MapNode.Radius);
         }
 
         public Site GetSiteAt(Vector2 position)
         {
-            return Sites?.FirstOrDefault(s => s.Bounds.Contains(position));
+            return SitesInternal?.FirstOrDefault(s => s.Bounds.Contains(position));
         }
 
         public Site GetSiteForNode(MapNode node)
@@ -63,7 +71,7 @@ namespace ChaosWarlords.Source.Systems
 
         // --- Logic Methods (Deploy, Control, etc.) ---
         // (Note: I changed GetHoveredNode to accept a specific node passed from the controller)
-        public bool TryDeploy(Player currentPlayer, MapNode targetNode)
+        public virtual bool TryDeploy(Player currentPlayer, MapNode targetNode)
         {
             if (targetNode == null) return false;
 
@@ -134,9 +142,9 @@ namespace ChaosWarlords.Source.Systems
 
         private PlayerColor CalculateSiteOwner(Site site)
         {
-            int redCount = site.Nodes.Count(n => n.Occupant == PlayerColor.Red);
-            int blueCount = site.Nodes.Count(n => n.Occupant == PlayerColor.Blue);
-            int neutralCount = site.Nodes.Count(n => n.Occupant == PlayerColor.Neutral);
+            int redCount = site.NodesInternal.Count(n => n.Occupant == PlayerColor.Red);
+            int blueCount = site.NodesInternal.Count(n => n.Occupant == PlayerColor.Blue);
+            int neutralCount = site.NodesInternal.Count(n => n.Occupant == PlayerColor.Neutral);
 
             if (redCount > blueCount && redCount > neutralCount) return PlayerColor.Red;
             if (blueCount > redCount && blueCount > neutralCount) return PlayerColor.Blue;
@@ -147,7 +155,7 @@ namespace ChaosWarlords.Source.Systems
         private bool CalculateTotalControl(Site site, PlayerColor owner)
         {
             if (owner == PlayerColor.None) return false;
-            bool ownsAllNodes = site.Nodes.All(n => n.Occupant == owner);
+            bool ownsAllNodes = site.NodesInternal.All(n => n.Occupant == owner);
             if (!ownsAllNodes) return false;
             bool hasEnemySpy = site.Spies.Any(spyColor => spyColor != owner && spyColor != PlayerColor.None);
             return !hasEnemySpy;
@@ -190,8 +198,8 @@ namespace ChaosWarlords.Source.Systems
 
         public void DistributeControlRewards(Player activePlayer)
         {
-            if (Sites == null) return;
-            foreach (var site in Sites)
+            if (SitesInternal == null) return;
+            foreach (var site in SitesInternal)
             {
                 if (site.Owner == activePlayer.Color && site.IsCity)
                 {
@@ -261,7 +269,7 @@ namespace ChaosWarlords.Source.Systems
 
         public bool ReturnSpy(Site site, Player activePlayer)
         {
-            if (site.Nodes.Count > 0 && !HasPresence(site.Nodes[0], activePlayer.Color))
+            if (site.NodesInternal.Count > 0 && !HasPresence(site.NodesInternal[0], activePlayer.Color))
             {
                 GameLogger.Log("Cannot return spy: No Presence at this Site!", LogChannel.Error);
                 return false;
@@ -311,14 +319,14 @@ namespace ChaosWarlords.Source.Systems
             Site parentSite = GetSiteForNode(targetNode);
             if (parentSite != null && parentSite.Spies.Contains(player)) return true;
 
-            var nodesToCheck = parentSite != null ? parentSite.Nodes : new List<MapNode> { targetNode };
+            var nodesToCheck = parentSite != null ? parentSite.NodesInternal : new List<MapNode> { targetNode };
             return nodesToCheck.Any(n => n.Neighbors.Any(neighbor => neighbor.Occupant == player));
         }
 
         public bool CanDeployAt(MapNode targetNode, PlayerColor player)
         {
             if (targetNode.Occupant != PlayerColor.None) return false;
-            bool hasAnyTroops = Nodes.Any(n => n.Occupant == player);
+            bool hasAnyTroops = NodesInternal.Any(n => n.Occupant == player);
             if (!hasAnyTroops) return true;
             return HasPresence(targetNode, player);
         }
@@ -337,7 +345,7 @@ namespace ChaosWarlords.Source.Systems
         public bool ReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor)
         {
             // 1. Check Presence Requirement
-            if (site.Nodes.Count > 0 && !HasPresence(site.Nodes[0], activePlayer.Color))
+            if (site.NodesInternal.Count > 0 && !HasPresence(site.NodesInternal[0], activePlayer.Color))
             {
                 GameLogger.Log("Cannot return spy: No Presence at this Site!", LogChannel.Error);
                 return false;

@@ -17,7 +17,7 @@ namespace ChaosWarlords.Source.Commands
 
         public void Execute(GameplayState state)
         {
-            // FIX: Access ActivePlayer via TurnManager
+            // Accessing via interface property
             state._marketManager.TryBuyCard(state._turnManager.ActivePlayer, _card);
         }
     }
@@ -63,7 +63,8 @@ namespace ChaosWarlords.Source.Commands
         {
             if (state._actionSystem.IsTargeting())
             {
-                // Logic: If clicking a node while targeting, we might actually mean the Site it belongs to.
+                // Site retrieval still needs the concrete MapManager implementation, 
+                // but since the interface exposes GetSiteForNode, this is fine.
                 Site site = state._mapManager.GetSiteForNode(_node);
                 bool success = state._actionSystem.HandleTargetClick(_node, site);
 
@@ -71,7 +72,7 @@ namespace ChaosWarlords.Source.Commands
             }
             else
             {
-                // FIX: Access ActivePlayer via TurnManager
+                // Accessing via interface property
                 state._mapManager.TryDeploy(state._turnManager.ActivePlayer, _node);
             }
         }
@@ -84,6 +85,7 @@ namespace ChaosWarlords.Source.Commands
 
         public void Execute(GameplayState state)
         {
+            // Accessing via interface property
             if (state._actionSystem.IsTargeting())
             {
                 // Pass null for node, but valid site

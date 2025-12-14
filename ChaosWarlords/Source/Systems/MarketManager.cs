@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace ChaosWarlords.Source.Systems
 {
-    public class MarketManager
+    public class MarketManager : IMarketManager
     {
         public List<Card> MarketDeck { get; private set; } = new List<Card>();
         public List<Card> MarketRow { get; private set; } = new List<Card>();
@@ -40,7 +40,7 @@ namespace ChaosWarlords.Source.Systems
             }
         }
 
-        public bool TryBuyCard(Player player, Card card)
+        public virtual bool TryBuyCard(Player player, Card card)
         {
             if (card == null) return false;
             if (!MarketRow.Contains(card)) return false;

@@ -50,7 +50,7 @@ namespace ChaosWarlords.Source.Systems
             );
         }
 
-        public IGameCommand HandleInput(InputManager input, MarketManager market, MapManager map, Player player, ActionSystem actionSystem)
+        public IGameCommand HandleInput(InputManager input, IMarketManager market, IMapManager map, Player player, IActionSystem actionSystem)
         {
             if (!input.IsLeftMouseJustClicked()) return null;
             Vector2 mousePos = input.MousePosition;

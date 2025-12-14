@@ -25,9 +25,9 @@ namespace ChaosWarlords.Source.States
         internal InputManager _inputManager;
         internal UIManager _uiManager;
         internal UIRenderer _uiRenderer;
-        internal MapManager _mapManager;
-        internal MarketManager _marketManager;
-        internal ActionSystem _actionSystem;
+        internal IMapManager _mapManager;
+        internal IMarketManager _marketManager;
+        internal IActionSystem _actionSystem;
         internal TurnManager _turnManager;
         internal bool _isMarketOpen = false;
 
@@ -537,13 +537,13 @@ namespace ChaosWarlords.Source.States
             };
         }
 
-        internal void InjectDependencies(InputManager input, UIManager ui, MapManager map, MarketManager market, ActionSystem action, TurnManager turnManager)
+        internal void InjectDependencies(InputManager input, UIManager ui, IMapManager map, IMarketManager market, IActionSystem action, TurnManager turnManager)
         {
             _inputManager = input;
             _uiManager = ui;
-            _mapManager = map;
-            _marketManager = market;
-            _actionSystem = action;
+            _mapManager = map;        // IMapManager = IMapManager (OK)
+            _marketManager = market;  // IMarketManager = IMarketManager (OK)
+            _actionSystem = action;   // IActionSystem = IActionSystem (OK)
             _turnManager = turnManager;
             _actionSystem.SetCurrentPlayer(_turnManager.ActivePlayer);
         }

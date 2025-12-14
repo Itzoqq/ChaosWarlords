@@ -4,15 +4,16 @@ using System.Linq;
 
 namespace ChaosWarlords.Source.Systems
 {
-    public class ActionSystem
+    // Added IActionSystem interface
+    public class ActionSystem : IActionSystem
     {
+        // Removed 'internal' from public interface properties if they need to be public
         public ActionState CurrentState { get; internal set; } = ActionState.Normal;
         public Card PendingCard { get; internal set; }
         public Site PendingSite { get; private set; }
 
         private Player _currentPlayer;
         private readonly MapManager _mapManager;
-
         public ActionSystem(Player initialPlayer, MapManager mapManager)
         {
             _currentPlayer = initialPlayer;

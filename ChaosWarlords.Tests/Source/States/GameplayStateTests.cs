@@ -114,6 +114,8 @@ namespace ChaosWarlords.Tests.States
         private MapManager _mapManager = null!;
         private MarketManager _marketManager = null!;
         private ActionSystem _actionSystem = null!;
+        private List<MapNode> _mutableNodes = null!;
+        private List<Site> _mutableSites = null!;
 
         [TestInitialize]
         public void Setup()
@@ -136,7 +138,10 @@ namespace ChaosWarlords.Tests.States
             _turnManager = new TurnManager(new List<Player> { _player });
 
             // 4. Setup other Systems
-            _mapManager = new MapManager(new List<MapNode>(), new List<Site>());
+            _mutableNodes = new List<MapNode>(); // <--- FIX 1: Initialize mutable list
+            _mutableSites = new List<Site>();   // <--- FIX 1: Initialize mutable list
+                                                // _mapManager = new MapManager(new List<MapNode>(), new List<Site>()); // OLD
+            _mapManager = new MapManager(_mutableNodes, _mutableSites); // <--- FIX 2: Pass mutable lists to constructor
             _marketManager = new MarketManager();
 
             // 4b. Setup Action System - Needs the ActivePlayer from the TurnManager
@@ -408,8 +413,8 @@ namespace ChaosWarlords.Tests.States
             node.Neighbors.Add(baseNode);
             baseNode.Neighbors.Add(node);
 
-            _mapManager.Nodes.Add(node);
-            _mapManager.Nodes.Add(baseNode);
+            _mutableNodes.Add(node);
+            _mutableNodes.Add(baseNode);
 
             // FIX: Use ActivePlayer from TurnManager
             var activePlayer = _turnManager.ActivePlayer;
@@ -458,8 +463,8 @@ namespace ChaosWarlords.Tests.States
             enemyNode.Neighbors.Add(myNode);
             myNode.Neighbors.Add(enemyNode);
 
-            _mapManager.Nodes.Add(enemyNode);
-            _mapManager.Nodes.Add(myNode);
+            _mutableNodes.Add(enemyNode);
+            _mutableNodes.Add(myNode);
 
             var assassin = new Card("assassin", "Assassin", 0, CardAspect.Shadow, 0, 0);
             assassin.Effects.Add(new CardEffect(EffectType.Assassinate, 0));

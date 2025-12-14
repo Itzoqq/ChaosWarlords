@@ -73,7 +73,7 @@ namespace ChaosWarlords.Tests.Systems
             var world = builder.Build();
 
             // The Test Map (hardcoded in MapFactory) has exactly 3 nodes.
-            Assert.HasCount(3, world.MapManager.Nodes, "Should load the default Test Map (3 nodes) on file error.");
+            Assert.HasCount(3, world.MapManager.NodesInternal, "Should load the default Test Map (3 nodes) on file error.");
         }
     }
 }

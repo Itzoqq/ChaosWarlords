@@ -36,14 +36,14 @@ namespace ChaosWarlords.Source.Views
             _font = font;
         }
 
-        public void Draw(SpriteBatch spriteBatch, MapManager map, MapNode hoveredNode, Site hoveredSite)
+        public void Draw(SpriteBatch spriteBatch, IMapManager map, MapNode hoveredNode, Site hoveredSite)
         {
             DrawSites(spriteBatch, map.Sites);
             DrawRoutes(spriteBatch, map);
             DrawNodes(spriteBatch, map.Nodes, hoveredNode);
         }
 
-        private void DrawSites(SpriteBatch spriteBatch, List<Site> sites)
+        private void DrawSites(SpriteBatch spriteBatch, IReadOnlyList<Site> sites)
         {
             if (sites == null) return;
             foreach (var site in sites)
@@ -150,7 +150,7 @@ namespace ChaosWarlords.Source.Views
             }
         }
 
-        private void DrawNodes(SpriteBatch spriteBatch, List<MapNode> nodes, MapNode hoveredNode)
+        private void DrawNodes(SpriteBatch spriteBatch, IReadOnlyList<MapNode> nodes, MapNode hoveredNode)
         {
             foreach (var node in nodes)
             {
@@ -192,7 +192,7 @@ namespace ChaosWarlords.Source.Views
             }
         }
 
-        private void DrawRoutes(SpriteBatch spriteBatch, MapManager map)
+        private void DrawRoutes(SpriteBatch spriteBatch, IMapManager map)
         {
             foreach (var node in map.Nodes)
             {
@@ -206,7 +206,7 @@ namespace ChaosWarlords.Source.Views
             }
         }
 
-        private void DrawSingleRoute(SpriteBatch spriteBatch, MapManager map, MapNode node, MapNode neighbor)
+        private void DrawSingleRoute(SpriteBatch spriteBatch, IMapManager map, MapNode node, MapNode neighbor)
         {
             Site startSite = map.GetSiteForNode(node);
             Site endSite = map.GetSiteForNode(neighbor);

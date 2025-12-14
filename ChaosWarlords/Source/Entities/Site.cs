@@ -17,7 +17,7 @@ namespace ChaosWarlords.Source.Entities
 
         public bool IsCity { get; set; }
 
-        public List<MapNode> Nodes { get; private set; } = new List<MapNode>();
+        public List<MapNode> NodesInternal { get; private set; } = new List<MapNode>();
         public PlayerColor Owner { get; internal set; } = PlayerColor.None;
         internal List<PlayerColor> Spies { get; private set; } = new List<PlayerColor>();
         public bool HasTotalControl { get; internal set; } = false;
@@ -38,18 +38,18 @@ namespace ChaosWarlords.Source.Entities
 
         public void AddNode(MapNode node)
         {
-            Nodes.Add(node);
+            NodesInternal.Add(node); // Change: Nodes to NodesInternal
             RecalculateBounds();
         }
 
         public void RecalculateBounds()
         {
-            if (Nodes.Count == 0) return;
+            if (NodesInternal.Count == 0) return; // Change: Nodes to NodesInternal
 
             float minX = float.MaxValue, minY = float.MaxValue;
             float maxX = float.MinValue, maxY = float.MinValue;
 
-            foreach (var node in Nodes)
+            foreach (var node in NodesInternal) // Change: Nodes to NodesInternal
             {
                 if (node.Position.X < minX) minX = node.Position.X;
                 if (node.Position.Y < minY) minY = node.Position.Y;
@@ -70,12 +70,12 @@ namespace ChaosWarlords.Source.Entities
 
         public int GetTroopCount(PlayerColor color)
         {
-            return Nodes.Count(n => n.Occupant == color);
+            return NodesInternal.Count(n => n.Occupant == color); // Change: Nodes to NodesInternal
         }
 
         public PlayerColor GetControllingPlayer()
         {
-            var troopCounts = Nodes
+            var troopCounts = NodesInternal // Change: Nodes to NodesInternal
                 .Where(n => n.Occupant != PlayerColor.None && n.Occupant != PlayerColor.Neutral)
                 .GroupBy(n => n.Occupant)
                 .Select(g => new { Player = g.Key, Count = g.Count() })

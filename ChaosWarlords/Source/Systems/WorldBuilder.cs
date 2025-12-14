@@ -77,9 +77,9 @@ namespace ChaosWarlords.Source.Systems
             var actionSystem = new ActionSystem(activePlayer, mapManager);
 
             // 7. Scenario Rules (Updated to reflect multiple players)
-            if (mapManager.Sites != null)
+            if (mapManager.SitesInternal != null) // Change: Sites to SitesInternal
             {
-                foreach (var site in mapManager.Sites)
+                foreach (var site in mapManager.SitesInternal) // Change: Sites to SitesInternal
                 {
                     if (site.Name.ToLower().Contains("city of gold"))
                     {
