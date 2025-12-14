@@ -14,13 +14,15 @@ namespace ChaosWarlords.Source.States
     public class GameplayState : IState
     {
         private readonly Game _game;
+        private readonly IInputProvider _inputProvider; // Store the dependency
+
         private SpriteFont _defaultFont;
         private SpriteFont _smallFont;
         private Texture2D _pixelTexture;
 
         internal InputManager _inputManager;
-        internal UIManager _uiManager;      // Logic (Rectangles)
-        internal UIRenderer _uiRenderer;    // Visuals (Draw calls)
+        internal UIManager _uiManager;
+        internal UIRenderer _uiRenderer;
         internal MapManager _mapManager;
         internal MarketManager _marketManager;
         internal ActionSystem _actionSystem;
@@ -30,13 +32,14 @@ namespace ChaosWarlords.Source.States
         internal int _handY;
         internal int _playedY;
 
-        // Views
         private MapRenderer _mapRenderer;
         private CardRenderer _cardRenderer;
 
-        public GameplayState(Game game)
+        // Constructor Injection: We require an InputProvider to exist
+        public GameplayState(Game game, IInputProvider inputProvider)
         {
             _game = game;
+            _inputProvider = inputProvider;
         }
 
         public void LoadContent()
@@ -54,14 +57,11 @@ namespace ChaosWarlords.Source.States
 
             GameLogger.Initialize();
 
-            var inputProvider = new MonoGameInputProvider();
-            _inputManager = new InputManager(inputProvider);
+            // Use the injected provider instead of creating a new hardware one
+            _inputManager = new InputManager(_inputProvider);
 
             // --- INITIALIZATION ---
-            // 1. Manager handles Logic (Screen dimensions, Button Rectangles)
             _uiManager = new UIManager(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
-
-            // 2. Renderer handles Drawing (Textures/Fonts)
             _uiRenderer = new UIRenderer(graphicsDevice, _defaultFont, _smallFont);
 
             _mapRenderer = new MapRenderer(_pixelTexture, _pixelTexture, _defaultFont);

@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Systems; // Added for MonoGameInputProvider
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -41,8 +42,12 @@ namespace ChaosWarlords
             // Initialize State Manager
             _stateManager = new StateManager(this);
 
-            // Push the main gameplay state
-            _stateManager.PushState(new GameplayState(this));
+            // Composition Root: Create Dependencies
+            // We create the actual hardware input provider here.
+            var inputProvider = new MonoGameInputProvider();
+
+            // Push the main gameplay state with the dependency
+            _stateManager.PushState(new GameplayState(this, inputProvider));
         }
 
         protected override void Update(GameTime gameTime)

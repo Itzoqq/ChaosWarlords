@@ -43,7 +43,7 @@ namespace ChaosWarlords.Tests.States
             _actionSystem = new ActionSystem(_player, _mapManager);
 
             // Pass null Game to avoid graphics initialization
-            _state = new GameplayState(null!);
+            _state = new GameplayState(null!, _mockInputProvider);
 
             // Inject our test dependencies
             _state.InjectDependencies(_input, null!, _mapManager, _marketManager, _actionSystem, _player);
