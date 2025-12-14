@@ -19,18 +19,13 @@ namespace ChaosWarlords.Source.Utilities
 
     public static class MapFactory
     {
+        [ExcludeFromCodeCoverage]
         public static (List<MapNode>, List<Site>) LoadFromFile(string filePath)
         {
             try
             {
                 string json = File.ReadAllText(filePath);
-                var data = JsonSerializer.Deserialize<MapData>(json);
-
-                var nodes = CreateNodes(data.Nodes);
-                CreateRoutes(data.Routes, nodes);
-                var sites = CreateSites(data.Sites, nodes);
-
-                return (nodes, sites);
+                return LoadFromData(json);
             }
             catch (System.Exception ex)
             {
@@ -38,6 +33,18 @@ namespace ChaosWarlords.Source.Utilities
                 GameLogger.Log("Map load failed. Reverting to Test Map.", LogChannel.Error);
                 return CreateTestMap();
             }
+        }
+
+        internal static (List<MapNode>, List<Site>) LoadFromData(string json)
+        {
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var data = JsonSerializer.Deserialize<MapData>(json, options);
+
+            var nodes = CreateNodes(data.Nodes);
+            CreateRoutes(data.Routes, nodes);
+            var sites = CreateSites(data.Sites, nodes);
+
+            return (nodes, sites);
         }
 
         private static List<MapNode> CreateNodes(List<NodeData> nodeDataList)
@@ -82,7 +89,7 @@ namespace ChaosWarlords.Source.Utilities
                 System.Enum.TryParse(s.TotalControlResource, out ResourceType tType);
 
                 var newSite = new Site(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
-                newSite.IsCity = s.Name.Contains("City");
+                newSite.IsCity = s.IsCity;
 
                 foreach (int nodeId in s.NodeIds)
                 {

@@ -33,14 +33,28 @@ namespace ChaosWarlords.Source.Utilities
     {
         private static List<CardData> _cardDataCache;
 
+        [ExcludeFromCodeCoverage] // Exclude the file I/O part from coverage, we test the logic below
         public static void Load(string jsonPath)
         {
-            if (!File.Exists(jsonPath)) return;
+            if (!File.Exists(jsonPath))
+            {
+                _cardDataCache = null;
+                return;
+            }
             string json = File.ReadAllText(jsonPath);
+            LoadFromJson(json);
+        }
+
+        // Internal method for testability, allowing us to pass JSON directly
+        internal static void LoadFromJson(string json)
+        {
             // Case-insensitive matching helps avoid capitalization errors
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             _cardDataCache = JsonSerializer.Deserialize<List<CardData>>(json, options);
         }
+
+        // Helper for tests to reset the static state
+        internal static void ClearCache() => _cardDataCache = null;
 
         public static List<Card> GetAllMarketCards()
         {
