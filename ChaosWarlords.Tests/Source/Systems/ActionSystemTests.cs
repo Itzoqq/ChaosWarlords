@@ -25,10 +25,12 @@ namespace ChaosWarlords.Tests.Systems
             _player1 = new Player(PlayerColor.Red);
             _player2 = new Player(PlayerColor.Blue);
 
-            // UPDATED: Removed null texture arg
             _node1 = new MapNode(1, new Vector2(10, 10));
             _node2 = new MapNode(2, new Vector2(20, 10));
+
+            // FIX: Make neighbors bidirectional so HasPresence works correctly
             _node1.AddNeighbor(_node2);
+            _node2.AddNeighbor(_node1);
 
             _siteA = new Site("SiteA", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
             _siteA.AddNode(_node2);
@@ -42,6 +44,9 @@ namespace ChaosWarlords.Tests.Systems
             // Reset player
             _player1.Power = 10;
             _player1.TroopsInBarracks = 10;
+
+            // Establish Presence for Player 1
+            _node1.Occupant = _player1.Color;
         }
 
         #region Action Initiation Tests
@@ -219,6 +224,90 @@ namespace ChaosWarlords.Tests.Systems
             Assert.IsFalse(success);
             Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState, "Should remain in targeting state after invalid click.");
         }
+        #endregion
+
+        #region Spy Logic Complex Scenarios
+
+        [TestMethod]
+        public void HandleTargetClick_ReturnSpy_AutoResolves_SingleFaction()
+        {
+            // Arrange: 1 Blue Spy
+            _siteA.Spies.Add(PlayerColor.Blue);
+            _player1.Power = 3;
+            _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
+
+            // Act: Click the site
+            bool success = _actionSystem.HandleTargetClick(null, _siteA);
+
+            // Assert
+            Assert.IsTrue(success, "Should auto-resolve since there is only one enemy faction.");
+            Assert.IsEmpty(_siteA.Spies, "Spy should be removed.");
+            Assert.AreEqual(0, _player1.Power, "Cost should be paid.");
+            // The ActionSystem signals success by returning true; the calling state (e.g., GameplayState) is responsible for resetting the state.
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_ReturnSpy_AutoResolves_MultipleSpiesSameFaction()
+        {
+            // Arrange: 2 Blue Spies (Ambiguity only exists if factions differ, not units)
+            _siteA.Spies.Add(PlayerColor.Blue);
+            _siteA.Spies.Add(PlayerColor.Blue);
+            _player1.Power = 3;
+            _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
+
+            // Act
+            bool success = _actionSystem.HandleTargetClick(null, _siteA);
+
+            // Assert
+            Assert.IsTrue(success, "Should auto-resolve because all spies belong to Blue.");
+            Assert.HasCount(1, _siteA.Spies, "Only ONE spy should be removed.");
+            Assert.AreEqual(0, _player1.Power);
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_ReturnSpy_DetectsAmbiguity_MultipleFactions()
+        {
+            // Arrange: 1 Blue Spy, 1 Neutral Spy
+            _siteA.Spies.Add(PlayerColor.Blue);
+            _siteA.Spies.Add(PlayerColor.Neutral);
+            _player1.Power = 3;
+            _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
+
+            // Act
+            bool success = _actionSystem.HandleTargetClick(null, _siteA);
+
+            // Assert
+            Assert.IsFalse(success, "Should NOT return true immediately; waiting for selection.");
+            Assert.AreEqual(ActionState.SelectingSpyToReturn, _actionSystem.CurrentState);
+            Assert.AreEqual(_siteA, _actionSystem.PendingSite);
+            Assert.AreEqual(3, _player1.Power, "Power should NOT be deducted yet.");
+            Assert.HasCount(2, _siteA.Spies, "Spies should still be there.");
+        }
+
+        [TestMethod]
+        public void FinalizeSpyReturn_CompletesAction_AndPaysCost()
+        {
+            // Arrange: We are already in the "Ambiguity" state from previous test
+            _siteA.Spies.Add(PlayerColor.Blue);
+            _siteA.Spies.Add(PlayerColor.Neutral);
+            _player1.Power = 3;
+
+            // To test finalization, we must first get the system into the correct state.
+            // 1. Start the 'Return Spy' action.
+            _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
+            // 2. Click the site. This detects ambiguity and transitions the state to 'SelectingSpyToReturn'.
+            _actionSystem.HandleTargetClick(null, _siteA); // This sets the internal PendingSite.
+
+            // Act: User selects "Neutral" from the UI
+            bool success = _actionSystem.FinalizeSpyReturn(PlayerColor.Neutral);
+
+            // Assert
+            Assert.IsTrue(success);
+            Assert.HasCount(1, _siteA.Spies);
+            Assert.AreEqual(PlayerColor.Blue, _siteA.Spies[0], "Blue spy should remain.");
+            Assert.AreEqual(0, _player1.Power, "Power should be deducted now.");
+        }
+
         #endregion
 
         #region State Management Tests
