@@ -9,6 +9,7 @@ using ChaosWarlords.Source.Commands;
 using System.IO;
 using System;
 using System.Linq;
+using ChaosWarlords.Source.States.Input;
 
 namespace ChaosWarlords.Source.States
 {
@@ -30,6 +31,7 @@ namespace ChaosWarlords.Source.States
         internal IActionSystem _actionSystem;
         internal TurnManager _turnManager;
         internal bool _isMarketOpen = false;
+        internal IInputMode InputMode { get; set; }
 
         internal int _handY;
         internal int _playedY;
@@ -90,6 +92,14 @@ namespace ChaosWarlords.Source.States
 
             ArrangeHandVisuals();
             _mapManager.CenterMap(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
+
+            InputMode = new NormalPlayInputMode(
+                this,
+                _inputManager,
+                _uiManager,
+                _mapManager,
+                _turnManager,
+                _actionSystem);
         }
 
         public void UnloadContent() { }
@@ -98,13 +108,14 @@ namespace ChaosWarlords.Source.States
         {
             _inputManager.Update();
 
+            // Handle global inputs that should work regardless of mode (like ESC to Quit)
             if (HandleGlobalInput()) return;
 
             UpdateHandVisuals();
             _marketManager.Update(_inputManager.MousePosition);
 
-            // [UPDATED] Pass _actionSystem to HandleInput
-            IGameCommand command = _uiManager.HandleInput(_inputManager, _marketManager, _mapManager, _turnManager.ActivePlayer, _actionSystem);
+            // [UPDATED] Pass control to the current InputMode
+            IGameCommand command = InputMode.HandleInput(_inputManager, _marketManager, _mapManager, _turnManager.ActivePlayer, _actionSystem);
 
             if (command != null)
             {
@@ -207,19 +218,6 @@ namespace ChaosWarlords.Source.States
             {
                 _mapManager.TryDeploy(_turnManager.ActivePlayer, clickedNode);
             }
-        }
-
-        internal void OnActionCompleted()
-        {
-            // Finalize the pending card (pay cost, move to played)
-            if (_actionSystem.PendingCard != null)
-            {
-                ResolveCardEffects(_actionSystem.PendingCard);
-                MoveCardToPlayed(_actionSystem.PendingCard);
-            }
-
-            _actionSystem.CancelTargeting();
-            GameLogger.Log("Action Complete.", LogChannel.General);
         }
 
         // --- SPY SELECTION LOGIC ---
@@ -349,18 +347,85 @@ namespace ChaosWarlords.Source.States
             return false;
         }
 
+        // Inside D:\GitHubProjects\ChaosWarlords\ChaosWarlords\Source\States\GameplayState.cs
+
         internal void PlayCard(Card card)
         {
             foreach (var effect in card.Effects)
             {
-                if (effect.Type == EffectType.Assassinate) { _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card); return; }
-                else if (effect.Type == EffectType.ReturnUnit) { _actionSystem.StartTargeting(ActionState.TargetingReturn, card); return; }
-                else if (effect.Type == EffectType.Supplant) { _actionSystem.StartTargeting(ActionState.TargetingSupplant, card); return; }
-                else if (effect.Type == EffectType.PlaceSpy) { _actionSystem.StartTargeting(ActionState.TargetingPlaceSpy, card); return; }
+                if (effect.Type == EffectType.Assassinate)
+                {
+                    _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card);
+                    SwitchToTargetingMode();
+                    return;
+                }
+                else if (effect.Type == EffectType.ReturnUnit)
+                {
+                    _actionSystem.StartTargeting(ActionState.TargetingReturn, card);
+                    SwitchToTargetingMode();
+                    return;
+                }
+                else if (effect.Type == EffectType.Supplant)
+                {
+                    _actionSystem.StartTargeting(ActionState.TargetingSupplant, card);
+                    SwitchToTargetingMode();
+                    return;
+                }
+                else if (effect.Type == EffectType.PlaceSpy)
+                {
+                    _actionSystem.StartTargeting(ActionState.TargetingPlaceSpy, card);
+                    SwitchToTargetingMode();
+                    return;
+                }
             }
-            _turnManager.PlayCard(card); // **FIXED: Changed to PlayCard**
+            _turnManager.PlayCard(card);
             ResolveCardEffects(card);
             MoveCardToPlayed(card);
+        }
+
+        public void ToggleMarket()
+        {
+            // 1. Open the UI
+            _isMarketOpen = true;
+            GameLogger.Log("Market opened.", LogChannel.General);
+        }
+
+        public void CloseMarket()
+        {
+            // 1. Close the UI
+            _isMarketOpen = false;
+
+            // 2. Switch input mode back to normal (if the original mode wasn't targeting)
+            SwitchToNormalMode(); // <-- ADDED (Replaces previous logic if you had it)
+
+            GameLogger.Log("Market closed.", LogChannel.General);
+        }
+
+        public void SwitchToTargetingMode()
+        {
+            // Note: This creates the correct TargetingInputMode instance with all necessary dependencies
+            InputMode = new TargetingInputMode(
+                this,
+                _inputManager,
+                _mapManager,
+                _turnManager,
+                _actionSystem
+            );
+            GameLogger.Log("Switched to Targeting Input Mode.", LogChannel.Input);
+        }
+
+        public void SwitchToNormalMode()
+        {
+            // Note: This creates the correct NormalPlayInputMode instance with all necessary dependencies
+            InputMode = new NormalPlayInputMode(
+                this,
+                _inputManager,
+                _uiManager,
+                _mapManager,
+                _turnManager,
+                _actionSystem
+            );
+            GameLogger.Log("Switched to Normal Play Input Mode.", LogChannel.Input);
         }
 
         internal void ResolveCardEffects(Card card)

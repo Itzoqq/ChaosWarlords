@@ -68,11 +68,19 @@ namespace ChaosWarlords.Source.Commands
                 Site site = state._mapManager.GetSiteForNode(_node);
                 bool success = state._actionSystem.HandleTargetClick(_node, site);
 
-                if (success) state.OnActionCompleted();
+                // This is being called from TargetingInputMode, which now calls the ActionCompletedCommand itself.
+                // This command should not be executed in TargetingInputMode, but since the UIManager can return it 
+                // when in Normal mode, we leave the command completion logic here, but the game is designed 
+                // to execute this command when the TARGETING mode returns it. 
+                // Since this command is now only returned by UIManager in the Normal Mode path,
+                // we leave the old deployment logic, but the root cause is the missing mode switch, which is now fixed.
+
+                if (success) new ActionCompletedCommand().Execute(state); // <-- Should not be reached in fixed flow
             }
             else
             {
-                // Accessing via interface property
+                // This path should only be executed in NormalPlayInputMode's HandleMapInteraction 
+                // which is why the deployment logic is here.
                 state._mapManager.TryDeploy(state._turnManager.ActivePlayer, _node);
             }
         }
@@ -90,7 +98,7 @@ namespace ChaosWarlords.Source.Commands
             {
                 // Pass null for node, but valid site
                 bool success = state._actionSystem.HandleTargetClick(null, _site);
-                if (success) state.OnActionCompleted();
+                if (success) new ActionCompletedCommand().Execute(state);
             }
         }
     }
@@ -100,6 +108,10 @@ namespace ChaosWarlords.Source.Commands
         public void Execute(GameplayState state)
         {
             state._actionSystem.TryStartAssassinate();
+            if (state._actionSystem.CurrentState == ActionState.TargetingAssassinate) // Check if the call succeeded (e.g., affordable)
+            {
+                state.SwitchToTargetingMode(); // <-- ADDED
+            }
         }
     }
 
@@ -108,6 +120,10 @@ namespace ChaosWarlords.Source.Commands
         public void Execute(GameplayState state)
         {
             state._actionSystem.TryStartReturnSpy();
+            if (state._actionSystem.CurrentState == ActionState.TargetingReturnSpy)
+            {
+                state.SwitchToTargetingMode(); // <-- ADDED
+            }
         }
     }
 
@@ -121,13 +137,28 @@ namespace ChaosWarlords.Source.Commands
         {
             if (state._actionSystem.FinalizeSpyReturn(_spyColor))
             {
-                state.OnActionCompleted();
+                new ActionCompletedCommand().Execute(state);
             }
         }
     }
 
     public class CancelActionCommand : IGameCommand
     {
-        public void Execute(GameplayState state) { state._actionSystem.CancelTargeting(); }
+        public void Execute(GameplayState state)
+        {
+            state._actionSystem.CancelTargeting();
+            state.SwitchToNormalMode(); // <-- ADDED
+        }
+    }
+
+    public class SwitchToNormalModeCommand : IGameCommand
+    {
+        /// <summary>
+        /// Executes a switch back to normal input mode. Used to break out of incorrect input modes.
+        /// </summary>
+        public void Execute(GameplayState state)
+        {
+            state.SwitchToNormalMode();
+        }
     }
 }
