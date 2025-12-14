@@ -67,10 +67,7 @@ namespace ChaosWarlords.Source.States
             _mapRenderer = new MapRenderer(_pixelTexture, _pixelTexture, _defaultFont);
             _cardRenderer = new CardRenderer(_pixelTexture, _defaultFont);
 
-            string cardPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Content", "data", "cards.json");
-            string mapPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Content", "data", "map.json");
-
-            var builder = new WorldBuilder(cardPath, mapPath);
+            var builder = new WorldBuilder("data/cards.json", "data/map.json");
             var worldData = builder.Build();
 
             _activePlayer = worldData.Player;

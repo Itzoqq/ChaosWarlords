@@ -34,15 +34,13 @@ namespace ChaosWarlords.Source.Utilities
         private static List<CardData> _cardDataCache;
 
         [ExcludeFromCodeCoverage] // Exclude the file I/O part from coverage, we test the logic below
-        public static void Load(string jsonPath)
+        public static void Load(Stream stream)
         {
-            if (!File.Exists(jsonPath))
+            using (var reader = new StreamReader(stream))
             {
-                _cardDataCache = null;
-                return;
+                string json = reader.ReadToEnd();
+                LoadFromJson(json);
             }
-            string json = File.ReadAllText(jsonPath);
-            LoadFromJson(json);
         }
 
         // Internal method for testability, allowing us to pass JSON directly

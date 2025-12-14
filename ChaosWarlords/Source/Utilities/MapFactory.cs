@@ -47,6 +47,23 @@ namespace ChaosWarlords.Source.Utilities
             return (nodes, sites);
         }
 
+        public static (List<MapNode>, List<Site>) LoadFromStream(Stream stream)
+        {
+            try
+            {
+                using (var reader = new StreamReader(stream))
+                {
+                    string json = reader.ReadToEnd();
+                    return LoadFromData(json);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                GameLogger.Log(ex);
+                return CreateTestMap();
+            }
+        }
+
         private static List<MapNode> CreateNodes(List<NodeData> nodeDataList)
         {
             var nodes = new List<MapNode>();

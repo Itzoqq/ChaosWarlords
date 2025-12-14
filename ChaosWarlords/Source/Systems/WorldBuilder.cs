@@ -1,3 +1,4 @@
+using Microsoft.Xna.Framework; // <--- FIXED: Added this for TitleContainer
 using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
@@ -28,22 +29,27 @@ namespace ChaosWarlords.Source.Systems
             _mapDataPath = mapDataPath;
         }
 
-        // Texture is NOT used here anymore! 
-        // We can remove the parameter or just ignore it. I'll ignore it to keep signature similar if you want, 
-        // but cleaner to remove. I will remove it.
         public WorldData Build()
         {
-            // 1. Initialize Databases (No Textures!)
-            if (File.Exists(_cardDataPath))
+            // 1. Initialize Databases (Using TitleContainer)
+            try
             {
-                CardDatabase.Load(_cardDataPath);
+                // FIXED: Changed _cardFile to _cardDataPath
+                using (var stream = TitleContainer.OpenStream(Path.Combine("Content", _cardDataPath)))
+                {
+                    CardDatabase.Load(stream);
+                }
+            }
+            catch (FileNotFoundException)
+            {
+                GameLogger.Log("Card data file not found. Ensure 'cards.json' is in the Content folder.", LogChannel.Error);
             }
 
             // 2. Setup Market
             var marketManager = new MarketManager();
             marketManager.InitializeDeck(CardDatabase.GetAllMarketCards());
 
-            // 3. Setup Player (No Textures!)
+            // 3. Setup Player
             var player = new Player(PlayerColor.Red);
             // Starter Deck
             for (int i = 0; i < 3; i++) player.Deck.Add(CardFactory.CreateSoldier());
@@ -51,13 +57,23 @@ namespace ChaosWarlords.Source.Systems
             player.DrawCards(5);
 
             // 4. Setup Map
-            MapManager mapManager;
             (List<MapNode>, List<Site>) mapData;
+            try
+            {
+                // FIXED: Changed _mapFile to _mapDataPath
+                using (var stream = TitleContainer.OpenStream(Path.Combine("Content", _mapDataPath)))
+                {
+                    mapData = MapFactory.LoadFromStream(stream);
+                }
+            }
+            catch
+            {
+                mapData = MapFactory.CreateTestMap();
+            }
 
-            if (File.Exists(_mapDataPath)) mapData = MapFactory.LoadFromFile(_mapDataPath);
-            else mapData = MapFactory.CreateTestMap();
-
-            mapManager = new MapManager(mapData.Item1, mapData.Item2);
+            // --- FIXED: This line was missing! ---
+            // We loaded the raw data (mapData), now we must create the Manager.
+            var mapManager = new MapManager(mapData.Item1, mapData.Item2);
 
             // 5. Setup Action System
             var actionSystem = new ActionSystem(player, mapManager);
