@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Systems
 {
@@ -49,33 +50,64 @@ namespace ChaosWarlords.Source.Systems
             );
         }
 
-        public IGameCommand HandleInput(InputManager input, MarketManager market, MapManager map, Player player)
+        public IGameCommand HandleInput(InputManager input, MarketManager market, MapManager map, Player player, ActionSystem actionSystem)
         {
             if (!input.IsLeftMouseJustClicked()) return null;
             Vector2 mousePos = input.MousePosition;
 
-            // 1. UI Buttons
-            if (IsMarketButtonHovered(input)) return new ToggleMarketCommand();
-
-            // 2. Market Cards
-            foreach (var card in market.MarketRow)
+            // 1. SPY SELECTION POPUP (High Priority)
+            if (actionSystem.CurrentState == ActionState.SelectingSpyToReturn)
             {
-                if (card.Bounds.Contains(mousePos)) return new BuyCardCommand(card);
+                Site site = actionSystem.PendingSite;
+                if (site != null)
+                {
+                    var enemies = map.GetEnemySpiesAtSite(site, player);
+                    // Match the distinct logic used in drawing
+                    var distinctEnemies = new System.Collections.Generic.HashSet<PlayerColor>(enemies);
+
+                    int i = 0;
+                    foreach (var enemyColor in distinctEnemies)
+                    {
+                        // Recreate the button rect (same math as GameplayState.DrawSpySelectionUI)
+                        Rectangle btnRect = new Rectangle((int)site.Bounds.X + (i * 60), (int)site.Bounds.Y - 50, 50, 40);
+                        if (btnRect.Contains(mousePos))
+                        {
+                            return new ResolveSpyCommand(enemyColor);
+                        }
+                        i++;
+                    }
+                }
+                // If clicked outside the buttons, cancel selection
+                return new CancelActionCommand();
             }
 
-            // 3. Map Nodes
-            var node = map.GetNodeAt(mousePos);
-            if (node != null) return new DeployTroopCommand(node);
+            // 2. UI Buttons
+            if (IsMarketButtonHovered(input)) return new ToggleMarketCommand();
+            if (IsAssassinateButtonHovered(input)) return new StartAssassinateCommand();
+            if (IsReturnSpyButtonHovered(input)) return new StartReturnSpyCommand();
 
-            // 4. Hand Cards (Iterate backwards for overlap z-index)
-            // This handles the CLICK.
+            // 3. Market Cards
+            if (market != null)
+            {
+                foreach (var card in market.MarketRow)
+                {
+                    if (card.Bounds.Contains(mousePos)) return new BuyCardCommand(card);
+                }
+            }
+
+            // 4. Map Nodes (Highest priority map object)
+            var node = map.GetNodeAt(mousePos);
+            if (node != null) return new MapNodeClickedCommand(node);
+
+            // 5. Map Sites (Background click for placing/returning spies)
+            var siteHit = map.GetSiteAt(mousePos);
+            if (siteHit != null) return new SiteClickedCommand(siteHit);
+
+            // 6. Hand Cards
             for (int i = player.Hand.Count - 1; i >= 0; i--)
             {
                 var card = player.Hand[i];
-                if (card.Bounds.Contains(mousePos))
-                {
-                    return new PlayCardCommand(card);
-                }
+                if (card.Bounds.Contains(mousePos)) return new PlayCardCommand(card);
             }
 
             return null;

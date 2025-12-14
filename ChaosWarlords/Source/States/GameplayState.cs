@@ -94,13 +94,11 @@ namespace ChaosWarlords.Source.States
 
             if (HandleGlobalInput()) return;
 
-            // 1. Update Visuals (Hover effects)
             UpdateHandVisuals();
-            _marketManager.Update(_inputManager.MousePosition); // Market hover logic is inside MarketManager
+            _marketManager.Update(_inputManager.MousePosition);
 
-            // 2. Handle Input (Clicks/Commands)
-            // UPDATED: Pass _activePlayer so UI can check the hand
-            IGameCommand command = _uiManager.HandleInput(_inputManager, _marketManager, _mapManager, _activePlayer);
+            // [UPDATED] Pass _actionSystem to HandleInput
+            IGameCommand command = _uiManager.HandleInput(_inputManager, _marketManager, _mapManager, _activePlayer, _actionSystem);
 
             if (command != null)
             {
@@ -203,6 +201,19 @@ namespace ChaosWarlords.Source.States
             {
                 _mapManager.TryDeploy(_activePlayer, clickedNode);
             }
+        }
+
+        internal void OnActionCompleted()
+        {
+            // Finalize the pending card (pay cost, move to played)
+            if (_actionSystem.PendingCard != null)
+            {
+                ResolveCardEffects(_actionSystem.PendingCard);
+                MoveCardToPlayed(_actionSystem.PendingCard);
+            }
+
+            _actionSystem.CancelTargeting();
+            GameLogger.Log("Action Complete.", LogChannel.General);
         }
 
         // --- SPY SELECTION LOGIC ---
