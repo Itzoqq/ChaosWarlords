@@ -44,15 +44,12 @@ namespace ChaosWarlords.Source.Systems
             var playerRed = new Player(PlayerColor.Red);
             for (int i = 0; i < 3; i++) playerRed.Deck.Add(CardFactory.CreateSoldier());
             for (int i = 0; i < 7; i++) playerRed.Deck.Add(CardFactory.CreateNoble());
-            playerRed.DrawCards(5);
             players.Add(playerRed);
 
             // Player 2 (Blue)
             var playerBlue = new Player(PlayerColor.Blue);
             for (int i = 0; i < 3; i++) playerBlue.Deck.Add(CardFactory.CreateSoldier());
             for (int i = 0; i < 7; i++) playerBlue.Deck.Add(CardFactory.CreateNoble());
-            playerBlue.DrawCards(5);
-            // Note: The rulebook says Player 2 draws 6, P3 draws 7, but 5 is fine for testing.
             players.Add(playerBlue);
 
             // 4. Setup Turn Manager
@@ -88,6 +85,7 @@ namespace ChaosWarlords.Source.Systems
                     {
                         // Assigning spies to player Blue and Neutral still valid
                         site.Spies.Add(PlayerColor.Blue);
+                        site.Spies.Add(PlayerColor.Red);
                         site.Spies.Add(PlayerColor.Neutral);
                     }
                 }

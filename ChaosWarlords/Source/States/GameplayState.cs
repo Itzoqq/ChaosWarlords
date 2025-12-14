@@ -79,8 +79,10 @@ namespace ChaosWarlords.Source.States
             _marketManager = worldData.MarketManager;
             _mapManager = worldData.MapManager;
 
-            // This line is now safe because _actionSystem is fully initialized.
             _actionSystem.SetCurrentPlayer(_turnManager.ActivePlayer);
+
+            // FIX 2 (Card Bug): Draw the initial hand now that WorldBuilder no longer draws it.
+            _turnManager.ActivePlayer.DrawCards(5);
 
             int screenH = graphicsDevice.Viewport.Height;
             _handY = screenH - Card.Height - 20;
@@ -444,6 +446,10 @@ namespace ChaosWarlords.Source.States
             _uiRenderer.DrawMarketButton(spriteBatch, _uiManager, _isMarketOpen);
             _uiRenderer.DrawActionButtons(spriteBatch, _uiManager, _turnManager.ActivePlayer);
             _uiRenderer.DrawTopBar(spriteBatch, _turnManager.ActivePlayer, _uiManager.ScreenWidth);
+
+            // NEW FEATURE: Draw Turn Indicator
+            DrawTurnIndicator(spriteBatch);
+
             DrawTargetingHint(spriteBatch);
 
             // 5. Draw Selection Overlay (NEW)
@@ -451,6 +457,30 @@ namespace ChaosWarlords.Source.States
             {
                 DrawSpySelectionUI(spriteBatch);
             }
+        }
+
+        // NEW METHOD: Draw Turn Indicator
+        private void DrawTurnIndicator(SpriteBatch spriteBatch)
+        {
+            if (_defaultFont == null) return;
+
+            string turnText = $"-- {_turnManager.ActivePlayer.Color}'s Turn --";
+            // Position below the top bar (40px high) with a small gap
+            Vector2 textPos = new Vector2(20, 50);
+
+            // Draw Shadow
+            spriteBatch.DrawString(_defaultFont, turnText, textPos + new Vector2(1, 1), Color.Black);
+
+            // Determine color based on player
+            Color playerColor = _turnManager.ActivePlayer.Color switch
+            {
+                PlayerColor.Red => Color.Red,
+                PlayerColor.Blue => Color.Blue,
+                _ => Color.White
+            };
+
+            // Draw Main Text
+            spriteBatch.DrawString(_defaultFont, turnText, textPos, playerColor);
         }
 
         private void DrawCards(SpriteBatch spriteBatch)

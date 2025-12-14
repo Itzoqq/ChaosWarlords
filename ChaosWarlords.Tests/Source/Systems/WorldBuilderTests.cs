@@ -53,10 +53,13 @@ namespace ChaosWarlords.Tests.Systems
             var world = builder.Build();
 
             // 10 cards total (7 Nobles + 3 Soldiers)
-            // FIX: Access Hand and Deck via TurnManager.ActivePlayer
-            Assert.HasCount(5, world.TurnManager.ActivePlayer.Hand);
-            Assert.HasCount(5, world.TurnManager.ActivePlayer.Deck);
-            Assert.AreEqual(10, world.TurnManager.ActivePlayer.Hand.Count + world.TurnManager.ActivePlayer.Deck.Count);
+            // The WorldBuilder is now only responsible for creating the full 10-card deck.
+            // The initial hand draw is handled later in GameplayState.LoadContent().
+
+            // FIX: Assert Hand is empty and Deck is full.
+            Assert.HasCount(0, world.TurnManager.ActivePlayer.Hand, "Hand should be empty immediately after WorldBuilder.Build()");
+            Assert.HasCount(10, world.TurnManager.ActivePlayer.Deck, "Deck should contain all 10 starting cards.");
+            Assert.AreEqual(10, world.TurnManager.ActivePlayer.Hand.Count + world.TurnManager.ActivePlayer.Deck.Count, "Total cards in deck and hand must sum to 10.");
         }
 
         [TestMethod]

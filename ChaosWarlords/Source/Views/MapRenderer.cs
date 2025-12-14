@@ -155,12 +155,31 @@ namespace ChaosWarlords.Source.Views
             foreach (var node in nodes)
             {
                 Color drawColor = Color.Gray;
+
+                // 1. Determine Base Player Color (Original Logic)
                 if (node.Occupant == PlayerColor.Red) drawColor = Color.Red;
                 else if (node.Occupant == PlayerColor.Blue) drawColor = Color.Blue;
                 else if (node.Occupant == PlayerColor.Neutral) drawColor = Color.White;
+                // Unoccupied nodes remain Color.Gray
 
-                // Highlight if hovered
-                if (node == hoveredNode) drawColor = Color.Lerp(drawColor, Color.Yellow, 0.5f);
+                // 2. Apply Highlight Logic (NEW Logic)
+                if (node == hoveredNode)
+                {
+                    // Goal: Make the color a lighter/brighter version of itself.
+                    // Lerping (blending) the base color toward white achieves this effect.
+                    // 0.4f gives a noticeable, subtle highlight without looking yellow/orange.
+
+                    if (node.Occupant == PlayerColor.Red || node.Occupant == PlayerColor.Blue)
+                    {
+                        // Player troops get a brightened version of their color.
+                        drawColor = Color.Lerp(drawColor, Color.White, 0.4f);
+                    }
+                    else
+                    {
+                        // Unoccupied/Neutral still use a gentle highlight (like the old system)
+                        drawColor = Color.Lerp(drawColor, Color.Yellow, 0.5f);
+                    }
+                }
 
                 int radius = MapNode.Radius;
                 Rectangle rect = new Rectangle(
