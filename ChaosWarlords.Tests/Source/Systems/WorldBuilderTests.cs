@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Systems;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -6,17 +7,13 @@ namespace ChaosWarlords.Tests.Systems
     public class WorldBuilderTests
     {
         [TestMethod]
-        public void Build_CreatesValidWorldState_WithNullTexture()
+        public void Build_InitializesDependencies_WithoutGraphics()
         {
-            // Arrange
-            // We pass non-existent paths so it falls back to defaults/test map
+            // REPLACES: Build_CreatesValidWorldState_WithNullTexture
+            // We verify that the builder runs without crashing on a headless environment (no GPU/Textures)
             var builder = new WorldBuilder("dummy_cards.json", "dummy_map.json");
-
-            // Act
-            // Passing null for texture to verify headless support
             var world = builder.Build();
 
-            // Assert
             Assert.IsNotNull(world.Player, "Player should be initialized");
             Assert.IsNotNull(world.MapManager, "MapManager should be initialized");
             Assert.IsNotNull(world.MarketManager, "MarketManager should be initialized");
@@ -24,8 +21,25 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         [TestMethod]
+        public void Build_FallsBackToTestMap_WhenFilesAreMissing()
+        {
+            // Arrange
+            // We pass garbage paths. TitleContainer.OpenStream will throw FileNotFoundException (or similar).
+            // The builder must catch this and load the default TestMap.
+            var builder = new WorldBuilder("invalid_cards.json", "invalid_map.json");
+
+            // Act
+            var world = builder.Build();
+
+            // Assert
+            // The Test Map (hardcoded in MapFactory) has exactly 3 nodes.
+            Assert.HasCount(3, world.MapManager.Nodes, "Should load the default Test Map (3 nodes) on file error.");
+        }
+
+        [TestMethod]
         public void Build_InitializesPlayerDeck()
         {
+            // RESTORED: This test is still valid and important.
             var builder = new WorldBuilder("dummy_cards.json", "dummy_map.json");
             var world = builder.Build();
 
@@ -34,16 +48,6 @@ namespace ChaosWarlords.Tests.Systems
             Assert.HasCount(5, world.Player.Hand);
             Assert.HasCount(5, world.Player.Deck);
             Assert.AreEqual(10, world.Player.Hand.Count + world.Player.Deck.Count);
-        }
-
-        [TestMethod]
-        public void Build_FallsBackToTestMap_WhenFileMissing()
-        {
-            var builder = new WorldBuilder("missing.json", "missing.json");
-            var world = builder.Build();
-
-            // TestMap has 3 nodes
-            Assert.HasCount(3, world.MapManager.Nodes);
         }
     }
 }
