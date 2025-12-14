@@ -68,7 +68,10 @@ namespace ChaosWarlords.Source.Systems
                 foreach (var site in mapManager.Sites)
                 {
                     if (site.Name.ToLower().Contains("city of gold"))
+                    {
                         site.Spies.Add(PlayerColor.Blue);
+                        site.Spies.Add(PlayerColor.Neutral);
+                    }
                 }
             }
 

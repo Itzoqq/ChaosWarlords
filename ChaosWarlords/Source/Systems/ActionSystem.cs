@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
+using System.Linq;
 
 namespace ChaosWarlords.Source.Systems
 {
@@ -7,6 +8,7 @@ namespace ChaosWarlords.Source.Systems
     {
         public ActionState CurrentState { get; internal set; } = ActionState.Normal;
         public Card PendingCard { get; internal set; }
+        public Site PendingSite { get; private set; }
 
         private readonly Player _activePlayer;
         private readonly MapManager _mapManager;
@@ -78,7 +80,7 @@ namespace ChaosWarlords.Source.Systems
                 case ActionState.TargetingPlaceSpy:
                     return HandlePlaceSpy(targetSite);
                 case ActionState.TargetingReturnSpy:
-                    return HandleReturnSpy(targetSite);
+                    return HandleReturnSpyInitialClick(targetSite);
                 default:
                     return false;
             }
@@ -141,26 +143,70 @@ namespace ChaosWarlords.Source.Systems
             return true;
         }
 
-        private bool HandleReturnSpy(Site targetSite)
+        private bool HandleReturnSpyInitialClick(Site targetSite)
         {
             if (targetSite == null) return false;
 
-            // 1. Verify Cost First (Optimization: Don't run map logic if broke)
+            // --- FIX START: Verify Cost (Edge Case Protection) ---
+            // Just like Assassinate, we must check if they can still afford it 
+            // (e.g., if they lost power between clicking the button and clicking the map)
             if (PendingCard == null && _activePlayer.Power < 3)
             {
-                GameLogger.Log("Not enough Power to Return Spy!", LogChannel.Economy);
-                CancelTargeting();
+                GameLogger.Log("Not enough Power to execute Return Spy!", LogChannel.Economy);
+                CancelTargeting(); // Auto-cancel if they can't afford it anymore
+                return false;
+            }
+            // --- FIX END ---
+
+            // 1. Get all potential targets
+            var enemySpies = _mapManager.GetEnemySpiesAtSite(targetSite, _activePlayer);
+
+            if (enemySpies.Count == 0)
+            {
+                GameLogger.Log("Invalid Target: No enemy spies here.", LogChannel.Error);
                 return false;
             }
 
-            // 2. Execute Logic
-            if (_mapManager.ReturnSpy(targetSite, _activePlayer))
+            // 2. Check how many DISTINCT enemy players are there
+            var distinctEnemies = enemySpies.Distinct().ToList();
+
+            if (distinctEnemies.Count == 1)
+            {
+                // No choice needed, execute immediately
+                bool success = _mapManager.ReturnSpecificSpy(targetSite, _activePlayer, distinctEnemies[0]);
+                if (success)
+                {
+                    if (PendingCard == null) _activePlayer.Power -= 3;
+                }
+                return success;
+            }
+            else
+            {
+                // Ambiguity! Multiple enemy factions present.
+                // Transition to Selection State
+                PendingSite = targetSite;
+                CurrentState = ActionState.SelectingSpyToReturn;
+                GameLogger.Log($"Multiple spies detected at {targetSite.Name}. Select which faction to return.", LogChannel.General);
+
+                // Return false because the action is NOT complete yet. 
+                // We are waiting for the UI selection.
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Called by the UI when the player clicks a specific Spy Color button in the popup
+        /// </summary>
+        public bool FinalizeSpyReturn(PlayerColor selectedSpyColor)
+        {
+            if (PendingSite == null) return false;
+
+            bool success = _mapManager.ReturnSpecificSpy(PendingSite, _activePlayer, selectedSpyColor);
+            if (success)
             {
                 if (PendingCard == null) _activePlayer.Power -= 3;
-                return true;
             }
-
-            return false;
+            return success;
         }
     }
 }

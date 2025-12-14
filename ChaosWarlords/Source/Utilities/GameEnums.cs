@@ -9,7 +9,8 @@ namespace ChaosWarlords.Source.Utilities
         TargetingReturn,
         TargetingSupplant,
         TargetingPlaceSpy,
-        TargetingReturnSpy
+        TargetingReturnSpy,
+        SelectingSpyToReturn
     }
 
     // Replaces the "Suits" (Conquest, Malice, Guile, Obedience)

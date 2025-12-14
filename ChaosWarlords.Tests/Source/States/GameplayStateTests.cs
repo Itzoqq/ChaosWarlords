@@ -135,21 +135,21 @@ namespace ChaosWarlords.Tests.States
         {
             // Arrange
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate);
-            Assert.IsTrue(_actionSystem.IsTargeting());
 
-            // Simulate Right Click
-            // Frame 1: Up
+            // Step 1: Ensure button starts RELEASED (Frame 1)
             _mockInputProvider.MouseState = new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
             _input.Update();
-            // Frame 2: Down (Right Button)
+
+            // Step 2: Press button DOWN (Frame 2)
             _mockInputProvider.MouseState = new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Pressed, ButtonState.Released, ButtonState.Released);
             _input.Update();
+            // Now: Previous = Released, Current = Pressed. This satisfies IsRightMouseJustClicked().
 
             // Act
-            _state.UpdateTargetingLogic();
+            _state.HandleGlobalInput();
 
             // Assert
-            Assert.IsFalse(_actionSystem.IsTargeting(), "Right-click should cancel targeting mode.");
+            Assert.IsFalse(_actionSystem.IsTargeting(), "Right-click (Press) should cancel targeting mode.");
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
         }
 

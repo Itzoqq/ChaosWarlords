@@ -322,5 +322,41 @@ namespace ChaosWarlords.Source.Systems
             if (!hasAnyTroops) return true;
             return HasPresence(targetNode, player);
         }
+
+        /// <summary>
+        /// Helper to retrieve list of spies eligible for return (Enemies only)
+        /// </summary>
+        public List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer)
+        {
+            return site.Spies.Where(s => s != activePlayer.Color && s != PlayerColor.None).ToList();
+        }
+
+        /// <summary>
+        /// Removes a SPECIFIC spy color from the site.
+        /// </summary>
+        public bool ReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor)
+        {
+            // 1. Check Presence Requirement
+            if (site.Nodes.Count > 0 && !HasPresence(site.Nodes[0], activePlayer.Color))
+            {
+                GameLogger.Log("Cannot return spy: No Presence at this Site!", LogChannel.Error);
+                return false;
+            }
+
+            // 2. Check if the specific spy exists
+            if (!site.Spies.Contains(targetSpyColor) || targetSpyColor == activePlayer.Color)
+            {
+                GameLogger.Log($"Invalid Target: {targetSpyColor} spy not found here.", LogChannel.Error);
+                return false;
+            }
+
+            // 3. Remove
+            site.Spies.Remove(targetSpyColor);
+            GameLogger.Log($"Returned {targetSpyColor} Spy from {site.Name} to barracks.", LogChannel.Combat);
+
+            // 4. Update Control (Total control might be regained by removing spy)
+            RecalculateSiteState(site, activePlayer);
+            return true;
+        }
     }
 }
