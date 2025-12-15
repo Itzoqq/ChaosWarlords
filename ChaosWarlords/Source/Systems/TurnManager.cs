@@ -1,3 +1,5 @@
+// File: ChaosWarlords/Source/Systems/TurnManager.cs
+
 using System.Collections.Generic;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
@@ -5,7 +7,7 @@ using ChaosWarlords.Source.Utilities;
 namespace ChaosWarlords.Source.Systems
 {
     // The new system to manage player context and turn flow
-    public class TurnManager
+    public class TurnManager : ITurnManager // <--- ADDED : ITurnManager
     {
         public List<Player> Players { get; private set; }
         private int _currentPlayerIndex = 0;

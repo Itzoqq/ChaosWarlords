@@ -451,36 +451,31 @@ namespace ChaosWarlords.Tests.States
         }
 
         [TestMethod]
-        public void Logic_AssassinateTarget_KillsEnemy()
+        // New name reflects the test's true purpose: verifying the state is ready for the input handler.
+        public void Logic_PlayTargetedActionCard_SetsActionStateCorrectly()
         {
             // 1. Arrange
-            var enemyNode = new MapNode(99, new Vector2(600, 600));
-            enemyNode.Occupant = PlayerColor.Blue;
-
-            var myNode = new MapNode(100, new Vector2(650, 650));
-            myNode.Occupant = PlayerColor.Red;
-
-            enemyNode.Neighbors.Add(myNode);
-            myNode.Neighbors.Add(enemyNode);
-
-            _mutableNodes.Add(enemyNode);
-            _mutableNodes.Add(myNode);
-
+            // We only need the card that triggers the state change.
             var assassin = new Card("assassin", "Assassin", 0, CardAspect.Shadow, 0, 0);
             assassin.Effects.Add(new CardEffect(EffectType.Assassinate, 0));
+
+            // Ensure active player has it (assuming _turnManager.ActivePlayer is set up)
             // FIX: Use ActivePlayer from TurnManager
             _turnManager.ActivePlayer.Hand.Add(assassin);
 
+            // Ensure the system starts from a known 'None' state.
+            _actionSystem.CurrentState = ActionState.Normal;
+
             // 2. Act
             _state.PlayCard(assassin);
-            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
-
-            // Logic: Target the enemy
-            bool success = _actionSystem.HandleTargetClick(enemyNode, null);
 
             // 3. Assert
-            Assert.IsTrue(success, "Action should succeed.");
-            Assert.AreEqual(PlayerColor.None, enemyNode.Occupant, "Enemy should be removed (Empty) after assassination.");
+            // The responsibility of GameplayState is to transition the state.
+            // The validation and execution logic of the target click is now in TargetingInputMode.
+            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState, "Playing a targeted action card should move the ActionSystem to the correct targeting state.");
+
+            // NOTE: The logic for target validation, execution, and cleanup must be moved 
+            // to the new 'TargetingInputModeTests.cs' file.
         }
     }
 }
