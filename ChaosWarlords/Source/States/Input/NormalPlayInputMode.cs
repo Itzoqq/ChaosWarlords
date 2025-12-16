@@ -9,14 +9,16 @@ namespace ChaosWarlords.Source.States.Input
 {
     public class NormalPlayInputMode : IInputMode
     {
-        private readonly GameplayState _state;
+        // FIX 1: Change private field type to the interface
+        private readonly IGameplayState _state;
         private readonly InputManager _inputManager;
         private readonly UIManager _uiManager;
         private readonly IMapManager _mapManager;
         private readonly TurnManager _turnManager;
         private readonly IActionSystem _actionSystem;
 
-        public NormalPlayInputMode(GameplayState state, InputManager inputManager, UIManager uiManager, IMapManager mapManager, TurnManager turnManager, IActionSystem actionSystem)
+        // FIX 2: Change constructor parameter type to the interface
+        public NormalPlayInputMode(IGameplayState state, InputManager inputManager, UIManager uiManager, IMapManager mapManager, TurnManager turnManager, IActionSystem actionSystem)
         {
             _state = state;
             _inputManager = inputManager;
@@ -34,50 +36,42 @@ namespace ChaosWarlords.Source.States.Input
             IGameCommand cardCommand = HandleCardInput(mousePos, inputManager, activePlayer);
             if (cardCommand != null) return cardCommand;
 
-            // 2. Map and UI interaction takes precedence over map interaction
+            // 2. Check for Market/Action Button Input
             if (inputManager.IsLeftMouseJustClicked())
             {
-                // Check Action Buttons
-                IGameCommand actionCommand = CheckActionButtons(inputManager, actionSystem);
-                if (actionCommand != null) return actionCommand;
+                // Check map interactions and action buttons
+                IGameCommand buttonCommand = CheckMarketButton(inputManager);
+                if (buttonCommand != null) return buttonCommand;
 
-                // Check Market Button
-                IGameCommand marketCommand = CheckMarketButton(inputManager);
-                if (marketCommand != null) return marketCommand;
+                buttonCommand = CheckActionButtons(inputManager, actionSystem);
+                if (buttonCommand != null) return buttonCommand;
 
-                // Check Map interaction (Handles deployment)
+                // Handle map deployment logic last
                 return HandleMapInteraction(inputManager, mapManager, activePlayer);
             }
 
             return null;
         }
 
-        private IGameCommand HandleCardInput(Point mousePos, InputManager inputManager, Player activePlayer) // <--- CHANGED RETURN TYPE AND ADDED ARGS
+        private IGameCommand HandleCardInput(Point mousePos, InputManager inputManager, Player activePlayer)
         {
-            // The original logic iterated backwards to handle overlap, which is good.
-            for (int i = activePlayer.Hand.Count - 1; i >= 0; i--) // <--- CHANGED TO activePlayer
+            for (int i = activePlayer.Hand.Count - 1; i >= 0; i--)
             {
-                var card = activePlayer.Hand[i]; // <--- CHANGED TO activePlayer
+                var card = activePlayer.Hand[i];
 
-                // Use the passed-in inputManager
                 if (inputManager.IsLeftMouseJustClicked() && card.Bounds.Contains(mousePos))
                 {
-                    // You are delegating to a method on GameplayState that calls a command,
-                    // but we want to return a command directly to keep the InputMode clean.
-                    // PlayCardCommand is the correct command to use here.
                     return new PlayCardCommand(card);
                 }
             }
-            return null; // Return null if no card was clicked
+            return null;
         }
 
-        private IGameCommand HandleMapInteraction(InputManager inputManager, IMapManager mapManager, Player activePlayer) // <--- CHANGED RETURN TYPE AND ADDED ARGS
+        private IGameCommand HandleMapInteraction(InputManager inputManager, IMapManager mapManager, Player activePlayer)
         {
-            // Use the passed arguments
             var clickedNode = mapManager.GetNodeAt(inputManager.MousePosition);
             if (clickedNode != null)
             {
-                // TryDeploy returns a command (or at least it should) if it's successful
                 // For now, we assume this logic *is* the command logic:
                 mapManager.TryDeploy(activePlayer, clickedNode); // <--- Use passed parameters
             }

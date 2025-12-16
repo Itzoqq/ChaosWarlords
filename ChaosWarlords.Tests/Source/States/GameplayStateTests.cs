@@ -240,7 +240,7 @@ namespace ChaosWarlords.Tests.States
         public void UpdateMarketLogic_ClosesMarket_WhenClickedOutside()
         {
             // This tests that if we click but NO command is generated (clicked empty space), market closes.
-            _state._isMarketOpen = true;
+            _state.IsMarketOpen = true;
 
             // Simulate a click that hits nothing (UIManager will return null)
             _mockInputProvider.Reset();
@@ -253,7 +253,7 @@ namespace ChaosWarlords.Tests.States
             _state.UpdateMarketLogic();
 
             // Assert
-            Assert.IsFalse(_state._isMarketOpen, "Market should close if clicked outside/no command executed.");
+            Assert.IsFalse(_state.IsMarketOpen, "Market should close if clicked outside/no command executed.");
         }
 
         [TestMethod]
@@ -282,7 +282,7 @@ namespace ChaosWarlords.Tests.States
         public void Command_BuyCard_BuysCard_WhenAffordable()
         {
             // Arrange
-            _state._isMarketOpen = true;
+            _state.IsMarketOpen = true;
             // FIX: Use ActivePlayer from TurnManager
             _turnManager.ActivePlayer.Influence = 10;
 
@@ -305,8 +305,8 @@ namespace ChaosWarlords.Tests.States
         public void MoveCardToPlayed_PreservesXPosition_AndPopsUpY()
         {
             // Arrange: Setup the "Screen" logic manually since we have no GraphicsDevice
-            _state._handY = 500;
-            _state._playedY = 400; // The "Pop Up" target
+            _state._handYBacking = 500;
+            _state._playedYBacking = 400; // The "Pop Up" target
             // FIX: Use ActivePlayer from TurnManager
             var activePlayer = _turnManager.ActivePlayer;
 
@@ -356,14 +356,14 @@ namespace ChaosWarlords.Tests.States
         public void Command_ToggleMarket_TogglesState()
         {
             // 1. Arrange
-            _state._isMarketOpen = true;
+            _state.IsMarketOpen = true;
 
             // 2. Act: Execute Command
             var command = new ToggleMarketCommand();
             command.Execute(_state);
 
             // 3. Assert
-            Assert.IsFalse(_state._isMarketOpen, "Toggle command should close the market if open.");
+            Assert.IsFalse(_state.IsMarketOpen, "Toggle command should close the market if open.");
         }
 
         [TestMethod]

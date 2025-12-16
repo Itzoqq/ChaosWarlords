@@ -41,5 +41,25 @@ namespace ChaosWarlords.Source.Entities
         {
             Effects.Add(effect);
         }
+
+        public Card Clone()
+        {
+            // 1. Copy basic properties via constructor
+            var newCard = new Card(Id, Name, Cost, Aspect, VictoryPoints, InfluenceValue)
+            {
+                Description = Description,
+                Location = Location,
+                Position = Position,
+                IsHovered = IsHovered
+            };
+
+            // 2. Deep copy the effects list (so modifying one card's effects doesn't change the other)
+            foreach (var effect in Effects)
+            {
+                newCard.Effects.Add(new CardEffect(effect.Type, effect.Amount, effect.TargetResource));
+            }
+
+            return newCard;
+        }
     }
 }

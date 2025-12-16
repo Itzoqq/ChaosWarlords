@@ -11,14 +11,16 @@ namespace ChaosWarlords.Source.Commands
     /// </summary>
     public class ActionCompletedCommand : IGameCommand
     {
-        public void Execute(GameplayState state)
+        // FIX 1: Update signature to use the new IGameplayState interface
+        public void Execute(IGameplayState state)
         {
-            var actionSystem = state._actionSystem;
-            var turnManager = state._turnManager;
+            // FIX 2: Access system managers via public properties
+            var actionSystem = state.ActionSystem;
 
             // 1. Finalize the pending card (pay cost, move to played)
             if (actionSystem.PendingCard != null)
             {
+                // FIX 2: Use the public methods on IGameplayState
                 state.ResolveCardEffects(actionSystem.PendingCard);
                 state.MoveCardToPlayed(actionSystem.PendingCard);
             }
@@ -27,6 +29,7 @@ namespace ChaosWarlords.Source.Commands
             actionSystem.CancelTargeting();
 
             // *** FIX: Switch the input mode back to normal ***
+            // FIX 2: Use the public methods on IGameplayState
             state.SwitchToNormalMode();
 
             // 3. Log the completion

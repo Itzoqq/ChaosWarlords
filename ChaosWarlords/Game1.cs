@@ -46,7 +46,8 @@ namespace ChaosWarlords
             var cardDatabase = new CardDatabase();
             try
             {
-                // We load the data ONCE here, and pass the filled database down.
+                // In a real game, this file load might be wrapped in an IFileProvider or similar abstraction.
+                // We're keeping it close to Monogame's TitleContainer for now.
                 using (var stream = TitleContainer.OpenStream("Content/data/cards.json"))
                 {
                     cardDatabase.Load(stream);
@@ -62,6 +63,8 @@ namespace ChaosWarlords
             var inputProvider = new MonoGameInputProvider();
 
             // 3. Inject BOTH into GameplayState
+            // This line is correct because GameplayState implements IGameplayState, 
+            // which implements IState, and PushState expects IState.
             _stateManager.PushState(new GameplayState(this, inputProvider, cardDatabase));
         }
 

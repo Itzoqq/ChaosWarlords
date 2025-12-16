@@ -2,23 +2,20 @@ using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
+using System; // Added for the PlayCardCommand switch statement
 
 namespace ChaosWarlords.Source.Commands
 {
-    public interface IGameCommand
-    {
-        void Execute(GameplayState state);
-    }
-
     public class BuyCardCommand : IGameCommand
     {
         private readonly Card _card;
         public BuyCardCommand(Card card) { _card = card; }
 
-        public void Execute(GameplayState state)
+        // FIX 2: Update signature and property access
+        public void Execute(IGameplayState state)
         {
-            // Accessing via interface property
-            state._marketManager.TryBuyCard(state._turnManager.ActivePlayer, _card);
+            // Accessing via interface properties
+            state.MarketManager.TryBuyCard(state.TurnManager.ActivePlayer, _card);
         }
     }
 
@@ -27,19 +24,33 @@ namespace ChaosWarlords.Source.Commands
         private readonly MapNode _node;
         public DeployTroopCommand(MapNode node) { _node = node; }
 
-        public void Execute(GameplayState state)
+        // FIX 2: Update signature and property access
+        public void Execute(IGameplayState state)
         {
-            // FIX: Access ActivePlayer via TurnManager
-            state._mapManager.TryDeploy(state._turnManager.ActivePlayer, _node);
+            // Accessing via interface properties
+            state.MapManager.TryDeploy(state.TurnManager.ActivePlayer, _node);
         }
     }
 
     public class ToggleMarketCommand : IGameCommand
     {
-        public void Execute(GameplayState state)
+        // FIX 2: Update signature and property access
+        public void Execute(IGameplayState state)
         {
-            // Toggles the boolean flag in GameplayState
-            state._isMarketOpen = !state._isMarketOpen;
+            // Toggles the boolean flag via the interface property
+            state.IsMarketOpen = !state.IsMarketOpen;
+
+            // OPTIONAL: Since the input modes handle Market toggling now, you might
+            // also want to add logic here to switch the input mode.
+            if (state.IsMarketOpen)
+            {
+                // This command is often called from a UI button, so we trust it.
+            }
+            else
+            {
+                // The normal flow is handled in GameplayState.CloseMarket(), 
+                // but this command currently only toggles the flag. We'll leave it simple for now.
+            }
         }
     }
 
@@ -48,81 +59,48 @@ namespace ChaosWarlords.Source.Commands
         private readonly Card _card;
         public PlayCardCommand(Card card) { _card = card; }
 
-        public void Execute(GameplayState state)
+        // FIX 2: Update signature
+        public void Execute(IGameplayState state)
         {
+            // We can now call the PlayCard logic directly on the state interface
+            // The logic inside PlayCard handles all the checks, targeting switches,
+            // and final resolution.
             state.PlayCard(_card);
         }
     }
 
-    public class MapNodeClickedCommand : IGameCommand
+    public class EndTurnCommand : IGameCommand
     {
-        private readonly MapNode _node;
-        public MapNodeClickedCommand(MapNode node) { _node = node; }
-
-        public void Execute(GameplayState state)
+        // FIX 2: Update signature
+        public void Execute(IGameplayState state)
         {
-            if (state._actionSystem.IsTargeting())
-            {
-                // Site retrieval still needs the concrete MapManager implementation, 
-                // but since the interface exposes GetSiteForNode, this is fine.
-                Site site = state._mapManager.GetSiteForNode(_node);
-                bool success = state._actionSystem.HandleTargetClick(_node, site);
-
-                // This is being called from TargetingInputMode, which now calls the ActionCompletedCommand itself.
-                // This command should not be executed in TargetingInputMode, but since the UIManager can return it 
-                // when in Normal mode, we leave the command completion logic here, but the game is designed 
-                // to execute this command when the TARGETING mode returns it. 
-                // Since this command is now only returned by UIManager in the Normal Mode path,
-                // we leave the old deployment logic, but the root cause is the missing mode switch, which is now fixed.
-
-                if (success) new ActionCompletedCommand().Execute(state); // <-- Should not be reached in fixed flow
-            }
-            else
-            {
-                // This path should only be executed in NormalPlayInputMode's HandleMapInteraction 
-                // which is why the deployment logic is here.
-                state._mapManager.TryDeploy(state._turnManager.ActivePlayer, _node);
-            }
-        }
-    }
-
-    public class SiteClickedCommand : IGameCommand
-    {
-        private readonly Site _site;
-        public SiteClickedCommand(Site site) { _site = site; }
-
-        public void Execute(GameplayState state)
-        {
-            // Accessing via interface property
-            if (state._actionSystem.IsTargeting())
-            {
-                // Pass null for node, but valid site
-                bool success = state._actionSystem.HandleTargetClick(null, _site);
-                if (success) new ActionCompletedCommand().Execute(state);
-            }
+            // Call the consolidated EndTurn logic on the state interface
+            state.EndTurn();
         }
     }
 
     public class StartAssassinateCommand : IGameCommand
     {
-        public void Execute(GameplayState state)
+        // FIX 2: Update signature and property access
+        public void Execute(IGameplayState state)
         {
-            state._actionSystem.TryStartAssassinate();
-            if (state._actionSystem.CurrentState == ActionState.TargetingAssassinate) // Check if the call succeeded (e.g., affordable)
+            state.ActionSystem.TryStartAssassinate();
+            if (state.ActionSystem.CurrentState == ActionState.TargetingAssassinate)
             {
-                state.SwitchToTargetingMode(); // <-- ADDED
+                state.SwitchToTargetingMode();
             }
         }
     }
 
     public class StartReturnSpyCommand : IGameCommand
     {
-        public void Execute(GameplayState state)
+        // FIX 2: Update signature and property access
+        public void Execute(IGameplayState state)
         {
-            state._actionSystem.TryStartReturnSpy();
-            if (state._actionSystem.CurrentState == ActionState.TargetingReturnSpy)
+            state.ActionSystem.TryStartReturnSpy();
+            if (state.ActionSystem.CurrentState == ActionState.TargetingReturnSpy)
             {
-                state.SwitchToTargetingMode(); // <-- ADDED
+                state.SwitchToTargetingMode();
             }
         }
     }
@@ -133,10 +111,16 @@ namespace ChaosWarlords.Source.Commands
         private readonly PlayerColor _spyColor;
         public ResolveSpyCommand(PlayerColor spyColor) { _spyColor = spyColor; }
 
-        public void Execute(GameplayState state)
+        // FIX 2: Update signature and property access
+        public void Execute(IGameplayState state)
         {
-            if (state._actionSystem.FinalizeSpyReturn(_spyColor))
+            // Note: Spy selection logic is usually handled directly in the UpdateSpySelectionLogic()
+            // in the state itself. This command looks like it tries to finalize an action.
+            // We should use the ActionSystem via the interface property.
+
+            if (state.ActionSystem.FinalizeSpyReturn(_spyColor))
             {
+                // The ActionCompletedCommand must now also take IGameplayState
                 new ActionCompletedCommand().Execute(state);
             }
         }
@@ -144,10 +128,11 @@ namespace ChaosWarlords.Source.Commands
 
     public class CancelActionCommand : IGameCommand
     {
-        public void Execute(GameplayState state)
+        // FIX 2: Update signature and property access
+        public void Execute(IGameplayState state)
         {
-            state._actionSystem.CancelTargeting();
-            state.SwitchToNormalMode(); // <-- ADDED
+            state.ActionSystem.CancelTargeting();
+            state.SwitchToNormalMode();
         }
     }
 
@@ -156,7 +141,8 @@ namespace ChaosWarlords.Source.Commands
         /// <summary>
         /// Executes a switch back to normal input mode. Used to break out of incorrect input modes.
         /// </summary>
-        public void Execute(GameplayState state)
+        // FIX 2: Update signature
+        public void Execute(IGameplayState state)
         {
             state.SwitchToNormalMode();
         }

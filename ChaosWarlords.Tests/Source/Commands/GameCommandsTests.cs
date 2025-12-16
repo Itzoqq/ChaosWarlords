@@ -8,266 +8,238 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using System;
 using Microsoft.Xna.Framework.Input;
+using System.Linq;
 
 namespace ChaosWarlords.Tests.Commands
 {
-    // --- Mock Classes to Track Interactions ---
+    // --- Mock Classes to Track Interactions (Required for Test Setup) ---
 
-    // FIX 1: Added MockInputProvider, necessary for GameplayState's construction
     public class MockInputProvider : IInputProvider
     {
         public MouseState GetMouseState() => default;
         public KeyboardState GetKeyboardState() => default;
+        public void Reset() { }
     }
 
-    // FIX 2: Added MockCardDatabase, necessary for GameplayState's construction
     public class MockCardDatabase : ICardDatabase
     {
+        private readonly Card _dummyCard = new Card("dummy", "Dummy Card", 0, CardAspect.Neutral, 0, 0);
+
         public List<Card> GetAllMarketCards() => new List<Card>();
         public Card GetCardById(string id) => default!;
+
+        /// <summary>Provides a clone of a generic card object for deck seeding.</summary>
+        public Card GetTestCard() => _dummyCard.Clone();
     }
 
-    // Now implements the IMapManager interface
     public class MockMapManager : IMapManager
     {
-        // IReadOnlyList Properties (Satisfies IMapManager.Nodes and IMapManager.Sites)
+        // FIX: The interface uses IReadOnlyList, and List<T> implements it. This is correct.
         public IReadOnlyList<MapNode> Nodes { get; } = new List<MapNode>();
         public IReadOnlyList<Site> Sites { get; } = new List<Site>();
 
-        // FIX 3: Added field to track if TryDeploy was called
         public bool TryDeployCalled { get; private set; }
+        public MapNode? TryDeployNode { get; private set; }
 
-        // Setup Methods
+        public MapNode GetNodeAt(Vector2 position) => null!;
+        public Site GetSiteAt(Vector2 position) => null!;
+
+        public bool TryDeploy(Player player, MapNode node) { TryDeployCalled = true; TryDeployNode = node; return true; }
         public void CenterMap(int screenWidth, int screenHeight) { }
 
-        // Query Methods
-        public MapNode GetNodeAt(Vector2 position) => default!;
-        public Site GetSiteAt(Vector2 position) => default!;
-        public Site GetSiteForNode(MapNode node) => default!;
-
-        // Logic Methods
-        public bool TryDeploy(Player currentPlayer, MapNode targetNode)
-        {
-            TryDeployCalled = true; // FIX 4: Set the flag
-            return true;
-        }
+        // FIX: Public implementation should use List<PlayerColor> to satisfy the interface.
+        public List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer) => new List<PlayerColor>();
 
         public void DistributeControlRewards(Player activePlayer) { }
+        public Site GetSiteForNode(MapNode node) { throw new NotImplementedException(); }
 
-        // List<PlayerColor> implementation
-        public List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer) => new List<PlayerColor>();
+        // REMOVED: All redundant explicit interface implementations that caused CS0539/CS0102
     }
 
-    // Now implements the IMarketManager interface
     public class MockMarketManager : IMarketManager
     {
-        public bool TryBuyCardCalled { get; private set; }
-        // Implement interface properties/methods used by consumers
+        // FIX: Public property must match the interface type: List<Card>.
         public List<Card> MarketRow { get; } = new List<Card>();
-        public void Update(Microsoft.Xna.Framework.Vector2 cursorPosition) { }
 
-        // Matches the signature of the interface method
-        public bool TryBuyCard(Player player, Card card)
-        {
-            TryBuyCardCalled = true;
-            return true;
-        }
+        public bool TryBuyCardCalled { get; private set; }
+        public Card? LastCardToBuy { get; private set; }
+
+        // REMOVED: All redundant explicit interface implementations that caused CS0539/CS0102
+
+        public bool TryBuyCard(Player player, Card card) { TryBuyCardCalled = true; LastCardToBuy = card; return true; }
+        public void Update(Vector2 mousePosition) { }
     }
 
-    // Now implements the IActionSystem interface
     public class MockActionSystem : IActionSystem
     {
+        public ActionState CurrentState { get; set; } = ActionState.Normal;
+        public Card? PendingCard { get; set; }
+        public Site? PendingSite { get; set; }
         public bool TryStartAssassinateCalled { get; private set; }
         public bool TryStartReturnSpyCalled { get; private set; }
-        public bool CancelTargetingCalled { get; private set; }
         public bool FinalizeSpyReturnCalled { get; private set; }
-        public bool HandleTargetClickCalled { get; private set; }
-        public Card PendingCardOnStart { get; private set; } = null!;
-
-        public ActionState CurrentState { get; private set; } = ActionState.Normal;
-        public Card PendingCard { get; } = null!;
-        public Site PendingSite { get; } = null!;
-
-        public MockActionSystem(Player initialPlayer, MapManager mapManager) { }
-
-        // Matches the signature of the interface method
-        public void TryStartAssassinate() { TryStartAssassinateCalled = true; }
-        public void TryStartReturnSpy() { TryStartReturnSpyCalled = true; }
-        public void CancelTargeting() { CancelTargetingCalled = true; CurrentState = ActionState.Normal; }
-
-        public bool FinalizeSpyReturn(PlayerColor selectedSpyColor)
-        {
-            FinalizeSpyReturnCalled = true;
-            return true;
-        }
-
-        public bool HandleTargetClick(MapNode targetNode, Site targetSite)
-        {
-            HandleTargetClickCalled = true;
-            return true; // Simulate successful action completion
-        }
-
-        public void StartTargeting(ActionState state, Card pendingCard = null!)
-        {
-            CurrentState = state;
-            PendingCardOnStart = pendingCard!;
-        }
-
+        public bool CancelTargetingCalled { get; private set; }
         public bool IsTargeting() => CurrentState != ActionState.Normal;
-
-        // Implement the rest of the IActionSystem methods to satisfy the interface
-        public void SetCurrentPlayer(Player newPlayer) { }
+        public void SetCurrentPlayer(Player player) { }
+        public void TryStartAssassinate() => TryStartAssassinateCalled = true;
+        public void TryStartReturnSpy() => TryStartReturnSpyCalled = true;
+        public bool FinalizeSpyReturn(PlayerColor spyColor) { FinalizeSpyReturnCalled = true; return true; }
+        public void CancelTargeting() => CancelTargetingCalled = true;
+        public void StartTargeting(ActionState state, Card card) { }
+        public bool HandleTargetClick(MapNode? targetNode, Site? targetSite) => true;
     }
+
+    public class MockGameplayState : GameplayState
+    {
+        public new MockMapManager MapManager => (MockMapManager)base.MapManager;
+        public new MockMarketManager MarketManager => (MockMarketManager)base.MarketManager;
+        public new MockActionSystem ActionSystem => (MockActionSystem)base.ActionSystem;
+        public new TurnManager TurnManager => (TurnManager)base.TurnManager;
+
+        public MockGameplayState(Game game, IInputProvider inputProvider, ICardDatabase cardDatabase,
+                                 MockMapManager mapManager, MockMarketManager marketManager, MockActionSystem actionSystem, TurnManager turnManager)
+            : base(game, inputProvider, cardDatabase)
+        {
+            InjectDependencies(new InputManager(inputProvider), new UIManager(100, 100), mapManager, marketManager, actionSystem, turnManager);
+        }
+    }
+
 
     [TestClass]
     public class GameCommandsTests
     {
-        // ... existing fields ...
-        private GameplayState _mockState = null!;
-        private Player _testPlayer = null!;
-        private MockMapManager _mockMapManager = null!;
-        private MockMarketManager _mockMarketManager = null!;
-        private MockActionSystem _mockActionSystem = null!;
-        private TurnManager _turnManager = null!;
+        private MockMapManager _mockMapManager = default!;
+        private MockMarketManager _mockMarketManager = default!;
+        private MockActionSystem _mockActionSystem = default!;
+        private TurnManager _turnManager = default!;
+        private MockGameplayState _mockState = default!;
+        private Card _mockCard = default!;
+        private MockCardDatabase _mockCardDatabase = default!;
 
         [TestInitialize]
         public void Setup()
         {
-            // Set up test dependencies
-            _testPlayer = new Player(PlayerColor.Red);
-            _turnManager = new TurnManager(new List<Player> { _testPlayer });
-            // Initialize mocks directly
+            // Base mocks for Systems
             _mockMapManager = new MockMapManager();
             _mockMarketManager = new MockMarketManager();
-            // FIX: The second argument should be null in the mock constructor.
-            _mockActionSystem = new MockActionSystem(_testPlayer, null!);
+            _mockActionSystem = new MockActionSystem();
+            _mockCardDatabase = new MockCardDatabase();
 
-            // Mock a GameplayState instance and inject the mocks
-            // FIX: Pass the defined MockProvider and MockCardDatabase
-            _mockState = new GameplayState(null!, new MockInputProvider(), new MockCardDatabase());
-            _mockState.InjectDependencies(
-                new InputManager(new MockInputProvider()),
-                new UIManager(800, 600),
-                _mockMapManager, // Inject IMapManager
-                _mockMarketManager, // Inject IMarketManager
-                _mockActionSystem, // Inject IActionSystem
-                _turnManager
-            );
+            // 1. Initialize TurnManager with TWO players
+            var playerRed = new Player(PlayerColor.Red);
+            var playerBlue = new Player(PlayerColor.Blue);
+
+            // FIX 1: SEED BOTH PLAYERS' DECKS with cards (for EndTurn test to pass)
+            for (int i = 0; i < 25; i++)
+            {
+                playerRed.Deck.Add(_mockCardDatabase.GetTestCard());
+                playerBlue.Deck.Add(_mockCardDatabase.GetTestCard());
+            }
+
+            _turnManager = new TurnManager(new List<Player> { playerRed, playerBlue });
+
+            // Mock Card
+            _mockCard = new Card("test", "Test Card", 5, CardAspect.Shadow, 2, 1);
+
+            // Mock Game context
+            _mockState = new MockGameplayState(null!, new MockInputProvider(), _mockCardDatabase,
+                                               _mockMapManager, _mockMarketManager, _mockActionSystem, _turnManager);
+
+            // FIX 2: Manually draw the hand for the STARTING player (for EndTurn test's pre-assertion)
+            _turnManager.ActivePlayer.DrawCards(5);
         }
 
         [TestMethod]
-        public void BuyCardCommand_CallsMarketManager()
+        public void BuyCardCommand_CallsMarketManagerTryBuyCard()
         {
             // Arrange
-            var card = CardFactory.CreateNoble();
-            var command = new BuyCardCommand(card);
+            var command = new BuyCardCommand(_mockCard);
 
             // Act
             command.Execute(_mockState);
 
             // Assert
-            Assert.IsTrue(_mockMarketManager.TryBuyCardCalled, "BuyCardCommand must call TryBuyCard on the MarketManager.");
+            Assert.IsTrue(_mockMarketManager.TryBuyCardCalled, "BuyCardCommand must call TryBuyCard.");
+            Assert.AreEqual(_mockCard, _mockMarketManager.LastCardToBuy, "BuyCardCommand must pass the correct card to TryBuyCard.");
         }
 
         [TestMethod]
-        public void DeployTroopCommand_CallsMapManager()
+        public void DeployTroopCommand_CallsMapManagerTryDeploy()
         {
             // Arrange
-            var node = new MapNode(1, Microsoft.Xna.Framework.Vector2.Zero);
-            var command = new DeployTroopCommand(node);
+            var mockNode = new MapNode(0, new Vector2(0, 0));
+            var command = new DeployTroopCommand(mockNode);
 
             // Act
             command.Execute(_mockState);
 
             // Assert
-            // FIX: Use the correct flag in MockMapManager
-            Assert.IsTrue(_mockMapManager.TryDeployCalled, "DeployTroopCommand must call TryDeploy on the MapManager.");
+            Assert.IsTrue(_mockMapManager.TryDeployCalled, "DeployTroopCommand must call TryDeploy.");
+            Assert.AreEqual(mockNode, _mockMapManager.TryDeployNode, "DeployTroopCommand must pass the correct node to TryDeploy.");
         }
 
         [TestMethod]
-        public void ToggleMarketCommand_TogglesMarketState()
+        public void ToggleMarketCommand_TogglesMarketState_ToOpen()
         {
             // Arrange
-            _mockState._isMarketOpen = false;
+            _mockState.IsMarketOpen = false;
             var command = new ToggleMarketCommand();
 
-            // Act 1: Open
-            command.Execute(_mockState);
-            Assert.IsTrue(_mockState._isMarketOpen, "ToggleMarketCommand should open the market.");
-
-            // Act 2: Close
-            command.Execute(_mockState);
-            Assert.IsFalse(_mockState._isMarketOpen, "ToggleMarketCommand should close the market.");
-        }
-
-        [TestMethod]
-        public void PlayCardCommand_CallsPlayCardOnState()
-        {
-            // Arrange
-            var card = CardFactory.CreateSoldier();
-            _turnManager.ActivePlayer.Hand.Add(card);
-            var command = new PlayCardCommand(card);
-            int initialHandCount = _turnManager.ActivePlayer.Hand.Count;
-
             // Act
             command.Execute(_mockState);
 
-            // Assert: Verify that the card was processed (moved from Hand to PlayedCards)
-            Assert.HasCount(initialHandCount - 1, _turnManager.ActivePlayer.Hand, "PlayCardCommand must result in the card being played.");
-            Assert.Contains(card, _turnManager.ActivePlayer.PlayedCards, "Played card must be moved to PlayedCards.");
+            // Assert
+            Assert.IsTrue(_mockState.IsMarketOpen, "ToggleMarketCommand should open the market if it was closed.");
         }
 
         [TestMethod]
-        public void MapNodeClickedCommand_WhenTargeting_CallsHandleTargetClick()
+        public void ToggleMarketCommand_TogglesMarketState_ToClosed()
         {
             // Arrange
-            var node = new MapNode(1, Microsoft.Xna.Framework.Vector2.Zero);
-            var command = new MapNodeClickedCommand(node);
-
-            // Set targeting mode
-            _mockActionSystem.StartTargeting(ActionState.TargetingAssassinate);
+            _mockState.IsMarketOpen = true;
+            var command = new ToggleMarketCommand();
 
             // Act
             command.Execute(_mockState);
 
             // Assert
-            Assert.IsTrue(_mockActionSystem.HandleTargetClickCalled, "MapNodeClickedCommand must call HandleTargetClick when in targeting mode.");
+            Assert.IsFalse(_mockState.IsMarketOpen, "ToggleMarketCommand should close the market if it was open.");
         }
 
         [TestMethod]
-        public void MapNodeClickedCommand_WhenNotTargeting_CallsTryDeploy()
+        public void PlayCardCommand_CallsStatePlayCard()
         {
             // Arrange
-            var node = new MapNode(1, Microsoft.Xna.Framework.Vector2.Zero);
-            var command = new MapNodeClickedCommand(node);
-
-            // Ensure not targeting
-            _mockActionSystem.CancelTargeting();
+            var command = new PlayCardCommand(_mockCard);
+            _mockState.TurnManager.ActivePlayer.Hand.Add(_mockCard);
 
             // Act
             command.Execute(_mockState);
 
             // Assert
-            // FIX: Use the correct flag in MockMapManager
-            Assert.IsTrue(_mockMapManager.TryDeployCalled, "MapNodeClickedCommand must call TryDeploy when not in targeting mode.");
+            Assert.DoesNotContain(_mockCard, _mockState.TurnManager.ActivePlayer.Hand, "PlayCardCommand should remove the card from hand.");
+            Assert.Contains(_mockCard, _mockState.TurnManager.ActivePlayer.PlayedCards, "PlayCardCommand should add the card to played cards.");
         }
 
         [TestMethod]
-        public void SiteClickedCommand_CallsHandleTargetClick()
+        public void EndTurnCommand_CallsStateEndTurn()
         {
             // Arrange
-            // FIX: Corrected constructor usage for Site, which only takes data arguments now.
-            var site = new Site("test", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
-            var command = new SiteClickedCommand(site);
+            var command = new EndTurnCommand();
+            var startingPlayer = _mockState.TurnManager.ActivePlayer;
 
-            // Set targeting mode
-            _mockActionSystem.StartTargeting(ActionState.TargetingPlaceSpy);
+            // Assert starting condition (Should be 5 from Setup())
+            Assert.HasCount(5, startingPlayer.Hand, "Starting player must have a full hand before ending turn.");
 
             // Act
             command.Execute(_mockState);
 
             // Assert
-            Assert.IsTrue(_mockActionSystem.HandleTargetClickCalled, "SiteClickedCommand must call HandleTargetClick when in targeting mode.");
+            // 1. Player Switch Check
+            Assert.AreNotEqual(startingPlayer, _mockState.TurnManager.ActivePlayer, "EndTurnCommand should change the ActivePlayer.");
+
+            // 2. New Player Draws Check
+            Assert.HasCount(5, _mockState.TurnManager.ActivePlayer.Hand, "EndTurnCommand should cause the new player to draw 5 cards.");
         }
 
         [TestMethod]

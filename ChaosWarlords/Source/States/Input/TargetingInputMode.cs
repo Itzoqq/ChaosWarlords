@@ -9,13 +9,18 @@ namespace ChaosWarlords.Source.States.Input
 {
     public class TargetingInputMode : IInputMode
     {
-        private readonly GameplayState _state;
+        // FIX 1: Change private field type to the interface
+        private readonly IGameplayState _state;
+
+        // These fields are kept because they are directly used in the logic below, 
+        // making the methods cleaner than accessing everything via _state.
         private readonly InputManager _inputManager;
         private readonly IMapManager _mapManager;
         private readonly TurnManager _turnManager;
         private readonly IActionSystem _actionSystem;
 
-        public TargetingInputMode(GameplayState state, InputManager inputManager, IMapManager mapManager, TurnManager turnManager, IActionSystem actionSystem)
+        // FIX 2: Change constructor parameter type to the interface
+        public TargetingInputMode(IGameplayState state, InputManager inputManager, IMapManager mapManager, TurnManager turnManager, IActionSystem actionSystem)
         {
             _state = state;
             _inputManager = inputManager;
@@ -26,38 +31,34 @@ namespace ChaosWarlords.Source.States.Input
 
         public IGameCommand HandleInput(InputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
-            // *** CRITICAL FIX: If the ActionSystem is done, but we are still here, switch back to normal mode. ***
+            // CRITICAL FIX: If the ActionSystem's pending state is reset, switch back to normal mode.
             if (actionSystem.CurrentState == ActionState.Normal)
             {
                 // This is the clean break from the targeting loop.
-                // It switches the InputMode without logging another "Cancelled" message.
                 return new SwitchToNormalModeCommand();
             }
-            // ***************************************************************************************************
 
-            // Delegate to specific targeting logic
-            switch (actionSystem.CurrentState)
+            // 1. Handle Spy Selection Logic (used after clicking a site for TargetReturnSpy)
+            if (actionSystem.CurrentState == ActionState.SelectingSpyToReturn)
             {
-                case ActionState.SelectingSpyToReturn:
-                    return UpdateSpySelectionLogic(inputManager, mapManager, activePlayer, actionSystem);
-                case ActionState.TargetingAssassinate:
-                case ActionState.TargetingPlaceSpy:
-                case ActionState.TargetingReturnSpy:
-                case ActionState.TargetingReturn:
-                case ActionState.TargetingSupplant:
-                    return UpdateGeneralTargetingLogic(inputManager, mapManager, activePlayer, actionSystem);
-
-                default:
-                    // This is hit if the state is an unknown/invalid ActionState (not None).
-                    // We force a cancel to clear the state and switch to normal mode.
-                    return new CancelActionCommand();
+                if (inputManager.IsLeftMouseJustClicked())
+                {
+                    return HandleSpySelection(inputManager, mapManager, activePlayer, actionSystem);
+                }
+                return null;
             }
+
+            // 2. Handle Map Targeting Logic (used for Deploy, Assassinate, Supplant, PlaceSpy)
+            if (inputManager.IsLeftMouseJustClicked())
+            {
+                return HandleTargetingClick(inputManager, mapManager, actionSystem);
+            }
+
+            return null;
         }
 
-        private IGameCommand UpdateGeneralTargetingLogic(InputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        private IGameCommand HandleTargetingClick(InputManager inputManager, IMapManager mapManager, IActionSystem actionSystem)
         {
-            if (!inputManager.IsLeftMouseJustClicked()) return null; // Return null if no click
-
             Vector2 mousePos = inputManager.MousePosition;
             MapNode targetNode = mapManager.GetNodeAt(mousePos);
             Site targetSite = mapManager.GetSiteAt(mousePos);
@@ -67,23 +68,21 @@ namespace ChaosWarlords.Source.States.Input
             if (success)
             {
                 // Action completed, resolve card and exit targeting mode
-                // Instead of calling _state.OnActionCompleted(), we return a command
                 return new ActionCompletedCommand();
             }
 
-            return null; // Return null if no successful target was clicked
+            // Clicking invalid space does nothing, allowing the user to try again
+            return null;
         }
 
-        private IGameCommand UpdateSpySelectionLogic(InputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        private IGameCommand HandleSpySelection(InputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
-            if (!inputManager.IsLeftMouseJustClicked()) return null;
-
             Site site = actionSystem.PendingSite;
             if (site == null)
             {
                 // Sanity check: If we're in selection mode but have no site, cancel.
                 actionSystem.CancelTargeting();
-                return new CancelActionCommand(); // Return a cancel command
+                return new CancelActionCommand();
             }
 
             // --- Simplified Spy Selection Click Logic ---
@@ -95,13 +94,8 @@ namespace ChaosWarlords.Source.States.Input
                 Rectangle btnRect = new Rectangle((int)startPos.X + (i * 60), (int)startPos.Y, 50, 40);
                 if (inputManager.IsMouseOver(btnRect))
                 {
-                    bool success = actionSystem.FinalizeSpyReturn(enemies[i]);
-                    if (success)
-                    {
-                        // Action completed, resolve card and exit targeting mode
-                        return new ActionCompletedCommand(); // Return the complete command
-                    }
-                    return null; // Handled the click, but no action was executed
+                    // Return the command that will finalize the action and switch back to normal mode
+                    return new ResolveSpyCommand(enemies[i]);
                 }
             }
 
