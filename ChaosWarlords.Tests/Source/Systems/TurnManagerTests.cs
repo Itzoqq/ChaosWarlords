@@ -12,7 +12,7 @@ namespace ChaosWarlords.Tests.Systems
     {
         private Player _playerRed = null!;
         private Player _playerBlue = null!;
-        private TurnManager _turnManager = null!;
+        private ITurnManager _turnManager = null!;
 
         // Cards for testing PlayCard/Focus logic
         private Card _shadowCard = null!;
