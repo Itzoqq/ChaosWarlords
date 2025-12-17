@@ -107,18 +107,13 @@ namespace ChaosWarlords.Source.Commands
         private readonly PlayerColor _spyColor;
         public ResolveSpyCommand(PlayerColor spyColor) { _spyColor = spyColor; }
 
-        // FIX 2: Update signature and property access
         public void Execute(IGameplayState state)
         {
-            // Note: Spy selection logic is usually handled directly in the UpdateSpySelectionLogic()
-            // in the state itself. This command looks like it tries to finalize an action.
-            // We should use the ActionSystem via the interface property.
-
-            if (state.ActionSystem.FinalizeSpyReturn(_spyColor))
-            {
-                // The ActionCompletedCommand must now also take IGameplayState
-                new ActionCompletedCommand().Execute(state);
-            }
+            // We just call the method. 
+            // If it succeeds, ActionSystem fires OnActionCompleted.
+            // If it fails, ActionSystem fires OnActionFailed.
+            // The GameplayState listens to these events and handles the rest.
+            state.ActionSystem.FinalizeSpyReturn(_spyColor);
         }
     }
 

@@ -1,3 +1,4 @@
+using System;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
 
@@ -5,6 +6,10 @@ namespace ChaosWarlords.Source.Systems
 {
     public interface IActionSystem
     {
+        // Added Events
+        event EventHandler OnActionCompleted;
+        event EventHandler<string> OnActionFailed;
+
         ActionState CurrentState { get; }
         Card PendingCard { get; }
         Site PendingSite { get; }
@@ -15,7 +20,9 @@ namespace ChaosWarlords.Source.Systems
         void StartTargeting(ActionState state, Card card = null);
         void CancelTargeting();
         bool IsTargeting();
-        bool HandleTargetClick(MapNode targetNode, Site targetSite);
-        bool FinalizeSpyReturn(PlayerColor selectedSpyColor);
+
+        // Changed return types from bool to void
+        void HandleTargetClick(MapNode targetNode, Site targetSite);
+        void FinalizeSpyReturn(PlayerColor selectedSpyColor);
     }
 }

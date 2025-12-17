@@ -73,15 +73,31 @@ namespace ChaosWarlords.Tests.Commands
 
     public class MockActionSystem : IActionSystem
     {
+        // 1. Events
+        public event EventHandler? OnActionCompleted;
+        public event EventHandler<string>? OnActionFailed;
+
+        // --- FIX: Add this helper method ---
+        // This silences the CS0067 warning because the event is now "used" (invoked) here.
+        // It also allows you to write tests for failure cases later!
+        public void SimulateFailure(string reason)
+        {
+            OnActionFailed?.Invoke(this, reason);
+        }
+        // -----------------------------------
+
         public ActionState CurrentState { get; set; } = ActionState.Normal;
         public Card? PendingCard { get; set; }
         public Site? PendingSite { get; set; }
+
         public bool TryStartAssassinateCalled { get; private set; }
         public bool TryStartReturnSpyCalled { get; private set; }
         public bool FinalizeSpyReturnCalled { get; private set; }
         public bool CancelTargetingCalled { get; private set; }
+
         public bool IsTargeting() => CurrentState != ActionState.Normal;
         public void SetCurrentPlayer(Player player) { }
+
         public void TryStartAssassinate()
         {
             TryStartAssassinateCalled = true;
@@ -99,9 +115,19 @@ namespace ChaosWarlords.Tests.Commands
             CancelTargetingCalled = true;
             CurrentState = ActionState.Normal;
         }
-        public bool FinalizeSpyReturn(PlayerColor spyColor) { FinalizeSpyReturnCalled = true; return true; }
+
+        public void FinalizeSpyReturn(PlayerColor spyColor)
+        {
+            FinalizeSpyReturnCalled = true;
+            OnActionCompleted?.Invoke(this, EventArgs.Empty);
+        }
+
         public void StartTargeting(ActionState state, Card card) { }
-        public bool HandleTargetClick(MapNode? targetNode, Site? targetSite) => true;
+
+        public void HandleTargetClick(MapNode? targetNode, Site? targetSite)
+        {
+            OnActionCompleted?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     public class MockGameplayState : GameplayState

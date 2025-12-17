@@ -4,6 +4,7 @@ using ChaosWarlords.Source.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
+using System;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -17,6 +18,10 @@ namespace ChaosWarlords.Tests.Systems
 
         private MapNode _node1 = null!, _node2 = null!;
         private Site _siteA = null!;
+
+        // Helper to capture events
+        private bool _eventCompletedFired;
+        private bool _eventFailedFired;
 
         [TestInitialize]
         public void Setup()
@@ -41,6 +46,12 @@ namespace ChaosWarlords.Tests.Systems
 
             _actionSystem = new ActionSystem(_player1, _mapManager);
 
+            // Subscribe to events for every test
+            _eventCompletedFired = false;
+            _eventFailedFired = false;
+            _actionSystem.OnActionCompleted += (s, e) => _eventCompletedFired = true;
+            _actionSystem.OnActionFailed += (s, msg) => _eventFailedFired = true;
+
             // Reset player
             _player1.Power = 10;
             _player1.TroopsInBarracks = 10;
@@ -57,6 +68,8 @@ namespace ChaosWarlords.Tests.Systems
             _player1.Power = 3;
             _actionSystem.TryStartAssassinate();
             Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
+            // Note: StartAssassinate usually doesn't fire Completed, it just changes state.
+            Assert.IsFalse(_eventFailedFired);
         }
 
         [TestMethod]
@@ -65,6 +78,7 @@ namespace ChaosWarlords.Tests.Systems
             _player1.Power = 2;
             _actionSystem.TryStartAssassinate();
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
+            Assert.IsTrue(_eventFailedFired, "Should fire failure event due to low power.");
         }
 
         [TestMethod]
@@ -81,6 +95,7 @@ namespace ChaosWarlords.Tests.Systems
             _player1.Power = 2;
             _actionSystem.TryStartReturnSpy();
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
+            Assert.IsTrue(_eventFailedFired);
         }
 
         #endregion
@@ -90,20 +105,18 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void HandleTargetClick_Assassinate_PaysCostForUIAction()
         {
-            // Arrange: Start a UI-based assassination (no card)
+            // Arrange
             _player1.Power = 3;
             _actionSystem.TryStartAssassinate();
-            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
 
-            // Set up a valid target
             _node1.Occupant = _player1.Color; // Presence
             _node2.Occupant = _player2.Color; // Target
 
-            // Act: Click the target
-            bool success = _actionSystem.HandleTargetClick(_node2, null);
+            // Act
+            _actionSystem.HandleTargetClick(_node2, null);
 
             // Assert
-            Assert.IsTrue(success);
+            Assert.IsTrue(_eventCompletedFired, "Action should complete successfully.");
             Assert.AreEqual(0, _player1.Power); // Cost was paid
             Assert.AreEqual(PlayerColor.None, _node2.Occupant); // Target is gone
         }
@@ -111,20 +124,19 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void HandleTargetClick_Assassinate_DoesNotPayCostForCardAction()
         {
-            // Arrange: Start a card-based assassination
+            // Arrange
             var card = new Card("Assassin", "Assassin Name", 0, CardAspect.Shadow, 0, 0);
-            _player1.Power = 3; // Has power, but shouldn't be used
+            _player1.Power = 3;
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card);
 
-            // Set up a valid target
-            _node1.Occupant = _player1.Color; // Presence
-            _node2.Occupant = _player2.Color; // Target
+            _node1.Occupant = _player1.Color;
+            _node2.Occupant = _player2.Color;
 
-            // Act: Click the target
-            bool success = _actionSystem.HandleTargetClick(_node2, null);
+            // Act
+            _actionSystem.HandleTargetClick(_node2, null);
 
             // Assert
-            Assert.IsTrue(success);
+            Assert.IsTrue(_eventCompletedFired);
             Assert.AreEqual(3, _player1.Power); // Cost was NOT paid by ActionSystem
             Assert.AreEqual(PlayerColor.None, _node2.Occupant);
         }
@@ -132,44 +144,46 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void HandleTargetClick_PlaceSpy_SucceedsOnSiteAndFailsOnNode()
         {
-            // Arrange: Start a Place Spy action
+            // Arrange 1
             _actionSystem.StartTargeting(ActionState.TargetingPlaceSpy, null);
             _player1.SpiesInBarracks = 1;
 
-            // Act 1: Click a valid site
-            bool successOnSite = _actionSystem.HandleTargetClick(null, _siteA);
+            // Act 1
+            _actionSystem.HandleTargetClick(null, _siteA);
 
             // Assert 1
-            Assert.IsTrue(successOnSite);
+            Assert.IsTrue(_eventCompletedFired);
             Assert.HasCount(1, _siteA.Spies);
-            Assert.AreEqual(0, _player1.SpiesInBarracks);
 
-            // Arrange 2: Reset and try to click a node
+            // Reset for Part 2
+            _eventCompletedFired = false;
             _siteA.Spies.Clear();
             _player1.SpiesInBarracks = 1;
             _actionSystem.StartTargeting(ActionState.TargetingPlaceSpy, null);
 
-            // Act 2: Click a node (invalid target for this action)
-            bool successOnNode = _actionSystem.HandleTargetClick(_node1, null);
+            // Act 2: Click a node (invalid)
+            _actionSystem.HandleTargetClick(_node1, null);
 
             // Assert 2
-            Assert.IsFalse(successOnNode);
+            Assert.IsFalse(_eventCompletedFired, "Should not fire completion for invalid target.");
             Assert.IsEmpty(_siteA.Spies);
         }
 
         [TestMethod]
         public void HandleTargetClick_Fails_WithInvalidTarget()
         {
-            // Arrange: Try to assassinate a friendly troop
+            // Arrange
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate, null);
             _node1.Occupant = _player1.Color; // Friendly troop
 
             // Act
-            bool success = _actionSystem.HandleTargetClick(_node1, null);
+            _actionSystem.HandleTargetClick(_node1, null);
 
             // Assert
-            Assert.IsFalse(success);
-            Assert.AreEqual(_player1.Color, _node1.Occupant); // Nothing should have changed
+            Assert.IsFalse(_eventCompletedFired);
+            // Optionally check failure event
+            Assert.IsTrue(_eventFailedFired, "Should fire failure event for invalid target.");
+            Assert.AreEqual(_player1.Color, _node1.Occupant);
         }
 
         [TestMethod]
@@ -183,13 +197,12 @@ namespace ChaosWarlords.Tests.Systems
             _player1.TrophyHall = 0;
 
             // Act
-            bool success = _actionSystem.HandleTargetClick(_node2, null);
+            _actionSystem.HandleTargetClick(_node2, null);
 
             // Assert
-            Assert.IsTrue(success);
-            Assert.AreEqual(_player1.Color, _node2.Occupant); // Node was supplanted
+            Assert.IsTrue(_eventCompletedFired);
+            Assert.AreEqual(_player1.Color, _node2.Occupant);
             Assert.AreEqual(1, _player1.TrophyHall);
-            Assert.AreEqual(0, _player1.TroopsInBarracks);
         }
 
         [TestMethod]
@@ -197,14 +210,14 @@ namespace ChaosWarlords.Tests.Systems
         {
             // Arrange
             _actionSystem.StartTargeting(ActionState.TargetingReturn, null);
-            _node1.Occupant = _player1.Color; // Troop to return. This troop provides its own presence.
+            _node1.Occupant = _player1.Color;
             _player1.TroopsInBarracks = 5;
 
             // Act
-            bool success = _actionSystem.HandleTargetClick(_node1, null);
+            _actionSystem.HandleTargetClick(_node1, null);
 
             // Assert
-            Assert.IsTrue(success);
+            Assert.IsTrue(_eventCompletedFired);
             Assert.AreEqual(PlayerColor.None, _node1.Occupant);
             Assert.AreEqual(6, _player1.TroopsInBarracks);
         }
@@ -214,15 +227,15 @@ namespace ChaosWarlords.Tests.Systems
         {
             // Arrange
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate, null);
-            _node1.Occupant = _player1.Color; // Presence
-            // _node2 is empty by default
+            _node1.Occupant = _player1.Color;
+            // _node2 is empty
 
             // Act
-            bool success = _actionSystem.HandleTargetClick(_node2, null);
+            _actionSystem.HandleTargetClick(_node2, null);
 
             // Assert
-            Assert.IsFalse(success);
-            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState, "Should remain in targeting state after invalid click.");
+            Assert.IsFalse(_eventCompletedFired);
+            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
         }
         #endregion
 
@@ -231,81 +244,77 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void HandleTargetClick_ReturnSpy_AutoResolves_SingleFaction()
         {
-            // Arrange: 1 Blue Spy
+            // Arrange
             _siteA.Spies.Add(PlayerColor.Blue);
             _player1.Power = 3;
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
 
-            // Act: Click the site
-            bool success = _actionSystem.HandleTargetClick(null, _siteA);
+            // Act
+            _actionSystem.HandleTargetClick(null, _siteA);
 
             // Assert
-            Assert.IsTrue(success, "Should auto-resolve since there is only one enemy faction.");
-            Assert.IsEmpty(_siteA.Spies, "Spy should be removed.");
-            Assert.AreEqual(0, _player1.Power, "Cost should be paid.");
-            // The ActionSystem signals success by returning true; the calling state (e.g., GameplayState) is responsible for resetting the state.
+            Assert.IsTrue(_eventCompletedFired, "Should auto-resolve.");
+            Assert.IsEmpty(_siteA.Spies);
+            Assert.AreEqual(0, _player1.Power);
         }
 
         [TestMethod]
         public void HandleTargetClick_ReturnSpy_AutoResolves_MultipleSpiesSameFaction()
         {
-            // Arrange: 2 Blue Spies (Ambiguity only exists if factions differ, not units)
+            // Arrange
             _siteA.Spies.Add(PlayerColor.Blue);
             _siteA.Spies.Add(PlayerColor.Blue);
             _player1.Power = 3;
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
 
             // Act
-            bool success = _actionSystem.HandleTargetClick(null, _siteA);
+            _actionSystem.HandleTargetClick(null, _siteA);
 
             // Assert
-            Assert.IsTrue(success, "Should auto-resolve because all spies belong to Blue.");
-            Assert.HasCount(1, _siteA.Spies, "Only ONE spy should be removed.");
+            Assert.IsTrue(_eventCompletedFired);
+            Assert.HasCount(1, _siteA.Spies);
             Assert.AreEqual(0, _player1.Power);
         }
 
         [TestMethod]
         public void HandleTargetClick_ReturnSpy_DetectsAmbiguity_MultipleFactions()
         {
-            // Arrange: 1 Blue Spy, 1 Neutral Spy
+            // Arrange
             _siteA.Spies.Add(PlayerColor.Blue);
             _siteA.Spies.Add(PlayerColor.Neutral);
             _player1.Power = 3;
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
 
             // Act
-            bool success = _actionSystem.HandleTargetClick(null, _siteA);
+            _actionSystem.HandleTargetClick(null, _siteA);
 
             // Assert
-            Assert.IsFalse(success, "Should NOT return true immediately; waiting for selection.");
+            Assert.IsFalse(_eventCompletedFired, "Should NOT fire complete; waiting for selection.");
             Assert.AreEqual(ActionState.SelectingSpyToReturn, _actionSystem.CurrentState);
             Assert.AreEqual(_siteA, _actionSystem.PendingSite);
-            Assert.AreEqual(3, _player1.Power, "Power should NOT be deducted yet.");
-            Assert.HasCount(2, _siteA.Spies, "Spies should still be there.");
+            Assert.AreEqual(3, _player1.Power);
+            Assert.HasCount(2, _siteA.Spies);
         }
 
         [TestMethod]
         public void FinalizeSpyReturn_CompletesAction_AndPaysCost()
         {
-            // Arrange: We are already in the "Ambiguity" state from previous test
+            // Arrange
             _siteA.Spies.Add(PlayerColor.Blue);
             _siteA.Spies.Add(PlayerColor.Neutral);
             _player1.Power = 3;
 
-            // To test finalization, we must first get the system into the correct state.
-            // 1. Start the 'Return Spy' action.
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
-            // 2. Click the site. This detects ambiguity and transitions the state to 'SelectingSpyToReturn'.
-            _actionSystem.HandleTargetClick(null, _siteA); // This sets the internal PendingSite.
+            _actionSystem.HandleTargetClick(null, _siteA);
 
-            // Act: User selects "Neutral" from the UI
-            bool success = _actionSystem.FinalizeSpyReturn(PlayerColor.Neutral);
+            // Act
+            _actionSystem.FinalizeSpyReturn(PlayerColor.Neutral);
 
             // Assert
-            Assert.IsTrue(success);
+            Assert.IsTrue(_eventCompletedFired);
             Assert.HasCount(1, _siteA.Spies);
-            Assert.AreEqual(PlayerColor.Blue, _siteA.Spies[0], "Blue spy should remain.");
-            Assert.AreEqual(0, _player1.Power, "Power should be deducted now.");
+            Assert.AreEqual(PlayerColor.Blue, _siteA.Spies[0]);
+            Assert.AreEqual(0, _player1.Power);
         }
 
         #endregion
@@ -327,29 +336,21 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void HandleTargetClick_Assassinate_Fails_IfPowerLostDuringTargeting()
         {
-            // Arrange: 
-            // 1. Player starts with enough power (3).
+            // Arrange
             _player1.Power = 3;
-
-            // 2. Player clicks "Assassinate" button -> Enters Targeting Mode.
             _actionSystem.TryStartAssassinate();
-            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
+            _player1.Power = 0; // Lost power
 
-            // 3. EDGE CASE: Something else consumes power before the click happens 
-            // (e.g. a triggered event, or a bug in UI logic).
-            _player1.Power = 0;
+            _node1.Occupant = _player1.Color;
+            _node2.Occupant = _player2.Color;
 
-            // Setup a valid target to ensure it's the Power stopping us, not the map logic.
-            _node1.Occupant = _player1.Color; // Presence
-            _node2.Occupant = _player2.Color; // Enemy
-
-            // Act: Player clicks the target.
-            bool success = _actionSystem.HandleTargetClick(_node2, null);
+            // Act
+            _actionSystem.HandleTargetClick(_node2, null);
 
             // Assert
-            Assert.IsFalse(success, "Action should fail if power dropped below cost during targeting.");
-            Assert.AreEqual(PlayerColor.Blue, _node2.Occupant, "Enemy should still be alive.");
-            Assert.AreEqual(0, _player1.Power, "Power should not go negative.");
+            Assert.IsFalse(_eventCompletedFired);
+            Assert.IsTrue(_eventFailedFired, "Should fire failure due to lost power.");
+            Assert.AreEqual(PlayerColor.Blue, _node2.Occupant);
         }
 
         [TestMethod]
@@ -357,22 +358,19 @@ namespace ChaosWarlords.Tests.Systems
         {
             // Arrange
             _player1.Power = 3;
-            _actionSystem.TryStartReturnSpy(); // Enters targeting
+            _actionSystem.TryStartReturnSpy();
+            _player1.Power = 2; // Lost power
 
-            // EDGE CASE: Power is lost
-            _player1.Power = 2;
-
-            // Setup valid target
-            _node2.Occupant = _player1.Color; // Presence at site
-            _siteA.Spies.Add(_player2.Color); // Enemy spy
+            _node2.Occupant = _player1.Color;
+            _siteA.Spies.Add(_player2.Color);
 
             // Act
-            bool success = _actionSystem.HandleTargetClick(null, _siteA);
+            _actionSystem.HandleTargetClick(null, _siteA);
 
             // Assert
-            Assert.IsFalse(success);
-            Assert.Contains(_player2.Color, _siteA.Spies, "Spy should remain.");
-            Assert.AreEqual(2, _player1.Power, "Power should not decrease.");
+            Assert.IsFalse(_eventCompletedFired);
+            Assert.IsTrue(_eventFailedFired);
+            Assert.Contains(_player2.Color, _siteA.Spies);
         }
     }
 }

@@ -11,10 +11,7 @@ namespace ChaosWarlords.Source.States.Input
     {
         private readonly IGameplayState _state;
         private readonly InputManager _inputManager;
-
-        // FIX: Changed from UIManager to IUISystem to match constructor injection
         private readonly IUISystem _uiManager;
-
         private readonly IMapManager _mapManager;
         private readonly TurnManager _turnManager;
         private readonly IActionSystem _actionSystem;
@@ -38,7 +35,6 @@ namespace ChaosWarlords.Source.States.Input
             }
 
             // 2. UI Blocking
-            // Note: These properties must exist on IUISystem interface
             if (_uiManager.IsMarketHovered || _uiManager.IsAssassinateHovered || _uiManager.IsReturnSpyHovered)
             {
                 return null;
@@ -48,6 +44,8 @@ namespace ChaosWarlords.Source.States.Input
             if (inputManager.IsRightMouseJustClicked())
             {
                 actionSystem.CancelTargeting();
+                // We return this command to ensure immediate update, 
+                // though the event system could handle cancellation too if you wired OnActionCancelled.
                 return new SwitchToNormalModeCommand();
             }
 
@@ -56,23 +54,27 @@ namespace ChaosWarlords.Source.States.Input
             {
                 if (actionSystem.CurrentState == ActionState.SelectingSpyToReturn)
                 {
-                    return HandleSpySelection(inputManager, mapManager, activePlayer, actionSystem);
+                    HandleSpySelection(inputManager, mapManager, activePlayer, actionSystem);
+                    // Return null; if action completed, the event handler in GameplayState 
+                    // will switch the mode for the next frame.
+                    return null;
                 }
 
-                IGameCommand cmd = HandleTargetingClick(inputManager, mapManager, actionSystem);
-                if (cmd != null) return cmd;
+                HandleTargetingClick(inputManager, mapManager, actionSystem);
+                // Return null; if action completed, event handler handles state switch.
+                return null;
             }
 
             return null;
         }
 
-        private IGameCommand HandleSpySelection(InputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        private void HandleSpySelection(InputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             Site site = actionSystem.PendingSite;
             if (site == null)
             {
                 actionSystem.CancelTargeting();
-                return new CancelActionCommand();
+                return;
             }
 
             var enemies = mapManager.GetEnemySpiesAtSite(site, activePlayer).Distinct().ToList();
@@ -83,17 +85,18 @@ namespace ChaosWarlords.Source.States.Input
                 Rectangle btnRect = new Rectangle((int)startPos.X + (i * 60), (int)startPos.Y, 50, 40);
                 if (inputManager.IsMouseOver(btnRect))
                 {
-                    bool success = actionSystem.FinalizeSpyReturn(enemies[i]);
-                    if (success) return new ActionCompletedCommand();
+                    // This will fire OnActionCompleted if successful
+                    actionSystem.FinalizeSpyReturn(enemies[i]);
+                    return;
                 }
             }
 
+            // If clicked outside buttons, maybe cancel?
             GameLogger.Log("Cancelled spy selection.", LogChannel.General);
             actionSystem.CancelTargeting();
-            return new SwitchToNormalModeCommand();
         }
 
-        private IGameCommand HandleTargetingClick(InputManager inputManager, IMapManager mapManager, IActionSystem actionSystem)
+        private void HandleTargetingClick(InputManager inputManager, IMapManager mapManager, IActionSystem actionSystem)
         {
             Vector2 mousePos = inputManager.MousePosition;
             MapNode targetNode = mapManager.GetNodeAt(mousePos);
@@ -101,17 +104,11 @@ namespace ChaosWarlords.Source.States.Input
 
             if (targetNode == null && targetSite == null)
             {
-                return null;
+                return;
             }
 
-            bool success = actionSystem.HandleTargetClick(targetNode, targetSite);
-
-            if (success)
-            {
-                return new ActionCompletedCommand();
-            }
-
-            return null;
+            // This will fire OnActionCompleted if successful, or OnActionFailed if error
+            actionSystem.HandleTargetClick(targetNode, targetSite);
         }
     }
 }

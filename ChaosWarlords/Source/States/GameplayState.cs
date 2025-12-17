@@ -100,7 +100,6 @@ namespace ChaosWarlords.Source.States
             _uiManagerBacking = new UIManager(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
 
             // Initialize Renderers
-            // We assign to the internal field so Draw() can use it
             _uiRenderer = new UIRenderer(graphicsDevice, _defaultFont, _smallFont);
             _mapRenderer = new MapRenderer(_pixelTexture, _pixelTexture, _defaultFont);
             _cardRenderer = new CardRenderer(_pixelTexture, _defaultFont);
@@ -116,33 +115,8 @@ namespace ChaosWarlords.Source.States
 
             _actionSystemBacking.SetCurrentPlayer(_turnManagerBacking.ActivePlayer);
 
-            _uiManagerBacking.OnMarketToggleRequest += (s, e) =>
-            {
-                if (IsMarketOpen) CloseMarket();
-                else ToggleMarket();
-            };
-
-            _uiManagerBacking.OnAssassinateRequest += (s, e) =>
-            {
-                _actionSystemBacking.TryStartAssassinate();
-
-                // FIX: We must explicitly switch to Targeting Mode!
-                if (_actionSystemBacking.IsTargeting())
-                {
-                    SwitchToTargetingMode();
-                }
-            };
-
-            _uiManagerBacking.OnReturnSpyRequest += (s, e) =>
-            {
-                _actionSystemBacking.TryStartReturnSpy();
-
-                // FIX: We must explicitly switch to Targeting Mode!
-                if (_actionSystemBacking.IsTargeting())
-                {
-                    SwitchToTargetingMode();
-                }
-            };
+            // --- REMOVED OLD LAMBDAS HERE --- 
+            // They are now handled by InitializeEventSubscriptions() below.
 
             // 5. Initial Game State Setup
             _turnManagerBacking.ActivePlayer.DrawCards(5);
@@ -153,6 +127,10 @@ namespace ChaosWarlords.Source.States
 
             ArrangeHandVisuals();
             _mapManagerBacking.CenterMap(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
+
+            // 4. CRITICAL FIX: Initialize Subscriptions for the Real Game!
+            // This connects OnMarketToggleRequest -> HandleMarketToggle
+            InitializeEventSubscriptions();
 
             // 6. Set Initial Input Mode
             InputMode = new NormalPlayInputMode(
@@ -571,7 +549,51 @@ namespace ChaosWarlords.Source.States
             }
         }
 
+        private void HandleActionFailed(object sender, string message)
+        {
+            GameLogger.Log(message, LogChannel.Error);
+        }
+
+        private void HandleActionCompleted(object sender, EventArgs e)
+        {
+            // 1. Finalize Pending Card if any
+            if (_actionSystemBacking.PendingCard != null)
+            {
+                ResolveCardEffects(_actionSystemBacking.PendingCard);
+                MoveCardToPlayed(_actionSystemBacking.PendingCard);
+            }
+
+            // 2. Reset System
+            _actionSystemBacking.CancelTargeting();
+
+            // 3. Switch Mode
+            SwitchToNormalMode();
+
+            GameLogger.Log("Action Complete.", LogChannel.General);
+        }
+
         // Changed from internal to public for commands/external systems
+        private void InitializeEventSubscriptions()
+        {
+            // 1. Unsubscribe first (Safety check to prevent double-subscription)
+            _uiManagerBacking.OnMarketToggleRequest -= HandleMarketToggle;
+            _uiManagerBacking.OnAssassinateRequest -= HandleAssassinateRequest;
+            _uiManagerBacking.OnReturnSpyRequest -= HandleReturnSpyRequest;
+
+            _actionSystemBacking.OnActionCompleted -= HandleActionCompleted;
+            _actionSystemBacking.OnActionFailed -= HandleActionFailed;
+
+            // 2. Subscribe UI Events
+            _uiManagerBacking.OnMarketToggleRequest += HandleMarketToggle;
+            _uiManagerBacking.OnAssassinateRequest += HandleAssassinateRequest;
+            _uiManagerBacking.OnReturnSpyRequest += HandleReturnSpyRequest;
+
+            // 3. Subscribe ActionSystem Events (This was missing in LoadContent!)
+            _actionSystemBacking.OnActionCompleted += HandleActionCompleted;
+            _actionSystemBacking.OnActionFailed += HandleActionFailed;
+        }
+
+        // Update InjectDependencies to use the shared method
         public void InjectDependencies(
             InputManager input,
             IUISystem ui,
@@ -589,17 +611,8 @@ namespace ChaosWarlords.Source.States
 
             _actionSystemBacking.SetCurrentPlayer(_turnManagerBacking.ActivePlayer);
 
-            // --- NEW: Wire up Events for Test Context ---
-            // We unhook first (-=) to ensure we don't subscribe twice if this is called multiple times.
-
-            _uiManagerBacking.OnMarketToggleRequest -= HandleMarketToggle;
-            _uiManagerBacking.OnMarketToggleRequest += HandleMarketToggle;
-
-            _uiManagerBacking.OnAssassinateRequest -= HandleAssassinateRequest;
-            _uiManagerBacking.OnAssassinateRequest += HandleAssassinateRequest;
-
-            _uiManagerBacking.OnReturnSpyRequest -= HandleReturnSpyRequest;
-            _uiManagerBacking.OnReturnSpyRequest += HandleReturnSpyRequest;
+            // Call the shared method so Tests get the events too
+            InitializeEventSubscriptions();
         }
     }
 }

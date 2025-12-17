@@ -1,32 +1,33 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
+using System;
 using System.Linq;
 
 namespace ChaosWarlords.Source.Systems
 {
-    // Added IActionSystem interface
     public class ActionSystem : IActionSystem
     {
-        // Removed 'internal' from public interface properties if they need to be public
+        // Event Definitions
+        public event EventHandler OnActionCompleted;
+        public event EventHandler<string> OnActionFailed;
+
         public ActionState CurrentState { get; internal set; } = ActionState.Normal;
         public Card PendingCard { get; internal set; }
         public Site PendingSite { get; private set; }
 
         private Player _currentPlayer;
         private readonly MapManager _mapManager;
+
         public ActionSystem(Player initialPlayer, MapManager mapManager)
         {
             _currentPlayer = initialPlayer;
             _mapManager = mapManager;
         }
 
-        /// <summary>
-        /// Updates the internal player reference when the turn changes.
-        /// </summary>
         public void SetCurrentPlayer(Player newPlayer)
         {
             _currentPlayer = newPlayer;
-            CancelTargeting(); // Always cancel any pending action when switching players
+            CancelTargeting();
         }
 
         public void TryStartAssassinate()
@@ -34,7 +35,7 @@ namespace ChaosWarlords.Source.Systems
             const int cost = 3;
             if (_currentPlayer.Power < cost)
             {
-                GameLogger.Log($"Not enough Power! Need {cost}.", LogChannel.Economy);
+                OnActionFailed?.Invoke(this, $"Not enough Power! Need {cost}.");
                 return;
             }
 
@@ -47,7 +48,7 @@ namespace ChaosWarlords.Source.Systems
             const int cost = 3;
             if (_currentPlayer.Power < cost)
             {
-                GameLogger.Log($"Not enough Power! Need {cost}.", LogChannel.Economy);
+                OnActionFailed?.Invoke(this, $"Not enough Power! Need {cost}.");
                 return;
             }
 
@@ -73,150 +74,133 @@ namespace ChaosWarlords.Source.Systems
             return CurrentState != ActionState.Normal;
         }
 
-        /// <summary>
-        /// Attempts to resolve a targeting action based on the current state and mouse click.
-        /// </summary>
-        /// <returns>True if the action was successfully completed, allowing Game1 to finalize costs/card effects.</returns>
-        public bool HandleTargetClick(MapNode targetNode, Site targetSite)
+        // Return type changed to void
+        public void HandleTargetClick(MapNode targetNode, Site targetSite)
         {
             switch (CurrentState)
             {
                 case ActionState.TargetingAssassinate:
-                    return HandleAssassinate(targetNode);
+                    HandleAssassinate(targetNode);
+                    break;
                 case ActionState.TargetingReturn:
-                    return HandleReturn(targetNode);
+                    HandleReturn(targetNode);
+                    break;
                 case ActionState.TargetingSupplant:
-                    return HandleSupplant(targetNode);
+                    HandleSupplant(targetNode);
+                    break;
                 case ActionState.TargetingPlaceSpy:
-                    return HandlePlaceSpy(targetSite);
+                    HandlePlaceSpy(targetSite);
+                    break;
                 case ActionState.TargetingReturnSpy:
-                    return HandleReturnSpyInitialClick(targetSite);
-                default:
-                    return false;
+                    HandleReturnSpyInitialClick(targetSite);
+                    break;
             }
         }
 
-        private bool HandleAssassinate(MapNode targetNode)
+        private void HandleAssassinate(MapNode targetNode)
         {
-            if (targetNode == null) return false;
+            if (targetNode == null) return;
 
-            // 1. Verify Logic (Map rules)
             if (!_mapManager.CanAssassinate(targetNode, _currentPlayer))
             {
-                GameLogger.Log("Invalid Target!", LogChannel.Error);
-                return false;
+                OnActionFailed?.Invoke(this, "Invalid Target!");
+                return;
             }
 
-            // 2. Verify Cost (Edge Case Protection)
-            // Only check cost if this action isn't free (provided by a Card)
             if (PendingCard == null && _currentPlayer.Power < 3)
             {
-                GameLogger.Log("Not enough Power to execute Assassinate!", LogChannel.Economy);
-                CancelTargeting(); // Auto-cancel if they can't afford it anymore
-                return false;
+                CancelTargeting();
+                OnActionFailed?.Invoke(this, "Not enough Power to execute Assassinate!");
+                return;
             }
 
-            // 3. Execute
             if (PendingCard == null) _currentPlayer.Power -= 3;
 
             _mapManager.Assassinate(targetNode, _currentPlayer);
-            return true;
+            OnActionCompleted?.Invoke(this, EventArgs.Empty);
         }
 
-        private bool HandleReturn(MapNode targetNode)
+        private void HandleReturn(MapNode targetNode)
         {
-            if (targetNode == null) return false;
+            if (targetNode == null) return;
             if (targetNode.Occupant != PlayerColor.None && _mapManager.HasPresence(targetNode, _currentPlayer.Color))
             {
-                if (targetNode.Occupant == PlayerColor.Neutral) return false;
+                if (targetNode.Occupant == PlayerColor.Neutral) return; // Silent fail or error?
+
                 _mapManager.ReturnTroop(targetNode, _currentPlayer);
-                return true;
+                OnActionCompleted?.Invoke(this, EventArgs.Empty);
             }
-            return false;
         }
 
-        private bool HandleSupplant(MapNode targetNode)
+        private void HandleSupplant(MapNode targetNode)
         {
-            if (targetNode == null) return false;
-            if (!_mapManager.CanAssassinate(targetNode, _currentPlayer)) return false;
-            if (_currentPlayer.TroopsInBarracks <= 0) return false;
+            if (targetNode == null) return;
+            if (!_mapManager.CanAssassinate(targetNode, _currentPlayer)) return; // Silent fail (invalid target)
+            if (_currentPlayer.TroopsInBarracks <= 0) return; // Silent fail
+
             _mapManager.Supplant(targetNode, _currentPlayer);
-            return true;
+            OnActionCompleted?.Invoke(this, EventArgs.Empty);
         }
 
-        private bool HandlePlaceSpy(Site targetSite)
+        private void HandlePlaceSpy(Site targetSite)
         {
-            if (targetSite == null) return false;
-            if (targetSite.Spies.Contains(_currentPlayer.Color)) return false;
-            if (_currentPlayer.SpiesInBarracks <= 0) return false;
+            if (targetSite == null) return;
+            if (targetSite.Spies.Contains(_currentPlayer.Color)) return;
+            if (_currentPlayer.SpiesInBarracks <= 0) return;
+
             _mapManager.PlaceSpy(targetSite, _currentPlayer);
-            return true;
+            OnActionCompleted?.Invoke(this, EventArgs.Empty);
         }
 
-        private bool HandleReturnSpyInitialClick(Site targetSite)
+        private void HandleReturnSpyInitialClick(Site targetSite)
         {
-            if (targetSite == null) return false;
+            if (targetSite == null) return;
 
-            // --- FIX START: Verify Cost (Edge Case Protection) ---
-            // Just like Assassinate, we must check if they can still afford it 
-            // (e.g., if they lost power between clicking the button and clicking the map)
             if (PendingCard == null && _currentPlayer.Power < 3)
             {
-                GameLogger.Log("Not enough Power to execute Return Spy!", LogChannel.Economy);
-                CancelTargeting(); // Auto-cancel if they can't afford it anymore
-                return false;
+                CancelTargeting();
+                OnActionFailed?.Invoke(this, "Not enough Power to execute Return Spy!");
+                return;
             }
-            // --- FIX END ---
 
-            // 1. Get all potential targets
             var enemySpies = _mapManager.GetEnemySpiesAtSite(targetSite, _currentPlayer);
 
             if (enemySpies.Count == 0)
             {
-                GameLogger.Log("Invalid Target: No enemy spies here.", LogChannel.Error);
-                return false;
+                OnActionFailed?.Invoke(this, "Invalid Target: No enemy spies here.");
+                return;
             }
 
-            // 2. Check how many DISTINCT enemy players are there
             var distinctEnemies = enemySpies.Distinct().ToList();
 
             if (distinctEnemies.Count == 1)
             {
-                // No choice needed, execute immediately
                 bool success = _mapManager.ReturnSpecificSpy(targetSite, _currentPlayer, distinctEnemies[0]);
                 if (success)
                 {
                     if (PendingCard == null) _currentPlayer.Power -= 3;
+                    OnActionCompleted?.Invoke(this, EventArgs.Empty);
                 }
-                return success;
             }
             else
             {
-                // Ambiguity! Multiple enemy factions present.
-                // Transition to Selection State
                 PendingSite = targetSite;
                 CurrentState = ActionState.SelectingSpyToReturn;
                 GameLogger.Log($"Multiple spies detected at {targetSite.Name}. Select which faction to return.", LogChannel.General);
-
-                // Return false because the action is NOT complete yet. 
-                // We are waiting for the UI selection.
-                return false;
+                // We return here without firing Completed/Failed because we are waiting for UI selection.
             }
         }
 
-        /// <summary>
-        /// Called by the UI when the player clicks a specific Spy Color button in the popup
-        /// </summary>
-        public bool FinalizeSpyReturn(PlayerColor selectedSpyColor)
+        public void FinalizeSpyReturn(PlayerColor selectedSpyColor)
         {
-            if (PendingSite == null) return false;
+            if (PendingSite == null) return;
 
             bool success = _mapManager.ReturnSpecificSpy(PendingSite, _currentPlayer, selectedSpyColor);
             if (success)
             {
                 if (PendingCard == null) _currentPlayer.Power -= 3;
+                OnActionCompleted?.Invoke(this, EventArgs.Empty);
             }
-            return success;
         }
     }
 }
