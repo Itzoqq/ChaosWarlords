@@ -1,7 +1,4 @@
-using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Source.Utilities
 {
@@ -28,7 +25,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
 
             // ASSERT
             Assert.IsNotNull(card);
-            // FIX: Check if ID starts with base ID, ignoring the unique suffix
+            // Check if ID starts with base ID, ignoring the unique suffix
             StringAssert.StartsWith(card.Id, "priestess_of_lolth");
             Assert.AreEqual("Priestess of Lolth", card.Name);
             Assert.AreEqual(2, card.Cost);
@@ -73,7 +70,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
         public void CreateSoldier_CreatesCorrectCard()
         {
             var card = CardFactory.CreateSoldier();
-            // FIX: Check prefix
+            // Check prefix
             StringAssert.StartsWith(card.Id, "soldier");
             Assert.AreEqual(EffectType.GainResource, card.Effects[0].Type);
             Assert.AreEqual(ResourceType.Power, card.Effects[0].TargetResource);
@@ -83,7 +80,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
         public void CreateNoble_CreatesCorrectCard()
         {
             var card = CardFactory.CreateNoble();
-            // FIX: Check prefix
+            // Check prefix
             StringAssert.StartsWith(card.Id, "noble");
             Assert.AreEqual(EffectType.GainResource, card.Effects[0].Type);
             Assert.AreEqual(ResourceType.Influence, card.Effects[0].TargetResource);

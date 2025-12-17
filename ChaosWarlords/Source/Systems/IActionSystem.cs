@@ -6,7 +6,6 @@ namespace ChaosWarlords.Source.Systems
 {
     public interface IActionSystem
     {
-        // Added Events
         event EventHandler OnActionCompleted;
         event EventHandler<string> OnActionFailed;
 
@@ -21,7 +20,6 @@ namespace ChaosWarlords.Source.Systems
         void CancelTargeting();
         bool IsTargeting();
 
-        // Changed return types from bool to void
         void HandleTargetClick(MapNode targetNode, Site targetSite);
         void FinalizeSpyReturn(PlayerColor selectedSpyColor);
     }

@@ -14,7 +14,7 @@ namespace ChaosWarlords.Tests.Entities
         [TestInitialize]
         public void Setup()
         {
-            // UPDATED: Removed null texture arg
+            // Removed null texture arg
             _node1 = new MapNode(1, new Vector2(0, 0));
             _node2 = new MapNode(2, new Vector2(0, 0));
             _node3 = new MapNode(3, new Vector2(0, 0));

@@ -1,7 +1,6 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Input;
 using System.Collections.Generic;
 
 namespace ChaosWarlords.Source.Systems
@@ -65,7 +64,5 @@ namespace ChaosWarlords.Source.Systems
                 card.IsHovered = card.Bounds.Contains(cursorPoint);
             }
         }
-
-        // Removed Draw() - The GameplayState will handle drawing the market using CardRenderer
     }
 }

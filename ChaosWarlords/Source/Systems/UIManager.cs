@@ -32,7 +32,6 @@ namespace ChaosWarlords.Source.Systems
 
         private void RecalculateLayout()
         {
-            // (Your existing layout logic here)
             int btnHeight = 100;
             int btnWidth = 40;
             int verticalGap = 25;

@@ -7,7 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Utilities
 {
-    // 1. Updated Data Structures to match cards.json
+    // 1. Data Structures to match cards.json
     [ExcludeFromCodeCoverage]
     public class CardData
     {
@@ -29,12 +29,10 @@ namespace ChaosWarlords.Source.Utilities
         public string TargetResource { get; set; }
     }
 
-    // REMOVED "static" keyword - Now it implements the interface
     public class CardDatabase : ICardDatabase
     {
         private List<CardData> _cardDataCache;
 
-        // No [ExcludeFromCodeCoverage] needed here unless you want to skip IO testing
         public void Load(Stream stream)
         {
             using (var reader = new StreamReader(stream))

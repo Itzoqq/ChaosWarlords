@@ -3,7 +3,6 @@ using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using System.Diagnostics.CodeAnalysis;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Source.Views
 {
@@ -42,7 +41,7 @@ namespace ChaosWarlords.Source.Views
             // ====================================================
             // SECTION 2: MILITARY (Centered)
             // ====================================================
-            // CORRECTED: Uses 'TrophyHall' (int) directly from your Player.cs
+            // Uses 'TrophyHall' (int) directly from your Player.cs
             string trophyText = $"Trophies: {player.TrophyHall}";
             string spiesText = $"Spies: {player.SpiesInBarracks}";
             string troopsText = $"Barracks: {player.TroopsInBarracks}";
@@ -145,7 +144,7 @@ namespace ChaosWarlords.Source.Views
                 // Background stays dim
                 bgColor = Color.DarkGray * 0.5f;
 
-                // CHANGE THIS: Use White or LightGray for readability
+                // Use White or LightGray for readability
                 textColor = Color.White;
             }
             else if (isHovered)
@@ -159,7 +158,6 @@ namespace ChaosWarlords.Source.Views
                 textColor = Color.White;
             }
 
-            // ... rest of the method (Draw Box, Draw Rotated Text) remains the same
             sb.Draw(_pixelTexture, rect, bgColor);
             UIRenderer.DrawBorder(sb, _pixelTexture, rect, 2, isEnabled ? Color.White : Color.Gray);
 

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Diagnostics.CodeAnalysis;
@@ -12,7 +11,6 @@ namespace ChaosWarlords.Source.Utilities
         public string Timestamp;
         public LogChannel Channel;
         public string Message;
-        // Removed 'Color' - irrelevant for text files
 
         public override string ToString()
         {

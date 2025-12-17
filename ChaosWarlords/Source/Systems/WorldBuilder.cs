@@ -1,17 +1,14 @@
-using Microsoft.Xna.Framework.Content;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Entities;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace ChaosWarlords.Source.Systems
 {
-    // UPDATED WorldData structure
+    // WorldData structure
     public class WorldData
     {
-        // Removed: public Player Player { get; set; }
-        public TurnManager TurnManager { get; set; } // NEW: Replaces the single Player object
+        public TurnManager TurnManager { get; set; }
         public MarketManager MarketManager { get; set; }
         public MapManager MapManager { get; set; }
         public ActionSystem ActionSystem { get; set; }
@@ -28,16 +25,14 @@ namespace ChaosWarlords.Source.Systems
             _mapDataPath = mapDataPath;
         }
 
-        // MODIFIED Build Method
+        // Build Method
         public WorldData Build()
         {
-            // 1. Initialize Databases (Handled)
-
-            // 2. Setup Market
+            // 1. Setup Market
             var marketManager = new MarketManager();
             marketManager.InitializeDeck(_cardDatabase.GetAllMarketCards());
 
-            // 3. Setup Players (Now two players)
+            // 2. Setup Players (Now two players)
             var players = new List<Player>();
 
             // Player 1 (Red)
@@ -52,11 +47,11 @@ namespace ChaosWarlords.Source.Systems
             for (int i = 0; i < 7; i++) playerBlue.Deck.Add(CardFactory.CreateNoble());
             players.Add(playerBlue);
 
-            // 4. Setup Turn Manager
+            // 3. Setup Turn Manager
             var turnManager = new TurnManager(players);
             Player activePlayer = turnManager.ActivePlayer; // This will be Player Red
 
-            // 5. Setup Map
+            // 4. Setup Map
             (List<MapNode>, List<Site>) mapData;
             try
             {
@@ -72,14 +67,14 @@ namespace ChaosWarlords.Source.Systems
 
             var mapManager = new MapManager(mapData.Item1, mapData.Item2);
 
-            // 6. Setup Action System
+            // 5. Setup Action System
             // ActionSystem is now initialized with the CURRENT active player (Red)
             var actionSystem = new ActionSystem(activePlayer, mapManager);
 
-            // 7. Scenario Rules (Updated to reflect multiple players)
-            if (mapManager.SitesInternal != null) // Change: Sites to SitesInternal
+            // 6. Scenario Rules (Updated to reflect multiple players)
+            if (mapManager.SitesInternal != null)
             {
-                foreach (var site in mapManager.SitesInternal) // Change: Sites to SitesInternal
+                foreach (var site in mapManager.SitesInternal)
                 {
                     if (site.Name.ToLower().Contains("city of gold"))
                     {
@@ -91,10 +86,10 @@ namespace ChaosWarlords.Source.Systems
                 }
             }
 
-            // 8. Return WorldData
+            // 7. Return WorldData
             return new WorldData
             {
-                TurnManager = turnManager, // Return the new TurnManager
+                TurnManager = turnManager,
                 MarketManager = marketManager,
                 MapManager = mapManager,
                 ActionSystem = actionSystem

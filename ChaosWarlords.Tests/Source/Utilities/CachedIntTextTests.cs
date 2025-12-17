@@ -1,5 +1,4 @@
 using ChaosWarlords.Source.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ChaosWarlords.Tests.Source.Utilities
 {

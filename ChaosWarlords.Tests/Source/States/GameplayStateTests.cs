@@ -165,7 +165,7 @@ namespace ChaosWarlords.Tests.States
         [TestMethod]
         public void EndTurn_ResetsResources_AndDrawsCards()
         {
-            // FIX: Use ActivePlayer from TurnManager
+            // Use ActivePlayer from TurnManager
             var activePlayer = _turnManager.ActivePlayer;
 
             activePlayer.Hand.Clear();
@@ -201,12 +201,12 @@ namespace ChaosWarlords.Tests.States
             _input.Update();
 
             // Act
-            // FIX: Use ActivePlayer from TurnManager
+            // Use ActivePlayer from TurnManager
             _turnManager.ActivePlayer.Power = 10;
             _state.HandleGlobalInput();
 
             // Assert
-            // FIX: Use ActivePlayer from TurnManager
+            // Use ActivePlayer from TurnManager
             Assert.AreEqual(0, _turnManager.ActivePlayer.Power, "Power should be 0 after EndTurn triggered by Enter key.");
         }
 
@@ -251,7 +251,7 @@ namespace ChaosWarlords.Tests.States
         {
             // Arrange
             _state.IsMarketOpen = true;
-            // FIX: Use ActivePlayer from TurnManager
+            // Use ActivePlayer from TurnManager
             _turnManager.ActivePlayer.Influence = 10;
 
             var cardToBuy = new Card("market_card", "Buy Me", 3, CardAspect.Sorcery, 1, 0);
@@ -263,7 +263,7 @@ namespace ChaosWarlords.Tests.States
             command.Execute(_state);
 
             // Assert
-            // FIX: Use ActivePlayer from TurnManager
+            // Use ActivePlayer from TurnManager
             Assert.AreEqual(7, _turnManager.ActivePlayer.Influence, "Influence should decrease by cost (10 - 3 = 7).");
             Assert.Contains(cardToBuy, _turnManager.ActivePlayer.DiscardPile, "Card should be moved to discard pile.");
             Assert.DoesNotContain(cardToBuy, _marketManager.MarketRow, "Card should be removed from market row.");
@@ -275,7 +275,7 @@ namespace ChaosWarlords.Tests.States
             // Arrange: Setup the "Screen" logic manually since we have no GraphicsDevice
             _state._handYBacking = 500;
             _state._playedYBacking = 400; // The "Pop Up" target
-            // FIX: Use ActivePlayer from TurnManager
+            // Use ActivePlayer from TurnManager
             var activePlayer = _turnManager.ActivePlayer;
 
             // Create 2 cards in hand
@@ -311,7 +311,7 @@ namespace ChaosWarlords.Tests.States
             // 1. ARRANGE
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate, CardFactory.CreateSoldier());
 
-            // FIX: Pass the _uiManager dependency
+            // Pass the _uiManager dependency
             _state.InputMode = new TargetingInputMode(
                 _state,
                 _input,
@@ -365,7 +365,7 @@ namespace ChaosWarlords.Tests.States
         public void Update_PressingEnter_EndsTurn()
         {
             // 1. Arrange
-            // FIX: Use ActivePlayer from TurnManager
+            // Use ActivePlayer from TurnManager
             var activePlayer = _turnManager.ActivePlayer;
             int initialDeckCount = activePlayer.Deck.Count;
             // Play a card so we have something to clean up
@@ -395,7 +395,7 @@ namespace ChaosWarlords.Tests.States
             _mutableNodes.Add(node);
             _mutableNodes.Add(baseNode);
 
-            // FIX: Use ActivePlayer from TurnManager
+            // Use ActivePlayer from TurnManager
             var activePlayer = _turnManager.ActivePlayer;
             activePlayer.TroopsInBarracks = 1;
             activePlayer.Power = 1;
@@ -412,7 +412,7 @@ namespace ChaosWarlords.Tests.States
         public void PlayCard_GainsResources()
         {
             // 1. Arrange
-            // FIX: Use ActivePlayer from TurnManager
+            // Use ActivePlayer from TurnManager
             var activePlayer = _turnManager.ActivePlayer;
             activePlayer.Influence = 0;
             activePlayer.Power = 0;
@@ -439,7 +439,7 @@ namespace ChaosWarlords.Tests.States
             assassin.Effects.Add(new CardEffect(EffectType.Assassinate, 0));
 
             // Ensure active player has it (assuming _turnManager.ActivePlayer is set up)
-            // FIX: Use ActivePlayer from TurnManager
+            // Use ActivePlayer from TurnManager
             _turnManager.ActivePlayer.Hand.Add(assassin);
 
             // Ensure the system starts from a known 'None' state.

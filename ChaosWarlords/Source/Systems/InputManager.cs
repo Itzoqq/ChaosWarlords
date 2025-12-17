@@ -30,7 +30,6 @@ namespace ChaosWarlords.Source.Systems
             _currentMouse = _provider.GetMouseState();
         }
 
-        // ... Rest of the methods (IsKeyJustPressed, etc.) remain exactly the same ...
         public bool IsKeyJustPressed(Keys key)
         {
             return _currentKeyboard.IsKeyDown(key) && !_previousKeyboard.IsKeyDown(key);

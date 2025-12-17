@@ -1,10 +1,7 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -30,7 +27,7 @@ namespace ChaosWarlords.Tests.Systems
 
             // Create a consistent map for testing
             // Layout: [1] -- [2] -- [3, 4 are in SiteA] -- [5 is in SiteB]
-            // UPDATED: Removed 'null' texture argument
+            // Removed 'null' texture argument
             _node1 = new MapNode(1, new Vector2(10, 10));
             _node2 = new MapNode(2, new Vector2(20, 10));
             _node3 = new MapNode(3, new Vector2(30, 10));
@@ -104,7 +101,7 @@ namespace ChaosWarlords.Tests.Systems
             _player1.Power = 0;
             _node1.Occupant = _player1.Color; // Has presence
 
-            // UPDATED: Pass target directly, removed IsHovered
+            // Pass target directly, removed IsHovered
             bool result = _mapManager.TryDeploy(_player1, _node2);
 
             Assert.IsFalse(result);
@@ -118,7 +115,7 @@ namespace ChaosWarlords.Tests.Systems
             _player1.TroopsInBarracks = 0;
             _node1.Occupant = _player1.Color; // Has presence
 
-            // UPDATED: Pass target directly
+            // Pass target directly
             bool result = _mapManager.TryDeploy(_player1, _node2);
 
             Assert.IsFalse(result);
@@ -133,7 +130,7 @@ namespace ChaosWarlords.Tests.Systems
             _player1.TroopsInBarracks = 1;
             _node1.Occupant = _player1.Color; // Has presence
 
-            // UPDATED: Pass target directly
+            // Pass target directly
             bool result = _mapManager.TryDeploy(_player1, _node2);
 
             Assert.IsTrue(result);
@@ -251,7 +248,7 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void ReturnSpy_Succeeds_WithPresence()
         {
-            // FIX: Move player to Node 2 so they are adjacent to Site A
+            // Move player to Node 2 so they are adjacent to Site A
             _node2.Occupant = _player1.Color;
 
             _siteA.Spies.Add(_player2.Color);

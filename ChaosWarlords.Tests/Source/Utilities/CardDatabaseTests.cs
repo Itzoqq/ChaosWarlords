@@ -1,7 +1,4 @@
-using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Linq;
 
 namespace ChaosWarlords.Tests.Source.Utilities
 {
@@ -43,7 +40,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
     public void LoadFromJson_CreatesCardsViaFactory()
     {
       // Arrange
-      // FIX: Create an instance instead of using static methods
+      // Create an instance instead of using static methods
       var db = new CardDatabase();
 
       // Act
@@ -53,7 +50,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
       // Assert
       Assert.HasCount(2, marketCards, "Should create a card for each entry in the JSON.");
 
-      // FIX: Use StartsWith because factory appends GUIDs
+      // Use StartsWith because factory appends GUIDs
       Assert.IsNotNull(marketCards.FirstOrDefault(c => c.Id.StartsWith("noble")), "Noble card should be created.");
       Assert.IsNotNull(marketCards.FirstOrDefault(c => c.Id.StartsWith("soldier")), "Soldier card should be created.");
     }
@@ -62,7 +59,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
     public void GetAllMarketCards_ReturnsEmptyList_WhenCacheIsEmpty()
     {
       // Arrange
-      // FIX: Create a fresh instance
+      // Create a fresh instance
       var db = new CardDatabase();
 
       // Act: Don't load anything

@@ -1,7 +1,6 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.Xna.Framework; // Added for Vector2/int types
-using System.Collections.Generic; // Already there
+using System.Collections.Generic;
 
 namespace ChaosWarlords.Source.Systems
 {
@@ -10,13 +9,13 @@ namespace ChaosWarlords.Source.Systems
         IReadOnlyList<MapNode> Nodes { get; }
         IReadOnlyList<Site> Sites { get; }
 
-        void CenterMap(int screenWidth, int screenHeight); // <-- ADD THIS
+        void CenterMap(int screenWidth, int screenHeight);
 
         bool TryDeploy(Player currentPlayer, MapNode targetNode);
         Site GetSiteForNode(MapNode node);
         MapNode GetNodeAt(Microsoft.Xna.Framework.Vector2 position);
         Site GetSiteAt(Microsoft.Xna.Framework.Vector2 position);
         void DistributeControlRewards(Player activePlayer);
-        System.Collections.Generic.List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer);
+        List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer);
     }
 }

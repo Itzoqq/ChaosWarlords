@@ -1,8 +1,5 @@
-using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
-using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ChaosWarlords.Tests.Source.Utilities
 {
@@ -77,7 +74,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
       Assert.IsNotNull(node2);
       Assert.IsNotNull(node3);
 
-      // FIX: Changed 'site.Nodes' to 'site.NodesInternal'
+      // Changed 'site.Nodes' to 'site.NodesInternal'
       Assert.HasCount(2, site.NodesInternal, "Site should contain 2 nodes.");
       Assert.Contains(node2, site.NodesInternal, "Site should contain Node 2.");
       Assert.Contains(node3, site.NodesInternal, "Site should contain Node 3.");

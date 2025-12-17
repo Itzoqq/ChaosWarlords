@@ -1,9 +1,6 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
-using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ChaosWarlords.Source.Views
 {

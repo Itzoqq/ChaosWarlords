@@ -8,9 +8,8 @@ namespace ChaosWarlords.Source.Systems
 {
     public class MapManager : IMapManager
     {
-        // REMOVED: The redundant and uninitialized "public IReadOnlyList<MapNode> Nodes { get; private set; }"
 
-        // CORRECTED IMPLEMENTATION: Internal mutable lists used as backing fields
+        // Internal mutable lists used as backing fields
         public List<MapNode> NodesInternal { get; private set; }
         public List<Site> SitesInternal { get; private set; }
 
@@ -70,7 +69,6 @@ namespace ChaosWarlords.Source.Systems
         }
 
         // --- Logic Methods (Deploy, Control, etc.) ---
-        // (Note: I changed GetHoveredNode to accept a specific node passed from the controller)
         public virtual bool TryDeploy(Player currentPlayer, MapNode targetNode)
         {
             if (targetNode == null) return false;

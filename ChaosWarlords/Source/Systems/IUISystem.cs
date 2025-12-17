@@ -1,6 +1,5 @@
 using System;
-using Microsoft.Xna.Framework; // Needed for Rectangle
-using ChaosWarlords.Source.Utilities;
+using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Source.Systems
 {
@@ -10,7 +9,7 @@ namespace ChaosWarlords.Source.Systems
         int ScreenWidth { get; }
         int ScreenHeight { get; }
 
-        // --- NEW: Layout Data for Rendering ---
+        // --- Layout Data for Rendering ---
         Rectangle MarketButtonRect { get; }
         Rectangle AssassinateButtonRect { get; }
         Rectangle ReturnSpyButtonRect { get; }

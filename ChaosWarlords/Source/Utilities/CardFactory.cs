@@ -1,5 +1,4 @@
 using ChaosWarlords.Source.Entities;
-using System.Collections.Generic;
 using System;
 
 namespace ChaosWarlords.Source.Utilities
@@ -15,8 +14,6 @@ namespace ChaosWarlords.Source.Utilities
 
         public static Card CreateSoldier()
         {
-            // OLD: var card = new Card("soldier", ...);
-            // NEW: Use Unique ID
             var card = new Card(GenerateUniqueId("soldier"), "Soldier", 0, CardAspect.Neutral, 0, 0);
 
             card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Power));

@@ -16,7 +16,7 @@ namespace ChaosWarlords.Source.Views
         private Texture2D _nodeTexture;
         private SpriteFont _font;
 
-        // --- OPTIMIZATION: Site Text Cache ---
+        // --- Site Text Cache ---
         // Stores the StringBuilder for each site to avoid per-frame allocations.
         private class SiteVisualData
         {

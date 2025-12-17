@@ -1,4 +1,3 @@
-using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.States.Input;

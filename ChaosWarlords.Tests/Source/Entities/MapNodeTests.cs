@@ -1,6 +1,5 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Tests.Entities
@@ -11,7 +10,7 @@ namespace ChaosWarlords.Tests.Entities
         [TestMethod]
         public void AddNeighbor_AddsToNeighborsListReciprocally()
         {
-            // UPDATED: Removed null texture arg
+            // Removed null texture arg
             var node1 = new MapNode(1, new Vector2(0, 0));
             var node2 = new MapNode(2, new Vector2(0, 0));
 

@@ -5,8 +5,6 @@ using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Views;
-using ChaosWarlords.Source.Commands;
-using System.IO;
 using System;
 using System.Linq;
 using ChaosWarlords.Source.States.Input;
@@ -115,7 +113,7 @@ namespace ChaosWarlords.Source.States
 
             _actionSystemBacking.SetCurrentPlayer(_turnManagerBacking.ActivePlayer);
 
-            // --- REMOVED OLD LAMBDAS HERE --- 
+            // REMOVED OLD LAMBDAS HERE
             // They are now handled by InitializeEventSubscriptions() below.
 
             // 5. Initial Game State Setup
@@ -128,7 +126,7 @@ namespace ChaosWarlords.Source.States
             ArrangeHandVisuals();
             _mapManagerBacking.CenterMap(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
 
-            // 4. CRITICAL FIX: Initialize Subscriptions for the Real Game!
+            // Initialize Subscriptions for the Real Game!
             // This connects OnMarketToggleRequest -> HandleMarketToggle
             InitializeEventSubscriptions();
 
@@ -175,7 +173,7 @@ namespace ChaosWarlords.Source.States
             command?.Execute(this);
         }
 
-        // NEW METHOD: Restores the highlighting functionality
+        // Highlighting functionality
         private void UpdateHandVisuals()
         {
             Point mousePos = _inputManagerBacking.MousePosition.ToPoint();
@@ -207,7 +205,7 @@ namespace ChaosWarlords.Source.States
             // End Turn (now public method through the interface)
             if (_inputManagerBacking.IsKeyJustPressed(Keys.Enter)) { EndTurn(); return true; }
 
-            // --- RESTORED: RIGHT-CLICK TO CANCEL ---
+            // RIGHT-CLICK TO CANCEL
             if (_inputManagerBacking.IsRightMouseJustClicked())
             {
                 // Priority 1: Close Market if open
@@ -237,31 +235,31 @@ namespace ChaosWarlords.Source.States
                 if (effect.Type == EffectType.Assassinate)
                 {
                     _actionSystemBacking.StartTargeting(ActionState.TargetingAssassinate, card);
-                    SwitchToTargetingMode(); // Public method call
+                    SwitchToTargetingMode();
                     return;
                 }
                 else if (effect.Type == EffectType.ReturnUnit)
                 {
                     _actionSystemBacking.StartTargeting(ActionState.TargetingReturn, card);
-                    SwitchToTargetingMode(); // Public method call
+                    SwitchToTargetingMode();
                     return;
                 }
                 else if (effect.Type == EffectType.Supplant)
                 {
                     _actionSystemBacking.StartTargeting(ActionState.TargetingSupplant, card);
-                    SwitchToTargetingMode(); // Public method call
+                    SwitchToTargetingMode();
                     return;
                 }
                 else if (effect.Type == EffectType.PlaceSpy)
                 {
                     _actionSystemBacking.StartTargeting(ActionState.TargetingPlaceSpy, card);
-                    SwitchToTargetingMode(); // Public method call
+                    SwitchToTargetingMode();
                     return;
                 }
             }
             _turnManagerBacking.PlayCard(card);
-            ResolveCardEffects(card); // Public method call
-            MoveCardToPlayed(card);   // Public method call
+            ResolveCardEffects(card);
+            MoveCardToPlayed(card);
         }
 
         // Changed from public to public (part of IGameplayState)
@@ -270,7 +268,7 @@ namespace ChaosWarlords.Source.States
             // 1. Update the Flag (Visuals)
             IsMarketOpen = true;
 
-            // 2. CRITICAL FIX: Switch the Input State (Logic)
+            // 2. Switch the Input State (Logic)
             // We inject 'this' (IGameplayState) and the required systems into the new mode.
             InputMode = new MarketInputMode(
                 this,
@@ -283,19 +281,17 @@ namespace ChaosWarlords.Source.States
             GameLogger.Log("Market opened.", LogChannel.General);
         }
 
-        // Changed from public to public (part of IGameplayState)
         public void CloseMarket()
         {
             // 1. Close the UI
             IsMarketOpen = false;
 
             // 2. Switch input mode back to normal (if the original mode wasn't targeting)
-            SwitchToNormalMode(); // Public method call
+            SwitchToNormalMode();
 
             GameLogger.Log("Market closed.", LogChannel.General);
         }
 
-        // Changed from public to public (part of IGameplayState)
         public void SwitchToTargetingMode()
         {
             // Note: This creates the correct TargetingInputMode instance with all necessary dependencies
@@ -310,7 +306,6 @@ namespace ChaosWarlords.Source.States
             GameLogger.Log("Switched to Targeting Input Mode.", LogChannel.Input);
         }
 
-        // Changed from public to public (part of IGameplayState)
         public void SwitchToNormalMode()
         {
             // Note: This creates the correct NormalPlayInputMode instance with all necessary dependencies
@@ -325,7 +320,6 @@ namespace ChaosWarlords.Source.States
             GameLogger.Log("Switched to Normal Play Input Mode.", LogChannel.Input);
         }
 
-        // Changed from internal to public (part of IGameplayState)
         public void ResolveCardEffects(Card card)
         {
             foreach (var effect in card.Effects)
@@ -338,7 +332,6 @@ namespace ChaosWarlords.Source.States
             }
         }
 
-        // Changed from internal to public (part of IGameplayState)
         public void MoveCardToPlayed(Card card)
         {
             _turnManagerBacking.ActivePlayer.Hand.Remove(card);
@@ -346,7 +339,6 @@ namespace ChaosWarlords.Source.States
             card.Position = new Vector2(card.Position.X, PlayedY);
         }
 
-        // Changed from internal to public (part of IGameplayState)
         public void EndTurn()
         {
             if (_actionSystemBacking.IsTargeting()) _actionSystemBacking.CancelTargeting();
@@ -368,7 +360,7 @@ namespace ChaosWarlords.Source.States
             _actionSystemBacking.SetCurrentPlayer(_turnManagerBacking.ActivePlayer); // ActionSystem needs the new player
 
             // 6. ARRANGE VISUALS
-            ArrangeHandVisuals(); // Public method call
+            ArrangeHandVisuals();
         }
 
         // Changed from private to public (part of IGameplayState)
@@ -406,7 +398,7 @@ namespace ChaosWarlords.Source.States
                 // Assuming you use the internal field for now:
                 if (_uiRenderer == null) _uiRenderer = new UIRenderer(_game.GraphicsDevice, _defaultFont, _smallFont);
 
-                // FIX: Added the missing IMarketManager argument (_marketManagerBacking)
+                // Added the missing IMarketManager argument (_marketManagerBacking)
                 _uiRenderer.DrawMarketOverlay(spriteBatch, _marketManagerBacking, UIManager.ScreenWidth, UIManager.ScreenHeight);
 
                 foreach (var card in _marketManagerBacking.MarketRow)
@@ -418,16 +410,16 @@ namespace ChaosWarlords.Source.States
             // 4. Draw UI (USING UI RENDERER)
             if (_uiRenderer == null) _uiRenderer = new UIRenderer(_game.GraphicsDevice, _defaultFont, _smallFont);
 
-            // FIX: Removed 'IsMarketOpen' argument. 
+            // Removed 'IsMarketOpen' argument. 
             // The UIRenderer now gets button state solely from the UIManager properties.
             _uiRenderer.DrawMarketButton(spriteBatch, UIManager);
 
-            // FIX: Removed 'TurnManager.ActivePlayer' argument.
+            // Removed 'TurnManager.ActivePlayer' argument.
             _uiRenderer.DrawActionButtons(spriteBatch, UIManager, TurnManager.ActivePlayer);
 
             _uiRenderer.DrawTopBar(spriteBatch, TurnManager.ActivePlayer, UIManager.ScreenWidth);
 
-            // NEW FEATURE: Draw Turn Indicator
+            // Draw Turn Indicator
             DrawTurnIndicator(spriteBatch);
 
             DrawTargetingHint(spriteBatch);
@@ -442,7 +434,7 @@ namespace ChaosWarlords.Source.States
         // Internal field restored from original (outside of interface contract)
         internal UIRenderer _uiRenderer;
 
-        // NEW METHOD: Draw Turn Indicator
+        // Draw Turn Indicator
         private void DrawTurnIndicator(SpriteBatch spriteBatch)
         {
             if (_defaultFont == null) return;
@@ -477,7 +469,7 @@ namespace ChaosWarlords.Source.States
             if (!ActionSystem.IsTargeting() || _defaultFont == null) return;
             if (ActionSystem.CurrentState == ActionState.SelectingSpyToReturn) return;
 
-            string targetText = GetTargetingText(ActionSystem.CurrentState); // Public method call
+            string targetText = GetTargetingText(ActionSystem.CurrentState);
             Vector2 mousePos = InputManager.MousePosition;
             spriteBatch.DrawString(_defaultFont, targetText, mousePos + new Vector2(20, 20), Color.Red);
         }
@@ -507,7 +499,6 @@ namespace ChaosWarlords.Source.States
             }
         }
 
-        // Changed from internal to public (part of IGameplayState)
         public string GetTargetingText(ActionState state)
         {
             return state switch

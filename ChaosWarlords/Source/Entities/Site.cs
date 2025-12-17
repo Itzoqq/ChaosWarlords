@@ -38,18 +38,18 @@ namespace ChaosWarlords.Source.Entities
 
         public void AddNode(MapNode node)
         {
-            NodesInternal.Add(node); // Change: Nodes to NodesInternal
+            NodesInternal.Add(node);
             RecalculateBounds();
         }
 
         public void RecalculateBounds()
         {
-            if (NodesInternal.Count == 0) return; // Change: Nodes to NodesInternal
+            if (NodesInternal.Count == 0) return;
 
             float minX = float.MaxValue, minY = float.MaxValue;
             float maxX = float.MinValue, maxY = float.MinValue;
 
-            foreach (var node in NodesInternal) // Change: Nodes to NodesInternal
+            foreach (var node in NodesInternal)
             {
                 if (node.Position.X < minX) minX = node.Position.X;
                 if (node.Position.Y < minY) minY = node.Position.Y;
@@ -70,12 +70,12 @@ namespace ChaosWarlords.Source.Entities
 
         public int GetTroopCount(PlayerColor color)
         {
-            return NodesInternal.Count(n => n.Occupant == color); // Change: Nodes to NodesInternal
+            return NodesInternal.Count(n => n.Occupant == color);
         }
 
         public PlayerColor GetControllingPlayer()
         {
-            var troopCounts = NodesInternal // Change: Nodes to NodesInternal
+            var troopCounts = NodesInternal
                 .Where(n => n.Occupant != PlayerColor.None && n.Occupant != PlayerColor.Neutral)
                 .GroupBy(n => n.Occupant)
                 .Select(g => new { Player = g.Key, Count = g.Count() })

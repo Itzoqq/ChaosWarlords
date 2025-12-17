@@ -3,12 +3,8 @@ using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
 using Microsoft.Xna.Framework;
-using System;
 using Microsoft.Xna.Framework.Input;
-using System.Linq;
 using ChaosWarlords.Source.States.Input;
 
 namespace ChaosWarlords.Tests.Commands
@@ -35,7 +31,7 @@ namespace ChaosWarlords.Tests.Commands
 
     public class MockMapManager : IMapManager
     {
-        // FIX: The interface uses IReadOnlyList, and List<T> implements it. This is correct.
+        // The interface uses IReadOnlyList, and List<T> implements it. This is correct.
         public IReadOnlyList<MapNode> Nodes { get; } = new List<MapNode>();
         public IReadOnlyList<Site> Sites { get; } = new List<Site>();
 
@@ -48,7 +44,7 @@ namespace ChaosWarlords.Tests.Commands
         public bool TryDeploy(Player player, MapNode node) { TryDeployCalled = true; TryDeployNode = node; return true; }
         public void CenterMap(int screenWidth, int screenHeight) { }
 
-        // FIX: Public implementation should use List<PlayerColor> to satisfy the interface.
+        // Public implementation should use List<PlayerColor> to satisfy the interface.
         public List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer) => new List<PlayerColor>();
 
         public void DistributeControlRewards(Player activePlayer) { }
@@ -59,7 +55,7 @@ namespace ChaosWarlords.Tests.Commands
 
     public class MockMarketManager : IMarketManager
     {
-        // FIX: Public property must match the interface type: List<Card>.
+        // Public property must match the interface type: List<Card>.
         public List<Card> MarketRow { get; } = new List<Card>();
 
         public bool TryBuyCardCalled { get; private set; }

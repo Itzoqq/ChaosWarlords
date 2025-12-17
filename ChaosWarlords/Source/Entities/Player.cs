@@ -37,7 +37,7 @@ namespace ChaosWarlords.Source.Entities
         internal List<Card> DiscardPile { get; private set; } = new List<Card>();
         internal List<Card> PlayedCards { get; private set; } = new List<Card>();
 
-        // NEW: Distinct list for Promoted cards
+        // Distinct list for Promoted cards
         internal List<Card> InnerCircle { get; private set; } = new List<Card>();
 
         public Player(PlayerColor color)

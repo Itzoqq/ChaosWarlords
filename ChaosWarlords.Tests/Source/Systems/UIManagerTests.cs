@@ -1,6 +1,4 @@
 using ChaosWarlords.Source.Systems;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 
 namespace ChaosWarlords.Tests.Systems

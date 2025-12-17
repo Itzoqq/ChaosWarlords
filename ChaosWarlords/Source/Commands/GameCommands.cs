@@ -1,8 +1,6 @@
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Entities;
-using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
-using System; // Added for the PlayCardCommand switch statement
 
 namespace ChaosWarlords.Source.Commands
 {
@@ -11,7 +9,6 @@ namespace ChaosWarlords.Source.Commands
         private readonly Card _card;
         public BuyCardCommand(Card card) { _card = card; }
 
-        // FIX 2: Update signature and property access
         public void Execute(IGameplayState state)
         {
             // Accessing via interface properties
@@ -24,7 +21,6 @@ namespace ChaosWarlords.Source.Commands
         private readonly MapNode _node;
         public DeployTroopCommand(MapNode node) { _node = node; }
 
-        // FIX 2: Update signature and property access
         public void Execute(IGameplayState state)
         {
             // Accessing via interface properties
@@ -36,7 +32,7 @@ namespace ChaosWarlords.Source.Commands
     {
         public void Execute(IGameplayState state)
         {
-            // FIX: Don't just flip the boolean. 
+            // Don't just flip the boolean. 
             // Call the methods that handle the State Transition logic.
 
             if (state.IsMarketOpen)
@@ -55,7 +51,6 @@ namespace ChaosWarlords.Source.Commands
         private readonly Card _card;
         public PlayCardCommand(Card card) { _card = card; }
 
-        // FIX 2: Update signature
         public void Execute(IGameplayState state)
         {
             // We can now call the PlayCard logic directly on the state interface
@@ -67,7 +62,6 @@ namespace ChaosWarlords.Source.Commands
 
     public class EndTurnCommand : IGameCommand
     {
-        // FIX 2: Update signature
         public void Execute(IGameplayState state)
         {
             // Call the consolidated EndTurn logic on the state interface
@@ -77,7 +71,6 @@ namespace ChaosWarlords.Source.Commands
 
     public class StartAssassinateCommand : IGameCommand
     {
-        // FIX 2: Update signature and property access
         public void Execute(IGameplayState state)
         {
             state.ActionSystem.TryStartAssassinate();
@@ -90,7 +83,6 @@ namespace ChaosWarlords.Source.Commands
 
     public class StartReturnSpyCommand : IGameCommand
     {
-        // FIX 2: Update signature and property access
         public void Execute(IGameplayState state)
         {
             state.ActionSystem.TryStartReturnSpy();
@@ -119,7 +111,6 @@ namespace ChaosWarlords.Source.Commands
 
     public class CancelActionCommand : IGameCommand
     {
-        // FIX 2: Update signature and property access
         public void Execute(IGameplayState state)
         {
             state.ActionSystem.CancelTargeting();
@@ -132,7 +123,6 @@ namespace ChaosWarlords.Source.Commands
         /// <summary>
         /// Executes a switch back to normal input mode. Used to break out of incorrect input modes.
         /// </summary>
-        // FIX 2: Update signature
         public void Execute(IGameplayState state)
         {
             state.SwitchToNormalMode();

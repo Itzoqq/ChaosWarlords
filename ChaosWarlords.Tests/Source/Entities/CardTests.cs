@@ -1,7 +1,5 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Tests.Source.Entities
 {
@@ -26,7 +24,7 @@ namespace ChaosWarlords.Tests.Source.Entities
             Assert.AreEqual(3, _card.Cost);
             Assert.AreEqual(CardAspect.Sorcery, _card.Aspect);
 
-            // Updated: The current model only tracks one VP value
+            // The current model only tracks one VP value
             Assert.AreEqual(1, _card.VictoryPoints);
             // Assert.AreEqual(2, _card.InnerCircleVP); // Removed for now
 

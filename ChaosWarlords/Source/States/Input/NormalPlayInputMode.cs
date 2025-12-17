@@ -1,9 +1,7 @@
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
-using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Input;
 
 namespace ChaosWarlords.Source.States.Input
 {
@@ -12,7 +10,7 @@ namespace ChaosWarlords.Source.States.Input
         private readonly IGameplayState _state;
         private readonly InputManager _inputManager;
 
-        // FIX: Changed from UIManager to IUISystem
+        // Changed from UIManager to IUISystem
         private readonly IUISystem _uiManager;
 
         private readonly IMapManager _mapManager;

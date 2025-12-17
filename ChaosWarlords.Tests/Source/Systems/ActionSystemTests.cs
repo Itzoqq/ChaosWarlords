@@ -33,7 +33,7 @@ namespace ChaosWarlords.Tests.Systems
             _node1 = new MapNode(1, new Vector2(10, 10));
             _node2 = new MapNode(2, new Vector2(20, 10));
 
-            // FIX: Make neighbors bidirectional so HasPresence works correctly
+            // Make neighbors bidirectional so HasPresence works correctly
             _node1.AddNeighbor(_node2);
             _node2.AddNeighbor(_node1);
 
