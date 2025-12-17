@@ -9,6 +9,7 @@ using Microsoft.Xna.Framework;
 using System;
 using Microsoft.Xna.Framework.Input;
 using System.Linq;
+using ChaosWarlords.Source.States.Input;
 
 namespace ChaosWarlords.Tests.Commands
 {
@@ -81,10 +82,24 @@ namespace ChaosWarlords.Tests.Commands
         public bool CancelTargetingCalled { get; private set; }
         public bool IsTargeting() => CurrentState != ActionState.Normal;
         public void SetCurrentPlayer(Player player) { }
-        public void TryStartAssassinate() => TryStartAssassinateCalled = true;
-        public void TryStartReturnSpy() => TryStartReturnSpyCalled = true;
+        public void TryStartAssassinate()
+        {
+            TryStartAssassinateCalled = true;
+            CurrentState = ActionState.TargetingAssassinate;
+        }
+
+        public void TryStartReturnSpy()
+        {
+            TryStartReturnSpyCalled = true;
+            CurrentState = ActionState.TargetingReturnSpy;
+        }
+
+        public void CancelTargeting()
+        {
+            CancelTargetingCalled = true;
+            CurrentState = ActionState.Normal;
+        }
         public bool FinalizeSpyReturn(PlayerColor spyColor) { FinalizeSpyReturnCalled = true; return true; }
-        public void CancelTargeting() => CancelTargetingCalled = true;
         public void StartTargeting(ActionState state, Card card) { }
         public bool HandleTargetClick(MapNode? targetNode, Site? targetSite) => true;
     }
@@ -243,29 +258,35 @@ namespace ChaosWarlords.Tests.Commands
         }
 
         [TestMethod]
-        public void StartAssassinateCommand_CallsActionSystem()
+        public void StartAssassinateCommand_SwitchesToTargetingInput()
         {
             // Arrange
             var command = new StartAssassinateCommand();
+            _mockState.SwitchToNormalMode(); // Ensure we start in Normal
 
             // Act
             command.Execute(_mockState);
 
             // Assert
-            Assert.IsTrue(_mockActionSystem.TryStartAssassinateCalled, "StartAssassinateCommand must call TryStartAssassinate.");
+            Assert.IsTrue(_mockActionSystem.TryStartAssassinateCalled, "Backend system must be notified.");
+            Assert.IsInstanceOfType(_mockState.InputMode, typeof(TargetingInputMode),
+                "Command must switch InputMode to Targeting so user can click victims.");
         }
 
         [TestMethod]
-        public void StartReturnSpyCommand_CallsActionSystem()
+        public void StartReturnSpyCommand_SwitchesToTargetingInput()
         {
             // Arrange
             var command = new StartReturnSpyCommand();
+            _mockState.SwitchToNormalMode();
 
             // Act
             command.Execute(_mockState);
 
             // Assert
-            Assert.IsTrue(_mockActionSystem.TryStartReturnSpyCalled, "StartReturnSpyCommand must call TryStartReturnSpy.");
+            Assert.IsTrue(_mockActionSystem.TryStartReturnSpyCalled, "Backend system must be notified.");
+            Assert.IsInstanceOfType(_mockState.InputMode, typeof(TargetingInputMode),
+                "Command must switch InputMode to Targeting so user can select a spy.");
         }
 
         [TestMethod]
@@ -282,16 +303,28 @@ namespace ChaosWarlords.Tests.Commands
         }
 
         [TestMethod]
-        public void CancelActionCommand_CallsActionSystemCancelTargeting()
+        public void CancelActionCommand_ResetsToNormalInput()
         {
             // Arrange
             var command = new CancelActionCommand();
+
+            // Force the mock into a "Targeting" state first so we can prove it changes back
+            // (We construct a dummy TargetingMode just to occupy the slot)
+            _mockState.InputMode = new TargetingInputMode(
+                _mockState,
+                new InputManager(new MockInputProvider()),
+                _mockMapManager,
+                _turnManager,
+                _mockActionSystem
+            );
 
             // Act
             command.Execute(_mockState);
 
             // Assert
-            Assert.IsTrue(_mockActionSystem.CancelTargetingCalled, "CancelActionCommand must call CancelTargeting.");
+            Assert.IsTrue(_mockActionSystem.CancelTargetingCalled, "Backend targeting must be cancelled.");
+            Assert.IsInstanceOfType(_mockState.InputMode, typeof(NormalPlayInputMode),
+                "Command must restore Normal Input Mode so the game continues.");
         }
     }
 }

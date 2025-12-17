@@ -191,6 +191,7 @@ namespace ChaosWarlords.Source.States
                 if (_actionSystemBacking.IsTargeting())
                 {
                     _actionSystemBacking.CancelTargeting();
+                    SwitchToNormalMode();
                     return true;
                 }
             }

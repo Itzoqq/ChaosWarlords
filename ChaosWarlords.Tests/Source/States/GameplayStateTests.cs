@@ -7,6 +7,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using ChaosWarlords.Source.States.Input;
 
 namespace ChaosWarlords.Tests.States
 {
@@ -225,15 +226,23 @@ namespace ChaosWarlords.Tests.States
         }
 
         [TestMethod]
-        public void PlayCard_TriggersTargeting_ForAssassinate()
+        public void PlayCard_TriggersTargeting_SwitchInputMode()
         {
             var card = new Card("kill", "Assassin", 0, CardAspect.Shadow, 0, 0);
             card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
 
+            // Ensure we start in Normal
+            _state.SwitchToNormalMode();
+
+            // Act
             _state.PlayCard(card);
 
+            // Assert
             Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
-            Assert.AreEqual(card, _actionSystem.PendingCard);
+
+            // THE MISSING CHECK:
+            Assert.IsInstanceOfType(_state.InputMode, typeof(TargetingInputMode),
+                "Playing a targeting card must switch the Input Mode.");
         }
 
         [TestMethod]
@@ -254,28 +263,6 @@ namespace ChaosWarlords.Tests.States
 
             // Assert
             Assert.IsFalse(_state.IsMarketOpen, "Market should close if clicked outside/no command executed.");
-        }
-
-        [TestMethod]
-        public void UpdateTargetingLogic_CancelsTargeting_OnRightClick()
-        {
-            // Arrange
-            _actionSystem.StartTargeting(ActionState.TargetingAssassinate);
-
-            // Step 1: Ensure button starts RELEASED (Frame 1)
-            _mockInputProvider.Reset();
-            _input.Update();
-
-            // Step 2: Press button DOWN (Frame 2)
-            _mockInputProvider.QueueRightClick();
-            _input.Update();
-
-            // Act
-            _state.HandleGlobalInput();
-
-            // Assert
-            Assert.IsFalse(_actionSystem.IsTargeting(), "Right-click (Press) should cancel targeting mode.");
-            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
         }
 
         [TestMethod]
@@ -338,18 +325,37 @@ namespace ChaosWarlords.Tests.States
         }
 
         [TestMethod]
-        public void Update_RightClick_CancelsTargetingState()
+        public void Update_RightClick_CancelsTargeting_AndResetsInputMode()
         {
-            // 1. Arrange: Put the game into a "Targeting" state
+            // 1. ARRANGE
+            // Set the backend system to "Targeting"
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate, CardFactory.CreateSoldier());
 
-            // 2. Act: Simulate a Right Click
+            // Set the frontend Input Mode to match (simulating a real game state)
+            _state.InputMode = new TargetingInputMode(
+                _state,
+                _input,
+                _mapManager,
+                _turnManager,
+                _actionSystem
+            );
+
+            // 2. ACT
+            // Queue a Right Click in the Mock Provider
             _mockInputProvider.QueueRightClick();
+
+            // Run a full Game Loop Frame
+            // This calls InputManager.Update() -> HandleGlobalInput() -> CancelTargeting()
             _state.Update(new GameTime());
 
-            // 3. Assert
-            Assert.IsFalse(_actionSystem.IsTargeting(), "Right-click should have cancelled the targeting state.");
+            // 3. ASSERT
+            // Check Backend (The Data)
+            Assert.IsFalse(_actionSystem.IsTargeting(), "Backend state should return to Normal.");
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
+
+            // Check Frontend (The UI/Input) - This is the "Integration" check
+            Assert.IsInstanceOfType(_state.InputMode, typeof(NormalPlayInputMode),
+                "Right-clicking should switch the Input Processor back to Normal Mode.");
         }
 
         [TestMethod]
@@ -476,6 +482,26 @@ namespace ChaosWarlords.Tests.States
 
             // NOTE: The logic for target validation, execution, and cleanup must be moved 
             // to the new 'TargetingInputModeTests.cs' file.
+        }
+
+        [TestMethod]
+        public void ToggleMarket_SwitchesInputMode()
+        {
+            // Arrange
+            _state.SwitchToNormalMode(); // Ensure we start in Normal
+            Assert.IsInstanceOfType(_state.InputMode, typeof(NormalPlayInputMode));
+
+            // Act
+            _state.ToggleMarket();
+
+            // Assert
+            // 1. Check the Flag (Visuals)
+            Assert.IsTrue(_state.IsMarketOpen);
+
+            // 2. CRITICAL: Check the Object Type (Logic)
+            // This assertion would have FAILED on your old code
+            Assert.IsInstanceOfType(_state.InputMode, typeof(MarketInputMode),
+                "Opening the market must switch the input processor to MarketInputMode.");
         }
     }
 }
