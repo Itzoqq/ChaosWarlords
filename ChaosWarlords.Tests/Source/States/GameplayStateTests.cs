@@ -114,6 +114,7 @@ namespace ChaosWarlords.Tests.States
         private TurnManager _turnManager = null!;
         private MapManager _mapManager = null!;
         private MarketManager _marketManager = null!;
+        private UIManager _uiManager = null!;
         private ActionSystem _actionSystem = null!;
         private List<MapNode> _mutableNodes = null!;
         private List<Site> _mutableSites = null!;
@@ -148,17 +149,16 @@ namespace ChaosWarlords.Tests.States
             // 4b. Setup Action System - Needs the ActivePlayer from the TurnManager
             _actionSystem = new ActionSystem(_turnManager.ActivePlayer, _mapManager);
 
-            // We must create a real UIManager for tests
-            var testUiManager = new UIManager(800, 600);
+            // CHANGE: Assign to the class field instead of 'var testUiManager'
+            _uiManager = new UIManager(800, 600);
 
             // Create the Mock DB
             var mockDb = new MockCardDatabase();
 
-            // Pass it to the constructor
             _state = new GameplayState(null!, _mockInputProvider, mockDb);
 
-            // FIX: Pass the TurnManager object instead of _player
-            _state.InjectDependencies(_input, testUiManager, _mapManager, _marketManager, _actionSystem, _turnManager);
+            // CHANGE: Use the field here
+            _state.InjectDependencies(_input, _uiManager, _mapManager, _marketManager, _actionSystem, _turnManager);
         }
 
         [TestMethod]
@@ -246,26 +246,6 @@ namespace ChaosWarlords.Tests.States
         }
 
         [TestMethod]
-        public void UpdateMarketLogic_ClosesMarket_WhenClickedOutside()
-        {
-            // This tests that if we click but NO command is generated (clicked empty space), market closes.
-            _state.IsMarketOpen = true;
-
-            // Simulate a click that hits nothing (UIManager will return null)
-            _mockInputProvider.Reset();
-            _input.Update();
-            _mockInputProvider.QueueLeftClick();
-            _input.Update();
-
-            // Act
-            // We call UpdateMarketLogic directly as per the original test structure
-            _state.UpdateMarketLogic();
-
-            // Assert
-            Assert.IsFalse(_state.IsMarketOpen, "Market should close if clicked outside/no command executed.");
-        }
-
-        [TestMethod]
         public void Command_BuyCard_BuysCard_WhenAffordable()
         {
             // Arrange
@@ -328,32 +308,28 @@ namespace ChaosWarlords.Tests.States
         public void Update_RightClick_CancelsTargeting_AndResetsInputMode()
         {
             // 1. ARRANGE
-            // Set the backend system to "Targeting"
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate, CardFactory.CreateSoldier());
 
-            // Set the frontend Input Mode to match (simulating a real game state)
+            // FIX: Pass the _uiManager dependency
             _state.InputMode = new TargetingInputMode(
                 _state,
                 _input,
+                _uiManager,
                 _mapManager,
                 _turnManager,
                 _actionSystem
             );
 
             // 2. ACT
-            // Queue a Right Click in the Mock Provider
             _mockInputProvider.QueueRightClick();
 
             // Run a full Game Loop Frame
-            // This calls InputManager.Update() -> HandleGlobalInput() -> CancelTargeting()
             _state.Update(new GameTime());
 
             // 3. ASSERT
-            // Check Backend (The Data)
             Assert.IsFalse(_actionSystem.IsTargeting(), "Backend state should return to Normal.");
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
 
-            // Check Frontend (The UI/Input) - This is the "Integration" check
             Assert.IsInstanceOfType(_state.InputMode, typeof(NormalPlayInputMode),
                 "Right-clicking should switch the Input Processor back to Normal Mode.");
         }

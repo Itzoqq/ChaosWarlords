@@ -308,11 +308,16 @@ namespace ChaosWarlords.Tests.Commands
             // Arrange
             var command = new CancelActionCommand();
 
-            // Force the mock into a "Targeting" state first so we can prove it changes back
-            // (We construct a dummy TargetingMode just to occupy the slot)
+            // 1. Create a dummy UIManager for the test.
+            // Since UIManager is logic-only (math), we can safely instantiate it without a GraphicsDevice.
+            var dummyUI = new UIManager(800, 600);
+
+            // 2. Force the mock into a "Targeting" state.
+            // We instantiate TargetingInputMode with the new 6-argument constructor.
             _mockState.InputMode = new TargetingInputMode(
                 _mockState,
                 new InputManager(new MockInputProvider()),
+                dummyUI,
                 _mockMapManager,
                 _turnManager,
                 _mockActionSystem

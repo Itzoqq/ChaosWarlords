@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using System.Diagnostics.CodeAnalysis;
+using System.Collections.Generic;
 
 namespace ChaosWarlords.Source.Views
 {
@@ -22,78 +23,154 @@ namespace ChaosWarlords.Source.Views
             _pixelTexture.SetData(new[] { Color.White });
         }
 
-        // --- PUBLIC API (Callable by GameplayState) ---
-
         public void DrawTopBar(SpriteBatch spriteBatch, Player player, int screenWidth)
         {
             if (_defaultFont == null) return;
 
-            // Background
-            spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, screenWidth, 40), Color.Black * 0.5f);
+            // 1. Draw Background
+            spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, screenWidth, 40), Color.Black * 0.9f);
+            DrawBorder(spriteBatch, _pixelTexture, new Rectangle(0, 0, screenWidth, 40), 1, Color.DarkGray * 0.5f);
 
-            // Stats
-            spriteBatch.DrawString(_defaultFont, $"Power: {player.Power}", new Vector2(20, 10), Color.Orange);
-            spriteBatch.DrawString(_defaultFont, $"Influence: {player.Influence}", new Vector2(150, 10), Color.Cyan);
-            spriteBatch.DrawString(_defaultFont, $"VP: {player.VictoryPoints}", new Vector2(300, 10), Color.Lime);
-            spriteBatch.DrawString(_defaultFont, $"Trophies: {player.TrophyHall}", new Vector2(400, 10), Color.Red);
+            // ====================================================
+            // SECTION 1: ECONOMY & SCORE (Left Aligned)
+            // ====================================================
+            int leftX = 20;
+            DrawStat(spriteBatch, "Influence", player.Influence.ToString(), Color.Cyan, ref leftX);
+            DrawStat(spriteBatch, "Power", player.Power.ToString(), Color.Orange, ref leftX);
+            DrawStat(spriteBatch, "VP", player.VictoryPoints.ToString(), Color.Gold, ref leftX);
 
-            // Deck Info
-            spriteBatch.DrawString(_defaultFont, $"Deck: {player.Deck.Count}", new Vector2(500, 10), Color.White);
-            spriteBatch.DrawString(_defaultFont, $"Discard: {player.DiscardPile.Count}", new Vector2(600, 10), Color.Gray);
+            // ====================================================
+            // SECTION 2: MILITARY (Centered)
+            // ====================================================
+            // CORRECTED: Uses 'TrophyHall' (int) directly from your Player.cs
+            string trophyText = $"Trophies: {player.TrophyHall}";
+            string spiesText = $"Spies: {player.SpiesInBarracks}";
+            string troopsText = $"Barracks: {player.TroopsInBarracks}";
 
-            // Supplies
-            string troopsText = $"Troops: {player.TroopsInBarracks} / 40";
-            Vector2 troopsSize = _defaultFont.MeasureString(troopsText);
-            float troopsX = screenWidth - troopsSize.X - 20;
-            Color troopColor = (player.TroopsInBarracks == 0) ? Color.Red : Color.LightGreen;
-            spriteBatch.DrawString(_defaultFont, troopsText, new Vector2(troopsX, 10), troopColor);
+            // Calculate total width to center the group
+            float gap = 30f;
+            float totalCenterWidth = _defaultFont.MeasureString(trophyText).X + gap +
+                                     _defaultFont.MeasureString(spiesText).X + gap +
+                                     _defaultFont.MeasureString(troopsText).X;
 
-            string spiesText = $"Spies: {player.SpiesInBarracks} / 5";
-            Vector2 spiesSize = _defaultFont.MeasureString(spiesText);
-            float spiesX = troopsX - spiesSize.X - 30;
-            Color spyColor = (player.SpiesInBarracks == 0) ? Color.Red : Color.Violet;
-            spriteBatch.DrawString(_defaultFont, spiesText, new Vector2(spiesX, 10), spyColor);
+            float startX = (screenWidth - totalCenterWidth) / 2;
+            int centerX = (int)startX;
+
+            // Draw the Centered Stats
+            // Trophies (Pink/Red)
+            DrawStatInternal(spriteBatch, trophyText, Color.HotPink, ref centerX, (int)gap);
+
+            // Spies (Blue)
+            DrawStatInternal(spriteBatch, spiesText, Color.CornflowerBlue, ref centerX, (int)gap);
+
+            // Troops (Red)
+            DrawStatInternal(spriteBatch, troopsText, Color.IndianRed, ref centerX, (int)gap);
+
+            // ====================================================
+            // SECTION 3: DECK MANAGEMENT (Right Aligned)
+            // ====================================================
+            int rightX = screenWidth - 20;
+
+            // Order: Deck -> Discard -> Inner Circle (Draws from Right to Left)
+
+            // Deck (White)
+            DrawRightAlignedStat(spriteBatch, "Deck", player.Deck.Count.ToString(), Color.White, ref rightX);
+
+            // Discard (Gray)
+            DrawRightAlignedStat(spriteBatch, "Discard", player.DiscardPile.Count.ToString(), Color.Gray, ref rightX);
+
+            // Inner Circle (Purple)
+            DrawRightAlignedStat(spriteBatch, "Inner Circle", player.InnerCircle.Count.ToString(), Color.MediumPurple, ref rightX);
         }
 
-        public void DrawActionButtons(SpriteBatch spriteBatch, UIManager ui, Player player)
+        public void DrawActionButtons(SpriteBatch spriteBatch, IUISystem ui, Player player)
         {
-            // Assassinate
-            bool canAffordKill = player.Power >= 3;
-            spriteBatch.Draw(_pixelTexture, ui.AssassinateButtonRect, canAffordKill ? Color.Red : Color.DarkRed * 0.5f);
-            DrawVerticalText(spriteBatch, "K\nI\nL\nL\n\n3", ui.AssassinateButtonRect);
+            if (_smallFont == null) return;
 
-            // Return Spy
-            bool canAffordSpy = player.Power >= 3;
-            spriteBatch.Draw(_pixelTexture, ui.ReturnSpyButtonRect, canAffordSpy ? Color.Violet : Color.Purple * 0.5f);
-            DrawVerticalText(spriteBatch, "H\nU\nN\nT\n\n3", ui.ReturnSpyButtonRect);
+            // ASSASSINATE (Right Side - Vertical)
+            bool canAffordAssassinate = player.Power >= 3;
+            DrawVerticalButton(spriteBatch, ui.AssassinateButtonRect, "ASSASSINATE", ui.IsAssassinateHovered, canAffordAssassinate, Color.Red);
+
+            // RETURN SPY (Right Side - Vertical)
+            bool canAffordReturn = player.Power >= 3;
+            DrawVerticalButton(spriteBatch, ui.ReturnSpyButtonRect, "RETURN SPY", ui.IsReturnSpyHovered, canAffordReturn, Color.CornflowerBlue);
         }
 
-        public void DrawMarketButton(SpriteBatch spriteBatch, UIManager ui, bool isOpen)
+        public void DrawMarketButton(SpriteBatch spriteBatch, IUISystem ui)
         {
-            spriteBatch.Draw(_pixelTexture, ui.MarketButtonRect, isOpen ? Color.Gray : Color.Gold);
-            DrawVerticalText(spriteBatch, "M\nA\nR\nK\nE\nT", ui.MarketButtonRect);
+            // MARKET (Left Side - Vertical)
+            DrawVerticalButton(spriteBatch, ui.MarketButtonRect, "MARKET", ui.IsMarketHovered, true, Color.Gold);
         }
 
-        public void DrawMarketOverlay(SpriteBatch spriteBatch, int width, int height)
+        public void DrawMarketOverlay(SpriteBatch spriteBatch, IMarketManager market, int width, int height)
         {
-            spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, width, height), Color.Black * 0.7f);
-            string title = "MARKET (Buy Cards)";
+            spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, width, height), Color.Black * 0.85f);
+
+            string title = "MARKET";
             Vector2 size = _defaultFont.MeasureString(title);
             spriteBatch.DrawString(_defaultFont, title, new Vector2((width - size.X) / 2, 20), Color.Gold);
         }
 
-        // --- PRIVATE HELPERS (Internal details only) ---
+        // --- HELPERS ---
 
-        private void DrawVerticalText(SpriteBatch spriteBatch, string text, Rectangle rect)
+        private void DrawStat(SpriteBatch sb, string label, string value, Color color, ref int x)
         {
-            SpriteFont btnFont = _smallFont ?? _defaultFont;
-            Vector2 textSize = btnFont.MeasureString(text);
-            float textX = rect.X + (rect.Width - textSize.X) / 2;
-            float textY = rect.Y + (rect.Height - textSize.Y) / 2;
-            spriteBatch.DrawString(btnFont, text, new Vector2(textX, textY), Color.Black);
+            string text = $"{label}: {value}";
+            sb.DrawString(_defaultFont, text, new Vector2(x, 10), color);
+            x += (int)_defaultFont.MeasureString(text).X + 30; // Spacing
         }
 
-        // Static helper can be public if used generally, or internal
+        private void DrawStatInternal(SpriteBatch sb, string text, Color color, ref int x, int gap)
+        {
+            sb.DrawString(_defaultFont, text, new Vector2(x, 10), color);
+            x += (int)_defaultFont.MeasureString(text).X + gap;
+        }
+
+        private void DrawRightAlignedStat(SpriteBatch sb, string label, string value, Color color, ref int rightX)
+        {
+            string text = $"{label}: {value}";
+            Vector2 size = _defaultFont.MeasureString(text);
+            rightX -= (int)size.X;
+            sb.DrawString(_defaultFont, text, new Vector2(rightX, 10), color);
+            rightX -= 30; // Spacing
+        }
+
+        private void DrawVerticalButton(SpriteBatch sb, Rectangle rect, string text, bool isHovered, bool isEnabled, Color themeColor)
+        {
+            Color bgColor;
+            Color textColor = Color.Black;
+
+            if (!isEnabled)
+            {
+                // Background stays dim
+                bgColor = Color.DarkGray * 0.5f;
+
+                // CHANGE THIS: Use White or LightGray for readability
+                textColor = Color.White;
+            }
+            else if (isHovered)
+            {
+                bgColor = themeColor;
+                textColor = Color.Black;
+            }
+            else
+            {
+                bgColor = Color.Lerp(themeColor, Color.Black, 0.4f);
+                textColor = Color.White;
+            }
+
+            // ... rest of the method (Draw Box, Draw Rotated Text) remains the same
+            sb.Draw(_pixelTexture, rect, bgColor);
+            UIRenderer.DrawBorder(sb, _pixelTexture, rect, 2, isEnabled ? Color.White : Color.Gray);
+
+            SpriteFont font = _smallFont ?? _defaultFont;
+            Vector2 textSize = font.MeasureString(text);
+            Vector2 buttonCenter = new Vector2(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
+            Vector2 textOrigin = textSize / 2;
+
+            sb.DrawString(font, text, buttonCenter, textColor, -MathHelper.PiOver2, textOrigin, 1.0f, SpriteEffects.None, 0f);
+        }
+
         public static void DrawBorder(SpriteBatch spriteBatch, Texture2D pixel, Rectangle rect, int thickness, Color color)
         {
             spriteBatch.Draw(pixel, new Rectangle(rect.X, rect.Y, rect.Width, thickness), color);

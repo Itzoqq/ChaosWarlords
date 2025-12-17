@@ -13,7 +13,7 @@ namespace ChaosWarlords.Source.States
         // Public Access to Core Systems/Managers (needed by Commands and InputModes)
         // ------------------------------------------------------------------
         InputManager InputManager { get; }
-        UIManager UIManager { get; }
+        IUISystem UIManager { get; }
         IMapManager MapManager { get; }
         IMarketManager MarketManager { get; }
         IActionSystem ActionSystem { get; }

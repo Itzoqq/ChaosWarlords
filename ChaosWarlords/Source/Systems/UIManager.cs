@@ -1,23 +1,27 @@
+using System;
 using Microsoft.Xna.Framework;
-using ChaosWarlords.Source.Commands;
-using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
-using System.Collections.Generic;
-using ChaosWarlords.Source.Systems; // Added using for InputManager
 
 namespace ChaosWarlords.Source.Systems
 {
-    public class UIManager
+    public class UIManager : IUISystem
     {
-        // Public properties so the Renderer knows where to draw
-        public Rectangle MarketButtonRect { get; private set; }
-        public Rectangle AssassinateButtonRect { get; private set; }
-        public Rectangle ReturnSpyButtonRect { get; private set; }
-
         public int ScreenWidth { get; private set; }
         public int ScreenHeight { get; private set; }
 
-        // Note: No Texture2D or SpriteFont here anymore!
+        // Internals (encapsulated)
+        private Rectangle _marketButtonRect;
+        private Rectangle _assassinateButtonRect;
+        private Rectangle _returnSpyButtonRect;
+
+        // Interface Implementation
+        public event EventHandler OnMarketToggleRequest;
+        public event EventHandler OnAssassinateRequest;
+        public event EventHandler OnReturnSpyRequest;
+
+        public bool IsMarketHovered { get; private set; }
+        public bool IsAssassinateHovered { get; private set; }
+        public bool IsReturnSpyHovered { get; private set; }
 
         public UIManager(int screenWidth, int screenHeight)
         {
@@ -26,34 +30,49 @@ namespace ChaosWarlords.Source.Systems
             RecalculateLayout();
         }
 
-        public void RecalculateLayout()
+        private void RecalculateLayout()
         {
+            // (Your existing layout logic here)
             int btnHeight = 100;
             int btnWidth = 40;
             int verticalGap = 25;
 
-            // 1. Market (Left - Centered)
-            MarketButtonRect = new Rectangle(0, (ScreenHeight / 2) - (btnHeight / 2), btnWidth, btnHeight);
+            _marketButtonRect = new Rectangle(0, (ScreenHeight / 2) - (btnHeight / 2), btnWidth, btnHeight);
 
-            // 2. Assassinate (Right - Shifted UP)
-            AssassinateButtonRect = new Rectangle(
+            _assassinateButtonRect = new Rectangle(
                 ScreenWidth - btnWidth,
                 (ScreenHeight / 2) - btnHeight - (verticalGap / 2),
                 btnWidth,
                 btnHeight);
 
-            // 3. Return Spy (Right - Shifted DOWN)
-            ReturnSpyButtonRect = new Rectangle(
+            _returnSpyButtonRect = new Rectangle(
                 ScreenWidth - btnWidth,
                 (ScreenHeight / 2) + (verticalGap / 2),
                 btnWidth,
                 btnHeight);
         }
 
-        // --- PUBLIC HIT-TESTING METHODS (Correct Responsibilities) ---
+        public void Update(InputManager input)
+        {
+            // 1. Update Hovers
+            IsMarketHovered = input.IsMouseOver(_marketButtonRect);
+            IsAssassinateHovered = input.IsMouseOver(_assassinateButtonRect);
+            IsReturnSpyHovered = input.IsMouseOver(_returnSpyButtonRect);
 
-        public bool IsMarketButtonHovered(InputManager input) => input.IsMouseOver(MarketButtonRect);
-        public bool IsAssassinateButtonHovered(InputManager input) => input.IsMouseOver(AssassinateButtonRect);
-        public bool IsReturnSpyButtonHovered(InputManager input) => input.IsMouseOver(ReturnSpyButtonRect);
+            // 2. Handle Clicks - Fire Events!
+            if (input.IsLeftMouseJustClicked())
+            {
+                if (IsMarketHovered) OnMarketToggleRequest?.Invoke(this, EventArgs.Empty);
+                if (IsAssassinateHovered) OnAssassinateRequest?.Invoke(this, EventArgs.Empty);
+                if (IsReturnSpyHovered) OnReturnSpyRequest?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        // Expose rects ONLY to the Renderer, or keep them internal and make UIManager responsible 
+        // for passing data to UIRenderer. For now, we can add a getter if needed by Renderer, 
+        // but Logic shouldn't touch them.
+        public Rectangle MarketButtonRect => _marketButtonRect;
+        public Rectangle AssassinateButtonRect => _assassinateButtonRect;
+        public Rectangle ReturnSpyButtonRect => _returnSpyButtonRect;
     }
 }
