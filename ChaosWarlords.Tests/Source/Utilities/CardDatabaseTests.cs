@@ -52,8 +52,10 @@ namespace ChaosWarlords.Tests.Source.Utilities
 
       // Assert
       Assert.HasCount(2, marketCards, "Should create a card for each entry in the JSON.");
-      Assert.IsNotNull(marketCards.FirstOrDefault(c => c.Id == "noble"), "Noble card should be created.");
-      Assert.IsNotNull(marketCards.FirstOrDefault(c => c.Id == "soldier"), "Soldier card should be created.");
+
+      // FIX: Use StartsWith because factory appends GUIDs
+      Assert.IsNotNull(marketCards.FirstOrDefault(c => c.Id.StartsWith("noble")), "Noble card should be created.");
+      Assert.IsNotNull(marketCards.FirstOrDefault(c => c.Id.StartsWith("soldier")), "Soldier card should be created.");
     }
 
     [TestMethod]

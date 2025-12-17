@@ -375,17 +375,13 @@ namespace ChaosWarlords.Tests.States
         [TestMethod]
         public void PlayCard_Directly_PlaysCard()
         {
-            // 1. Arrange
-            // FIX: Use ActivePlayer from TurnManager
             var card = _turnManager.ActivePlayer.Hand[_turnManager.ActivePlayer.Hand.Count - 1];
+            int initialCount = _turnManager.ActivePlayer.Hand.Count;
 
-            // 2. Act: Call Logic Directly
             _state.PlayCard(card);
 
-            // 3. Assert
-            // FIX: Use ActivePlayer from TurnManager
-            Assert.DoesNotContain(card, _turnManager.ActivePlayer.Hand, "The clicked card should be removed from Hand.");
-            Assert.Contains(card, _turnManager.ActivePlayer.PlayedCards, "The clicked card should be in PlayedCards.");
+            Assert.HasCount(initialCount - 1, _turnManager.ActivePlayer.Hand);
+            Assert.Contains(card, _turnManager.ActivePlayer.PlayedCards);
         }
 
         [TestMethod]

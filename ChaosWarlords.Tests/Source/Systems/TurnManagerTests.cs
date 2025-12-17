@@ -92,10 +92,13 @@ namespace ChaosWarlords.Tests.Systems
         {
             // Arrange: Play one card
             _turnManager.PlayCard(_shadowCard);
-            Assert.AreEqual(1, _turnManager.PlayedAspectCounts[CardAspect.Shadow]); // Base value
+            Assert.AreEqual(1, _turnManager.PlayedAspectCounts[CardAspect.Shadow]);
 
-            // Act: Play a second card of the same aspect (tests the 'if' branch)
-            _turnManager.PlayCard(_shadowCard);
+            // Act: Play a SECOND card of the same aspect (Distinct Instance)
+            // BAD: _turnManager.PlayCard(_shadowCard);
+            // GOOD: Create a fresh copy to simulate a second card in hand
+            var secondShadowCard = new Card("shadow_2", "Shadow Card", 1, CardAspect.Shadow, 1, 1);
+            _turnManager.PlayCard(secondShadowCard);
 
             // Assert
             Assert.HasCount(1, _turnManager.PlayedAspectCounts, "Count of distinct aspects should remain 1.");
@@ -109,7 +112,10 @@ namespace ChaosWarlords.Tests.Systems
             _turnManager.PlayCard(_shadowCard);
             _turnManager.PlayCard(_sorceryCard);
             _turnManager.PlayCard(_neutralCard);
-            _turnManager.PlayCard(_sorceryCard); // Play Sorcery again
+
+            // Act: Play Sorcery again (Distinct Instance)
+            var secondSorceryCard = new Card("sorcery_2", "Sorcery Card", 1, CardAspect.Sorcery, 1, 1);
+            _turnManager.PlayCard(secondSorceryCard);
 
             // Assert
             Assert.HasCount(3, _turnManager.PlayedAspectCounts, "Should track 3 distinct aspects.");
