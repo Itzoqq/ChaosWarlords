@@ -73,18 +73,18 @@ namespace ChaosWarlords.Tests.Commands
 
     public class MockActionSystem : IActionSystem
     {
-        // 1. Events
         public event EventHandler? OnActionCompleted;
         public event EventHandler<string>? OnActionFailed;
 
-        // --- FIX: Add this helper method ---
-        // This silences the CS0067 warning because the event is now "used" (invoked) here.
-        // It also allows you to write tests for failure cases later!
+        public void SimulateActionCompleted()
+        {
+            OnActionCompleted?.Invoke(this, EventArgs.Empty);
+        }
+
         public void SimulateFailure(string reason)
         {
             OnActionFailed?.Invoke(this, reason);
         }
-        // -----------------------------------
 
         public ActionState CurrentState { get; set; } = ActionState.Normal;
         public Card? PendingCard { get; set; }

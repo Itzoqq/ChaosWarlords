@@ -8,6 +8,7 @@ using Microsoft.Xna.Framework.Input;
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.States.Input;
+using ChaosWarlords.Tests.Commands;
 
 namespace ChaosWarlords.Tests.States
 {
@@ -474,6 +475,59 @@ namespace ChaosWarlords.Tests.States
             // This assertion would have FAILED on your old code
             Assert.IsInstanceOfType(_state.InputMode, typeof(MarketInputMode),
                 "Opening the market must switch the input processor to MarketInputMode.");
+        }
+
+        [TestMethod]
+        public void LoadContent_SubscribesToEvents()
+        {
+            // 1. Arrange: Create local mocks specifically for this test
+            // We can't use the class fields (_mapManager) because they are 'Real' objects,
+            // and we need 'Mock' objects to simulate the events manually.
+            var mockMapManager = new MockMapManager();
+            var mockMarketManager = new MockMarketManager();
+            var mockActionSystem = new MockActionSystem();
+
+            // Use MockGameplayState (which exposes the dependency injection logic)
+            // We pass the LOCAL mocks we just created
+            var state = new MockGameplayState(
+                null!,
+                _mockInputProvider, // This field DOES exist in this class
+                new MockCardDatabase(),
+                mockMapManager,
+                mockMarketManager,
+                mockActionSystem,
+                _turnManager // This field DOES exist in this class
+            );
+
+            // Inject the dependencies using the LOCAL mocks
+            state.InjectDependencies(
+                _input, // Field exists
+                _uiManager, // Field exists
+                mockMapManager,
+                mockMarketManager,
+                mockActionSystem,
+                _turnManager
+            );
+
+            // 2. Pre-Assert: Verify we start in Normal Mode
+            state.SwitchToNormalMode();
+            Assert.IsInstanceOfType(state.InputMode, typeof(NormalPlayInputMode));
+
+            // 3. Act: Simulate the event firing on our LOCAL mock
+            mockActionSystem.SimulateActionCompleted();
+
+            // 4. Assert
+            // To verify the event was caught, let's verify the state transition.
+            // First, force it into Targeting Mode manually to ensure a change happens.
+            state.InputMode = new TargetingInputMode(state, _input, _uiManager, mockMapManager, _turnManager, mockActionSystem);
+            Assert.IsInstanceOfType(state.InputMode, typeof(TargetingInputMode), "Setup failed: should be in targeting mode.");
+
+            // Fire the event again
+            mockActionSystem.SimulateActionCompleted();
+
+            // The handler should have switched us back to Normal Mode
+            Assert.IsInstanceOfType(state.InputMode, typeof(NormalPlayInputMode),
+                "Integration Failure: GameplayState did not listen to ActionSystem.OnActionCompleted event!");
         }
     }
 }
