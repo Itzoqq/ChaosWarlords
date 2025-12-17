@@ -34,22 +34,18 @@ namespace ChaosWarlords.Source.Commands
 
     public class ToggleMarketCommand : IGameCommand
     {
-        // FIX 2: Update signature and property access
         public void Execute(IGameplayState state)
         {
-            // Toggles the boolean flag via the interface property
-            state.IsMarketOpen = !state.IsMarketOpen;
+            // FIX: Don't just flip the boolean. 
+            // Call the methods that handle the State Transition logic.
 
-            // OPTIONAL: Since the input modes handle Market toggling now, you might
-            // also want to add logic here to switch the input mode.
             if (state.IsMarketOpen)
             {
-                // This command is often called from a UI button, so we trust it.
+                state.CloseMarket(); // This sets IsMarketOpen=false AND switches to NormalPlayInputMode
             }
             else
             {
-                // The normal flow is handled in GameplayState.CloseMarket(), 
-                // but this command currently only toggles the flag. We'll leave it simple for now.
+                state.ToggleMarket(); // This sets IsMarketOpen=true AND switches to MarketInputMode
             }
         }
     }

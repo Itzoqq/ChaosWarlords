@@ -412,8 +412,19 @@ namespace ChaosWarlords.Source.States
         // Changed from public to public (part of IGameplayState)
         public void ToggleMarket()
         {
-            // 1. Open the UI
+            // 1. Update the Flag (Visuals)
             IsMarketOpen = true;
+
+            // 2. CRITICAL FIX: Switch the Input State (Logic)
+            // We inject 'this' (IGameplayState) and the required systems into the new mode.
+            InputMode = new MarketInputMode(
+                this,
+                _inputManagerBacking,
+                _uiManagerBacking,
+                _marketManagerBacking,
+                _turnManagerBacking
+            );
+
             GameLogger.Log("Market opened.", LogChannel.General);
         }
 
