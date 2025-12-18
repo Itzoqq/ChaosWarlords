@@ -1,9 +1,11 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using Microsoft.Xna.Framework;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Views
 {
+    [ExcludeFromCodeCoverage]
     public class HandVisualsManager
     {
         private readonly Game _game;
