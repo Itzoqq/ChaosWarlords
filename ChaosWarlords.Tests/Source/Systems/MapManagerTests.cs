@@ -35,18 +35,22 @@ namespace ChaosWarlords.Tests.Systems
             _node5 = new MapNode(5, new Vector2(50, 10));
 
             _node1.AddNeighbor(_node2);
+            _node2.AddNeighbor(_node1);
             _node2.AddNeighbor(_node3);
+            _node3.AddNeighbor(_node2);
 
             _siteA = new Site("SiteA", ResourceType.Power, 1, ResourceType.VictoryPoints, 1) { IsCity = true };
             _siteA.AddNode(_node3);
             _siteA.AddNode(_node4);
             _node3.AddNeighbor(_node4); // Nodes within a site are connected
+            _node4.AddNeighbor(_node3);
 
             _siteB = new Site("SiteB", ResourceType.Influence, 1, ResourceType.VictoryPoints, 1);
             _siteB.AddNode(_node5);
 
             // Connect the sites
             _node4.AddNeighbor(_node5);
+            _node5.AddNeighbor(_node4);
 
             var nodes = new List<MapNode> { _node1, _node2, _node3, _node4, _node5 };
             var sites = new List<Site> { _siteA, _siteB };

@@ -293,8 +293,8 @@ namespace ChaosWarlords.Tests.States
             var baseNode = new MapNode(2, new Vector2(550, 550));
             baseNode.Occupant = PlayerColor.Red;
 
-            node.Neighbors.Add(baseNode);
-            baseNode.Neighbors.Add(node);
+            node.AddNeighbor(baseNode);
+            baseNode.AddNeighbor(node);
 
             _mutableNodes.Add(node);
             _mutableNodes.Add(baseNode);
