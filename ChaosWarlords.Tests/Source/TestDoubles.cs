@@ -101,9 +101,11 @@ namespace ChaosWarlords.Tests
 
     public class MockCardDatabase : ICardDatabase
     {
+        public List<Card> MarketDeckToReturn { get; set; } = new List<Card>();
+
         public List<Card> GetAllMarketCards()
         {
-            return new List<Card>(); // Return empty list for tests
+            return MarketDeckToReturn;
         }
 
         public Card? GetCardById(string id)
