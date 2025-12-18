@@ -57,9 +57,5 @@ namespace ChaosWarlords.Tests.Source.Entities
             _card.Location = CardLocation.DiscardPile;
             Assert.AreEqual(CardLocation.DiscardPile, _card.Location);
         }
-
-        // --- REMOVED TESTS ---
-        // 1. Update() tests were removed because Card no longer handles Input/Mouse state.
-        // 2. BuildEffectText() tests were removed because Card no longer generates display strings (View handles that).
     }
 }

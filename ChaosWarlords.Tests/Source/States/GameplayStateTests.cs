@@ -391,9 +391,9 @@ namespace ChaosWarlords.Tests.States
             var mockMarketManager = new MockMarketManager();
             var mockActionSystem = new MockActionSystem();
 
-            // Use MockGameplayState (which exposes the dependency injection logic)
+            // Use TestableGameplayState (which exposes the dependency injection logic)
             // We pass the LOCAL mocks we just created
-            var state = new MockGameplayState(
+            var state = new TestableGameplayState(
                 null!,
                 _mockInputProvider, // This field DOES exist in this class
                 new MockCardDatabase(),
@@ -437,9 +437,9 @@ namespace ChaosWarlords.Tests.States
         // --- HELPER CLASS ---
         // This class inherits from GameplayState to test the REAL logic,
         // but provides a convenient constructor for the test harness.
-        private class MockGameplayState : GameplayState
+        private class TestableGameplayState : GameplayState
         {
-            public MockGameplayState(
+            public TestableGameplayState(
                 Game game,
                 IInputProvider input,
                 ICardDatabase db,

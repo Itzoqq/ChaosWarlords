@@ -1,179 +1,14 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities;
-using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Input;
-using System;
-using System.Collections.Generic;
-using ChaosWarlords.Source.States.Input;
-using Microsoft.Xna.Framework.Graphics;
 
 namespace ChaosWarlords.Tests.Source.Commands
 {
     [TestClass]
     public class GameCommandsTests
     {
-        // ------------------------------------------------------------------------
-        // 1. DEDICATED MOCKS (Tailored for GameCommand logic)
-        // ------------------------------------------------------------------------
-
-        private class MockMapManager : IMapManager
-        {
-            // Verification Flags
-            public bool TryDeployCalled { get; private set; }
-            public MapNode? LastDeployTarget { get; private set; }
-
-            // Implementation
-            public bool TryDeploy(Player currentPlayer, MapNode targetNode)
-            {
-                TryDeployCalled = true;
-                LastDeployTarget = targetNode;
-                return true; // Simulate success
-            }
-
-            // Stubs
-            public IReadOnlyList<MapNode> Nodes { get; } = new List<MapNode>();
-            public IReadOnlyList<Site> Sites { get; } = new List<Site>();
-            public void CenterMap(int w, int h) { }
-            public Site GetSiteForNode(MapNode n) => null!;
-            public MapNode GetNodeAt(Vector2 p) => null!;
-            public Site GetSiteAt(Vector2 p) => null!;
-            public void DistributeControlRewards(Player p) { }
-            public List<PlayerColor> GetEnemySpiesAtSite(Site s, Player p) => new List<PlayerColor>();
-        }
-
-        private class MockMarketManager : IMarketManager
-        {
-            // Verification Flags
-            public bool TryBuyCardCalled { get; private set; }
-            public Card? LastCardBought { get; private set; }
-
-            // Implementation
-            public bool TryBuyCard(Player player, Card card)
-            {
-                TryBuyCardCalled = true;
-                LastCardBought = card;
-                return true;
-            }
-
-            // Stubs
-            public List<Card> MarketRow { get; } = new List<Card>();
-            public void Update(Vector2 mousePos) { }
-            public void BuyCard(Player p, Card c) { }
-            public void RefillMarket(List<Card> deck) { }
-        }
-
-        private class MockActionSystem : IActionSystem
-        {
-            // Verification Flags
-            public bool FinalizeSpyReturnCalled { get; private set; }
-            public bool CancelTargetingCalled { get; private set; }
-            public PlayerColor? LastFinalizedSpyColor { get; private set; }
-
-            // Implementation
-            public void FinalizeSpyReturn(PlayerColor spyColor)
-            {
-                FinalizeSpyReturnCalled = true;
-                LastFinalizedSpyColor = spyColor;
-            }
-
-            public void CancelTargeting()
-            {
-                CancelTargetingCalled = true;
-            }
-
-            // Stubs
-            public ActionState CurrentState { get; set; } = ActionState.Normal;
-            public Card? PendingCard { get; }
-            public Site? PendingSite { get; }
-            public event EventHandler? OnActionCompleted;
-            public event EventHandler<string>? OnActionFailed;
-            public void HandleTargetClick(MapNode n, Site s) { }
-            public bool IsTargeting() => false;
-            public void SetCurrentPlayer(Player p) { }
-            public void StartTargeting(ActionState s, Card c) { }
-            public void TryStartAssassinate() { }
-            public void TryStartReturnSpy() { }
-
-            // Helper to satisfy unused event warnings
-            public void RaiseActionCompleted() => OnActionCompleted?.Invoke(this, EventArgs.Empty);
-            public void RaiseActionFailed(string s) => OnActionFailed?.Invoke(this, s);
-        }
-
-        private class MockGameplayState : IGameplayState
-        {
-            // Dependencies
-            public IMapManager MapManager { get; }
-            public IMarketManager MarketManager { get; }
-            public IActionSystem ActionSystem { get; }
-            public TurnManager TurnManager { get; }
-
-            // State Flags for Verification
-            public bool ToggleMarketCalled { get; private set; }
-            public bool CloseMarketCalled { get; private set; }
-            public bool SwitchToNormalModeCalled { get; private set; }
-            public bool SwitchToTargetingModeCalled { get; private set; }
-
-            // Properties
-            public bool IsMarketOpen { get; set; }
-
-            public MockGameplayState(IMapManager map, IMarketManager market, IActionSystem action, TurnManager turn)
-            {
-                MapManager = map;
-                MarketManager = market;
-                ActionSystem = action;
-                TurnManager = turn;
-            }
-
-            // Command Logic Implementations
-            public void ToggleMarket()
-            {
-                ToggleMarketCalled = true;
-                IsMarketOpen = !IsMarketOpen;
-            }
-
-            public void CloseMarket()
-            {
-                CloseMarketCalled = true;
-                IsMarketOpen = false;
-            }
-
-            public void SwitchToNormalMode()
-            {
-                SwitchToNormalModeCalled = true;
-            }
-
-            public void SwitchToTargetingMode()
-            {
-                SwitchToTargetingModeCalled = true;
-            }
-
-            // Stubs (Unused by these specific commands)
-            public InputManager InputManager => null!;
-            public IUISystem UIManager => null!;
-            public IInputMode InputMode { get; set; } = null!;
-            public int HandY => 0;
-            public int PlayedY => 0;
-            public void EndTurn() { }
-            public void PlayCard(Card card) { }
-            public void ResolveCardEffects(Card card) { }
-            public void MoveCardToPlayed(Card card) { }
-            public void ArrangeHandVisuals() { }
-            public string GetTargetingText(ActionState state) => "";
-            public void LoadContent() { }
-            public void UnloadContent() { }
-            public void Update(GameTime gameTime) { }
-            public void Draw(object spriteBatch) { } // Object to avoid strict SpriteBatch dependency if needed
-
-            public void Draw(SpriteBatch spriteBatch)
-            {
-                throw new NotImplementedException();
-            }
-        }
-
         // ------------------------------------------------------------------------
         // 2. TEST SETUP
         // ------------------------------------------------------------------------
@@ -195,12 +30,12 @@ namespace ChaosWarlords.Tests.Source.Commands
             _activePlayer = new Player(PlayerColor.Red);
             _turnManager = new TurnManager(new List<Player> { _activePlayer });
 
-            _mockState = new MockGameplayState(
-                _mockMap,
-                _mockMarket,
-                _mockAction,
-                _turnManager
-            );
+            _mockState = new MockGameplayState(_mockAction)
+            {
+                MapManager = _mockMap,
+                MarketManager = _mockMarket,
+                TurnManager = _turnManager
+            };
         }
 
         // ------------------------------------------------------------------------
