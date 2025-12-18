@@ -6,103 +6,9 @@ using ChaosWarlords.Source.Commands;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.States.Input;
-using ChaosWarlords.Tests;
 
 namespace ChaosWarlords.Tests.States
 {
-    // Define the Mock Provider inside the Test project
-    public class MockInputProvider : IInputProvider
-    {
-        // Backing fields
-        public MouseState MouseState { get; private set; }
-        public KeyboardState KeyboardState { get; private set; }
-
-        public MockInputProvider()
-        {
-            // Initialize with default (Released, 0,0) states
-            MouseState = new MouseState();
-            KeyboardState = new KeyboardState();
-        }
-
-        // Interface Implementation
-        public MouseState GetMouseState() => MouseState;
-        public KeyboardState GetKeyboardState() => KeyboardState;
-
-        // --- Helper Methods for Tests ---
-
-        public void QueueRightClick()
-        {
-            MouseState = new MouseState(
-                MouseState.X,
-                MouseState.Y,
-                MouseState.ScrollWheelValue,
-                ButtonState.Released,
-                ButtonState.Released,
-                ButtonState.Pressed, // Right Click
-                ButtonState.Released,
-                ButtonState.Released
-            );
-        }
-
-        public void QueueLeftClick()
-        {
-            MouseState = new MouseState(
-                MouseState.X,
-                MouseState.Y,
-                MouseState.ScrollWheelValue,
-                ButtonState.Pressed, // Left Click
-                ButtonState.Released,
-                ButtonState.Released,
-                ButtonState.Released,
-                ButtonState.Released
-            );
-        }
-
-        public void SetMousePosition(int x, int y)
-        {
-            // Preserve button state if needed, but for simple moves, reset works
-            MouseState = new MouseState(
-                x,
-                y,
-                MouseState.ScrollWheelValue,
-                MouseState.LeftButton,
-                MouseState.MiddleButton,
-                MouseState.RightButton,
-                MouseState.XButton1,
-                MouseState.XButton2
-            );
-        }
-
-        public void Reset()
-        {
-            MouseState = new MouseState();
-            KeyboardState = new KeyboardState();
-        }
-
-        public void SetKeyboardState(params Keys[] keys)
-        {
-            KeyboardState = new KeyboardState(keys);
-        }
-
-        public void SetMouseState(MouseState state)
-        {
-            MouseState = state;
-        }
-    }
-
-    public class MockCardDatabase : ICardDatabase
-    {
-        public List<Card> GetAllMarketCards()
-        {
-            return new List<Card>(); // Return empty list for tests
-        }
-
-        public Card? GetCardById(string id)
-        {
-            return null;
-        }
-    }
-
     [TestClass]
     public class GameplayStateTests
     {
@@ -111,10 +17,10 @@ namespace ChaosWarlords.Tests.States
         private MockInputProvider _mockInputProvider = null!;
         private Player _player = null!;
         private TurnManager _turnManager = null!;
-        private MapManager _mapManager = null!;
-        private MarketManager _marketManager = null!;
+        private IMapManager _mapManager = null!;
+        private IMarketManager _marketManager = null!;
         private UIManager _uiManager = null!;
-        private ActionSystem _actionSystem = null!;
+        private IActionSystem _actionSystem = null!;
         private List<MapNode> _mutableNodes = null!;
         private List<Site> _mutableSites = null!;
 
@@ -146,7 +52,7 @@ namespace ChaosWarlords.Tests.States
             _marketManager = new MarketManager();
 
             // 4b. Setup Action System - Needs the ActivePlayer from the TurnManager
-            _actionSystem = new ActionSystem(_turnManager.ActivePlayer, _mapManager);
+            _actionSystem = new ActionSystem(_turnManager.ActivePlayer, (MapManager)_mapManager);
 
             // CHANGE: Assign to the class field instead of 'var testUiManager'
             _uiManager = new UIManager(800, 600);
@@ -441,7 +347,7 @@ namespace ChaosWarlords.Tests.States
             _turnManager.ActivePlayer.Hand.Add(assassin);
 
             // Ensure the system starts from a known 'None' state.
-            _actionSystem.CurrentState = ActionState.Normal;
+            _actionSystem.CancelTargeting();
 
             // 2. Act
             _state.PlayCard(assassin);
