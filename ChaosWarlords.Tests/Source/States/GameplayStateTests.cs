@@ -5,10 +5,8 @@ using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Commands;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
-using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.States.Input;
-using ChaosWarlords.Tests.Commands;
+using ChaosWarlords.Tests;
 
 namespace ChaosWarlords.Tests.States
 {
@@ -528,6 +526,27 @@ namespace ChaosWarlords.Tests.States
             // The handler should have switched us back to Normal Mode
             Assert.IsInstanceOfType(state.InputMode, typeof(NormalPlayInputMode),
                 "Integration Failure: GameplayState did not listen to ActionSystem.OnActionCompleted event!");
+        }
+
+        // --- HELPER CLASS ---
+        // This class inherits from GameplayState to test the REAL logic,
+        // but provides a convenient constructor for the test harness.
+        private class MockGameplayState : GameplayState
+        {
+            public MockGameplayState(
+                Game game,
+                IInputProvider input,
+                ICardDatabase db,
+                IMapManager map,
+                IMarketManager market,
+                IActionSystem action,
+                TurnManager turn)
+                : base(game, input, db)
+            {
+                // We rely on InjectDependencies in the test, 
+                // but this constructor signature allows the test code to compile 
+                // matching your requested structure.
+            }
         }
     }
 }
