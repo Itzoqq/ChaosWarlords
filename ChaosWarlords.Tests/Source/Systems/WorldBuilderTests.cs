@@ -1,24 +1,7 @@
 using ChaosWarlords.Source.Systems;
-using ChaosWarlords.Source.Utilities; // Needed for ICardDatabase interface
-using ChaosWarlords.Source.Entities; // Needed for Card class
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Systems
 {
-    // 1. Create a fake database for testing (So we don't need real files)
-    public class MockWorldBuilderDB : ICardDatabase
-    {
-        public List<Card> GetAllMarketCards()
-        {
-            // Return an empty list or a list with 1 dummy card if needed.
-            // For WorldBuilder tests, empty is usually fine as we test Player Deck separately.
-            return new List<Card>();
-        }
-
-        public Card? GetCardById(string id) => null;
-    }
-
     [TestClass]
     public class WorldBuilderTests
     {
@@ -27,7 +10,7 @@ namespace ChaosWarlords.Tests.Systems
         {
             // Arrange
             // Create the mock dependency
-            var mockDb = new MockWorldBuilderDB();
+            var mockDb = new MockCardDatabase();
 
             // Pass the mock DB instead of a string path for cards
             var builder = new WorldBuilder(mockDb, "dummy_map.json");
@@ -47,7 +30,7 @@ namespace ChaosWarlords.Tests.Systems
         public void Build_InitializesPlayerDeck()
         {
             // Use the mock
-            var mockDb = new MockWorldBuilderDB();
+            var mockDb = new MockCardDatabase();
             var builder = new WorldBuilder(mockDb, "dummy_map.json");
 
             var world = builder.Build();
@@ -65,7 +48,7 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void Build_FallsBackToTestMap_WhenFilesAreMissing()
         {
-            var mockDb = new MockWorldBuilderDB();
+            var mockDb = new MockCardDatabase();
 
             // We pass a garbage map path to force the fallback
             var builder = new WorldBuilder(mockDb, "invalid_map.json");

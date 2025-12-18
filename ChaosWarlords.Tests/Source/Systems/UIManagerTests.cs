@@ -3,21 +3,12 @@ using Microsoft.Xna.Framework.Input;
 
 namespace ChaosWarlords.Tests.Systems
 {
-    public class MockUIInputProvider : IInputProvider
-    {
-        public MouseState MouseState;
-        public KeyboardState KeyboardState;
-
-        public MouseState GetMouseState() => MouseState;
-        public KeyboardState GetKeyboardState() => KeyboardState;
-    }
-
     [TestClass]
     public class UIManagerTests
     {
         private UIManager _ui = null!;
         private InputManager _input = null!;
-        private MockUIInputProvider _mockInput = null!;
+        private MockInputProvider _mockInput = null!;
 
         private const int ScreenWidth = 800;
         private const int ScreenHeight = 600;
@@ -26,13 +17,13 @@ namespace ChaosWarlords.Tests.Systems
         public void Setup()
         {
             _ui = new UIManager(ScreenWidth, ScreenHeight);
-            _mockInput = new MockUIInputProvider();
+            _mockInput = new MockInputProvider();
             _input = new InputManager(_mockInput);
         }
 
         private void SetMouse(int x, int y)
         {
-            _mockInput.MouseState = new MouseState(x, y, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+            _mockInput.SetMouseState(new MouseState(x, y, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
             _input.Update();
         }
 

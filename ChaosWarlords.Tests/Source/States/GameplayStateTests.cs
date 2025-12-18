@@ -45,10 +45,10 @@ namespace ChaosWarlords.Tests.States
             _turnManager = new TurnManager(new List<Player> { _player });
 
             // 4. Setup other Systems
-            _mutableNodes = new List<MapNode>(); // <--- FIX 1: Initialize mutable list
-            _mutableSites = new List<Site>();   // <--- FIX 1: Initialize mutable list
-                                                // _mapManager = new MapManager(new List<MapNode>(), new List<Site>()); // OLD
-            _mapManager = new MapManager(_mutableNodes, _mutableSites); // <--- FIX 2: Pass mutable lists to constructor
+            _mutableNodes = new List<MapNode>();
+            _mutableSites = new List<Site>();
+
+            _mapManager = new MapManager(_mutableNodes, _mutableSites);
             _marketManager = new MarketManager();
 
             // 4b. Setup Action System - Needs the ActivePlayer from the TurnManager

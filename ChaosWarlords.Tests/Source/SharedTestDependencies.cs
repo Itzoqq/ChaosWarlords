@@ -270,4 +270,17 @@ namespace ChaosWarlords.Tests
         public void RaiseReturnSpyRequest() => OnReturnSpyRequest?.Invoke(this, EventArgs.Empty);
         public void Update(InputManager input) { }
     }
+
+    public class MockGenericState : IState
+    {
+        public bool LoadContentCalled { get; private set; }
+        public bool UnloadContentCalled { get; private set; }
+        public int UpdateCount { get; private set; }
+        public int DrawCount { get; private set; }
+
+        public void LoadContent() => LoadContentCalled = true;
+        public void UnloadContent() => UnloadContentCalled = true;
+        public void Update(GameTime gameTime) => UpdateCount++;
+        public void Draw(SpriteBatch spriteBatch) => DrawCount++;
+    }
 }
