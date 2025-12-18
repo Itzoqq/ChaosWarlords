@@ -1,16 +1,15 @@
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities;
+using ChaosWarlords.Source.States;
+using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
+using NSubstitute;
 
 namespace ChaosWarlords.Tests.Source.Commands
 {
     [TestClass]
     public class ActionCompletedCommandTests
     {
-        // ------------------------------------------------------------------------
-        // 2. UNIT TESTS
-        // ------------------------------------------------------------------------
-
         [TestInitialize]
         public void Setup()
         {
@@ -21,54 +20,62 @@ namespace ChaosWarlords.Tests.Source.Commands
         [TestMethod]
         public void ActionCompleted_WithPendingCard_FinalizesCard_AndResetsState()
         {
-            // 1. Arrange
-            var mockAction = new MockActionSystem();
-            var mockState = new MockGameplayState(mockAction);
+            // 1. Arrange: Create dynamic mocks (no manual classes needed)
+            var actionSub = Substitute.For<IActionSystem>();
+            var stateSub = Substitute.For<IGameplayState>();
 
+            // Link the systems: When the Command asks State for the ActionSystem, return our mock
+            stateSub.ActionSystem.Returns(actionSub);
+
+            // Setup Data: Define what 'PendingCard' returns
             var card = new Card("test_id", "Test Card", 0, CardAspect.Neutral, 0, 0);
-            mockAction.PendingCard = card;
+            actionSub.PendingCard.Returns(card);
 
             var command = new ActionCompletedCommand();
 
             // 2. Act
-            command.Execute(mockState);
+            command.Execute(stateSub);
 
-            // 3. Assert
-            // It MUST resolve effects (gain power, etc.)
-            Assert.IsTrue(mockState.ResolveCardEffectsCalled, "Should resolve card effects.");
-            Assert.AreEqual(card, mockState.LastResolvedCard);
+            // 3. Assert: Verify interactions using .Received()
+
+            // It MUST resolve effects with the specific card we set up
+            stateSub.Received(1).ResolveCardEffects(card);
 
             // It MUST move card to discard pile
-            Assert.IsTrue(mockState.MoveCardToPlayedCalled, "Should move card to played pile.");
-            Assert.AreEqual(card, mockState.LastMovedCard);
+            stateSub.Received(1).MoveCardToPlayed(card);
 
             // It MUST reset the UI state
-            Assert.IsTrue(mockAction.CancelTargetingCalled, "Should cancel targeting on the backend.");
-            Assert.IsTrue(mockState.SwitchToNormalModeCalled, "Should switch Input Mode back to Normal.");
+            actionSub.Received(1).CancelTargeting();
+            stateSub.Received(1).SwitchToNormalMode();
         }
 
         [TestMethod]
         public void ActionCompleted_NoPendingCard_JustResetsState()
         {
             // 1. Arrange
-            var mockAction = new MockActionSystem();
-            var mockState = new MockGameplayState(mockAction);
+            var actionSub = Substitute.For<IActionSystem>();
+            var stateSub = Substitute.For<IGameplayState>();
 
-            // Case: Completing a pure map action (e.g. Return Spy) that didn't involve a card
-            mockAction.PendingCard = null;
+            stateSub.ActionSystem.Returns(actionSub);
+
+            // Case: No card is pending (return null)
+            actionSub.PendingCard.Returns((Card?)null);
 
             var command = new ActionCompletedCommand();
 
             // 2. Act
-            command.Execute(mockState);
+            command.Execute(stateSub);
 
             // 3. Assert
-            Assert.IsFalse(mockState.ResolveCardEffectsCalled, "Should NOT resolve effects if no card pending.");
-            Assert.IsFalse(mockState.MoveCardToPlayedCalled, "Should NOT move card if no card pending.");
+
+            // Verify specific methods were NOT called
+            // We use Arg.Any<Card>() to say "It shouldn't be called with ANY card"
+            stateSub.DidNotReceive().ResolveCardEffects(Arg.Any<Card>());
+            stateSub.DidNotReceive().MoveCardToPlayed(Arg.Any<Card>());
 
             // Still needs to reset state
-            Assert.IsTrue(mockAction.CancelTargetingCalled);
-            Assert.IsTrue(mockState.SwitchToNormalModeCalled);
+            actionSub.Received(1).CancelTargeting();
+            stateSub.Received(1).SwitchToNormalMode();
         }
     }
 }

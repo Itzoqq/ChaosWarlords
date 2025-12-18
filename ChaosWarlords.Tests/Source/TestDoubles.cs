@@ -4,7 +4,6 @@ using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.States;
-using ChaosWarlords.Source.States.Input;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Tests
@@ -19,9 +18,6 @@ namespace ChaosWarlords.Tests
         public ActionState CurrentState { get; set; } = ActionState.Normal;
         public Card? PendingCard { get; set; }
         public Site? PendingSite { get; set; }
-        public bool CancelTargetingCalled { get; private set; }
-        public bool FinalizeSpyReturnCalled { get; private set; }
-        public PlayerColor? LastFinalizedSpyColor { get; private set; }
         public bool HandleTargetClickCalled { get; private set; }
         public MapNode? ClickedNode { get; private set; }
         public Site? ClickedSite { get; private set; }
@@ -34,8 +30,8 @@ namespace ChaosWarlords.Tests
         public void SimulateActionFailed(string reason) => OnActionFailed?.Invoke(this, reason);
 
         // Interface Implementation
-        public void CancelTargeting() { CurrentState = ActionState.Normal; CancelTargetingCalled = true; }
-        public void FinalizeSpyReturn(PlayerColor spyColor) { FinalizeSpyReturnCalled = true; LastFinalizedSpyColor = spyColor; }
+        public void CancelTargeting() { CurrentState = ActionState.Normal; }
+        public void FinalizeSpyReturn(PlayerColor spyColor) { }
         public void HandleTargetClick(MapNode node, Site site)
         {
             HandleTargetClickCalled = true;
@@ -47,21 +43,16 @@ namespace ChaosWarlords.Tests
         public void StartTargeting(ActionState state, Card card) { CurrentState = state; }
         public void TryStartAssassinate() { }
         public void TryStartReturnSpy() { }
-        public void Reset() { CurrentState = ActionState.Normal; PendingCard = null; PendingSite = null; CancelTargetingCalled = false; FinalizeSpyReturnCalled = false; LastFinalizedSpyColor = null; }
+        public void Reset() { CurrentState = ActionState.Normal; PendingCard = null; PendingSite = null; }
     }
 
     public class MockMapManager : IMapManager
     {
         public IReadOnlyList<MapNode> Nodes { get; } = new List<MapNode>();
         public IReadOnlyList<Site> Sites { get; } = new List<Site>();
-
         public MapNode? NodeToReturn { get; set; }
         public Site? SiteToReturn { get; set; }
         public List<PlayerColor> SpiesToReturn { get; set; } = new List<PlayerColor>();
-
-        public bool TryDeployCalled { get; private set; }
-        public MapNode? LastDeployTarget { get; private set; }
-
         public void CenterMap(int width, int height) { }
         public void DistributeControlRewards(Player activePlayer) { }
         public List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer) => SpiesToReturn;
@@ -70,8 +61,6 @@ namespace ChaosWarlords.Tests
         public Site GetSiteForNode(MapNode node) => null!;
         public bool TryDeploy(Player currentPlayer, MapNode targetNode)
         {
-            TryDeployCalled = true;
-            LastDeployTarget = targetNode;
             return true;
         }
     }
@@ -81,11 +70,9 @@ namespace ChaosWarlords.Tests
         public List<Card> MarketRow { get; } = new List<Card>();
         public bool UpdateCalled { get; private set; }
         public bool TryBuyCardCalled { get; private set; }
-        public Card? LastCardBought { get; private set; }
-
         public void BuyCard(Player p, Card c) { }
         public void RefillMarket(List<Card> deck) { }
-        public bool TryBuyCard(Player player, Card card) { TryBuyCardCalled = true; LastCardBought = card; return true; }
+        public bool TryBuyCard(Player player, Card card) { return true; }
         public void Update(Vector2 mousePos)
         {
             UpdateCalled = true;
@@ -191,65 +178,6 @@ namespace ChaosWarlords.Tests
         {
             MouseState = state;
         }
-    }
-
-    public class MockGameplayState : IGameplayState
-    {
-        public IActionSystem ActionSystem { get; }
-
-        // Verification Flags
-        public bool ResolveCardEffectsCalled { get; private set; }
-        public bool MoveCardToPlayedCalled { get; private set; }
-        public bool SwitchToNormalModeCalled { get; private set; }
-        public bool ToggleMarketCalled { get; private set; }
-        public bool CloseMarketCalled { get; private set; }
-        public bool SwitchToTargetingModeCalled { get; private set; }
-        public Card? LastResolvedCard { get; private set; }
-        public Card? LastMovedCard { get; private set; }
-
-        public MockGameplayState(IActionSystem actionSystem)
-        {
-            ActionSystem = actionSystem;
-        }
-
-        public void ResolveCardEffects(Card card)
-        {
-            ResolveCardEffectsCalled = true;
-            LastResolvedCard = card;
-        }
-
-        public void MoveCardToPlayed(Card card)
-        {
-            MoveCardToPlayedCalled = true;
-            LastMovedCard = card;
-        }
-
-        public void SwitchToNormalMode()
-        {
-            SwitchToNormalModeCalled = true;
-        }
-
-        // Stubs
-        public InputManager InputManager { get; set; } = null!;
-        public IUISystem UIManager { get; set; } = null!;
-        public IMapManager MapManager { get; set; } = null!;
-        public IMarketManager MarketManager { get; set; } = null!;
-        public TurnManager TurnManager { get; set; } = null!;
-        public IInputMode InputMode { get; set; } = null!;
-        public bool IsMarketOpen { get; set; }
-        public int HandY => 0;
-        public int PlayedY => 0;
-        public void PlayCard(Card card) { }
-        public void SwitchToTargetingMode() { SwitchToTargetingModeCalled = true; }
-        public void ToggleMarket() { ToggleMarketCalled = true; IsMarketOpen = !IsMarketOpen; }
-        public void CloseMarket() { CloseMarketCalled = true; IsMarketOpen = false; }
-        public void EndTurn() { }
-        public void ArrangeHandVisuals() { }
-        public string GetTargetingText(ActionState state) => "";
-        public void LoadContent() { }
-        public void UnloadContent() { }
-        public void Update(GameTime gameTime) { }
-        public void Draw(SpriteBatch spriteBatch) { }
     }
 
     public class MockUISystem : IUISystem

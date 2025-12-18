@@ -5,59 +5,53 @@ using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Utilities;
+using NSubstitute;
+using ChaosWarlords.Source.States;
 
 namespace ChaosWarlords.Tests.States.Input
 {
     [TestClass]
     public class NormalPlayInputModeTests
     {
-        // --- Test Setup ---
-
         private NormalPlayInputMode _inputMode = null!;
         private MockInputProvider _mockInput = null!;
         private InputManager _inputManager = null!;
-        private MockMapManager _mockMap = null!;
-        private MockActionSystem _mockAction = null!;
+
+        // Substitutes
+        private IMapManager _mapSub = null!;
+        private IActionSystem _actionSub = null!;
+        private IGameplayState _stateSub = null!;
+        private IMarketManager _marketSub = null!;
+
         private MockUISystem _mockUI = null!;
-        private MockMarketManager _mockMarket = null!;
         private TurnManager _turnManager = null!;
         private Player _activePlayer = null!;
 
         [TestInitialize]
         public void Setup()
         {
-            // 1. Create Core Mocks
             _mockInput = new MockInputProvider();
             _inputManager = new InputManager(_mockInput);
-            _mockMap = new MockMapManager();
-            _mockAction = new MockActionSystem();
-            _mockUI = new MockUISystem();
-            _mockMarket = new MockMarketManager();
 
+            // Substitutes
+            _mapSub = Substitute.For<IMapManager>();
+            _actionSub = Substitute.For<IActionSystem>();
+            _stateSub = Substitute.For<IGameplayState>();
+            _marketSub = Substitute.For<IMarketManager>();
+
+            _mockUI = new MockUISystem();
             _activePlayer = new Player(PlayerColor.Red);
             _turnManager = new TurnManager(new List<Player> { _activePlayer });
 
-            // 2. Create the Mock State injecting the SAME mocks
-            // This ensures that if the code accesses state.MapManager, it gets _mockMap
-            var mockState = new MockGameplayState(_mockAction);
-            mockState.InputManager = _inputManager;
-            mockState.UIManager = _mockUI;
-            mockState.MapManager = _mockMap;
-            mockState.MarketManager = _mockMarket;
-            mockState.TurnManager = _turnManager;
-
-            // 3. Initialize the Mode under test
             _inputMode = new NormalPlayInputMode(
-                mockState,
+                _stateSub,
                 _inputManager,
                 _mockUI,
-                _mockMap,
+                _mapSub,
                 _turnManager,
-                _mockAction
+                _actionSub
             );
         }
-
-        // --- Tests ---
 
         [TestMethod]
         public void HandleInput_ClickOnCard_ReturnsPlayCardCommand()
@@ -67,26 +61,25 @@ namespace ChaosWarlords.Tests.States.Input
             card.Position = new Vector2(100, 100);
             _activePlayer.Hand.Add(card);
 
-            // Frame 1: Released
+            // Simulate Click
             _mockInput.SetMouseState(new MouseState(110, 110, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
             _inputManager.Update();
-
-            // Frame 2: Pressed (Click)
             _mockInput.SetMouseState(new MouseState(110, 110, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
             _inputManager.Update();
 
             // 2. Act
             var result = _inputMode.HandleInput(
                 _inputManager,
-                _mockMarket,
-                _mockMap,
+                _marketSub,
+                _mapSub,
                 _activePlayer,
-                _mockAction
+                _actionSub
             );
 
             // 3. Assert
-            Assert.IsNotNull(result, "Clicking a card should return a command.");
-            Assert.IsInstanceOfType(result, typeof(PlayCardCommand), "Should return a PlayCardCommand.");
+            Assert.IsNotNull(result, "Input should handle the Card, returning a command.");
+            Assert.IsInstanceOfType(result, typeof(PlayCardCommand));
+            _mapSub.DidNotReceive().TryDeploy(Arg.Any<Player>(), Arg.Any<MapNode>());
         }
 
         [TestMethod]
@@ -95,31 +88,28 @@ namespace ChaosWarlords.Tests.States.Input
             // 1. Arrange
             _activePlayer.Hand.Clear();
 
-            // Setup Map Mock to return a node
+            // Setup Map Mock to return a node at click location
             var targetNode = new MapNode(1, new Vector2(200, 200));
-            _mockMap.NodeToReturn = targetNode;
+            _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns(targetNode);
 
-            // Frame 1: Released
+            // Simulate Click at 200,200
             _mockInput.SetMouseState(new MouseState(200, 200, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
             _inputManager.Update();
-
-            // Frame 2: Pressed
             _mockInput.SetMouseState(new MouseState(200, 200, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
             _inputManager.Update();
 
             // 2. Act
             var result = _inputMode.HandleInput(
                 _inputManager,
-                _mockMarket,
-                _mockMap,
+                _marketSub,
+                _mapSub,
                 _activePlayer,
-                _mockAction
+                _actionSub
             );
 
             // 3. Assert
             Assert.IsNull(result, "Map interaction should not return a generic command.");
-            Assert.IsTrue(_mockMap.TryDeployCalled, "MapManager.TryDeploy should have been called.");
-            Assert.AreEqual(targetNode, _mockMap.LastDeployTarget);
+            _mapSub.Received(1).TryDeploy(_activePlayer, targetNode);
         }
 
         [TestMethod]
@@ -133,27 +123,27 @@ namespace ChaosWarlords.Tests.States.Input
 
             // Position Node at (100, 100) as well (Visual Overlap)
             var node = new MapNode(1, new Vector2(100, 100));
-            _mockMap.NodeToReturn = node;
+            _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns(node);
 
-            // Simulate Click exactly at (110, 110) where both exist
+            // Simulate Click overlaps both
             _mockInput.SetMouseState(new MouseState(110, 110, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update(); // Frame 1
+            _inputManager.Update();
             _mockInput.SetMouseState(new MouseState(110, 110, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update(); // Frame 2
+            _inputManager.Update();
 
             // 2. Act
             var result = _inputMode.HandleInput(
                 _inputManager,
-                _mockMarket,
-                _mockMap,
+                _marketSub,
+                _mapSub,
                 _activePlayer,
-                _mockAction
+                _actionSub
             );
 
             // 3. Assert
             Assert.IsNotNull(result, "Input should handle the Card, returning a command.");
-            Assert.IsInstanceOfType(result, typeof(PlayCardCommand), "Card interaction must take priority over Map interaction.");
-            Assert.IsFalse(_mockMap.TryDeployCalled, "Map deployment should NOT trigger when clicking a card.");
+            Assert.IsInstanceOfType(result, typeof(PlayCardCommand));
+            _mapSub.DidNotReceive().TryDeploy(Arg.Any<Player>(), Arg.Any<MapNode>());
         }
 
         [TestMethod]
@@ -161,9 +151,8 @@ namespace ChaosWarlords.Tests.States.Input
         {
             // 1. Arrange
             _activePlayer.Hand.Clear();
-            _mockMap.NodeToReturn = null; // No node at click location
+            _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns((MapNode?)null); // No node here
 
-            // Click at arbitrary location (500, 500)
             _mockInput.SetMouseState(new MouseState(500, 500, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
             _inputManager.Update();
             _mockInput.SetMouseState(new MouseState(500, 500, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
@@ -172,15 +161,15 @@ namespace ChaosWarlords.Tests.States.Input
             // 2. Act
             var result = _inputMode.HandleInput(
                 _inputManager,
-                _mockMarket,
-                _mockMap,
+                _marketSub,
+                _mapSub,
                 _activePlayer,
-                _mockAction
+                _actionSub
             );
 
             // 3. Assert
             Assert.IsNull(result, "Clicking empty space should return null.");
-            Assert.IsFalse(_mockMap.TryDeployCalled, "Should not attempt deploy if no node is clicked.");
+            _mapSub.DidNotReceive().TryDeploy(Arg.Any<Player>(), Arg.Any<MapNode>());
         }
     }
 }
