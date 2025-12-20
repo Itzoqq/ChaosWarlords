@@ -90,5 +90,26 @@
         "Amount": 1
       }
     ]
+  },
+  {
+    "Id": "test_blade_dancer",
+    "Name": "Shadow Blade Dancer",
+    "Description": "Assassinate a troop. Focus - Gain 3 Power.",
+    "Cost": 4,
+    "Aspect": "Shadow",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "Effects": [
+      {
+        "Type": "Assassinate",
+        "Amount": 1
+      },
+      {
+        "Type": "GainResource",
+        "Amount": 3,
+        "TargetResource": "Power",
+        "RequiresFocus": true
+      }
+    ]
   }
 ]

@@ -12,9 +12,7 @@ namespace ChaosWarlords.Source.Utilities
 
         public static Card CreateSoldier()
         {
-            // Updated: Soldiers have 0 VP (Deck) and 0 VP (Inner Circle) usually
             var card = new Card(GenerateUniqueId("soldier"), "Soldier", 0, CardAspect.Neutral, 0, 0, 0);
-
             card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Power));
             card.Description = "+1 Power";
             return card;
@@ -22,7 +20,6 @@ namespace ChaosWarlords.Source.Utilities
 
         public static Card CreateNoble()
         {
-            // Updated: Nobles have 0 VP (Deck) and 0 VP (Inner Circle) usually
             var card = new Card(GenerateUniqueId("noble"), "Noble", 0, CardAspect.Neutral, 0, 0, 0);
             card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Influence));
             card.Description = "+1 Influence";
@@ -33,9 +30,7 @@ namespace ChaosWarlords.Source.Utilities
         {
             Enum.TryParse(data.Aspect, true, out CardAspect aspect);
 
-            // --- CHANGED: Passing both data.DeckVP and data.InnerCircleVP ---
-            // Note: Influence is 0 for general cards; specific "Influence" cards might need a new field in JSON later, 
-            // but for now 0 is safe as most cards generate resources via Effects.
+            // Using 0 for influence as default
             var card = new Card(GenerateUniqueId(data.Id), data.Name, data.Cost, aspect, data.DeckVP, data.InnerCircleVP, 0);
 
             card.Description = data.Description;
@@ -51,7 +46,12 @@ namespace ChaosWarlords.Source.Utilities
                         {
                             Enum.TryParse(effectData.TargetResource, true, out resType);
                         }
-                        card.AddEffect(new CardEffect(type, effectData.Amount, resType));
+
+                        // --- CHANGED: Explicitly set RequiresFocus ---
+                        var newEffect = new CardEffect(type, effectData.Amount, resType);
+                        newEffect.RequiresFocus = effectData.RequiresFocus;
+
+                        card.AddEffect(newEffect);
                     }
                 }
             }
