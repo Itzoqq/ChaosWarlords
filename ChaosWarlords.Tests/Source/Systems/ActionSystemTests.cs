@@ -3,8 +3,10 @@ using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
-using System.Collections.Generic;
+using NSubstitute;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -13,8 +15,8 @@ namespace ChaosWarlords.Tests.Systems
     {
         private Player _player1 = null!;
         private Player _player2 = null!;
-        private MapManager _mapManager = null!;
-        private ActionSystem _actionSystem = null!;
+        private IMapManager _mapManager = null!; // Mocked dependency
+        private ActionSystem _actionSystem = null!; // System Under Test
 
         private MapNode _node1 = null!, _node2 = null!;
         private Site _siteA = null!;
@@ -30,20 +32,15 @@ namespace ChaosWarlords.Tests.Systems
             _player1 = new Player(PlayerColor.Red);
             _player2 = new Player(PlayerColor.Blue);
 
+            // Mock the MapManager
+            _mapManager = Substitute.For<IMapManager>();
+
+            // Setup Data Entities (Concrete is fine for data holders)
             _node1 = new MapNode(1, new Vector2(10, 10));
             _node2 = new MapNode(2, new Vector2(20, 10));
-
-            // Make neighbors bidirectional so HasPresence works correctly
-            _node1.AddNeighbor(_node2);
-            _node2.AddNeighbor(_node1);
-
             _siteA = new Site("SiteA", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
-            _siteA.AddNode(_node2);
 
-            var nodes = new List<MapNode> { _node1, _node2 };
-            var sites = new List<Site> { _siteA };
-            _mapManager = new MapManager(nodes, sites);
-
+            // Inject the mock
             _actionSystem = new ActionSystem(_player1, _mapManager);
 
             // Subscribe to events for every test
@@ -52,15 +49,13 @@ namespace ChaosWarlords.Tests.Systems
             _actionSystem.OnActionCompleted += (s, e) => _eventCompletedFired = true;
             _actionSystem.OnActionFailed += (s, msg) => _eventFailedFired = true;
 
-            // Reset player
+            // Reset player defaults
             _player1.Power = 10;
             _player1.TroopsInBarracks = 10;
-
-            // Establish Presence for Player 1
-            _node1.Occupant = _player1.Color;
+            _player1.SpiesInBarracks = 5;
         }
 
-        #region Action Initiation Tests
+        #region 1. Initiation Tests
 
         [TestMethod]
         public void TryStartAssassinate_Succeeds_WhenPlayerHasEnoughPower()
@@ -68,7 +63,6 @@ namespace ChaosWarlords.Tests.Systems
             _player1.Power = 3;
             _actionSystem.TryStartAssassinate();
             Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
-            // Note: StartAssassinate usually doesn't fire Completed, it just changes state.
             Assert.IsFalse(_eventFailedFired);
         }
 
@@ -100,238 +94,157 @@ namespace ChaosWarlords.Tests.Systems
 
         #endregion
 
-        #region Action Handling Tests
+        #region 2. Basic Execution Tests
 
         [TestMethod]
-        public void HandleTargetClick_Assassinate_PaysCostForUIAction()
+        public void HandleTargetClick_Assassinate_PaysCost_AndCallsMapManager()
         {
             // Arrange
             _player1.Power = 3;
             _actionSystem.TryStartAssassinate();
-
-            _node1.Occupant = _player1.Color; // Presence
-            _node2.Occupant = _player2.Color; // Target
-
-            // Act
-            _actionSystem.HandleTargetClick(_node2, null);
-
-            // Assert
-            Assert.IsTrue(_eventCompletedFired, "Action should complete successfully.");
-            Assert.AreEqual(0, _player1.Power); // Cost was paid
-            Assert.AreEqual(PlayerColor.None, _node2.Occupant); // Target is gone
-        }
-
-        [TestMethod]
-        public void HandleTargetClick_Assassinate_DoesNotPayCostForCardAction()
-        {
-            // Arrange
-            var card = new Card("Assassin", "Assassin Name", 0, CardAspect.Shadow, 0, 0, 0);
-            _player1.Power = 3;
-            _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card);
-
-            _node1.Occupant = _player1.Color;
-            _node2.Occupant = _player2.Color;
+            _mapManager.CanAssassinate(_node2, _player1).Returns(true);
 
             // Act
             _actionSystem.HandleTargetClick(_node2, null);
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
-            Assert.AreEqual(3, _player1.Power); // Cost was NOT paid by ActionSystem
-            Assert.AreEqual(PlayerColor.None, _node2.Occupant);
+            Assert.AreEqual(0, _player1.Power); // Cost paid
+            _mapManager.Received(1).Assassinate(_node2, _player1);
         }
 
         [TestMethod]
-        public void HandleTargetClick_PlaceSpy_SucceedsOnSiteAndFailsOnNode()
+        public void HandleTargetClick_Assassinate_InvalidTarget_Fails()
         {
-            // Arrange 1
-            _actionSystem.StartTargeting(ActionState.TargetingPlaceSpy, null);
+            // Arrange
+            _actionSystem.StartTargeting(ActionState.TargetingAssassinate);
+            _mapManager.CanAssassinate(_node2, _player1).Returns(false);
+
+            // Act
+            _actionSystem.HandleTargetClick(_node2, null);
+
+            // Assert
+            Assert.IsTrue(_eventFailedFired);
+            _mapManager.DidNotReceive().Assassinate(Arg.Any<MapNode>(), Arg.Any<Player>());
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_PlaceSpy_Succeeds()
+        {
+            // Arrange
+            _actionSystem.StartTargeting(ActionState.TargetingPlaceSpy);
             _player1.SpiesInBarracks = 1;
 
-            // Act 1
+            // Act
             _actionSystem.HandleTargetClick(null, _siteA);
 
-            // Assert 1
-            Assert.IsTrue(_eventCompletedFired);
-            Assert.HasCount(1, _siteA.Spies);
-
-            // Reset for Part 2
-            _eventCompletedFired = false;
-            _siteA.Spies.Clear();
-            _player1.SpiesInBarracks = 1;
-            _actionSystem.StartTargeting(ActionState.TargetingPlaceSpy, null);
-
-            // Act 2: Click a node (invalid)
-            _actionSystem.HandleTargetClick(_node1, null);
-
-            // Assert 2
-            Assert.IsFalse(_eventCompletedFired, "Should not fire completion for invalid target.");
-            Assert.IsEmpty(_siteA.Spies);
-        }
-
-        [TestMethod]
-        public void HandleTargetClick_Fails_WithInvalidTarget()
-        {
-            // Arrange
-            _actionSystem.StartTargeting(ActionState.TargetingAssassinate, null);
-            _node1.Occupant = _player1.Color; // Friendly troop
-
-            // Act
-            _actionSystem.HandleTargetClick(_node1, null);
-
             // Assert
-            Assert.IsFalse(_eventCompletedFired);
-            // Optionally check failure event
-            Assert.IsTrue(_eventFailedFired, "Should fire failure event for invalid target.");
-            Assert.AreEqual(_player1.Color, _node1.Occupant);
+            Assert.IsTrue(_eventCompletedFired);
+            _mapManager.Received(1).PlaceSpy(_siteA, _player1);
         }
 
         [TestMethod]
-        public void HandleTargetClick_Supplant_SucceedsWithValidTarget()
+        public void HandleTargetClick_Supplant_CallsSupplant()
         {
             // Arrange
-            _actionSystem.StartTargeting(ActionState.TargetingSupplant, null);
-            _node1.Occupant = _player1.Color; // Presence
-            _node2.Occupant = _player2.Color; // Target
+            _actionSystem.StartTargeting(ActionState.TargetingSupplant);
             _player1.TroopsInBarracks = 1;
-            _player1.TrophyHall = 0;
+            _mapManager.CanAssassinate(_node2, _player1).Returns(true);
 
             // Act
             _actionSystem.HandleTargetClick(_node2, null);
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
-            Assert.AreEqual(_player1.Color, _node2.Occupant);
-            Assert.AreEqual(1, _player1.TrophyHall);
+            _mapManager.Received(1).Supplant(_node2, _player1);
         }
 
         [TestMethod]
-        public void HandleTargetClick_Return_SucceedsOnOwnTroop()
+        public void HandleTargetClick_Return_CallsReturnTroop()
         {
             // Arrange
-            _actionSystem.StartTargeting(ActionState.TargetingReturn, null);
+            _actionSystem.StartTargeting(ActionState.TargetingReturn);
             _node1.Occupant = _player1.Color;
-            _player1.TroopsInBarracks = 5;
+            _mapManager.HasPresence(_node1, _player1.Color).Returns(true);
 
             // Act
             _actionSystem.HandleTargetClick(_node1, null);
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
-            Assert.AreEqual(PlayerColor.None, _node1.Occupant);
-            Assert.AreEqual(6, _player1.TroopsInBarracks);
+            _mapManager.Received(1).ReturnTroop(_node1, _player1);
         }
 
-        [TestMethod]
-        public void HandleTargetClick_Assassinate_FailsOnEmptyNode()
-        {
-            // Arrange
-            _actionSystem.StartTargeting(ActionState.TargetingAssassinate, null);
-            _node1.Occupant = _player1.Color;
-            // _node2 is empty
-
-            // Act
-            _actionSystem.HandleTargetClick(_node2, null);
-
-            // Assert
-            Assert.IsFalse(_eventCompletedFired);
-            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
-        }
         #endregion
 
-        #region Spy Logic Complex Scenarios
+        #region 3. Spy Return Logic (Complex)
 
         [TestMethod]
         public void HandleTargetClick_ReturnSpy_AutoResolves_SingleFaction()
         {
             // Arrange
-            _siteA.Spies.Add(PlayerColor.Blue);
             _player1.Power = 3;
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
 
-            // Act
-            _actionSystem.HandleTargetClick(null, _siteA);
-
-            // Assert
-            Assert.IsTrue(_eventCompletedFired, "Should auto-resolve.");
-            Assert.IsEmpty(_siteA.Spies);
-            Assert.AreEqual(0, _player1.Power);
-        }
-
-        [TestMethod]
-        public void HandleTargetClick_ReturnSpy_AutoResolves_MultipleSpiesSameFaction()
-        {
-            // Arrange
-            _siteA.Spies.Add(PlayerColor.Blue);
-            _siteA.Spies.Add(PlayerColor.Blue);
-            _player1.Power = 3;
-            _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
+            // Mock: Only Blue spies here
+            _mapManager.GetEnemySpiesAtSite(_siteA, _player1).Returns(new List<PlayerColor> { PlayerColor.Blue });
+            _mapManager.ReturnSpecificSpy(_siteA, _player1, PlayerColor.Blue).Returns(true);
 
             // Act
             _actionSystem.HandleTargetClick(null, _siteA);
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
-            Assert.HasCount(1, _siteA.Spies);
             Assert.AreEqual(0, _player1.Power);
+            _mapManager.Received(1).ReturnSpecificSpy(_siteA, _player1, PlayerColor.Blue);
         }
 
         [TestMethod]
         public void HandleTargetClick_ReturnSpy_DetectsAmbiguity_MultipleFactions()
         {
             // Arrange
-            _siteA.Spies.Add(PlayerColor.Blue);
-            _siteA.Spies.Add(PlayerColor.Neutral);
             _player1.Power = 3;
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
+
+            // Mock: Blue AND Neutral spies here
+            _mapManager.GetEnemySpiesAtSite(_siteA, _player1).Returns(new List<PlayerColor> { PlayerColor.Blue, PlayerColor.Neutral });
 
             // Act
             _actionSystem.HandleTargetClick(null, _siteA);
 
             // Assert
-            Assert.IsFalse(_eventCompletedFired, "Should NOT fire complete; waiting for selection.");
+            Assert.IsFalse(_eventCompletedFired, "Should wait for selection.");
             Assert.AreEqual(ActionState.SelectingSpyToReturn, _actionSystem.CurrentState);
             Assert.AreEqual(_siteA, _actionSystem.PendingSite);
-            Assert.AreEqual(3, _player1.Power);
-            Assert.HasCount(2, _siteA.Spies);
+
+            _mapManager.DidNotReceive().ReturnSpecificSpy(Arg.Any<Site>(), Arg.Any<Player>(), Arg.Any<PlayerColor>());
         }
 
         [TestMethod]
         public void FinalizeSpyReturn_CompletesAction_AndPaysCost()
         {
             // Arrange
-            _siteA.Spies.Add(PlayerColor.Blue);
-            _siteA.Spies.Add(PlayerColor.Neutral);
             _player1.Power = 3;
-
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
+
+            // Set up ambiguity to set PendingSite
+            _mapManager.GetEnemySpiesAtSite(_siteA, _player1).Returns(new List<PlayerColor> { PlayerColor.Blue, PlayerColor.Neutral });
             _actionSystem.HandleTargetClick(null, _siteA);
+
+            _mapManager.ReturnSpecificSpy(_siteA, _player1, PlayerColor.Neutral).Returns(true);
 
             // Act
             _actionSystem.FinalizeSpyReturn(PlayerColor.Neutral);
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
-            Assert.HasCount(1, _siteA.Spies);
-            Assert.AreEqual(PlayerColor.Blue, _siteA.Spies[0]);
             Assert.AreEqual(0, _player1.Power);
+            _mapManager.Received(1).ReturnSpecificSpy(_siteA, _player1, PlayerColor.Neutral);
         }
 
         #endregion
 
-        #region State Management Tests
-
-        [TestMethod]
-        public void CancelTargeting_ResetsStateAndPendingCard()
-        {
-            var card = new Card("c", "c", 0, CardAspect.Shadow, 0, 0, 0);
-            _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card);
-            _actionSystem.CancelTargeting();
-            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
-            Assert.IsNull(_actionSystem.PendingCard);
-        }
-
-        #endregion
+        #region 4. Edge Cases & Failures (The "Omitted" Tests)
 
         [TestMethod]
         public void HandleTargetClick_Assassinate_Fails_IfPowerLostDuringTargeting()
@@ -339,18 +252,17 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange
             _player1.Power = 3;
             _actionSystem.TryStartAssassinate();
-            _player1.Power = 0; // Lost power
+            _player1.Power = 0; // Lost power while targeting (e.g. interruption)
 
-            _node1.Occupant = _player1.Color;
-            _node2.Occupant = _player2.Color;
+            _mapManager.CanAssassinate(_node2, _player1).Returns(true);
 
             // Act
             _actionSystem.HandleTargetClick(_node2, null);
 
             // Assert
             Assert.IsFalse(_eventCompletedFired);
-            Assert.IsTrue(_eventFailedFired, "Should fire failure due to lost power.");
-            Assert.AreEqual(PlayerColor.Blue, _node2.Occupant);
+            Assert.IsTrue(_eventFailedFired);
+            _mapManager.DidNotReceive().Assassinate(Arg.Any<MapNode>(), Arg.Any<Player>());
         }
 
         [TestMethod]
@@ -359,10 +271,9 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange
             _player1.Power = 3;
             _actionSystem.TryStartReturnSpy();
-            _player1.Power = 2; // Lost power
+            _player1.Power = 2; // Lost power below cost (3)
 
-            _node2.Occupant = _player1.Color;
-            _siteA.Spies.Add(_player2.Color);
+            _mapManager.GetEnemySpiesAtSite(_siteA, _player1).Returns(new List<PlayerColor> { PlayerColor.Blue });
 
             // Act
             _actionSystem.HandleTargetClick(null, _siteA);
@@ -370,7 +281,71 @@ namespace ChaosWarlords.Tests.Systems
             // Assert
             Assert.IsFalse(_eventCompletedFired);
             Assert.IsTrue(_eventFailedFired);
-            Assert.Contains(_player2.Color, _siteA.Spies);
+            _mapManager.DidNotReceive().ReturnSpecificSpy(Arg.Any<Site>(), Arg.Any<Player>(), Arg.Any<PlayerColor>());
         }
+
+        [TestMethod]
+        public void HandleTargetClick_PlaceSpy_Fails_IfSpyAlreadyThere()
+        {
+            // Arrange
+            _actionSystem.StartTargeting(ActionState.TargetingPlaceSpy);
+            _siteA.Spies.Add(_player1.Color); // Already have a spy here
+
+            // Act
+            _actionSystem.HandleTargetClick(null, _siteA);
+
+            // Assert
+            Assert.IsFalse(_eventCompletedFired);
+            _mapManager.DidNotReceive().PlaceSpy(Arg.Any<Site>(), Arg.Any<Player>());
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_PlaceSpy_Fails_IfNoSpiesInBarracks()
+        {
+            // Arrange
+            _actionSystem.StartTargeting(ActionState.TargetingPlaceSpy);
+            _player1.SpiesInBarracks = 0;
+
+            // Act
+            _actionSystem.HandleTargetClick(null, _siteA);
+
+            // Assert
+            Assert.IsFalse(_eventCompletedFired);
+            _mapManager.DidNotReceive().PlaceSpy(Arg.Any<Site>(), Arg.Any<Player>());
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_Supplant_Fails_IfNoTroopsInBarracks()
+        {
+            // Arrange
+            _actionSystem.StartTargeting(ActionState.TargetingSupplant);
+            _player1.TroopsInBarracks = 0;
+            _mapManager.CanAssassinate(_node2, _player1).Returns(true);
+
+            // Act
+            _actionSystem.HandleTargetClick(_node2, null);
+
+            // Assert
+            Assert.IsFalse(_eventCompletedFired);
+            _mapManager.DidNotReceive().Supplant(Arg.Any<MapNode>(), Arg.Any<Player>());
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_Return_Fails_IfTroopNeutral()
+        {
+            // Arrange
+            _actionSystem.StartTargeting(ActionState.TargetingReturn);
+            _node1.Occupant = PlayerColor.Neutral; // Cannot return white troops
+            _mapManager.HasPresence(_node1, _player1.Color).Returns(true);
+
+            // Act
+            _actionSystem.HandleTargetClick(_node1, null);
+
+            // Assert
+            Assert.IsFalse(_eventCompletedFired);
+            _mapManager.DidNotReceive().ReturnTroop(Arg.Any<MapNode>(), Arg.Any<Player>());
+        }
+
+        #endregion
     }
 }

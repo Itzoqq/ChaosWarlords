@@ -16,9 +16,10 @@ namespace ChaosWarlords.Source.Systems
         public Site PendingSite { get; private set; }
 
         private Player _currentPlayer;
-        private readonly MapManager _mapManager;
+        private readonly IMapManager _mapManager; // Changed to Interface
 
-        public ActionSystem(Player initialPlayer, MapManager mapManager)
+        // Constructor now accepts IMapManager for NSubstitute compatibility
+        public ActionSystem(Player initialPlayer, IMapManager mapManager)
         {
             _currentPlayer = initialPlayer;
             _mapManager = mapManager;
@@ -74,7 +75,7 @@ namespace ChaosWarlords.Source.Systems
             return CurrentState != ActionState.Normal;
         }
 
-        // Return type changed to void
+        // Removed '?' from types to fix warnings
         public void HandleTargetClick(MapNode targetNode, Site targetSite)
         {
             switch (CurrentState)
@@ -125,7 +126,7 @@ namespace ChaosWarlords.Source.Systems
             if (targetNode == null) return;
             if (targetNode.Occupant != PlayerColor.None && _mapManager.HasPresence(targetNode, _currentPlayer.Color))
             {
-                if (targetNode.Occupant == PlayerColor.Neutral) return; // Silent fail or error?
+                if (targetNode.Occupant == PlayerColor.Neutral) return;
 
                 _mapManager.ReturnTroop(targetNode, _currentPlayer);
                 OnActionCompleted?.Invoke(this, EventArgs.Empty);
@@ -135,8 +136,8 @@ namespace ChaosWarlords.Source.Systems
         private void HandleSupplant(MapNode targetNode)
         {
             if (targetNode == null) return;
-            if (!_mapManager.CanAssassinate(targetNode, _currentPlayer)) return; // Silent fail (invalid target)
-            if (_currentPlayer.TroopsInBarracks <= 0) return; // Silent fail
+            if (!_mapManager.CanAssassinate(targetNode, _currentPlayer)) return;
+            if (_currentPlayer.TroopsInBarracks <= 0) return;
 
             _mapManager.Supplant(targetNode, _currentPlayer);
             OnActionCompleted?.Invoke(this, EventArgs.Empty);
@@ -187,7 +188,6 @@ namespace ChaosWarlords.Source.Systems
                 PendingSite = targetSite;
                 CurrentState = ActionState.SelectingSpyToReturn;
                 GameLogger.Log($"Multiple spies detected at {targetSite.Name}. Select which faction to return.", LogChannel.General);
-                // We return here without firing Completed/Failed because we are waiting for UI selection.
             }
         }
 
