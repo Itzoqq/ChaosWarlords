@@ -9,6 +9,7 @@ namespace ChaosWarlords.Source.Entities
         public EffectType Type { get; internal set; }
         public int Amount { get; internal set; }
         public ResourceType TargetResource { get; internal set; }
+        public bool RequiresFocus { get; internal set; }
 
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {

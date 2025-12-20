@@ -7,6 +7,9 @@ namespace ChaosWarlords.Source.Contexts
     /// <summary>
     /// Holds all the dependencies required to run a Match.
     /// Passes this single object around instead of 6 individual managers.
+    /// THIS CLASS IS PURE DATA HOLDER - NO LOGIC HERE!
+    /// THIS CLASS HAS IMMUTABLE SYSTEMS - set at construction time only.
+    /// THIS CLASS HAS SCOPED LIFETIME - exists only for the duration of a Match.
     /// </summary>
     public class MatchContext
     {

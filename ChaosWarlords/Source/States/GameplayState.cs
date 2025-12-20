@@ -69,13 +69,7 @@ namespace ChaosWarlords.Source.States
                 _isMarketOpenBacking = value;
                 if (_isMarketOpenBacking)
                 {
-                    InputMode = new MarketInputMode(
-                        this,
-                        _inputManagerBacking,
-                        _uiManagerBacking,
-                        _matchContext.MarketManager,
-                        _matchContext.TurnManager as TurnManager
-                    );
+                    InputMode = new MarketInputMode(this, _inputManagerBacking, _matchContext);
                 }
                 else
                 {
@@ -300,12 +294,44 @@ namespace ChaosWarlords.Source.States
 
         public void ResolveCardEffects(Card card)
         {
+            // 1. Check Focus Condition
+            // In Tyrants, Focus triggers if you have played *another* card of the same aspect.
+            // Since 'card' hasn't been added to PlayedCards yet (see MoveCardToPlayed call order),
+            // we just check if ANY card of that aspect is already in the played pile.
+            bool hasFocus = _matchContext.ActivePlayer.PlayedCards.Any(c => c.Aspect == card.Aspect);
+
             foreach (var effect in card.Effects)
             {
-                if (effect.Type == EffectType.GainResource)
+                // 2. Skip conditional effects if condition is not met
+                if (effect.RequiresFocus && !hasFocus)
                 {
-                    if (effect.TargetResource == ResourceType.Power) _matchContext.ActivePlayer.Power += effect.Amount;
-                    if (effect.TargetResource == ResourceType.Influence) _matchContext.ActivePlayer.Influence += effect.Amount;
+                    continue;
+                }
+
+                // 3. Apply Immediate Effects
+                switch (effect.Type)
+                {
+                    case EffectType.GainResource:
+                        if (effect.TargetResource == ResourceType.Power)
+                            _matchContext.ActivePlayer.Power += effect.Amount;
+                        else if (effect.TargetResource == ResourceType.Influence)
+                            _matchContext.ActivePlayer.Influence += effect.Amount;
+                        else if (effect.TargetResource == ResourceType.VictoryPoints)
+                            // Assuming you track VPs on the player
+                            _matchContext.ActivePlayer.VictoryPoints += effect.Amount;
+                        break;
+
+                    case EffectType.DrawCard:
+                        _matchContext.ActivePlayer.DrawCards(effect.Amount);
+                        break;
+
+                    case EffectType.Devour:
+                        // Only handle AUTO devour here (e.g. "Devour top card of deck"). 
+                        // Targeted devour (from hand) is handled by ActionSystem/InputMode.
+                        break;
+
+                        // Note: Targeting effects (Assassinate, Deploy, etc.) are handled 
+                        // by the InputMode switching before this method is called.
                 }
             }
         }

@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 
@@ -11,20 +12,22 @@ namespace ChaosWarlords.Source.States.Input
         private readonly IUISystem _uiManager;
         private readonly IMarketManager _marketManager;
         private readonly TurnManager _turnManager;
+        private MatchContext _context;
 
-        public MarketInputMode(IGameplayState state, InputManager inputManager, IUISystem uiManager, IMarketManager marketManager, TurnManager turnManager)
+        public MarketInputMode(IGameplayState state, InputManager input, MatchContext context)
         {
+            _context = context;
             _state = state;
-            _inputManager = inputManager;
-            _uiManager = uiManager;
-            _marketManager = marketManager;
-            _turnManager = turnManager;
+            _inputManager = input;
+
+            _uiManager = state.UIManager;
+
+            _marketManager = context.MarketManager;
+            _turnManager = context.TurnManager as TurnManager;
         }
 
         public IGameCommand HandleInput(InputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
-            // REMOVED: marketManager.Update(...) - this is now handled in GameplayState.Update
-
             if (!inputManager.IsLeftMouseJustClicked()) return null;
 
             if (_uiManager.IsMarketHovered) return null;

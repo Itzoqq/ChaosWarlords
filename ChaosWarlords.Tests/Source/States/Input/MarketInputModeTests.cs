@@ -9,6 +9,7 @@ using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Source.Commands;
 using System.Collections.Generic;
+using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Tests.States.Input
 {
@@ -25,30 +26,49 @@ namespace ChaosWarlords.Tests.States.Input
         private IMapManager _mapSub = null!;
         private IActionSystem _actionSub = null!;
 
+        // NEW: We need to mock the CardDatabase to satisfy the MatchContext constructor
+        private ICardDatabase _cardDbSub = null!;
+
         [TestInitialize]
         public void Setup()
         {
             _mockInput = new MockInputProvider();
             _inputManager = new InputManager(_mockInput);
 
+            // 1. Create the mocks
             _marketSub = Substitute.For<IMarketManager>();
             _stateSub = Substitute.For<IGameplayState>();
             _mapSub = Substitute.For<IMapManager>();
             _actionSub = Substitute.For<IActionSystem>();
+            _cardDbSub = Substitute.For<ICardDatabase>(); // Create the new mock
+
+            // Mock the TurnManager (since it's cast to TurnManager in some places, 
+            // ideally we use the Interface, but let's stick to your existing pattern)
+            // If your test uses ITurnManager, keep using Substitute.For<ITurnManager>()
+            var turnSub = Substitute.For<ITurnManager>();
 
             _mockUI = new MockUISystem();
-            _activePlayer = new Player(PlayerColor.Red);
-            var turnManager = new TurnManager(new List<Player> { _activePlayer });
 
-            _stateSub.IsMarketOpen.Returns(true);
+            // 2. Setup the State to return our Mock UI 
+            // (This is crucial if you used Fix #1: accessing UI via state.UIManager)
+            _stateSub.UIManager.Returns(_mockUI);
 
-            _inputMode = new MarketInputMode(
-                _stateSub,
-                _inputManager,
-                _mockUI,
+            // 3. Create the MatchContext using our Mocks
+            // Note: We use the real concrete MatchContext, but inject mocked systems into it.
+            var context = new MatchContext(
+                turnSub,
+                _mapSub,
                 _marketSub,
-                turnManager
+                _actionSub,
+                _cardDbSub
             );
+
+            // 4. Instantiate MarketInputMode with the new signature
+            // (State, Input, Context)
+            _inputMode = new MarketInputMode(_stateSub, _inputManager, context);
+
+            // Setup active player dummy
+            _activePlayer = new Player(PlayerColor.Red);
         }
 
         [TestMethod]
