@@ -7,12 +7,9 @@ namespace ChaosWarlords.Source.States.Input
 {
     public class NormalPlayInputMode : IInputMode
     {
-        private readonly IGameplayState _state;
+        private readonly IGameplayState _state; // Interface is enough now
         private readonly InputManager _inputManager;
-
-        // Changed from UIManager to IUISystem
         private readonly IUISystem _uiManager;
-
         private readonly IMapManager _mapManager;
         private readonly TurnManager _turnManager;
         private readonly IActionSystem _actionSystem;
@@ -29,40 +26,23 @@ namespace ChaosWarlords.Source.States.Input
 
         public IGameCommand HandleInput(InputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
-            Point mousePos = inputManager.MousePosition.ToPoint();
-
-            IGameCommand cardCommand = HandleCardInput(mousePos, inputManager, activePlayer);
-            if (cardCommand != null) return cardCommand;
-
             if (inputManager.IsLeftMouseJustClicked())
             {
-                HandleMapInteraction(inputManager, mapManager, activePlayer);
-            }
-
-            return null;
-        }
-
-        private IGameCommand HandleCardInput(Point mousePos, InputManager inputManager, Player activePlayer)
-        {
-            for (int i = activePlayer.Hand.Count - 1; i >= 0; i--)
-            {
-                var card = activePlayer.Hand[i];
-
-                if (inputManager.IsLeftMouseJustClicked() && card.Bounds.Contains(mousePos))
+                // 1. Check Card Click
+                Card clickedCard = _state.GetHoveredHandCard();
+                if (clickedCard != null)
                 {
-                    return new PlayCardCommand(card);
+                    return new PlayCardCommand(clickedCard);
+                }
+
+                // 2. Check Map Click
+                var clickedNode = mapManager.GetNodeAt(inputManager.MousePosition);
+                if (clickedNode != null)
+                {
+                    mapManager.TryDeploy(activePlayer, clickedNode);
                 }
             }
-            return null;
-        }
 
-        private IGameCommand HandleMapInteraction(InputManager inputManager, IMapManager mapManager, Player activePlayer)
-        {
-            var clickedNode = mapManager.GetNodeAt(inputManager.MousePosition);
-            if (clickedNode != null)
-            {
-                mapManager.TryDeploy(activePlayer, clickedNode);
-            }
             return null;
         }
     }

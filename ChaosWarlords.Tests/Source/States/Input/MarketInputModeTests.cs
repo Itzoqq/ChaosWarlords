@@ -1,3 +1,4 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.States.Input;
@@ -7,6 +8,7 @@ using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Source.Commands;
+using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.States.Input
 {
@@ -50,31 +52,15 @@ namespace ChaosWarlords.Tests.States.Input
         }
 
         [TestMethod]
-        public void HandleInput_UpdatesMarketManager()
-        {
-            // 1. Arrange
-            _mockInput.SetMouseState(new MouseState(50, 50, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
-
-            // 2. Act
-            _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
-
-            // 3. Assert
-            // The interface takes Vector2, not InputManager
-            _marketSub.Received(1).Update(Arg.Any<Vector2>());
-        }
-
-        [TestMethod]
         public void HandleInput_ClickingCard_ReturnsBuyCardCommand()
         {
             // 1. Arrange
             var card = new Card("market_card", "Buy Me", 3, CardAspect.Order, 1, 0, 0);
-            card.Position = new Vector2(100, 100);
 
-            card.IsHovered = true;
+            // Mock the State to say "Yes, the mouse is hovering this card"
+            _stateSub.GetHoveredMarketCard().Returns(card);
 
-            _marketSub.MarketRow.Returns(new List<Card> { card });
-
+            // Simulate Click
             _mockInput.SetMouseState(new MouseState(110, 110, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
             _inputManager.Update();
             _mockInput.SetMouseState(new MouseState(110, 110, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
@@ -92,8 +78,10 @@ namespace ChaosWarlords.Tests.States.Input
         public void HandleInput_ClickingEmptySpace_ClosesMarket()
         {
             // 1. Arrange
-            _marketSub.MarketRow.Returns(new List<Card>());
+            // Mock State to say "Nothing is hovered"
+            _stateSub.GetHoveredMarketCard().Returns((Card?)null);
 
+            // Simulate Click
             _mockInput.SetMouseState(new MouseState(10, 10, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
             _inputManager.Update();
             _mockInput.SetMouseState(new MouseState(10, 10, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
@@ -112,6 +100,7 @@ namespace ChaosWarlords.Tests.States.Input
         {
             _mockUI.IsMarketHovered = true;
 
+            // Simulate Click
             _mockInput.SetMouseState(new MouseState(10, 10, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
             _inputManager.Update();
             _mockInput.SetMouseState(new MouseState(10, 10, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));

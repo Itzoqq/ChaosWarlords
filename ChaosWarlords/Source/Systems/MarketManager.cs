@@ -1,68 +1,63 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 
 namespace ChaosWarlords.Source.Systems
 {
     public class MarketManager : IMarketManager
     {
-        public List<Card> MarketDeck { get; private set; } = new List<Card>();
-        public List<Card> MarketRow { get; private set; } = new List<Card>();
+        private readonly ICardDatabase _cardDatabase;
+        private readonly List<Card> _marketDeck;
 
-        public void InitializeDeck(List<Card> allCards)
+        public List<Card> MarketRow { get; private set; }
+
+        public MarketManager(ICardDatabase cardDatabase)
         {
-            MarketDeck = allCards; // In real game, Shuffle here
+            _cardDatabase = cardDatabase;
+            _marketDeck = _cardDatabase.GetAllMarketCards();
+            MarketRow = new List<Card>();
+
+            ShuffleDeck(_marketDeck);
             RefillMarket();
         }
 
-        public void RefillMarket()
+        public bool TryBuyCard(Player player, Card card)
         {
-            while (MarketRow.Count < 6 && MarketDeck.Count > 0)
-            {
-                var card = MarketDeck[0];
-                MarketDeck.RemoveAt(0);
-                MarketRow.Add(card);
-            }
-            ArrangeMarket();
-        }
-
-        private void ArrangeMarket()
-        {
-            int startX = 100;
-            int y = 50;
-            int gap = 160;
-
-            for (int i = 0; i < MarketRow.Count; i++)
-            {
-                MarketRow[i].Position = new Vector2(startX + (i * gap), y);
-            }
-        }
-
-        public virtual bool TryBuyCard(Player player, Card card)
-        {
-            if (card == null) return false;
             if (!MarketRow.Contains(card)) return false;
             if (player.Influence < card.Cost) return false;
 
             player.Influence -= card.Cost;
             MarketRow.Remove(card);
-            card.Location = CardLocation.DiscardPile; // Update location
             player.DiscardPile.Add(card);
 
-            RefillMarket(); // Immediately refill logic
+            RefillMarket();
             return true;
         }
 
-        public void Update(Vector2 cursorPosition)
+        private void RefillMarket()
         {
-            Point cursorPoint = cursorPosition.ToPoint();
-
-            foreach (var card in MarketRow)
+            while (MarketRow.Count < 6 && _marketDeck.Count > 0)
             {
-                // Logic only: "Is the cursor over this card?"
-                card.IsHovered = card.Bounds.Contains(cursorPoint);
+                Card card = _marketDeck[0];
+                _marketDeck.RemoveAt(0);
+                card.Location = CardLocation.Market;
+                MarketRow.Add(card);
             }
         }
+
+        private void ShuffleDeck(List<Card> deck)
+        {
+            System.Random rng = new System.Random();
+            int n = deck.Count;
+            while (n > 1)
+            {
+                n--;
+                int k = rng.Next(n + 1);
+                Card value = deck[k];
+                deck[k] = deck[n];
+                deck[n] = value;
+            }
+        }
+
     }
 }

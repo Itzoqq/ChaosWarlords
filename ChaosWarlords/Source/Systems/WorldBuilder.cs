@@ -29,8 +29,7 @@ namespace ChaosWarlords.Source.Systems
         public WorldData Build()
         {
             // 1. Setup Market
-            var marketManager = new MarketManager();
-            marketManager.InitializeDeck(_cardDatabase.GetAllMarketCards());
+            var marketManager = new MarketManager(_cardDatabase);
 
             // 2. Setup Players (Now two players)
             var players = new List<Player>();

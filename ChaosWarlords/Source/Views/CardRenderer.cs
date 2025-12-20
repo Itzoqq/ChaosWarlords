@@ -18,81 +18,45 @@ namespace ChaosWarlords.Source.Views
             _font = font;
         }
 
-        public void Draw(SpriteBatch sb, Card card)
+        public void Draw(SpriteBatch sb, CardViewModel vm)
         {
             // 1. Determine Color based on Aspect
-            Color bgColor = GetAspectColor(card.Aspect);
-            if (card.IsHovered) bgColor = Color.Lerp(bgColor, Color.White, 0.3f);
+            Color bgColor = GetAspectColor(vm.Model.Aspect);
+            if (vm.IsHovered) bgColor = Color.Lerp(bgColor, Color.White, 0.3f);
 
             // 2. Draw Background
-            sb.Draw(_pixelTexture, card.Bounds, bgColor);
+            sb.Draw(_pixelTexture, vm.Bounds, bgColor);
 
             // 3. Draw Border
             Color borderColor = Color.Black;
-            if (card.IsHovered) borderColor = Color.Yellow;
-            DrawBorder(sb, card.Bounds, borderColor, 2);
+            if (vm.IsHovered) borderColor = Color.Yellow;
+            DrawBorder(sb, vm.Bounds, borderColor, 2);
 
-            // 4. Draw Header (Name & Cost)
-            Vector2 pos = new Vector2(card.Bounds.X + 5, card.Bounds.Y + 5);
-            sb.DrawString(_font, card.Name, pos, Color.Black);
+            // 4. Draw Name (Top-Left)
+            Vector2 pos = new Vector2(vm.Bounds.X + 5, vm.Bounds.Y + 5);
+            sb.DrawString(_font, vm.Model.Name, pos, Color.Black);
 
-            if (card.Cost > 0)
+            // 5. Draw Cost (Restored to Bottom-Right)
+            if (vm.Model.Cost > 0)
             {
-                string costText = $"Cost: {card.Cost}";
-
-                // Measure the text so we can align it to the bottom-right
+                string costText = $"Cost: {vm.Model.Cost}";
                 Vector2 costSize = _font.MeasureString(costText);
-
-                // X = Right edge - text width - padding
-                // Y = Bottom edge - text height - padding
-                Vector2 costPos = new Vector2(
-                    card.Bounds.Right - costSize.X - 5,
-                    card.Bounds.Bottom - costSize.Y - 5
-                );
-
-                sb.DrawString(_font, costText, costPos, Color.DarkBlue);
+                Vector2 costPos = new Vector2(vm.Bounds.Right - costSize.X - 5, vm.Bounds.Bottom - costSize.Y - 5);
+                sb.DrawString(_font, costText, costPos, Color.Black);
             }
 
-            // 5. Draw Description / Effects
-            float yOffset = 30;
-            foreach (var effect in card.Effects)
+            // 6. Draw Effects
+            int yOffset = 40;
+            foreach (var effect in vm.Model.Effects)
             {
                 string text = GetEffectText(effect);
-                sb.DrawString(_font, text, new Vector2(card.Bounds.X + 5, card.Bounds.Y + yOffset), Color.Black, 0f, Vector2.Zero, 0.7f, SpriteEffects.None, 0);
-                yOffset += 15;
+                sb.DrawString(_font, text, new Vector2(vm.Bounds.X + 5, vm.Bounds.Y + yOffset), Color.Black);
+                yOffset += 20;
             }
 
-            // 6. Draw Stats (DeckVP & InnerCircleVP) [UPDATED]
-            // We check if either VP type exists and format a string accordingly
-            if (card.DeckVP > 0 || card.InnerCircleVP > 0)
-            {
-                string vpText;
-
-                if (card.DeckVP > 0 && card.InnerCircleVP > 0)
-                {
-                    // If card has both, show both compactly
-                    vpText = $"D:{card.DeckVP} I:{card.InnerCircleVP}";
-                }
-                else if (card.DeckVP > 0)
-                {
-                    vpText = $"VP: {card.DeckVP}"; // Standard VP usually implies Deck VP
-                }
-                else
-                {
-                    vpText = $"Inner: {card.InnerCircleVP}";
-                }
-
-                // Measure text
-                Vector2 vpSize = _font.MeasureString(vpText);
-
-                // Position: Bottom Left (same logic as before, but using new text)
-                Vector2 vpPos = new Vector2(
-                    card.Bounds.X + 5,
-                    card.Bounds.Bottom - vpSize.Y - 5
-                );
-
-                sb.DrawString(_font, vpText, vpPos, Color.DarkRed);
-            }
+            // 7. Draw VPs (Bottom-Left)
+            string vpText = $"D:{vm.Model.DeckVP} I:{vm.Model.InnerCircleVP}";
+            sb.DrawString(_font, vpText, new Vector2(vm.Bounds.X + 5, vm.Bounds.Bottom - 20), Color.DarkSlateGray);
         }
 
         private void DrawBorder(SpriteBatch sb, Rectangle rect, Color color, int thickness)
@@ -107,23 +71,17 @@ namespace ChaosWarlords.Source.Views
         {
             return aspect switch
             {
-                CardAspect.Warlord => Color.IndianRed, // Red-ish
-                CardAspect.Sorcery => Color.MediumPurple, // Purple-ish
-                CardAspect.Shadow => Color.CadetBlue, // Blue-ish
-                CardAspect.Order => Color.Goldenrod, // Gold-ish
+                CardAspect.Warlord => Color.IndianRed,
+                CardAspect.Sorcery => Color.MediumPurple,
+                CardAspect.Shadow => Color.CadetBlue,
+                CardAspect.Order => Color.Goldenrod,
                 _ => Color.LightGray
             };
         }
 
         private string GetEffectText(CardEffect effect)
         {
-            // Simple text generation for visualization
             if (effect.Type == EffectType.GainResource) return $"+{effect.Amount} {effect.TargetResource}";
-            if (effect.Type == EffectType.Assassinate) return "Assassinate";
-            if (effect.Type == EffectType.DeployUnit) return "Deploy";
-            if (effect.Type == EffectType.Supplant) return "Supplant";
-            if (effect.Type == EffectType.PlaceSpy) return "Place Spy";
-            if (effect.Type == EffectType.ReturnUnit) return "Return Unit";
             return effect.Type.ToString();
         }
     }

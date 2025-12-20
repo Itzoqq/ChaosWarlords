@@ -1,3 +1,4 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.States.Input;
@@ -7,6 +8,7 @@ using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Source.States;
+using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.States.Input
 {
@@ -58,8 +60,9 @@ namespace ChaosWarlords.Tests.States.Input
         {
             // 1. Arrange
             var card = new Card("test", "Test Soldier", 0, CardAspect.Neutral, 0, 0, 0);
-            card.Position = new Vector2(100, 100);
-            _activePlayer.Hand.Add(card);
+
+            // Mock State to return this card as hovered
+            _stateSub.GetHoveredHandCard().Returns(card);
 
             // Simulate Click
             SimulateClick(110, 110);
@@ -83,7 +86,8 @@ namespace ChaosWarlords.Tests.States.Input
         public void HandleInput_ClickOnMapNode_DeploysTroop()
         {
             // 1. Arrange
-            _activePlayer.Hand.Clear();
+            // Ensure no card is hovered
+            _stateSub.GetHoveredHandCard().Returns((Card?)null);
 
             // Setup Map Mock to return a node at click location
             var targetNode = new MapNode(1, new Vector2(200, 200));
@@ -110,16 +114,15 @@ namespace ChaosWarlords.Tests.States.Input
         public void HandleInput_CardOverlapsNode_CardTakesPriority()
         {
             // 1. Arrange
-            // Position Card at (100, 100)
             var card = new Card("test", "Test Soldier", 0, CardAspect.Neutral, 0, 0, 0);
-            card.Position = new Vector2(100, 100);
-            _activePlayer.Hand.Add(card);
 
-            // Position Node at (100, 100) as well (Visual Overlap)
+            // Both Card and Map Node are "active" under the mouse
+            _stateSub.GetHoveredHandCard().Returns(card);
+
             var node = new MapNode(1, new Vector2(100, 100));
             _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns(node);
 
-            // Simulate Click overlaps both
+            // Simulate Click
             SimulateClick(110, 110);
 
             // 2. Act
@@ -134,6 +137,7 @@ namespace ChaosWarlords.Tests.States.Input
             // 3. Assert
             Assert.IsNotNull(result, "Input should handle the Card, returning a command.");
             Assert.IsInstanceOfType(result, typeof(PlayCardCommand));
+            // Ensure we did NOT try to deploy to the map
             _mapSub.DidNotReceive().TryDeploy(Arg.Any<Player>(), Arg.Any<MapNode>());
         }
 
@@ -141,8 +145,8 @@ namespace ChaosWarlords.Tests.States.Input
         public void HandleInput_ClickEmptySpace_ReturnsNull()
         {
             // 1. Arrange
-            _activePlayer.Hand.Clear();
-            _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns((MapNode?)null); // No node here
+            _stateSub.GetHoveredHandCard().Returns((Card?)null);
+            _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns((MapNode?)null);
 
             SimulateClick(500, 500);
 

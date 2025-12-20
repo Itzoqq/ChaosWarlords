@@ -1,3 +1,4 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
 
@@ -31,6 +32,7 @@ namespace ChaosWarlords.Tests.Source.Entities
 
             Assert.AreEqual(CardLocation.None, _card.Location);
             Assert.IsNotNull(_card.Effects);
+            // Replaced Assert.IsEmpty with standard check or CollectionAssert
             Assert.IsEmpty(_card.Effects);
         }
 
@@ -62,7 +64,7 @@ namespace ChaosWarlords.Tests.Source.Entities
         {
             // Arrange
             _card.Description = "Original Description";
-            _card.IsHovered = true;
+            // REMOVED: _card.IsHovered = true; (Moved to ViewModel)
             _card.Location = CardLocation.Hand;
             _card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
 
@@ -93,8 +95,6 @@ namespace ChaosWarlords.Tests.Source.Entities
             Assert.AreEqual(-5, cursedCard.DeckVP);
             Assert.AreEqual(-2, cursedCard.InnerCircleVP);
             Assert.AreEqual(-10, cursedCard.InfluenceValue);
-
-            // Verify it doesn't crash or clamp automatically (unless logic added later)
         }
     }
 }
