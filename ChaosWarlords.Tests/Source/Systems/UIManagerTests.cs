@@ -1,5 +1,7 @@
 using ChaosWarlords.Source.Systems;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NSubstitute;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -8,7 +10,7 @@ namespace ChaosWarlords.Tests.Systems
     {
         private UIManager _ui = null!;
         private InputManager _input = null!;
-        private MockInputProvider _mockInput = null!;
+        private IInputProvider _inputProvider = null!;
 
         private const int ScreenWidth = 800;
         private const int ScreenHeight = 600;
@@ -17,13 +19,23 @@ namespace ChaosWarlords.Tests.Systems
         public void Setup()
         {
             _ui = new UIManager(ScreenWidth, ScreenHeight);
-            _mockInput = new MockInputProvider();
-            _input = new InputManager(_mockInput);
+
+            // Create the NSubstitute mock
+            _inputProvider = Substitute.For<IInputProvider>();
+
+            // Inject the mock into the concrete InputManager
+            _input = new InputManager(_inputProvider);
         }
 
         private void SetMouse(int x, int y)
         {
-            _mockInput.SetMouseState(new MouseState(x, y, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
+            // Define the state we want the mock to return
+            var mouseState = new MouseState(x, y, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+
+            // Configure the mock
+            _inputProvider.GetMouseState().Returns(mouseState);
+
+            // Update InputManager so it fetches the new state from our mock
             _input.Update();
         }
 
