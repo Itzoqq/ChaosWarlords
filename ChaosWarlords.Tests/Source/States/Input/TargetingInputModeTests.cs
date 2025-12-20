@@ -124,7 +124,7 @@ namespace ChaosWarlords.Tests.States.Input
 
             _actionSub.PendingSite.Returns(site);
 
-            // FIX: Use method call instead of property
+            // Use method call instead of property
             _mapSub.GetEnemySpiesAtSite(site, _activePlayer).Returns(new List<PlayerColor> { PlayerColor.Blue });
 
             // Click FAR AWAY at (800, 600)

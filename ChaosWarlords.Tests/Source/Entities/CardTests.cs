@@ -24,7 +24,7 @@ namespace ChaosWarlords.Tests.Source.Entities
             Assert.AreEqual(3, _card.Cost);
             Assert.AreEqual(CardAspect.Sorcery, _card.Aspect);
 
-            // FIX: Check specific VP types now instead of generic VictoryPoints
+            // Check specific VP types now instead of generic VictoryPoints
             Assert.AreEqual(1, _card.DeckVP);
             Assert.AreEqual(2, _card.InnerCircleVP);
             Assert.AreEqual(0, _card.InfluenceValue);

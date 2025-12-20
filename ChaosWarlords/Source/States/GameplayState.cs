@@ -160,7 +160,7 @@ namespace ChaosWarlords.Source.States
             _marketManagerBacking.Update(_inputManagerBacking.MousePosition);
 
             // 5. Delegate Gameplay Logic to Current Mode (State Pattern)
-            // Note: InputMode no longer needs to check UI buttons, 
+            // Note: InputMode no longer needs to check UI buttons,
             // because the Event system above handles them.
             IGameCommand command = InputMode.HandleInput(
                 _inputManagerBacking,

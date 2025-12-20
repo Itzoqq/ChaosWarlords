@@ -60,7 +60,7 @@ namespace ChaosWarlords.Tests.States.Input
             _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
 
             // 3. Assert
-            // FIX: The interface takes Vector2, not InputManager
+            // The interface takes Vector2, not InputManager
             _marketSub.Received(1).Update(Arg.Any<Vector2>());
         }
 
