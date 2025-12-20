@@ -1,9 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
-using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Entities;
-using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Tests
@@ -63,6 +61,18 @@ namespace ChaosWarlords.Tests
         {
             return true;
         }
+        public void RecalculateSiteState(Site site, Player activePlayer) { }
+        public bool TryBuyCard(Player player, Card card) { return true; }
+        // Ensure all interface methods are implemented (stubbed)
+        public bool HasPresence(MapNode targetNode, PlayerColor player) => true;
+        public bool CanAssassinate(MapNode target, Player attacker) => true;
+        public bool CanDeployAt(MapNode targetNode, PlayerColor player) => true;
+        public void Assassinate(MapNode node, Player attacker) { }
+        public void ReturnTroop(MapNode node, Player requestingPlayer) { }
+        public void PlaceSpy(Site site, Player player) { }
+        public bool ReturnSpy(Site site, Player activePlayer) => true;
+        public void Supplant(MapNode node, Player attacker) { }
+        public bool ReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor) => true;
     }
 
     public class MockMarketManager : IMarketManager
@@ -71,7 +81,8 @@ namespace ChaosWarlords.Tests
         public bool UpdateCalled { get; private set; }
         public bool TryBuyCardCalled { get; private set; }
         public void BuyCard(Player p, Card c) { }
-        public void RefillMarket(List<Card> deck) { }
+        public void InitializeDeck(List<Card> allCards) { }
+        public void RefillMarket() { }
         public bool TryBuyCard(Player player, Card card) { return true; }
         public void Update(Vector2 mousePos)
         {
@@ -90,6 +101,7 @@ namespace ChaosWarlords.Tests
     {
         public List<Card> MarketDeckToReturn { get; set; } = new List<Card>();
 
+        public void Load(Stream stream) { } // Stub
         public List<Card> GetAllMarketCards()
         {
             return MarketDeckToReturn;
@@ -199,18 +211,5 @@ namespace ChaosWarlords.Tests
         public void RaiseAssassinateRequest() => OnAssassinateRequest?.Invoke(this, EventArgs.Empty);
         public void RaiseReturnSpyRequest() => OnReturnSpyRequest?.Invoke(this, EventArgs.Empty);
         public void Update(InputManager input) { }
-    }
-
-    public class MockGenericState : IState
-    {
-        public bool LoadContentCalled { get; private set; }
-        public bool UnloadContentCalled { get; private set; }
-        public int UpdateCount { get; private set; }
-        public int DrawCount { get; private set; }
-
-        public void LoadContent() => LoadContentCalled = true;
-        public void UnloadContent() => UnloadContentCalled = true;
-        public void Update(GameTime gameTime) => UpdateCount++;
-        public void Draw(SpriteBatch spriteBatch) => DrawCount++;
     }
 }

@@ -1,7 +1,8 @@
 using ChaosWarlords.Source.States;
-using ChaosWarlords.Tests;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NSubstitute;
 
 namespace ChaosWarlords.Tests.States
 {
@@ -21,62 +22,82 @@ namespace ChaosWarlords.Tests.States
         [TestMethod]
         public void PushState_LoadsContent_AndAddsToStack()
         {
-            var state = new MockGenericState();
+            // Arrange
+            var state = Substitute.For<IState>();
+
+            // Act
             _manager.PushState(state);
 
-            Assert.IsTrue(state.LoadContentCalled);
-            Assert.IsFalse(state.UnloadContentCalled);
+            // Assert
+            state.Received(1).LoadContent();
+            state.DidNotReceive().UnloadContent();
         }
 
         [TestMethod]
         public void PopState_UnloadsContent_AndRemovesFromStack()
         {
-            var state = new MockGenericState();
+            // Arrange
+            var state = Substitute.For<IState>();
             _manager.PushState(state);
+
+            // Act
             _manager.PopState();
 
-            Assert.IsTrue(state.UnloadContentCalled);
+            // Assert
+            state.Received(1).UnloadContent();
         }
 
         [TestMethod]
         public void Update_CallsUpdateOnTopState()
         {
-            var state = new MockGenericState();
+            // Arrange
+            var state = Substitute.For<IState>();
             _manager.PushState(state);
+            var gameTime = new GameTime();
 
-            _manager.Update(new GameTime());
+            // Act
+            _manager.Update(gameTime);
 
-            Assert.AreEqual(1, state.UpdateCount);
+            // Assert
+            state.Received(1).Update(gameTime);
         }
 
         [TestMethod]
         public void Draw_CallsDrawOnTopState()
         {
-            var state = new MockGenericState();
+            // Arrange
+            var state = Substitute.For<IState>();
             _manager.PushState(state);
+            SpriteBatch? sb = null; // Can be null for this test as we just check the call
 
-            _manager.Draw(null!); // SpriteBatch can be null for this mock test
+            // Act
+            _manager.Draw(sb!);
 
-            Assert.AreEqual(1, state.DrawCount);
+            // Assert
+            state.Received(1).Draw(sb!);
         }
 
         [TestMethod]
         public void ChangeState_PopsOld_AndPushesNew()
         {
-            var oldState = new MockGenericState();
-            var newState = new MockGenericState();
+            // Arrange
+            var oldState = Substitute.For<IState>();
+            var newState = Substitute.For<IState>();
 
             _manager.PushState(oldState);
+
+            // Act
             _manager.ChangeState(newState);
 
-            Assert.IsTrue(oldState.UnloadContentCalled, "Old state should be unloaded.");
-            Assert.IsTrue(newState.LoadContentCalled, "New state should be loaded.");
+            // Assert
+            oldState.Received(1).UnloadContent();
+            newState.Received(1).LoadContent();
         }
 
         [TestMethod]
         public void Update_DoesNothing_WhenStackEmpty()
         {
-            // Should not crash
+            // Act & Assert (Should not throw)
             _manager.Update(new GameTime());
         }
     }
