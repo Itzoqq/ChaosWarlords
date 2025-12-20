@@ -17,10 +17,11 @@ namespace ChaosWarlords.Source.Utilities
     public enum CardAspect
     {
         Neutral = 0,    // Starter cards (Minions/Nobles)
-        Warlord,    // Aggressive (Conquest)
-        Sorcery,    // Magic/Control (Malice)
-        Shadow,     // Spies/Assassination (Guile)
-        Order       // Defense/Movement (Obedience)
+        Warlord,        // Aggressive (Conquest) - Best at taking over the Underdark 
+        Sorcery,        // Magic/Control (Malice) - Best at assassination 
+        Shadow,         // Spies/Assassination (Guile) - Best at spying 
+        Order,          // Defense/Movement (Obedience) - Day-to-day tasks 
+        Ambition        // Recruitment/Inner Circle (Ambition) - Best at recruiting & promoting 
     }
 
     public enum ResourceType
