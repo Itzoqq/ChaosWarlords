@@ -57,7 +57,7 @@ namespace ChaosWarlords.Tests.States.Input
         public void HandleInput_ClickOnCard_ReturnsPlayCardCommand()
         {
             // 1. Arrange
-            var card = new Card("test", "Test Soldier", 0, CardAspect.Neutral, 0, 0);
+            var card = new Card("test", "Test Soldier", 0, CardAspect.Neutral, 0, 0, 0);
             card.Position = new Vector2(100, 100);
             _activePlayer.Hand.Add(card);
 
@@ -111,7 +111,7 @@ namespace ChaosWarlords.Tests.States.Input
         {
             // 1. Arrange
             // Position Card at (100, 100)
-            var card = new Card("test", "Test Soldier", 0, CardAspect.Neutral, 0, 0);
+            var card = new Card("test", "Test Soldier", 0, CardAspect.Neutral, 0, 0, 0);
             card.Position = new Vector2(100, 100);
             _activePlayer.Hand.Add(card);
 

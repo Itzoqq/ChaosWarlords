@@ -11,9 +11,9 @@ namespace ChaosWarlords.Tests.Source.Entities
         [TestInitialize]
         public void Setup()
         {
-            // Create a standard card for testing
-            // Constructor: Id, Name, Cost, Aspect, VP, Influence
-            _card = new Card("test_id", "Test Card", 3, CardAspect.Sorcery, 1, 2);
+            // Update: Constructor now requires (Id, Name, Cost, Aspect, DeckVP, InnerVP, Influence)
+            // We pass 1 for DeckVP, 2 for InnerCircleVP, and 0 for Influence
+            _card = new Card("test_id", "Test Card", 3, CardAspect.Sorcery, 1, 2, 0);
         }
 
         [TestMethod]
@@ -24,11 +24,12 @@ namespace ChaosWarlords.Tests.Source.Entities
             Assert.AreEqual(3, _card.Cost);
             Assert.AreEqual(CardAspect.Sorcery, _card.Aspect);
 
-            // The current model only tracks one VP value
-            Assert.AreEqual(1, _card.VictoryPoints);
-            // Assert.AreEqual(2, _card.InnerCircleVP); // Removed for now
+            // FIX: Check specific VP types now instead of generic VictoryPoints
+            Assert.AreEqual(1, _card.DeckVP);
+            Assert.AreEqual(2, _card.InnerCircleVP);
+            Assert.AreEqual(0, _card.InfluenceValue);
 
-            Assert.AreEqual(CardLocation.None, _card.Location); // Default location is None/0 until set
+            Assert.AreEqual(CardLocation.None, _card.Location);
             Assert.IsNotNull(_card.Effects);
             Assert.IsEmpty(_card.Effects);
         }
@@ -36,7 +37,6 @@ namespace ChaosWarlords.Tests.Source.Entities
         [TestMethod]
         public void AddEffect_AddsEffectToList()
         {
-            // Fixed Constructor: (Type, Amount, Resource)
             var effect = new CardEffect(EffectType.GainResource, 2, ResourceType.Power);
 
             _card.AddEffect(effect);
@@ -50,12 +50,51 @@ namespace ChaosWarlords.Tests.Source.Entities
         [TestMethod]
         public void Location_CanBeUpdated()
         {
-            // Since Card is just a data container now, we verify we can write to the property
             _card.Location = CardLocation.Hand;
             Assert.AreEqual(CardLocation.Hand, _card.Location);
 
             _card.Location = CardLocation.DiscardPile;
             Assert.AreEqual(CardLocation.DiscardPile, _card.Location);
+        }
+
+        [TestMethod]
+        public void Clone_CopiesAllNewProperties()
+        {
+            // Arrange
+            _card.Description = "Original Description";
+            _card.IsHovered = true;
+            _card.Location = CardLocation.Hand;
+            _card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
+
+            // Act
+            var clone = _card.Clone();
+
+            // Assert
+            Assert.AreNotSame(_card, clone, "Clone should be a new instance.");
+            Assert.AreEqual(_card.Id, clone.Id);
+
+            // Critical checks for new properties
+            Assert.AreEqual(_card.DeckVP, clone.DeckVP, "Clone must preserve DeckVP.");
+            Assert.AreEqual(_card.InnerCircleVP, clone.InnerCircleVP, "Clone must preserve InnerCircleVP.");
+            Assert.AreEqual(_card.InfluenceValue, clone.InfluenceValue, "Clone must preserve InfluenceValue.");
+
+            // Standard checks
+            Assert.AreEqual(_card.Description, clone.Description);
+            Assert.AreEqual(_card.Location, clone.Location);
+            Assert.HasCount(1, clone.Effects);
+        }
+
+        [TestMethod]
+        public void Constructor_AllowsNegativeValues()
+        {
+            // Scenario: A "Cursed" card that subtracts VP
+            var cursedCard = new Card("curse", "Cursed Item", 0, CardAspect.Shadow, -5, -2, -10);
+
+            Assert.AreEqual(-5, cursedCard.DeckVP);
+            Assert.AreEqual(-2, cursedCard.InnerCircleVP);
+            Assert.AreEqual(-10, cursedCard.InfluenceValue);
+
+            // Verify it doesn't crash or clamp automatically (unless logic added later)
         }
     }
 }

@@ -19,8 +19,8 @@ namespace ChaosWarlords.Tests.Systems
             _player = new Player(PlayerColor.Red);
 
             // Setup dummy cards
-            _cheapCard = new Card("c1", "Cheap", 2, CardAspect.Neutral, 1, 1);
-            _expensiveCard = new Card("c2", "Expensive", 10, CardAspect.Neutral, 1, 1);
+            _cheapCard = new Card("c1", "Cheap", 2, CardAspect.Neutral, 1, 1, 0);
+            _expensiveCard = new Card("c2", "Expensive", 10, CardAspect.Neutral, 1, 1, 0);
 
             // Initialize market with these cards
             var deck = new List<Card> { _cheapCard, _expensiveCard };
@@ -66,7 +66,7 @@ namespace ChaosWarlords.Tests.Systems
             // Since deck was empty after initial fill, it won't refill from deck
             // but the method logic should hold. 
             // Let's add more to deck to test refill.
-            var extraCard = new Card("c3", "Extra", 1, CardAspect.Neutral, 0, 0);
+            var extraCard = new Card("c3", "Extra", 1, CardAspect.Neutral, 0, 0, 0);
             _market.MarketDeck.Add(extraCard);
 
             _market.RefillMarket();
@@ -78,7 +78,7 @@ namespace ChaosWarlords.Tests.Systems
         public void TryBuyCard_Succeeds_WithExactFunds()
         {
             // Arrange
-            _cheapCard = new Card("c1", "Exact", 3, CardAspect.Neutral, 1, 0);
+            _cheapCard = new Card("c1", "Exact", 3, CardAspect.Neutral, 1, 0, 0);
             _market.MarketRow.Add(_cheapCard);
             _player.Influence = 3;
 

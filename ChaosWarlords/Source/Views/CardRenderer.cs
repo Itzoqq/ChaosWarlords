@@ -62,16 +62,30 @@ namespace ChaosWarlords.Source.Views
                 yOffset += 15;
             }
 
-            // 6. Draw Stats (VP)
-            if (card.VictoryPoints > 0)
+            // 6. Draw Stats (DeckVP & InnerCircleVP) [UPDATED]
+            // We check if either VP type exists and format a string accordingly
+            if (card.DeckVP > 0 || card.InnerCircleVP > 0)
             {
-                string vpText = $"VP: {card.VictoryPoints}";
+                string vpText;
 
-                // Measure the text so we can align it exactly like the Cost
+                if (card.DeckVP > 0 && card.InnerCircleVP > 0)
+                {
+                    // If card has both, show both compactly
+                    vpText = $"D:{card.DeckVP} I:{card.InnerCircleVP}";
+                }
+                else if (card.DeckVP > 0)
+                {
+                    vpText = $"VP: {card.DeckVP}"; // Standard VP usually implies Deck VP
+                }
+                else
+                {
+                    vpText = $"Inner: {card.InnerCircleVP}";
+                }
+
+                // Measure text
                 Vector2 vpSize = _font.MeasureString(vpText);
 
-                // X = Left edge + padding
-                // Y = Bottom edge - text height - padding (Same Y math as Cost)
+                // Position: Bottom Left (same logic as before, but using new text)
                 Vector2 vpPos = new Vector2(
                     card.Bounds.X + 5,
                     card.Bounds.Bottom - vpSize.Y - 5

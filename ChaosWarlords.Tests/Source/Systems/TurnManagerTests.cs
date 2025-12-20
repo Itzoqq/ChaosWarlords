@@ -26,9 +26,9 @@ namespace ChaosWarlords.Tests.Systems
             _turnManager = new TurnManager(new List<Player> { _playerRed, _playerBlue });
 
             // Initialize test cards
-            _shadowCard = new Card("shadow", "Shadow Card", 1, CardAspect.Shadow, 1, 1);
-            _sorceryCard = new Card("sorcery", "Sorcery Card", 1, CardAspect.Sorcery, 1, 1);
-            _neutralCard = new Card("neutral", "Neutral Card", 0, CardAspect.Neutral, 0, 0);
+            _shadowCard = new Card("shadow", "Shadow Card", 1, CardAspect.Shadow, 1, 1, 0);
+            _sorceryCard = new Card("sorcery", "Sorcery Card", 1, CardAspect.Sorcery, 1, 1, 0);
+            _neutralCard = new Card("neutral", "Neutral Card", 0, CardAspect.Neutral, 0, 0, 0);
         }
 
         [TestMethod]
@@ -94,7 +94,7 @@ namespace ChaosWarlords.Tests.Systems
             // Act: Play a SECOND card of the same aspect (Distinct Instance)
             // BAD: _turnManager.PlayCard(_shadowCard);
             // GOOD: Create a fresh copy to simulate a second card in hand
-            var secondShadowCard = new Card("shadow_2", "Shadow Card", 1, CardAspect.Shadow, 1, 1);
+            var secondShadowCard = new Card("shadow_2", "Shadow Card", 1, CardAspect.Shadow, 1, 1, 0);
             _turnManager.PlayCard(secondShadowCard);
 
             // Assert
@@ -111,7 +111,7 @@ namespace ChaosWarlords.Tests.Systems
             _turnManager.PlayCard(_neutralCard);
 
             // Act: Play Sorcery again (Distinct Instance)
-            var secondSorceryCard = new Card("sorcery_2", "Sorcery Card", 1, CardAspect.Sorcery, 1, 1);
+            var secondSorceryCard = new Card("sorcery_2", "Sorcery Card", 1, CardAspect.Sorcery, 1, 1, 0);
             _turnManager.PlayCard(secondSorceryCard);
 
             // Assert

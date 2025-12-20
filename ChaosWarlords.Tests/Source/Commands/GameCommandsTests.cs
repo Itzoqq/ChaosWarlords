@@ -25,7 +25,7 @@ namespace ChaosWarlords.Tests.Source.Commands
             stateSub.MarketManager.Returns(marketSub);
             stateSub.TurnManager.Returns(turnManager);
 
-            var card = new Card("test", "Test Card", 3, CardAspect.Neutral, 0, 0);
+            var card = new Card("test", "Test Card", 3, CardAspect.Neutral, 0, 0, 0);
             var command = new BuyCardCommand(card);
 
             // 2. Act

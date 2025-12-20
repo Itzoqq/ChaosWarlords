@@ -28,7 +28,7 @@ namespace ChaosWarlords.Tests.Source.Commands
             stateSub.ActionSystem.Returns(actionSub);
 
             // Setup Data: Define what 'PendingCard' returns
-            var card = new Card("test_id", "Test Card", 0, CardAspect.Neutral, 0, 0);
+            var card = new Card("test_id", "Test Card", 0, CardAspect.Neutral, 0, 0, 0);
             actionSub.PendingCard.Returns(card);
 
             var command = new ActionCompletedCommand();

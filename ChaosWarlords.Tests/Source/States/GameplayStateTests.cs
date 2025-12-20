@@ -117,7 +117,7 @@ namespace ChaosWarlords.Tests.States
         [TestMethod]
         public void PlayCard_ResolvesResourceEffects()
         {
-            var card = new Card("test", "Resource Card", 0, CardAspect.Neutral, 0, 0);
+            var card = new Card("test", "Resource Card", 0, CardAspect.Neutral, 0, 0, 0);
             card.AddEffect(new CardEffect(EffectType.GainResource, 3, ResourceType.Power));
             // Use ActivePlayer from TurnManager
             _turnManager.ActivePlayer.Hand.Add(card);
@@ -133,7 +133,7 @@ namespace ChaosWarlords.Tests.States
         [TestMethod]
         public void PlayCard_TriggersTargeting_SwitchInputMode()
         {
-            var card = new Card("kill", "Assassin", 0, CardAspect.Shadow, 0, 0);
+            var card = new Card("kill", "Assassin", 0, CardAspect.Shadow, 0, 0, 0);
             card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
 
             // Ensure we start in Normal
@@ -158,7 +158,7 @@ namespace ChaosWarlords.Tests.States
             // Use ActivePlayer from TurnManager
             _turnManager.ActivePlayer.Influence = 10;
 
-            var cardToBuy = new Card("market_card", "Buy Me", 3, CardAspect.Sorcery, 1, 0);
+            var cardToBuy = new Card("market_card", "Buy Me", 3, CardAspect.Sorcery, 1, 0, 0);
             _marketManager.MarketRow.Clear();
             _marketManager.MarketRow.Add(cardToBuy);
 
@@ -183,8 +183,8 @@ namespace ChaosWarlords.Tests.States
             var activePlayer = _turnManager.ActivePlayer;
 
             // Create 2 cards in hand
-            var card1 = new Card("c1", "Left Card", 0, CardAspect.Neutral, 0, 0);
-            var card2 = new Card("c2", "Right Card", 0, CardAspect.Neutral, 0, 0);
+            var card1 = new Card("c1", "Left Card", 0, CardAspect.Neutral, 0, 0, 0);
+            var card2 = new Card("c2", "Right Card", 0, CardAspect.Neutral, 0, 0, 0);
 
             // Manually position them like they would be on screen
             card1.Position = new Vector2(100, 500); // X=100, Y=HandY
@@ -321,7 +321,7 @@ namespace ChaosWarlords.Tests.States
             activePlayer.Influence = 0;
             activePlayer.Power = 0;
 
-            var richNoble = new Card("rich_noble", "Rich Noble", 0, CardAspect.Order, 0, 0);
+            var richNoble = new Card("rich_noble", "Rich Noble", 0, CardAspect.Order, 0, 0, 0);
             richNoble.Effects.Add(new CardEffect(EffectType.GainResource, 3, ResourceType.Influence));
 
             activePlayer.Hand.Add(richNoble);
@@ -339,7 +339,7 @@ namespace ChaosWarlords.Tests.States
         {
             // 1. Arrange
             // We only need the card that triggers the state change.
-            var assassin = new Card("assassin", "Assassin", 0, CardAspect.Shadow, 0, 0);
+            var assassin = new Card("assassin", "Assassin", 0, CardAspect.Shadow, 0, 0, 0);
             assassin.Effects.Add(new CardEffect(EffectType.Assassinate, 0));
 
             // Ensure active player has it (assuming _turnManager.ActivePlayer is set up)

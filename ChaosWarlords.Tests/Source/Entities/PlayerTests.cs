@@ -13,9 +13,9 @@ namespace ChaosWarlords.Tests.Source.Entities
         public void Setup()
         {
             _player = new Player(PlayerColor.Red);
-            _card1 = new Card("c1", "Card One", 0, CardAspect.Shadow, 1, 2);
-            _card2 = new Card("c2", "Card Two", 0, CardAspect.Shadow, 1, 2);
-            _card3 = new Card("c3", "Card Three", 0, CardAspect.Shadow, 1, 2);
+            _card1 = new Card("c1", "Card One", 0, CardAspect.Shadow, 1, 2, 0);
+            _card2 = new Card("c2", "Card Two", 0, CardAspect.Shadow, 1, 2, 0);
+            _card3 = new Card("c3", "Card Three", 0, CardAspect.Shadow, 1, 2, 0);
         }
 
         [TestMethod]

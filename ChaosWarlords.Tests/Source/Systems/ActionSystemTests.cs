@@ -125,7 +125,7 @@ namespace ChaosWarlords.Tests.Systems
         public void HandleTargetClick_Assassinate_DoesNotPayCostForCardAction()
         {
             // Arrange
-            var card = new Card("Assassin", "Assassin Name", 0, CardAspect.Shadow, 0, 0);
+            var card = new Card("Assassin", "Assassin Name", 0, CardAspect.Shadow, 0, 0, 0);
             _player1.Power = 3;
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card);
 
@@ -324,7 +324,7 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void CancelTargeting_ResetsStateAndPendingCard()
         {
-            var card = new Card("c", "c", 0, CardAspect.Shadow, 0, 0);
+            var card = new Card("c", "c", 0, CardAspect.Shadow, 0, 0, 0);
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card);
             _actionSystem.CancelTargeting();
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);

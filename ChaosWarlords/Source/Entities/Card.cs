@@ -11,29 +11,35 @@ namespace ChaosWarlords.Source.Entities
         public string Name { get; private set; }
         public int Cost { get; private set; }
         public CardAspect Aspect { get; private set; }
-        public int VictoryPoints { get; private set; }
+
+        // Split VP into Deck and Inner Circle values
+        public int DeckVP { get; private set; }
+        public int InnerCircleVP { get; private set; }
+
         public int InfluenceValue { get; private set; } // For "Influence" aspect cards
         public List<CardEffect> Effects { get; private set; } = new List<CardEffect>();
 
         public string Description { get; set; } = "";
         public CardLocation Location { get; set; }
 
-        // UI State (Kept here for simplicity in this refactor, though ideally belongs in a View-Model)
+        // UI State
         public Vector2 Position { get; set; }
         public Rectangle Bounds => new Rectangle((int)Position.X, (int)Position.Y, Width, Height);
-        public bool IsHovered { get; set; } // Logic can still know "this card is selected"
+        public bool IsHovered { get; set; }
 
         // Constants
         public const int Width = 150;
         public const int Height = 200;
 
-        public Card(string id, string name, int cost, CardAspect aspect, int vp, int influence)
+        // --- UPDATED CONSTRUCTOR ---
+        public Card(string id, string name, int cost, CardAspect aspect, int deckVp, int innerCircleVp, int influence)
         {
             Id = id;
             Name = name;
             Cost = cost;
             Aspect = aspect;
-            VictoryPoints = vp;
+            DeckVP = deckVp;
+            InnerCircleVP = innerCircleVp;
             InfluenceValue = influence;
         }
 
@@ -44,8 +50,8 @@ namespace ChaosWarlords.Source.Entities
 
         public Card Clone()
         {
-            // 1. Copy basic properties via constructor
-            var newCard = new Card(Id, Name, Cost, Aspect, VictoryPoints, InfluenceValue)
+            // --- UPDATED CLONE ---
+            var newCard = new Card(Id, Name, Cost, Aspect, DeckVP, InnerCircleVP, InfluenceValue)
             {
                 Description = Description,
                 Location = Location,
@@ -53,7 +59,6 @@ namespace ChaosWarlords.Source.Entities
                 IsHovered = IsHovered
             };
 
-            // 2. Deep copy the effects list (so modifying one card's effects doesn't change the other)
             foreach (var effect in Effects)
             {
                 newCard.Effects.Add(new CardEffect(effect.Type, effect.Amount, effect.TargetResource));

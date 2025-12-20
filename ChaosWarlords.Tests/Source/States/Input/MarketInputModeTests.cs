@@ -68,7 +68,7 @@ namespace ChaosWarlords.Tests.States.Input
         public void HandleInput_ClickingCard_ReturnsBuyCardCommand()
         {
             // 1. Arrange
-            var card = new Card("market_card", "Buy Me", 3, CardAspect.Order, 1, 0);
+            var card = new Card("market_card", "Buy Me", 3, CardAspect.Order, 1, 0, 0);
             card.Position = new Vector2(100, 100);
 
             card.IsHovered = true;
