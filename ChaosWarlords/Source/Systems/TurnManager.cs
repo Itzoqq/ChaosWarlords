@@ -1,60 +1,54 @@
+using System;
 using System.Collections.Generic;
+using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities;
-using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Systems
 {
-    // System to manage player context and turn flow
     public class TurnManager : ITurnManager
     {
         public List<Player> Players { get; private set; }
         private int _currentPlayerIndex = 0;
 
-        // This is the active player all other systems (UI, Map, Action) will query
-        public Player ActivePlayer => Players[_currentPlayerIndex];
+        // The distinct data object for the current turn
+        public TurnContext CurrentTurnContext { get; private set; }
 
-        // Dictionary for "Focus" mechanic (tracks aspects played this turn)
-        public Dictionary<CardAspect, int> PlayedAspectCounts { get; private set; }
+        // Convenience property
+        public Player ActivePlayer => CurrentTurnContext?.ActivePlayer ?? Players[_currentPlayerIndex];
 
         public TurnManager(List<Player> players)
         {
+            // Industry Standard: "Guard Clauses"
+            if (players == null || players.Count == 0)
+            {
+                throw new ArgumentException("TurnManager requires at least one player.", nameof(players));
+            }
+
             Players = players;
-            // The list should already be sorted by turn order (e.g., Red then Blue)
-            ResetTurnContext();
+            StartTurn();
         }
 
-        private void ResetTurnContext()
+        private void StartTurn()
         {
-            // Reset counters for the active player (important for 'Focus' mechanic)
-            PlayedAspectCounts = new Dictionary<CardAspect, int>();
+            Player nextPlayer = Players[_currentPlayerIndex];
+
+            // Create a fresh context for the new turn
+            CurrentTurnContext = new TurnContext(nextPlayer);
         }
 
         public void PlayCard(Card card)
         {
-            // Future logic for 'Focus' tracking
-            if (PlayedAspectCounts.ContainsKey(card.Aspect))
-            {
-                PlayedAspectCounts[card.Aspect]++;
-            }
-            else
-            {
-                PlayedAspectCounts[card.Aspect] = 1;
-            }
+            // Delegate state tracking to the context
+            CurrentTurnContext.RecordPlayedCard(card.Aspect);
         }
 
-        // Called when the active player presses 'Enter' or clicks the 'End Turn' button
         public void EndTurn()
         {
-            // 1. Map Cleanup (The map hands out VP)
-            // Note: The player cleanup (Discard/Draw) still happens in GameplayState.EndTurn for now,
-            // but for cleaner architecture, you should eventually move ActivePlayer.CleanUpTurn() 
-            // and ActivePlayer.DrawCards(5) here, and update GameplayState.EndTurn() to just call TurnManager.EndTurn().
-
-            // 2. Switch to the next player
+            // 1. Advance Player Index
             _currentPlayerIndex = (_currentPlayerIndex + 1) % Players.Count;
 
-            // 3. Reset the context for the new player
-            ResetTurnContext();
+            // 2. Start the next turn (Creates new Context)
+            StartTurn();
         }
     }
 }

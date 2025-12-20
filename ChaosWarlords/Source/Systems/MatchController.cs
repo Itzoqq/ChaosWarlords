@@ -6,11 +6,6 @@ using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Systems
 {
-    /// <summary>
-    /// Handles the "Simulation" logic of the game.
-    /// Responsible for enforcing rules, executing card effects, and managing turn flow.
-    /// This class should have NO dependency on Graphics/UI.
-    /// </summary>
     public class MatchController
     {
         private readonly MatchContext _context;
@@ -22,7 +17,7 @@ namespace ChaosWarlords.Source.Systems
 
         public void PlayCard(Card card)
         {
-            // 1. Notify TurnManager (Tracks stats like Focus)
+            // 1. Notify TurnManager (Tracks stats like Focus inside CurrentTurnContext)
             _context.TurnManager.PlayCard(card);
 
             // 2. Execute Immediate Effects
@@ -34,19 +29,30 @@ namespace ChaosWarlords.Source.Systems
 
         public void ResolveCardEffects(Card card)
         {
-            // 1. Check Focus Condition
-            // Check if ANY card of that aspect is already in the played pile.
-            bool hasFocus = _context.ActivePlayer.PlayedCards.Any(c => c.Aspect == card.Aspect);
+            // --- FOCUS LOGIC START ---
+
+            // Get the count from our new Context
+            int playedCount = _context.TurnManager.CurrentTurnContext.GetAspectCount(card.Aspect);
+
+            // Condition 1: Have we played ANOTHER card of this aspect?
+            // (Count > 1 because the current card was recorded in Step 1)
+            bool playedAnother = playedCount > 1;
+
+            // Condition 2: Can we reveal a card of this aspect from hand?
+            // (The current card is technically still in 'Hand' list until Step 3, so we exclude it)
+            bool canRevealFromHand = _context.ActivePlayer.Hand.Any(c => c.Aspect == card.Aspect && c != card);
+
+            bool hasFocus = playedAnother || canRevealFromHand;
+            // --- FOCUS LOGIC END ---
 
             foreach (var effect in card.Effects)
             {
-                // 2. Skip conditional effects if condition is not met
+                // Skip conditional effects if Focus requirements aren't met
                 if (effect.RequiresFocus && !hasFocus)
                 {
                     continue;
                 }
 
-                // 3. Apply Immediate Effects
                 switch (effect.Type)
                 {
                     case EffectType.GainResource:
@@ -63,8 +69,7 @@ namespace ChaosWarlords.Source.Systems
                         break;
 
                     case EffectType.Devour:
-                        // Only handle AUTO devour here (e.g. "Devour top card of deck"). 
-                        // Targeted devour is handled by InputModes.
+                        // Auto-devour logic would go here
                         break;
                 }
             }
@@ -79,9 +84,6 @@ namespace ChaosWarlords.Source.Systems
             }
         }
 
-        /// <summary>
-        /// Validation: Checks if the current turn can be ended.
-        /// </summary>
         public bool CanEndTurn(out string reason)
         {
             if (_context.ActivePlayer.Hand.Count > 0)
@@ -99,14 +101,15 @@ namespace ChaosWarlords.Source.Systems
             _context.MapManager.DistributeControlRewards(_context.ActivePlayer);
 
             // 2. Cleanup: Move Hand + Played -> Discard
-            // This MUST happen before DrawCards to cycle deck correctly
             _context.ActivePlayer.CleanUpTurn();
 
             // 3. Draw New Hand
             _context.ActivePlayer.DrawCards(5);
 
-            // 4. Switch Player
+            // 4. Switch Player (This now resets TurnContext internally)
             _context.TurnManager.EndTurn();
+
+            // 5. Update ActionSystem target
             _context.ActionSystem.SetCurrentPlayer(_context.ActivePlayer);
         }
     }

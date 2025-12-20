@@ -1,6 +1,6 @@
 using System.Collections.Generic;
+using ChaosWarlords.Source.Contexts; // Add reference to Contexts
 using ChaosWarlords.Source.Entities;
-using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Systems
 {
@@ -9,11 +9,11 @@ namespace ChaosWarlords.Source.Systems
         // Publicly accessible list of all players
         List<Player> Players { get; }
 
-        // The player whose turn it currently is
+        // The player whose turn it currently is (Shortcut to CurrentTurnContext.ActivePlayer)
         Player ActivePlayer { get; }
 
-        // Tracks played aspects for features like 'Focus' (from Tyrants of the Underdark rules)
-        Dictionary<CardAspect, int> PlayedAspectCounts { get; }
+        // The data object for the current turn
+        TurnContext CurrentTurnContext { get; }
 
         // Actions
         void PlayCard(Card card);
