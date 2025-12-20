@@ -7,6 +7,7 @@ using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Views
 {
@@ -14,6 +15,7 @@ namespace ChaosWarlords.Source.Views
     /// Handles the "Presentation" layer.
     /// Responsible for rendering the game state, managing animations/view models, and UI layout.
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public class GameplayView
     {
         private readonly GraphicsDevice _graphicsDevice;

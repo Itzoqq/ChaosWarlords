@@ -1,8 +1,10 @@
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Entities;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Views
 {
+    [ExcludeFromCodeCoverage]
     public class CardViewModel
     {
         // Reference to the pure Logic Data
