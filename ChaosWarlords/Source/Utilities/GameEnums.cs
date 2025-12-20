@@ -21,7 +21,7 @@ namespace ChaosWarlords.Source.Utilities
         Sorcery,        // Magic/Control (Malice) - Best at assassination 
         Shadow,         // Spies/Assassination (Guile) - Best at spying 
         Order,          // Defense/Movement (Obedience) - Day-to-day tasks 
-        Ambition        // Recruitment/Inner Circle (Ambition) - Best at recruiting & promoting 
+        Blasphemy        // Recruitment/Inner Circle (Ambition) - Best at recruiting & promoting 
     }
 
     public enum ResourceType
