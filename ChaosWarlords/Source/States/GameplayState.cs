@@ -18,34 +18,28 @@ namespace ChaosWarlords.Source.States
         private readonly IInputProvider _inputProvider;
         private readonly ICardDatabase _cardDatabase;
 
-        // --- Sub-Systems (Separated Concerns) ---
         internal GameplayView _view;
-
-        // Changed to internal so Tests can initialize it manually
         internal MatchController _matchController;
-
-        // --- Context & Systems ---
         internal MatchContext _matchContext;
-
         internal InputManager _inputManagerBacking;
         internal IUISystem _uiManagerBacking;
-
-        // --- State Variables ---
         internal bool _isMarketOpenBacking = false;
 
-        // --- Properties (IGameplayState Implementation) ---
         public InputManager InputManager => _inputManagerBacking;
         public IUISystem UIManager => _uiManagerBacking;
 
         public IMapManager MapManager => _matchContext?.MapManager;
         public IMarketManager MarketManager => _matchContext?.MarketManager;
         public IActionSystem ActionSystem => _matchContext?.ActionSystem;
-        public TurnManager TurnManager => _matchContext?.TurnManager as TurnManager;
+
+        // FIX: Changed return type to ITurnManager to match the interface update.
+        // We no longer need to force cast to concrete TurnManager for external access.
+        public ITurnManager TurnManager => _matchContext?.TurnManager;
+
         public MatchContext MatchContext => _matchContext;
 
         public IInputMode InputMode { get; set; }
 
-        // Safe navigation for View properties
         public int HandY => _view?.HandY ?? 0;
         public int PlayedY => _view?.PlayedY ?? 0;
 
@@ -80,15 +74,12 @@ namespace ChaosWarlords.Source.States
 
             GameLogger.Initialize();
 
-            // 1. Initialize Managers
             _inputManagerBacking = new InputManager(_inputProvider);
             _uiManagerBacking = new UIManager(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
 
-            // 2. Initialize Logic & View
             _view = new GameplayView(graphicsDevice);
             _view.LoadContent(_game.Content);
 
-            // 3. Build World
             var builder = new WorldBuilder(_cardDatabase, "data/map.json");
             var worldData = builder.Build();
 
@@ -100,7 +91,6 @@ namespace ChaosWarlords.Source.States
                 _cardDatabase
             );
 
-            // 4. Initialize Controller
             _matchController = new MatchController(_matchContext);
 
             _matchContext.ActionSystem.SetCurrentPlayer(_matchContext.ActivePlayer);
@@ -134,7 +124,6 @@ namespace ChaosWarlords.Source.States
                 return;
             }
 
-            // Safe navigation: Don't crash if View is null (Headless/Test mode)
             _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
 
             IGameCommand command = InputMode.HandleInput(
@@ -157,7 +146,6 @@ namespace ChaosWarlords.Source.States
                 targetingText = GetTargetingText(_matchContext.ActionSystem.CurrentState);
             }
 
-            // Safe navigation
             _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, (UIManager)_uiManagerBacking, IsMarketOpen, targetingText);
         }
 
@@ -190,6 +178,8 @@ namespace ChaosWarlords.Source.States
 
         public void SwitchToTargetingMode()
         {
+            // Note: If TargetingInputMode requires the concrete class, we cast it here.
+            // This is internal logic separate from the IGameplayState public interface.
             InputMode = new TargetingInputMode(
                 this,
                 _inputManagerBacking,
@@ -227,7 +217,7 @@ namespace ChaosWarlords.Source.States
         private void HandleSpySelectionInput()
         {
             if (!_inputManagerBacking.IsLeftMouseJustClicked()) return;
-            if (_view == null) return; // Cannot handle visual clicks without View
+            if (_view == null) return;
 
             var site = _matchContext.ActionSystem.PendingSite;
             PlayerColor? clickedSpy = _view.GetClickedSpyReturnButton(
@@ -292,7 +282,6 @@ namespace ChaosWarlords.Source.States
             SwitchToNormalMode();
         }
 
-        // Safe navigation for View methods
         public Card GetHoveredHandCard() => _view?.GetHoveredHandCard();
         public Card GetHoveredMarketCard() => _view?.GetHoveredMarketCard();
     }

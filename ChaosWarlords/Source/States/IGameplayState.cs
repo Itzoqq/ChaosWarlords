@@ -12,7 +12,10 @@ namespace ChaosWarlords.Source.States
         IMapManager MapManager { get; }
         IMarketManager MarketManager { get; }
         IActionSystem ActionSystem { get; }
-        TurnManager TurnManager { get; }
+
+        // FIX: Changed from concrete 'TurnManager' to interface 'ITurnManager'
+        // This allows NSubstitute to mock the turn manager in tests.
+        ITurnManager TurnManager { get; }
 
         IInputMode InputMode { get; set; }
         bool IsMarketOpen { get; set; }
@@ -30,11 +33,8 @@ namespace ChaosWarlords.Source.States
         void ResolveCardEffects(Card card);
         void MoveCardToPlayed(Card card);
 
-        // Removed ArrangeHandVisuals from Interface (Internal detail now)
-
         string GetTargetingText(ActionState state);
 
-        // --- NEW METHODS FOR INPUT MODES ---
         Card GetHoveredHandCard();
         Card GetHoveredMarketCard();
     }

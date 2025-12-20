@@ -1,146 +1,181 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities;
-using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.States;
+using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.Xna.Framework;
 using NSubstitute;
+using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Source.Commands
 {
     [TestClass]
     public class GameCommandsTests
     {
+        private IGameplayState _stateSub = null!;
+        private IMarketManager _marketSub = null!;
+        private IMapManager _mapSub = null!;
+        private ITurnManager _turnSub = null!;
+        private IActionSystem _actionSub = null!;
+        [TestInitialize]
+        public void Setup()
+        {
+            // Initialize Logger to prevent static errors
+            GameLogger.Initialize();
+
+            // Create mocks
+            _stateSub = Substitute.For<IGameplayState>();
+            _marketSub = Substitute.For<IMarketManager>();
+            _mapSub = Substitute.For<IMapManager>();
+            _turnSub = Substitute.For<ITurnManager>();
+            _actionSub = Substitute.For<IActionSystem>();
+
+            // Wire up the state to return these mocks
+            _stateSub.MarketManager.Returns(_marketSub);
+            _stateSub.MapManager.Returns(_mapSub);
+            _stateSub.TurnManager.Returns(_turnSub);
+            _stateSub.ActionSystem.Returns(_actionSub);
+        }
+
         [TestMethod]
         public void BuyCardCommand_ExecutesTryBuyCard()
         {
-            // 1. Arrange
-            var stateSub = Substitute.For<IGameplayState>();
-            var marketSub = Substitute.For<IMarketManager>();
-
-            // Setup Dependencies
+            // Arrange
             var player = new Player(PlayerColor.Red);
-            var turnManager = new TurnManager(new List<Player> { player });
+            _turnSub.ActivePlayer.Returns(player);
 
-            stateSub.MarketManager.Returns(marketSub);
-            stateSub.TurnManager.Returns(turnManager);
-
-            var card = new Card("test", "Test Card", 3, CardAspect.Neutral, 0, 0, 0);
+            var card = new Card("c1", "Test Card", 3, CardAspect.Neutral, 0, 0, 0);
             var command = new BuyCardCommand(card);
 
-            // 2. Act
-            command.Execute(stateSub);
+            // Act
+            command.Execute(_stateSub);
 
-            // 3. Assert
-            marketSub.Received(1).TryBuyCard(player, card);
+            // Assert
+            _marketSub.Received(1).TryBuyCard(player, card);
         }
 
         [TestMethod]
         public void DeployTroopCommand_ExecutesTryDeploy()
         {
-            // 1. Arrange
-            var stateSub = Substitute.For<IGameplayState>();
-            var mapSub = Substitute.For<IMapManager>();
+            // Arrange
+            var player = new Player(PlayerColor.Blue);
+            _turnSub.ActivePlayer.Returns(player);
 
-            var player = new Player(PlayerColor.Red);
-            var turnManager = new TurnManager(new List<Player> { player });
-
-            stateSub.MapManager.Returns(mapSub);
-            stateSub.TurnManager.Returns(turnManager);
-
-            var node = new MapNode(1, Vector2.Zero);
+            var node = new MapNode(1, new Microsoft.Xna.Framework.Vector2(0, 0));
             var command = new DeployTroopCommand(node);
 
-            // 2. Act
-            command.Execute(stateSub);
+            // Act
+            command.Execute(_stateSub);
 
-            // 3. Assert
-            mapSub.Received(1).TryDeploy(player, node);
-        }
-
-        [TestMethod]
-        public void ToggleMarketCommand_OpensMarket_WhenClosed()
-        {
-            // 1. Arrange
-            var stateSub = Substitute.For<IGameplayState>();
-            stateSub.IsMarketOpen.Returns(false);
-
-            var command = new ToggleMarketCommand();
-
-            // 2. Act
-            command.Execute(stateSub);
-
-            // 3. Assert
-            // Assuming the command calls ToggleMarket() or sets IsMarketOpen = true
-            stateSub.Received(1).ToggleMarket();
+            // Assert
+            _mapSub.Received(1).TryDeploy(player, node);
         }
 
         [TestMethod]
         public void ToggleMarketCommand_ClosesMarket_WhenOpen()
         {
-            // 1. Arrange
-            var stateSub = Substitute.For<IGameplayState>();
-            stateSub.IsMarketOpen.Returns(true);
-
+            // Arrange
+            _stateSub.IsMarketOpen.Returns(true);
             var command = new ToggleMarketCommand();
 
-            // 2. Act
-            command.Execute(stateSub);
+            // Act
+            command.Execute(_stateSub);
 
-            // 3. Assert
-            // The command likely calls CloseMarket() specifically when open to handle mode switching
-            stateSub.Received(1).CloseMarket();
+            // Assert
+            _stateSub.Received(1).CloseMarket();
+            _stateSub.DidNotReceive().ToggleMarket();
+        }
+
+        [TestMethod]
+        public void ToggleMarketCommand_TogglesMarket_WhenClosed()
+        {
+            // Arrange
+            _stateSub.IsMarketOpen.Returns(false);
+            var command = new ToggleMarketCommand();
+
+            // Act
+            command.Execute(_stateSub);
+
+            // Assert
+            // Based on your implementation: else { state.ToggleMarket(); }
+            _stateSub.Received(1).ToggleMarket();
+            _stateSub.DidNotReceive().CloseMarket();
         }
 
         [TestMethod]
         public void ResolveSpyCommand_FinalizesSpyReturn()
         {
-            // 1. Arrange
-            var stateSub = Substitute.For<IGameplayState>();
-            var actionSub = Substitute.For<IActionSystem>();
+            // Arrange
+            var targetColor = PlayerColor.Red;
+            var command = new ResolveSpyCommand(targetColor);
 
-            stateSub.ActionSystem.Returns(actionSub);
+            // Act
+            command.Execute(_stateSub);
 
-            var command = new ResolveSpyCommand(PlayerColor.Blue);
-
-            // 2. Act
-            command.Execute(stateSub);
-
-            // 3. Assert
-            actionSub.Received(1).FinalizeSpyReturn(PlayerColor.Blue);
+            // Assert
+            _actionSub.Received(1).FinalizeSpyReturn(targetColor);
         }
 
         [TestMethod]
-        public void CancelActionCommand_CancelsTargeting_AndSwitchesMode()
+        public void CancelActionCommand_CancelsTargeting_AndSwitchesToNormal()
         {
-            // 1. Arrange
-            var stateSub = Substitute.For<IGameplayState>();
-            var actionSub = Substitute.For<IActionSystem>();
-
-            stateSub.ActionSystem.Returns(actionSub);
-
+            // Arrange
             var command = new CancelActionCommand();
 
-            // 2. Act
-            command.Execute(stateSub);
+            // Act
+            command.Execute(_stateSub);
 
-            // 3. Assert
-            actionSub.Received(1).CancelTargeting();
-            stateSub.Received(1).SwitchToNormalMode();
+            // Assert
+            _actionSub.Received(1).CancelTargeting();
+            _stateSub.Received(1).SwitchToNormalMode();
         }
 
         [TestMethod]
         public void SwitchToNormalModeCommand_ExecutesSwitch()
         {
-            // 1. Arrange
-            var stateSub = Substitute.For<IGameplayState>();
+            // Arrange
             var command = new SwitchToNormalModeCommand();
 
-            // 2. Act
-            command.Execute(stateSub);
+            // Act
+            command.Execute(_stateSub);
 
-            // 3. Assert
-            stateSub.Received(1).SwitchToNormalMode();
+            // Assert
+            _stateSub.Received(1).SwitchToNormalMode();
+        }
+
+        [TestMethod]
+        public void StartReturnSpyCommand_InitiatesReturnProcess_IfTargetingReturnSpy()
+        {
+            // Arrange
+            var command = new StartReturnSpyCommand();
+
+            // Mock ActionSystem to say we are currently in TargetingReturnSpy state
+            _actionSub.CurrentState.Returns(ActionState.TargetingReturnSpy);
+
+            // Act
+            command.Execute(_stateSub);
+
+            // Assert
+            _actionSub.Received(1).TryStartReturnSpy();
+            // Should switch to targeting mode if state matches
+            _stateSub.Received(1).SwitchToTargetingMode();
+        }
+
+        [TestMethod]
+        public void StartReturnSpyCommand_DoesNotSwitchMode_IfStateIsNotTargeting()
+        {
+            // Arrange
+            var command = new StartReturnSpyCommand();
+
+            // Mock ActionSystem to say we are in Normal state (failed to start return)
+            _actionSub.CurrentState.Returns(ActionState.Normal);
+
+            // Act
+            command.Execute(_stateSub);
+
+            // Assert
+            _actionSub.Received(1).TryStartReturnSpy();
+            _stateSub.DidNotReceive().SwitchToTargetingMode();
         }
     }
 }

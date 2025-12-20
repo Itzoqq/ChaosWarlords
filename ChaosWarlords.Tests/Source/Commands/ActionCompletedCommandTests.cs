@@ -1,3 +1,4 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.States;
@@ -10,72 +11,62 @@ namespace ChaosWarlords.Tests.Source.Commands
     [TestClass]
     public class ActionCompletedCommandTests
     {
+        private IGameplayState _stateSub = null!;
+        private IActionSystem _actionSub = null!;
+
         [TestInitialize]
         public void Setup()
         {
-            // Ensure logger is ready (prevents static crashes)
             GameLogger.Initialize();
+            _stateSub = Substitute.For<IGameplayState>();
+            _actionSub = Substitute.For<IActionSystem>();
+            _stateSub.ActionSystem.Returns(_actionSub);
         }
 
         [TestMethod]
-        public void ActionCompleted_WithPendingCard_FinalizesCard_AndResetsState()
+        public void Execute_WithPendingCard_ResolvesAndMovesCard()
         {
-            // 1. Arrange: Create dynamic mocks (no manual classes needed)
-            var actionSub = Substitute.For<IActionSystem>();
-            var stateSub = Substitute.For<IGameplayState>();
-
-            // Link the systems: When the Command asks State for the ActionSystem, return our mock
-            stateSub.ActionSystem.Returns(actionSub);
-
-            // Setup Data: Define what 'PendingCard' returns
-            var card = new Card("test_id", "Test Card", 0, CardAspect.Neutral, 0, 0, 0);
-            actionSub.PendingCard.Returns(card);
+            // Arrange
+            var card = new Card("test", "Test", 1, CardAspect.Warlord, 0, 0, 0);
+            _actionSub.PendingCard.Returns(card);
 
             var command = new ActionCompletedCommand();
 
-            // 2. Act
-            command.Execute(stateSub);
+            // Act
+            command.Execute(_stateSub);
 
-            // 3. Assert: Verify interactions using .Received()
-
-            // It MUST resolve effects with the specific card we set up
-            stateSub.Received(1).ResolveCardEffects(card);
-
-            // It MUST move card to discard pile
-            stateSub.Received(1).MoveCardToPlayed(card);
-
-            // It MUST reset the UI state
-            actionSub.Received(1).CancelTargeting();
-            stateSub.Received(1).SwitchToNormalMode();
+            // Assert
+            // 1. Verify card effects are resolved
+            _stateSub.Received(1).ResolveCardEffects(card);
+            // 2. Verify card is moved to played pile
+            _stateSub.Received(1).MoveCardToPlayed(card);
+            // 3. Verify cleanup
+            _actionSub.Received(1).CancelTargeting();
+            _stateSub.Received(1).SwitchToNormalMode();
         }
 
         [TestMethod]
-        public void ActionCompleted_NoPendingCard_JustResetsState()
+        public void Execute_NoPendingCard_SkipsCardLogic_ButResetsState()
         {
-            // 1. Arrange
-            var actionSub = Substitute.For<IActionSystem>();
-            var stateSub = Substitute.For<IGameplayState>();
-
-            stateSub.ActionSystem.Returns(actionSub);
-
-            // Case: No card is pending (return null)
-            actionSub.PendingCard.Returns((Card?)null);
+            // Arrange
+            // FIX: Use (Card)null! to suppress CS8600.
+            // We tell the compiler "Treat this null as a valid Card object" (even though it's null).
+            // This allows NSubstitute to return null at runtime without the compiler warning.
+            _actionSub.PendingCard.Returns((Card)null!);
 
             var command = new ActionCompletedCommand();
 
-            // 2. Act
-            command.Execute(stateSub);
+            // Act
+            command.Execute(_stateSub);
 
-            // 3. Assert
+            // Assert
+            // 1. Ensure card methods were NOT called
+            _stateSub.DidNotReceive().ResolveCardEffects(Arg.Any<Card>());
+            _stateSub.DidNotReceive().MoveCardToPlayed(Arg.Any<Card>());
 
-            // Verify specific methods were NOT called
-            // We use Arg.Any<Card>() to say "It shouldn't be called with ANY card"
-            stateSub.DidNotReceive().ResolveCardEffects(Arg.Any<Card>());
-            stateSub.DidNotReceive().MoveCardToPlayed(Arg.Any<Card>());
-
-            // Still needs to reset state
-            actionSub.Received(1).CancelTargeting();
-            stateSub.Received(1).SwitchToNormalMode();
+            // 2. Verify cleanup still happens
+            _actionSub.Received(1).CancelTargeting();
+            _stateSub.Received(1).SwitchToNormalMode();
         }
     }
 }
