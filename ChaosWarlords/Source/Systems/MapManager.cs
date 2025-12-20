@@ -8,12 +8,11 @@ namespace ChaosWarlords.Source.Systems
 {
     public class MapManager : IMapManager
     {
-
         // Internal mutable lists used as backing fields
         public List<MapNode> NodesInternal { get; private set; }
         public List<Site> SitesInternal { get; private set; }
 
-        // Explicitly implement the interface properties using the internal fields (Fixes the null reference)
+        // Explicitly implement the interface properties
         IReadOnlyList<MapNode> IMapManager.Nodes => NodesInternal;
         IReadOnlyList<Site> IMapManager.Sites => SitesInternal;
 
@@ -33,7 +32,40 @@ namespace ChaosWarlords.Source.Systems
             }
         }
 
-        // --- Setup Methods ---
+        // --- NEW: Deadlock Prevention Implementations ---
+        public bool HasValidAssassinationTarget(Player activePlayer)
+        {
+            // Valid if: Node has an occupant, it's NOT us, AND we have presence there.
+            return NodesInternal.Any(n =>
+                n.Occupant != PlayerColor.None &&
+                n.Occupant != activePlayer.Color &&
+                HasPresence(n, activePlayer.Color));
+        }
+
+        public bool HasValidReturnSpyTarget(Player activePlayer)
+        {
+            if (SitesInternal == null) return false;
+
+            // Valid if: Site has our spy AND we have presence (Rules generally require presence to interact)
+            // Note: We use the first node of the site to check presence for the site overall.
+            return SitesInternal.Any(s =>
+                s.Spies.Contains(activePlayer.Color) &&
+                s.NodesInternal.Count > 0 &&
+                HasPresence(s.NodesInternal[0], activePlayer.Color));
+        }
+
+        public bool HasValidPlaceSpyTarget(Player activePlayer)
+        {
+            if (SitesInternal == null) return false;
+
+            // Valid if: We have presence AND we don't already have a spy there.
+            return SitesInternal.Any(s =>
+                !s.Spies.Contains(activePlayer.Color) &&
+                s.NodesInternal.Count > 0 &&
+                HasPresence(s.NodesInternal[0], activePlayer.Color));
+        }
+        // ------------------------------------------------
+
         public void CenterMap(int screenWidth, int screenHeight)
         {
             if (NodesInternal.Count == 0) return;
@@ -50,10 +82,8 @@ namespace ChaosWarlords.Source.Systems
             if (SitesInternal != null) foreach (var site in SitesInternal) site.RecalculateBounds();
         }
 
-        // --- Query Methods (Replaces Update Loop) ---
         public MapNode GetNodeAt(Vector2 position)
         {
-            // Simple circular collision check against all nodes
             return NodesInternal.FirstOrDefault(n => Vector2.Distance(position, n.Position) <= MapNode.Radius);
         }
 
@@ -68,7 +98,6 @@ namespace ChaosWarlords.Source.Systems
             return site;
         }
 
-        // --- Logic Methods (Deploy, Control, etc.) ---
         public virtual bool TryDeploy(Player currentPlayer, MapNode targetNode)
         {
             if (targetNode == null) return false;
@@ -102,38 +131,25 @@ namespace ChaosWarlords.Source.Systems
             node.Occupant = player.Color;
 
             GameLogger.Log($"Deployed Troop at Node {node.Id}. Supply: {player.TroopsInBarracks}", LogChannel.Combat);
-
-            // Optimization: Update only the specific site affected
             RecalculateSiteState(GetSiteForNode(node), player);
 
             if (player.TroopsInBarracks == 0)
                 GameLogger.Log("FINAL TROOP DEPLOYED! Game ends this round.", LogChannel.General);
         }
 
-        /// <summary>
-        /// OPTIMIZATION: Only recalculates control for a specific site when a relevant event occurs.
-        /// Replaces the global UpdateSiteControl loop.
-        /// </summary>
         public void RecalculateSiteState(Site site, Player activePlayer)
         {
-            // If the action happened on a Route (not a Site), site will be null.
-            // Troops on routes do not affect Site Control, so we can safely return.
             if (site == null) return;
 
             PlayerColor previousOwner = site.Owner;
             bool previousTotal = site.HasTotalControl;
 
-            // 1. Determine Controller (Majority)
             PlayerColor newOwner = CalculateSiteOwner(site);
-
-            // 2. Determine Total Control (All nodes owned by controller + No Enemy Spies)
             bool newTotalControl = CalculateTotalControl(site, newOwner);
 
-            // 3. Apply State Changes
             site.Owner = newOwner;
             site.HasTotalControl = newTotalControl;
 
-            // 4. Trigger Events / Logs / Rewards
             HandleControlChange(site, activePlayer, previousOwner, newOwner);
             HandleTotalControlChange(site, activePlayer, previousTotal, newTotalControl, newOwner);
         }
@@ -216,8 +232,6 @@ namespace ChaosWarlords.Source.Systems
             attacker.TrophyHall++;
 
             GameLogger.Log($"Assassinated enemy at Node {node.Id}. Trophy Hall: {attacker.TrophyHall}", LogChannel.Combat);
-
-            // Optimization: Update only the specific site affected
             RecalculateSiteState(GetSiteForNode(node), attacker);
         }
 
@@ -238,7 +252,6 @@ namespace ChaosWarlords.Source.Systems
                 GameLogger.Log($"Returned {enemyColor} troop at Node {node.Id} to their barracks.", LogChannel.Combat);
             }
 
-            // Optimization: Update only the specific site affected
             RecalculateSiteState(GetSiteForNode(node), requestingPlayer);
         }
 
@@ -255,38 +268,12 @@ namespace ChaosWarlords.Source.Systems
                 player.SpiesInBarracks--;
                 site.Spies.Add(player.Color);
                 GameLogger.Log($"Spy placed at {site.Name}.", LogChannel.Combat);
-
-                // Optimization: Spy placement directly affects Total Control
                 RecalculateSiteState(site, player);
             }
             else
             {
                 GameLogger.Log("No Spies left in supply!", LogChannel.Error);
             }
-        }
-
-        public bool ReturnSpy(Site site, Player activePlayer)
-        {
-            if (site.NodesInternal.Count > 0 && !HasPresence(site.NodesInternal[0], activePlayer.Color))
-            {
-                GameLogger.Log("Cannot return spy: No Presence at this Site!", LogChannel.Error);
-                return false;
-            }
-
-            PlayerColor spyToRemove = site.Spies.FirstOrDefault(s => s != activePlayer.Color && s != PlayerColor.None);
-
-            if (spyToRemove == PlayerColor.None)
-            {
-                GameLogger.Log("Invalid Target: No enemy spies at this Site.", LogChannel.Error);
-                return false;
-            }
-
-            site.Spies.Remove(spyToRemove);
-            GameLogger.Log($"Returned {spyToRemove} Spy from {site.Name} to barracks.", LogChannel.Combat);
-
-            // Optimization: Removing a spy is a key trigger for gaining Total Control
-            RecalculateSiteState(site, activePlayer);
-            return true;
         }
 
         public void Supplant(MapNode node, Player attacker)
@@ -300,7 +287,6 @@ namespace ChaosWarlords.Source.Systems
             node.Occupant = attacker.Color;
             attacker.TroopsInBarracks--;
 
-            // Optimization: Update only the specific site affected
             RecalculateSiteState(GetSiteForNode(node), attacker);
         }
 
@@ -329,38 +315,27 @@ namespace ChaosWarlords.Source.Systems
             return HasPresence(targetNode, player);
         }
 
-        /// <summary>
-        /// Helper to retrieve list of spies eligible for return (Enemies only)
-        /// </summary>
         public List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer)
         {
             return site.Spies.Where(s => s != activePlayer.Color && s != PlayerColor.None).ToList();
         }
 
-        /// <summary>
-        /// Removes a SPECIFIC spy color from the site.
-        /// </summary>
         public bool ReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor)
         {
-            // 1. Check Presence Requirement
             if (site.NodesInternal.Count > 0 && !HasPresence(site.NodesInternal[0], activePlayer.Color))
             {
                 GameLogger.Log("Cannot return spy: No Presence at this Site!", LogChannel.Error);
                 return false;
             }
 
-            // 2. Check if the specific spy exists
             if (!site.Spies.Contains(targetSpyColor) || targetSpyColor == activePlayer.Color)
             {
                 GameLogger.Log($"Invalid Target: {targetSpyColor} spy not found here.", LogChannel.Error);
                 return false;
             }
 
-            // 3. Remove
             site.Spies.Remove(targetSpyColor);
             GameLogger.Log($"Returned {targetSpyColor} Spy from {site.Name} to barracks.", LogChannel.Combat);
-
-            // 4. Update Control (Total control might be regained by removing spy)
             RecalculateSiteState(site, activePlayer);
             return true;
         }

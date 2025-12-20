@@ -79,21 +79,34 @@ namespace ChaosWarlords.Source.Systems
             }
         }
 
+        /// <summary>
+        /// Validation: Checks if the current turn can be ended.
+        /// </summary>
+        public bool CanEndTurn(out string reason)
+        {
+            if (_context.ActivePlayer.Hand.Count > 0)
+            {
+                reason = "You must play all cards in your hand before ending your turn.";
+                return false;
+            }
+            reason = string.Empty;
+            return true;
+        }
+
         public void EndTurn()
         {
-            // 1. Map Cleanup (VP distribution)
+            // 1. Map Rewards
             _context.MapManager.DistributeControlRewards(_context.ActivePlayer);
 
-            // 2. Player Cleanup (Discard hand/played, reset resources)
+            // 2. Cleanup: Move Hand + Played -> Discard
+            // This MUST happen before DrawCards to cycle deck correctly
             _context.ActivePlayer.CleanUpTurn();
 
-            // 3. Draw new hand
+            // 3. Draw New Hand
             _context.ActivePlayer.DrawCards(5);
 
-            // 4. Pass Turn
+            // 4. Switch Player
             _context.TurnManager.EndTurn();
-
-            // 5. Update ActionSystem context
             _context.ActionSystem.SetCurrentPlayer(_context.ActivePlayer);
         }
     }

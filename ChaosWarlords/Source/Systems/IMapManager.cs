@@ -13,8 +13,15 @@ namespace ChaosWarlords.Source.Systems
 
         // Deployment & Checking
         bool TryDeploy(Player currentPlayer, MapNode targetNode);
-        bool CanDeployAt(MapNode targetNode, PlayerColor player); // Added based on typical usage, though not in your current error list, it's often paired with TryDeploy.
+        bool CanDeployAt(MapNode targetNode, PlayerColor player);
         bool HasPresence(MapNode targetNode, PlayerColor player);
+
+        // --- NEW: Deadlock Prevention Checks ---
+        // These check if a valid target exists AND is reachable by the player
+        bool HasValidAssassinationTarget(Player activePlayer);
+        bool HasValidReturnSpyTarget(Player activePlayer);
+        bool HasValidPlaceSpyTarget(Player activePlayer);
+        // ---------------------------------------
 
         // Navigation / Queries
         Site GetSiteForNode(MapNode node);
@@ -31,10 +38,9 @@ namespace ChaosWarlords.Source.Systems
         // Spy Actions
         void PlaceSpy(Site site, Player player);
         bool ReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor);
-        // Note: You might also want 'bool ReturnSpy(Site site, Player activePlayer);' if you use the auto-return logic elsewhere, but the errors specifically asked for ReturnSpecificSpy.
 
         // Game State / Rewards
         void DistributeControlRewards(Player activePlayer);
-        void RecalculateSiteState(Site site, Player activePlayer); // Often needed for consistency
+        void RecalculateSiteState(Site site, Player activePlayer);
     }
 }

@@ -74,6 +74,8 @@ namespace ChaosWarlords.Source.Utilities
         Combat,
         Economy,
         AI,
-        Error
+        Error,
+        Warning,
+        Info
     }
 }

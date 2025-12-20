@@ -31,11 +31,7 @@ namespace ChaosWarlords.Source.States
         public IMapManager MapManager => _matchContext?.MapManager;
         public IMarketManager MarketManager => _matchContext?.MarketManager;
         public IActionSystem ActionSystem => _matchContext?.ActionSystem;
-
-        // FIX: Changed return type to ITurnManager to match the interface update.
-        // We no longer need to force cast to concrete TurnManager for external access.
         public ITurnManager TurnManager => _matchContext?.TurnManager;
-
         public MatchContext MatchContext => _matchContext;
 
         public IInputMode InputMode { get; set; }
@@ -50,13 +46,9 @@ namespace ChaosWarlords.Source.States
             {
                 _isMarketOpenBacking = value;
                 if (_isMarketOpenBacking)
-                {
                     InputMode = new MarketInputMode(this, _inputManagerBacking, _matchContext);
-                }
                 else
-                {
                     SwitchToNormalMode();
-                }
             }
         }
 
@@ -92,7 +84,6 @@ namespace ChaosWarlords.Source.States
             );
 
             _matchController = new MatchController(_matchContext);
-
             _matchContext.ActionSystem.SetCurrentPlayer(_matchContext.ActivePlayer);
 
             if (_matchContext.TurnManager.Players != null)
@@ -155,16 +146,50 @@ namespace ChaosWarlords.Source.States
             {
                 if (IsTargetingEffect(effect.Type))
                 {
-                    _matchContext.ActionSystem.StartTargeting(GetTargetingState(effect.Type), card);
-                    SwitchToTargetingMode();
-                    return;
+                    // --- DEADLOCK FIX: Check if targets exist before switching modes ---
+                    if (HasValidTargets(effect.Type))
+                    {
+                        // Targets exist -> Proceed to Manual Targeting
+                        _matchContext.ActionSystem.StartTargeting(GetTargetingState(effect.Type), card);
+                        SwitchToTargetingMode();
+                        return;
+                    }
+                    else
+                    {
+                        // No valid targets -> Skip Targeting Phase
+                        // We log it so the player understands why nothing happened,
+                        // but we allow execution to fall through so the card is still "played".
+                        GameLogger.Log($"No valid targets for {effect.Type}. Effect skipped.", LogChannel.Info);
+                    }
                 }
             }
+
+            // If we get here, either:
+            // 1. The card had no targeting effects.
+            // 2. The card had targeting effects but they were skipped (no targets).
+            // In both cases, we execute the card (gain VP/Power/Etc) and move it to played pile.
             _matchController.PlayCard(card);
+        }
+
+        private bool HasValidTargets(EffectType type)
+        {
+            var p = _matchContext.ActivePlayer;
+            var map = _matchContext.MapManager;
+
+            return type switch
+            {
+                EffectType.Assassinate => map.HasValidAssassinationTarget(p),
+                EffectType.Supplant => map.HasValidAssassinationTarget(p), // Supplant also targets enemies
+                EffectType.ReturnUnit => map.HasValidReturnSpyTarget(p),
+                EffectType.PlaceSpy => map.HasValidPlaceSpyTarget(p),
+                _ => true
+            };
         }
 
         public void ResolveCardEffects(Card card) => _matchController.ResolveCardEffects(card);
         public void MoveCardToPlayed(Card card) => _matchController.MoveCardToPlayed(card);
+
+        public bool CanEndTurn(out string reason) => _matchController.CanEndTurn(out reason);
 
         public void EndTurn()
         {
@@ -178,8 +203,6 @@ namespace ChaosWarlords.Source.States
 
         public void SwitchToTargetingMode()
         {
-            // Note: If TargetingInputMode requires the concrete class, we cast it here.
-            // This is internal logic separate from the IGameplayState public interface.
             InputMode = new TargetingInputMode(
                 this,
                 _inputManagerBacking,
@@ -204,8 +227,25 @@ namespace ChaosWarlords.Source.States
 
         private bool HandleGlobalInput()
         {
-            if (_inputManagerBacking.IsKeyJustPressed(Keys.Escape)) { _game.Exit(); return true; }
-            if (_inputManagerBacking.IsKeyJustPressed(Keys.Enter)) { EndTurn(); return true; }
+            if (_inputManagerBacking.IsKeyJustPressed(Keys.Escape))
+            {
+                _game.Exit();
+                return true;
+            }
+
+            if (_inputManagerBacking.IsKeyJustPressed(Keys.Enter))
+            {
+                if (CanEndTurn(out string reason))
+                {
+                    EndTurn();
+                }
+                else
+                {
+                    GameLogger.Log(reason, LogChannel.Warning);
+                }
+                return true;
+            }
+
             if (_inputManagerBacking.IsRightMouseJustClicked())
             {
                 if (IsMarketOpen) { IsMarketOpen = false; return true; }

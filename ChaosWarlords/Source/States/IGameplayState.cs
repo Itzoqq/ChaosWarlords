@@ -23,6 +23,7 @@ namespace ChaosWarlords.Source.States
         int HandY { get; }
         int PlayedY { get; }
 
+        bool CanEndTurn(out string reason);
         void EndTurn();
         void ToggleMarket();
         void CloseMarket();

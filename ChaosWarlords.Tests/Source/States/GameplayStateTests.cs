@@ -80,6 +80,11 @@ namespace ChaosWarlords.Tests.States
             var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
+            // Allow turn to end (Mock validation)
+            // Note: Since EndTurn checks MatchController logic, we need to ensure CanEndTurn returns true.
+            // Since we are mocking dependencies, MatchController logic depends on actual player state in context.
+            // Default player hand is empty unless we add cards.
+
             // Capture initial active player to check if turn switched
             var initialPlayer = state.MatchContext.ActivePlayer;
 
@@ -110,60 +115,6 @@ namespace ChaosWarlords.Tests.States
 
             // Assert
             Assert.IsFalse(state.IsMarketOpen);
-        }
-
-        // --- Helper Class ---
-        // Exposes internals for testing and handles Manual Initialization
-        // In GameplayStateTests.cs -> internal class TestableGameplayState
-        internal class TestableGameplayState : GameplayState
-        {
-            private readonly IInputProvider _testInput;
-            private readonly ICardDatabase _testDb;
-
-            public TestableGameplayState(Game game, IInputProvider input, ICardDatabase db)
-                : base(game, input, db)
-            {
-                _testInput = input;
-                _testDb = db;
-            }
-
-            public void InitializeTestEnvironment(IMapManager map, IMarketManager market, IActionSystem action)
-            {
-                _inputManagerBacking = new InputManager(_testInput);
-                _uiManagerBacking = new UIManager(800, 600);
-
-                var p1 = new Player(PlayerColor.Red);
-                var p2 = new Player(PlayerColor.Blue);
-                var tm = new TurnManager(new List<Player> { p1, p2 });
-
-                _matchContext = new MatchContext(tm, map, market, action, _testDb);
-
-                // FIX 1: Initialize the Controller (Was causing NRE in EndTurn)
-                _matchController = new MatchController(_matchContext);
-
-                // FIX 2: Initialize Event Subscriptions (Was causing Assertion Fail in Event test)
-                InitializeEventSubscriptions();
-
-                // FIX 3: Set Default Input Mode (Was causing NRE in Update)
-                SwitchToNormalMode();
-
-                // Initialize View for Visual tests
-                if (_view == null)
-                {
-                    // We assume GameplayView can handle null GraphicsDevice for list testing 
-                    // or we would need a more complex Mock. 
-                    // Since the previous error wasn't about View creation but Logic, we leave this as is or strictly mock lists if needed.
-                    // For now, let's just instantiate it if your constructor allows, or mock the internal lists if you made them writable.
-                    // Since GameplayView requires GraphicsDevice, we might strictly need to rely on the null checks in State.
-                    // If Visual tests fail on View creation, we might need a dummy GraphicsDevice.
-                }
-            }
-
-            public new MatchContext MatchContext => base.MatchContext;
-
-            // Access the internal View directly
-            public List<CardViewModel> HandViewModels => _view?.HandViewModels ?? new List<CardViewModel>();
-            public List<CardViewModel> PlayedViewModels => _view?.PlayedViewModels ?? new List<CardViewModel>();
         }
 
         [TestMethod]
@@ -211,8 +162,6 @@ namespace ChaosWarlords.Tests.States
             _mapManager.Received(1).TryDeploy(state.MatchContext.ActivePlayer, node);
         }
 
-        // In GameplayStateTests.cs
-
         [TestMethod]
         public void PlayCard_TriggersTargeting_SwitchInputMode()
         {
@@ -224,8 +173,14 @@ namespace ChaosWarlords.Tests.States
             var card = new Card("kill", "Assassin", 0, CardAspect.Shadow, 0, 0, 0);
             card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
 
+            // --- FIX FOR DEADLOCK PREVENTION LOGIC ---
+            // We must tell the Mock MapManager that there ARE valid targets.
+            // If we don't, HasValidAssassinationTarget returns false, and PlayCard skips targeting (Smart Fizzle).
+            _mapManager.HasValidAssassinationTarget(Arg.Any<Player>()).Returns(true);
+            // -----------------------------------------
+
             // Act
-            // Calling PlayCard() triggers the logic: "If targeting effect -> SwitchToTargetingMode()"
+            // Calling PlayCard() triggers the logic: "If targeting effect AND valid targets -> SwitchToTargetingMode()"
             state.PlayCard(card);
 
             // Assert
@@ -270,6 +225,39 @@ namespace ChaosWarlords.Tests.States
 
             // Assert
             Assert.IsInstanceOfType(state.InputMode, typeof(NormalPlayInputMode));
+        }
+
+        // --- Helper Class ---
+        // Exposes internals for testing and handles Manual Initialization
+        internal class TestableGameplayState : GameplayState
+        {
+            private readonly IInputProvider _testInput;
+            private readonly ICardDatabase _testDb;
+
+            public TestableGameplayState(Game game, IInputProvider input, ICardDatabase db)
+                : base(game, input, db)
+            {
+                _testInput = input;
+                _testDb = db;
+            }
+
+            public void InitializeTestEnvironment(IMapManager map, IMarketManager market, IActionSystem action)
+            {
+                _inputManagerBacking = new InputManager(_testInput);
+                _uiManagerBacking = new UIManager(800, 600);
+
+                var p1 = new Player(PlayerColor.Red);
+                var p2 = new Player(PlayerColor.Blue);
+                var tm = new TurnManager(new List<Player> { p1, p2 });
+
+                _matchContext = new MatchContext(tm, map, market, action, _testDb);
+
+                _matchController = new MatchController(_matchContext);
+                InitializeEventSubscriptions();
+                SwitchToNormalMode();
+            }
+
+            public new MatchContext MatchContext => base.MatchContext;
         }
     }
 }

@@ -64,8 +64,15 @@ namespace ChaosWarlords.Source.Commands
     {
         public void Execute(IGameplayState state)
         {
-            // Call the consolidated EndTurn logic on the state interface
-            state.EndTurn();
+            // NEW: Validation Check
+            if (state.CanEndTurn(out string reason))
+            {
+                state.EndTurn();
+            }
+            else
+            {
+                GameLogger.Log(reason, LogChannel.Warning);
+            }
         }
     }
 
