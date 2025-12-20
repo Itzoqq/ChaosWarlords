@@ -17,33 +17,38 @@ namespace ChaosWarlords.Source.Systems
 
         public void PlayCard(Card card)
         {
-            // 1. Notify TurnManager (Tracks stats like Focus inside CurrentTurnContext)
-            _context.TurnManager.PlayCard(card);
+            // --- 1. PRE-CALCULATION (SNAPSHOT) ---
+            // Calculate logic-dependent state BEFORE mutating any lists.
+            // This prevents "Temporal Coupling" bugs where changing the order of 
+            // the lines below would break the "Focus" check.
 
-            // 2. Execute Immediate Effects
-            ResolveCardEffects(card);
+            // Check count BEFORE incrementing (so we look for > 0, not > 1)
+            int currentCount = _context.TurnManager.CurrentTurnContext.GetAspectCount(card.Aspect);
+            bool playedAnother = currentCount > 0;
 
-            // 3. Move from Hand to Played
-            MoveCardToPlayed(card);
-        }
-
-        public void ResolveCardEffects(Card card)
-        {
-            // --- FOCUS LOGIC START ---
-
-            // Get the count from our new Context
-            int playedCount = _context.TurnManager.CurrentTurnContext.GetAspectCount(card.Aspect);
-
-            // Condition 1: Have we played ANOTHER card of this aspect?
-            // (Count > 1 because the current card was recorded in Step 1)
-            bool playedAnother = playedCount > 1;
-
-            // Condition 2: Can we reveal a card of this aspect from hand?
-            // (The current card is technically still in 'Hand' list until Step 3, so we exclude it)
+            // Check hand BEFORE moving the card (card is still in Hand, so we exclude it)
             bool canRevealFromHand = _context.ActivePlayer.Hand.Any(c => c.Aspect == card.Aspect && c != card);
 
+            // Determine Focus state now
             bool hasFocus = playedAnother || canRevealFromHand;
-            // --- FOCUS LOGIC END ---
+
+            // --- 2. STATE MUTATION ---
+            // Now safe to update the game state.
+            _context.TurnManager.PlayCard(card); // Update stats
+            MoveCardToPlayed(card);              // Move visually/logically
+
+            // --- 3. EXECUTION ---
+            // Pass the pre-calculated 'hasFocus' boolean. 
+            // This method is now pure regarding decision logic; it just executes.
+            ResolveCardEffects(card, hasFocus);
+        }
+
+        // UPDATED: Now accepts 'hasFocus' as a parameter
+        public void ResolveCardEffects(Card card, bool hasFocus)
+        {
+            // NOTE: The internal calculation logic was removed from here.
+            // This makes this method robust; it doesn't care if the card 
+            // is currently in the Hand, Discard, or Void.
 
             foreach (var effect in card.Effects)
             {

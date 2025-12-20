@@ -9,6 +9,7 @@ using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.States.Input;
 using ChaosWarlords.Source.Commands;
 using System;
+using System.Linq; // Added for .Any()
 
 namespace ChaosWarlords.Source.States
 {
@@ -146,28 +147,19 @@ namespace ChaosWarlords.Source.States
             {
                 if (IsTargetingEffect(effect.Type))
                 {
-                    // --- DEADLOCK FIX: Check if targets exist before switching modes ---
                     if (HasValidTargets(effect.Type))
                     {
-                        // Targets exist -> Proceed to Manual Targeting
                         _matchContext.ActionSystem.StartTargeting(GetTargetingState(effect.Type), card);
                         SwitchToTargetingMode();
                         return;
                     }
                     else
                     {
-                        // No valid targets -> Skip Targeting Phase
-                        // We log it so the player understands why nothing happened,
-                        // but we allow execution to fall through so the card is still "played".
                         GameLogger.Log($"No valid targets for {effect.Type}. Effect skipped.", LogChannel.Info);
                     }
                 }
             }
 
-            // If we get here, either:
-            // 1. The card had no targeting effects.
-            // 2. The card had targeting effects but they were skipped (no targets).
-            // In both cases, we execute the card (gain VP/Power/Etc) and move it to played pile.
             _matchController.PlayCard(card);
         }
 
@@ -179,14 +171,26 @@ namespace ChaosWarlords.Source.States
             return type switch
             {
                 EffectType.Assassinate => map.HasValidAssassinationTarget(p),
-                EffectType.Supplant => map.HasValidAssassinationTarget(p), // Supplant also targets enemies
+                EffectType.Supplant => map.HasValidAssassinationTarget(p),
                 EffectType.ReturnUnit => map.HasValidReturnSpyTarget(p),
                 EffectType.PlaceSpy => map.HasValidPlaceSpyTarget(p),
                 _ => true
             };
         }
 
-        public void ResolveCardEffects(Card card) => _matchController.ResolveCardEffects(card);
+        // --- FIX 1: Helper to Calculate Focus locally for the wrapper ---
+        private bool CalculateFocus(Card card)
+        {
+            // Replicate the Snapshot logic here if we must call Resolve manually
+            int playedCount = _matchContext.TurnManager.CurrentTurnContext.GetAspectCount(card.Aspect);
+            bool playedAnother = playedCount > 0;
+            bool canReveal = _matchContext.ActivePlayer.Hand.Any(c => c.Aspect == card.Aspect && c != card);
+            return playedAnother || canReveal;
+        }
+
+        // --- FIX 1 (Applied): Pass the calculated boolean ---
+        public void ResolveCardEffects(Card card) => _matchController.ResolveCardEffects(card, CalculateFocus(card));
+
         public void MoveCardToPlayed(Card card) => _matchController.MoveCardToPlayed(card);
 
         public bool CanEndTurn(out string reason) => _matchController.CanEndTurn(out reason);
@@ -315,8 +319,12 @@ namespace ChaosWarlords.Source.States
         {
             if (_matchContext.ActionSystem.PendingCard != null)
             {
-                _matchController.ResolveCardEffects(_matchContext.ActionSystem.PendingCard);
-                _matchController.MoveCardToPlayed(_matchContext.ActionSystem.PendingCard);
+                // --- FIX 2: Use PlayCard instead of manual Resolve/Move ---
+                // This ensures:
+                // 1. Focus is calculated correctly internally by MatchController
+                // 2. Stats (TurnManager.PlayCard) are updated (Previously a BUG here!)
+                // 3. Card is resolved and moved safely
+                _matchController.PlayCard(_matchContext.ActionSystem.PendingCard);
             }
             _matchContext.ActionSystem.CancelTargeting();
             SwitchToNormalMode();
