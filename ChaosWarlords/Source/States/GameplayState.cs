@@ -6,10 +6,9 @@ using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Views;
 using ChaosWarlords.Source.Contexts;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using ChaosWarlords.Source.States.Input;
+using ChaosWarlords.Source.Commands;
+using System;
 
 namespace ChaosWarlords.Source.States
 {
@@ -19,13 +18,11 @@ namespace ChaosWarlords.Source.States
         private readonly IInputProvider _inputProvider;
         private readonly ICardDatabase _cardDatabase;
 
-        // --- Visual Assets ---
-        private SpriteFont _defaultFont;
-        private SpriteFont _smallFont;
-        private Texture2D _pixelTexture;
-        private MapRenderer _mapRenderer;
-        private CardRenderer _cardRenderer;
-        internal UIRenderer _uiRenderer;
+        // --- Sub-Systems (Separated Concerns) ---
+        internal GameplayView _view;
+
+        // Changed to internal so Tests can initialize it manually
+        internal MatchController _matchController;
 
         // --- Context & Systems ---
         internal MatchContext _matchContext;
@@ -35,14 +32,8 @@ namespace ChaosWarlords.Source.States
 
         // --- State Variables ---
         internal bool _isMarketOpenBacking = false;
-        internal int _handYBacking;
-        internal int _playedYBacking;
 
-        private List<CardViewModel> _handViewModels = new List<CardViewModel>();
-        private List<CardViewModel> _marketViewModels = new List<CardViewModel>();
-        private List<CardViewModel> _playedViewModels = new List<CardViewModel>();
-
-        // --- Properties ---
+        // --- Properties (IGameplayState Implementation) ---
         public InputManager InputManager => _inputManagerBacking;
         public IUISystem UIManager => _uiManagerBacking;
 
@@ -54,12 +45,9 @@ namespace ChaosWarlords.Source.States
 
         public IInputMode InputMode { get; set; }
 
-        internal List<CardViewModel> HandViewModels => _handViewModels;
-        internal List<CardViewModel> MarketViewModels => _marketViewModels;
-        internal List<CardViewModel> PlayedViewModels => _playedViewModels;
-
-        public int HandY => _handYBacking;
-        public int PlayedY => _playedYBacking;
+        // Safe navigation for View properties
+        public int HandY => _view?.HandY ?? 0;
+        public int PlayedY => _view?.PlayedY ?? 0;
 
         public bool IsMarketOpen
         {
@@ -88,25 +76,19 @@ namespace ChaosWarlords.Source.States
         public void LoadContent()
         {
             if (_game == null) return;
-
             var graphicsDevice = _game.GraphicsDevice;
-            var content = _game.Content;
-
-            _pixelTexture = new Texture2D(graphicsDevice, 1, 1);
-            _pixelTexture.SetData(new[] { Color.White });
-
-            try { _defaultFont = content.Load<SpriteFont>("fonts/DefaultFont"); } catch { }
-            try { _smallFont = content.Load<SpriteFont>("fonts/SmallFont"); } catch { }
 
             GameLogger.Initialize();
 
+            // 1. Initialize Managers
             _inputManagerBacking = new InputManager(_inputProvider);
             _uiManagerBacking = new UIManager(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
 
-            _uiRenderer = new UIRenderer(graphicsDevice, _defaultFont, _smallFont);
-            _mapRenderer = new MapRenderer(_pixelTexture, _pixelTexture, _defaultFont);
-            _cardRenderer = new CardRenderer(_pixelTexture, _defaultFont);
+            // 2. Initialize Logic & View
+            _view = new GameplayView(graphicsDevice);
+            _view.LoadContent(_game.Content);
 
+            // 3. Build World
             var builder = new WorldBuilder(_cardDatabase, "data/map.json");
             var worldData = builder.Build();
 
@@ -118,10 +100,11 @@ namespace ChaosWarlords.Source.States
                 _cardDatabase
             );
 
+            // 4. Initialize Controller
+            _matchController = new MatchController(_matchContext);
+
             _matchContext.ActionSystem.SetCurrentPlayer(_matchContext.ActivePlayer);
 
-            // FIX 1: Draw cards for ALL players at the start, not just the active one.
-            // This ensures Player 2 has a hand ready when the turn passes to them.
             if (_matchContext.TurnManager.Players != null)
             {
                 foreach (var player in _matchContext.TurnManager.Players)
@@ -130,14 +113,9 @@ namespace ChaosWarlords.Source.States
                 }
             }
 
-            int screenH = graphicsDevice.Viewport.Height;
-            _handYBacking = screenH - Card.Height - 20;
-            _playedYBacking = _handYBacking - Card.Height - 10;
+            _matchContext.MapManager.CenterMap(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
 
             InitializeEventSubscriptions();
-
-            _matchContext.MapManager.CenterMap(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
-            SyncHandVisuals();
             SwitchToNormalMode();
         }
 
@@ -156,12 +134,8 @@ namespace ChaosWarlords.Source.States
                 return;
             }
 
-            SyncHandVisuals();
-            SyncMarketVisuals();
-            SyncPlayedVisuals();
-
-            UpdateVisualsHover(_handViewModels);
-            if (IsMarketOpen) UpdateVisualsHover(_marketViewModels);
+            // Safe navigation: Don't crash if View is null (Headless/Test mode)
+            _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
 
             IGameCommand command = InputMode.HandleInput(
                 _inputManagerBacking,
@@ -173,107 +147,18 @@ namespace ChaosWarlords.Source.States
             command?.Execute(this);
         }
 
-        private void SyncHandVisuals()
+        public void Draw(SpriteBatch spriteBatch)
         {
-            if (_matchContext == null) return;
-            var hand = _matchContext.ActivePlayer.Hand;
+            if (_game == null) return;
 
-            _handViewModels.RemoveAll(vm => !hand.Contains(vm.Model));
-            foreach (var card in hand)
+            string targetingText = "";
+            if (_matchContext.ActionSystem.IsTargeting())
             {
-                if (!_handViewModels.Any(vm => vm.Model == card))
-                    _handViewModels.Add(new CardViewModel(card));
+                targetingText = GetTargetingText(_matchContext.ActionSystem.CurrentState);
             }
 
-            int cardWidth = Card.Width;
-            int gap = 10;
-            int totalWidth = (hand.Count * cardWidth) + ((hand.Count - 1) * gap);
-            int viewportWidth = _game?.GraphicsDevice.Viewport.Width ?? 1024;
-            int startX = (viewportWidth - totalWidth) / 2;
-
-            var sortedVMs = new List<CardViewModel>();
-            for (int i = 0; i < hand.Count; i++)
-            {
-                var vm = _handViewModels.FirstOrDefault(v => v.Model == hand[i]);
-                if (vm != null)
-                {
-                    vm.Position = new Vector2(startX + (i * (cardWidth + gap)), _handYBacking);
-                    sortedVMs.Add(vm);
-                }
-            }
-            _handViewModels = sortedVMs;
-        }
-
-        private void SyncMarketVisuals()
-        {
-            if (_matchContext == null) return;
-            var marketRow = _matchContext.MarketManager.MarketRow;
-
-            _marketViewModels.RemoveAll(vm => !marketRow.Contains(vm.Model));
-            foreach (var card in marketRow)
-            {
-                if (!_marketViewModels.Any(vm => vm.Model == card))
-                    _marketViewModels.Add(new CardViewModel(card));
-            }
-
-            int startX = 100;
-            int startY = 100;
-            int gap = 10;
-            for (int i = 0; i < marketRow.Count; i++)
-            {
-                var vm = _marketViewModels.FirstOrDefault(v => v.Model == marketRow[i]);
-                if (vm != null)
-                {
-                    vm.Position = new Vector2(startX + (i * (Card.Width + gap)), startY);
-                }
-            }
-        }
-
-        private void SyncPlayedVisuals()
-        {
-            if (_matchContext == null) return;
-            var played = _matchContext.ActivePlayer.PlayedCards;
-
-            _playedViewModels.RemoveAll(vm => !played.Contains(vm.Model));
-            foreach (var card in played)
-            {
-                if (!_playedViewModels.Any(vm => vm.Model == card))
-                    _playedViewModels.Add(new CardViewModel(card));
-            }
-
-            int cardWidth = Card.Width;
-            int gap = 10;
-            int totalWidth = (played.Count * cardWidth) + ((played.Count - 1) * gap);
-            int viewportWidth = _game?.GraphicsDevice.Viewport.Width ?? 1024;
-            int startX = (viewportWidth - totalWidth) / 2;
-
-            for (int i = 0; i < played.Count; i++)
-            {
-                var vm = _playedViewModels.FirstOrDefault(v => v.Model == played[i]);
-                if (vm != null)
-                {
-                    vm.Position = new Vector2(startX + (i * (cardWidth + gap)), _playedYBacking);
-                }
-            }
-        }
-
-        private void UpdateVisualsHover(List<CardViewModel> vms)
-        {
-            Point mousePos = _inputManagerBacking.MousePosition.ToPoint();
-            bool foundHovered = false;
-            for (int i = vms.Count - 1; i >= 0; i--)
-            {
-                var vm = vms[i];
-                if (!foundHovered && vm.Bounds.Contains(mousePos))
-                {
-                    vm.IsHovered = true;
-                    foundHovered = true;
-                }
-                else
-                {
-                    vm.IsHovered = false;
-                }
-            }
+            // Safe navigation
+            _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, (UIManager)_uiManagerBacking, IsMarketOpen, targetingText);
         }
 
         public void PlayCard(Card card)
@@ -287,76 +172,17 @@ namespace ChaosWarlords.Source.States
                     return;
                 }
             }
-            _matchContext.TurnManager.PlayCard(card);
-            ResolveCardEffects(card);
-            MoveCardToPlayed(card);
+            _matchController.PlayCard(card);
         }
 
-        public void ResolveCardEffects(Card card)
-        {
-            // 1. Check Focus Condition
-            // In Tyrants, Focus triggers if you have played *another* card of the same aspect.
-            // Since 'card' hasn't been added to PlayedCards yet (see MoveCardToPlayed call order),
-            // we just check if ANY card of that aspect is already in the played pile.
-            bool hasFocus = _matchContext.ActivePlayer.PlayedCards.Any(c => c.Aspect == card.Aspect);
-
-            foreach (var effect in card.Effects)
-            {
-                // 2. Skip conditional effects if condition is not met
-                if (effect.RequiresFocus && !hasFocus)
-                {
-                    continue;
-                }
-
-                // 3. Apply Immediate Effects
-                switch (effect.Type)
-                {
-                    case EffectType.GainResource:
-                        if (effect.TargetResource == ResourceType.Power)
-                            _matchContext.ActivePlayer.Power += effect.Amount;
-                        else if (effect.TargetResource == ResourceType.Influence)
-                            _matchContext.ActivePlayer.Influence += effect.Amount;
-                        else if (effect.TargetResource == ResourceType.VictoryPoints)
-                            // Assuming you track VPs on the player
-                            _matchContext.ActivePlayer.VictoryPoints += effect.Amount;
-                        break;
-
-                    case EffectType.DrawCard:
-                        _matchContext.ActivePlayer.DrawCards(effect.Amount);
-                        break;
-
-                    case EffectType.Devour:
-                        // Only handle AUTO devour here (e.g. "Devour top card of deck"). 
-                        // Targeted devour (from hand) is handled by ActionSystem/InputMode.
-                        break;
-
-                        // Note: Targeting effects (Assassinate, Deploy, etc.) are handled 
-                        // by the InputMode switching before this method is called.
-                }
-            }
-        }
-
-        public void MoveCardToPlayed(Card card)
-        {
-            _matchContext.ActivePlayer.Hand.Remove(card);
-            _matchContext.ActivePlayer.PlayedCards.Add(card);
-        }
+        public void ResolveCardEffects(Card card) => _matchController.ResolveCardEffects(card);
+        public void MoveCardToPlayed(Card card) => _matchController.MoveCardToPlayed(card);
 
         public void EndTurn()
         {
             if (_matchContext.ActionSystem.IsTargeting()) _matchContext.ActionSystem.CancelTargeting();
-
-            _matchContext.MapManager.DistributeControlRewards(_matchContext.ActivePlayer);
-            _matchContext.ActivePlayer.CleanUpTurn();
-
-            // FIX 2: Draw Cards BEFORE switching the turn.
-            // The active player refills THEIR hand, then passes the turn.
-            _matchContext.ActivePlayer.DrawCards(5);
-
-            _matchContext.TurnManager.EndTurn();
-
-            _matchContext.ActionSystem.SetCurrentPlayer(_matchContext.ActivePlayer);
-            SyncHandVisuals();
+            _matchController.EndTurn();
+            SwitchToNormalMode();
         }
 
         public void ToggleMarket() { IsMarketOpen = !IsMarketOpen; }
@@ -386,37 +212,7 @@ namespace ChaosWarlords.Source.States
             );
         }
 
-        public void Draw(SpriteBatch spriteBatch)
-        {
-            if (_game == null) return;
-
-            MapNode hoveredNode = _matchContext.MapManager.GetNodeAt(_inputManagerBacking.MousePosition);
-            Site hoveredSite = _matchContext.MapManager.GetSiteAt(_inputManagerBacking.MousePosition);
-            _mapRenderer.Draw(spriteBatch, _matchContext.MapManager, hoveredNode, hoveredSite);
-
-            foreach (var vm in _handViewModels) _cardRenderer.Draw(spriteBatch, vm);
-            foreach (var vm in _playedViewModels) _cardRenderer.Draw(spriteBatch, vm);
-
-            if (IsMarketOpen)
-            {
-                _uiRenderer.DrawMarketOverlay(spriteBatch, _matchContext.MarketManager, UIManager.ScreenWidth, UIManager.ScreenHeight);
-                foreach (var vm in _marketViewModels) _cardRenderer.Draw(spriteBatch, vm);
-            }
-
-            _uiRenderer.DrawMarketButton(spriteBatch, UIManager);
-            _uiRenderer.DrawActionButtons(spriteBatch, UIManager, _matchContext.ActivePlayer);
-            _uiRenderer.DrawTopBar(spriteBatch, _matchContext.ActivePlayer, UIManager.ScreenWidth);
-
-            DrawTurnIndicator(spriteBatch);
-            DrawTargetingHint(spriteBatch);
-
-            if (_matchContext.ActionSystem.CurrentState == ActionState.SelectingSpyToReturn)
-            {
-                DrawSpySelectionUI(spriteBatch);
-            }
-        }
-
-        internal bool HandleGlobalInput()
+        private bool HandleGlobalInput()
         {
             if (_inputManagerBacking.IsKeyJustPressed(Keys.Escape)) { _game.Exit(); return true; }
             if (_inputManagerBacking.IsKeyJustPressed(Keys.Enter)) { EndTurn(); return true; }
@@ -426,6 +222,23 @@ namespace ChaosWarlords.Source.States
                 if (_matchContext.ActionSystem.IsTargeting()) { _matchContext.ActionSystem.CancelTargeting(); SwitchToNormalMode(); return true; }
             }
             return false;
+        }
+
+        private void HandleSpySelectionInput()
+        {
+            if (!_inputManagerBacking.IsLeftMouseJustClicked()) return;
+            if (_view == null) return; // Cannot handle visual clicks without View
+
+            var site = _matchContext.ActionSystem.PendingSite;
+            PlayerColor? clickedSpy = _view.GetClickedSpyReturnButton(
+                _inputManagerBacking.MousePosition.ToPoint(),
+                site,
+                _uiManagerBacking.ScreenWidth);
+
+            if (clickedSpy.HasValue)
+            {
+                _matchContext.ActionSystem.FinalizeSpyReturn(clickedSpy.Value);
+            }
         }
 
         private bool IsTargetingEffect(EffectType type)
@@ -472,79 +285,15 @@ namespace ChaosWarlords.Source.States
         {
             if (_matchContext.ActionSystem.PendingCard != null)
             {
-                ResolveCardEffects(_matchContext.ActionSystem.PendingCard);
-                MoveCardToPlayed(_matchContext.ActionSystem.PendingCard);
+                _matchController.ResolveCardEffects(_matchContext.ActionSystem.PendingCard);
+                _matchController.MoveCardToPlayed(_matchContext.ActionSystem.PendingCard);
             }
             _matchContext.ActionSystem.CancelTargeting();
             SwitchToNormalMode();
         }
 
-        private void DrawTurnIndicator(SpriteBatch sb)
-        {
-            Color c = _matchContext.ActivePlayer.Color == PlayerColor.Red ? Color.Red : Color.Blue;
-            string text = $"-- {_matchContext.ActivePlayer.Color}'s Turn --";
-            sb.DrawString(_defaultFont, text, new Vector2(20, 50), c);
-        }
-
-        private void DrawTargetingHint(SpriteBatch sb)
-        {
-            if (!_matchContext.ActionSystem.IsTargeting()) return;
-            string text = GetTargetingText(_matchContext.ActionSystem.CurrentState);
-            sb.DrawString(_defaultFont, text, _inputManagerBacking.MousePosition + new Vector2(20, 20), Color.Red);
-        }
-
-        private void DrawSpySelectionUI(SpriteBatch sb)
-        {
-            var site = _matchContext.ActionSystem.PendingSite;
-            if (site == null) return;
-
-            string header = "Select Spy to Return:";
-            Vector2 size = _defaultFont.MeasureString(header);
-            Vector2 startPos = new Vector2((UIManager.ScreenWidth - size.X) / 2, 200);
-
-            sb.DrawString(_defaultFont, header, startPos, Color.White);
-
-            int yOffset = 40;
-            foreach (var spy in site.Spies)
-            {
-                string btnText = spy.ToString();
-                Rectangle rect = new Rectangle((int)startPos.X, (int)startPos.Y + yOffset, 200, 30);
-
-                sb.Draw(_pixelTexture, rect, Color.Gray);
-                sb.DrawString(_defaultFont, btnText, new Vector2(rect.X + 10, rect.Y + 5), Color.Black);
-
-                yOffset += 40;
-            }
-        }
-
-        private void HandleSpySelectionInput()
-        {
-            if (!_inputManagerBacking.IsLeftMouseJustClicked()) return;
-
-            var site = _matchContext.ActionSystem.PendingSite;
-            if (site == null) return;
-
-            Vector2 headerSize = _defaultFont.MeasureString("Select Spy to Return:");
-            float drawX = (UIManager.ScreenWidth - headerSize.X) / 2;
-            Vector2 startPos = new Vector2(drawX, 200);
-
-            int yOffset = 40;
-            Point mousePos = _inputManagerBacking.MousePosition.ToPoint();
-
-            foreach (var spy in site.Spies.ToList())
-            {
-                Rectangle rect = new Rectangle((int)drawX, (int)startPos.Y + yOffset, 200, 30);
-                if (rect.Contains(mousePos))
-                {
-                    _matchContext.ActionSystem.FinalizeSpyReturn(spy);
-                    return;
-                }
-                yOffset += 40;
-            }
-        }
-
-        public void ArrangeHandVisuals() { SyncHandVisuals(); }
-        public Card GetHoveredHandCard() => _handViewModels.FirstOrDefault(vm => vm.IsHovered)?.Model;
-        public Card GetHoveredMarketCard() => _marketViewModels.FirstOrDefault(vm => vm.IsHovered)?.Model;
+        // Safe navigation for View methods
+        public Card GetHoveredHandCard() => _view?.GetHoveredHandCard();
+        public Card GetHoveredMarketCard() => _view?.GetHoveredMarketCard();
     }
 }
