@@ -290,6 +290,35 @@ namespace ChaosWarlords.Source.Systems
             RecalculateSiteState(GetSiteForNode(node), attacker);
         }
 
+        public bool HasValidMoveSource(Player activePlayer)
+        {
+            // Check if there is any node with an enemy troop where the player has presence 
+            return NodesInternal.Any(n => CanMoveSource(n, activePlayer));
+        }
+
+        public bool CanMoveSource(MapNode node, Player activePlayer)
+        {
+            // Rule: Move an enemy troop from a space where you have Presence 
+            bool isEnemy = node.Occupant != PlayerColor.None && node.Occupant != activePlayer.Color;
+            return isEnemy && HasPresence(node, activePlayer.Color);
+        }
+
+        public bool CanMoveDestination(MapNode node)
+        {
+            // Rule: Destination must be an empty troop space [cite: 344]
+            return node.Occupant == PlayerColor.None;
+        }
+
+        public void MoveTroop(MapNode source, MapNode destination)
+        {
+            if (source == null || destination == null) return;
+
+            destination.Occupant = source.Occupant;
+            source.Occupant = PlayerColor.None;
+
+            GameLogger.Log($"Moved troop from {source.Id} to {destination.Id}.", LogChannel.Combat);
+        }
+
         public bool CanAssassinate(MapNode target, Player attacker)
         {
             if (target.Occupant == PlayerColor.None) return false;

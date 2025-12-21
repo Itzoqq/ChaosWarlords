@@ -50,7 +50,7 @@ namespace ChaosWarlords.Source.Systems
         {
             foreach (var effect in card.Effects)
             {
-                // --- FIX: Logic to Gate Effects based on Focus ---
+                // --- Logic to Gate Effects based on Focus ---
                 // If the specific effect instruction requires Focus, 
                 // and we do NOT have Focus, we skip this effect entirely.
                 if (effect.RequiresFocus && !hasFocus)
@@ -86,6 +86,12 @@ namespace ChaosWarlords.Source.Systems
 
                     case EffectType.Devour:
                         // Logic for devouring cards if applicable
+                        break;
+
+                    case EffectType.MoveUnit:
+                        // The actual movement logic is handled by the ActionSystem/MapManager 
+                        // during the targeting phase. We log it here to confirm resolution.
+                        GameLogger.Log($"{card.Name}: Movement effect resolved.", LogChannel.Info);
                         break;
                 }
             }

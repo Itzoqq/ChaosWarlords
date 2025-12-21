@@ -151,7 +151,7 @@ namespace ChaosWarlords.Source.States
             // 1. Check for Targeting Effects
             foreach (var effect in card.Effects)
             {
-                // Note: Promote is NOT a targeting effect here; it adds credit for End of Turn.
+                // Note: PromIsTargetingEffote is NOT a targeting effect here; it adds credit for End of Turn.
                 if (IsTargetingEffect(effect.Type))
                 {
                     // If we have valid targets, we pause play and enter targeting mode
@@ -214,6 +214,7 @@ namespace ChaosWarlords.Source.States
                 EffectType.Supplant => map.HasValidAssassinationTarget(p),
                 EffectType.ReturnUnit => map.HasValidReturnSpyTarget(p),
                 EffectType.PlaceSpy => map.HasValidPlaceSpyTarget(p),
+                EffectType.MoveUnit => map.HasValidMoveSource(p),
                 // Promote Removed: Promotion happens at end of turn via credits
                 _ => true
             };
@@ -358,7 +359,8 @@ namespace ChaosWarlords.Source.States
             return type == EffectType.Assassinate ||
                    type == EffectType.ReturnUnit ||
                    type == EffectType.Supplant ||
-                   type == EffectType.PlaceSpy;
+                   type == EffectType.PlaceSpy ||
+                   type == EffectType.MoveUnit; ;
         }
 
         private ActionState GetTargetingState(EffectType type)
@@ -369,6 +371,7 @@ namespace ChaosWarlords.Source.States
                 EffectType.ReturnUnit => ActionState.TargetingReturn,
                 EffectType.Supplant => ActionState.TargetingSupplant,
                 EffectType.PlaceSpy => ActionState.TargetingPlaceSpy,
+                EffectType.MoveUnit => ActionState.TargetingMoveSource,
                 _ => ActionState.Normal
             };
         }

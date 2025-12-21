@@ -426,6 +426,82 @@ namespace ChaosWarlords.Tests.Systems
 
         #endregion
 
+        #region Move Troop Tests
+
+        [TestMethod]
+        public void CanMoveSource_ReturnsTrue_ForEnemyWithPresence()
+        {
+            // Arrange: Player 1 has presence at Node 1 (via Node 2), Node 1 has Enemy
+            _node2.Occupant = _player1.Color;
+            _node1.Occupant = _player2.Color;
+
+            // Act & Assert
+            Assert.IsTrue(_mapManager.CanMoveSource(_node1, _player1));
+        }
+
+        [TestMethod]
+        public void CanMoveSource_ReturnsTrue_ForNeutralTroop()
+        {
+            // Arrange: Player 1 has presence at Node 1
+            _node2.Occupant = _player1.Color;
+            _node1.Occupant = PlayerColor.Neutral;
+
+            // Act & Assert
+            Assert.IsTrue(_mapManager.CanMoveSource(_node1, _player1));
+        }
+
+        [TestMethod]
+        public void CanMoveSource_ReturnsFalse_ForOwnTroop()
+        {
+            // Arrange: Own troops cannot be moved by "Move Enemy" effects
+            _node1.Occupant = _player1.Color;
+
+            // Act & Assert
+            Assert.IsFalse(_mapManager.CanMoveSource(_node1, _player1));
+        }
+
+        [TestMethod]
+        public void CanMoveSource_ReturnsFalse_ForEnemyWithoutPresence()
+        {
+            // Arrange: Enemy is at Node 5 (Site B), Player 1 is far away at Node 1
+            _node5.Occupant = _player2.Color;
+            _node1.Occupant = _player1.Color;
+
+            // Act & Assert
+            Assert.IsFalse(_mapManager.CanMoveSource(_node5, _player1));
+        }
+
+        [TestMethod]
+        public void CanMoveDestination_ReturnsTrue_ForEmptyNode()
+        {
+            _node5.Occupant = PlayerColor.None;
+            Assert.IsTrue(_mapManager.CanMoveDestination(_node5));
+        }
+
+        [TestMethod]
+        public void CanMoveDestination_ReturnsFalse_ForOccupiedNode()
+        {
+            _node5.Occupant = _player2.Color;
+            Assert.IsFalse(_mapManager.CanMoveDestination(_node5));
+        }
+
+        [TestMethod]
+        public void MoveTroop_SuccessfullyRelocatesUnit()
+        {
+            // Arrange
+            _node1.Occupant = _player2.Color; // Source
+            _node5.Occupant = PlayerColor.None; // Destination
+
+            // Act
+            _mapManager.MoveTroop(_node1, _node5);
+
+            // Assert
+            Assert.AreEqual(PlayerColor.None, _node1.Occupant, "Source should be empty");
+            Assert.AreEqual(_player2.Color, _node5.Occupant, "Destination should have the troop");
+        }
+
+        #endregion
+
         [TestMethod]
         public void CanDeploy_AllowsDeployment_FromSiteAdjacency_WithMixedControl()
         {

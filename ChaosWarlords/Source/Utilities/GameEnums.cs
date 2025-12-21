@@ -11,7 +11,9 @@ namespace ChaosWarlords.Source.Utilities
         TargetingPlaceSpy,
         TargetingReturnSpy,
         SelectingSpyToReturn,
-        SelectingCardToPromote
+        SelectingCardToPromote,
+        TargetingMoveSource,
+        TargetingMoveDestination
     }
 
     // Replaces the "Suits" (Conquest, Malice, Guile, Obedience)
@@ -41,7 +43,7 @@ namespace ChaosWarlords.Source.Utilities
         Deck,
         DiscardPile,
         InnerCircle,   // The "Promoted" pile (Tyrants' Inner Circle)
-        Void            // Removed from game entirely
+        Void           // Removed from game entirely
     }
 
     // The command pattern: what does this card actually DO?
@@ -55,7 +57,8 @@ namespace ChaosWarlords.Source.Utilities
         Promote,
         DrawCard,
         Devour,
-        PlaceSpy
+        PlaceSpy,
+        MoveUnit
     }
 
     public enum PlayerColor

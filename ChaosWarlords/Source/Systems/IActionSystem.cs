@@ -12,6 +12,7 @@ namespace ChaosWarlords.Source.Systems
         ActionState CurrentState { get; }
         Card PendingCard { get; }
         Site PendingSite { get; }
+        MapNode PendingMoveSource { get; }
 
         void TryStartAssassinate();
         void TryStartReturnSpy();

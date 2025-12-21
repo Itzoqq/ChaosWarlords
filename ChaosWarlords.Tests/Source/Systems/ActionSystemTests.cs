@@ -443,5 +443,86 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         #endregion
+
+        #region 6. Move Unit Tests (Two-Step Action)
+
+        [TestMethod]
+        public void HandleTargetClick_MoveSource_TransitionsToDestination_OnValidTarget()
+        {
+            // Arrange
+            var card = new Card("move_card", "Displacer", 0, CardAspect.Order, 0, 0, 0);
+            _actionSystem.StartTargeting(ActionState.TargetingMoveSource, card);
+
+            // Mock: MapManager says this node is a valid source (Enemy + Presence)
+            _mapManager.CanMoveSource(_node1, _player1).Returns(true);
+
+            // Act
+            _actionSystem.HandleTargetClick(_node1, null);
+
+            // Assert
+            Assert.AreEqual(ActionState.TargetingMoveDestination, _actionSystem.CurrentState, "Should transition to Step 2");
+            Assert.AreEqual(_node1, _actionSystem.PendingMoveSource, "Should store the source node");
+            Assert.IsFalse(_eventCompletedFired, "Action is not done yet");
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_MoveSource_Fails_OnInvalidTarget()
+        {
+            // Arrange
+            _actionSystem.StartTargeting(ActionState.TargetingMoveSource);
+            _mapManager.CanMoveSource(_node1, _player1).Returns(false); // Invalid
+
+            // Act
+            _actionSystem.HandleTargetClick(_node1, null);
+
+            // Assert
+            Assert.IsTrue(_eventFailedFired, "Should fire failure event");
+            Assert.AreEqual(ActionState.TargetingMoveSource, _actionSystem.CurrentState, "Should remain in Step 1");
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_MoveDestination_CompletesAction_OnValidTarget()
+        {
+            // Arrange: Set up state as if Step 1 just finished
+            var card = new Card("move_card", "Displacer", 0, CardAspect.Order, 0, 0, 0);
+            _actionSystem.StartTargeting(ActionState.TargetingMoveSource, card);
+
+            // Perform Step 1 manually to set internal state
+            _mapManager.CanMoveSource(_node1, _player1).Returns(true);
+            _actionSystem.HandleTargetClick(_node1, null);
+
+            // Mock Step 2 checks
+            _mapManager.CanMoveDestination(_node2).Returns(true);
+
+            // Act: Step 2 (Select Destination)
+            _actionSystem.HandleTargetClick(_node2, null);
+
+            // Assert
+            Assert.IsTrue(_eventCompletedFired, "Action should complete");
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "State should reset to Normal");
+            _mapManager.Received(1).MoveTroop(_node1, _node2); // Verify logic was called
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_MoveDestination_Fails_OnOccupiedTarget()
+        {
+            // Arrange: Manually advance to Step 2
+            _actionSystem.StartTargeting(ActionState.TargetingMoveSource);
+            _mapManager.CanMoveSource(_node1, _player1).Returns(true);
+            _actionSystem.HandleTargetClick(_node1, null);
+
+            // Mock Step 2 check (Target is occupied)
+            _mapManager.CanMoveDestination(_node2).Returns(false);
+
+            // Act
+            _actionSystem.HandleTargetClick(_node2, null);
+
+            // Assert
+            Assert.IsTrue(_eventFailedFired);
+            Assert.AreEqual(ActionState.TargetingMoveDestination, _actionSystem.CurrentState, "Should stay in Step 2 to allow retry");
+            _mapManager.DidNotReceive().MoveTroop(Arg.Any<MapNode>(), Arg.Any<MapNode>());
+        }
+
+        #endregion
     }
 }

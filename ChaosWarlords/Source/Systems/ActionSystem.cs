@@ -24,6 +24,8 @@ namespace ChaosWarlords.Source.Systems
 
         private Player CurrentPlayer => _turnManager.ActivePlayer;
 
+        public MapNode PendingMoveSource { get; private set; }
+
         public ActionSystem(ITurnManager turnManager, IMapManager mapManager)
         {
             _turnManager = turnManager;
@@ -60,12 +62,12 @@ namespace ChaosWarlords.Source.Systems
             PendingCard = card;
         }
 
-        // --- NEW: Internal cleanup helper ---
         private void ClearState()
         {
             CurrentState = ActionState.Normal;
             PendingCard = null;
             PendingSite = null;
+            PendingMoveSource = null; // New cleanup
         }
 
         public void CancelTargeting()
@@ -97,6 +99,12 @@ namespace ChaosWarlords.Source.Systems
                     break;
                 case ActionState.TargetingReturnSpy:
                     HandleReturnSpyInitialClick(targetSite);
+                    break;
+                case ActionState.TargetingMoveSource:
+                    HandleMoveSource(targetNode);
+                    break;
+                case ActionState.TargetingMoveDestination:
+                    HandleMoveDestination(targetNode);
                     break;
             }
         }
@@ -244,6 +252,35 @@ namespace ChaosWarlords.Source.Systems
                 // FIX: Automatically clean up state after success
                 ClearState();
             }
+        }
+
+        private void HandleMoveSource(MapNode targetNode)
+        {
+            if (targetNode == null) return;
+
+            if (!_mapManager.CanMoveSource(targetNode, CurrentPlayer))
+            {
+                OnActionFailed?.Invoke(this, "Invalid Target: Must be an enemy troop where you have presence.");
+                return;
+            }
+
+            PendingMoveSource = targetNode;
+            CurrentState = ActionState.TargetingMoveDestination;
+            GameLogger.Log("Select an empty destination space anywhere on the board.", LogChannel.General);
+        }
+
+        private void HandleMoveDestination(MapNode targetNode)
+        {
+            if (targetNode == null || PendingMoveSource == null) return;
+
+            if (!_mapManager.CanMoveDestination(targetNode))
+            {
+                OnActionFailed?.Invoke(this, "Invalid Destination: Space must be empty.");
+                return;
+            }
+
+            _mapManager.MoveTroop(PendingMoveSource, targetNode);
+            CompleteAction();
         }
     }
 }

@@ -126,5 +126,20 @@
         "Amount": 1
       }
     ]
+  },
+  {
+    "Id": "test_displacer",
+    "Name": "Displacer Beast",
+    "Description": "Move an enemy troop.",
+    "Cost": 3,
+    "Aspect": "Order",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "Effects": [
+      {
+        "Type": "MoveUnit",
+        "Amount": 1
+      }
+    ]
   }
 ]
