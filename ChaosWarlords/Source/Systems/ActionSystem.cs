@@ -282,5 +282,20 @@ namespace ChaosWarlords.Source.Systems
             _mapManager.MoveTroop(PendingMoveSource, targetNode);
             CompleteAction();
         }
+
+        public void TryStartDevourHand(Card sourceCard)
+        {
+            // Optional: Check if hand is empty?
+            // If hand is empty, usually the effect fizzles or you just complete immediately.
+            if (CurrentPlayer.Hand.Count == 0)
+            {
+                GameLogger.Log("No cards in hand to Devour.", LogChannel.Warning);
+                OnActionCompleted?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+
+            StartTargeting(ActionState.TargetingDevourHand, sourceCard);
+            GameLogger.Log("Select a card from your HAND to Devour (Remove from game).", LogChannel.General);
+        }
     }
 }

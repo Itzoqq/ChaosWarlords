@@ -524,5 +524,39 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         #endregion
+
+        [TestMethod]
+        public void TryStartDevourHand_SetsState_ToTargetingDevourHand()
+        {
+            // Arrange
+            var sourceCard = new Card("eater", "Eater of Souls", 0, CardAspect.Sorcery, 0, 0, 0);
+            _player1.Hand.Add(new Card("food", "Food", 0, CardAspect.Neutral, 0, 0, 0)); // Ensure hand is not empty
+
+            // Act
+            _actionSystem.TryStartDevourHand(sourceCard);
+
+            // Assert
+            Assert.AreEqual(ActionState.TargetingDevourHand, _actionSystem.CurrentState);
+            Assert.AreEqual(sourceCard, _actionSystem.PendingCard);
+        }
+
+        [TestMethod]
+        public void TryStartDevourHand_CompletesImmediately_IfHandIsEmpty()
+        {
+            // Arrange
+            var sourceCard = new Card("eater", "Eater", 0, CardAspect.Sorcery, 0, 0, 0);
+            _player1.Hand.Clear(); // Empty hand
+
+            // Listen for completion
+            bool completed = false;
+            _actionSystem.OnActionCompleted += (s, e) => completed = true;
+
+            // Act
+            _actionSystem.TryStartDevourHand(sourceCard);
+
+            // Assert
+            Assert.IsTrue(completed, "Should fire OnActionCompleted immediately if there is nothing to devour.");
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "State should remain Normal.");
+        }
     }
 }

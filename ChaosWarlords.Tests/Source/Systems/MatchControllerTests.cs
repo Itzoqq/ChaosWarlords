@@ -185,5 +185,37 @@ namespace ChaosWarlords.Tests.Source.Systems
             Assert.AreEqual(5, _p1.Power, "Focus Effect did not trigger using Hand Reveal!");
             Assert.Contains(revealCard, _p1.Hand);
         }
+
+        [TestMethod]
+        public void DevourCard_RemovesCardFromHand_AndAddsToVoid()
+        {
+            // Arrange
+            var cardToDevour = new Card("weak_minion", "Weak Minion", 0, CardAspect.Neutral, 0, 0, 0);
+            cardToDevour.Location = CardLocation.Hand;
+            _p1.Hand.Add(cardToDevour);
+
+            // Act
+            _controller.DevourCard(cardToDevour);
+
+            // Assert
+            Assert.DoesNotContain(cardToDevour, _p1.Hand, "Card should be removed from Hand.");
+            Assert.Contains(cardToDevour, _context.VoidPile, "Card should be added to Void Pile.");
+            Assert.AreEqual(CardLocation.Void, cardToDevour.Location, "Card Location property should be updated to Void.");
+        }
+
+        [TestMethod]
+        public void DevourCard_DoesNotCrash_IfCardNotInHand()
+        {
+            // Arrange
+            var cardInDeck = new Card("deck_card", "Deck Card", 0, CardAspect.Neutral, 0, 0, 0);
+            _p1.Deck.Add(cardInDeck);
+
+            // Act
+            _controller.DevourCard(cardInDeck);
+
+            // Assert
+            Assert.DoesNotContain(cardInDeck, _context.VoidPile, "Should not move card if it wasn't in the expected source (Hand).");
+            Assert.IsEmpty(_p1.Hand);
+        }
     }
 }

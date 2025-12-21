@@ -14,7 +14,7 @@ namespace ChaosWarlords.Source.Systems
             _context = context;
         }
 
-        public void PlayCard(Card card)
+        public virtual void PlayCard(Card card)
         {
             // --- 1. PRE-CALCULATION (SNAPSHOT) ---
             // We must calculate Focus BEFORE moving the card to 'Played' or modifying the turn stats.
@@ -46,7 +46,17 @@ namespace ChaosWarlords.Source.Systems
             ResolveCardEffects(card, hasFocus);
         }
 
-        public void ResolveCardEffects(Card card, bool hasFocus)
+        public virtual void DevourCard(Card card)
+        {
+            if (_context.ActivePlayer.Hand.Remove(card))
+            {
+                card.Location = CardLocation.Void;
+                _context.VoidPile.Add(card);
+                GameLogger.Log($"Devoured {card.Name} from Hand.", LogChannel.Economy);
+            }
+        }
+
+        public virtual void ResolveCardEffects(Card card, bool hasFocus)
         {
             foreach (var effect in card.Effects)
             {

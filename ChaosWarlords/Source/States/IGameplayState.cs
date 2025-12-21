@@ -18,6 +18,7 @@ namespace ChaosWarlords.Source.States
         // This allows NSubstitute to mock the turn manager in tests.
         ITurnManager TurnManager { get; }
         MatchContext MatchContext { get; }
+        MatchController MatchController { get; }
 
         IInputMode InputMode { get; set; }
         bool IsMarketOpen { get; set; }
@@ -36,12 +37,6 @@ namespace ChaosWarlords.Source.States
         void ResolveCardEffects(Card card);
         void MoveCardToPlayed(Card card);
 
-        // --- NEW METHOD ---
-        // Checks if a card has valid targets for its targeting effects.
-        // Returns true if:
-        // 1. The card has NO targeting effects (always viable).
-        // 2. The card HAS targeting effects and at least one is valid.
-        // Returns false ONLY if the card has targeting effects but none are valid.
         bool HasViableTargets(Card card);
 
         string GetTargetingText(ActionState state);

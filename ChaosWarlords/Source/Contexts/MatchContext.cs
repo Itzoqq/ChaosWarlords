@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
@@ -19,6 +20,10 @@ namespace ChaosWarlords.Source.Contexts
         public IMarketManager MarketManager { get; private set; }
         public IActionSystem ActionSystem { get; private set; }
         public ICardDatabase CardDatabase { get; private set; }
+        /// <summary>
+        /// Universal pile for all devoured cards (removed from game).
+        /// </summary>
+        public List<Card> VoidPile { get; private set; } = new List<Card>();
 
         // 2. Convenience Properties (Shortcuts)
         public Player ActivePlayer => TurnManager.ActivePlayer;

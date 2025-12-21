@@ -53,6 +53,8 @@ namespace ChaosWarlords.Source.States
             }
         }
 
+        public MatchController MatchController => _matchController;
+
         public GameplayState(Game game, IInputProvider inputProvider, ICardDatabase cardDatabase)
         {
             _game = game;
@@ -115,12 +117,42 @@ namespace ChaosWarlords.Source.States
 
             if (HandleGlobalInput()) return;
 
+            // --- NEW: Handle Spy Selection (Existing) ---
             if (_matchContext.ActionSystem.CurrentState == ActionState.SelectingSpyToReturn)
             {
                 HandleSpySelectionInput();
                 return;
             }
 
+            // --- NEW: Intercept Hand Interaction (The missing piece) ---
+            // We check this here because InputMode usually handles the Map, not the UI/Hand.
+            if (_inputManagerBacking.IsLeftMouseJustClicked())
+            {
+                var hoveredCard = _view?.GetHoveredHandCard();
+
+                if (hoveredCard != null)
+                {
+                    // A. Are we targeting a card to Devour?
+                    if (_matchContext.ActionSystem.CurrentState == ActionState.TargetingDevourHand)
+                    {
+                        // Prevent devouring the card that triggered the effect (if applicable)
+                        if (_matchContext.ActionSystem.PendingCard != hoveredCard)
+                        {
+                            var cmd = new DevourCardCommand(hoveredCard);
+                            cmd.Execute(this);
+                            return; // Stop processing input
+                        }
+                    }
+                    // B. Are we just trying to play a card normally?
+                    else if (_matchContext.ActionSystem.CurrentState == ActionState.Normal)
+                    {
+                        _matchController.PlayCard(hoveredCard);
+                        return; // Stop processing input
+                    }
+                }
+            }
+
+            // --- Existing Logic ---
             _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
 
             IGameCommand command = InputMode.HandleInput(
@@ -131,6 +163,40 @@ namespace ChaosWarlords.Source.States
                 _matchContext.ActionSystem);
 
             command?.Execute(this);
+        }
+
+        private void HandleHandCardClicked(Card card)
+        {
+            if (card == null) return;
+
+            var currentState = _matchContext.ActionSystem.CurrentState;
+
+            // CASE 1: We are targeting a card to Devour (e.g., initiated by another card effect)
+            if (currentState == ActionState.TargetingDevourHand)
+            {
+                // Ensure we don't devour the card that is currently triggering the effect (if applicable)
+                if (_matchContext.ActionSystem.PendingCard == card)
+                {
+                    GameLogger.Log("Cannot devour the card currently being played!", LogChannel.Warning);
+                    return;
+                }
+
+                // Execute Devour
+                _matchController.DevourCard(card);
+
+                // Complete the action to return to Normal state (or finish playing the pending card)
+                _matchContext.ActionSystem.CompleteAction();
+            }
+            // CASE 2: Normal Gameplay - Try to Play the card
+            else if (currentState == ActionState.Normal)
+            {
+                _matchController.PlayCard(card);
+            }
+            // CASE 3: In another targeting mode (e.g., Assassinating) - Lock Hand
+            else
+            {
+                GameLogger.Log("Cannot play cards while targeting. Right-click to cancel current action.", LogChannel.Warning);
+            }
         }
 
         public void Draw(SpriteBatch spriteBatch)
@@ -215,7 +281,7 @@ namespace ChaosWarlords.Source.States
                 EffectType.ReturnUnit => map.HasValidReturnSpyTarget(p),
                 EffectType.PlaceSpy => map.HasValidPlaceSpyTarget(p),
                 EffectType.MoveUnit => map.HasValidMoveSource(p),
-                // Promote Removed: Promotion happens at end of turn via credits
+                EffectType.Devour => p.Hand.Count > 0,
                 _ => true
             };
         }
@@ -360,7 +426,8 @@ namespace ChaosWarlords.Source.States
                    type == EffectType.ReturnUnit ||
                    type == EffectType.Supplant ||
                    type == EffectType.PlaceSpy ||
-                   type == EffectType.MoveUnit; ;
+                   type == EffectType.MoveUnit ||
+                   type == EffectType.Devour;
         }
 
         private ActionState GetTargetingState(EffectType type)
@@ -372,6 +439,7 @@ namespace ChaosWarlords.Source.States
                 EffectType.Supplant => ActionState.TargetingSupplant,
                 EffectType.PlaceSpy => ActionState.TargetingPlaceSpy,
                 EffectType.MoveUnit => ActionState.TargetingMoveSource,
+                EffectType.Devour => ActionState.TargetingDevourHand,
                 _ => ActionState.Normal
             };
         }

@@ -6,6 +6,7 @@ using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using System.Collections.Generic;
+using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Tests.Source.Commands
 {
@@ -17,6 +18,8 @@ namespace ChaosWarlords.Tests.Source.Commands
         private IMapManager _mapSub = null!;
         private ITurnManager _turnSub = null!;
         private IActionSystem _actionSub = null!;
+        private MatchController _controllerSub = null!;
+
         [TestInitialize]
         public void Setup()
         {
@@ -30,11 +33,17 @@ namespace ChaosWarlords.Tests.Source.Commands
             _turnSub = Substitute.For<ITurnManager>();
             _actionSub = Substitute.For<IActionSystem>();
 
+            // Fix Warning CS8600: Use 'null!' to tell compiler we know what we are doing
+            _controllerSub = Substitute.For<MatchController>((MatchContext)null!);
+
             // Wire up the state to return these mocks
             _stateSub.MarketManager.Returns(_marketSub);
             _stateSub.MapManager.Returns(_mapSub);
             _stateSub.TurnManager.Returns(_turnSub);
             _stateSub.ActionSystem.Returns(_actionSub);
+
+            // --- FIX: ADD THIS MISSING LINE ---
+            _stateSub.MatchController.Returns(_controllerSub);
         }
 
         [TestMethod]
@@ -176,6 +185,24 @@ namespace ChaosWarlords.Tests.Source.Commands
             // Assert
             _actionSub.Received(1).TryStartReturnSpy();
             _stateSub.DidNotReceive().SwitchToTargetingMode();
+        }
+
+        [TestMethod]
+        public void DevourCardCommand_ExecutesDevour_AndCompletesAction()
+        {
+            // Arrange
+            var card = new Card("victim", "Victim", 0, CardAspect.Neutral, 0, 0, 0);
+            var command = new DevourCardCommand(card);
+
+            // Act
+            command.Execute(_stateSub);
+
+            // Assert
+            // 1. Verify we called the controller (using the new mock field)
+            _controllerSub.Received(1).DevourCard(card);
+
+            // 2. Verify we told the ActionSystem "We are done selecting"
+            _actionSub.Received(1).CompleteAction();
         }
     }
 }
