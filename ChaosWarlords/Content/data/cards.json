@@ -141,5 +141,20 @@
         "Amount": 1
       }
     ]
+  },
+  {
+    "Id": "test_devourer",
+    "Name": "Void Eater",
+    "Description": "Devour a card from your hand.",
+    "Cost": 0,
+    "Aspect": "Sorcery",
+    "DeckVP": 0,
+    "InnerCircleVP": 0,
+    "Effects": [
+      {
+        "Type": "Devour",
+        "Amount": 1
+      }
+    ]
   }
 ]

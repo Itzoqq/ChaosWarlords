@@ -116,44 +116,22 @@ namespace ChaosWarlords.Source.States
 
             if (HandleGlobalInput()) return;
 
-            // --- NEW: Handle Spy Selection (Existing) ---
+            // Spy Selection is still special because it happens *inside* TargetingInputMode logic in some flows,
+            // but if you want to keep it here, that's fine. 
             if (_matchContext.ActionSystem.CurrentState == ActionState.SelectingSpyToReturn)
             {
                 HandleSpySelectionInput();
                 return;
             }
 
-            // --- NEW: Intercept Hand Interaction (The missing piece) ---
-            // We check this here because InputMode usually handles the Map, not the UI/Hand.
-            if (_inputManagerBacking.IsLeftMouseJustClicked())
-            {
-                var hoveredCard = _view?.GetHoveredHandCard();
-
-                if (hoveredCard != null)
-                {
-                    // A. Are we targeting a card to Devour?
-                    if (_matchContext.ActionSystem.CurrentState == ActionState.TargetingDevourHand)
-                    {
-                        // Prevent devouring the card that triggered the effect (if applicable)
-                        if (_matchContext.ActionSystem.PendingCard != hoveredCard)
-                        {
-                            var cmd = new DevourCardCommand(hoveredCard);
-                            cmd.Execute(this);
-                            return; // Stop processing input
-                        }
-                    }
-                    // B. Are we just trying to play a card normally?
-                    else if (_matchContext.ActionSystem.CurrentState == ActionState.Normal)
-                    {
-                        _matchController.PlayCard(hoveredCard);
-                        return; // Stop processing input
-                    }
-                }
-            }
+            // --- REMOVE THE "Intercept Hand Interaction" BLOCK WE ADDED EARLIER ---
+            // (The block that checked IsLeftMouseJustClicked and called HandleHandCardClicked)
+            // It is no longer needed because InputMode.HandleInput() now does the work.
 
             // --- Existing Logic ---
             _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
 
+            // Now "InputMode" will be "DevourInputMode" when appropriate, managing the clicks correctly.
             IGameCommand command = InputMode.HandleInput(
                 _inputManagerBacking,
                 _matchContext.MarketManager,
@@ -162,40 +140,6 @@ namespace ChaosWarlords.Source.States
                 _matchContext.ActionSystem);
 
             command?.Execute(this);
-        }
-
-        private void HandleHandCardClicked(Card card)
-        {
-            if (card == null) return;
-
-            var currentState = _matchContext.ActionSystem.CurrentState;
-
-            // CASE 1: We are targeting a card to Devour (e.g., initiated by another card effect)
-            if (currentState == ActionState.TargetingDevourHand)
-            {
-                // Ensure we don't devour the card that is currently triggering the effect (if applicable)
-                if (_matchContext.ActionSystem.PendingCard == card)
-                {
-                    GameLogger.Log("Cannot devour the card currently being played!", LogChannel.Warning);
-                    return;
-                }
-
-                // Execute Devour
-                _matchController.DevourCard(card);
-
-                // Complete the action to return to Normal state (or finish playing the pending card)
-                _matchContext.ActionSystem.CompleteAction();
-            }
-            // CASE 2: Normal Gameplay - Try to Play the card
-            else if (currentState == ActionState.Normal)
-            {
-                _matchController.PlayCard(card);
-            }
-            // CASE 3: In another targeting mode (e.g., Assassinating) - Lock Hand
-            else
-            {
-                GameLogger.Log("Cannot play cards while targeting. Right-click to cancel current action.", LogChannel.Warning);
-            }
         }
 
         public void Draw(SpriteBatch spriteBatch)
@@ -326,6 +270,14 @@ namespace ChaosWarlords.Source.States
                     _inputManagerBacking,
                     _matchContext.ActionSystem,
                     amount
+                );
+            }
+            else if (_matchContext.ActionSystem.CurrentState == ActionState.TargetingDevourHand)
+            {
+                InputMode = new DevourInputMode(
+                    this,
+                    _inputManagerBacking,
+                    _matchContext.ActionSystem
                 );
             }
             else
