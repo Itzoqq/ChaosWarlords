@@ -16,6 +16,7 @@ namespace ChaosWarlords.Tests.Systems
         private Player _player1 = null!;
         private Player _player2 = null!;
         private IMapManager _mapManager = null!; // Mocked dependency
+        private ITurnManager _turnManager = null!; // NEW: Mocked dependency
         private ActionSystem _actionSystem = null!; // System Under Test
 
         private MapNode _node1 = null!, _node2 = null!;
@@ -32,16 +33,22 @@ namespace ChaosWarlords.Tests.Systems
             _player1 = new Player(PlayerColor.Red);
             _player2 = new Player(PlayerColor.Blue);
 
-            // Mock the MapManager
+            // Mock the Managers
             _mapManager = Substitute.For<IMapManager>();
+            _turnManager = Substitute.For<ITurnManager>();
 
-            // Setup Data Entities (Concrete is fine for data holders)
+            // Configure TurnManager to say Player 1 is active by default
+            _turnManager.ActivePlayer.Returns(_player1);
+
+            // Setup Data Entities
             _node1 = new MapNode(1, new Vector2(10, 10));
             _node2 = new MapNode(2, new Vector2(20, 10));
+
+            // FIX: Correct Constructor (Name, ControlRes, Amount, TotalControlRes, Amount)
             _siteA = new Site("SiteA", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
 
             // Inject the mock
-            _actionSystem = new ActionSystem(_player1, _mapManager);
+            _actionSystem = new ActionSystem(_turnManager, _mapManager);
 
             // Subscribe to events for every test
             _eventCompletedFired = false;
@@ -244,7 +251,7 @@ namespace ChaosWarlords.Tests.Systems
 
         #endregion
 
-        #region 4. Edge Cases & Failures (The "Omitted" Tests)
+        #region 4. Edge Cases & Failures
 
         [TestMethod]
         public void HandleTargetClick_Assassinate_Fails_IfPowerLostDuringTargeting()
@@ -344,6 +351,95 @@ namespace ChaosWarlords.Tests.Systems
             // Assert
             Assert.IsFalse(_eventCompletedFired);
             _mapManager.DidNotReceive().ReturnTroop(Arg.Any<MapNode>(), Arg.Any<Player>());
+        }
+
+        #endregion
+
+        #region 5. Card-Based Action Tests (Restored)
+
+        [TestMethod]
+        public void HandleTargetClick_Assassinate_ViaCard_DoesNotSpendPower()
+        {
+            // Arrange
+            var card = new Card("kill_card", "Assassin", 0, CardAspect.Sorcery, 0, 0, 0);
+
+            // Start targeting WITH a pending card
+            _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card);
+
+            // Set Power to 0 to ensure it doesn't try to spend any (and doesn't fail)
+            _player1.Power = 0;
+            _mapManager.CanAssassinate(_node2, _player1).Returns(true);
+
+            // Act
+            _actionSystem.HandleTargetClick(_node2, null);
+
+            // Assert
+            Assert.IsTrue(_eventCompletedFired);
+            Assert.AreEqual(0, _player1.Power); // Power should remain 0
+            _mapManager.Received(1).Assassinate(_node2, _player1);
+            Assert.IsNull(_actionSystem.PendingCard); // Card should be cleared after action
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_ReturnSpy_ViaCard_DoesNotSpendPower()
+        {
+            // Arrange
+            var card = new Card("spy_card", "Spy Master", 0, CardAspect.Shadow, 0, 0, 0);
+            _actionSystem.StartTargeting(ActionState.TargetingReturnSpy, card);
+
+            _player1.Power = 0;
+            _mapManager.GetEnemySpiesAtSite(_siteA, _player1).Returns(new List<PlayerColor> { PlayerColor.Blue });
+            _mapManager.ReturnSpecificSpy(_siteA, _player1, PlayerColor.Blue).Returns(true);
+
+            // Act
+            _actionSystem.HandleTargetClick(null, _siteA);
+
+            // Assert
+            Assert.IsTrue(_eventCompletedFired);
+            Assert.AreEqual(0, _player1.Power);
+            _mapManager.Received(1).ReturnSpecificSpy(_siteA, _player1, PlayerColor.Blue);
+        }
+
+        [TestMethod]
+        public void FinalizeSpyReturn_ViaCard_DoesNotSpendPower()
+        {
+            // Arrange
+            var card = new Card("spy_card", "Spy Master", 0, CardAspect.Shadow, 0, 0, 0);
+            _actionSystem.StartTargeting(ActionState.TargetingReturnSpy, card);
+
+            // Setup Ambiguity to force the 'Finalize' path
+            _mapManager.GetEnemySpiesAtSite(_siteA, _player1).Returns(new List<PlayerColor> { PlayerColor.Blue, PlayerColor.Neutral });
+
+            // Initial Click
+            _actionSystem.HandleTargetClick(null, _siteA);
+            _player1.Power = 0; // Ensure no power needed for step 2
+
+            _mapManager.ReturnSpecificSpy(_siteA, _player1, PlayerColor.Blue).Returns(true);
+
+            // Act
+            _actionSystem.FinalizeSpyReturn(PlayerColor.Blue);
+
+            // Assert
+            Assert.IsTrue(_eventCompletedFired);
+            _mapManager.Received(1).ReturnSpecificSpy(_siteA, _player1, PlayerColor.Blue);
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_Supplant_ViaCard_Succeeds()
+        {
+            // Arrange
+            var card = new Card("supplant_card", "Overlord", 0, CardAspect.Warlord, 0, 0, 0);
+            _actionSystem.StartTargeting(ActionState.TargetingSupplant, card);
+
+            _player1.TroopsInBarracks = 1;
+            _mapManager.CanAssassinate(_node2, _player1).Returns(true);
+
+            // Act
+            _actionSystem.HandleTargetClick(_node2, null);
+
+            // Assert
+            Assert.IsTrue(_eventCompletedFired);
+            _mapManager.Received(1).Supplant(_node2, _player1);
         }
 
         #endregion

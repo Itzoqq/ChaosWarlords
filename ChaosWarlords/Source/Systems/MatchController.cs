@@ -18,55 +18,43 @@ namespace ChaosWarlords.Source.Systems
         public void PlayCard(Card card)
         {
             // --- 1. PRE-CALCULATION (SNAPSHOT) ---
-            // Calculate logic-dependent state BEFORE mutating any lists.
-            // This prevents "Temporal Coupling" bugs where changing the order of 
-            // the lines below would break the "Focus" check.
-
-            // Check count BEFORE incrementing (so we look for > 0, not > 1)
             int currentCount = _context.TurnManager.CurrentTurnContext.GetAspectCount(card.Aspect);
             bool playedAnother = currentCount > 0;
-
-            // Check hand BEFORE moving the card (card is still in Hand, so we exclude it)
             bool canRevealFromHand = _context.ActivePlayer.Hand.Any(c => c.Aspect == card.Aspect && c != card);
-
-            // Determine Focus state now
             bool hasFocus = playedAnother || canRevealFromHand;
 
             // --- 2. STATE MUTATION ---
-            // Now safe to update the game state.
-            _context.TurnManager.PlayCard(card); // Update stats
-            MoveCardToPlayed(card);              // Move visually/logically
 
-            // --- 3. EXECUTION ---
-            // Pass the pre-calculated 'hasFocus' boolean. 
-            // This method is now pure regarding decision logic; it just executes.
+            // FIX: Remove from Hand if present
+            if (_context.ActivePlayer.Hand.Contains(card))
+            {
+                _context.ActivePlayer.Hand.Remove(card);
+            }
+
+            // Add to PlayedCards
+            _context.ActivePlayer.PlayedCards.Add(card);
+
+            // Update Stats
+            _context.TurnManager.PlayCard(card);
+
+            // Resolve effects
             ResolveCardEffects(card, hasFocus);
         }
 
-        // UPDATED: Now accepts 'hasFocus' as a parameter
         public void ResolveCardEffects(Card card, bool hasFocus)
         {
-            // NOTE: The internal calculation logic was removed from here.
-            // This makes this method robust; it doesn't care if the card 
-            // is currently in the Hand, Discard, or Void.
-
             foreach (var effect in card.Effects)
             {
-                // Skip conditional effects if Focus requirements aren't met
-                if (effect.RequiresFocus && !hasFocus)
-                {
-                    continue;
-                }
+                int finalAmount = effect.Amount;
+                // Future: Apply Focus bonus logic here if needed
 
                 switch (effect.Type)
                 {
                     case EffectType.GainResource:
                         if (effect.TargetResource == ResourceType.Power)
-                            _context.ActivePlayer.Power += effect.Amount;
+                            _context.ActivePlayer.Power += finalAmount;
                         else if (effect.TargetResource == ResourceType.Influence)
-                            _context.ActivePlayer.Influence += effect.Amount;
-                        else if (effect.TargetResource == ResourceType.VictoryPoints)
-                            _context.ActivePlayer.VictoryPoints += effect.Amount;
+                            _context.ActivePlayer.Influence += finalAmount;
                         break;
 
                     case EffectType.DrawCard:
@@ -74,7 +62,6 @@ namespace ChaosWarlords.Source.Systems
                         break;
 
                     case EffectType.Devour:
-                        // Auto-devour logic would go here
                         break;
                 }
             }
@@ -111,11 +98,8 @@ namespace ChaosWarlords.Source.Systems
             // 3. Draw New Hand
             _context.ActivePlayer.DrawCards(5);
 
-            // 4. Switch Player (This now resets TurnContext internally)
+            // 4. Switch Player
             _context.TurnManager.EndTurn();
-
-            // 5. Update ActionSystem target
-            _context.ActionSystem.SetCurrentPlayer(_context.ActivePlayer);
         }
     }
 }

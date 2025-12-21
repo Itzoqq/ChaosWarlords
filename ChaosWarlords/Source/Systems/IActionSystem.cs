@@ -13,7 +13,7 @@ namespace ChaosWarlords.Source.Systems
         Card PendingCard { get; }
         Site PendingSite { get; }
 
-        void SetCurrentPlayer(Player newPlayer);
+
         void TryStartAssassinate();
         void TryStartReturnSpy();
         void StartTargeting(ActionState state, Card card = null);

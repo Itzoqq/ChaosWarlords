@@ -9,7 +9,7 @@ using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.States.Input;
 using ChaosWarlords.Source.Commands;
 using System;
-using System.Linq; // Added for .Any()
+using System.Linq;
 
 namespace ChaosWarlords.Source.States
 {
@@ -85,7 +85,9 @@ namespace ChaosWarlords.Source.States
             );
 
             _matchController = new MatchController(_matchContext);
-            _matchContext.ActionSystem.SetCurrentPlayer(_matchContext.ActivePlayer);
+
+            // REMOVED: _matchContext.ActionSystem.SetCurrentPlayer(...)
+            // ActionSystem is already initialized with TurnManager inside WorldBuilder
 
             if (_matchContext.TurnManager.Players != null)
             {
@@ -319,11 +321,7 @@ namespace ChaosWarlords.Source.States
         {
             if (_matchContext.ActionSystem.PendingCard != null)
             {
-                // --- FIX 2: Use PlayCard instead of manual Resolve/Move ---
-                // This ensures:
-                // 1. Focus is calculated correctly internally by MatchController
-                // 2. Stats (TurnManager.PlayCard) are updated (Previously a BUG here!)
-                // 3. Card is resolved and moved safely
+                // Use PlayCard instead of manual Resolve/Move to ensure correct state updates
                 _matchController.PlayCard(_matchContext.ActionSystem.PendingCard);
             }
             _matchContext.ActionSystem.CancelTargeting();

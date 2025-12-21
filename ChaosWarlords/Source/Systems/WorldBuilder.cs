@@ -48,9 +48,10 @@ namespace ChaosWarlords.Source.Systems
 
             // 3. Setup Turn Manager
             var turnManager = new TurnManager(players);
-            Player activePlayer = turnManager.ActivePlayer; // This will be Player Red
 
-            // 4. Setup Map
+            // Note: turnManager.ActivePlayer is now valid immediately after construction
+
+            // 4. Setup Map (Load from JSON)
             (List<MapNode>, List<Site>) mapData;
             try
             {
@@ -67,8 +68,8 @@ namespace ChaosWarlords.Source.Systems
             var mapManager = new MapManager(mapData.Item1, mapData.Item2);
 
             // 5. Setup Action System
-            // ActionSystem is now initialized with the CURRENT active player (Red)
-            var actionSystem = new ActionSystem(activePlayer, mapManager);
+            // REFACTOR: ActionSystem is now initialized with the TurnManager, not the Player
+            var actionSystem = new ActionSystem(turnManager, mapManager);
 
             // 6. Scenario Rules (Updated to reflect multiple players)
             if (mapManager.SitesInternal != null)
