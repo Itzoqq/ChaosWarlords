@@ -18,11 +18,11 @@ namespace ChaosWarlords.Tests.States
     [TestClass]
     public class GameplayStateTests
     {
-        private IInputProvider _inputProvider = null!; // Mock
-        private ICardDatabase _cardDatabase = null!; // Mock
-        private IMapManager _mapManager = null!; // Mock
-        private IMarketManager _marketManager = null!; // Mock
-        private IActionSystem _actionSystem = null!; // Mock
+        private IInputProvider _inputProvider = null!;
+        private ICardDatabase _cardDatabase = null!;
+        private IMapManager _mapManager = null!;
+        private IMarketManager _marketManager = null!;
+        private IActionSystem _actionSystem = null!;
 
         [TestInitialize]
         public void Setup()
@@ -79,16 +79,7 @@ namespace ChaosWarlords.Tests.States
             // Arrange
             var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
-
-            // Allow turn to end (Mock validation)
-            // Note: Since EndTurn checks MatchController logic, we need to ensure CanEndTurn returns true.
-            // Since we are mocking dependencies, MatchController logic depends on actual player state in context.
-            // Default player hand is empty unless we add cards.
-
-            // Capture initial active player to check if turn switched
             var initialPlayer = state.MatchContext.ActivePlayer;
-
-            // Mock Input: Simulate "Enter Key Just Pressed"
             _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
 
             // Act
@@ -101,52 +92,42 @@ namespace ChaosWarlords.Tests.States
         [TestMethod]
         public void Update_RightClick_CancelsMarket()
         {
-            // Arrange
             var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
             state.IsMarketOpen = true;
 
-            // Mock Input: Simulate "Right Click Just Pressed"
             var pressedState = new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Pressed, ButtonState.Released, ButtonState.Released);
             _inputProvider.GetMouseState().Returns(pressedState);
 
-            // Act
             state.Update(new GameTime());
 
-            // Assert
             Assert.IsFalse(state.IsMarketOpen);
         }
 
         [TestMethod]
         public void Command_BuyCard_BuysCard_WhenAffordable()
         {
-            // Arrange
             var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
             state.SwitchToNormalMode();
             state.IsMarketOpen = true;
 
-            // Setup Data
             var player = state.MatchContext.ActivePlayer;
             player.Influence = 10;
             var cardToBuy = new Card("market_card", "Buy Me", 3, CardAspect.Sorcery, 1, 0, 0);
 
-            // Mock Market
             _marketManager.MarketRow.Returns(new List<Card> { cardToBuy });
             _marketManager.TryBuyCard(Arg.Any<Player>(), Arg.Any<Card>()).Returns(true);
 
-            // Act
             var command = new BuyCardCommand(cardToBuy);
             command.Execute(state);
 
-            // Assert
             _marketManager.Received(1).TryBuyCard(player, cardToBuy);
         }
 
         [TestMethod]
         public void Command_DeployTroop_DeploysTroop()
         {
-            // Arrange
             var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
             state.SwitchToNormalMode();
@@ -154,58 +135,88 @@ namespace ChaosWarlords.Tests.States
             var node = new MapNode(1, Vector2.Zero);
             _mapManager.TryDeploy(Arg.Any<Player>(), Arg.Any<MapNode>()).Returns(true);
 
-            // Act
             var command = new DeployTroopCommand(node);
             command.Execute(state);
 
-            // Assert
             _mapManager.Received(1).TryDeploy(state.MatchContext.ActivePlayer, node);
         }
 
+        // --- NEW TESTS FOR FIXES ---
+
         [TestMethod]
-        public void PlayCard_TriggersTargeting_SwitchInputMode()
+        public void PlayCard_WithTargetingEffect_ButNoTargets_SkipsTargeting_AndPlaysCard()
         {
-            // Arrange
+            // Verifies the "Whiff" logic (Rule: Do as much as you can)
             var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
-            // Create a card with a Targeting Effect (Essential!)
-            var card = new Card("kill", "Assassin", 0, CardAspect.Shadow, 0, 0, 0);
+            // Card with Assassinate (Targeting) and Gain Power (Instant)
+            var card = new Card("kill_fail", "Bad Assassin", 0, CardAspect.Shadow, 0, 0, 0);
             card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
+            card.AddEffect(new CardEffect(EffectType.GainResource, 2, ResourceType.Power)); // Should still get this
 
-            // --- FIX FOR DEADLOCK PREVENTION LOGIC ---
-            // We must tell the Mock MapManager that there ARE valid targets.
-            // If we don't, HasValidAssassinationTarget returns false, and PlayCard skips targeting (Smart Fizzle).
-            _mapManager.HasValidAssassinationTarget(Arg.Any<Player>()).Returns(true);
-            // -----------------------------------------
+            // Mock: NO Valid Targets
+            _mapManager.HasValidAssassinationTarget(Arg.Any<Player>()).Returns(false);
 
             // Act
-            // Calling PlayCard() triggers the logic: "If targeting effect AND valid targets -> SwitchToTargetingMode()"
             state.PlayCard(card);
 
             // Assert
+            Assert.IsInstanceOfType(state.InputMode, typeof(NormalPlayInputMode), "Should NOT switch to Targeting Mode if no targets exist");
+            Assert.AreEqual(2, state.MatchContext.ActivePlayer.Power, "Should still gain resources (PlayCard was called)");
+            Assert.Contains(card, state.MatchContext.ActivePlayer.PlayedCards, "Card should be played");
+        }
+
+        [TestMethod]
+        public void PlayCard_WithPromote_DoesNotSwitchToTargeting()
+        {
+            // Verifies Promote is delayed to End Turn
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            var card = new Card("promo", "Promoter", 0, CardAspect.Warlord, 0, 0, 0);
+            card.AddEffect(new CardEffect(EffectType.Promote, 1));
+
+            // Act
+            state.PlayCard(card);
+
+            // Assert
+            Assert.IsInstanceOfType(state.InputMode, typeof(NormalPlayInputMode), "Promote should NOT trigger targeting immediately");
+            // Check if credit was added
+            Assert.AreEqual(1, state.MatchContext.TurnManager.CurrentTurnContext.PendingPromotionsCount, "Promote credit should be added");
+        }
+
+        [TestMethod]
+        public void PlayCard_TriggersTargeting_SwitchInputMode_WhenTargetsExist()
+        {
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            var card = new Card("kill", "Assassin", 0, CardAspect.Shadow, 0, 0, 0);
+            card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
+
+            // Mock: YES Valid Targets
+            _mapManager.HasValidAssassinationTarget(Arg.Any<Player>()).Returns(true);
+
+            state.PlayCard(card);
+
             Assert.IsInstanceOfType(state.InputMode, typeof(TargetingInputMode));
         }
 
         [TestMethod]
         public void Update_RightClick_CancelsTargeting_AndResetsInputMode()
         {
-            // Arrange
             var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
-            // Set to Targeting Mode manually
             _actionSystem.IsTargeting().Returns(true);
             state.SwitchToTargetingMode();
 
-            // Mock Input: Right Click
             var rightClick = new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Pressed, ButtonState.Released, ButtonState.Released);
             _inputProvider.GetMouseState().Returns(rightClick);
 
-            // Act
             state.Update(new GameTime());
 
-            // Assert
             _actionSystem.Received(1).CancelTargeting();
             Assert.IsInstanceOfType(state.InputMode, typeof(NormalPlayInputMode));
         }
@@ -213,22 +224,17 @@ namespace ChaosWarlords.Tests.States
         [TestMethod]
         public void SubscribesToEvents_OnActionCompleted_ResetsInputMode()
         {
-            // Arrange
             var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
-            // Start in Targeting
             state.SwitchToTargetingMode();
 
-            // Act: Raise ActionCompleted event from the mock
             _actionSystem.OnActionCompleted += Raise.Event();
 
-            // Assert
             Assert.IsInstanceOfType(state.InputMode, typeof(NormalPlayInputMode));
         }
 
         // --- Helper Class ---
-        // Exposes internals for testing and handles Manual Initialization
         internal class TestableGameplayState : GameplayState
         {
             private readonly IInputProvider _testInput;

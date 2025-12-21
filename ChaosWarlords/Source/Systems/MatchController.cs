@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities;
@@ -18,14 +17,20 @@ namespace ChaosWarlords.Source.Systems
         public void PlayCard(Card card)
         {
             // --- 1. PRE-CALCULATION (SNAPSHOT) ---
+            // We must calculate Focus BEFORE moving the card to 'Played' or modifying the turn stats.
+            // Focus Condition: Played another card of same aspect OR Reveal one from hand.
+
             int currentCount = _context.TurnManager.CurrentTurnContext.GetAspectCount(card.Aspect);
             bool playedAnother = currentCount > 0;
+
+            // Check hand for a DIFFERENT card of the same aspect
             bool canRevealFromHand = _context.ActivePlayer.Hand.Any(c => c.Aspect == card.Aspect && c != card);
+
             bool hasFocus = playedAnother || canRevealFromHand;
 
             // --- 2. STATE MUTATION ---
 
-            // FIX: Remove from Hand if present
+            // Remove from Hand if present
             if (_context.ActivePlayer.Hand.Contains(card))
             {
                 _context.ActivePlayer.Hand.Remove(card);
@@ -34,10 +39,10 @@ namespace ChaosWarlords.Source.Systems
             // Add to PlayedCards
             _context.ActivePlayer.PlayedCards.Add(card);
 
-            // Update Stats
+            // Update Stats (This increments the Aspect count for the turn)
             _context.TurnManager.PlayCard(card);
 
-            // Resolve effects
+            // Resolve effects with the pre-calculated Focus state
             ResolveCardEffects(card, hasFocus);
         }
 
@@ -45,8 +50,19 @@ namespace ChaosWarlords.Source.Systems
         {
             foreach (var effect in card.Effects)
             {
+                // --- FIX: Logic to Gate Effects based on Focus ---
+                // If the specific effect instruction requires Focus, 
+                // and we do NOT have Focus, we skip this effect entirely.
+                if (effect.RequiresFocus && !hasFocus)
+                {
+                    continue;
+                }
+
                 int finalAmount = effect.Amount;
-                // Future: Apply Focus bonus logic here if needed
+
+                // Optional: If you implement Focus as a "Bonus" to a base effect (e.g. Gain 1 Power, Focus +2)
+                // You would handle that here using a property like effect.FocusBonus.
+                // But for "Atomic" effects (where the whole line is conditional), the check above is sufficient.
 
                 switch (effect.Type)
                 {
@@ -58,16 +74,18 @@ namespace ChaosWarlords.Source.Systems
                         break;
 
                     case EffectType.DrawCard:
-                        _context.ActivePlayer.DrawCards(effect.Amount);
+                        _context.ActivePlayer.DrawCards(finalAmount);
                         break;
 
                     case EffectType.Promote:
-                        // --- CHANGED: Pass 'card' as the source ---
+                        // We do NOT trigger targeting here. We just add the credit.
+                        // Actual promotion happens at the end of the turn.
                         _context.TurnManager.CurrentTurnContext.AddPromotionCredit(card, finalAmount);
                         GameLogger.Log($"Promotion pending! Added {finalAmount} point(s) from {card.Name}.", LogChannel.Info);
                         break;
 
                     case EffectType.Devour:
+                        // Logic for devouring cards if applicable
                         break;
                 }
             }
@@ -84,11 +102,11 @@ namespace ChaosWarlords.Source.Systems
 
         public bool CanEndTurn(out string reason)
         {
-            if (_context.ActivePlayer.Hand.Count > 0)
+            if (_context.TurnManager.CurrentTurnContext.PendingPromotionsCount > 0)
             {
-                reason = "You must play all cards in your hand before ending your turn.";
-                return false;
+                // Optional: Could block here if strictly enforcing cleanup
             }
+
             reason = string.Empty;
             return true;
         }

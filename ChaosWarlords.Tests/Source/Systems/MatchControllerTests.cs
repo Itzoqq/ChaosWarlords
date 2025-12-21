@@ -71,7 +71,6 @@ namespace ChaosWarlords.Tests.Source.Systems
             _p1.PlayedCards.Add(new Card("c1", "c1", 0, 0, 0, 0, 0));
 
             // FIX: Add filler cards to Deck so DrawCards(5) doesn't force a Reshuffle
-            // If the deck is empty, DrawCards will pull from Discard, emptying it again.
             for (int i = 0; i < 10; i++)
             {
                 _p1.Deck.Add(new Card("filler", "Filler", 0, 0, 0, 0, 0));
@@ -81,13 +80,72 @@ namespace ChaosWarlords.Tests.Source.Systems
             _controller.EndTurn();
 
             // Assert
-            Assert.AreEqual(0, _p1.Power, "Resources should be cleared"); // CleanUpTurn clears resources? (Verify logic if needed)
+            Assert.AreEqual(0, _p1.Power, "Resources should be cleared");
             Assert.IsEmpty(_p1.PlayedCards, "Played cards should be moved to discard");
             Assert.HasCount(1, _p1.DiscardPile, "Discard pile should contain the cleaned up card");
             Assert.HasCount(5, _p1.Hand, "Should draw new hand");
 
             // Verify Turn Manager Switched
             Assert.AreEqual(_p2, _context.TurnManager.ActivePlayer);
+        }
+
+        // --- NEW TESTS FOR FIXES ---
+
+        [TestMethod]
+        public void CanEndTurn_ReturnsTrue_EvenIfHandNotEmpty()
+        {
+            // Arrange
+            _p1.Hand.Add(new Card("rem", "Remaining", 0, 0, 0, 0, 0));
+
+            // Act
+            bool result = _controller.CanEndTurn(out string reason);
+
+            // Assert
+            Assert.IsTrue(result, "Should allow ending turn with cards in hand");
+            Assert.AreEqual(string.Empty, reason);
+        }
+
+        [TestMethod]
+        public void EndTurn_DiscardsRemainingHand()
+        {
+            // Arrange
+            var cardInHand = new Card("h1", "HandCard", 0, 0, 0, 0, 0);
+            _p1.Hand.Add(cardInHand);
+
+            // Filler for deck
+            for (int i = 0; i < 10; i++) _p1.Deck.Add(new Card("f", "f", 0, 0, 0, 0, 0));
+
+            // Act
+            _controller.EndTurn();
+
+            // Assert
+            Assert.IsEmpty(_p1.Hand.Where(c => c == cardInHand), "Old hand should be cleared");
+            Assert.Contains(cardInHand, _p1.DiscardPile, "Remaining hand card should be in discard pile");
+        }
+
+        [TestMethod]
+        public void PlayCard_FirstCardOfAspect_DoesNotTriggerFocus_SelfReferenceFix()
+        {
+            // This tests the "Snapshot" fix. 
+            // If the card counts itself after moving to played, Focus would be TRUE.
+            // If it snapshots before moving, Focus is FALSE.
+
+            var card = new Card("focus_self", "Self Check", 1, CardAspect.Shadow, 0, 0, 0);
+            // Effect: Gain 5 Power ONLY if Focus.
+            var effect = new CardEffect(EffectType.GainResource, 5, ResourceType.Power);
+            effect.RequiresFocus = true;
+            card.AddEffect(effect);
+
+            _p1.Hand.Add(card);
+            _p1.Power = 0;
+
+            // Act
+            _controller.PlayCard(card);
+
+            // Assert
+            // Since it's the first card, and no others in hand, Focus should be FALSE.
+            // Therefore, 0 Power gained. (If bug exists, it would be 5).
+            Assert.AreEqual(0, _p1.Power, "Focus incorrectly triggered by the card itself!");
         }
 
         [TestMethod]

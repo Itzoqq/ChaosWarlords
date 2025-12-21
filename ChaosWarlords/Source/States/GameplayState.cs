@@ -7,7 +7,6 @@ using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Views;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.States.Input;
-using ChaosWarlords.Source.Commands;
 using System;
 using System.Linq;
 
@@ -86,9 +85,6 @@ namespace ChaosWarlords.Source.States
 
             _matchController = new MatchController(_matchContext);
 
-            // REMOVED: _matchContext.ActionSystem.SetCurrentPlayer(...)
-            // ActionSystem is already initialized with TurnManager inside WorldBuilder
-
             if (_matchContext.TurnManager.Players != null)
             {
                 foreach (var player in _matchContext.TurnManager.Players)
@@ -145,23 +141,31 @@ namespace ChaosWarlords.Source.States
 
         public void PlayCard(Card card)
         {
+            // 1. Check for Targeting Effects
             foreach (var effect in card.Effects)
             {
+                // Note: Promote is NOT a targeting effect here; it adds credit for End of Turn.
                 if (IsTargetingEffect(effect.Type))
                 {
+                    // If we have valid targets, we pause play and enter targeting mode
                     if (HasValidTargets(effect.Type))
                     {
                         _matchContext.ActionSystem.StartTargeting(GetTargetingState(effect.Type), card);
                         SwitchToTargetingMode();
-                        return;
+                        return; // Exit here. MatchController.PlayCard will be called in HandleActionCompleted
                     }
                     else
                     {
+                        // 2. Whiff Logic
+                        // If no targets exist, the rules say we skip the impossible instruction
+                        // but CONTINUE playing the card (for resources/focus).
                         GameLogger.Log($"No valid targets for {effect.Type}. Effect skipped.", LogChannel.Info);
                     }
                 }
             }
 
+            // 3. Fallthrough
+            // If no targeting was needed (or all targeting whiffed), play immediately.
             _matchController.PlayCard(card);
         }
 
@@ -173,26 +177,29 @@ namespace ChaosWarlords.Source.States
             return type switch
             {
                 EffectType.Assassinate => map.HasValidAssassinationTarget(p),
-                EffectType.Supplant => map.HasValidAssassinationTarget(p),
+                EffectType.Supplant => map.HasValidAssassinationTarget(p), // Usually similar to assassinate
                 EffectType.ReturnUnit => map.HasValidReturnSpyTarget(p),
                 EffectType.PlaceSpy => map.HasValidPlaceSpyTarget(p),
-                EffectType.Promote => p.Hand.Count > 1,
+                // Promote Removed: Promotion happens at end of turn via credits
                 _ => true
             };
         }
 
-        // --- FIX 1: Helper to Calculate Focus locally for the wrapper ---
-        private bool CalculateFocus(Card card)
+        // We delegate resolution entirely to MatchController now.
+        // We only keep this if other systems call it, otherwise it can be removed.
+        // For now, we wrap it to ensure compatibility.
+        public void ResolveCardEffects(Card card)
         {
-            // Replicate the Snapshot logic here if we must call Resolve manually
-            int playedCount = _matchContext.TurnManager.CurrentTurnContext.GetAspectCount(card.Aspect);
-            bool playedAnother = playedCount > 0;
-            bool canReveal = _matchContext.ActivePlayer.Hand.Any(c => c.Aspect == card.Aspect && c != card);
-            return playedAnother || canReveal;
-        }
+            // If we ever need to manually resolve without playing (rare), we need the snapshot logic.
+            // Ideally, avoid calling this directly; use MatchController.PlayCard.
+            // If legacy code calls this, we default to no focus or perform a calculation:
 
-        // --- FIX 1 (Applied): Pass the calculated boolean ---
-        public void ResolveCardEffects(Card card) => _matchController.ResolveCardEffects(card, CalculateFocus(card));
+            // Replicate basic focus check just for safety if this method is called standalone
+            int playedCount = _matchContext.TurnManager.CurrentTurnContext.GetAspectCount(card.Aspect);
+            bool focus = playedCount > 0 || _matchContext.ActivePlayer.Hand.Any(c => c.Aspect == card.Aspect && c != card);
+
+            _matchController.ResolveCardEffects(card, focus);
+        }
 
         public void MoveCardToPlayed(Card card) => _matchController.MoveCardToPlayed(card);
 
@@ -212,11 +219,15 @@ namespace ChaosWarlords.Source.States
         {
             if (_matchContext.ActionSystem.CurrentState == ActionState.SelectingCardToPromote)
             {
-                // Calculate amount to promote based on the pending card's effect
-                // For simplicity, we default to 1, or find the Promote effect amount
                 int amount = 1;
-                var promoteEffect = _matchContext.ActionSystem.PendingCard.Effects.FirstOrDefault(e => e.Type == EffectType.Promote);
+                var promoteEffect = _matchContext.ActionSystem.PendingCard?.Effects.FirstOrDefault(e => e.Type == EffectType.Promote);
                 if (promoteEffect != null) amount = promoteEffect.Amount;
+
+                // If this was triggered by End Turn pending promotions, override amount
+                if (_matchContext.TurnManager.CurrentTurnContext.PendingPromotionsCount > 0)
+                {
+                    amount = _matchContext.TurnManager.CurrentTurnContext.PendingPromotionsCount;
+                }
 
                 InputMode = new PromoteInputMode(
                     this,
@@ -227,7 +238,6 @@ namespace ChaosWarlords.Source.States
             }
             else
             {
-                // Your existing Map Targeting Mode
                 InputMode = new TargetingInputMode(
                     this,
                     _inputManagerBacking,
@@ -261,9 +271,10 @@ namespace ChaosWarlords.Source.States
 
             if (_inputManagerBacking.IsKeyJustPressed(Keys.Enter))
             {
+                // Check if we can end turn (MatchController checks constraints)
                 if (CanEndTurn(out string reason))
                 {
-                    // --- CHANGED: Use the new Count property ---
+                    // Enforce Promotion at End of Turn
                     int pending = _matchContext.TurnManager.CurrentTurnContext.PendingPromotionsCount;
                     if (pending > 0)
                     {
@@ -320,8 +331,11 @@ namespace ChaosWarlords.Source.States
 
         private bool IsTargetingEffect(EffectType type)
         {
-            return type == EffectType.Assassinate || type == EffectType.ReturnUnit ||
-                   type == EffectType.Supplant || type == EffectType.PlaceSpy;
+            // Removed Promote from here. It is handled via Credits and EndTurn checks.
+            return type == EffectType.Assassinate ||
+                   type == EffectType.ReturnUnit ||
+                   type == EffectType.Supplant ||
+                   type == EffectType.PlaceSpy;
         }
 
         private ActionState GetTargetingState(EffectType type)
@@ -332,7 +346,7 @@ namespace ChaosWarlords.Source.States
                 EffectType.ReturnUnit => ActionState.TargetingReturn,
                 EffectType.Supplant => ActionState.TargetingSupplant,
                 EffectType.PlaceSpy => ActionState.TargetingPlaceSpy,
-                EffectType.Promote => ActionState.SelectingCardToPromote,
+                // Promote => ActionState.SelectingCardToPromote, // Handled manually at EndTurn
                 _ => ActionState.Normal
             };
         }
@@ -363,7 +377,7 @@ namespace ChaosWarlords.Source.States
         {
             if (_matchContext.ActionSystem.PendingCard != null)
             {
-                // Use PlayCard instead of manual Resolve/Move to ensure correct state updates
+                // Action complete, now actually "Play" the card to get resources/Focus
                 _matchController.PlayCard(_matchContext.ActionSystem.PendingCard);
             }
             _matchContext.ActionSystem.CancelTargeting();
@@ -371,7 +385,6 @@ namespace ChaosWarlords.Source.States
         }
 
         public Card GetHoveredHandCard() => _view?.GetHoveredHandCard();
-        // Pass the context and input so the View can calculate the hit immediately
         public Card GetHoveredPlayedCard() => _view?.GetHoveredPlayedCard(_matchContext, _inputManagerBacking);
         public Card GetHoveredMarketCard() => _view?.GetHoveredMarketCard();
     }
