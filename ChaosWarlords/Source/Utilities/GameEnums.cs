@@ -13,7 +13,10 @@ namespace ChaosWarlords.Source.Utilities
         SelectingSpyToReturn,
         SelectingCardToPromote,
         TargetingMoveSource,
-        TargetingMoveDestination
+        TargetingMoveDestination,
+        TargetingDevourHand,
+        TargetingDevourMarket,
+        TargetingDevourInnerCircle
     }
 
     // Replaces the "Suits" (Conquest, Malice, Guile, Obedience)
