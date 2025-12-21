@@ -2,7 +2,6 @@ using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
-using System.Linq; // Needed for LINQ queries in tests
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -233,7 +232,7 @@ namespace ChaosWarlords.Tests.Systems
             _node2.Occupant = _player1.Color;
             _siteA.Spies.Add(_player2.Color);
 
-            // FIX: Explicitly target player 2's spy
+            // Explicitly target player 2's spy
             bool result = _mapManager.ReturnSpecificSpy(_siteA, _player1, _player2.Color);
 
             Assert.IsTrue(result);
@@ -245,7 +244,7 @@ namespace ChaosWarlords.Tests.Systems
         {
             _siteA.Spies.Add(_player2.Color);
 
-            // FIX: Explicitly target player 2's spy
+            // Explicitly target player 2's spy
             bool result = _mapManager.ReturnSpecificSpy(_siteA, _player1, _player2.Color);
 
             Assert.IsFalse(result);

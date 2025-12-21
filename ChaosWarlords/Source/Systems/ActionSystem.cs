@@ -149,7 +149,7 @@ namespace ChaosWarlords.Source.Systems
                 _mapManager.ReturnTroop(targetNode, CurrentPlayer);
                 OnActionCompleted?.Invoke(this, EventArgs.Empty);
 
-                // FIX: Automatically clean up state after success
+                // Automatically clean up state after success
                 ClearState();
             }
         }
@@ -163,7 +163,7 @@ namespace ChaosWarlords.Source.Systems
             _mapManager.Supplant(targetNode, CurrentPlayer);
             OnActionCompleted?.Invoke(this, EventArgs.Empty);
 
-            // FIX: Automatically clean up state after success
+            // Automatically clean up state after success
             ClearState();
         }
 
@@ -176,7 +176,7 @@ namespace ChaosWarlords.Source.Systems
             _mapManager.PlaceSpy(targetSite, CurrentPlayer);
             OnActionCompleted?.Invoke(this, EventArgs.Empty);
 
-            // FIX: Automatically clean up state after success
+            // Automatically clean up state after success
             ClearState();
         }
 
@@ -218,7 +218,7 @@ namespace ChaosWarlords.Source.Systems
                 if (success)
                 {
                     OnActionCompleted?.Invoke(this, EventArgs.Empty);
-                    // FIX: Automatically clean up state after success
+                    // Automatically clean up state after success
                     ClearState();
                 }
             }
@@ -249,7 +249,7 @@ namespace ChaosWarlords.Source.Systems
             if (success)
             {
                 OnActionCompleted?.Invoke(this, EventArgs.Empty);
-                // FIX: Automatically clean up state after success
+                // Automatically clean up state after success
                 ClearState();
             }
         }

@@ -141,8 +141,6 @@ namespace ChaosWarlords.Tests.States
             _mapManager.Received(1).TryDeploy(state.MatchContext.ActivePlayer, node);
         }
 
-        // --- NEW TESTS FOR FIXES ---
-
         [TestMethod]
         public void PlayCard_WithTargetingEffect_ButNoTargets_SkipsTargeting_AndPlaysCard()
         {

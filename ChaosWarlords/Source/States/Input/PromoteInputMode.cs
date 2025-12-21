@@ -40,7 +40,7 @@ namespace ChaosWarlords.Source.States.Input
                 {
                     var context = _gameplayState.MatchContext.TurnManager.CurrentTurnContext;
 
-                    // --- NEW: Safety Check ---
+                    // --- Safety Check ---
                     // Prevent a card from promoting itself if it is the only source of points
                     if (!context.HasValidCreditFor(targetCard))
                     {

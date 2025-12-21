@@ -14,7 +14,7 @@ namespace ChaosWarlords.Source.States
         IMarketManager MarketManager { get; }
         IActionSystem ActionSystem { get; }
 
-        // FIX: Changed from concrete 'TurnManager' to interface 'ITurnManager'
+        // Changed from concrete 'TurnManager' to interface 'ITurnManager'
         // This allows NSubstitute to mock the turn manager in tests.
         ITurnManager TurnManager { get; }
         MatchContext MatchContext { get; }

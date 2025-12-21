@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.States;
@@ -49,7 +48,7 @@ namespace ChaosWarlords.Tests.Source.Commands
         public void Execute_NoPendingCard_SkipsCardLogic_ButResetsState()
         {
             // Arrange
-            // FIX: Use (Card)null! to suppress CS8600.
+            // Use (Card)null! to suppress CS8600.
             // We tell the compiler "Treat this null as a valid Card object" (even though it's null).
             // This allows NSubstitute to return null at runtime without the compiler warning.
             _actionSub.PendingCard.Returns((Card)null!);

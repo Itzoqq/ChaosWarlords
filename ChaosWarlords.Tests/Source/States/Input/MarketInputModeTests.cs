@@ -1,5 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.States.Input;
 using ChaosWarlords.Source.Systems;
@@ -8,7 +6,6 @@ using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Source.Commands;
-using System.Collections.Generic;
 using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Tests.States.Input
@@ -26,7 +23,7 @@ namespace ChaosWarlords.Tests.States.Input
         private IMapManager _mapSub = null!;
         private IActionSystem _actionSub = null!;
 
-        // NEW: We need to mock the CardDatabase to satisfy the MatchContext constructor
+        // We need to mock the CardDatabase to satisfy the MatchContext constructor
         private ICardDatabase _cardDbSub = null!;
 
         [TestInitialize]

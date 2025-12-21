@@ -1,12 +1,9 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
 using NSubstitute;
-using System.Collections.Generic;
-using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Tests.Source.Commands
 {
@@ -33,7 +30,6 @@ namespace ChaosWarlords.Tests.Source.Commands
             _turnSub = Substitute.For<ITurnManager>();
             _actionSub = Substitute.For<IActionSystem>();
 
-            // Fix Warning CS8600: Use 'null!' to tell compiler we know what we are doing
             _controllerSub = Substitute.For<IMatchController>();
 
             // Wire up the state to return these mocks
@@ -41,8 +37,6 @@ namespace ChaosWarlords.Tests.Source.Commands
             _stateSub.MapManager.Returns(_mapSub);
             _stateSub.TurnManager.Returns(_turnSub);
             _stateSub.ActionSystem.Returns(_actionSub);
-
-            // --- FIX: ADD THIS MISSING LINE ---
             _stateSub.MatchController.Returns(_controllerSub);
         }
 

@@ -1,6 +1,5 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.States;
-using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Commands
 {

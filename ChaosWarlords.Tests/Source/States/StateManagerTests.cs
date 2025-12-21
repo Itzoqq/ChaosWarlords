@@ -1,7 +1,6 @@
 using ChaosWarlords.Source.States;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 
 namespace ChaosWarlords.Tests.States

@@ -7,7 +7,6 @@ using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Views;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.States.Input;
-using ChaosWarlords.Source.Commands;
 using System;
 using System.Linq;
 
@@ -186,7 +185,6 @@ namespace ChaosWarlords.Source.States
             _matchController.PlayCard(card);
         }
 
-        // --- NEW PUBLIC METHOD ---
         // This is what you should use in GameplayView to set transparency!
         public bool HasViableTargets(Card card)
         {

@@ -1,10 +1,7 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -88,7 +85,7 @@ namespace ChaosWarlords.Tests.Systems
 
             _player.Influence = 100;
 
-            // FIX: Handle Random Shuffle
+            // Handle Random Shuffle
             // Identify which card was left in the deck
             var cardsInRow = localMarket.MarketRow;
             var cardLeftInDeck = cards.Except(cardsInRow).FirstOrDefault();

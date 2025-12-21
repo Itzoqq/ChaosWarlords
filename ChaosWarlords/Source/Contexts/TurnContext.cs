@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Linq; // Required for LINQ queries
+using System.Linq;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
 
@@ -39,7 +39,7 @@ namespace ChaosWarlords.Source.Contexts
             return _playedAspectCounts.GetValueOrDefault(aspect, 0);
         }
 
-        // --- NEW: Credit Management ---
+        // --- Credit Management ---
 
         public void AddPromotionCredit(Card source, int amount)
         {

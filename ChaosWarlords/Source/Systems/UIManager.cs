@@ -1,6 +1,5 @@
 using System;
 using Microsoft.Xna.Framework;
-using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Systems
 {

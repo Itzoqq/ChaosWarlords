@@ -2,7 +2,6 @@ using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Entities;
-using ChaosWarlords.Source.Commands; // Needed for commands if you use them, or direct calls
 
 namespace ChaosWarlords.Source.States.Input
 {

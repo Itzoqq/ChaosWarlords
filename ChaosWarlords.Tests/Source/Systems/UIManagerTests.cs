@@ -1,6 +1,5 @@
 using ChaosWarlords.Source.Systems;
 using Microsoft.Xna.Framework.Input;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 
 namespace ChaosWarlords.Tests.Systems

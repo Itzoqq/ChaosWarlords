@@ -1,11 +1,8 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ChaosWarlords.Tests.Source.Systems
 {
@@ -70,7 +67,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _p1.Power = 5;
             _p1.PlayedCards.Add(new Card("c1", "c1", 0, 0, 0, 0, 0));
 
-            // FIX: Add filler cards to Deck so DrawCards(5) doesn't force a Reshuffle
+            // Add filler cards to Deck so DrawCards(5) doesn't force a Reshuffle
             for (int i = 0; i < 10; i++)
             {
                 _p1.Deck.Add(new Card("filler", "Filler", 0, 0, 0, 0, 0));
@@ -88,8 +85,6 @@ namespace ChaosWarlords.Tests.Source.Systems
             // Verify Turn Manager Switched
             Assert.AreEqual(_p2, _context.TurnManager.ActivePlayer);
         }
-
-        // --- NEW TESTS FOR FIXES ---
 
         [TestMethod]
         public void CanEndTurn_ReturnsTrue_EvenIfHandNotEmpty()

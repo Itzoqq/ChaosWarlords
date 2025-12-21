@@ -1,9 +1,7 @@
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Entities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Systems
 {

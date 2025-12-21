@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.States.Input;
 using ChaosWarlords.Source.Systems;
@@ -7,7 +6,6 @@ using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
 using NSubstitute;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.States.Input
 {

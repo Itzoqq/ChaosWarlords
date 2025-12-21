@@ -1,6 +1,5 @@
 using ChaosWarlords.Source.Entities;
 using System.Collections.Generic;
-using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Source.Systems
 {

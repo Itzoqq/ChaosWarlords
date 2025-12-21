@@ -64,7 +64,7 @@ namespace ChaosWarlords.Source.Commands
     {
         public void Execute(IGameplayState state)
         {
-            // NEW: Validation Check
+            // Validation Check
             if (state.CanEndTurn(out string reason))
             {
                 state.EndTurn();

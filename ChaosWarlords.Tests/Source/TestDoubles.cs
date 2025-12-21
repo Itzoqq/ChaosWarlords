@@ -1,7 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Systems;
-using System;
 
 namespace ChaosWarlords.Tests
 {
@@ -28,60 +27,6 @@ namespace ChaosWarlords.Tests
         public KeyboardState GetKeyboardState() => KeyboardState;
 
         // --- Helper Methods for Tests ---
-
-        public void QueueRightClick()
-        {
-            MouseState = new MouseState(
-                MouseState.X,
-                MouseState.Y,
-                MouseState.ScrollWheelValue,
-                ButtonState.Released,
-                ButtonState.Released,
-                ButtonState.Pressed, // Right Click
-                ButtonState.Released,
-                ButtonState.Released
-            );
-        }
-
-        public void QueueLeftClick()
-        {
-            MouseState = new MouseState(
-                MouseState.X,
-                MouseState.Y,
-                MouseState.ScrollWheelValue,
-                ButtonState.Pressed, // Left Click
-                ButtonState.Released,
-                ButtonState.Released,
-                ButtonState.Released,
-                ButtonState.Released
-            );
-        }
-
-        public void SetMousePosition(int x, int y)
-        {
-            // Preserve button state if needed, but for simple moves, reset works
-            MouseState = new MouseState(
-                x,
-                y,
-                MouseState.ScrollWheelValue,
-                MouseState.LeftButton,
-                MouseState.MiddleButton,
-                MouseState.RightButton,
-                MouseState.XButton1,
-                MouseState.XButton2
-            );
-        }
-
-        public void Reset()
-        {
-            MouseState = new MouseState();
-            KeyboardState = new KeyboardState();
-        }
-
-        public void SetKeyboardState(params Keys[] keys)
-        {
-            KeyboardState = new KeyboardState(keys);
-        }
 
         public void SetMouseState(MouseState state)
         {

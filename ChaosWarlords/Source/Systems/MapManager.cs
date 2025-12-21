@@ -32,7 +32,7 @@ namespace ChaosWarlords.Source.Systems
             }
         }
 
-        // --- NEW: Deadlock Prevention Implementations ---
+        // --- Deadlock Prevention Implementations ---
         public bool HasValidAssassinationTarget(Player activePlayer)
         {
             // Valid if: Node has an occupant, it's NOT us, AND we have presence there.
@@ -58,7 +58,7 @@ namespace ChaosWarlords.Source.Systems
         {
             if (SitesInternal == null) return false;
 
-            // FIX: Removed HasPresence check. 
+            // Removed HasPresence check. 
             // Rules state: "You don't need to have Presence at a site to place a spy there."
             return SitesInternal.Any(s =>
                 !s.Spies.Contains(activePlayer.Color) &&
@@ -336,7 +336,7 @@ namespace ChaosWarlords.Source.Systems
             // 2. You have presence if you have a SPY in the Site this node belongs to
             if (parentSite != null && parentSite.Spies.Contains(player)) return true;
 
-            // 3. Adjacency Check (The Fix)
+            // 3. Adjacency Check
             // We check the neighbors of the target location.
             // If the target is a Site, we check neighbors of ALL nodes in the site.
             // If the target is a single node (like a Route), we check neighbors of just that node.

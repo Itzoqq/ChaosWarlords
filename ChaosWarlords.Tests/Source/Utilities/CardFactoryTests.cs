@@ -1,5 +1,4 @@
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Entities;
 
 namespace ChaosWarlords.Tests.Source.Utilities
 {

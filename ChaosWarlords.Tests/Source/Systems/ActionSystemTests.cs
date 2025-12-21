@@ -1,12 +1,8 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
 using NSubstitute;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -16,7 +12,7 @@ namespace ChaosWarlords.Tests.Systems
         private Player _player1 = null!;
         private Player _player2 = null!;
         private IMapManager _mapManager = null!; // Mocked dependency
-        private ITurnManager _turnManager = null!; // NEW: Mocked dependency
+        private ITurnManager _turnManager = null!; // Mocked dependency
         private ActionSystem _actionSystem = null!; // System Under Test
 
         private MapNode _node1 = null!, _node2 = null!;
@@ -44,7 +40,7 @@ namespace ChaosWarlords.Tests.Systems
             _node1 = new MapNode(1, new Vector2(10, 10));
             _node2 = new MapNode(2, new Vector2(20, 10));
 
-            // FIX: Correct Constructor (Name, ControlRes, Amount, TotalControlRes, Amount)
+            // Correct Constructor (Name, ControlRes, Amount, TotalControlRes, Amount)
             _siteA = new Site("SiteA", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
 
             // Inject the mock

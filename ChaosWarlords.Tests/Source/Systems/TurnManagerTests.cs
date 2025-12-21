@@ -1,7 +1,6 @@
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
-using System.Collections.Generic; // Required for List<>
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -11,7 +10,7 @@ namespace ChaosWarlords.Tests.Systems
         private Player _playerRed = null!;
         private Player _playerBlue = null!;
 
-        // FIX 1: Use concrete class to access internal state easily if needed, 
+        // Use concrete class to access internal state easily if needed, 
         // though strictly speaking we are accessing CurrentTurnContext which is on the interface too.
         private TurnManager _turnManager = null!;
 
@@ -40,7 +39,7 @@ namespace ChaosWarlords.Tests.Systems
             Assert.AreEqual(_playerBlue, _turnManager.Players[1]);
             Assert.AreEqual(_playerRed, _turnManager.ActivePlayer);
 
-            // FIX 2: Access PlayedAspectCounts via CurrentTurnContext
+            // Access PlayedAspectCounts via CurrentTurnContext
             Assert.IsNotNull(_turnManager.CurrentTurnContext.PlayedAspectCounts);
             Assert.IsEmpty(_turnManager.CurrentTurnContext.PlayedAspectCounts);
         }

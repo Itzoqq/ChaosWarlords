@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using ChaosWarlords.Source.Contexts; // Add reference to Contexts
+using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities;
 
 namespace ChaosWarlords.Source.Systems

@@ -1,7 +1,6 @@
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
-using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Source.States.Input
 {

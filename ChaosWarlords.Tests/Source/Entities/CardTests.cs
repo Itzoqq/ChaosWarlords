@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
 
@@ -12,7 +11,7 @@ namespace ChaosWarlords.Tests.Source.Entities
         [TestInitialize]
         public void Setup()
         {
-            // Update: Constructor now requires (Id, Name, Cost, Aspect, DeckVP, InnerVP, Influence)
+            // Constructor now requires (Id, Name, Cost, Aspect, DeckVP, InnerVP, Influence)
             // We pass 1 for DeckVP, 2 for InnerCircleVP, and 0 for Influence
             _card = new Card("test_id", "Test Card", 3, CardAspect.Sorcery, 1, 2, 0);
         }

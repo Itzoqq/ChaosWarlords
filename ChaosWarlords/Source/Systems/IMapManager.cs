@@ -16,7 +16,7 @@ namespace ChaosWarlords.Source.Systems
         bool CanDeployAt(MapNode targetNode, PlayerColor player);
         bool HasPresence(MapNode targetNode, PlayerColor player);
 
-        // --- NEW: Deadlock Prevention Checks ---
+        // --- Deadlock Prevention Checks ---
         // These check if a valid target exists AND is reachable by the player
         bool HasValidAssassinationTarget(Player activePlayer);
         bool HasValidReturnSpyTarget(Player activePlayer);
