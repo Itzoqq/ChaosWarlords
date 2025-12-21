@@ -75,5 +75,19 @@ namespace ChaosWarlords.Tests.Entities
             Assert.IsFalse(_site.HasSpy(PlayerColor.Blue));
             Assert.IsFalse(_site.RemoveSpy(PlayerColor.Blue), "Removing a non-existent spy should return false.");
         }
+
+        [TestMethod]
+        public void HasTroop_ReturnsTrue_IfAnyNodeOccupiedByColor()
+        {
+            // Arrange
+            _node1.Occupant = PlayerColor.None;
+            _node2.Occupant = PlayerColor.Red; // One node occupied
+            _node3.Occupant = PlayerColor.Blue;
+
+            // Act & Assert
+            Assert.IsTrue(_site.HasTroop(PlayerColor.Red), "Should find Red troop.");
+            Assert.IsTrue(_site.HasTroop(PlayerColor.Blue), "Should find Blue troop.");
+            Assert.IsFalse(_site.HasTroop(PlayerColor.Orange), "Should NOT find Orange troop.");
+        }
     }
 }

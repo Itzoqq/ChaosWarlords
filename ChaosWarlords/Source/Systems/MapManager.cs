@@ -58,11 +58,11 @@ namespace ChaosWarlords.Source.Systems
         {
             if (SitesInternal == null) return false;
 
-            // Valid if: We have presence AND we don't already have a spy there.
+            // FIX: Removed HasPresence check. 
+            // Rules state: "You don't need to have Presence at a site to place a spy there."
             return SitesInternal.Any(s =>
                 !s.Spies.Contains(activePlayer.Color) &&
-                s.NodesInternal.Count > 0 &&
-                HasPresence(s.NodesInternal[0], activePlayer.Color));
+                s.NodesInternal.Count > 0);
         }
         // ------------------------------------------------
 
@@ -299,19 +299,47 @@ namespace ChaosWarlords.Source.Systems
 
         public bool HasPresence(MapNode targetNode, PlayerColor player)
         {
+            // 1. You have presence if you occupy the node itself
             if (targetNode.Occupant == player) return true;
+
             Site parentSite = GetSiteForNode(targetNode);
+
+            // 2. You have presence if you have a SPY in the Site this node belongs to
             if (parentSite != null && parentSite.Spies.Contains(player)) return true;
 
+            // 3. Adjacency Check (The Fix)
+            // We check the neighbors of the target location.
+            // If the target is a Site, we check neighbors of ALL nodes in the site.
+            // If the target is a single node (like a Route), we check neighbors of just that node.
             var nodesToCheck = parentSite != null ? parentSite.NodesInternal : new List<MapNode> { targetNode };
-            return nodesToCheck.Any(n => n.Neighbors.Any(neighbor => neighbor.Occupant == player));
+
+            foreach (var checkNode in nodesToCheck)
+            {
+                foreach (var neighbor in checkNode.Neighbors)
+                {
+                    // Case A: The direct neighbor has your troop.
+                    if (neighbor.Occupant == player) return true;
+
+                    // Case B: The neighbor belongs to a Site where you have a troop (even if not at that specific node).
+                    // This fixes the "City of Gold" adjacency issue.
+                    Site neighborSite = GetSiteForNode(neighbor);
+                    if (neighborSite != null && neighborSite.HasTroop(player))
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         public bool CanDeployAt(MapNode targetNode, PlayerColor player)
         {
             if (targetNode.Occupant != PlayerColor.None) return false;
+
+            // If board is empty (or no friendly troops exist anywhere), first deployment is valid anywhere
+            // (Strictly following the rule "if you have no troops... deploy anywhere")
             bool hasAnyTroops = NodesInternal.Any(n => n.Occupant == player);
             if (!hasAnyTroops) return true;
+
             return HasPresence(targetNode, player);
         }
 

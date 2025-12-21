@@ -425,5 +425,161 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         #endregion
+
+        [TestMethod]
+        public void CanDeploy_AllowsDeployment_FromSiteAdjacency_WithMixedControl()
+        {
+            // 1. Setup "City of Gold" simulation
+            // Nodes 10-13 are the City. Node 20 is the Route.
+            var cityNodeTL = new MapNode(10, Vector2.Zero); // Top-Left (Adjacent to route)
+            var cityNodeTR = new MapNode(11, Vector2.Zero);
+            var cityNodeDL = new MapNode(12, Vector2.Zero);
+            var cityNodeDR = new MapNode(13, Vector2.Zero); // Down-Right (Where Blue is)
+
+            var routeNode = new MapNode(20, Vector2.Zero);
+
+            // 2. Connect Route to Top-Left only
+            routeNode.AddNeighbor(cityNodeTL);
+
+            // 3. Create Site and add nodes
+            var citySite = new Site("City of Gold", ResourceType.Power, 1, ResourceType.VictoryPoints, 2);
+            citySite.AddNode(cityNodeTL);
+            citySite.AddNode(cityNodeTR);
+            citySite.AddNode(cityNodeDL);
+            citySite.AddNode(cityNodeDR);
+
+            // 4. Update MapManager with this new mini-map
+            var nodes = new List<MapNode> { cityNodeTL, cityNodeTR, cityNodeDL, cityNodeDR, routeNode };
+            var sites = new List<Site> { citySite };
+            _mapManager = new MapManager(nodes, sites);
+
+            // 5. SITUATION: Red blocks the exit, Blue is trapped in the back corner
+            cityNodeTL.Occupant = PlayerColor.Red;
+            cityNodeTR.Occupant = PlayerColor.Red;
+            cityNodeDL.Occupant = PlayerColor.Red;
+
+            cityNodeDR.Occupant = PlayerColor.Blue; // Blue is here
+
+            // 6. TEST: Can Blue deploy to the route connected to TL?
+            // (Should be TRUE because Blue has presence in the "City of Gold" site via DR)
+            bool result = _mapManager.CanDeployAt(routeNode, PlayerColor.Blue);
+
+            Assert.IsTrue(result, "Blue should be able to deploy from the City regardless of which specific node they occupy.");
+        }
+
+        [TestMethod]
+        public void CanPlaceSpy_ReturnsTrue_EvenWithoutPresence()
+        {
+            // Rules: "You don't need to have Presence at a site to place a spy there."
+
+            var remoteSite = new Site("Void Portal", ResourceType.Power, 1, ResourceType.Power, 1);
+            var remoteNode = new MapNode(99, Vector2.Zero);
+            remoteSite.AddNode(remoteNode);
+
+            _mapManager = new MapManager(new List<MapNode> { remoteNode }, new List<Site> { remoteSite });
+
+            // Player has NO troops on the map
+            bool result = _mapManager.HasValidPlaceSpyTarget(_player1);
+
+            Assert.IsTrue(result, "Should be able to place a spy on a remote site with zero presence.");
+        }
+
+        [TestMethod]
+        public void CanDeploy_ReturnsFalse_WhenTargetIsTotallyDisconnected()
+        {
+            // SETUP: 
+            // Player is at Node 1. 
+            // Target is Node 99 (far away, no connection).
+            var startNode = new MapNode(1, Vector2.Zero);
+            var farNode = new MapNode(99, Vector2.Zero);
+
+            // Create a manager with these disconnected nodes
+            _mapManager = new MapManager(new List<MapNode> { startNode, farNode }, new List<Site>());
+
+            // Player has a troop at startNode
+            startNode.Occupant = _player1.Color;
+            _player1.TroopsInBarracks = 5;
+            _player1.Power = 5;
+
+            // ACT
+            bool result = _mapManager.CanDeployAt(farNode, _player1.Color);
+
+            // ASSERT
+            Assert.IsFalse(result, "Should NOT be able to deploy to a node with no physical connection or site presence.");
+        }
+
+        [TestMethod]
+        public void CanDeploy_ReturnsFalse_WhenAdjacentToEnemySite_ButNoFriendlyPresence()
+        {
+            // SETUP:
+            // Site A contains Node 1 (Enemy occupied).
+            // Node 2 is a neighbor to Node 1 (Empty).
+            // Player is far away at Node 99.
+
+            var enemyNode = new MapNode(1, Vector2.Zero);
+            var targetNode = new MapNode(2, Vector2.Zero);
+            var myBaseNode = new MapNode(99, Vector2.Zero);
+
+            // Link target to enemy node
+            targetNode.AddNeighbor(enemyNode);
+
+            var siteA = new Site("Enemy Fortress", ResourceType.Power, 1, ResourceType.Power, 1);
+            siteA.AddNode(enemyNode);
+            siteA.AddNode(targetNode); // Target is inside the enemy site
+
+            _mapManager = new MapManager(
+                new List<MapNode> { enemyNode, targetNode, myBaseNode },
+                new List<Site> { siteA }
+            );
+
+            // Positions
+            enemyNode.Occupant = _player2.Color; // Enemy
+            myBaseNode.Occupant = _player1.Color; // Me (Far away)
+
+            // ACT
+            // I want to deploy at Node 2. It is next to Node 1 (Enemy). 
+            // I have NO troops in Site A.
+            bool result = _mapManager.CanDeployAt(targetNode, _player1.Color);
+
+            // ASSERT
+            Assert.IsFalse(result, "Should NOT be able to deploy based on Enemy presence alone.");
+        }
+
+        [TestMethod]
+        public void CanDeploy_ReturnsFalse_IfSpyIsAtDifferentSite()
+        {
+            // SETUP:
+            // Site A has my Spy.
+            // Site B is far away.
+            // I try to deploy at Site B.
+
+            var siteANode = new MapNode(1, Vector2.Zero);
+            var siteBNode = new MapNode(2, Vector2.Zero);
+
+            var siteA = new Site("Spy Hub", ResourceType.Power, 1, ResourceType.Power, 1);
+            siteA.AddNode(siteANode);
+
+            var siteB = new Site("Target Fort", ResourceType.Power, 1, ResourceType.Power, 1);
+            siteB.AddNode(siteBNode);
+
+            _mapManager = new MapManager(
+                new List<MapNode> { siteANode, siteBNode },
+                new List<Site> { siteA, siteB }
+            );
+
+            // I have a spy at Site A
+            siteA.Spies.Add(_player1.Color);
+
+            // I have a troop somewhere else just so board isn't "empty" (which allows deploy anywhere)
+            var baseNode = new MapNode(99, Vector2.Zero);
+            baseNode.Occupant = _player1.Color;
+            _mapManager.NodesInternal.Add(baseNode);
+
+            // ACT
+            bool result = _mapManager.CanDeployAt(siteBNode, _player1.Color);
+
+            // ASSERT
+            Assert.IsFalse(result, "Spy at Site A should NOT grant presence at Site B.");
+        }
     }
 }

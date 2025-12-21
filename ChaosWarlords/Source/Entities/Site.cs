@@ -73,6 +73,11 @@ namespace ChaosWarlords.Source.Entities
             return NodesInternal.Count(n => n.Occupant == color);
         }
 
+        public bool HasTroop(PlayerColor color)
+        {
+            return NodesInternal.Any(n => n.Occupant == color);
+        }
+
         public PlayerColor GetControllingPlayer()
         {
             var troopCounts = NodesInternal
