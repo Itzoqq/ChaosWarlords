@@ -61,6 +61,12 @@ namespace ChaosWarlords.Source.Systems
                         _context.ActivePlayer.DrawCards(effect.Amount);
                         break;
 
+                    case EffectType.Promote:
+                        // --- CHANGED: Pass 'card' as the source ---
+                        _context.TurnManager.CurrentTurnContext.AddPromotionCredit(card, finalAmount);
+                        GameLogger.Log($"Promotion pending! Added {finalAmount} point(s) from {card.Name}.", LogChannel.Info);
+                        break;
+
                     case EffectType.Devour:
                         break;
                 }

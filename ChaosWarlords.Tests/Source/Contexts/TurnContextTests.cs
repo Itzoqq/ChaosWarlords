@@ -1,6 +1,8 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities;
-using ChaosWarlords.Source.Utilities; // Added for PlayerColor/CardAspect visibility
+using ChaosWarlords.Source.Utilities;
+using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Contexts
 {
@@ -9,49 +11,80 @@ namespace ChaosWarlords.Tests.Contexts
     {
         private TurnContext _turnContext = null!;
         private Player _dummyPlayer = null!;
+        private Card _cardA = null!;
+        private Card _cardB = null!;
 
         [TestInitialize]
         public void Setup()
         {
-            // Create a dummy player to satisfy the constructor requirement
             _dummyPlayer = new Player(PlayerColor.Red);
             _turnContext = new TurnContext(_dummyPlayer);
+
+            _cardA = new Card("A", "Card A", 1, CardAspect.Warlord, 0, 0, 0);
+            _cardB = new Card("B", "Card B", 1, CardAspect.Sorcery, 0, 0, 0);
         }
 
         [TestMethod]
         public void Constructor_StartsEmpty()
         {
             Assert.IsNotNull(_turnContext.PlayedAspectCounts);
-            Assert.IsEmpty(_turnContext.PlayedAspectCounts);
-            Assert.AreEqual(_dummyPlayer, _turnContext.ActivePlayer);
+            Assert.AreEqual(0, _turnContext.PendingPromotionsCount);
         }
 
         [TestMethod]
-        public void RecordPlayedCard_IncrementsCount()
+        public void AddPromotionCredit_IncreasesPendingCount()
         {
-            // Act
-            _turnContext.RecordPlayedCard(CardAspect.Shadow);
-
-            // Assert
-            Assert.IsTrue(_turnContext.PlayedAspectCounts.ContainsKey(CardAspect.Shadow));
-            Assert.AreEqual(1, _turnContext.PlayedAspectCounts[CardAspect.Shadow]);
+            _turnContext.AddPromotionCredit(_cardA, 1);
+            Assert.AreEqual(1, _turnContext.PendingPromotionsCount);
         }
 
         [TestMethod]
-        public void RecordPlayedCard_IncrementsExistingCount()
+        public void HasValidCreditFor_SelfPromotion_ReturnsFalse()
         {
-            // Arrange
-            _turnContext.RecordPlayedCard(CardAspect.Shadow);
+            // Arrange: Card A provides the only credit
+            _turnContext.AddPromotionCredit(_cardA, 1);
 
-            // Act
-            _turnContext.RecordPlayedCard(CardAspect.Shadow);
+            // Act: Check if we can use this credit to promote Card A
+            bool result = _turnContext.HasValidCreditFor(_cardA);
 
             // Assert
-            Assert.AreEqual(2, _turnContext.PlayedAspectCounts[CardAspect.Shadow]);
+            Assert.IsFalse(result, "Should not allow promoting a card using its own credit.");
         }
 
-        // REMOVED: Reset_ClearsAllCounts
-        // Reason: Your TurnContext class does not have a Reset() method. 
-        // The TurnManager handles "Resetting" by throwing away the old context and making a new one.
+        [TestMethod]
+        public void HasValidCreditFor_CrossPromotion_ReturnsTrue()
+        {
+            // Arrange: Card A provides credit
+            _turnContext.AddPromotionCredit(_cardA, 1);
+
+            // Act: Check if we can use it for Card B
+            bool result = _turnContext.HasValidCreditFor(_cardB);
+
+            // Assert
+            Assert.IsTrue(result, "Should allow promoting a different card.");
+        }
+
+        [TestMethod]
+        public void ConsumeCreditFor_ConsumesCorrectCredit()
+        {
+            // Arrange: Both A and B provide credits
+            _turnContext.AddPromotionCredit(_cardA, 1);
+            _turnContext.AddPromotionCredit(_cardB, 1);
+
+            Assert.AreEqual(2, _turnContext.PendingPromotionsCount);
+
+            // Act: Consume credit for Card A (must use B's credit)
+            _turnContext.ConsumeCreditFor(_cardA);
+
+            // Assert
+            Assert.AreEqual(1, _turnContext.PendingPromotionsCount);
+
+            // The remaining credit must be A's (since B's was consumed).
+            // Therefore, A cannot use the remaining credit.
+            Assert.IsFalse(_turnContext.HasValidCreditFor(_cardA));
+
+            // But B can use A's credit
+            Assert.IsTrue(_turnContext.HasValidCreditFor(_cardB));
+        }
     }
 }

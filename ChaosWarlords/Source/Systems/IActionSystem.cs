@@ -13,12 +13,13 @@ namespace ChaosWarlords.Source.Systems
         Card PendingCard { get; }
         Site PendingSite { get; }
 
-
         void TryStartAssassinate();
         void TryStartReturnSpy();
         void StartTargeting(ActionState state, Card card = null);
         void CancelTargeting();
         bool IsTargeting();
+
+        void CompleteAction();
 
         void HandleTargetClick(MapNode targetNode, Site targetSite);
         void FinalizeSpyReturn(PlayerColor selectedSpyColor);

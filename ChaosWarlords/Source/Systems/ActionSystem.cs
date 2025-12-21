@@ -101,6 +101,12 @@ namespace ChaosWarlords.Source.Systems
             }
         }
 
+        public void CompleteAction()
+        {
+            OnActionCompleted?.Invoke(this, EventArgs.Empty);
+            ClearState();
+        }
+
         private void HandleAssassinate(MapNode targetNode)
         {
             if (targetNode == null) return;
@@ -122,10 +128,7 @@ namespace ChaosWarlords.Source.Systems
             }
 
             _mapManager.Assassinate(targetNode, CurrentPlayer);
-            OnActionCompleted?.Invoke(this, EventArgs.Empty);
-
-            // FIX: Automatically clean up state after success
-            ClearState();
+            CompleteAction();
         }
 
         private void HandleReturn(MapNode targetNode)

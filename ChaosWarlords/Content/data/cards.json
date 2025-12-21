@@ -111,5 +111,20 @@
         "RequiresFocus": true
       }
     ]
+  },
+  {
+    "Id": "core_noble",
+    "Name": "Drow Noble",
+    "Description": "Promote a card from your hand.",
+    "Cost": 3,
+    "Aspect": "Blasphemy",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "Effects": [
+      {
+        "Type": "Promote",
+        "Amount": 1
+      }
+    ]
   }
 ]

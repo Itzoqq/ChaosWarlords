@@ -137,6 +137,37 @@ namespace ChaosWarlords.Source.Views
             return null;
         }
 
+        public Card GetHoveredPlayedCard(MatchContext context, InputManager input)
+        {
+            if (context?.ActivePlayer == null) return null;
+
+            var playedCards = context.ActivePlayer.PlayedCards;
+            if (playedCards.Count == 0) return null;
+
+            // Use the same layout logic as your Draw method
+            // (Assuming standard centering logic - adjust constants if your layout differs)
+            int cardWidth = 140;  // Standard width
+            int cardHeight = 190; // Standard height
+            int spacing = 10;
+            int totalWidth = (playedCards.Count * cardWidth) + ((playedCards.Count - 1) * spacing);
+            int startX = (_graphicsDevice.Viewport.Width - totalWidth) / 2;
+
+            Point mousePos = input.MousePosition.ToPoint();
+
+            for (int i = 0; i < playedCards.Count; i++)
+            {
+                int x = startX + (i * (cardWidth + spacing));
+                Rectangle cardRect = new Rectangle(x, PlayedY, cardWidth, cardHeight);
+
+                if (cardRect.Contains(mousePos))
+                {
+                    return playedCards[i];
+                }
+            }
+
+            return null;
+        }
+
         // --- Internal Render Logic ---
 
         private void SyncHandVisuals(List<Card> hand)

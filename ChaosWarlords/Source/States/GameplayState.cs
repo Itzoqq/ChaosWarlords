@@ -176,6 +176,7 @@ namespace ChaosWarlords.Source.States
                 EffectType.Supplant => map.HasValidAssassinationTarget(p),
                 EffectType.ReturnUnit => map.HasValidReturnSpyTarget(p),
                 EffectType.PlaceSpy => map.HasValidPlaceSpyTarget(p),
+                EffectType.Promote => p.Hand.Count > 1,
                 _ => true
             };
         }
@@ -209,14 +210,33 @@ namespace ChaosWarlords.Source.States
 
         public void SwitchToTargetingMode()
         {
-            InputMode = new TargetingInputMode(
-                this,
-                _inputManagerBacking,
-                _uiManagerBacking,
-                _matchContext.MapManager,
-                _matchContext.TurnManager as TurnManager,
-                _matchContext.ActionSystem
-            );
+            if (_matchContext.ActionSystem.CurrentState == ActionState.SelectingCardToPromote)
+            {
+                // Calculate amount to promote based on the pending card's effect
+                // For simplicity, we default to 1, or find the Promote effect amount
+                int amount = 1;
+                var promoteEffect = _matchContext.ActionSystem.PendingCard.Effects.FirstOrDefault(e => e.Type == EffectType.Promote);
+                if (promoteEffect != null) amount = promoteEffect.Amount;
+
+                InputMode = new PromoteInputMode(
+                    this,
+                    _inputManagerBacking,
+                    _matchContext.ActionSystem,
+                    amount
+                );
+            }
+            else
+            {
+                // Your existing Map Targeting Mode
+                InputMode = new TargetingInputMode(
+                    this,
+                    _inputManagerBacking,
+                    _uiManagerBacking,
+                    _matchContext.MapManager,
+                    _matchContext.TurnManager as TurnManager,
+                    _matchContext.ActionSystem
+                );
+            }
         }
 
         public void SwitchToNormalMode()
@@ -243,7 +263,17 @@ namespace ChaosWarlords.Source.States
             {
                 if (CanEndTurn(out string reason))
                 {
-                    EndTurn();
+                    // --- CHANGED: Use the new Count property ---
+                    int pending = _matchContext.TurnManager.CurrentTurnContext.PendingPromotionsCount;
+                    if (pending > 0)
+                    {
+                        GameLogger.Log($"You must promote {pending} card(s) before ending your turn.", LogChannel.Warning);
+                        SwitchToPromoteMode(pending);
+                    }
+                    else
+                    {
+                        EndTurn();
+                    }
                 }
                 else
                 {
@@ -258,6 +288,17 @@ namespace ChaosWarlords.Source.States
                 if (_matchContext.ActionSystem.IsTargeting()) { _matchContext.ActionSystem.CancelTargeting(); SwitchToNormalMode(); return true; }
             }
             return false;
+        }
+
+        public void SwitchToPromoteMode(int amount)
+        {
+            _matchContext.ActionSystem.StartTargeting(ActionState.SelectingCardToPromote);
+            InputMode = new PromoteInputMode(
+                this,
+                _inputManagerBacking,
+                _matchContext.ActionSystem,
+                amount
+            );
         }
 
         private void HandleSpySelectionInput()
@@ -291,6 +332,7 @@ namespace ChaosWarlords.Source.States
                 EffectType.ReturnUnit => ActionState.TargetingReturn,
                 EffectType.Supplant => ActionState.TargetingSupplant,
                 EffectType.PlaceSpy => ActionState.TargetingPlaceSpy,
+                EffectType.Promote => ActionState.SelectingCardToPromote,
                 _ => ActionState.Normal
             };
         }
@@ -329,6 +371,8 @@ namespace ChaosWarlords.Source.States
         }
 
         public Card GetHoveredHandCard() => _view?.GetHoveredHandCard();
+        // Pass the context and input so the View can calculate the hit immediately
+        public Card GetHoveredPlayedCard() => _view?.GetHoveredPlayedCard(_matchContext, _inputManagerBacking);
         public Card GetHoveredMarketCard() => _view?.GetHoveredMarketCard();
     }
 }

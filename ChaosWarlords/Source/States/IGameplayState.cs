@@ -2,6 +2,7 @@ using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.States.Input;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Source.States
 {
@@ -16,6 +17,7 @@ namespace ChaosWarlords.Source.States
         // FIX: Changed from concrete 'TurnManager' to interface 'ITurnManager'
         // This allows NSubstitute to mock the turn manager in tests.
         ITurnManager TurnManager { get; }
+        MatchContext MatchContext { get; }
 
         IInputMode InputMode { get; set; }
         bool IsMarketOpen { get; set; }
@@ -37,6 +39,7 @@ namespace ChaosWarlords.Source.States
         string GetTargetingText(ActionState state);
 
         Card GetHoveredHandCard();
+        Card GetHoveredPlayedCard();
         Card GetHoveredMarketCard();
     }
 }
