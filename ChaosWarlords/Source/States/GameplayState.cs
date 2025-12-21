@@ -20,7 +20,7 @@ namespace ChaosWarlords.Source.States
         private readonly ICardDatabase _cardDatabase;
 
         internal GameplayView _view;
-        internal MatchController _matchController;
+        internal IMatchController _matchController;
         internal MatchContext _matchContext;
         internal InputManager _inputManagerBacking;
         internal IUISystem _uiManagerBacking;
@@ -28,6 +28,7 @@ namespace ChaosWarlords.Source.States
 
         public InputManager InputManager => _inputManagerBacking;
         public IUISystem UIManager => _uiManagerBacking;
+        public IMatchController MatchController => _matchController;
 
         public IMapManager MapManager => _matchContext?.MapManager;
         public IMarketManager MarketManager => _matchContext?.MarketManager;
@@ -52,8 +53,6 @@ namespace ChaosWarlords.Source.States
                     SwitchToNormalMode();
             }
         }
-
-        public MatchController MatchController => _matchController;
 
         public GameplayState(Game game, IInputProvider inputProvider, ICardDatabase cardDatabase)
         {

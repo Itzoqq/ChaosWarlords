@@ -18,7 +18,7 @@ namespace ChaosWarlords.Tests.Source.Commands
         private IMapManager _mapSub = null!;
         private ITurnManager _turnSub = null!;
         private IActionSystem _actionSub = null!;
-        private MatchController _controllerSub = null!;
+        private IMatchController _controllerSub = null!;
 
         [TestInitialize]
         public void Setup()
@@ -34,7 +34,7 @@ namespace ChaosWarlords.Tests.Source.Commands
             _actionSub = Substitute.For<IActionSystem>();
 
             // Fix Warning CS8600: Use 'null!' to tell compiler we know what we are doing
-            _controllerSub = Substitute.For<MatchController>((MatchContext)null!);
+            _controllerSub = Substitute.For<IMatchController>();
 
             // Wire up the state to return these mocks
             _stateSub.MarketManager.Returns(_marketSub);

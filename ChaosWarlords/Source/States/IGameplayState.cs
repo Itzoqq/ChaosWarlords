@@ -18,7 +18,7 @@ namespace ChaosWarlords.Source.States
         // This allows NSubstitute to mock the turn manager in tests.
         ITurnManager TurnManager { get; }
         MatchContext MatchContext { get; }
-        MatchController MatchController { get; }
+        IMatchController MatchController { get; }
 
         IInputMode InputMode { get; set; }
         bool IsMarketOpen { get; set; }

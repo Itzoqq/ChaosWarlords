@@ -5,7 +5,7 @@ using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Systems
 {
-    public class MatchController
+    public class MatchController : IMatchController
     {
         private readonly MatchContext _context;
 
@@ -14,7 +14,7 @@ namespace ChaosWarlords.Source.Systems
             _context = context;
         }
 
-        public virtual void PlayCard(Card card)
+        public void PlayCard(Card card)
         {
             // --- 1. PRE-CALCULATION (SNAPSHOT) ---
             // We must calculate Focus BEFORE moving the card to 'Played' or modifying the turn stats.
@@ -46,7 +46,7 @@ namespace ChaosWarlords.Source.Systems
             ResolveCardEffects(card, hasFocus);
         }
 
-        public virtual void DevourCard(Card card)
+        public void DevourCard(Card card)
         {
             if (_context.ActivePlayer.Hand.Remove(card))
             {
@@ -56,7 +56,7 @@ namespace ChaosWarlords.Source.Systems
             }
         }
 
-        public virtual void ResolveCardEffects(Card card, bool hasFocus)
+        public void ResolveCardEffects(Card card, bool hasFocus)
         {
             foreach (var effect in card.Effects)
             {
