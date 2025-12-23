@@ -110,64 +110,6 @@ namespace ChaosWarlords.Source.Views
             }
         }
 
-        // --- Helpers ---
-
-        public Card GetHoveredHandCard() => HandViewModels.FirstOrDefault(vm => vm.IsHovered)?.Model;
-        public Card GetHoveredMarketCard() => MarketViewModels.FirstOrDefault(vm => vm.IsHovered)?.Model;
-
-        /// <summary>
-        /// Checks if the mouse clicked on a specific Spy button in the selection UI.
-        /// Returns the color of the spy clicked, or null.
-        /// </summary>
-        public PlayerColor? GetClickedSpyReturnButton(Point mousePos, Site site, int screenWidth)
-        {
-            if (site == null) return null;
-
-            Vector2 headerSize = _defaultFont.MeasureString("Select Spy to Return:");
-            float drawX = (screenWidth - headerSize.X) / 2;
-            Vector2 startPos = new Vector2(drawX, 200);
-            int yOffset = 40;
-
-            foreach (var spy in site.Spies.ToList())
-            {
-                Rectangle rect = new Rectangle((int)drawX, (int)startPos.Y + yOffset, 200, 30);
-                if (rect.Contains(mousePos)) return spy;
-                yOffset += 40;
-            }
-            return null;
-        }
-
-        public Card GetHoveredPlayedCard(MatchContext context, InputManager input)
-        {
-            if (context?.ActivePlayer == null) return null;
-
-            var playedCards = context.ActivePlayer.PlayedCards;
-            if (playedCards.Count == 0) return null;
-
-            // Use the same layout logic as your Draw method
-            // (Assuming standard centering logic - adjust constants if your layout differs)
-            int cardWidth = 140;  // Standard width
-            int cardHeight = 190; // Standard height
-            int spacing = 10;
-            int totalWidth = (playedCards.Count * cardWidth) + ((playedCards.Count - 1) * spacing);
-            int startX = (_graphicsDevice.Viewport.Width - totalWidth) / 2;
-
-            Point mousePos = input.MousePosition.ToPoint();
-
-            for (int i = 0; i < playedCards.Count; i++)
-            {
-                int x = startX + (i * (cardWidth + spacing));
-                Rectangle cardRect = new Rectangle(x, PlayedY, cardWidth, cardHeight);
-
-                if (cardRect.Contains(mousePos))
-                {
-                    return playedCards[i];
-                }
-            }
-
-            return null;
-        }
-
         // --- Internal Render Logic ---
 
         private void SyncHandVisuals(List<Card> hand)

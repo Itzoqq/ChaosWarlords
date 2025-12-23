@@ -25,6 +25,10 @@ namespace ChaosWarlords.Source.States
         internal IUISystem _uiManagerBacking;
         internal bool _isMarketOpenBacking = false;
 
+        // New Coordinators
+        private GameplayInputCoordinator _inputCoordinator;
+        private InteractionMapper _interactionMapper;
+
         public InputManager InputManager => _inputManagerBacking;
         public IUISystem UIManager => _uiManagerBacking;
         public IMatchController MatchController => _matchController;
@@ -35,7 +39,7 @@ namespace ChaosWarlords.Source.States
         public ITurnManager TurnManager => _matchContext?.TurnManager;
         public MatchContext MatchContext => _matchContext;
 
-        public IInputMode InputMode { get; set; }
+        public IInputMode InputMode => _inputCoordinator.CurrentMode;
 
         public int HandY => _view?.HandY ?? 0;
         public int PlayedY => _view?.PlayedY ?? 0;
@@ -46,10 +50,7 @@ namespace ChaosWarlords.Source.States
             set
             {
                 _isMarketOpenBacking = value;
-                if (_isMarketOpenBacking)
-                    InputMode = new MarketInputMode(this, _inputManagerBacking, _matchContext);
-                else
-                    SwitchToNormalMode();
+                _inputCoordinator.SetMarketMode(value);
             }
         }
 
@@ -73,6 +74,9 @@ namespace ChaosWarlords.Source.States
             _view = new GameplayView(graphicsDevice);
             _view.LoadContent(_game.Content);
 
+            // 1. Initialize InteractionMapper
+            _interactionMapper = new InteractionMapper(_view);
+
             var builder = new WorldBuilder(_cardDatabase, "data/map.json");
             var worldData = builder.Build();
 
@@ -83,12 +87,6 @@ namespace ChaosWarlords.Source.States
                 worldData.ActionSystem,
                 _cardDatabase
             );
-
-            // Fallback if CardDatabase wasn't in signature, assuming standard constructor
-            if (_matchContext == null)
-            {
-                // Handle specific constructor needs if changed
-            }
 
             _matchController = new MatchController(_matchContext);
 
@@ -103,7 +101,9 @@ namespace ChaosWarlords.Source.States
             _matchContext.MapManager.CenterMap(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
 
             InitializeEventSubscriptions();
-            SwitchToNormalMode();
+
+            // 2. Initialize InputCoordinator
+            _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
         }
 
         public void UnloadContent() { }
@@ -115,30 +115,16 @@ namespace ChaosWarlords.Source.States
 
             if (HandleGlobalInput()) return;
 
-            // Spy Selection is still special because it happens *inside* TargetingInputMode logic in some flows,
-            // but if you want to keep it here, that's fine. 
             if (_matchContext.ActionSystem.CurrentState == ActionState.SelectingSpyToReturn)
             {
                 HandleSpySelectionInput();
                 return;
             }
 
-            // --- REMOVE THE "Intercept Hand Interaction" BLOCK WE ADDED EARLIER ---
-            // (The block that checked IsLeftMouseJustClicked and called HandleHandCardClicked)
-            // It is no longer needed because InputMode.HandleInput() now does the work.
-
-            // --- Existing Logic ---
             _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
 
-            // Now "InputMode" will be "DevourInputMode" when appropriate, managing the clicks correctly.
-            IGameCommand command = InputMode.HandleInput(
-                _inputManagerBacking,
-                _matchContext.MarketManager,
-                _matchContext.MapManager,
-                _matchContext.ActivePlayer,
-                _matchContext.ActionSystem);
-
-            command?.Execute(this);
+            // 3. Delegate Input to Coordinator
+            _inputCoordinator.HandleInput();
         }
 
         public void Draw(SpriteBatch spriteBatch)
@@ -159,44 +145,31 @@ namespace ChaosWarlords.Source.States
             // 1. Check for Targeting Effects
             foreach (var effect in card.Effects)
             {
-                // Note: PromIsTargetingEffote is NOT a targeting effect here; it adds credit for End of Turn.
                 if (IsTargetingEffect(effect.Type))
                 {
-                    // If we have valid targets, we pause play and enter targeting mode
                     if (HasValidTargets(effect.Type))
                     {
                         _matchContext.ActionSystem.StartTargeting(GetTargetingState(effect.Type), card);
                         SwitchToTargetingMode();
-                        return; // Exit here. MatchController.PlayCard will be called in HandleActionCompleted
+                        return;
                     }
                     else
                     {
-                        // 2. Whiff Logic (Smart Skip)
-                        // If no targets exist, the rules say we skip the impossible instruction.
-                        // We do NOT stop the player from playing. We simply log it and continue
-                        // so they can get the other resources/Focus effects.
                         GameLogger.Log($"No valid targets for {effect.Type}. Effect skipped.", LogChannel.Info);
                     }
                 }
             }
 
-            // 3. Fallthrough
-            // If no targeting was needed (or all targeting whiffed), play immediately.
+            // 2. Play immediately if no targeting needed
             _matchController.PlayCard(card);
         }
 
-        // This is what you should use in GameplayView to set transparency!
         public bool HasViableTargets(Card card)
         {
             if (card == null) return false;
-
             bool hasTargeting = card.Effects.Any(e => IsTargetingEffect(e.Type));
-
-            // If the card has NO targeting effects (e.g. just Gain Power), 
-            // it is fully viable (return true) so it appears opaque.
             if (!hasTargeting) return true;
 
-            // If it HAS targeting effects, at least one must be valid.
             foreach (var effect in card.Effects)
             {
                 if (IsTargetingEffect(effect.Type))
@@ -204,9 +177,6 @@ namespace ChaosWarlords.Source.States
                     if (HasValidTargets(effect.Type)) return true;
                 }
             }
-
-            // Has targeting effects, but NONE are valid.
-            // Return false -> View should make this card transparent/warn the user.
             return false;
         }
 
@@ -227,15 +197,6 @@ namespace ChaosWarlords.Source.States
             };
         }
 
-        public void ResolveCardEffects(Card card)
-        {
-            // Fallback wrapper, logic moved to MatchController
-            int playedCount = _matchContext.TurnManager.CurrentTurnContext.GetAspectCount(card.Aspect);
-            bool focus = playedCount > 0 || _matchContext.ActivePlayer.Hand.Any(c => c.Aspect == card.Aspect && c != card);
-
-            _matchController.ResolveCardEffects(card, focus);
-        }
-
         public void MoveCardToPlayed(Card card) => _matchController.MoveCardToPlayed(card);
 
         public bool CanEndTurn(out string reason) => _matchController.CanEndTurn(out reason);
@@ -250,58 +211,20 @@ namespace ChaosWarlords.Source.States
         public void ToggleMarket() { IsMarketOpen = !IsMarketOpen; }
         public void CloseMarket() { IsMarketOpen = false; }
 
-        public void SwitchToTargetingMode()
+        public void SwitchToTargetingMode() => _inputCoordinator.SwitchToTargetingMode();
+        public void SwitchToNormalMode() => _inputCoordinator.SwitchToNormalMode();
+
+        // --- FIX IS HERE ---
+        public void SwitchToPromoteMode(int amount)
         {
-            if (_matchContext.ActionSystem.CurrentState == ActionState.SelectingCardToPromote)
-            {
-                int amount = 1;
-                var promoteEffect = _matchContext.ActionSystem.PendingCard?.Effects.FirstOrDefault(e => e.Type == EffectType.Promote);
-                if (promoteEffect != null) amount = promoteEffect.Amount;
+            // We must set the ActionSystem state explicitly so the InputCoordinator knows 
+            // to instantiate the PromoteInputMode instead of the generic TargetingInputMode.
+            // We pass 'null' for the card because Promotion is a turn-phase action, not a card-specific action.
+            _matchContext.ActionSystem.StartTargeting(ActionState.SelectingCardToPromote, null);
 
-                if (_matchContext.TurnManager.CurrentTurnContext.PendingPromotionsCount > 0)
-                {
-                    amount = _matchContext.TurnManager.CurrentTurnContext.PendingPromotionsCount;
-                }
-
-                InputMode = new PromoteInputMode(
-                    this,
-                    _inputManagerBacking,
-                    _matchContext.ActionSystem,
-                    amount
-                );
-            }
-            else if (_matchContext.ActionSystem.CurrentState == ActionState.TargetingDevourHand)
-            {
-                InputMode = new DevourInputMode(
-                    this,
-                    _inputManagerBacking,
-                    _matchContext.ActionSystem
-                );
-            }
-            else
-            {
-                InputMode = new TargetingInputMode(
-                    this,
-                    _inputManagerBacking,
-                    _uiManagerBacking,
-                    _matchContext.MapManager,
-                    _matchContext.TurnManager as TurnManager,
-                    _matchContext.ActionSystem
-                );
-            }
+            _inputCoordinator.SwitchToTargetingMode();
         }
-
-        public void SwitchToNormalMode()
-        {
-            InputMode = new NormalPlayInputMode(
-                this,
-                _inputManagerBacking,
-                _uiManagerBacking,
-                _matchContext.MapManager,
-                _matchContext.TurnManager as TurnManager,
-                _matchContext.ActionSystem
-            );
-        }
+        // -------------------
 
         private bool HandleGlobalInput()
         {
@@ -341,24 +264,14 @@ namespace ChaosWarlords.Source.States
             return false;
         }
 
-        public void SwitchToPromoteMode(int amount)
-        {
-            _matchContext.ActionSystem.StartTargeting(ActionState.SelectingCardToPromote);
-            InputMode = new PromoteInputMode(
-                this,
-                _inputManagerBacking,
-                _matchContext.ActionSystem,
-                amount
-            );
-        }
-
         private void HandleSpySelectionInput()
         {
             if (!_inputManagerBacking.IsLeftMouseJustClicked()) return;
             if (_view == null) return;
 
             var site = _matchContext.ActionSystem.PendingSite;
-            PlayerColor? clickedSpy = _view.GetClickedSpyReturnButton(
+
+            PlayerColor? clickedSpy = _interactionMapper.GetClickedSpyReturnButton(
                 _inputManagerBacking.MousePosition.ToPoint(),
                 site,
                 _uiManagerBacking.ScreenWidth);
@@ -425,8 +338,8 @@ namespace ChaosWarlords.Source.States
             SwitchToNormalMode();
         }
 
-        public Card GetHoveredHandCard() => _view?.GetHoveredHandCard();
-        public Card GetHoveredPlayedCard() => _view?.GetHoveredPlayedCard(_matchContext, _inputManagerBacking);
-        public Card GetHoveredMarketCard() => _view?.GetHoveredMarketCard();
+        public Card GetHoveredHandCard() => _interactionMapper.GetHoveredHandCard();
+        public Card GetHoveredPlayedCard() => _interactionMapper.GetHoveredPlayedCard(_inputManagerBacking);
+        public Card GetHoveredMarketCard() => _interactionMapper.GetHoveredMarketCard();
     }
 }

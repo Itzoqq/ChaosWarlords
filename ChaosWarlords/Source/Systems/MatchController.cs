@@ -8,10 +8,13 @@ namespace ChaosWarlords.Source.Systems
     public class MatchController : IMatchController
     {
         private readonly MatchContext _context;
+        // 1. Add the Processor to handle the logic
+        private readonly CardEffectProcessor _effectProcessor;
 
         public MatchController(MatchContext context)
         {
             _context = context;
+            _effectProcessor = new CardEffectProcessor();
         }
 
         public void PlayCard(Card card)
@@ -39,11 +42,14 @@ namespace ChaosWarlords.Source.Systems
             // Add to PlayedCards
             _context.ActivePlayer.PlayedCards.Add(card);
 
-            // Update Stats (This increments the Aspect count for the turn)
-            _context.TurnManager.PlayCard(card);
+            // --- 3. RESOLVE EFFECTS (The Missing Link) ---
+            // Now that the card is "played", we trigger its game logic.
+            // We pass the 'hasFocus' snapshot we calculated earlier.
+            _effectProcessor.ResolveEffects(card, _context, hasFocus);
 
-            // Resolve effects with the pre-calculated Focus state
-            ResolveCardEffects(card, hasFocus);
+            // --- 4. UPDATE STATS ---
+            // Finally, register the card with the turn manager to update Aspect counts for future Focus checks.
+            _context.TurnManager.PlayCard(card);
         }
 
         public void DevourCard(Card card)
@@ -53,57 +59,6 @@ namespace ChaosWarlords.Source.Systems
                 card.Location = CardLocation.Void;
                 _context.VoidPile.Add(card);
                 GameLogger.Log($"Devoured {card.Name} from Hand.", LogChannel.Economy);
-            }
-        }
-
-        public void ResolveCardEffects(Card card, bool hasFocus)
-        {
-            foreach (var effect in card.Effects)
-            {
-                // --- Logic to Gate Effects based on Focus ---
-                // If the specific effect instruction requires Focus, 
-                // and we do NOT have Focus, we skip this effect entirely.
-                if (effect.RequiresFocus && !hasFocus)
-                {
-                    continue;
-                }
-
-                int finalAmount = effect.Amount;
-
-                // Optional: If you implement Focus as a "Bonus" to a base effect (e.g. Gain 1 Power, Focus +2)
-                // You would handle that here using a property like effect.FocusBonus.
-                // But for "Atomic" effects (where the whole line is conditional), the check above is sufficient.
-
-                switch (effect.Type)
-                {
-                    case EffectType.GainResource:
-                        if (effect.TargetResource == ResourceType.Power)
-                            _context.ActivePlayer.Power += finalAmount;
-                        else if (effect.TargetResource == ResourceType.Influence)
-                            _context.ActivePlayer.Influence += finalAmount;
-                        break;
-
-                    case EffectType.DrawCard:
-                        _context.ActivePlayer.DrawCards(finalAmount);
-                        break;
-
-                    case EffectType.Promote:
-                        // We do NOT trigger targeting here. We just add the credit.
-                        // Actual promotion happens at the end of the turn.
-                        _context.TurnManager.CurrentTurnContext.AddPromotionCredit(card, finalAmount);
-                        GameLogger.Log($"Promotion pending! Added {finalAmount} point(s) from {card.Name}.", LogChannel.Info);
-                        break;
-
-                    case EffectType.Devour:
-                        // Logic for devouring cards if applicable
-                        break;
-
-                    case EffectType.MoveUnit:
-                        // The actual movement logic is handled by the ActionSystem/MapManager 
-                        // during the targeting phase. We log it here to confirm resolution.
-                        GameLogger.Log($"{card.Name}: Movement effect resolved.", LogChannel.Info);
-                        break;
-                }
             }
         }
 

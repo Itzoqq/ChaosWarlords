@@ -32,6 +32,11 @@ namespace ChaosWarlords.Tests
         {
             MouseState = state;
         }
+
+        public void SetKeyboardState(KeyboardState state)
+        {
+            KeyboardState = state;
+        }
     }
 
     public class MockUISystem : IUISystem

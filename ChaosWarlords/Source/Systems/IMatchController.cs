@@ -6,7 +6,6 @@ namespace ChaosWarlords.Source.Systems
     {
         void PlayCard(Card card);
         void DevourCard(Card card);
-        void ResolveCardEffects(Card card, bool hasFocus);
         void MoveCardToPlayed(Card card);
         bool CanEndTurn(out string reason);
         void EndTurn();
