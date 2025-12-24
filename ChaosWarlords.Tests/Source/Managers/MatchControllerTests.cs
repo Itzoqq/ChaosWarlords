@@ -70,7 +70,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             // Add filler cards to Deck so DrawCards(5) doesn't force a Reshuffle
             for (int i = 0; i < 10; i++)
             {
-                _p1.Deck.Add(new Card("filler", "Filler", 0, 0, 0, 0, 0));
+                _p1.DeckManager.AddToTop(new Card("filler", "Filler", 0, 0, 0, 0, 0));
             }
 
             // Act
@@ -111,7 +111,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _p1.Hand.Add(cardInHand);
 
             // Filler for deck
-            for (int i = 0; i < 10; i++) _p1.Deck.Add(new Card("f", "f", 0, 0, 0, 0, 0));
+            for (int i = 0; i < 10; i++) _p1.DeckManager.AddToTop(new Card("f", "f", 0, 0, 0, 0, 0));
 
             // Act
             _controller.EndTurn();
@@ -206,7 +206,7 @@ namespace ChaosWarlords.Tests.Source.Systems
         {
             // Arrange
             var cardInDeck = new Card("deck_card", "Deck Card", 0, CardAspect.Neutral, 0, 0, 0);
-            _p1.Deck.Add(cardInDeck);
+            _p1.DeckManager.AddToTop(cardInDeck);
 
             // Act
             _controller.DevourCard(cardInDeck);

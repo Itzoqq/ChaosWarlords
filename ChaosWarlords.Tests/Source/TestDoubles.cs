@@ -65,9 +65,11 @@ namespace ChaosWarlords.Tests
         public event EventHandler? OnMarketToggleRequest;
         public event EventHandler? OnAssassinateRequest;
         public event EventHandler? OnReturnSpyRequest;
+#pragma warning disable CS0067
         public event EventHandler? OnEndTurnRequest;
         public event EventHandler? OnPopupConfirm;
         public event EventHandler? OnPopupCancel;
+#pragma warning restore CS0067
 
         public void RaiseMarketToggle() => OnMarketToggleRequest?.Invoke(this, EventArgs.Empty);
         public void RaiseAssassinateRequest() => OnAssassinateRequest?.Invoke(this, EventArgs.Empty);

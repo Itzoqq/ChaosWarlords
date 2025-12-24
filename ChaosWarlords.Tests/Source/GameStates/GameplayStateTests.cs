@@ -370,6 +370,7 @@ namespace ChaosWarlords.Tests.States
             // We need to know where the button is.
             // HACK for test: We can use Reflection to invoke 'HandlePopupConfirm'.
             var method = typeof(GameplayState).GetMethod("HandlePopupConfirm", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(method, "HandlePopupConfirm method not found via reflection");
             method.Invoke(state, new object[] { null!, EventArgs.Empty });
 
             Assert.IsFalse(state.IsConfirmationPopupOpen);
@@ -391,6 +392,7 @@ namespace ChaosWarlords.Tests.States
 
             // Cancel
             var method = typeof(GameplayState).GetMethod("HandlePopupCancel", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(method, "HandlePopupCancel method not found via reflection");
             method.Invoke(state, new object[] { null!, EventArgs.Empty });
 
             Assert.IsFalse(state.IsConfirmationPopupOpen);

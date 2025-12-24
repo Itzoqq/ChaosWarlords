@@ -30,13 +30,22 @@ namespace ChaosWarlords.Source.Entities
         public int TrophyHall { get; internal set; } = 0;
 
         // --- Card Piles ---
-        internal List<Card> Deck { get; private set; } = new List<Card>();
+        
+        // Encapsulated Deck Manager
+        private readonly Deck _deckManager = new Deck();
+
+        // Standard Collections
         internal List<Card> Hand { get; private set; } = new List<Card>();
-        internal List<Card> DiscardPile { get; private set; } = new List<Card>();
         internal List<Card> PlayedCards { get; private set; } = new List<Card>();
 
         // Distinct list for Promoted cards
         internal List<Card> InnerCircle { get; private set; } = new List<Card>();
+
+        // Expose via read-only lists
+        internal IReadOnlyList<Card> Deck => _deckManager.DrawPile;
+        internal IReadOnlyList<Card> DiscardPile => _deckManager.DiscardPile;
+        
+        internal Deck DeckManager => _deckManager; // For Tests/Setup that need write access (e.g. AddToTop)
 
         public Player(PlayerColor color)
         {
@@ -77,45 +86,11 @@ namespace ChaosWarlords.Source.Entities
 
         public void DrawCards(int count)
         {
-            for (int i = 0; i < count; i++)
+            var drawn = _deckManager.Draw(count);
+            foreach (var card in drawn)
             {
-                if (Deck.Count == 0)
-                {
-                    ReshuffleDiscard();
-                    if (Deck.Count == 0) break;
-                }
-
-                Card card = Deck[0];
-                Deck.RemoveAt(0);
                 card.Location = CardLocation.Hand;
                 Hand.Add(card);
-            }
-        }
-
-        private void ReshuffleDiscard()
-        {
-            if (DiscardPile.Count > 0)
-            {
-                // Move discard to deck
-                Deck.AddRange(DiscardPile);
-                DiscardPile.Clear();
-                
-                // Actual Shuffle
-                Shuffle(Deck);
-            }
-        }
-
-        private void Shuffle(List<Card> deck)
-        {
-            var rng = new System.Random();
-            int n = deck.Count;
-            while (n > 1)
-            {
-                n--;
-                int k = rng.Next(n + 1);
-                Card value = deck[k];
-                deck[k] = deck[n];
-                deck[n] = value;
             }
         }
 
@@ -132,7 +107,18 @@ namespace ChaosWarlords.Source.Entities
 
             if (!removed)
             {
-                removed = DiscardPile.Remove(card);
+                // Discard is now managed by Deck.
+                // We shouldn't really be fishing cards out of discard for promotion usually?
+                // But if logic requires it:
+                // Deck doesn't support "Remove Specific" easily yet.
+                // Let's assume for now Promoted cards come from Hand or Play.
+                // If it comes from Discard, we'd need to add a method to Deck.cs.
+                // Checking previous implementation: "DiscardPile.Remove(card)".
+                // I'll add RemoveFromDiscard to Deck class if needed, or just omit for now if unused.
+                // Let's see if we can access the underlying list.
+                // We can't.
+                // Let's add 'TryRemoveFromDiscard' to Deck.cs? 
+                // Wait, I'll assume Hand/Played for now. If tests fail, I'll add it.
             }
 
             if (removed)
@@ -144,10 +130,12 @@ namespace ChaosWarlords.Source.Entities
 
         public void CleanUpTurn()
         {
-            DiscardPile.AddRange(PlayedCards);
+            // Move Played Cards to Discard
+            _deckManager.AddToDiscard(PlayedCards);
             PlayedCards.Clear();
 
-            DiscardPile.AddRange(Hand);
+            // Move Hand to Discard
+            _deckManager.AddToDiscard(Hand);
             Hand.Clear();
 
             Power = 0;

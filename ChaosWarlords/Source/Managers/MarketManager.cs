@@ -28,7 +28,7 @@ namespace ChaosWarlords.Source.Systems
 
             player.Influence -= card.Cost;
             MarketRow.Remove(card);
-            player.DiscardPile.Add(card);
+            player.DeckManager.AddToDiscard(card);
 
             RefillMarket();
             return true;

@@ -21,7 +21,9 @@ namespace ChaosWarlords.Tests.Source.Entities
         [TestMethod]
         public void DrawCards_DrawsCorrectAmountFromDeck()
         {
-            _player.Deck.AddRange(new[] { _card1, _card2, _card3 });
+            _player.DeckManager.AddToTop(_card1);
+            _player.DeckManager.AddToTop(_card2);
+            _player.DeckManager.AddToTop(_card3);
 
             _player.DrawCards(2);
 
@@ -33,14 +35,16 @@ namespace ChaosWarlords.Tests.Source.Entities
         [TestMethod]
         public void DrawCards_ReshufflesDiscardPileWhenDeckIsEmpty()
         {
-            _player.Deck.Add(_card1);
-            _player.DiscardPile.AddRange(new[] { _card2, _card3 });
+            _player.DeckManager.AddToTop(_card1);
+            _player.DeckManager.AddToDiscard(new[] { _card2, _card3 });
 
             _player.DrawCards(3);
 
             Assert.HasCount(3, _player.Hand);
             Assert.IsEmpty(_player.Deck);
             Assert.IsEmpty(_player.DiscardPile);
+
+            // Since order is shuffled, just check containment
             CollectionAssert.Contains(_player.Hand, _card1);
             CollectionAssert.Contains(_player.Hand, _card2);
             CollectionAssert.Contains(_player.Hand, _card3);
@@ -49,7 +53,7 @@ namespace ChaosWarlords.Tests.Source.Entities
         [TestMethod]
         public void DrawCards_StopsWhenDeckAndDiscardAreEmpty()
         {
-            _player.Deck.Add(_card1);
+            _player.DeckManager.AddToTop(_card1);
 
             _player.DrawCards(5); // Tries to draw 5, but only 1 is available
 
@@ -72,9 +76,13 @@ namespace ChaosWarlords.Tests.Source.Entities
             Assert.HasCount(3, _player.DiscardPile);
             Assert.AreEqual(0, _player.Power);
             Assert.AreEqual(0, _player.Influence);
-            CollectionAssert.Contains(_player.DiscardPile, _card1);
-            CollectionAssert.Contains(_player.DiscardPile, _card2);
-            CollectionAssert.Contains(_player.DiscardPile, _card3);
+            // We cannot easily check containment on IReadOnlyList with CollectionAssert directly if it expects ICollection? 
+            // CollectionAssert works on ICollection. IReadOnlyList implements IEnumerable, usually generic. 
+            // CollectionAssert.Contains expects ICollection or ICollection via explicit check. 
+            // Let's rely on Linq or check behavior.
+            Assert.IsTrue(_player.DiscardPile.Contains(_card1));
+            Assert.IsTrue(_player.DiscardPile.Contains(_card2));
+            Assert.IsTrue(_player.DiscardPile.Contains(_card3));
         }
 
         [TestMethod]
@@ -112,11 +120,11 @@ namespace ChaosWarlords.Tests.Source.Entities
 
             // 2. Discard Pile check
             Assert.HasCount(2, _player.DiscardPile);
-            CollectionAssert.Contains(_player.DiscardPile, _card2);
-            CollectionAssert.Contains(_player.DiscardPile, _card3);
+            Assert.IsTrue(_player.DiscardPile.Contains(_card2));
+            Assert.IsTrue(_player.DiscardPile.Contains(_card3));
 
             // 3. Crucial Check: Promoted card is NOT in discard
-            CollectionAssert.DoesNotContain(_player.DiscardPile, _card1, "Promoted card should not enter discard cycle.");
+            Assert.IsFalse(_player.DiscardPile.Contains(_card1), "Promoted card should not enter discard cycle.");
         }
 
         [TestMethod]

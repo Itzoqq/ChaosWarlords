@@ -48,7 +48,7 @@ namespace ChaosWarlords.Tests.Systems
 
             Assert.IsTrue(result);
             Assert.AreEqual(3, _player.Influence);
-            CollectionAssert.Contains(_player.DiscardPile, _cheapCard);
+            Assert.IsTrue(_player.DiscardPile.Contains(_cheapCard));
             CollectionAssert.DoesNotContain(_market.MarketRow, _cheapCard);
         }
 
@@ -61,7 +61,7 @@ namespace ChaosWarlords.Tests.Systems
 
             Assert.IsFalse(result);
             Assert.AreEqual(5, _player.Influence);
-            CollectionAssert.DoesNotContain(_player.DiscardPile, _expensiveCard);
+            Assert.IsFalse(_player.DiscardPile.Contains(_expensiveCard));
         }
 
         [TestMethod]
@@ -119,7 +119,7 @@ namespace ChaosWarlords.Tests.Systems
             // Assert
             Assert.IsTrue(result);
             Assert.AreEqual(0, _player.Influence);
-            CollectionAssert.Contains(_player.DiscardPile, exactCard);
+            Assert.IsTrue(_player.DiscardPile.Contains(exactCard));
         }
 
         [TestMethod]
@@ -131,7 +131,7 @@ namespace ChaosWarlords.Tests.Systems
 
             Assert.IsFalse(result);
             Assert.AreEqual(0, _player.Influence);
-            CollectionAssert.DoesNotContain(_player.DiscardPile, _cheapCard);
+            Assert.IsFalse(_player.DiscardPile.Contains(_cheapCard));
         }
     }
 }
