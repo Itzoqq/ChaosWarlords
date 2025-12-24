@@ -155,7 +155,8 @@ namespace ChaosWarlords.Source.States
                     }
                     else
                     {
-                        GameLogger.Log($"No valid targets for {effect.Type}. Effect skipped.", LogChannel.Info);
+                        GameLogger.Log($"Cannot play {card.Name}: No valid targets for {effect.Type}.", LogChannel.Warning);
+                        return; // ABORT: Keep card in hand
                     }
                 }
             }
@@ -241,8 +242,22 @@ namespace ChaosWarlords.Source.States
                     int pending = _matchContext.TurnManager.CurrentTurnContext.PendingPromotionsCount;
                     if (pending > 0)
                     {
-                        GameLogger.Log($"You must promote {pending} card(s) before ending your turn.", LogChannel.Warning);
-                        SwitchToPromoteMode(pending);
+                        // FIX: Strict Rule Check
+                        // Only enter Promote Mode if there are actually cards we CAN promote.
+                        var activePlayer = _matchContext.TurnManager.ActivePlayer;
+                        bool hasValidTargets = activePlayer.PlayedCards.Any(c => 
+                            _matchContext.TurnManager.CurrentTurnContext.HasValidCreditFor(c));
+
+                        if (hasValidTargets)
+                        {
+                            GameLogger.Log($"You must promote {pending} card(s) before ending your turn.", LogChannel.Warning);
+                            SwitchToPromoteMode(pending);
+                        }
+                        else
+                        {
+                            GameLogger.Log("No valid cards to promote. Promotion effects skipped.", LogChannel.Info);
+                            EndTurn();
+                        }
                     }
                     else
                     {

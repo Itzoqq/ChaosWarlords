@@ -73,7 +73,9 @@ namespace ChaosWarlords.Source.Systems
         public void CancelTargeting()
         {
             ClearState();
-            GameLogger.Log("Targeting Cancelled.", LogChannel.General);
+            // DOUBLE SAFETY: Explicitly null it here too to be sure
+            PendingCard = null; 
+            GameLogger.Log("ActionSystem: Targeting Cancelled. State cleared.", LogChannel.Info);
         }
 
         public bool IsTargeting()

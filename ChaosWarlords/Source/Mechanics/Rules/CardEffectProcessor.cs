@@ -48,7 +48,29 @@ namespace ChaosWarlords.Source.Systems
                     GameLogger.Log($"{sourceCard.Name}: Movement effect resolved.", LogChannel.Info);
                     break;
 
-                    // Add other case logic here...
+                case EffectType.Assassinate:
+                    context.ActionSystem.StartTargeting(ActionState.TargetingAssassinate, sourceCard);
+                    GameLogger.Log($"{sourceCard.Name}: Select a valid target to Assassinate.", LogChannel.Input);
+                    break;
+
+                case EffectType.Supplant:
+                    context.ActionSystem.StartTargeting(ActionState.TargetingSupplant, sourceCard);
+                    GameLogger.Log($"{sourceCard.Name}: Select a valid target to Supplant.", LogChannel.Input);
+                    break;
+
+                case EffectType.PlaceSpy:
+                    context.ActionSystem.StartTargeting(ActionState.TargetingPlaceSpy, sourceCard);
+                    GameLogger.Log($"{sourceCard.Name}: Select a Site to Place Spy.", LogChannel.Input);
+                    break;
+
+                case EffectType.ReturnUnit:
+                    context.ActionSystem.StartTargeting(ActionState.TargetingReturn, sourceCard);
+                    GameLogger.Log($"{sourceCard.Name}: Select a unit to Return.", LogChannel.Input);
+                    break;
+
+                case EffectType.Devour:
+                    context.ActionSystem.TryStartDevourHand(sourceCard);
+                    break;
             }
         }
     }

@@ -26,9 +26,8 @@ namespace ChaosWarlords.Source.States.Input
         {
             if (input.IsRightMouseJustClicked() || input.IsKeyJustPressed(Keys.Escape))
             {
-                actionSystem.CancelTargeting();
-                _gameplayState.SwitchToNormalMode();
-                GameLogger.Log("Cancelled End Turn. Finish playing cards.", LogChannel.General);
+                // Strict Rule Enforcement:
+                GameLogger.Log("Mandatory Action: You must select a card to promote.", LogChannel.Warning);
                 return null;
             }
 

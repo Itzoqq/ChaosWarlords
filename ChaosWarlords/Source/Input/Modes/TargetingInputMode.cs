@@ -43,6 +43,10 @@ namespace ChaosWarlords.Source.States.Input
             // 3. Right-Click to Cancel
             if (inputManager.IsRightMouseJustClicked())
             {
+                // Safety Log
+                string cardName = actionSystem.PendingCard != null ? actionSystem.PendingCard.Name : "Unknown";
+                GameLogger.Log($"Input: Cancelled Action for {cardName}. Card returned to hand.", LogChannel.Info);
+
                 actionSystem.CancelTargeting();
                 // We return this command to ensure immediate update, 
                 // though the event system could handle cancellation too if you wired OnActionCancelled.

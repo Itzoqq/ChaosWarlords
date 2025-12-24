@@ -24,5 +24,6 @@ namespace ChaosWarlords.Source.Systems
 
         void HandleTargetClick(MapNode targetNode, Site targetSite);
         void FinalizeSpyReturn(PlayerColor selectedSpyColor);
+        void TryStartDevourHand(Card sourceCard);
     }
 }
