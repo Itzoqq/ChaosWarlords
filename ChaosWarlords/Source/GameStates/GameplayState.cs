@@ -106,7 +106,21 @@ namespace ChaosWarlords.Source.States
             _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
         }
 
-        public void UnloadContent() { }
+        public void UnloadContent()
+        {
+            if (_uiManagerBacking != null)
+            {
+                _uiManagerBacking.OnMarketToggleRequest -= HandleMarketToggle;
+                _uiManagerBacking.OnAssassinateRequest -= HandleAssassinateRequest;
+                _uiManagerBacking.OnReturnSpyRequest -= HandleReturnSpyRequest;
+            }
+
+            if (_matchContext?.ActionSystem != null)
+            {
+                _matchContext.ActionSystem.OnActionCompleted -= HandleActionCompleted;
+                _matchContext.ActionSystem.OnActionFailed -= HandleActionFailed;
+            }
+        }
 
         public void Update(GameTime gameTime)
         {
