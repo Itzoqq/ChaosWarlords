@@ -265,10 +265,10 @@ namespace ChaosWarlords.Source.States
                     int pending = _matchContext.TurnManager.CurrentTurnContext.PendingPromotionsCount;
                     if (pending > 0)
                     {
-                        // FIX: Strict Rule Check
+                        // Strict Rule Check
                         // Only enter Promote Mode if there are actually cards we CAN promote.
                         var activePlayer = _matchContext.TurnManager.ActivePlayer;
-                        bool hasValidTargets = activePlayer.PlayedCards.Any(c => 
+                        bool hasValidTargets = activePlayer.PlayedCards.Any(c =>
                             _matchContext.TurnManager.CurrentTurnContext.HasValidCreditFor(c));
 
                         if (hasValidTargets)

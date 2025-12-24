@@ -271,13 +271,11 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void HandleTargetClick_ReturnSpy_DoesNotSpendPower_IfMapManagerRejects_Regression()
         {
-            // Scenario: Player tries to return spy, but MapManager says "No Presence" (False).
-            // Bug: Player pays 3 Power anyway. Fix: Check first.
 
             // Arrange
             _player1.Power = 3;
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
-            
+
             // Mock: Spies exist, BUT ReturnSpecificSpy returns FALSE (e.g. no presence)
             _mapManager.GetEnemySpiesAtSite(_siteA, _player1).Returns(new List<PlayerColor> { PlayerColor.Blue });
             _mapManager.ReturnSpecificSpy(Arg.Any<Site>(), Arg.Any<Player>(), Arg.Any<PlayerColor>()).Returns(false);
@@ -297,7 +295,7 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange
             _player1.Power = 3;
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate);
-            
+
             // Mock: Invalid target according to Manager (e.g. protected, or logic mismatch)
             _mapManager.CanAssassinate(_node2, _player1).Returns(false);
 

@@ -149,7 +149,7 @@ namespace ChaosWarlords.Tests.States
             var card = new Card("assassin", "Assassin", 3, CardAspect.Shadow, 1, 1, 0);
             card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
 
-            // FIX: Add card to hand so validation passes
+            // Add card to hand so validation passes
             state.MatchContext.ActivePlayer.Hand.Add(card);
 
             // Setup: Map says NO valid targets
@@ -174,7 +174,7 @@ namespace ChaosWarlords.Tests.States
             var card = new Card("noble", "Noble", 3, CardAspect.Blasphemy, 1, 1, 0);
             card.AddEffect(new CardEffect(EffectType.Promote, 1));
 
-            // FIX: Add card to hand so validation passes
+            // Add card to hand so validation passes
             state.MatchContext.ActivePlayer.Hand.Add(card);
 
             state.PlayCard(card);
@@ -192,7 +192,7 @@ namespace ChaosWarlords.Tests.States
             var card = new Card("assassin", "Assassin", 3, CardAspect.Shadow, 1, 1, 0);
             card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
 
-            // FIX: Add card to hand
+            // Add card to hand
             state.MatchContext.ActivePlayer.Hand.Add(card);
 
             // Setup: Map says valid targets EXIST
@@ -272,7 +272,7 @@ namespace ChaosWarlords.Tests.States
 
                 _matchController = new MatchController(_matchContext);
 
-                // --- FIX: Initialize the missing Coordinators ---
+                // --- Initialize the missing Coordinators ---
 
                 // 1. Interaction Mapper (View is null, but constructor tolerates it)
                 var mapper = new InteractionMapper(_view);
@@ -319,7 +319,7 @@ namespace ChaosWarlords.Tests.States
             _actionSystem.When(x => x.StartTargeting(ActionState.SelectingCardToPromote, Arg.Any<Card>()))
                           .Do(x => _actionSystem.CurrentState.Returns(ActionState.SelectingCardToPromote));
 
-            // FIX: Add a DIFFERENT card to PlayedCards to satisfy "Cannot promote self" rule
+            // Add a DIFFERENT card to PlayedCards to satisfy "Cannot promote self" rule
             var targetCard = new Card("minion", "Minion", 0, CardAspect.Blasphemy, 0, 0, 0);
             state.MatchContext.ActivePlayer.PlayedCards.Add(targetCard);
 
@@ -330,7 +330,7 @@ namespace ChaosWarlords.Tests.States
             state.Update(new GameTime());
 
             // --- Assert ---
-            // 1. Verify your FIX: Did GameplayState tell ActionSystem to enter the Promote state?
+            // 1. Verify your Did GameplayState tell ActionSystem to enter the Promote state?
             _actionSystem.Received(1).StartTargeting(ActionState.SelectingCardToPromote, null);
 
             // 2. Verify Result: Did the InputCoordinator correctly switch to PromoteInputMode?

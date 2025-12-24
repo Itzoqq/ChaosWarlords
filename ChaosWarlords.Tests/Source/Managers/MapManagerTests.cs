@@ -329,9 +329,9 @@ namespace ChaosWarlords.Tests.Systems
         public void ReturnTroop_ReturnsEnemyTroopToTheirBarracks()
         {
             _node1.Occupant = _player2.Color;
-            // NEW: Player 1 needs presence to act. Give them a troop on neighbor Node 2.
+            // Player 1 needs presence to act. Give them a troop on neighbor Node 2.
             _node2.Occupant = _player1.Color;
-            
+
             int p2InitialTroops = _player2.TroopsInBarracks;
 
             _mapManager.ReturnTroop(_node1, _player1);
@@ -412,20 +412,20 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void Logic_TotalControl_DeniedByEnemySpy()
         {
-             // P1 Controls Node 3 and Node 4 (Site A)
-             _node3.Occupant = _player1.Color;
-             _node4.Occupant = _player1.Color;
-             
-             // Initial Check
-             _mapManager.RecalculateSiteState(_siteA, _player1);
-             Assert.IsTrue(_siteA.HasTotalControl, "Should have total control initially.");
+            // P1 Controls Node 3 and Node 4 (Site A)
+            _node3.Occupant = _player1.Color;
+            _node4.Occupant = _player1.Color;
 
-             // Enemy Spy Arrives
-             _siteA.Spies.Add(_player2.Color);
-             _mapManager.RecalculateSiteState(_siteA, _player1);
+            // Initial Check
+            _mapManager.RecalculateSiteState(_siteA, _player1);
+            Assert.IsTrue(_siteA.HasTotalControl, "Should have total control initially.");
 
-             Assert.IsFalse(_siteA.HasTotalControl, "Enemy spy should deny Total Control.");
-             Assert.AreEqual(_player1.Color, _siteA.Owner, "Should still OWN the site (Minority Control).");
+            // Enemy Spy Arrives
+            _siteA.Spies.Add(_player2.Color);
+            _mapManager.RecalculateSiteState(_siteA, _player1);
+
+            Assert.IsFalse(_siteA.HasTotalControl, "Enemy spy should deny Total Control.");
+            Assert.AreEqual(_player1.Color, _siteA.Owner, "Should still OWN the site (Minority Control).");
         }
         [TestMethod]
         public void DistributeControlRewards_GrantsTotalControlRewards_WhenConditionsMet()
@@ -449,7 +449,7 @@ namespace ChaosWarlords.Tests.Systems
             // Verify Pre-Conditions
             Assert.AreEqual(_player1.Color, _siteA.Owner, "Player 1 should own the site.");
             Assert.IsTrue(_siteA.HasTotalControl, "Player 1 should have total control.");
-            
+
             // Reset to isolate End Turn Reward
             _player1.Power = 0;
             _player1.VictoryPoints = 0;
@@ -467,11 +467,11 @@ namespace ChaosWarlords.Tests.Systems
         public void DistributeControlRewards_DeniesTotalControlRewards_WhenEnemySpyPresent()
         {
             // Scenario: Player 1 occupies nodes, but Player 2 has a spy.
-            
+
             // Arrange
             _node3.Occupant = _player1.Color;
             _node4.Occupant = _player1.Color;
-            
+
             // Add Enemy Spy
             _siteA.Spies.Add(_player2.Color);
 

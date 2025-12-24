@@ -74,7 +74,7 @@ namespace ChaosWarlords.Source.Systems
         {
             ClearState();
             // DOUBLE SAFETY: Explicitly null it here too to be sure
-            PendingCard = null; 
+            PendingCard = null;
             GameLogger.Log("ActionSystem: Targeting Cancelled. State cleared.", LogChannel.Info);
         }
 
@@ -261,10 +261,10 @@ namespace ChaosWarlords.Source.Systems
             // Note: We use the newly added CanReturnSpecificSpy for safety
             // but since MapManager is mocked in old tests without this method, we rely on ReturnSpecificSpy behaving transactionally or matching the test expectation.
             // However, to fix the bug WE MUST CHECK BEFORE SPENDING.
-            
+
             // To be safe with Mocks that might not have CanReturnSpecificSpy setup, we might need to rely on the logic flow or update tests.
             // But since we are fixing the bug, let's assume we updated MapManager (we did).
-            
+
             // Wait, for Testing with NSubstitute, if we call a method that isn't setup, it returns default.
             // We should use the mock's setup for ReturnSpecificSpy if possible, OR expect CanReturnSpecificSpy to be called.
             // For now, let's implement the logic assuming the Manager works.
@@ -285,11 +285,9 @@ namespace ChaosWarlords.Source.Systems
             // But if we trust CanReturnSpecificSpy, we can spend.
             // MapManager.ReturnSpecificSpy performs validation too.
 
-            // The Bug Fix:
             // We only spend power IF the action succeeds.
-            
             bool success = _mapManager.ReturnSpecificSpy(PendingSite, CurrentPlayer, selectedSpyColor);
-            
+
             if (success)
             {
                 if (PendingCard == null)

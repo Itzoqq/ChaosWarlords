@@ -61,7 +61,7 @@ namespace ChaosWarlords.Source.Systems
         {
             if (isTotal != wasTotal)
             {
-                // FIX: Added 'activePlayer != null' checks to prevent crash during troop movement
+                // Added 'activePlayer != null' checks to prevent crash during troop movement
                 if (isTotal && activePlayer != null && owner == activePlayer.Color && site.IsCity)
                 {
                     ApplyReward(activePlayer, site.TotalControlResource, site.TotalControlAmount);

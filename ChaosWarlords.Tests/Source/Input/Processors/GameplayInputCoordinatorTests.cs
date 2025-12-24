@@ -39,7 +39,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             // We pass null for Game/InputProvider because our subclass doesn't use them in this specific test scope
             _state = new TestableGameplayState(null!, Substitute.For<IInputProvider>(), cardDb);
 
-            // CRITICAL FIX: Inject a Mock UIManager so SwitchToNormalMode() doesn't crash
+            // Inject a Mock UIManager so SwitchToNormalMode() doesn't crash
             _state.SetUIManager(Substitute.For<IUISystem>());
 
             // 3. Setup InputManager
