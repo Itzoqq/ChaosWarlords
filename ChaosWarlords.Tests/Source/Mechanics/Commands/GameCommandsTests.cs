@@ -198,5 +198,92 @@ namespace ChaosWarlords.Tests.Source.Commands
             // 2. Verify we told the ActionSystem "We are done selecting"
             _actionSub.Received(1).CompleteAction();
         }
+
+        [TestMethod]
+        public void PlayCardCommand_DelegatesToState()
+        {
+            // Arrange
+            var card = new Card("c1", "Test", 0, CardAspect.Neutral, 0, 0, 0);
+            var command = new PlayCardCommand(card);
+
+            // Act
+            command.Execute(_stateSub);
+
+            // Assert
+            _stateSub.Received(1).PlayCard(card);
+        }
+
+        [TestMethod]
+        public void EndTurnCommand_EndsTurn_WhenAllowed()
+        {
+            // Arrange
+            var command = new EndTurnCommand();
+             string reason;
+            _stateSub.CanEndTurn(out reason).Returns(x => {
+                x[0] = "";
+                return true;
+            });
+
+            // Act
+            command.Execute(_stateSub);
+
+            // Assert
+            _stateSub.Received(1).EndTurn();
+        }
+
+        [TestMethod]
+        public void EndTurnCommand_LogsWarning_WhenNotAllowed()
+        {
+            // Arrange
+            var command = new EndTurnCommand();
+            string expectedReason = "You must do X first.";
+            string reason;
+            _stateSub.CanEndTurn(out reason).Returns(x => {
+                x[0] = expectedReason;
+                return false;
+            });
+
+            // Act
+            command.Execute(_stateSub);
+
+            // Assert
+            _stateSub.DidNotReceive().EndTurn();
+            // We can't easily assert the static GameLogger was called without an interface wrapper 
+            // or digging into the static logger, but we verify it didn't EndTurn.
+        }
+
+        [TestMethod]
+        public void StartAssassinateCommand_InitiatesAssassinate()
+        {
+            // Arrange
+            var command = new StartAssassinateCommand();
+            
+            // Mock that we successfully entered targeting mode
+            _actionSub.CurrentState.Returns(ActionState.TargetingAssassinate);
+
+            // Act
+            command.Execute(_stateSub);
+
+            // Assert
+            _actionSub.Received(1).TryStartAssassinate();
+            _stateSub.Received(1).SwitchToTargetingMode();
+        }
+
+        [TestMethod]
+        public void StartAssassinateCommand_DoesNotSwitch_IfFailed()
+        {
+            // Arrange
+            var command = new StartAssassinateCommand();
+
+            // Mock that we FAILED to enter targeting mode (e.g. no targets)
+            _actionSub.CurrentState.Returns(ActionState.Normal);
+
+            // Act
+            command.Execute(_stateSub);
+
+            // Assert
+            _actionSub.Received(1).TryStartAssassinate();
+            _stateSub.DidNotReceive().SwitchToTargetingMode();
+        }
     }
 }
