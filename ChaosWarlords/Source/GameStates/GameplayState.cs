@@ -28,6 +28,7 @@ namespace ChaosWarlords.Source.States
         // New Coordinators
         private GameplayInputCoordinator _inputCoordinator;
         private InteractionMapper _interactionMapper;
+        private CardPlaySystem _cardPlaySystem;
 
         public InputManager InputManager => _inputManagerBacking;
         public IUISystem UIManager => _uiManagerBacking;
@@ -104,6 +105,9 @@ namespace ChaosWarlords.Source.States
 
             // 2. Initialize InputCoordinator
             _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
+            
+            // 3. Initialize CardPlaySystem
+            _cardPlaySystem = new CardPlaySystem(_matchContext, _matchController, () => SwitchToTargetingMode());
         }
 
         public void UnloadContent()
@@ -156,70 +160,12 @@ namespace ChaosWarlords.Source.States
 
         public void PlayCard(Card card)
         {
-            // 1. Check for Targeting Effects
-            bool enteredTargeting = false;
-
-            // 1. Check for Targeting Effects
-            foreach (var effect in card.Effects)
-            {
-                if (IsTargetingEffect(effect.Type))
-                {
-                    if (HasValidTargets(effect.Type))
-                    {
-                        _matchContext.ActionSystem.StartTargeting(GetTargetingState(effect.Type), card);
-                        SwitchToTargetingMode();
-                        enteredTargeting = true;
-                        break; // Stop checking other effects once we enter targeting
-                    }
-                    else
-                    {
-                        // SKIPPING TARGETING:
-                        // If no targets exist, we define this as "Targeting phase complete/skipped"
-                        // and proceed to play the card data.
-                        GameLogger.Log($"Skipping targeting for {card.Name}: No valid targets for {effect.Type}.", LogChannel.Info);
-                    }
-                }
-            }
-
-            // 2. Play immediately if no targeting was started
-            if (!enteredTargeting)
-            {
-                _matchController.PlayCard(card);
-            }
+            _cardPlaySystem.PlayCard(card);
         }
 
-        public bool HasViableTargets(Card card)
-        {
-            if (card == null) return false;
-            bool hasTargeting = card.Effects.Any(e => IsTargetingEffect(e.Type));
-            if (!hasTargeting) return true;
+        public bool HasViableTargets(Card card) => _cardPlaySystem.HasViableTargets(card);
 
-            foreach (var effect in card.Effects)
-            {
-                if (IsTargetingEffect(effect.Type))
-                {
-                    if (HasValidTargets(effect.Type)) return true;
-                }
-            }
-            return false;
-        }
 
-        private bool HasValidTargets(EffectType type)
-        {
-            var p = _matchContext.ActivePlayer;
-            var map = _matchContext.MapManager;
-
-            return type switch
-            {
-                EffectType.Assassinate => map.HasValidAssassinationTarget(p),
-                EffectType.Supplant => map.HasValidAssassinationTarget(p),
-                EffectType.ReturnUnit => map.HasValidReturnSpyTarget(p) || map.HasValidReturnTroopTarget(p),
-                EffectType.PlaceSpy => map.HasValidPlaceSpyTarget(p),
-                EffectType.MoveUnit => map.HasValidMoveSource(p),
-                EffectType.Devour => p.Hand.Count > 0,
-                _ => true
-            };
-        }
 
         public void MoveCardToPlayed(Card card) => _matchController.MoveCardToPlayed(card);
 
@@ -320,29 +266,7 @@ namespace ChaosWarlords.Source.States
             }
         }
 
-        private bool IsTargetingEffect(EffectType type)
-        {
-            return type == EffectType.Assassinate ||
-                   type == EffectType.ReturnUnit ||
-                   type == EffectType.Supplant ||
-                   type == EffectType.PlaceSpy ||
-                   type == EffectType.MoveUnit ||
-                   type == EffectType.Devour;
-        }
 
-        private ActionState GetTargetingState(EffectType type)
-        {
-            return type switch
-            {
-                EffectType.Assassinate => ActionState.TargetingAssassinate,
-                EffectType.ReturnUnit => ActionState.TargetingReturn,
-                EffectType.Supplant => ActionState.TargetingSupplant,
-                EffectType.PlaceSpy => ActionState.TargetingPlaceSpy,
-                EffectType.MoveUnit => ActionState.TargetingMoveSource,
-                EffectType.Devour => ActionState.TargetingDevourHand,
-                _ => ActionState.Normal
-            };
-        }
 
         public string GetTargetingText(ActionState state) => state.ToString();
 

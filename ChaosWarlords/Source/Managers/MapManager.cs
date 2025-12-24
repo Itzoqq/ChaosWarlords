@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ChaosWarlords.Source.Entities;
@@ -131,14 +132,15 @@ namespace ChaosWarlords.Source.Systems
 
         private void ExecuteDeploy(MapNode node, Player player)
         {
-            player.Power -= 1;
-            player.TroopsInBarracks--;
-            node.Occupant = player.Color;
-
-            GameLogger.Log($"Deployed Troop at Node {node.Id}. Supply: {player.TroopsInBarracks}", LogChannel.Combat);
-
-            // Step 4: React to State Change (Delegated)
-            RecalculateSiteState(GetSiteForNode(node), player);
+            ExecuteMapAction(() =>
+            {
+                player.Power -= 1;
+                player.TroopsInBarracks--;
+                node.Occupant = player.Color;
+            }, 
+            $"Deployed Troop at Node {node.Id}. Supply: {player.TroopsInBarracks}", 
+            GetSiteForNode(node), 
+            player);
 
             if (player.TroopsInBarracks == 0)
                 GameLogger.Log("FINAL TROOP DEPLOYED! Game ends this round.", LogChannel.General);
@@ -148,11 +150,14 @@ namespace ChaosWarlords.Source.Systems
         {
             if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
 
-            node.Occupant = PlayerColor.None;
-            attacker.TrophyHall++;
-
-            GameLogger.Log($"Assassinated enemy at Node {node.Id}. Trophy Hall: {attacker.TrophyHall}", LogChannel.Combat);
-            RecalculateSiteState(GetSiteForNode(node), attacker);
+            ExecuteMapAction(() =>
+            {
+                node.Occupant = PlayerColor.None;
+                attacker.TrophyHall++;
+            },
+            $"Assassinated enemy at Node {node.Id}. Trophy Hall: {attacker.TrophyHall}",
+            GetSiteForNode(node),
+            attacker);
         }
 
         public bool CanReturnTroop(MapNode node, Player requestingPlayer)
@@ -174,18 +179,26 @@ namespace ChaosWarlords.Source.Systems
             
             if (node.Occupant == requestingPlayer.Color)
             {
-                node.Occupant = PlayerColor.None;
-                requestingPlayer.TroopsInBarracks++;
-                GameLogger.Log($"Returned friendly troop at Node {node.Id} to barracks.", LogChannel.Combat);
+                ExecuteMapAction(() =>
+                {
+                    node.Occupant = PlayerColor.None;
+                    requestingPlayer.TroopsInBarracks++;
+                },
+                $"Returned friendly troop at Node {node.Id} to barracks.",
+                GetSiteForNode(node),
+                requestingPlayer);
             }
             else if (node.Occupant != PlayerColor.None)
             {
                 PlayerColor enemyColor = node.Occupant;
-                node.Occupant = PlayerColor.None;
-                GameLogger.Log($"Returned {enemyColor} troop at Node {node.Id} to their barracks.", LogChannel.Combat);
+                ExecuteMapAction(() =>
+                {
+                    node.Occupant = PlayerColor.None;
+                },
+                $"Returned {enemyColor} troop at Node {node.Id} to their barracks.",
+                GetSiteForNode(node),
+                requestingPlayer);
             }
-
-            RecalculateSiteState(GetSiteForNode(node), requestingPlayer);
         }
 
         public void PlaceSpy(Site site, Player player)
@@ -198,10 +211,14 @@ namespace ChaosWarlords.Source.Systems
 
             if (player.SpiesInBarracks > 0)
             {
-                player.SpiesInBarracks--;
-                site.Spies.Add(player.Color);
-                GameLogger.Log($"Spy placed at {site.Name}.", LogChannel.Combat);
-                RecalculateSiteState(site, player);
+                ExecuteMapAction(() =>
+                {
+                    player.SpiesInBarracks--;
+                    site.Spies.Add(player.Color);
+                },
+                $"Spy placed at {site.Name}.",
+                site,
+                player);
             }
             else
             {
@@ -213,26 +230,37 @@ namespace ChaosWarlords.Source.Systems
         {
             if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
 
-            node.Occupant = PlayerColor.None;
-            attacker.TrophyHall++;
-            GameLogger.Log($"Supplanted enemy at Node {node.Id} (Added to Trophy Hall)", LogChannel.Combat);
-
-            node.Occupant = attacker.Color;
-            attacker.TroopsInBarracks--;
-
-            RecalculateSiteState(GetSiteForNode(node), attacker);
+            ExecuteMapAction(() =>
+            {
+                node.Occupant = PlayerColor.None;
+                attacker.TrophyHall++;
+                // GameLogger logic for Supplant has two logs in original, we simplify or merge?
+                // Original logged "Supplanted enemy..." then set occupant and logged implied "Deployed..." via Recalc? No.
+                // Original: Log "Supplanted...", set occupant, decrement barracks, Recalc.
+                
+                node.Occupant = attacker.Color;
+                attacker.TroopsInBarracks--;
+            },
+            $"Supplanted enemy at Node {node.Id} (Added to Trophy Hall) and Deployed.",
+            GetSiteForNode(node),
+            attacker);
         }
 
         public void MoveTroop(MapNode source, MapNode destination)
         {
             if (source == null || destination == null) return;
 
-            destination.Occupant = source.Occupant;
-            source.Occupant = PlayerColor.None;
+            // MoveTroop affects two sites, so standard helper is partial fit.
+            // We can chain or just keep manual for this one unique double-update case.
+            // Or use helper for the "Move" log and primary recalc, then manual second recalc.
+            
+            Action moveAction = () =>
+            {
+                destination.Occupant = source.Occupant;
+                source.Occupant = PlayerColor.None;
+            };
 
-            GameLogger.Log($"Moved troop from {source.Id} to {destination.Id}.", LogChannel.Combat);
-            // Note: Site state might change for both source and destination sites
-            RecalculateSiteState(GetSiteForNode(source), null); // null player because this is just cleanup
+            ExecuteMapAction(moveAction, $"Moved troop from {source.Id} to {destination.Id}.", GetSiteForNode(source), null);
             RecalculateSiteState(GetSiteForNode(destination), null);
         }
 
@@ -261,10 +289,27 @@ namespace ChaosWarlords.Source.Systems
                 return false;
             }
 
-            site.Spies.Remove(targetSpyColor);
-            GameLogger.Log($"Returned {targetSpyColor} Spy from {site.Name} to barracks.", LogChannel.Combat);
-            RecalculateSiteState(site, activePlayer);
+            ExecuteMapAction(() =>
+            {
+                site.Spies.Remove(targetSpyColor);
+            },
+            $"Returned {targetSpyColor} Spy from {site.Name} to barracks.",
+            site,
+            activePlayer);
             return true;
+        }
+
+        private void ExecuteMapAction(System.Action action, string message, Site site, Player player)
+        {
+            action?.Invoke();
+            if (!string.IsNullOrEmpty(message))
+            {
+                GameLogger.Log(message, LogChannel.Combat);
+            }
+            if (site != null)
+            {
+                RecalculateSiteState(site, player);
+            }
         }
     }
 }
