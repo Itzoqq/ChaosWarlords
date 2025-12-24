@@ -206,8 +206,8 @@ namespace ChaosWarlords.Tests.States
 
             // REGRESSION CHECK:
             // Ensure card is NOT moved to PlayedCards yet!
-            Assert.IsTrue(state.MatchContext.ActivePlayer.Hand.Contains(card), "Card should remain in Hand during targeting.");
-            Assert.IsFalse(state.MatchContext.ActivePlayer.PlayedCards.Contains(card), "Card should NOT be in PlayedCards during targeting.");
+            Assert.Contains(card, state.MatchContext.ActivePlayer.Hand, "Card should remain in Hand during targeting.");
+            Assert.DoesNotContain(card, state.MatchContext.ActivePlayer.PlayedCards, "Card should NOT be in PlayedCards during targeting.");
         }
 
         [TestMethod]
