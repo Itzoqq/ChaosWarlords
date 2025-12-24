@@ -203,6 +203,11 @@ namespace ChaosWarlords.Tests.States
             // Should switch to targeting
             Assert.IsInstanceOfType(state.InputMode, typeof(TargetingInputMode));
             _actionSystem.Received().StartTargeting(ActionState.TargetingAssassinate, card);
+
+            // REGRESSION CHECK:
+            // Ensure card is NOT moved to PlayedCards yet!
+            Assert.IsTrue(state.MatchContext.ActivePlayer.Hand.Contains(card), "Card should remain in Hand during targeting.");
+            Assert.IsFalse(state.MatchContext.ActivePlayer.PlayedCards.Contains(card), "Card should NOT be in PlayedCards during targeting.");
         }
 
         [TestMethod]
@@ -303,8 +308,8 @@ namespace ChaosWarlords.Tests.States
 
             // 1. Simulate having Pending Promotions
             // We assume the TurnManager is real (based on your TestableGameplayState setup)
-            var dummyCard = new Card("drow_noble", "Noble", 0, CardAspect.Blasphemy, 0, 0, 0);
-            state.MatchContext.TurnManager.CurrentTurnContext.AddPromotionCredit(dummyCard, 1);
+            var creditSourceCard = new Card("drow_noble", "Noble", 0, CardAspect.Blasphemy, 0, 0, 0);
+            state.MatchContext.TurnManager.CurrentTurnContext.AddPromotionCredit(creditSourceCard, 1);
 
             // 2. CRITICAL: Configure the Mock ActionSystem to behave like the real one
             // The Coordinator reads 'CurrentState' to decide which mode to create. 
@@ -312,7 +317,11 @@ namespace ChaosWarlords.Tests.States
             _actionSystem.CurrentState.Returns(ActionState.Normal); // Start Normal
 
             _actionSystem.When(x => x.StartTargeting(ActionState.SelectingCardToPromote, Arg.Any<Card>()))
-                         .Do(x => _actionSystem.CurrentState.Returns(ActionState.SelectingCardToPromote));
+                          .Do(x => _actionSystem.CurrentState.Returns(ActionState.SelectingCardToPromote));
+
+            // FIX: Add a DIFFERENT card to PlayedCards to satisfy "Cannot promote self" rule
+            var targetCard = new Card("minion", "Minion", 0, CardAspect.Blasphemy, 0, 0, 0);
+            state.MatchContext.ActivePlayer.PlayedCards.Add(targetCard);
 
             // 3. Simulate pressing 'Enter'
             _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));

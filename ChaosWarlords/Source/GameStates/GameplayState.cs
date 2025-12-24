@@ -143,6 +143,9 @@ namespace ChaosWarlords.Source.States
         public void PlayCard(Card card)
         {
             // 1. Check for Targeting Effects
+            bool enteredTargeting = false;
+
+            // 1. Check for Targeting Effects
             foreach (var effect in card.Effects)
             {
                 if (IsTargetingEffect(effect.Type))
@@ -151,18 +154,24 @@ namespace ChaosWarlords.Source.States
                     {
                         _matchContext.ActionSystem.StartTargeting(GetTargetingState(effect.Type), card);
                         SwitchToTargetingMode();
-                        return;
+                        enteredTargeting = true;
+                        break; // Stop checking other effects once we enter targeting
                     }
                     else
                     {
-                        GameLogger.Log($"Cannot play {card.Name}: No valid targets for {effect.Type}.", LogChannel.Warning);
-                        return; // ABORT: Keep card in hand
+                        // SKIPPING TARGETING:
+                        // If no targets exist, we define this as "Targeting phase complete/skipped"
+                        // and proceed to play the card data.
+                        GameLogger.Log($"Skipping targeting for {card.Name}: No valid targets for {effect.Type}.", LogChannel.Info);
                     }
                 }
             }
 
-            // 2. Play immediately if no targeting needed
-            _matchController.PlayCard(card);
+            // 2. Play immediately if no targeting was started
+            if (!enteredTargeting)
+            {
+                _matchController.PlayCard(card);
+            }
         }
 
         public bool HasViableTargets(Card card)

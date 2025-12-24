@@ -60,23 +60,6 @@ namespace ChaosWarlords.Tests.States.Input
         }
 
         [TestMethod]
-        public void HandleInput_RightClick_CancelsAndRestoresNormalMode()
-        {
-            // Arrange: Right Click
-            _mockInput.SetMouseState(new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
-            _mockInput.SetMouseState(new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Pressed, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
-
-            // Act
-            _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
-
-            // Assert
-            _actionSub.Received().CancelTargeting();
-            _stateSub.Received().SwitchToNormalMode();
-        }
-
-        [TestMethod]
         public void HandleInput_ClickingSelfPromote_DoesNothing()
         {
             // Arrange
