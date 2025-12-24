@@ -156,5 +156,17 @@ namespace ChaosWarlords.Tests.Systems
             _node1.Occupant = _player2.Color;
             Assert.IsFalse(_engine.CanMoveDestination(_node1));
         }
+        [TestMethod]
+        public void HasPresence_False_ForAdjacentToSpy()
+        {
+            // Spy at Site A (Node 3)
+            _siteA.Spies.Add(_player1.Color);
+
+            // Check presence at Node 3 (At Site) -> Should be True (Already covered by HasPresence_True_IfSiteHasFriendlySpy)
+            // Check presence at Node 2 (Adjacent) -> Should be False
+            // Spy logic: Spies grant presence at their specific location, but NEVER adjacency presence.
+            
+            Assert.IsFalse(_engine.HasPresence(_node2, _player1.Color), "Spy should NOT grant presence to adjacent nodes.");
+        }
     }
 }

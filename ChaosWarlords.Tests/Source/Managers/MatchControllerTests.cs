@@ -84,6 +84,9 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             // Verify Turn Manager Switched
             Assert.AreEqual(_p2, _context.TurnManager.ActivePlayer);
+            
+            // Verify Map Rewards Distributed
+            _mapManager.Received(1).DistributeControlRewards(_p1);
         }
 
         [TestMethod]

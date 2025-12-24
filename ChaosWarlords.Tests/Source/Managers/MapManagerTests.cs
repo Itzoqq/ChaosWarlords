@@ -409,5 +409,87 @@ namespace ChaosWarlords.Tests.Systems
 
             Assert.IsFalse(result, "Should NOT be able to deploy based on Enemy presence alone.");
         }
+        [TestMethod]
+        public void Logic_TotalControl_DeniedByEnemySpy()
+        {
+             // P1 Controls Node 3 and Node 4 (Site A)
+             _node3.Occupant = _player1.Color;
+             _node4.Occupant = _player1.Color;
+             
+             // Initial Check
+             _mapManager.RecalculateSiteState(_siteA, _player1);
+             Assert.IsTrue(_siteA.HasTotalControl, "Should have total control initially.");
+
+             // Enemy Spy Arrives
+             _siteA.Spies.Add(_player2.Color);
+             _mapManager.RecalculateSiteState(_siteA, _player1);
+
+             Assert.IsFalse(_siteA.HasTotalControl, "Enemy spy should deny Total Control.");
+             Assert.AreEqual(_player1.Color, _siteA.Owner, "Should still OWN the site (Minority Control).");
+        }
+        [TestMethod]
+        public void DistributeControlRewards_GrantsTotalControlRewards_WhenConditionsMet()
+        {
+            // Scenario: Player 1 has 2 troops in SiteA (Total Control), Player 2 has no spies.
+            // Expected: Player 1 gains Control (1 Power) + Total Control (2 VP).
+
+            // Arrange
+            _player1.Power = 0;
+            _player1.VictoryPoints = 0;
+
+            // Fill nodes (Backdoor access via MapManager list for setup)
+            _node1.Occupant = _player1.Color; // This is Node 1
+            // Use correct nodes as per Setup: SiteA uses Node 3 and Node 4
+            _node3.Occupant = _player1.Color;
+            _node4.Occupant = _player1.Color;
+
+            // Ensure system knows the state defined above
+            _mapManager.RecalculateSiteState(_siteA, _player1);
+
+            // Verify Pre-Conditions
+            Assert.AreEqual(_player1.Color, _siteA.Owner, "Player 1 should own the site.");
+            Assert.IsTrue(_siteA.HasTotalControl, "Player 1 should have total control.");
+            
+            // Reset to isolate End Turn Reward
+            _player1.Power = 0;
+            _player1.VictoryPoints = 0;
+
+            // Act
+            _mapManager.DistributeControlRewards(_player1);
+
+            // Assert
+            // Site A: Control (1 Power) + Total Control (1 VP)
+            Assert.AreEqual(1, _player1.VictoryPoints, "Should gain 1 VP from Total Control.");
+            Assert.AreEqual(1, _player1.Power, "Should gain 1 Power from Control.");
+        }
+
+        [TestMethod]
+        public void DistributeControlRewards_DeniesTotalControlRewards_WhenEnemySpyPresent()
+        {
+            // Scenario: Player 1 occupies nodes, but Player 2 has a spy.
+            
+            // Arrange
+            _node3.Occupant = _player1.Color;
+            _node4.Occupant = _player1.Color;
+            
+            // Add Enemy Spy
+            _siteA.Spies.Add(_player2.Color);
+
+            _mapManager.RecalculateSiteState(_siteA, _player1);
+
+            // Pre-Check
+            Assert.IsFalse(_siteA.HasTotalControl, "Enemy spy prevents Total Control.");
+
+            // Reset to isolate End Turn Reward
+            _player1.Power = 0;
+            _player1.VictoryPoints = 0;
+
+            // Act
+            _mapManager.DistributeControlRewards(_player1);
+
+            // Assert
+            Assert.AreEqual(0, _player1.VictoryPoints, "Should NOT gain Total Control reward due to spy.");
+            Assert.AreEqual(1, _player1.Power, "Should still gain Control reward (Power).");
+        }
     }
 }
