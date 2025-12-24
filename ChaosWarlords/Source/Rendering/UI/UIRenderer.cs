@@ -176,5 +176,54 @@ namespace ChaosWarlords.Source.Views
             spriteBatch.Draw(pixel, new Rectangle(rect.X, rect.Y, thickness, rect.Height), color);
             spriteBatch.Draw(pixel, new Rectangle(rect.X + rect.Width - thickness, rect.Y, thickness, rect.Height), color);
         }
+
+        public void DrawHorizontalButton(SpriteBatch sb, Rectangle rect, string text, bool isHovered, bool isEnabled, Color themeColor)
+        {
+            // Re-use logic or duplicate for horizontal. 
+            // Since VerticalButton rotates text, Horizontal won't.
+            
+            Color bgColor = isEnabled 
+                ? (isHovered ? themeColor : Color.Lerp(themeColor, Color.Black, 0.4f))
+                : Color.DarkGray * 0.5f;
+
+            Color textColor = (isEnabled && isHovered) ? Color.Black : Color.White;
+
+            sb.Draw(_pixelTexture, rect, bgColor);
+            DrawBorder(sb, _pixelTexture, rect, 2, isEnabled ? Color.White : Color.Gray);
+
+            SpriteFont font = _smallFont ?? _defaultFont;
+            Vector2 textSize = font.MeasureString(text);
+            Vector2 position = new Vector2(
+                rect.X + (rect.Width - textSize.X) / 2,
+                rect.Y + (rect.Height - textSize.Y) / 2);
+
+            sb.DrawString(font, text, position, textColor);
+        }
+
+        public void DrawConfirmationPopup(SpriteBatch sb, string message, Rectangle background, Rectangle confirmBtn, Rectangle cancelBtn, bool confirmHover, bool cancelHover)
+        {
+            // Dim Background
+            // We can't access full screen rect easily here unless passed, but we can draw a large rect?
+            // Or just draw the popup box.
+            
+            // Draw Popup Box
+            sb.Draw(_pixelTexture, background, Color.Black * 0.95f);
+            DrawBorder(sb, _pixelTexture, background, 2, Color.White);
+
+            // Draw Message
+             // Wrap text if needed, but for now simple center
+            SpriteFont font = _defaultFont;
+            Vector2 textSize = font.MeasureString(message);
+            Vector2 msgPos = new Vector2(
+                background.X + (background.Width - textSize.X) / 2,
+                background.Y + 40);
+            
+            sb.DrawString(font, message, msgPos, Color.White);
+
+            // Draw Buttons
+            DrawHorizontalButton(sb, confirmBtn, "END TURN", confirmHover, true, Color.Red);
+            DrawHorizontalButton(sb, cancelBtn, "CANCEL", cancelHover, true, Color.Gray);
+        }
+        
     }
 }

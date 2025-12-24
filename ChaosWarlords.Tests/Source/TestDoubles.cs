@@ -51,14 +51,29 @@ namespace ChaosWarlords.Tests
         public Rectangle MarketButtonRect { get; set; } = Rectangle.Empty;
         public Rectangle AssassinateButtonRect { get; set; } = Rectangle.Empty;
         public Rectangle ReturnSpyButtonRect { get; set; } = Rectangle.Empty;
+        public Rectangle EndTurnButtonRect { get; set; } = Rectangle.Empty;
+
+        // Popup
+        public Rectangle PopupBackgroundRect { get; set; } = Rectangle.Empty;
+        public Rectangle PopupConfirmButtonRect { get; set; } = Rectangle.Empty;
+        public Rectangle PopupCancelButtonRect { get; set; } = Rectangle.Empty;
+
+        public bool IsEndTurnHovered { get; set; } = false;
+        public bool IsPopupConfirmHovered { get; set; } = false;
+        public bool IsPopupCancelHovered { get; set; } = false;
 
         public event EventHandler? OnMarketToggleRequest;
         public event EventHandler? OnAssassinateRequest;
         public event EventHandler? OnReturnSpyRequest;
+        public event EventHandler? OnEndTurnRequest;
+        public event EventHandler? OnPopupConfirm;
+        public event EventHandler? OnPopupCancel;
 
         public void RaiseMarketToggle() => OnMarketToggleRequest?.Invoke(this, EventArgs.Empty);
         public void RaiseAssassinateRequest() => OnAssassinateRequest?.Invoke(this, EventArgs.Empty);
         public void RaiseReturnSpyRequest() => OnReturnSpyRequest?.Invoke(this, EventArgs.Empty);
+        public void RaiseEndTurnRequest() => OnEndTurnRequest?.Invoke(this, EventArgs.Empty);
+
         public void Update(InputManager input) { }
     }
 }

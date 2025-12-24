@@ -310,5 +310,92 @@ namespace ChaosWarlords.Tests.States
 
 
 
+
+        [TestMethod]
+        public void EndTurnRequest_WithUnplayedCards_OpensPopup_AndDoesNotEndTurn()
+        {
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            // Add unplayed card
+            state.MatchContext.ActivePlayer.Hand.Add(new Card("test", "Test", 0, CardAspect.Warlord, 0, 0, 0));
+
+            // Raise Request (simulating Button Click)
+            // We need to access the mock UI system. TestableGameplayState creates a real UIManager, 
+            // but we can trigger the event handler directly if we expose it or use the mock approach.
+            // Since TestableGameplayState uses 'new UIManager', we can't easily retrieve it unless we expose it.
+            // BETTER: Use the TestableGameplayState to inject our MockUISystem!
+            
+            // Re-initializing Test Environment with Mock UI would be cleaner, but let's stick to the current pattern.
+            // We can invoke the private handler via reflection or just simulating the Enter Key which now calls HandleEndTurnRequest.
+            
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
+            state.Update(new GameTime());
+
+            Assert.IsTrue(state.IsConfirmationPopupOpen);
+            _mapManager.DidNotReceive().DistributeControlRewards(Arg.Any<Player>());
+        }
+
+        [TestMethod]
+        public void EndTurnRequest_WithNoUnplayedCards_EndsTurnImmediately()
+        {
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            state.MatchContext.ActivePlayer.Hand.Clear();
+
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
+            state.Update(new GameTime());
+
+            Assert.IsFalse(state.IsConfirmationPopupOpen);
+            _mapManager.Received(1).DistributeControlRewards(Arg.Any<Player>());
+        }
+
+        [TestMethod]
+        public void PopupConfirm_EndsTurn()
+        {
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            // Open Popup
+            state.MatchContext.ActivePlayer.Hand.Add(new Card("test", "Test", 0, CardAspect.Warlord, 0, 0, 0));
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
+            state.Update(new GameTime());
+            
+            Assert.IsTrue(state.IsConfirmationPopupOpen);
+
+            // Confirm
+            // We need to trigger OnPopupConfirm. As we use real UIManager in TestableGameplayState, 
+            // we have to simulate a click on the confirm button.
+            // We need to know where the button is.
+            // HACK for test: We can use Reflection to invoke 'HandlePopupConfirm'.
+            var method = typeof(GameplayState).GetMethod("HandlePopupConfirm", BindingFlags.NonPublic | BindingFlags.Instance);
+            method.Invoke(state, new object[] { null!, EventArgs.Empty });
+
+            Assert.IsFalse(state.IsConfirmationPopupOpen);
+            _mapManager.Received(1).DistributeControlRewards(Arg.Any<Player>());
+        }
+
+        [TestMethod]
+        public void PopupCancel_ClosesPopup_AndDoesNotEndTurn()
+        {
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            // Open Popup
+            state.MatchContext.ActivePlayer.Hand.Add(new Card("test", "Test", 0, CardAspect.Warlord, 0, 0, 0));
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
+            state.Update(new GameTime());
+
+            Assert.IsTrue(state.IsConfirmationPopupOpen);
+
+            // Cancel
+            var method = typeof(GameplayState).GetMethod("HandlePopupCancel", BindingFlags.NonPublic | BindingFlags.Instance);
+            method.Invoke(state, new object[] { null!, EventArgs.Empty });
+
+            Assert.IsFalse(state.IsConfirmationPopupOpen);
+            _mapManager.DidNotReceive().DistributeControlRewards(Arg.Any<Player>());
+        }
+
     }
 }

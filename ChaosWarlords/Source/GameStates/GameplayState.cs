@@ -131,6 +131,8 @@ namespace ChaosWarlords.Source.States
             _inputManagerBacking.Update();
             _uiManagerBacking.Update(_inputManagerBacking);
 
+            if (_isConfirmationPopupOpen) return; // Block other input if popup is open
+
             if (HandleGlobalInput()) return;
 
             if (_matchContext.ActionSystem.CurrentState == ActionState.SelectingSpyToReturn)
@@ -155,7 +157,7 @@ namespace ChaosWarlords.Source.States
                 targetingText = GetTargetingText(_matchContext.ActionSystem.CurrentState);
             }
 
-            _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, (UIManager)_uiManagerBacking, IsMarketOpen, targetingText);
+            _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, (UIManager)_uiManagerBacking, IsMarketOpen, targetingText, IsConfirmationPopupOpen);
         }
 
         public void PlayCard(Card card)
@@ -225,12 +227,13 @@ namespace ChaosWarlords.Source.States
                         else
                         {
                             GameLogger.Log("No valid cards to promote. Promotion effects skipped.", LogChannel.Info);
-                            EndTurn();
+                            GameLogger.Log("No valid cards to promote. Promotion effects skipped.", LogChannel.Info);
+                            HandleEndTurnRequest(this, EventArgs.Empty);
                         }
                     }
                     else
                     {
-                        EndTurn();
+                        HandleEndTurnRequest(this, EventArgs.Empty);
                     }
                 }
                 else
@@ -275,12 +278,20 @@ namespace ChaosWarlords.Source.States
             _uiManagerBacking.OnMarketToggleRequest -= HandleMarketToggle;
             _uiManagerBacking.OnAssassinateRequest -= HandleAssassinateRequest;
             _uiManagerBacking.OnReturnSpyRequest -= HandleReturnSpyRequest;
+            _uiManagerBacking.OnEndTurnRequest -= HandleEndTurnRequest;
+            _uiManagerBacking.OnPopupConfirm -= HandlePopupConfirm;
+            _uiManagerBacking.OnPopupCancel -= HandlePopupCancel;
+
             _matchContext.ActionSystem.OnActionCompleted -= HandleActionCompleted;
             _matchContext.ActionSystem.OnActionFailed -= HandleActionFailed;
 
             _uiManagerBacking.OnMarketToggleRequest += HandleMarketToggle;
             _uiManagerBacking.OnAssassinateRequest += HandleAssassinateRequest;
             _uiManagerBacking.OnReturnSpyRequest += HandleReturnSpyRequest;
+            _uiManagerBacking.OnEndTurnRequest += HandleEndTurnRequest;
+            _uiManagerBacking.OnPopupConfirm += HandlePopupConfirm;
+            _uiManagerBacking.OnPopupCancel += HandlePopupCancel;
+
             _matchContext.ActionSystem.OnActionCompleted += HandleActionCompleted;
             _matchContext.ActionSystem.OnActionFailed += HandleActionFailed;
         }
@@ -288,6 +299,41 @@ namespace ChaosWarlords.Source.States
         private void HandleMarketToggle(object sender, EventArgs e) => ToggleMarket();
         private void HandleAssassinateRequest(object sender, EventArgs e) { _matchContext.ActionSystem.TryStartAssassinate(); if (_matchContext.ActionSystem.IsTargeting()) SwitchToTargetingMode(); }
         private void HandleReturnSpyRequest(object sender, EventArgs e) { _matchContext.ActionSystem.TryStartReturnSpy(); if (_matchContext.ActionSystem.IsTargeting()) SwitchToTargetingMode(); }
+        
+        // End Turn Logic
+        private bool _isConfirmationPopupOpen = false;
+        public bool IsConfirmationPopupOpen => _isConfirmationPopupOpen;
+
+        private void HandleEndTurnRequest(object sender, EventArgs e)
+        {
+            bool hasUnplayedCards = _matchContext.ActivePlayer.Hand.Count > 0;
+            if (hasUnplayedCards)
+            {
+                _isConfirmationPopupOpen = true;
+            }
+            else
+            {
+                EndTurn();
+            }
+        }
+
+        private void HandlePopupConfirm(object sender, EventArgs e)
+        {
+            if (_isConfirmationPopupOpen)
+            {
+                _isConfirmationPopupOpen = false;
+                EndTurn();
+            }
+        }
+
+        private void HandlePopupCancel(object sender, EventArgs e)
+        {
+            if (_isConfirmationPopupOpen)
+            {
+                _isConfirmationPopupOpen = false;
+            }
+        }
+
         private void HandleActionFailed(object sender, string msg) => GameLogger.Log(msg, LogChannel.Error);
 
         private void HandleActionCompleted(object sender, EventArgs e)

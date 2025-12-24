@@ -458,9 +458,9 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.DistributeControlRewards(_player1);
 
             // Assert
-            // Site A: Control (1 Power) + Total Control (1 VP)
+            // Site A: Total Control (1 VP) ONLY (replaces Control reward)
             Assert.AreEqual(1, _player1.VictoryPoints, "Should gain 1 VP from Total Control.");
-            Assert.AreEqual(1, _player1.Power, "Should gain 1 Power from Control.");
+            Assert.AreEqual(0, _player1.Power, "Should gain 0 Power because Total Control replaces normal Control.");
         }
 
         [TestMethod]

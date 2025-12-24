@@ -73,7 +73,7 @@ namespace ChaosWarlords.Source.Views
             if (isMarketOpen) UpdateVisualsHover(MarketViewModels, inputManager);
         }
 
-        public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, UIManager uiManager, bool isMarketOpen, string targetingText)
+        public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, UIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen)
         {
             // 1. Draw Map
             MapNode hoveredNode = context.MapManager.GetNodeAt(inputManager.MousePosition);
@@ -94,6 +94,11 @@ namespace ChaosWarlords.Source.Views
             // 4. Draw UI Elements
             _uiRenderer.DrawMarketButton(spriteBatch, uiManager);
             _uiRenderer.DrawActionButtons(spriteBatch, uiManager, context.ActivePlayer);
+            
+            // Draw End Turn Button
+            bool canEndTurn = true; 
+            _uiRenderer.DrawHorizontalButton(spriteBatch, uiManager.EndTurnButtonRect, "END TURN", uiManager.IsEndTurnHovered, canEndTurn, Color.Green);
+
             _uiRenderer.DrawTopBar(spriteBatch, context.ActivePlayer, uiManager.ScreenWidth);
 
             // 5. Draw Indicators
@@ -107,6 +112,19 @@ namespace ChaosWarlords.Source.Views
             if (context.ActionSystem.CurrentState == ActionState.SelectingSpyToReturn)
             {
                 DrawSpySelectionUI(spriteBatch, context.ActionSystem.PendingSite, uiManager.ScreenWidth);
+            }
+
+            // 7. Draw Confirmation Popup (Modal)
+            if (isPopupOpen)
+            {
+                _uiRenderer.DrawConfirmationPopup(
+                    spriteBatch, 
+                    "You have unplayed cards!\nEnd Turn anyway?", 
+                    uiManager.PopupBackgroundRect, 
+                    uiManager.PopupConfirmButtonRect, 
+                    uiManager.PopupCancelButtonRect, 
+                    uiManager.IsPopupConfirmHovered, 
+                    uiManager.IsPopupCancelHovered);
             }
         }
 
