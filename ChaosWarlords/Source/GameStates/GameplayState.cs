@@ -199,7 +199,7 @@ namespace ChaosWarlords.Source.States
             {
                 EffectType.Assassinate => map.HasValidAssassinationTarget(p),
                 EffectType.Supplant => map.HasValidAssassinationTarget(p),
-                EffectType.ReturnUnit => map.HasValidReturnSpyTarget(p),
+                EffectType.ReturnUnit => map.HasValidReturnSpyTarget(p) || map.HasValidReturnTroopTarget(p),
                 EffectType.PlaceSpy => map.HasValidPlaceSpyTarget(p),
                 EffectType.MoveUnit => map.HasValidMoveSource(p),
                 EffectType.Devour => p.Hand.Count > 0,

@@ -329,6 +329,9 @@ namespace ChaosWarlords.Tests.Systems
         public void ReturnTroop_ReturnsEnemyTroopToTheirBarracks()
         {
             _node1.Occupant = _player2.Color;
+            // NEW: Player 1 needs presence to act. Give them a troop on neighbor Node 2.
+            _node2.Occupant = _player1.Color;
+            
             int p2InitialTroops = _player2.TroopsInBarracks;
 
             _mapManager.ReturnTroop(_node1, _player1);

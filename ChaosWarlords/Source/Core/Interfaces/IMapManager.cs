@@ -20,6 +20,7 @@ namespace ChaosWarlords.Source.Systems
         // These check if a valid target exists AND is reachable by the player
         bool HasValidAssassinationTarget(Player activePlayer);
         bool HasValidReturnSpyTarget(Player activePlayer);
+        bool HasValidReturnTroopTarget(Player activePlayer);
         bool HasValidPlaceSpyTarget(Player activePlayer);
         // ---------------------------------------
 

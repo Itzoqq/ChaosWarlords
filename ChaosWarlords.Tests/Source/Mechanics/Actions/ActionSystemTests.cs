@@ -269,23 +269,46 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         [TestMethod]
-        public void HandleTargetClick_ReturnSpy_Fails_IfPowerLostDuringTargeting()
+        public void HandleTargetClick_ReturnSpy_DoesNotSpendPower_IfMapManagerRejects_Regression()
         {
+            // Scenario: Player tries to return spy, but MapManager says "No Presence" (False).
+            // Bug: Player pays 3 Power anyway. Fix: Check first.
+
             // Arrange
             _player1.Power = 3;
-            _actionSystem.TryStartReturnSpy();
-            _player1.Power = 2; // Lost power below cost (3)
-
+            _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
+            
+            // Mock: Spies exist, BUT ReturnSpecificSpy returns FALSE (e.g. no presence)
             _mapManager.GetEnemySpiesAtSite(_siteA, _player1).Returns(new List<PlayerColor> { PlayerColor.Blue });
+            _mapManager.ReturnSpecificSpy(Arg.Any<Site>(), Arg.Any<Player>(), Arg.Any<PlayerColor>()).Returns(false);
 
             // Act
             _actionSystem.HandleTargetClick(null, _siteA);
 
             // Assert
-            Assert.IsFalse(_eventCompletedFired);
-            Assert.IsTrue(_eventFailedFired);
-            _mapManager.DidNotReceive().ReturnSpecificSpy(Arg.Any<Site>(), Arg.Any<Player>(), Arg.Any<PlayerColor>());
+            Assert.IsFalse(_eventCompletedFired, "Action should not complete.");
+            Assert.IsTrue(_eventFailedFired, "Action should fail."); // Currently might not fire if logic is flawed
+            Assert.AreEqual(3, _player1.Power, "Power should NOT be spent if action failed.");
         }
+
+        [TestMethod]
+        public void HandleTargetClick_Assassinate_DoesNotSpendPower_IfMapManagerRejects_Regression()
+        {
+            // Arrange
+            _player1.Power = 3;
+            _actionSystem.StartTargeting(ActionState.TargetingAssassinate);
+            
+            // Mock: Invalid target according to Manager (e.g. protected, or logic mismatch)
+            _mapManager.CanAssassinate(_node2, _player1).Returns(false);
+
+            // Act
+            _actionSystem.HandleTargetClick(_node2, null);
+
+            // Assert
+            Assert.IsTrue(_eventFailedFired);
+            Assert.AreEqual(3, _player1.Power, "Power should NOT be spent.");
+        }
+
 
         [TestMethod]
         public void HandleTargetClick_PlaceSpy_Fails_IfSpyAlreadyThere()

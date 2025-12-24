@@ -53,6 +53,7 @@ namespace ChaosWarlords.Source.Systems
 
         public bool HasValidAssassinationTarget(Player activePlayer) => _ruleEngine.HasValidAssassinationTarget(activePlayer);
         public bool HasValidReturnSpyTarget(Player activePlayer) => _ruleEngine.HasValidReturnSpyTarget(activePlayer);
+        public bool HasValidReturnTroopTarget(Player activePlayer) => _ruleEngine.HasValidReturnTroopTarget(activePlayer);
         public bool HasValidPlaceSpyTarget(Player activePlayer) => _ruleEngine.HasValidPlaceSpyTarget(activePlayer);
         public bool HasValidMoveSource(Player activePlayer) => _ruleEngine.HasValidMoveSource(activePlayer);
 
@@ -154,10 +155,23 @@ namespace ChaosWarlords.Source.Systems
             RecalculateSiteState(GetSiteForNode(node), attacker);
         }
 
+        public bool CanReturnTroop(MapNode node, Player requestingPlayer)
+        {
+            if (node == null) return false;
+            // Must have presence at the node (direct or adjacent)
+            if (!HasPresence(node, requestingPlayer.Color)) return false;
+            // Cannot return Neutral
+            if (node.Occupant == PlayerColor.Neutral) return false;
+            // Must be occupied
+            if (node.Occupant == PlayerColor.None) return false;
+            
+            return true;
+        }
+
         public void ReturnTroop(MapNode node, Player requestingPlayer)
         {
-            if (node.Occupant == PlayerColor.Neutral) return;
-
+            if (!CanReturnTroop(node, requestingPlayer)) return;
+            
             if (node.Occupant == requestingPlayer.Color)
             {
                 node.Occupant = PlayerColor.None;
@@ -222,18 +236,28 @@ namespace ChaosWarlords.Source.Systems
             RecalculateSiteState(GetSiteForNode(destination), null);
         }
 
+        public bool CanReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor)
+        {
+            if (site == null) return false;
+             // Check Presence using the Rule Engine
+             // We can check presence on any node in the site (if you have presence on one, you have presence on the site for interaction presumably, 
+             // although strictly presence is per node. But for Site interactions, usually you need presence *at* the site.
+             // The original code checked NodesInternal[0]. 
+             
+             // Safer check: Do we have presence at ANY node of the site?
+             bool hasPresence = site.NodesInternal.Any(n => HasPresence(n, activePlayer.Color));
+             if (!hasPresence) return false;
+
+             if (!site.Spies.Contains(targetSpyColor) || targetSpyColor == activePlayer.Color) return false;
+
+             return true;
+        }
+
         public bool ReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor)
         {
-            // Use local check via engine to ensure consistency
-            if (site.NodesInternal.Count > 0 && !HasPresence(site.NodesInternal[0], activePlayer.Color))
+            if (!CanReturnSpecificSpy(site, activePlayer, targetSpyColor))
             {
-                GameLogger.Log("Cannot return spy: No Presence at this Site!", LogChannel.Error);
-                return false;
-            }
-
-            if (!site.Spies.Contains(targetSpyColor) || targetSpyColor == activePlayer.Color)
-            {
-                GameLogger.Log($"Invalid Target: {targetSpyColor} spy not found here.", LogChannel.Error);
+                GameLogger.Log($"Cannot return spy: Invalid Target or No Presence.", LogChannel.Error);
                 return false;
             }
 

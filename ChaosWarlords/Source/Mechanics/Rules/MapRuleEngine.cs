@@ -109,10 +109,21 @@ namespace ChaosWarlords.Source.Systems
         public bool HasValidReturnSpyTarget(Player activePlayer)
         {
             if (_sites == null) return false;
+            // Fix: Check for ANY spies (Validation logic allows returning any spy), not just own.
+            // Also robust presence check using Any node.
             return _sites.Any(s =>
-                s.Spies.Contains(activePlayer.Color) &&
-                s.NodesInternal.Count > 0 &&
-                HasPresence(s.NodesInternal[0], activePlayer.Color));
+                s.Spies.Count > 0 &&
+                s.NodesInternal.Any(n => HasPresence(n, activePlayer.Color)));
+        }
+
+        public bool HasValidReturnTroopTarget(Player activePlayer)
+        {
+            if (_nodes == null) return false;
+            // Check for any node with a non-neutral troop where we have presence
+            return _nodes.Any(n => 
+                n.Occupant != PlayerColor.None && 
+                n.Occupant != PlayerColor.Neutral && 
+                HasPresence(n, activePlayer.Color));
         }
 
         public bool HasValidPlaceSpyTarget(Player activePlayer)
