@@ -19,7 +19,7 @@ namespace ChaosWarlords.Source.States
         private readonly ICardDatabase _cardDatabase;
 
         internal GameplayView _view;
-        internal IMatchController _matchController;
+        internal IMatchManager _MatchManager;
         internal MatchContext _matchContext;
         internal InputManager _inputManagerBacking;
         internal IUISystem _uiManagerBacking;
@@ -32,7 +32,7 @@ namespace ChaosWarlords.Source.States
 
         public InputManager InputManager => _inputManagerBacking;
         public IUISystem UIManager => _uiManagerBacking;
-        public IMatchController MatchController => _matchController;
+        public IMatchManager MatchManager => _MatchManager;
 
         public IMapManager MapManager => _matchContext?.MapManager;
         public IMarketManager MarketManager => _matchContext?.MarketManager;
@@ -78,7 +78,7 @@ namespace ChaosWarlords.Source.States
             // 1. Initialize InteractionMapper
             _interactionMapper = new InteractionMapper(_view);
 
-            var builder = new WorldBuilder(_cardDatabase, "data/map.json");
+            var builder = new TestWorldFactory(_cardDatabase, "data/map.json");
             var worldData = builder.Build();
 
             _matchContext = new MatchContext(
@@ -89,7 +89,7 @@ namespace ChaosWarlords.Source.States
                 _cardDatabase
             );
 
-            _matchController = new MatchController(_matchContext);
+            _MatchManager = new MatchManager(_matchContext);
 
             if (_matchContext.TurnManager.Players != null)
             {
@@ -107,7 +107,7 @@ namespace ChaosWarlords.Source.States
             _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
             
             // 3. Initialize CardPlaySystem
-            _cardPlaySystem = new CardPlaySystem(_matchContext, _matchController, () => SwitchToTargetingMode());
+            _cardPlaySystem = new CardPlaySystem(_matchContext, _MatchManager, () => SwitchToTargetingMode());
         }
 
         public void UnloadContent()
@@ -169,14 +169,14 @@ namespace ChaosWarlords.Source.States
 
 
 
-        public void MoveCardToPlayed(Card card) => _matchController.MoveCardToPlayed(card);
+        public void MoveCardToPlayed(Card card) => _MatchManager.MoveCardToPlayed(card);
 
-        public bool CanEndTurn(out string reason) => _matchController.CanEndTurn(out reason);
+        public bool CanEndTurn(out string reason) => _MatchManager.CanEndTurn(out reason);
 
         public void EndTurn()
         {
             if (_matchContext.ActionSystem.IsTargeting()) _matchContext.ActionSystem.CancelTargeting();
-            _matchController.EndTurn();
+            _MatchManager.EndTurn();
             SwitchToNormalMode();
         }
 
@@ -390,7 +390,7 @@ namespace ChaosWarlords.Source.States
         {
             if (_matchContext.ActionSystem.PendingCard != null)
             {
-                _matchController.PlayCard(_matchContext.ActionSystem.PendingCard);
+                _MatchManager.PlayCard(_matchContext.ActionSystem.PendingCard);
             }
             _matchContext.ActionSystem.CancelTargeting();
             SwitchToNormalMode();

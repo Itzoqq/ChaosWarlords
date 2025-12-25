@@ -2,7 +2,7 @@ using ChaosWarlords.Source.Entities;
 
 namespace ChaosWarlords.Source.Systems
 {
-    public interface IMatchController
+    public interface IMatchManager
     {
         void PlayCard(Card card);
         void DevourCard(Card card);

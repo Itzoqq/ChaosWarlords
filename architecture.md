@@ -18,7 +18,7 @@ Source/
 │   ├── Contexts/           # Data contexts (MatchContext, TurnContext)
 │   └── Utilities/          # Helper classes (CardDatabase)
 ├── Entities/               # Pure Domain Objects (Card, Player, Site)
-├── Factories/              # Object Creation (WorldBuilder, CardFactory, MapFactory)
+├── Factories/              # Object Creation (TestWorldFactory, CardFactory, MapFactory)
 ├── GameStates/             # State Machine (GameplayState, StateManager)
 ├── Input/                  # Input Handling
 │   ├── Services/           # providers (MonoGameInputProvider)
@@ -40,7 +40,7 @@ Source/
 |------|------|
 | `I*.cs` (All Interfaces) | **Centralized Contracts** in `Core/Interfaces/` |
 | `CardFactory.cs`, `MapFactory.cs` | **Factories** in `Factories/` |
-| `WorldBuilder.cs` | **Procedural Gen** in `Factories/` |
+| `TestWorldFactory.cs` | **Procedural Gen** in `Factories/` |
 | `InputManager.cs` | **Raw Input State** in `Input/Services/` |
 | `*InputMode.cs` | **Input State Strategies** in `Input/Modes/` |
 | `InteractionMapper.cs` | **Logic Mapping** in `Input/Processors/` |

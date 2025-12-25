@@ -17,9 +17,9 @@ namespace ChaosWarlords.Source.Commands
         public void Execute(IGameplayState state)
         {
             // 1. Perform the Devour 
-            // We use .MatchController (Property) instead of ._matchController (Field)
+            // We use .MatchManager (Property) instead of ._MatchManager (Field)
             // because the Interface exposes the Property.
-            state.MatchController.DevourCard(_cardToDevour);
+            state.MatchManager.DevourCard(_cardToDevour);
 
             // 2. Signal that the targeting action is complete
             state.ActionSystem.CompleteAction();

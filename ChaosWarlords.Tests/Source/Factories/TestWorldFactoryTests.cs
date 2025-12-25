@@ -6,7 +6,7 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Systems
 {
     [TestClass]
-    public class WorldBuilderTests
+    public class TestWorldFactoryTests
     {
         [TestMethod]
         public void Build_CreatesValidWorldState_Headless()
@@ -19,7 +19,7 @@ namespace ChaosWarlords.Tests.Systems
             mockDb.GetAllMarketCards().Returns(new List<Card>());
 
             // Pass the mock DB instead of a string path for cards
-            var builder = new WorldBuilder(mockDb, "dummy_map.json");
+            var builder = new TestWorldFactory(mockDb, "dummy_map.json");
 
             // Act
             var world = builder.Build();
@@ -39,14 +39,14 @@ namespace ChaosWarlords.Tests.Systems
             var mockDb = Substitute.For<ICardDatabase>();
             mockDb.GetAllMarketCards().Returns(new List<Card>());
 
-            var builder = new WorldBuilder(mockDb, "dummy_map.json");
+            var builder = new TestWorldFactory(mockDb, "dummy_map.json");
 
             // Act
             var world = builder.Build();
 
             // Assert
             // 10 cards total (7 Nobles + 3 Soldiers)
-            Assert.HasCount(0, world.TurnManager.ActivePlayer.Hand, "Hand should be empty immediately after WorldBuilder.Build()");
+            Assert.HasCount(0, world.TurnManager.ActivePlayer.Hand, "Hand should be empty immediately after TestWorldFactory.Build()");
             Assert.HasCount(10, world.TurnManager.ActivePlayer.Deck, "Deck should contain all 10 starting cards.");
             Assert.AreEqual(10, world.TurnManager.ActivePlayer.Hand.Count + world.TurnManager.ActivePlayer.Deck.Count, "Total cards in deck and hand must sum to 10.");
         }
@@ -59,7 +59,7 @@ namespace ChaosWarlords.Tests.Systems
             mockDb.GetAllMarketCards().Returns(new List<Card>());
 
             // We pass a garbage map path to force the fallback
-            var builder = new WorldBuilder(mockDb, "invalid_map.json");
+            var builder = new TestWorldFactory(mockDb, "invalid_map.json");
 
             // Act
             var world = builder.Build();

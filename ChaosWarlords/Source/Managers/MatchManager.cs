@@ -5,13 +5,13 @@ using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Systems
 {
-    public class MatchController : IMatchController
+    public class MatchManager : IMatchManager
     {
         private readonly MatchContext _context;
         // 1. Add the Processor to handle the logic
         private readonly CardEffectProcessor _effectProcessor;
 
-        public MatchController(MatchContext context)
+        public MatchManager(MatchContext context)
         {
             _context = context;
             _effectProcessor = new CardEffectProcessor();

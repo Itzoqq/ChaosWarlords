@@ -17,9 +17,9 @@ namespace ChaosWarlords.Source.Commands
             // 1. Finalize the pending card
             if (actionSystem.PendingCard != null)
             {
-                // Delegated to MatchController which now handles Effect Resolution + Movement + Focus
+                // Delegated to MatchManager which now handles Effect Resolution + Movement + Focus
                 // We no longer call ResolveCardEffects or MoveCardToPlayed manually here.
-                state.MatchController.PlayCard(actionSystem.PendingCard);
+                state.MatchManager.PlayCard(actionSystem.PendingCard);
             }
 
             // 2. Reset the action system state

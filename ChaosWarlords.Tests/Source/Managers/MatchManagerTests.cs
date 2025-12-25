@@ -7,10 +7,10 @@ using ChaosWarlords.Source.Utilities;
 namespace ChaosWarlords.Tests.Source.Systems
 {
     [TestClass]
-    public class MatchControllerTests
+    public class MatchManagerTests
     {
         private MatchContext _context = null!;
-        private MatchController _controller = null!;
+        private MatchManager _controller = null!;
         private IMapManager _mapManager = null!;
         private IMarketManager _marketManager = null!;
         private IActionSystem _actionSystem = null!;
@@ -40,7 +40,7 @@ namespace ChaosWarlords.Tests.Source.Systems
                 _cardDatabase
             );
 
-            _controller = new MatchController(_context);
+            _controller = new MatchManager(_context);
         }
 
         [TestMethod]

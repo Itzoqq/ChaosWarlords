@@ -16,7 +16,7 @@ namespace ChaosWarlords.Source.States
         IActionSystem ActionSystem { get; }
         ITurnManager TurnManager { get; }
         MatchContext MatchContext { get; }
-        IMatchController MatchController { get; }
+        IMatchManager MatchManager { get; }
 
         // --- State Properties ---
         // Removed 'set' because this is now managed by the InputCoordinator

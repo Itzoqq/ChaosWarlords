@@ -14,12 +14,12 @@ namespace ChaosWarlords.Source.Systems
         public ActionSystem ActionSystem { get; set; }
     }
 
-    public class WorldBuilder
+    public class TestWorldFactory
     {
         private readonly ICardDatabase _cardDatabase;
         private readonly string _mapDataPath;
 
-        public WorldBuilder(ICardDatabase cardDatabase, string mapDataPath)
+        public TestWorldFactory(ICardDatabase cardDatabase, string mapDataPath)
         {
             _cardDatabase = cardDatabase;
             _mapDataPath = mapDataPath;

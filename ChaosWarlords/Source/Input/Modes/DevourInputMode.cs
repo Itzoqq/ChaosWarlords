@@ -50,7 +50,7 @@ namespace ChaosWarlords.Source.States.Input
 
                     // Execute logic directly or return a Command
                     // Using direct execution for simplicity as per your pattern:
-                    _gameplayState.MatchController.DevourCard(targetCard);
+                    _gameplayState.MatchManager.DevourCard(targetCard);
 
                     // Complete Action
                     actionSystem.CompleteAction();

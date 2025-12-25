@@ -12,7 +12,7 @@ namespace ChaosWarlords.Tests.Source.Commands
     {
         private IGameplayState _stateSub = null!;
         private IActionSystem _actionSub = null!;
-        private IMatchController _matchControllerSub = null!; // New Mock
+        private IMatchManager _MatchManagerSub = null!; // New Mock
 
         [TestInitialize]
         public void Setup()
@@ -22,15 +22,15 @@ namespace ChaosWarlords.Tests.Source.Commands
             // 1. Create Mocks
             _stateSub = Substitute.For<IGameplayState>();
             _actionSub = Substitute.For<IActionSystem>();
-            _matchControllerSub = Substitute.For<IMatchController>();
+            _MatchManagerSub = Substitute.For<IMatchManager>();
 
             // 2. Wire Mocks together
             _stateSub.ActionSystem.Returns(_actionSub);
-            _stateSub.MatchController.Returns(_matchControllerSub); // Important: Hook up the controller
+            _stateSub.MatchManager.Returns(_MatchManagerSub); // Important: Hook up the controller
         }
 
         [TestMethod]
-        public void Execute_WithPendingCard_DelegatesToMatchController()
+        public void Execute_WithPendingCard_DelegatesToMatchManager()
         {
             // Arrange
             var card = new Card("test", "Test", 1, CardAspect.Warlord, 0, 0, 0);
@@ -43,7 +43,7 @@ namespace ChaosWarlords.Tests.Source.Commands
 
             // Assert
             // 1. Verify logic was delegated to the Controller (which handles effects + movement)
-            _matchControllerSub.Received(1).PlayCard(card);
+            _MatchManagerSub.Received(1).PlayCard(card);
 
             // 2. Verify cleanup
             _actionSub.Received(1).CancelTargeting();
@@ -63,7 +63,7 @@ namespace ChaosWarlords.Tests.Source.Commands
 
             // Assert
             // 1. Verify Controller was NOT called
-            _matchControllerSub.DidNotReceive().PlayCard(Arg.Any<Card>());
+            _MatchManagerSub.DidNotReceive().PlayCard(Arg.Any<Card>());
 
             // 2. Verify cleanup still happens
             _actionSub.Received(1).CancelTargeting();

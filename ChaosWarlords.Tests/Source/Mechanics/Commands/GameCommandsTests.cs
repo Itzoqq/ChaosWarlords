@@ -15,7 +15,7 @@ namespace ChaosWarlords.Tests.Source.Commands
         private IMapManager _mapSub = null!;
         private ITurnManager _turnSub = null!;
         private IActionSystem _actionSub = null!;
-        private IMatchController _controllerSub = null!;
+        private IMatchManager _controllerSub = null!;
 
         [TestInitialize]
         public void Setup()
@@ -30,14 +30,14 @@ namespace ChaosWarlords.Tests.Source.Commands
             _turnSub = Substitute.For<ITurnManager>();
             _actionSub = Substitute.For<IActionSystem>();
 
-            _controllerSub = Substitute.For<IMatchController>();
+            _controllerSub = Substitute.For<IMatchManager>();
 
             // Wire up the state to return these mocks
             _stateSub.MarketManager.Returns(_marketSub);
             _stateSub.MapManager.Returns(_mapSub);
             _stateSub.TurnManager.Returns(_turnSub);
             _stateSub.ActionSystem.Returns(_actionSub);
-            _stateSub.MatchController.Returns(_controllerSub);
+            _stateSub.MatchManager.Returns(_controllerSub);
         }
 
         [TestMethod]
