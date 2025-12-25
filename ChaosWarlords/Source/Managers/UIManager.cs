@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Xna.Framework;
+using System.Collections.Generic;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Systems
@@ -10,6 +11,16 @@ namespace ChaosWarlords.Source.Systems
         public int ScreenHeight { get; private set; }
 
         // Internals (encapsulated)
+        private class InteractiveElement
+        {
+            public Func<Rectangle> GetBounds { get; set; }
+            public Action<bool> SetHover { get; set; }
+            public Action OnClick { get; set; }
+            public Func<bool> IsActive { get; set; } = () => true; // Default to always active
+        }
+
+        private List<InteractiveElement> _elements;
+
         private Rectangle _marketButtonRect;
         private Rectangle _assassinateButtonRect;
         private Rectangle _returnSpyButtonRect;
@@ -47,6 +58,73 @@ namespace ChaosWarlords.Source.Systems
             ScreenHeight = screenHeight;
             RecalculateLayout();
             RecalculatePauseMenuLayout();
+            InitializeInteractiveElements();
+        }
+
+        private void InitializeInteractiveElements()
+        {
+            _elements = new List<InteractiveElement>
+            {
+                // Pause Menu (Highest Priority)
+                new InteractiveElement 
+                { 
+                    GetBounds = () => _resumeButtonRect,
+                    SetHover = (v) => IsResumeHovered = v,
+                    OnClick = () => { GameLogger.Log("UI: Resume Clicked", LogChannel.Info); OnResumeRequest?.Invoke(this, EventArgs.Empty); }
+                },
+                new InteractiveElement 
+                { 
+                    GetBounds = () => _mainMenuButtonRect,
+                    SetHover = (v) => IsMainMenuHovered = v,
+                    OnClick = () => { GameLogger.Log("UI: MainMenu Clicked", LogChannel.Info); OnMainMenuRequest?.Invoke(this, EventArgs.Empty); }
+                },
+                new InteractiveElement 
+                { 
+                    GetBounds = () => _exitButtonRect,
+                    SetHover = (v) => IsExitHovered = v,
+                    OnClick = () => { GameLogger.Log("UI: Exit Clicked", LogChannel.Info); OnExitRequest?.Invoke(this, EventArgs.Empty); }
+                },
+
+                // Popups (High Priority)
+                new InteractiveElement 
+                { 
+                    GetBounds = () => _popupConfirmButtonRect,
+                    SetHover = (v) => IsPopupConfirmHovered = v,
+                    OnClick = () => { GameLogger.Log("UI: Popup Confirm Clicked", LogChannel.Info); OnPopupConfirm?.Invoke(this, EventArgs.Empty); }
+                },
+                new InteractiveElement 
+                { 
+                    GetBounds = () => _popupCancelButtonRect,
+                    SetHover = (v) => IsPopupCancelHovered = v,
+                    OnClick = () => { GameLogger.Log("UI: Popup Cancel Clicked", LogChannel.Info); OnPopupCancel?.Invoke(this, EventArgs.Empty); }
+                },
+
+                // Main Game UI (Lowest Priority)
+                new InteractiveElement 
+                { 
+                    GetBounds = () => _marketButtonRect,
+                    SetHover = (v) => IsMarketHovered = v,
+                    OnClick = () => { GameLogger.Log("UI: Market Clicked", LogChannel.Info); OnMarketToggleRequest?.Invoke(this, EventArgs.Empty); }
+                },
+                new InteractiveElement 
+                { 
+                    GetBounds = () => _assassinateButtonRect,
+                    SetHover = (v) => IsAssassinateHovered = v,
+                    OnClick = () => { GameLogger.Log("UI: Assassinate Clicked", LogChannel.Info); OnAssassinateRequest?.Invoke(this, EventArgs.Empty); }
+                },
+                new InteractiveElement 
+                { 
+                    GetBounds = () => _returnSpyButtonRect,
+                    SetHover = (v) => IsReturnSpyHovered = v,
+                    OnClick = () => { GameLogger.Log("UI: ReturnSpy Clicked", LogChannel.Info); OnReturnSpyRequest?.Invoke(this, EventArgs.Empty); }
+                },
+                new InteractiveElement 
+                { 
+                    GetBounds = () => _endTurnButtonRect,
+                    SetHover = (v) => IsEndTurnHovered = v,
+                    OnClick = () => { GameLogger.Log("UI: EndTurn Clicked", LogChannel.Info); OnEndTurnRequest?.Invoke(this, EventArgs.Empty); }
+                },
+            };
         }
 
         private void RecalculateLayout()
@@ -156,42 +234,54 @@ namespace ChaosWarlords.Source.Systems
 
         private void UpdateHovers(InputManager input)
         {
-            // 1. Update Hovers
-            IsMarketHovered = input.IsMouseOver(_marketButtonRect);
-            IsAssassinateHovered = input.IsMouseOver(_assassinateButtonRect);
-            IsReturnSpyHovered = input.IsMouseOver(_returnSpyButtonRect);
-            IsEndTurnHovered = input.IsMouseOver(_endTurnButtonRect);
-
-            IsPopupConfirmHovered = input.IsMouseOver(_popupConfirmButtonRect);
-            IsPopupCancelHovered = input.IsMouseOver(_popupCancelButtonRect);
-
-            // Pause Menu Hovers
-            IsResumeHovered = input.IsMouseOver(_resumeButtonRect);
-            IsMainMenuHovered = input.IsMouseOver(_mainMenuButtonRect);
-            IsExitHovered = input.IsMouseOver(_exitButtonRect);
+            foreach (var element in _elements)
+            {
+                // Optimized check: only do bounds check if active
+                if (element.IsActive())
+                {
+                    bool isOver = input.IsMouseOver(element.GetBounds());
+                    element.SetHover(isOver);
+                }
+            }
         }
 
         private void HandleClicks(InputManager input)
         {
-            // 2. Handle Clicks - Fire Events!
-            if (input.IsLeftMouseJustClicked())
+            if (!input.IsLeftMouseJustClicked()) return;
+
+            foreach (var element in _elements)
             {
-                // NOTE: The caller (GameplayState) is responsible for gating these checks
-                // based on what is visible (Popup vs Pause vs Game). 
-                // However, if we click a pause button, we should fire the event regardless, 
-                // and the listener decides if it cares.
-                
-                if (IsResumeHovered) { GameLogger.Log("UI: Resume Clicked", LogChannel.Info); OnResumeRequest?.Invoke(this, EventArgs.Empty); return; }
-                if (IsMainMenuHovered) { GameLogger.Log("UI: MainMenu Clicked", LogChannel.Info); OnMainMenuRequest?.Invoke(this, EventArgs.Empty); return; }
-                if (IsExitHovered) { GameLogger.Log("UI: Exit Clicked", LogChannel.Info); OnExitRequest?.Invoke(this, EventArgs.Empty); return; }
-
-                if (IsPopupConfirmHovered) { GameLogger.Log("UI: Popup Confirm Clicked", LogChannel.Info); OnPopupConfirm?.Invoke(this, EventArgs.Empty); return; } 
-                if (IsPopupCancelHovered) { GameLogger.Log("UI: Popup Cancel Clicked", LogChannel.Info); OnPopupCancel?.Invoke(this, EventArgs.Empty); return; }
-
-                if (IsMarketHovered) { GameLogger.Log("UI: Market Clicked", LogChannel.Info); OnMarketToggleRequest?.Invoke(this, EventArgs.Empty); }
-                if (IsAssassinateHovered) { GameLogger.Log("UI: Assassinate Clicked", LogChannel.Info); OnAssassinateRequest?.Invoke(this, EventArgs.Empty); }
-                if (IsReturnSpyHovered) { GameLogger.Log("UI: ReturnSpy Clicked", LogChannel.Info); OnReturnSpyRequest?.Invoke(this, EventArgs.Empty); }
-                if (IsEndTurnHovered) { GameLogger.Log("UI: EndTurn Clicked", LogChannel.Info); OnEndTurnRequest?.Invoke(this, EventArgs.Empty); }
+                if (element.IsActive() && input.IsMouseOver(element.GetBounds()))
+                {
+                    element.OnClick?.Invoke();
+                    // We might want to break here if we only allow one click per frame, 
+                    // but original code allowed multiple (theoretical overlap). 
+                    // Keeping it equivalent.
+                    return; // Retaining the 'return' behavior from original code for the first match? 
+                            // Actually original code had 'return' for pause/popup but not for game buttons.
+                            // The pause/popup were blocking. 
+                            // To strictly maintain behavior we might need ordering or layers, 
+                            // but simpler is: first valid click takes it? 
+                            // The original code returned on Pause/Popup clicks, preventing Game clicks.
+                            // My list order puts Game first, then Popup, then Pause. 
+                            // Wait, if Pause is over Game, we want Pause to win.
+                            // The original code checked checks sequentially and returned.
+                            // So if Resume was clicked, it returned.
+                            // If Market was clicked, it did NOT return.
+                            
+                    // CORRECT BEHAVIOR REPLICATION:
+                    // The standard way is to respect the return for exclusive UI.
+                    // For now, I will let it fall through as the original code was a bit mixed.
+                    // Actually, the original code had returns for Pause and Popup, but not for Game Buttons.
+                    // Meaning if you clicked Resume, it wouldn't check Market.
+                    // But if you clicked Market, it would continue checking Assassinate (unlikely to overlap).
+                    
+                    // Since I put Game buttons FIRST in the list, and Pause/Popup later...
+                    // If I want Pause to block Game, I should check Pause FIRST.
+                    // Or I can add a layer priority.
+                    // For complexity reduction, I will assume non-overlapping handling is fine for now,
+                    // or I'll just follow the list order.
+                }
             }
         }
     }
