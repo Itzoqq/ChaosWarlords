@@ -5,27 +5,27 @@ using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Entities
 {
-    public class Site
+    public abstract class Site
     {
-        public string Name { get; private set; }
+        public string Name { get; protected set; }
 
-        public ResourceType ControlResource { get; private set; }
-        public int ControlAmount { get; private set; }
+        public ResourceType ControlResource { get; protected set; }
+        public int ControlAmount { get; protected set; }
 
-        public ResourceType TotalControlResource { get; private set; }
-        public int TotalControlAmount { get; private set; }
+        public ResourceType TotalControlResource { get; protected set; }
+        public int TotalControlAmount { get; protected set; }
 
         public int EndGameVictoryPoints { get; set; }
 
         public bool IsCity { get; set; }
 
-        public List<MapNode> NodesInternal { get; private set; } = new List<MapNode>();
+        public List<MapNode> NodesInternal { get; protected set; } = new List<MapNode>();
         public PlayerColor Owner { get; internal set; } = PlayerColor.None;
         internal List<PlayerColor> Spies { get; private set; } = new List<PlayerColor>();
         public bool HasTotalControl { get; internal set; } = false;
 
         // Visual Bounds (Kept in Model for Hit-Testing logic)
-        public Rectangle Bounds { get; private set; }
+        public Rectangle Bounds { get; protected set; }
 
         public Site(string name,
                     ResourceType controlType, int controlAmt,
@@ -38,13 +38,13 @@ namespace ChaosWarlords.Source.Entities
             TotalControlAmount = totalAmt;
         }
 
-        public void AddNode(MapNode node)
+        public virtual void AddNode(MapNode node)
         {
             NodesInternal.Add(node);
             RecalculateBounds();
         }
 
-        public void RecalculateBounds()
+        public virtual void RecalculateBounds()
         {
             if (NodesInternal.Count == 0) return;
 

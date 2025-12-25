@@ -17,7 +17,7 @@ namespace ChaosWarlords.Tests.Entities
             _node1 = new MapNode(1, new Vector2(0, 0));
             _node2 = new MapNode(2, new Vector2(0, 0));
             _node3 = new MapNode(3, new Vector2(0, 0));
-            _site = new Site("Test Site", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            _site = new NonCitySite("Test Site", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
             _site.AddNode(_node1);
             _site.AddNode(_node2);
             _site.AddNode(_node3);

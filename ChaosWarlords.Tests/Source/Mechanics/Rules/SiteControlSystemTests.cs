@@ -26,10 +26,7 @@ namespace ChaosWarlords.Tests.Systems
             // Setup Site with 2 nodes
             _node1 = new MapNode(1, Vector2.Zero);
             _node2 = new MapNode(2, Vector2.Zero);
-            _siteA = new Site("TestCity", ResourceType.Power, 1, ResourceType.VictoryPoints, 5)
-            {
-                IsCity = true
-            };
+            _siteA = new CitySite("TestCity", ResourceType.Power, 1, ResourceType.VictoryPoints, 5);
             _siteA.AddNode(_node1);
             _siteA.AddNode(_node2);
         }

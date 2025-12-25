@@ -51,21 +51,93 @@ namespace ChaosWarlords.Source.Systems
 
             // Note: turnManager.ActivePlayer is now valid immediately after construction
 
-            // 4. Setup Map (Load from JSON)
-            (List<MapNode>, List<Site>) mapData;
-            try
-            {
-                using (var stream = Microsoft.Xna.Framework.TitleContainer.OpenStream(Path.Combine("Content", _mapDataPath)))
-                {
-                    mapData = MapFactory.LoadFromStream(stream);
-                }
-            }
-            catch
-            {
-                mapData = MapFactory.CreateTestMap();
-            }
+            // 4. Setup Map (Procedural Generation)
+            var config = new MapGenerationConfig();
 
-            var mapManager = new MapManager(mapData.Item1, mapData.Item2);
+            // -- Define Sites --
+            // 1. Crystal Cave (Start)
+            config.Sites.Add(new SiteConfig 
+            { 
+                Name = "Crystal Cave", 
+                IsCity = false, 
+                Position = new Microsoft.Xna.Framework.Vector2(250, 100), 
+                NodeCount = 2,
+                ControlResource = ResourceType.Power, 
+                ControlAmount = 1,
+                TotalControlResource = ResourceType.Power, 
+                TotalControlAmount = 1,
+                EndGameVP = 2
+            });
+
+            // 2. Void Portal
+            config.Sites.Add(new SiteConfig 
+            { 
+                Name = "Void Portal", 
+                IsCity = false, 
+                Position = new Microsoft.Xna.Framework.Vector2(250, 400), 
+                NodeCount = 3,
+                ControlResource = ResourceType.Power, 
+                ControlAmount = 1,
+                TotalControlResource = ResourceType.Power, 
+                TotalControlAmount = 1,
+                EndGameVP = 1
+            });
+
+            // 3. Shadow Market
+            config.Sites.Add(new SiteConfig 
+            { 
+                Name = "Shadow Market", 
+                IsCity = false, 
+                Position = new Microsoft.Xna.Framework.Vector2(250, 700), 
+                NodeCount = 2,
+                ControlResource = ResourceType.Power, 
+                ControlAmount = 1,
+                TotalControlResource = ResourceType.Power, 
+                TotalControlAmount = 1,
+                EndGameVP = 2
+            });
+
+            // 4. City of Gold
+            config.Sites.Add(new SiteConfig 
+            { 
+                Name = "City of Gold", 
+                IsCity = true, 
+                Position = new Microsoft.Xna.Framework.Vector2(600, 400), 
+                NodeCount = 4,
+                ControlResource = ResourceType.Influence, 
+                ControlAmount = 1,
+                TotalControlResource = ResourceType.VictoryPoints, 
+                TotalControlAmount = 1,
+                EndGameVP = 0
+            });
+
+            // 5. Obsidian Fortress
+            config.Sites.Add(new SiteConfig 
+            { 
+                Name = "Obsidian Fortress", 
+                IsCity = true, 
+                Position = new Microsoft.Xna.Framework.Vector2(1000, 400), 
+                NodeCount = 6,
+                ControlResource = ResourceType.Influence, 
+                ControlAmount = 1,
+                TotalControlResource = ResourceType.VictoryPoints, 
+                TotalControlAmount = 2,
+                EndGameVP = 0
+            });
+
+            // -- Define Routes --
+            config.Routes.Add(new RouteConfig { FromSiteName = "Crystal Cave", ToSiteName = "Void Portal", NodeCount = 2 }); // Route down to Void
+            config.Routes.Add(new RouteConfig { FromSiteName = "Void Portal", ToSiteName = "Shadow Market", NodeCount = 2 }); // Route down to Shadow
+            
+            config.Routes.Add(new RouteConfig { FromSiteName = "Void Portal", ToSiteName = "City of Gold", NodeCount = 1 }); // Route right to Gold
+            
+            config.Routes.Add(new RouteConfig { FromSiteName = "City of Gold", ToSiteName = "Obsidian Fortress", NodeCount = 3 }); // Route right to Obsidian
+
+            // Generate
+            var layoutEngine = new MapLayoutEngine();
+            (List<MapNode> nodes, List<Site> sites, List<Route> routes) = layoutEngine.GenerateMap(config);
+
+            var mapManager = new MapManager(nodes, sites);
 
             // 5. Setup Action System
             // REFACTOR: ActionSystem is now initialized with the TurnManager, not the Player

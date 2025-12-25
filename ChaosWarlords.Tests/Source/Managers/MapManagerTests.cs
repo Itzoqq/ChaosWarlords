@@ -42,11 +42,11 @@ namespace ChaosWarlords.Tests.Systems
             _node4.AddNeighbor(_node5);
             _node5.AddNeighbor(_node4);
 
-            _siteA = new Site("SiteA", ResourceType.Power, 1, ResourceType.VictoryPoints, 1) { IsCity = true };
+            _siteA = new CitySite("SiteA", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
             _siteA.AddNode(_node3);
             _siteA.AddNode(_node4);
 
-            _siteB = new Site("SiteB", ResourceType.Influence, 1, ResourceType.VictoryPoints, 1);
+            _siteB = new NonCitySite("SiteB", ResourceType.Influence, 1, ResourceType.VictoryPoints, 1);
             _siteB.AddNode(_node5);
 
             var nodes = new List<MapNode> { _node1, _node2, _node3, _node4, _node5 };
@@ -169,7 +169,7 @@ namespace ChaosWarlords.Tests.Systems
         public void CanPlaceSpy_ReturnsTrue_EvenWithoutPresence()
         {
             // This tests that MapManager correctly delegates to RuleEngine for this specific rule
-            var remoteSite = new Site("Void", ResourceType.Power, 1, ResourceType.Power, 1);
+            var remoteSite = new NonCitySite("Void", ResourceType.Power, 1, ResourceType.Power, 1);
             var remoteNode = new MapNode(99, Vector2.Zero);
             remoteSite.AddNode(remoteNode);
 
@@ -224,7 +224,7 @@ namespace ChaosWarlords.Tests.Systems
 
             routeNode.AddNeighbor(cityNodeTL);
 
-            var citySite = new Site("City of Gold", ResourceType.Power, 1, ResourceType.VictoryPoints, 2);
+            var citySite = new CitySite("City of Gold", ResourceType.Power, 1, ResourceType.VictoryPoints, 2);
             citySite.AddNode(cityNodeTL);
             citySite.AddNode(cityNodeTR);
             citySite.AddNode(cityNodeDL);
@@ -268,9 +268,9 @@ namespace ChaosWarlords.Tests.Systems
             // Site A has Spy. Site B is target.
             var siteANode = new MapNode(1, Vector2.Zero);
             var siteBNode = new MapNode(2, Vector2.Zero);
-            var siteA = new Site("Spy Hub", ResourceType.Power, 1, ResourceType.Power, 1);
+            var siteA = new NonCitySite("Spy Hub", ResourceType.Power, 1, ResourceType.Power, 1);
             siteA.AddNode(siteANode);
-            var siteB = new Site("Target Fort", ResourceType.Power, 1, ResourceType.Power, 1);
+            var siteB = new NonCitySite("Target Fort", ResourceType.Power, 1, ResourceType.Power, 1);
             siteB.AddNode(siteBNode);
 
             var manager = new MapManager(new List<MapNode> { siteANode, siteBNode }, new List<Site> { siteA, siteB });
@@ -393,7 +393,7 @@ namespace ChaosWarlords.Tests.Systems
 
             targetNode.AddNeighbor(enemyNode);
 
-            var enemySite = new Site("Enemy Fortress", ResourceType.Power, 1, ResourceType.Power, 1);
+            var enemySite = new NonCitySite("Enemy Fortress", ResourceType.Power, 1, ResourceType.Power, 1);
             enemySite.AddNode(enemyNode);
             enemySite.AddNode(targetNode); // Target is inside the enemy site
 

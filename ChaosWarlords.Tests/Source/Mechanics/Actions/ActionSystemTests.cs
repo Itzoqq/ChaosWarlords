@@ -41,7 +41,7 @@ namespace ChaosWarlords.Tests.Systems
             _node2 = new MapNode(2, new Vector2(20, 10));
 
             // Correct Constructor (Name, ControlRes, Amount, TotalControlRes, Amount)
-            _siteA = new Site("SiteA", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            _siteA = new NonCitySite("SiteA", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
 
             // Inject the mock
             _actionSystem = new ActionSystem(_turnManager, _mapManager);

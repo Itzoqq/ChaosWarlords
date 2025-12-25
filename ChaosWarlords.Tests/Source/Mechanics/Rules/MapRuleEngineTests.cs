@@ -32,7 +32,7 @@ namespace ChaosWarlords.Tests.Systems
             _node2.AddNeighbor(_node3);
             _node3.AddNeighbor(_node2);
 
-            _siteA = new Site("SiteA", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            _siteA = new NonCitySite("SiteA", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
             _siteA.AddNode(_node3);
 
             // Manual dependency injection for the engine

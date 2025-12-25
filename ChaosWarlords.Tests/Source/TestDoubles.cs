@@ -65,15 +65,12 @@ namespace ChaosWarlords.Tests
         public event EventHandler? OnMarketToggleRequest;
         public event EventHandler? OnAssassinateRequest;
         public event EventHandler? OnReturnSpyRequest;
-#pragma warning disable CS0067
         public event EventHandler? OnEndTurnRequest;
         public event EventHandler? OnPopupConfirm;
         public event EventHandler? OnPopupCancel;
-
         public event EventHandler? OnResumeRequest;
         public event EventHandler? OnMainMenuRequest;
         public event EventHandler? OnExitRequest;
-#pragma warning restore CS0067
 
         // Pause Menu Properties
         public Rectangle PauseMenuBackgroundRect { get; set; } = Rectangle.Empty;
@@ -89,6 +86,11 @@ namespace ChaosWarlords.Tests
         public void RaiseAssassinateRequest() => OnAssassinateRequest?.Invoke(this, EventArgs.Empty);
         public void RaiseReturnSpyRequest() => OnReturnSpyRequest?.Invoke(this, EventArgs.Empty);
         public void RaiseEndTurnRequest() => OnEndTurnRequest?.Invoke(this, EventArgs.Empty);
+        public void RaisePopupConfirm() => OnPopupConfirm?.Invoke(this, EventArgs.Empty);
+        public void RaisePopupCancel() => OnPopupCancel?.Invoke(this, EventArgs.Empty);
+        public void RaiseResumeRequest() => OnResumeRequest?.Invoke(this, EventArgs.Empty);
+        public void RaiseMainMenuRequest() => OnMainMenuRequest?.Invoke(this, EventArgs.Empty);
+        public void RaiseExitRequest() => OnExitRequest?.Invoke(this, EventArgs.Empty);
 
         public void Update(InputManager input) { }
     }

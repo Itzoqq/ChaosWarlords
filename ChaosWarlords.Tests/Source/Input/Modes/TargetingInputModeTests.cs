@@ -118,7 +118,7 @@ namespace ChaosWarlords.Tests.States.Input
             // 1. Arrange
             _actionSub.CurrentState.Returns(ActionState.SelectingSpyToReturn);
 
-            var site = new Site("Test Site", ResourceType.Power, 1, ResourceType.Influence, 1);
+            var site = new NonCitySite("Test Site", ResourceType.Power, 1, ResourceType.Influence, 1);
             // Use Reflection to set bounds if needed, or rely on defaults
             typeof(Site).GetProperty("Bounds")?.SetValue(site, new Rectangle(100, 100, 100, 100));
 
@@ -144,7 +144,7 @@ namespace ChaosWarlords.Tests.States.Input
         {
             _actionSub.CurrentState.Returns(ActionState.TargetingPlaceSpy);
 
-            var targetSite = new Site("Target Site", ResourceType.Power, 1, ResourceType.Influence, 1);
+            var targetSite = new NonCitySite("Target Site", ResourceType.Power, 1, ResourceType.Influence, 1);
             _mapSub.GetSiteAt(Arg.Any<Vector2>()).Returns(targetSite);
             _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns((MapNode?)null);
 

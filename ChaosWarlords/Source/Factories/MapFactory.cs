@@ -105,7 +105,16 @@ namespace ChaosWarlords.Source.Utilities
                 System.Enum.TryParse(s.ControlResource, out ResourceType cType);
                 System.Enum.TryParse(s.TotalControlResource, out ResourceType tType);
 
-                var newSite = new Site(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
+                Site newSite;
+                if (s.IsCity)
+                {
+                    newSite = new CitySite(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
+                }
+                else
+                {
+                    newSite = new NonCitySite(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
+                }
+                
                 newSite.IsCity = s.IsCity;
 
                 foreach (int nodeId in s.NodeIds)

@@ -219,7 +219,8 @@ namespace ChaosWarlords.Tests.States
             public void InitializeTestEnvironment(IMapManager map, IMarketManager market, IActionSystem action)
             {
                 _inputManagerBacking = new InputManager(_testInput);
-                _uiManagerBacking = new UIManager(800, 600);
+                _inputManagerBacking = new InputManager(_testInput);
+                _uiManagerBacking = new MockUISystem();
 
                 var p1 = new Player(PlayerColor.Red);
                 var p2 = new Player(PlayerColor.Blue);
@@ -365,13 +366,8 @@ namespace ChaosWarlords.Tests.States
             Assert.IsTrue(state.IsConfirmationPopupOpen);
 
             // Confirm
-            // We need to trigger OnPopupConfirm. As we use real UIManager in TestableGameplayState, 
-            // we have to simulate a click on the confirm button.
-            // We need to know where the button is.
-            // HACK for test: We can use Reflection to invoke 'HandlePopupConfirm'.
-            var method = typeof(GameplayState).GetMethod("HandlePopupConfirm", BindingFlags.NonPublic | BindingFlags.Instance);
-            Assert.IsNotNull(method, "HandlePopupConfirm method not found via reflection");
-            method.Invoke(state, new object[] { null!, EventArgs.Empty });
+            var mockUI = (MockUISystem)state.UIManager;
+            mockUI.RaisePopupConfirm();
 
             Assert.IsFalse(state.IsConfirmationPopupOpen);
             _mapManager.Received(1).DistributeControlRewards(Arg.Any<Player>());
@@ -391,9 +387,8 @@ namespace ChaosWarlords.Tests.States
             Assert.IsTrue(state.IsConfirmationPopupOpen);
 
             // Cancel
-            var method = typeof(GameplayState).GetMethod("HandlePopupCancel", BindingFlags.NonPublic | BindingFlags.Instance);
-            Assert.IsNotNull(method, "HandlePopupCancel method not found via reflection");
-            method.Invoke(state, new object[] { null!, EventArgs.Empty });
+            var mockUI = (MockUISystem)state.UIManager;
+            mockUI.RaisePopupCancel();
 
             Assert.IsFalse(state.IsConfirmationPopupOpen);
             _mapManager.DidNotReceive().DistributeControlRewards(Arg.Any<Player>());
@@ -439,10 +434,9 @@ namespace ChaosWarlords.Tests.States
             state.Update(new GameTime());
             Assert.IsTrue(state.IsPauseMenuOpen);
 
-            // Trigger Resume via Reflection (simulating Event)
-            var method = typeof(GameplayState).GetMethod("HandleResumeRequest", BindingFlags.NonPublic | BindingFlags.Instance);
-            Assert.IsNotNull(method);
-            method.Invoke(state, new object[] { null!, EventArgs.Empty });
+            // Trigger Resume via Mock Event
+            var mockUI = (MockUISystem)state.UIManager;
+            mockUI.RaiseResumeRequest();
 
             Assert.IsFalse(state.IsPauseMenuOpen);
             Assert.IsFalse(state.IsPauseMenuOpen);
