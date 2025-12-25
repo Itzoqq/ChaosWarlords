@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ChaosWarlords.Source.Views;
 using System.Reflection;
+using ChaosWarlords.Tests;
 
 namespace ChaosWarlords.Tests.States
 {

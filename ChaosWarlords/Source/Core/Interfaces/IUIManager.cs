@@ -54,6 +54,10 @@ namespace ChaosWarlords.Source.Systems
         event EventHandler OnMainMenuRequest;
         event EventHandler OnExitRequest;
 
+        // State Control
+        bool IsPaused { get; set; }
+        bool IsPopupVisible { get; set; }
+
         bool IsResumeHovered { get; }
         bool IsMainMenuHovered { get; }
         bool IsExitHovered { get; }

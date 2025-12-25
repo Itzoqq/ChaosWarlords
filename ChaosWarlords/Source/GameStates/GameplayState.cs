@@ -129,6 +129,11 @@ namespace ChaosWarlords.Source.States
         public void Update(GameTime gameTime)
         {
             _inputManagerBacking.Update();
+            
+            // Sync State to UIManager
+            _uiManagerBacking.IsPaused = _isPauseMenuOpen;
+            _uiManagerBacking.IsPopupVisible = _isConfirmationPopupOpen;
+            
             _uiManagerBacking.Update(_inputManagerBacking);
 
             if (_isConfirmationPopupOpen) return; // Block other input if popup is open

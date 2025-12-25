@@ -77,6 +77,9 @@ namespace ChaosWarlords.Tests.Systems
         public void Buttons_DoNotOverlap_Logically()
         {
             // 1. Hover Assassinate
+            // Ensure pause is false (default, but explicit is good)
+            _ui.IsPaused = false;
+            
             SetMouse(770, 200);
             _ui.Update(_input);
 
@@ -101,6 +104,9 @@ namespace ChaosWarlords.Tests.Systems
         {
             // Resume button is top button. 
             // We need to know where it is exactly or just get the Center.
+            // Also need to set IsPaused = true for it to be active!
+            _ui.IsPaused = true;
+
             var rect = _ui.ResumeButtonRect;
             SetMouse(rect.Center.X, rect.Center.Y);
 

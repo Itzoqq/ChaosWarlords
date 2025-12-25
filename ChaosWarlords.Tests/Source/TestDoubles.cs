@@ -91,7 +91,10 @@ namespace ChaosWarlords.Tests
         public void RaiseResumeRequest() => OnResumeRequest?.Invoke(this, EventArgs.Empty);
         public void RaiseMainMenuRequest() => OnMainMenuRequest?.Invoke(this, EventArgs.Empty);
         public void RaiseExitRequest() => OnExitRequest?.Invoke(this, EventArgs.Empty);
-
+    
+        public bool IsPaused { get; set; } = false;
+        public bool IsPopupVisible { get; set; } = false;
+    
         public void Update(InputManager input) { }
     }
 }
