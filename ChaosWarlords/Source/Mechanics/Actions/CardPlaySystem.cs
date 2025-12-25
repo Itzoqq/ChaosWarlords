@@ -10,13 +10,13 @@ namespace ChaosWarlords.Source.Systems
     public class CardPlaySystem
     {
         private readonly MatchContext _matchContext;
-        private readonly IMatchManager _MatchManager;
+        private readonly IMatchManager _matchManager;
         private readonly Action _onTargetingStarted;
 
         public CardPlaySystem(MatchContext matchContext, IMatchManager MatchManager, Action onTargetingStarted)
         {
             _matchContext = matchContext;
-            _MatchManager = MatchManager;
+            _matchManager = MatchManager;
             _onTargetingStarted = onTargetingStarted;
         }
 
@@ -50,7 +50,7 @@ namespace ChaosWarlords.Source.Systems
             // 2. Play immediately if no targeting was started
             if (!enteredTargeting)
             {
-                _MatchManager.PlayCard(card);
+                _matchManager.PlayCard(card);
             }
         }
 

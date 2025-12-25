@@ -15,6 +15,8 @@ namespace ChaosWarlords.Source.Entities
         public ResourceType TotalControlResource { get; private set; }
         public int TotalControlAmount { get; private set; }
 
+        public int EndGameVictoryPoints { get; set; }
+
         public bool IsCity { get; set; }
 
         public List<MapNode> NodesInternal { get; private set; } = new List<MapNode>();

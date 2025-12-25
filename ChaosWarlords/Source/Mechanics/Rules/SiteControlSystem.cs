@@ -81,12 +81,14 @@ namespace ChaosWarlords.Source.Systems
             {
                 if (site.Owner == activePlayer.Color && site.IsCity)
                 {
+                    // If Total Control, GET Total Control Reward (replaces normal Control Reward)
                     if (site.HasTotalControl)
                     {
                         ApplyReward(activePlayer, site.TotalControlResource, site.TotalControlAmount);
                     }
                     else
                     {
+                        // Otherwise, get normal Control Reward
                         ApplyReward(activePlayer, site.ControlResource, site.ControlAmount);
                     }
                 }

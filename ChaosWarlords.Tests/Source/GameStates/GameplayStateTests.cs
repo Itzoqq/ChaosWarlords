@@ -231,7 +231,7 @@ namespace ChaosWarlords.Tests.States
 
                 _matchContext = new MatchContext(tm, map, market, action, _testDb);
 
-                _MatchManager = new MatchManager(_matchContext);
+                _matchManager = new MatchManager(_matchContext);
 
                 // --- Initialize the missing Coordinators ---
 
@@ -245,7 +245,7 @@ namespace ChaosWarlords.Tests.States
 
                 // 3. CardPlaySystem (NEW dependency)
                 // We must use reflection to set it because it's private and typically set in LoadContent
-                var cardSystem = new CardPlaySystem(_matchContext, _MatchManager, () => SwitchToTargetingMode());
+                var cardSystem = new CardPlaySystem(_matchContext, _matchManager, () => SwitchToTargetingMode());
                 SetPrivateField("_cardPlaySystem", cardSystem);
 
                 // --- END FIX ---

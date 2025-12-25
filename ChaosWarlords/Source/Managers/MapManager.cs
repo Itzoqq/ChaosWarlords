@@ -32,8 +32,11 @@ namespace ChaosWarlords.Source.Systems
             if (sites != null)
             {
                 foreach (var site in sites)
+                {
+                    site.RecalculateBounds();
                     foreach (var node in site.NodesInternal)
                         _nodeSiteLookup[node] = site;
+                }
             }
 
             // Initialize Sub-Systems (Composition)

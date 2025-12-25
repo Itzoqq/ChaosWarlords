@@ -33,7 +33,8 @@ namespace ChaosWarlords.Source.Utilities
             float ua = ((p4.X - p3.X) * (p1.Y - p3.Y) - (p4.Y - p3.Y) * (p1.X - p3.X)) / d;
             float ub = ((p2.X - p1.X) * (p1.Y - p3.Y) - (p2.Y - p1.Y) * (p1.X - p3.X)) / d;
 
-            if (ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1)
+            const float Epsilon = 1e-5f;
+            if (ua >= -Epsilon && ua <= 1 + Epsilon && ub >= -Epsilon && ub <= 1 + Epsilon)
             {
                 result = new Vector2(p1.X + ua * (p2.X - p1.X), p1.Y + ua * (p2.Y - p1.Y));
                 return true;

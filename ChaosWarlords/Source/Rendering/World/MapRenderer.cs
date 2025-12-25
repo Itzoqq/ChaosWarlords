@@ -38,8 +38,8 @@ namespace ChaosWarlords.Source.Views
 
         public void Draw(SpriteBatch spriteBatch, IMapManager map, MapNode hoveredNode, Site hoveredSite)
         {
-            DrawSites(spriteBatch, map.Sites);
             DrawRoutes(spriteBatch, map);
+            DrawSites(spriteBatch, map.Sites);
             DrawNodes(spriteBatch, map.Nodes, hoveredNode);
         }
 

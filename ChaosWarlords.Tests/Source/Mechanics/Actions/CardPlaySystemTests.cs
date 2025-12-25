@@ -14,7 +14,7 @@ namespace ChaosWarlords.Tests.Systems
     {
         private CardPlaySystem _system = null!;
         private MatchContext _matchContext = null!;
-        private IMatchManager _MatchManager = null!;
+        private IMatchManager _matchManager = null!;
         private IActionSystem _actionSystem = null!;
         private IMapManager _mapManager = null!;
         private Action _targetingCallback = null!;
@@ -23,7 +23,7 @@ namespace ChaosWarlords.Tests.Systems
         public void Setup()
         {
             // Mocks
-            _MatchManager = Substitute.For<IMatchManager>();
+            _matchManager = Substitute.For<IMatchManager>();
             _actionSystem = Substitute.For<IActionSystem>();
             _mapManager = Substitute.For<IMapManager>();
             _targetingCallback = Substitute.For<Action>();
@@ -43,7 +43,7 @@ namespace ChaosWarlords.Tests.Systems
             turnManager.ActivePlayer.Returns(player);
 
             // System under test
-            _system = new CardPlaySystem(_matchContext, _MatchManager, _targetingCallback);
+            _system = new CardPlaySystem(_matchContext, _matchManager, _targetingCallback);
         }
 
         [TestMethod]
@@ -62,7 +62,7 @@ namespace ChaosWarlords.Tests.Systems
             _targetingCallback.DidNotReceive().Invoke();
 
             // Verify: Card played
-            _MatchManager.Received(1).PlayCard(card);
+            _matchManager.Received(1).PlayCard(card);
         }
 
         [TestMethod]
@@ -81,7 +81,7 @@ namespace ChaosWarlords.Tests.Systems
             _targetingCallback.Received(1).Invoke();
 
             // Verify: Card NOT played yet
-            _MatchManager.DidNotReceive().PlayCard(card);
+            _matchManager.DidNotReceive().PlayCard(card);
         }
 
         [TestMethod]
@@ -97,7 +97,7 @@ namespace ChaosWarlords.Tests.Systems
             _actionSystem.DidNotReceiveWithAnyArgs().StartTargeting(default, default);
 
             // Verify: Card played
-            _MatchManager.Received(1).PlayCard(card);
+            _matchManager.Received(1).PlayCard(card);
         }
 
         [TestMethod]
@@ -128,7 +128,7 @@ namespace ChaosWarlords.Tests.Systems
              _system.PlayCard(card);
 
              // Should play immediately
-             _MatchManager.Received(1).PlayCard(card);
+             _matchManager.Received(1).PlayCard(card);
         }
 
         [TestMethod]

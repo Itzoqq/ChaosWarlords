@@ -19,7 +19,7 @@ namespace ChaosWarlords.Source.States
         private readonly ICardDatabase _cardDatabase;
 
         internal GameplayView _view;
-        internal IMatchManager _MatchManager;
+        internal IMatchManager _matchManager;
         internal MatchContext _matchContext;
         internal InputManager _inputManagerBacking;
         internal IUISystem _uiManagerBacking;
@@ -32,7 +32,7 @@ namespace ChaosWarlords.Source.States
 
         public InputManager InputManager => _inputManagerBacking;
         public IUISystem UIManager => _uiManagerBacking;
-        public IMatchManager MatchManager => _MatchManager;
+        public IMatchManager MatchManager => _matchManager;
 
         public IMapManager MapManager => _matchContext?.MapManager;
         public IMarketManager MarketManager => _matchContext?.MarketManager;
@@ -89,7 +89,7 @@ namespace ChaosWarlords.Source.States
                 _cardDatabase
             );
 
-            _MatchManager = new MatchManager(_matchContext);
+            _matchManager = new MatchManager(_matchContext);
 
             if (_matchContext.TurnManager.Players != null)
             {
@@ -107,7 +107,7 @@ namespace ChaosWarlords.Source.States
             _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
             
             // 3. Initialize CardPlaySystem
-            _cardPlaySystem = new CardPlaySystem(_matchContext, _MatchManager, () => SwitchToTargetingMode());
+            _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, () => SwitchToTargetingMode());
         }
 
         public void UnloadContent()
@@ -169,14 +169,14 @@ namespace ChaosWarlords.Source.States
 
 
 
-        public void MoveCardToPlayed(Card card) => _MatchManager.MoveCardToPlayed(card);
+        public void MoveCardToPlayed(Card card) => _matchManager.MoveCardToPlayed(card);
 
-        public bool CanEndTurn(out string reason) => _MatchManager.CanEndTurn(out reason);
+        public bool CanEndTurn(out string reason) => _matchManager.CanEndTurn(out reason);
 
         public void EndTurn()
         {
             if (_matchContext.ActionSystem.IsTargeting()) _matchContext.ActionSystem.CancelTargeting();
-            _MatchManager.EndTurn();
+            _matchManager.EndTurn();
             SwitchToNormalMode();
         }
 
@@ -327,13 +327,16 @@ namespace ChaosWarlords.Source.States
 
         private void HandleEndTurnRequest(object sender, EventArgs e)
         {
+            GameLogger.Log("Gameplay: EndTurn Request Received", LogChannel.Info);
             bool hasUnplayedCards = _matchContext.ActivePlayer.Hand.Count > 0;
             if (hasUnplayedCards)
             {
+                GameLogger.Log("Gameplay: Opening Confirmation Popup", LogChannel.Info);
                 _isConfirmationPopupOpen = true;
             }
             else
             {
+                GameLogger.Log("Gameplay: Ending Turn Immediately", LogChannel.Info);
                 EndTurn();
             }
         }
@@ -342,6 +345,7 @@ namespace ChaosWarlords.Source.States
         {
             if (_isConfirmationPopupOpen)
             {
+                GameLogger.Log("Gameplay: Popup Confirmed - Ending Turn", LogChannel.Info);
                 _isConfirmationPopupOpen = false;
                 EndTurn();
             }
@@ -351,6 +355,7 @@ namespace ChaosWarlords.Source.States
         {
             if (_isConfirmationPopupOpen)
             {
+                GameLogger.Log("Gameplay: Popup Cancelled", LogChannel.Info);
                 _isConfirmationPopupOpen = false;
             }
         }
@@ -390,7 +395,7 @@ namespace ChaosWarlords.Source.States
         {
             if (_matchContext.ActionSystem.PendingCard != null)
             {
-                _MatchManager.PlayCard(_matchContext.ActionSystem.PendingCard);
+                _matchManager.PlayCard(_matchContext.ActionSystem.PendingCard);
             }
             _matchContext.ActionSystem.CancelTargeting();
             SwitchToNormalMode();

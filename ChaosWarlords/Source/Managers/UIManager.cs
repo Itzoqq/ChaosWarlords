@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Systems
 {
@@ -173,17 +174,17 @@ namespace ChaosWarlords.Source.Systems
                 // Better approach: If Pause Is Open, ONLY check Pause buttons?
                 // For now, we fire all relevant events.
                 
-                if (IsResumeHovered) { OnResumeRequest?.Invoke(this, EventArgs.Empty); return; }
-                if (IsMainMenuHovered) { OnMainMenuRequest?.Invoke(this, EventArgs.Empty); return; }
-                if (IsExitHovered) { OnExitRequest?.Invoke(this, EventArgs.Empty); return; }
+                if (IsResumeHovered) { GameLogger.Log("UI: Resume Clicked", LogChannel.Info); OnResumeRequest?.Invoke(this, EventArgs.Empty); return; }
+                if (IsMainMenuHovered) { GameLogger.Log("UI: MainMenu Clicked", LogChannel.Info); OnMainMenuRequest?.Invoke(this, EventArgs.Empty); return; }
+                if (IsExitHovered) { GameLogger.Log("UI: Exit Clicked", LogChannel.Info); OnExitRequest?.Invoke(this, EventArgs.Empty); return; }
 
-                if (IsPopupConfirmHovered) { OnPopupConfirm?.Invoke(this, EventArgs.Empty); return; } 
-                if (IsPopupCancelHovered) { OnPopupCancel?.Invoke(this, EventArgs.Empty); return; }
+                if (IsPopupConfirmHovered) { GameLogger.Log("UI: Popup Confirm Clicked", LogChannel.Info); OnPopupConfirm?.Invoke(this, EventArgs.Empty); return; } 
+                if (IsPopupCancelHovered) { GameLogger.Log("UI: Popup Cancel Clicked", LogChannel.Info); OnPopupCancel?.Invoke(this, EventArgs.Empty); return; }
 
-                if (IsMarketHovered) OnMarketToggleRequest?.Invoke(this, EventArgs.Empty);
-                if (IsAssassinateHovered) OnAssassinateRequest?.Invoke(this, EventArgs.Empty);
-                if (IsReturnSpyHovered) OnReturnSpyRequest?.Invoke(this, EventArgs.Empty);
-                if (IsEndTurnHovered) OnEndTurnRequest?.Invoke(this, EventArgs.Empty);
+                if (IsMarketHovered) { GameLogger.Log("UI: Market Clicked", LogChannel.Info); OnMarketToggleRequest?.Invoke(this, EventArgs.Empty); }
+                if (IsAssassinateHovered) { GameLogger.Log("UI: Assassinate Clicked", LogChannel.Info); OnAssassinateRequest?.Invoke(this, EventArgs.Empty); }
+                if (IsReturnSpyHovered) { GameLogger.Log("UI: ReturnSpy Clicked", LogChannel.Info); OnReturnSpyRequest?.Invoke(this, EventArgs.Empty); }
+                if (IsEndTurnHovered) { GameLogger.Log("UI: EndTurn Clicked", LogChannel.Info); OnEndTurnRequest?.Invoke(this, EventArgs.Empty); }
             }
         }
     }

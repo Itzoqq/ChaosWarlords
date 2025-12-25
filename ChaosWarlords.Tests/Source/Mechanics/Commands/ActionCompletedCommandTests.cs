@@ -12,7 +12,7 @@ namespace ChaosWarlords.Tests.Source.Commands
     {
         private IGameplayState _stateSub = null!;
         private IActionSystem _actionSub = null!;
-        private IMatchManager _MatchManagerSub = null!; // New Mock
+        private IMatchManager _matchManagerSub = null!; // New Mock
 
         [TestInitialize]
         public void Setup()
@@ -22,11 +22,11 @@ namespace ChaosWarlords.Tests.Source.Commands
             // 1. Create Mocks
             _stateSub = Substitute.For<IGameplayState>();
             _actionSub = Substitute.For<IActionSystem>();
-            _MatchManagerSub = Substitute.For<IMatchManager>();
+            _matchManagerSub = Substitute.For<IMatchManager>();
 
             // 2. Wire Mocks together
             _stateSub.ActionSystem.Returns(_actionSub);
-            _stateSub.MatchManager.Returns(_MatchManagerSub); // Important: Hook up the controller
+            _stateSub.MatchManager.Returns(_matchManagerSub); // Important: Hook up the controller
         }
 
         [TestMethod]
@@ -43,7 +43,7 @@ namespace ChaosWarlords.Tests.Source.Commands
 
             // Assert
             // 1. Verify logic was delegated to the Controller (which handles effects + movement)
-            _MatchManagerSub.Received(1).PlayCard(card);
+            _matchManagerSub.Received(1).PlayCard(card);
 
             // 2. Verify cleanup
             _actionSub.Received(1).CancelTargeting();
@@ -63,7 +63,7 @@ namespace ChaosWarlords.Tests.Source.Commands
 
             // Assert
             // 1. Verify Controller was NOT called
-            _MatchManagerSub.DidNotReceive().PlayCard(Arg.Any<Card>());
+            _matchManagerSub.DidNotReceive().PlayCard(Arg.Any<Card>());
 
             // 2. Verify cleanup still happens
             _actionSub.Received(1).CancelTargeting();

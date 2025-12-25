@@ -1,84 +1,242 @@
 {
     "Nodes": [
         {
-            "Id": 1,
-            "X": 150,
-            "Y": 300,
+            "Id": 101,
+            "X": 210,
+            "Y": -150
+        },
+        {
+            "Id": 102,
+            "X": 290,
+            "Y": -150
+        },
+        {
+            "Id": 201,
+            "X": 190,
+            "Y": 350,
             "Occupant": "Neutral"
         },
         {
-            "Id": 2,
-            "X": 220,
-            "Y": 300,
+            "Id": 202,
+            "X": 250,
+            "Y": 350,
             "Occupant": "Neutral"
         },
         {
-            "Id": 3,
-            "X": 320,
+            "Id": 203,
+            "X": 310,
+            "Y": 350,
+            "Occupant": "Neutral"
+        },
+        {
+            "Id": 301,
+            "X": 210,
+            "Y": 850
+        },
+        {
+            "Id": 302,
+            "X": 290,
+            "Y": 850
+        },
+        {
+            "Id": 401,
+            "X": 550,
             "Y": 300
         },
         {
-            "Id": 4,
-            "X": 400,
+            "Id": 402,
+            "X": 650,
             "Y": 300
         },
         {
-            "Id": 5,
-            "X": 500,
+            "Id": 403,
+            "X": 550,
+            "Y": 400
+        },
+        {
+            "Id": 404,
+            "X": 650,
+            "Y": 400
+        },
+        {
+            "Id": 501,
+            "X": 950,
             "Y": 250
         },
         {
-            "Id": 6,
-            "X": 580,
+            "Id": 502,
+            "X": 1050,
             "Y": 250
         },
         {
-            "Id": 7,
-            "X": 500,
+            "Id": 503,
+            "X": 950,
             "Y": 350
         },
         {
-            "Id": 8,
-            "X": 580,
+            "Id": 504,
+            "X": 1050,
+            "Y": 350
+        },
+        {
+            "Id": 505,
+            "X": 950,
+            "Y": 450
+        },
+        {
+            "Id": 506,
+            "X": 1050,
+            "Y": 450
+        },
+        {
+            "Id": 1001,
+            "X": 250,
+            "Y": -50
+        },
+        {
+            "Id": 1002,
+            "X": 250,
+            "Y": 50
+        },
+        {
+            "Id": 1003,
+            "X": 250,
+            "Y": 550
+        },
+        {
+            "Id": 1004,
+            "X": 250,
+            "Y": 650
+        },
+        {
+            "Id": 1005,
+            "X": 420,
+            "Y": 350
+        },
+        {
+            "Id": 1006,
+            "X": 730,
+            "Y": 350
+        },
+        {
+            "Id": 1007,
+            "X": 800,
+            "Y": 350
+        },
+        {
+            "Id": 1008,
+            "X": 870,
             "Y": 350
         }
     ],
     "Routes": [
         {
-            "From": 1,
-            "To": 2
+            "From": 201,
+            "To": 202
         },
         {
-            "From": 2,
-            "To": 3
+            "From": 202,
+            "To": 203
         },
         {
-            "From": 3,
-            "To": 4
+            "From": 1001,
+            "To": 101
         },
         {
-            "From": 4,
-            "To": 5
+            "From": 1001,
+            "To": 102
         },
         {
-            "From": 4,
-            "To": 7
+            "From": 1002,
+            "To": 1001
         },
         {
-            "From": 5,
-            "To": 6
+            "From": 1002,
+            "To": 202
         },
         {
-            "From": 5,
-            "To": 7
+            "From": 1003,
+            "To": 202
         },
         {
-            "From": 6,
-            "To": 8
+            "From": 1004,
+            "To": 1003
         },
         {
-            "From": 7,
-            "To": 8
+            "From": 1004,
+            "To": 302
+        },
+        {
+            "From": 301,
+            "To": 302
+        },
+        {
+            "From": 203,
+            "To": 1005
+        },
+        {
+            "From": 1005,
+            "To": 401
+        },
+        {
+            "From": 401,
+            "To": 402
+        },
+        {
+            "From": 401,
+            "To": 403
+        },
+        {
+            "From": 402,
+            "To": 404
+        },
+        {
+            "From": 403,
+            "To": 404
+        },
+        {
+            "From": 402,
+            "To": 1006
+        },
+        {
+            "From": 1006,
+            "To": 1007
+        },
+        {
+            "From": 1007,
+            "To": 1008
+        },
+        {
+            "From": 1008,
+            "To": 503
+        },
+        {
+            "From": 501,
+            "To": 502
+        },
+        {
+            "From": 501,
+            "To": 503
+        },
+        {
+            "From": 502,
+            "To": 504
+        },
+        {
+            "From": 503,
+            "To": 504
+        },
+        {
+            "From": 503,
+            "To": 505
+        },
+        {
+            "From": 504,
+            "To": 506
+        },
+        {
+            "From": 505,
+            "To": 506
         }
     ],
     "Sites": [
@@ -86,27 +244,73 @@
             "Name": "Void Portal",
             "IsCity": false,
             "NodeIds": [
-                1,
-                2
+                201,
+                202,
+                203
             ],
-            "ControlResource": "VictoryPoints",
-            "ControlAmount": 1,
-            "TotalControlResource": "VictoryPoints",
-            "TotalControlAmount": 2
+            "ControlResource": "Power",
+            "ControlAmount": 0,
+            "TotalControlResource": "Power",
+            "TotalControlAmount": 0,
+            "EndGameVictoryPoints": 1
         },
         {
             "Name": "City of Gold",
             "IsCity": true,
             "NodeIds": [
-                5,
-                6,
-                7,
-                8
+                401,
+                402,
+                403,
+                404
             ],
             "ControlResource": "Influence",
             "ControlAmount": 1,
             "TotalControlResource": "VictoryPoints",
-            "TotalControlAmount": 2
+            "TotalControlAmount": 1,
+            "EndGameVictoryPoints": 0
+        },
+        {
+            "Name": "Crystal Cave",
+            "IsCity": false,
+            "NodeIds": [
+                101,
+                102
+            ],
+            "ControlResource": "Power",
+            "ControlAmount": 0,
+            "TotalControlResource": "Power",
+            "TotalControlAmount": 0,
+            "EndGameVictoryPoints": 2
+        },
+        {
+            "Name": "Shadow Market",
+            "IsCity": false,
+            "NodeIds": [
+                301,
+                302
+            ],
+            "ControlResource": "Power",
+            "ControlAmount": 0,
+            "TotalControlResource": "Power",
+            "TotalControlAmount": 0,
+            "EndGameVictoryPoints": 2
+        },
+        {
+            "Name": "Obsidian Fortress",
+            "IsCity": true,
+            "NodeIds": [
+                501,
+                502,
+                503,
+                504,
+                505,
+                506
+            ],
+            "ControlResource": "Influence",
+            "ControlAmount": 1,
+            "TotalControlResource": "VictoryPoints",
+            "TotalControlAmount": 2,
+            "EndGameVictoryPoints": 0
         }
     ]
 }
