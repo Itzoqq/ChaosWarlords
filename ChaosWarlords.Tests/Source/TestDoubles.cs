@@ -69,7 +69,21 @@ namespace ChaosWarlords.Tests
         public event EventHandler? OnEndTurnRequest;
         public event EventHandler? OnPopupConfirm;
         public event EventHandler? OnPopupCancel;
+
+        public event EventHandler? OnResumeRequest;
+        public event EventHandler? OnMainMenuRequest;
+        public event EventHandler? OnExitRequest;
 #pragma warning restore CS0067
+
+        // Pause Menu Properties
+        public Rectangle PauseMenuBackgroundRect { get; set; } = Rectangle.Empty;
+        public Rectangle ResumeButtonRect { get; set; } = Rectangle.Empty;
+        public Rectangle MainMenuButtonRect { get; set; } = Rectangle.Empty;
+        public Rectangle ExitButtonRect { get; set; } = Rectangle.Empty;
+
+        public bool IsResumeHovered { get; set; } = false;
+        public bool IsMainMenuHovered { get; set; } = false;
+        public bool IsExitHovered { get; set; } = false;
 
         public void RaiseMarketToggle() => OnMarketToggleRequest?.Invoke(this, EventArgs.Empty);
         public void RaiseAssassinateRequest() => OnAssassinateRequest?.Invoke(this, EventArgs.Empty);

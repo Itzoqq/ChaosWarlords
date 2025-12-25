@@ -224,6 +224,26 @@ namespace ChaosWarlords.Source.Views
             DrawHorizontalButton(sb, confirmBtn, "END TURN", confirmHover, true, Color.Red);
             DrawHorizontalButton(sb, cancelBtn, "CANCEL", cancelHover, true, Color.Gray);
         }
+
+        public void DrawPauseMenu(SpriteBatch sb, IUISystem ui)
+        {
+            // Draw Background
+            sb.Draw(_pixelTexture, ui.PauseMenuBackgroundRect, Color.Black * 0.95f);
+            DrawBorder(sb, _pixelTexture, ui.PauseMenuBackgroundRect, 2, Color.Cyan);
+
+            // Title
+            string title = "PAUSED";
+            Vector2 titleSize = _defaultFont.MeasureString(title);
+            Vector2 titlePos = new Vector2(
+                ui.PauseMenuBackgroundRect.X + (ui.PauseMenuBackgroundRect.Width - titleSize.X) / 2,
+                ui.PauseMenuBackgroundRect.Y + 20);
+            sb.DrawString(_defaultFont, title, titlePos, Color.Cyan);
+
+            // Buttons
+            DrawHorizontalButton(sb, ui.ResumeButtonRect, "RESUME", ui.IsResumeHovered, true, Color.Green);
+            DrawHorizontalButton(sb, ui.MainMenuButtonRect, "MAIN MENU", ui.IsMainMenuHovered, true, Color.Orange);
+            DrawHorizontalButton(sb, ui.ExitButtonRect, "EXIT", ui.IsExitHovered, true, Color.Red);
+        }
         
     }
 }

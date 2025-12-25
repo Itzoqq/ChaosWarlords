@@ -15,7 +15,9 @@ namespace ChaosWarlords
     {
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
-        private StateManager _stateManager;
+        public StateManager StateManager { get; private set; }
+        public IInputProvider InputProvider { get; private set; }
+        public ICardDatabase CardDatabase { get; private set; }
 
         public Game1()
         {
@@ -40,10 +42,11 @@ namespace ChaosWarlords
             _spriteBatch = new SpriteBatch(GraphicsDevice);
 
             // Initialize State Manager
-            _stateManager = new StateManager(this);
+            StateManager = new StateManager(this);
 
             // 1. Initialize Card Database Service (New Step)
             var cardDatabase = new CardDatabase();
+            CardDatabase = cardDatabase;
             try
             {
                 // In a real game, this file load might be wrapped in an IFileProvider or similar abstraction.
@@ -60,18 +63,19 @@ namespace ChaosWarlords
             }
 
             // 2. Create Input Service
-            var inputProvider = new MonoGameInputProvider();
+            InputProvider = new MonoGameInputProvider();
 
             // 3. Inject BOTH into GameplayState
             // This line is correct because GameplayState implements IGameplayState, 
             // which implements IState, and PushState expects IState.
-            _stateManager.PushState(new GameplayState(this, inputProvider, cardDatabase));
+            // 3. Start with Main Menu
+            StateManager.PushState(new MainMenuState(this));
         }
 
         protected override void Update(GameTime gameTime)
         {
             // Delegate logic to current state
-            _stateManager.Update(gameTime);
+            StateManager.Update(gameTime);
             base.Update(gameTime);
         }
 
@@ -82,7 +86,7 @@ namespace ChaosWarlords
             _spriteBatch.Begin();
 
             // Delegate drawing to current state
-            _stateManager.Draw(_spriteBatch);
+            StateManager.Draw(_spriteBatch);
 
             _spriteBatch.End();
 

@@ -157,7 +157,7 @@ namespace ChaosWarlords.Source.States
                 targetingText = GetTargetingText(_matchContext.ActionSystem.CurrentState);
             }
 
-            _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, (UIManager)_uiManagerBacking, IsMarketOpen, targetingText, IsConfirmationPopupOpen);
+            _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, (UIManager)_uiManagerBacking, IsMarketOpen, targetingText, IsConfirmationPopupOpen, IsPauseMenuOpen);
         }
 
         public void PlayCard(Card card)
@@ -202,9 +202,22 @@ namespace ChaosWarlords.Source.States
         {
             if (_inputManagerBacking.IsKeyJustPressed(Keys.Escape))
             {
-                _game.Exit();
+                if (_isPauseMenuOpen)
+                {
+                    _isPauseMenuOpen = false;
+                }
+                else
+                {
+                    _isPauseMenuOpen = true; 
+                    if (IsMarketOpen) IsMarketOpen = false;
+                    _matchContext.ActionSystem.CancelTargeting();
+                    SwitchToNormalMode();
+                    if (_isConfirmationPopupOpen) _isConfirmationPopupOpen = false;
+                }
                 return true;
             }
+
+            if (_isPauseMenuOpen) return true; // Block input when paused
 
             if (_inputManagerBacking.IsKeyJustPressed(Keys.Enter))
             {
@@ -292,6 +305,10 @@ namespace ChaosWarlords.Source.States
             _uiManagerBacking.OnPopupConfirm += HandlePopupConfirm;
             _uiManagerBacking.OnPopupCancel += HandlePopupCancel;
 
+            _uiManagerBacking.OnResumeRequest += HandleResumeRequest;
+            _uiManagerBacking.OnMainMenuRequest += HandleMainMenuRequest;
+            _uiManagerBacking.OnExitRequest += HandleExitRequest; // Exit from Pause Menu
+
             _matchContext.ActionSystem.OnActionCompleted += HandleActionCompleted;
             _matchContext.ActionSystem.OnActionFailed += HandleActionFailed;
         }
@@ -303,6 +320,10 @@ namespace ChaosWarlords.Source.States
         // End Turn Logic
         private bool _isConfirmationPopupOpen = false;
         public bool IsConfirmationPopupOpen => _isConfirmationPopupOpen;
+
+        // Pause Menu Logic
+        private bool _isPauseMenuOpen = false;
+        public bool IsPauseMenuOpen => _isPauseMenuOpen;
 
         private void HandleEndTurnRequest(object sender, EventArgs e)
         {
@@ -331,6 +352,35 @@ namespace ChaosWarlords.Source.States
             if (_isConfirmationPopupOpen)
             {
                 _isConfirmationPopupOpen = false;
+            }
+        }
+
+        // --- PAUSE MENU HANDLERS ---
+        private void HandleResumeRequest(object sender, EventArgs e)
+        {
+            if (_isPauseMenuOpen) _isPauseMenuOpen = false;
+        }
+
+        private void HandleMainMenuRequest(object sender, EventArgs e)
+        {
+            if (_isPauseMenuOpen)
+            {
+                // Navigate to Main Menu
+                // We access StateManager via Game1 usually, but here we only have Game. 
+                // We can cast `_game` if it's Game1, or we need to pass StateManager in constructor.
+                // Assuming Game1 is the type since it was used in MainMenuState.
+                if (_game is Game1 g1)
+                {
+                    g1.StateManager.ChangeState(new MainMenuState(g1));
+                }
+            }
+        }
+
+        private void HandleExitRequest(object sender, EventArgs e)
+        {
+            if (_isPauseMenuOpen)
+            {
+                _game.Exit();
             }
         }
 

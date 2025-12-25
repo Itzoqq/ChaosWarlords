@@ -73,7 +73,7 @@ namespace ChaosWarlords.Source.Views
             if (isMarketOpen) UpdateVisualsHover(MarketViewModels, inputManager);
         }
 
-        public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, UIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen)
+        public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, UIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen)
         {
             // 1. Draw Map
             MapNode hoveredNode = context.MapManager.GetNodeAt(inputManager.MousePosition);
@@ -125,6 +125,12 @@ namespace ChaosWarlords.Source.Views
                     uiManager.PopupCancelButtonRect, 
                     uiManager.IsPopupConfirmHovered, 
                     uiManager.IsPopupCancelHovered);
+            }
+            
+            // 8. Draw Pause Menu (Top-most Modal)
+            if (isPauseMenuOpen)
+            {
+                _uiRenderer.DrawPauseMenu(spriteBatch, uiManager);
             }
         }
 

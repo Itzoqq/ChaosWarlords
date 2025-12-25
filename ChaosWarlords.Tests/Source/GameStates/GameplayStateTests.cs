@@ -399,5 +399,77 @@ namespace ChaosWarlords.Tests.States
             _mapManager.DidNotReceive().DistributeControlRewards(Arg.Any<Player>());
         }
 
+        [TestMethod]
+        public void PauseMenu_EscapeKey_TogglesVisibility()
+        {
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            // 1. Initial State: Closed
+            Assert.IsFalse(state.IsPauseMenuOpen);
+
+            // 2. Press Escape -> Open
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Escape));
+            state.Update(new GameTime());
+            Assert.IsTrue(state.IsPauseMenuOpen);
+
+            // 3. Press Escape Again -> Close
+            // (InputProvider returns same state unless we change it, but KeyJustPressed logic handles the "Just" part assuming Update calls InputManager.Update)
+            // Ideally we need to clear the key first to simulate "Just Pressed" correctly if using real InputManager logic, 
+            // but InputManager.IsKeyJustPressed checks Previous vs Current. 
+            // We need to simulate a frame where it's released first? Or just rely on Update cycle.
+            // Let's reset input to empty, update, then press Escape again.
+            
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState());
+            state.Update(new GameTime()); // Clear previous state
+
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Escape));
+            state.Update(new GameTime()); // Press again
+            Assert.IsFalse(state.IsPauseMenuOpen);
+        }
+
+        [TestMethod]
+        public void PauseMenu_ResumeRequest_ClosesMenu()
+        {
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            // Open Menu first
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Escape));
+            state.Update(new GameTime());
+            Assert.IsTrue(state.IsPauseMenuOpen);
+
+            // Trigger Resume via Reflection (simulating Event)
+            var method = typeof(GameplayState).GetMethod("HandleResumeRequest", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.IsNotNull(method);
+            method.Invoke(state, new object[] { null!, EventArgs.Empty });
+
+            Assert.IsFalse(state.IsPauseMenuOpen);
+            Assert.IsFalse(state.IsPauseMenuOpen);
+        }
+
+        [TestMethod]
+        public void PauseMenu_BlocksOtherInteraction()
+        {
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            // 1. Open Menu
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Escape));
+            state.Update(new GameTime());
+            Assert.IsTrue(state.IsPauseMenuOpen);
+
+            // 2. Try to Click "Enter" (End Turn)
+            // Reset Key to Empty first
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState());
+            state.Update(new GameTime());
+
+            // Press Enter
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
+            state.Update(new GameTime());
+
+            // ASSERT: End Turn should NOT have fired
+            _mapManager.DidNotReceive().DistributeControlRewards(Arg.Any<Player>());
+        }
     }
 }

@@ -40,7 +40,22 @@ namespace ChaosWarlords.Source.Systems
         // End Turn
         bool IsEndTurnHovered { get; }
         // Popup (Modal)
+        // Popup (Modal)
         bool IsPopupConfirmHovered { get; }
         bool IsPopupCancelHovered { get; }
+
+        // --- Pause Menu ---
+        Rectangle PauseMenuBackgroundRect { get; }
+        Rectangle ResumeButtonRect { get; }
+        Rectangle MainMenuButtonRect { get; }
+        Rectangle ExitButtonRect { get; }
+
+        event EventHandler OnResumeRequest;
+        event EventHandler OnMainMenuRequest;
+        event EventHandler OnExitRequest;
+
+        bool IsResumeHovered { get; }
+        bool IsMainMenuHovered { get; }
+        bool IsExitHovered { get; }
     }
 }

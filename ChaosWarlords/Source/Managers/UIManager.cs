@@ -14,6 +14,11 @@ namespace ChaosWarlords.Source.Systems
         private Rectangle _returnSpyButtonRect;
         private Rectangle _endTurnButtonRect;
 
+        public Rectangle MarketButtonRect => _marketButtonRect;
+        public Rectangle AssassinateButtonRect => _assassinateButtonRect;
+        public Rectangle ReturnSpyButtonRect => _returnSpyButtonRect;
+        public Rectangle EndTurnButtonRect => _endTurnButtonRect;
+
         // Popup
         private Rectangle _popupBackgroundRect;
         private Rectangle _popupConfirmButtonRect;
@@ -40,6 +45,7 @@ namespace ChaosWarlords.Source.Systems
             ScreenWidth = screenWidth;
             ScreenHeight = screenHeight;
             RecalculateLayout();
+            RecalculatePauseMenuLayout();
         }
 
         private void RecalculateLayout()
@@ -82,6 +88,65 @@ namespace ChaosWarlords.Source.Systems
             _popupCancelButtonRect = new Rectangle(_popupBackgroundRect.X + (_popupBackgroundRect.Width / 2) + (pGap / 2), pBtnY, pBtnW, pBtnH);
         }
 
+        public Rectangle PopupBackgroundRect => _popupBackgroundRect;
+        public Rectangle PopupConfirmButtonRect => _popupConfirmButtonRect;
+        public Rectangle PopupCancelButtonRect => _popupCancelButtonRect;
+
+        // --- Pause Menu Implementation ---
+        private Rectangle _pauseMenuBackgroundRect;
+        private Rectangle _resumeButtonRect;
+        private Rectangle _mainMenuButtonRect;
+        private Rectangle _exitButtonRect;
+
+        public Rectangle PauseMenuBackgroundRect => _pauseMenuBackgroundRect;
+        public Rectangle ResumeButtonRect => _resumeButtonRect;
+        public Rectangle MainMenuButtonRect => _mainMenuButtonRect;
+        public Rectangle ExitButtonRect => _exitButtonRect;
+
+        public event EventHandler OnResumeRequest;
+        public event EventHandler OnMainMenuRequest;
+        public event EventHandler OnExitRequest;
+
+        public bool IsResumeHovered { get; private set; }
+        public bool IsMainMenuHovered { get; private set; }
+        public bool IsExitHovered { get; private set; }
+
+        private void RecalculatePauseMenuLayout()
+        {
+            int menuW = 300;
+            int menuH = 400;
+            int btnW = 200;
+            int btnH = 50;
+            int gap = 30;
+
+            _pauseMenuBackgroundRect = new Rectangle(
+                (ScreenWidth - menuW) / 2,
+                (ScreenHeight - menuH) / 2,
+                menuW,
+                menuH);
+
+            int startY = _pauseMenuBackgroundRect.Y + 80; // Offset for title
+
+            _resumeButtonRect = new Rectangle(
+                (ScreenWidth - btnW) / 2,
+                startY,
+                btnW,
+                btnH);
+
+            _mainMenuButtonRect = new Rectangle(
+                (ScreenWidth - btnW) / 2,
+                startY + btnH + gap,
+                btnW,
+                btnH);
+
+            _exitButtonRect = new Rectangle(
+                (ScreenWidth - btnW) / 2,
+                startY + (btnH + gap) * 2,
+                btnW,
+                btnH);
+        }
+
+        // Updated Update Loop to Check Pause Menu
         public void Update(InputManager input)
         {
             // 1. Update Hovers
@@ -90,16 +155,29 @@ namespace ChaosWarlords.Source.Systems
             IsReturnSpyHovered = input.IsMouseOver(_returnSpyButtonRect);
             IsEndTurnHovered = input.IsMouseOver(_endTurnButtonRect);
 
-            // Note: GameplayState controls if Popup is visible. 
-            // If we want UIManager to handle popup input, we need to know if it's open.
-            // For now, checks are always running, but events only fire if clicked.
             IsPopupConfirmHovered = input.IsMouseOver(_popupConfirmButtonRect);
             IsPopupCancelHovered = input.IsMouseOver(_popupCancelButtonRect);
+
+            // Pause Menu Hovers
+            IsResumeHovered = input.IsMouseOver(_resumeButtonRect);
+            IsMainMenuHovered = input.IsMouseOver(_mainMenuButtonRect);
+            IsExitHovered = input.IsMouseOver(_exitButtonRect);
 
             // 2. Handle Clicks - Fire Events!
             if (input.IsLeftMouseJustClicked())
             {
-                if (IsPopupConfirmHovered) { OnPopupConfirm?.Invoke(this, EventArgs.Empty); return; } // Prioritize Popup
+                // NOTE: The caller (GameplayState) is responsible for gating these checks
+                // based on what is visible (Popup vs Pause vs Game). 
+                // However, if we click a pause button, we should fire the event regardless, 
+                // and the listener decides if it cares.
+                // Better approach: If Pause Is Open, ONLY check Pause buttons?
+                // For now, we fire all relevant events.
+                
+                if (IsResumeHovered) { OnResumeRequest?.Invoke(this, EventArgs.Empty); return; }
+                if (IsMainMenuHovered) { OnMainMenuRequest?.Invoke(this, EventArgs.Empty); return; }
+                if (IsExitHovered) { OnExitRequest?.Invoke(this, EventArgs.Empty); return; }
+
+                if (IsPopupConfirmHovered) { OnPopupConfirm?.Invoke(this, EventArgs.Empty); return; } 
                 if (IsPopupCancelHovered) { OnPopupCancel?.Invoke(this, EventArgs.Empty); return; }
 
                 if (IsMarketHovered) OnMarketToggleRequest?.Invoke(this, EventArgs.Empty);
@@ -108,16 +186,5 @@ namespace ChaosWarlords.Source.Systems
                 if (IsEndTurnHovered) OnEndTurnRequest?.Invoke(this, EventArgs.Empty);
             }
         }
-
-        // Expose rects ONLY to the Renderer, or keep them internal and make UIManager responsible 
-        // for passing data to UIRenderer. For now, we can add a getter if needed by Renderer, 
-        // but Logic shouldn't touch them.
-        public Rectangle MarketButtonRect => _marketButtonRect;
-        public Rectangle AssassinateButtonRect => _assassinateButtonRect;
-        public Rectangle ReturnSpyButtonRect => _returnSpyButtonRect;
-        public Rectangle EndTurnButtonRect => _endTurnButtonRect;
-        public Rectangle PopupBackgroundRect => _popupBackgroundRect;
-        public Rectangle PopupConfirmButtonRect => _popupConfirmButtonRect;
-        public Rectangle PopupCancelButtonRect => _popupCancelButtonRect;
     }
 }

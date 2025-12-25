@@ -22,3 +22,8 @@
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor
 /build:fonts/SmallFont.spritefont
+
+#begin Textures/Backgrounds/MainMenuBG.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/build:Textures/Backgrounds/MainMenuBG.png

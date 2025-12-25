@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Systems;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using NSubstitute;
 
@@ -82,6 +83,31 @@ namespace ChaosWarlords.Tests.Systems
             Assert.IsTrue(_ui.IsAssassinateHovered);
             Assert.IsFalse(_ui.IsReturnSpyHovered);
             Assert.IsFalse(_ui.IsMarketHovered);
+        }
+
+
+        [TestMethod]
+        public void PauseMenu_Layout_IsCalculated()
+        {
+            // Verify Rects are not empty
+            Assert.AreNotEqual(Rectangle.Empty, _ui.PauseMenuBackgroundRect);
+            Assert.AreNotEqual(Rectangle.Empty, _ui.ResumeButtonRect);
+            Assert.AreNotEqual(Rectangle.Empty, _ui.MainMenuButtonRect);
+            Assert.AreNotEqual(Rectangle.Empty, _ui.ExitButtonRect);
+        }
+
+        [TestMethod]
+        public void PauseMenu_Hover_IsDetected()
+        {
+            // Resume button is top button. 
+            // We need to know where it is exactly or just get the Center.
+            var rect = _ui.ResumeButtonRect;
+            SetMouse(rect.Center.X, rect.Center.Y);
+
+            _ui.Update(_input);
+
+            Assert.IsTrue(_ui.IsResumeHovered);
+            Assert.IsFalse(_ui.IsExitHovered);
         }
     }
 }
