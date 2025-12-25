@@ -150,6 +150,12 @@ namespace ChaosWarlords.Source.Systems
         // Updated Update Loop to Check Pause Menu
         public void Update(InputManager input)
         {
+            UpdateHovers(input);
+            HandleClicks(input);
+        }
+
+        private void UpdateHovers(InputManager input)
+        {
             // 1. Update Hovers
             IsMarketHovered = input.IsMouseOver(_marketButtonRect);
             IsAssassinateHovered = input.IsMouseOver(_assassinateButtonRect);
@@ -163,7 +169,10 @@ namespace ChaosWarlords.Source.Systems
             IsResumeHovered = input.IsMouseOver(_resumeButtonRect);
             IsMainMenuHovered = input.IsMouseOver(_mainMenuButtonRect);
             IsExitHovered = input.IsMouseOver(_exitButtonRect);
+        }
 
+        private void HandleClicks(InputManager input)
+        {
             // 2. Handle Clicks - Fire Events!
             if (input.IsLeftMouseJustClicked())
             {
@@ -171,8 +180,6 @@ namespace ChaosWarlords.Source.Systems
                 // based on what is visible (Popup vs Pause vs Game). 
                 // However, if we click a pause button, we should fire the event regardless, 
                 // and the listener decides if it cares.
-                // Better approach: If Pause Is Open, ONLY check Pause buttons?
-                // For now, we fire all relevant events.
                 
                 if (IsResumeHovered) { GameLogger.Log("UI: Resume Clicked", LogChannel.Info); OnResumeRequest?.Invoke(this, EventArgs.Empty); return; }
                 if (IsMainMenuHovered) { GameLogger.Log("UI: MainMenu Clicked", LogChannel.Info); OnMainMenuRequest?.Invoke(this, EventArgs.Empty); return; }
