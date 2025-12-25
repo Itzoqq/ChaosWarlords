@@ -8,12 +8,12 @@ namespace ChaosWarlords.Source.States.Input
     {
         private readonly IGameplayState _state; // Interface is enough now
         private readonly InputManager _inputManager;
-        private readonly IUISystem _uiManager;
+        private readonly IUIManager _uiManager;
         private readonly IMapManager _mapManager;
         private readonly TurnManager _turnManager;
         private readonly IActionSystem _actionSystem;
 
-        public NormalPlayInputMode(IGameplayState state, InputManager inputManager, IUISystem uiManager, IMapManager mapManager, TurnManager turnManager, IActionSystem actionSystem)
+        public NormalPlayInputMode(IGameplayState state, InputManager inputManager, IUIManager uiManager, IMapManager mapManager, TurnManager turnManager, IActionSystem actionSystem)
         {
             _state = state;
             _inputManager = inputManager;

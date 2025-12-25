@@ -22,7 +22,7 @@ namespace ChaosWarlords.Source.States
         internal IMatchManager _matchManager;
         internal MatchContext _matchContext;
         internal InputManager _inputManagerBacking;
-        internal IUISystem _uiManagerBacking;
+        internal IUIManager _uiManagerBacking;
         internal bool _isMarketOpenBacking = false;
 
         // New Coordinators
@@ -31,7 +31,7 @@ namespace ChaosWarlords.Source.States
         private CardPlaySystem _cardPlaySystem;
 
         public InputManager InputManager => _inputManagerBacking;
-        public IUISystem UIManager => _uiManagerBacking;
+        public IUIManager UIManager => _uiManagerBacking;
         public IMatchManager MatchManager => _matchManager;
 
         public IMapManager MapManager => _matchContext?.MapManager;

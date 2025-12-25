@@ -5,7 +5,7 @@ using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Systems
 {
-    public class UIManager : IUISystem
+    public class UIManager : IUIManager
     {
         public int ScreenWidth { get; private set; }
         public int ScreenHeight { get; private set; }

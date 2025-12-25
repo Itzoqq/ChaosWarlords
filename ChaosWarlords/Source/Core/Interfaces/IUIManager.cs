@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Source.Systems
 {
-    public interface IUISystem
+    public interface IUIManager
     {
         // Layout and Draw properties
         int ScreenWidth { get; }

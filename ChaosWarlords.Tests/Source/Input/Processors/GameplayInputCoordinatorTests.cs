@@ -40,7 +40,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _state = new TestableGameplayState(null!, Substitute.For<IInputProvider>(), cardDb);
 
             // Inject a Mock UIManager so SwitchToNormalMode() doesn't crash
-            _state.SetUIManager(Substitute.For<IUISystem>());
+            _state.SetUIManager(Substitute.For<IUIManager>());
 
             // 3. Setup InputManager
             var inputManager = new InputManager(Substitute.For<IInputProvider>());
@@ -98,7 +98,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             {
             }
 
-            public void SetUIManager(IUISystem ui)
+            public void SetUIManager(IUIManager ui)
             {
                 // We access the internal field from the base class
                 _uiManagerBacking = ui;

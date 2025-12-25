@@ -82,7 +82,7 @@ namespace ChaosWarlords.Source.Views
             DrawRightAlignedStat(spriteBatch, "Inner Circle", player.InnerCircle.Count.ToString(), Color.MediumPurple, ref rightX);
         }
 
-        public void DrawActionButtons(SpriteBatch spriteBatch, IUISystem ui, Player player)
+        public void DrawActionButtons(SpriteBatch spriteBatch, IUIManager ui, Player player)
         {
             if (_smallFont == null) return;
 
@@ -95,7 +95,7 @@ namespace ChaosWarlords.Source.Views
             DrawVerticalButton(spriteBatch, ui.ReturnSpyButtonRect, "RETURN SPY", ui.IsReturnSpyHovered, canAffordReturn, Color.CornflowerBlue);
         }
 
-        public void DrawMarketButton(SpriteBatch spriteBatch, IUISystem ui)
+        public void DrawMarketButton(SpriteBatch spriteBatch, IUIManager ui)
         {
             // MARKET (Left Side - Vertical)
             DrawVerticalButton(spriteBatch, ui.MarketButtonRect, "MARKET", ui.IsMarketHovered, true, Color.Gold);
@@ -225,7 +225,7 @@ namespace ChaosWarlords.Source.Views
             DrawHorizontalButton(sb, cancelBtn, "CANCEL", cancelHover, true, Color.Gray);
         }
 
-        public void DrawPauseMenu(SpriteBatch sb, IUISystem ui)
+        public void DrawPauseMenu(SpriteBatch sb, IUIManager ui)
         {
             // Draw Background
             sb.Draw(_pixelTexture, ui.PauseMenuBackgroundRect, Color.Black * 0.95f);

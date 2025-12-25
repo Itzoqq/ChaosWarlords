@@ -10,7 +10,7 @@ namespace ChaosWarlords.Source.States
     {
         // --- Managers ---
         InputManager InputManager { get; }
-        IUISystem UIManager { get; }
+        IUIManager UIManager { get; }
         IMapManager MapManager { get; }
         IMarketManager MarketManager { get; }
         IActionSystem ActionSystem { get; }

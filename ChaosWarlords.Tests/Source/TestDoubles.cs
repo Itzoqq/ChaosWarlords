@@ -39,7 +39,7 @@ namespace ChaosWarlords.Tests
         }
     }
 
-    public class MockUISystem : IUISystem
+    public class MockUISystem : IUIManager
     {
         public bool IsMarketHovered { get; set; } = false;
         public bool IsAssassinateHovered { get; set; } = false;

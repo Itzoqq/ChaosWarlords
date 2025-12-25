@@ -9,7 +9,7 @@ namespace ChaosWarlords.Source.States.Input
     {
         private readonly IGameplayState _state;
         private readonly InputManager _inputManager;
-        private readonly IUISystem _uiManager;
+        private readonly IUIManager _uiManager;
         private readonly IMarketManager _marketManager;
         private readonly TurnManager _turnManager;
         private MatchContext _context;
