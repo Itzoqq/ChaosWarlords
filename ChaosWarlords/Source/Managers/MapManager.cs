@@ -101,6 +101,27 @@ namespace ChaosWarlords.Source.Systems
         // STATE MUTATION ACTIONS (Orchestration)
         // -------------------------------------------------------------------------
 
+        // -------------------------------------------------------------------------
+        // CORE LOGIC HELPERS (For reuse in complex actions like Supplant)
+        // -------------------------------------------------------------------------
+
+        private void ExecuteDeployCore(MapNode node, Player player)
+        {
+            player.Power -= 1;
+            player.TroopsInBarracks--;
+            node.Occupant = player.Color;
+        }
+
+        private void ExecuteAssassinateCore(MapNode node, Player attacker)
+        {
+            node.Occupant = PlayerColor.None;
+            attacker.TrophyHall++;
+        }
+
+        // -------------------------------------------------------------------------
+        // STATE MUTATION ACTIONS (Orchestration)
+        // -------------------------------------------------------------------------
+
         public virtual bool TryDeploy(Player currentPlayer, MapNode targetNode)
         {
             if (targetNode == null) return false;
@@ -126,35 +147,22 @@ namespace ChaosWarlords.Source.Systems
             }
 
             // Step 3: Execution
-            ExecuteDeploy(targetNode, currentPlayer);
-            return true;
-        }
+            ExecuteMapAction(() => ExecuteDeployCore(targetNode, currentPlayer), 
+            $"Deployed Troop at Node {targetNode.Id}. Supply: {currentPlayer.TroopsInBarracks}", 
+            GetSiteForNode(targetNode), 
+            currentPlayer);
 
-        private void ExecuteDeploy(MapNode node, Player player)
-        {
-            ExecuteMapAction(() =>
-            {
-                player.Power -= 1;
-                player.TroopsInBarracks--;
-                node.Occupant = player.Color;
-            }, 
-            $"Deployed Troop at Node {node.Id}. Supply: {player.TroopsInBarracks}", 
-            GetSiteForNode(node), 
-            player);
-
-            if (player.TroopsInBarracks == 0)
+            if (currentPlayer.TroopsInBarracks == 0)
                 GameLogger.Log("FINAL TROOP DEPLOYED! Game ends this round.", LogChannel.General);
+
+            return true;
         }
 
         public void Assassinate(MapNode node, Player attacker)
         {
             if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
 
-            ExecuteMapAction(() =>
-            {
-                node.Occupant = PlayerColor.None;
-                attacker.TrophyHall++;
-            },
+            ExecuteMapAction(() => ExecuteAssassinateCore(node, attacker),
             $"Assassinated enemy at Node {node.Id}. Trophy Hall: {attacker.TrophyHall}",
             GetSiteForNode(node),
             attacker);
@@ -230,16 +238,11 @@ namespace ChaosWarlords.Source.Systems
         {
             if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
 
+            // Atomic Action: Assassinate + Deploy in one transaction
             ExecuteMapAction(() =>
             {
-                node.Occupant = PlayerColor.None;
-                attacker.TrophyHall++;
-                // GameLogger logic for Supplant has two logs in original, we simplify or merge?
-                // Original logged "Supplanted enemy..." then set occupant and logged implied "Deployed..." via Recalc? No.
-                // Original: Log "Supplanted...", set occupant, decrement barracks, Recalc.
-                
-                node.Occupant = attacker.Color;
-                attacker.TroopsInBarracks--;
+                ExecuteAssassinateCore(node, attacker);
+                ExecuteDeployCore(node, attacker);
             },
             $"Supplanted enemy at Node {node.Id} (Added to Trophy Hall) and Deployed.",
             GetSiteForNode(node),
