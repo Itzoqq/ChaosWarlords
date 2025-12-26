@@ -184,6 +184,7 @@ namespace ChaosWarlords.Source.States
 
         public void PlayCard(Card card)
         {
+            if (card == null) throw new ArgumentNullException(nameof(card));
             _cardPlaySystem.PlayCard(card);
         }
 
@@ -191,7 +192,11 @@ namespace ChaosWarlords.Source.States
 
 
 
-        public void MoveCardToPlayed(Card card) => _matchManager.MoveCardToPlayed(card);
+        public void MoveCardToPlayed(Card card)
+        {
+            if (card == null) throw new ArgumentNullException(nameof(card));
+            _matchManager.MoveCardToPlayed(card);
+        }
 
         public bool CanEndTurn(out string reason) => _matchManager.CanEndTurn(out reason);
 
@@ -211,6 +216,9 @@ namespace ChaosWarlords.Source.States
         // --- FIX IS HERE ---
         public void SwitchToPromoteMode(int amount)
         {
+            if (_matchContext == null) throw new InvalidOperationException("Match context not initialized");
+            if (_matchContext.ActionSystem == null) throw new InvalidOperationException("Action system not initialized");
+
             // We must set the ActionSystem state explicitly so the InputCoordinator knows 
             // to instantiate the PromoteInputMode instead of the generic TargetingInputMode.
             // We pass 'null' for the card because Promotion is a turn-phase action, not a card-specific action.
@@ -222,67 +230,90 @@ namespace ChaosWarlords.Source.States
 
         private bool HandleGlobalInput()
         {
-            if (_inputManagerBacking.IsKeyJustPressed(Keys.Escape))
+            if (HandleEscapeKey()) return true;
+            if (_isPauseMenuOpen) return true;
+            if (HandleEnterKey()) return true;
+            if (HandleRightClick()) return true;
+            return false;
+        }
+
+        private bool HandleEscapeKey()
+        {
+            if (!_inputManagerBacking.IsKeyJustPressed(Keys.Escape)) return false;
+
+            if (_isPauseMenuOpen)
             {
-                if (_isPauseMenuOpen)
+                _isPauseMenuOpen = false;
+            }
+            else
+            {
+                _isPauseMenuOpen = true;
+                if (IsMarketOpen) IsMarketOpen = false;
+                _matchContext.ActionSystem.CancelTargeting();
+                SwitchToNormalMode();
+                if (_isConfirmationPopupOpen) _isConfirmationPopupOpen = false;
+            }
+            return true;
+        }
+
+        private bool HandleEnterKey()
+        {
+            if (!_inputManagerBacking.IsKeyJustPressed(Keys.Enter)) return false;
+
+            if (CanEndTurn(out string reason))
+            {
+                HandleEndTurnWithPromotionCheck();
+            }
+            else
+            {
+                GameLogger.Log(reason, LogChannel.Warning);
+            }
+            return true;
+        }
+
+        private void HandleEndTurnWithPromotionCheck()
+        {
+            int pending = _matchContext.TurnManager.CurrentTurnContext.PendingPromotionsCount;
+            if (pending > 0)
+            {
+                var activePlayer = _matchContext.TurnManager.ActivePlayer;
+                bool hasValidTargets = activePlayer.PlayedCards.Any(c =>
+                    _matchContext.TurnManager.CurrentTurnContext.HasValidCreditFor(c));
+
+                if (hasValidTargets)
                 {
-                    _isPauseMenuOpen = false;
+                    GameLogger.Log($"You must promote {pending} card(s) before ending your turn.", LogChannel.Warning);
+                    SwitchToPromoteMode(pending);
                 }
                 else
                 {
-                    _isPauseMenuOpen = true; 
-                    if (IsMarketOpen) IsMarketOpen = false;
-                    _matchContext.ActionSystem.CancelTargeting();
-                    SwitchToNormalMode();
-                    if (_isConfirmationPopupOpen) _isConfirmationPopupOpen = false;
+                    GameLogger.Log("No valid cards to promote. Promotion effects skipped.", LogChannel.Info);
+                    HandleEndTurnRequest(this, EventArgs.Empty);
                 }
+            }
+            else
+            {
+                HandleEndTurnRequest(this, EventArgs.Empty);
+            }
+        }
+
+        private bool HandleRightClick()
+        {
+            if (!_inputManagerBacking.IsRightMouseJustClicked()) return false;
+
+            if (IsMarketOpen)
+            {
+                IsMarketOpen = false;
                 return true;
             }
 
-            if (_isPauseMenuOpen) return true; // Block input when paused
-
-            if (_inputManagerBacking.IsKeyJustPressed(Keys.Enter))
+            if (_matchContext.ActionSystem.IsTargeting())
             {
-                if (CanEndTurn(out string reason))
-                {
-                    int pending = _matchContext.TurnManager.CurrentTurnContext.PendingPromotionsCount;
-                    if (pending > 0)
-                    {
-                        // Strict Rule Check
-                        // Only enter Promote Mode if there are actually cards we CAN promote.
-                        var activePlayer = _matchContext.TurnManager.ActivePlayer;
-                        bool hasValidTargets = activePlayer.PlayedCards.Any(c =>
-                            _matchContext.TurnManager.CurrentTurnContext.HasValidCreditFor(c));
-
-                        if (hasValidTargets)
-                        {
-                            GameLogger.Log($"You must promote {pending} card(s) before ending your turn.", LogChannel.Warning);
-                            SwitchToPromoteMode(pending);
-                        }
-                        else
-                        {
-                            GameLogger.Log("No valid cards to promote. Promotion effects skipped.", LogChannel.Info);
-                            GameLogger.Log("No valid cards to promote. Promotion effects skipped.", LogChannel.Info);
-                            HandleEndTurnRequest(this, EventArgs.Empty);
-                        }
-                    }
-                    else
-                    {
-                        HandleEndTurnRequest(this, EventArgs.Empty);
-                    }
-                }
-                else
-                {
-                    GameLogger.Log(reason, LogChannel.Warning);
-                }
+                _matchContext.ActionSystem.CancelTargeting();
+                SwitchToNormalMode();
                 return true;
             }
 
-            if (_inputManagerBacking.IsRightMouseJustClicked())
-            {
-                if (IsMarketOpen) { IsMarketOpen = false; return true; }
-                if (_matchContext.ActionSystem.IsTargeting()) { _matchContext.ActionSystem.CancelTargeting(); SwitchToNormalMode(); return true; }
-            }
             return false;
         }
 

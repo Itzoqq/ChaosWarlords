@@ -118,7 +118,7 @@ namespace ChaosWarlords.Source.Systems
             // FREE in Setup Phase
             if (CurrentPhase != MatchPhase.Setup)
             {
-                player.Power -= 1;
+                player.Power -= GameConstants.DEPLOY_POWER_COST;
             }
             player.TroopsInBarracks--;
             node.Occupant = player.Color;
@@ -136,7 +136,8 @@ namespace ChaosWarlords.Source.Systems
 
         public virtual bool TryDeploy(Player currentPlayer, MapNode targetNode)
         {
-            if (targetNode == null) return false;
+            if (currentPlayer == null) throw new ArgumentNullException(nameof(currentPlayer));
+            if (targetNode == null) throw new ArgumentNullException(nameof(targetNode));
 
             // Step 1: Validation (Delegated)
             if (!CanDeployAt(targetNode, currentPlayer.Color))
@@ -153,7 +154,7 @@ namespace ChaosWarlords.Source.Systems
             }
 
             // Power Check skipped in Setup Phase
-            if (CurrentPhase != MatchPhase.Setup && currentPlayer.Power < 1)
+            if (CurrentPhase != MatchPhase.Setup && currentPlayer.Power < GameConstants.DEPLOY_POWER_COST)
             {
                 GameLogger.Log("Cannot Deploy: Not enough Power!", LogChannel.Economy);
                 return false;
@@ -180,6 +181,8 @@ namespace ChaosWarlords.Source.Systems
 
         public void Assassinate(MapNode node, Player attacker)
         {
+            if (node == null) throw new ArgumentNullException(nameof(node));
+            if (attacker == null) throw new ArgumentNullException(nameof(attacker));
             if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
 
             ExecuteMapAction(() => ExecuteAssassinateCore(node, attacker),
@@ -231,6 +234,9 @@ namespace ChaosWarlords.Source.Systems
 
         public void PlaceSpy(Site site, Player player)
         {
+            if (site == null) throw new ArgumentNullException(nameof(site));
+            if (player == null) throw new ArgumentNullException(nameof(player));
+
             if (site.Spies.Contains(player.Color))
             {
                 GameLogger.Log("You already have a spy at this site.", LogChannel.Error);
@@ -256,6 +262,8 @@ namespace ChaosWarlords.Source.Systems
 
         public void Supplant(MapNode node, Player attacker)
         {
+            if (node == null) throw new ArgumentNullException(nameof(node));
+            if (attacker == null) throw new ArgumentNullException(nameof(attacker));
             if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
 
             // Atomic Action: Assassinate + Deploy in one transaction
@@ -269,41 +277,13 @@ namespace ChaosWarlords.Source.Systems
             attacker);
         }
 
-        public void MoveTroop(MapNode source, MapNode destination)
-        {
-            if (source == null || destination == null) return;
-
-            // FIX: Track the player who is moving so we can pass them to RecalculateSiteState
-            // This ensures Immediate Control Rewards trigger if the move causes a control shift.
-            // Since MapManager doesn't natively hold Player objects, we assume the occupant Color matches a player
-            // But we need the Player object for ApplyReward.
-            // Since MoveTroop is called by ActionSystem which HAS the ActivePlayer, 
-            // the ideal fix is to pass the Player. But changing signature affects Interface.
-            
-            // However, ExecuteMapAction takes 'Player player'.
-            // For now, we'll assume the call comes from Active Player context where Recalculate needs 'activePlayer'.
-            // In a strict sense, site control changes should trigger for the NEW owner.
-            // SiteControlSystem logic: if (newOwner == activePlayer.Color) -> Reward.
-            
-            // PROBLEM: We don't have the Player object here to pass to RecalculateSiteState!
-            // We only have the Color from source.Occupant.
-            // But in 'TryDeploy', we receive 'Player currentPlayer'.
-            // MoveTroop is lacking 'Player activePlayer'.
-            
-            // I will update the signature. This is a safe refactor as I see the interface IMapManager.
-
-            // Wait, I can't update the interface in this edit if I don't see the file.
-            // But I saw 'IMapManager' in the 'find_by_name' output earlier.
-            // I will stick to what I know: I can try to find the player indirectly or just use null and accept broken rewards? 
-            // NO. The user explicitly asked to fix this.
-            
-            // I will Update the signature here and then update the Interface.
-        }
-
-        // Updated Signature to include Player
+        // Removed dead code: MoveTroop(MapNode, MapNode) overload
+        // Only the 3-parameter version with Player is kept
         public void MoveTroop(MapNode source, MapNode destination, Player activePlayer)
         {
-             if (source == null || destination == null) return;
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (activePlayer == null) throw new ArgumentNullException(nameof(activePlayer));
 
             Action moveAction = () =>
             {

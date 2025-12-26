@@ -36,7 +36,7 @@ namespace ChaosWarlords.Source.Systems
 
         private void RefillMarket()
         {
-            while (MarketRow.Count < 6 && _marketDeck.Count > 0)
+            while (MarketRow.Count < GameConstants.MARKET_ROW_SIZE && _marketDeck.Count > 0)
             {
                 Card card = _marketDeck[0];
                 _marketDeck.RemoveAt(0);
@@ -47,16 +47,7 @@ namespace ChaosWarlords.Source.Systems
 
         private void ShuffleDeck(List<Card> deck)
         {
-            System.Random rng = new System.Random();
-            int n = deck.Count;
-            while (n > 1)
-            {
-                n--;
-                int k = rng.Next(n + 1);
-                Card value = deck[k];
-                deck[k] = deck[n];
-                deck[n] = value;
-            }
+            deck.Shuffle(); // Use extension method from CollectionHelpers
         }
 
     }

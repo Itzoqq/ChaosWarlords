@@ -25,8 +25,8 @@ namespace ChaosWarlords.Source.Entities
         public int VictoryPoints { get; internal set; }
 
         // --- Military ---
-        public int TroopsInBarracks { get; internal set; } = 40;
-        public int SpiesInBarracks { get; internal set; } = 5;
+        public int TroopsInBarracks { get; internal set; } = GameConstants.STARTING_TROOPS;
+        public int SpiesInBarracks { get; internal set; } = GameConstants.STARTING_SPIES;
         public int TrophyHall { get; internal set; } = 0;
 
         // --- Card Piles ---
@@ -94,9 +94,19 @@ namespace ChaosWarlords.Source.Entities
             }
         }
 
-        public void PromoteCard(Card card)
+        /// <summary>
+        /// Attempts to promote a card from Hand or PlayedCards to the Inner Circle.
+        /// </summary>
+        /// <param name="card">The card to promote.</param>
+        /// <param name="errorMessage">Error message if promotion fails.</param>
+        /// <returns>True if promotion succeeded, false otherwise.</returns>
+        public bool TryPromoteCard(Card card, out string errorMessage)
         {
-            if (card == null) return;
+            if (card == null)
+            {
+                errorMessage = "Card cannot be null";
+                return false;
+            }
 
             bool removed = Hand.Remove(card);
 
@@ -107,25 +117,16 @@ namespace ChaosWarlords.Source.Entities
 
             if (!removed)
             {
-                // Discard is now managed by Deck.
-                // We shouldn't really be fishing cards out of discard for promotion usually?
-                // But if logic requires it:
-                // Deck doesn't support "Remove Specific" easily yet.
-                // Let's assume for now Promoted cards come from Hand or Play.
-                // If it comes from Discard, we'd need to add a method to Deck.cs.
-                // Checking previous implementation: "DiscardPile.Remove(card)".
-                // I'll add RemoveFromDiscard to Deck class if needed, or just omit for now if unused.
-                // Let's see if we can access the underlying list.
-                // We can't.
-                // Let's add 'TryRemoveFromDiscard' to Deck.cs? 
-                // Wait, I'll assume Hand/Played for now. If tests fail, I'll add it.
+                // Card not found in Hand or PlayedCards
+                // Note: Promotion from Discard pile is not currently supported
+                errorMessage = $"Card '{card.Name}' not found in Hand or Played area";
+                return false;
             }
 
-            if (removed)
-            {
-                card.Location = CardLocation.InnerCircle;
-                InnerCircle.Add(card);
-            }
+            card.Location = CardLocation.InnerCircle;
+            InnerCircle.Add(card);
+            errorMessage = string.Empty;
+            return true;
         }
 
         public void CleanUpTurn()

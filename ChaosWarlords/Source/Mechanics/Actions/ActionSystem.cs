@@ -8,8 +8,8 @@ namespace ChaosWarlords.Source.Systems
     public class ActionSystem : IActionSystem
     {
         // Logic Constants
-        private const int ASSASSINATE_COST = 3;
-        private const int RETURN_SPY_COST = 3;
+        private const int ASSASSINATE_COST = GameConstants.ASSASSINATE_POWER_COST;
+        private const int RETURN_SPY_COST = GameConstants.RETURN_SPY_POWER_COST;
 
         // Event Definitions
         public event EventHandler OnActionCompleted;
@@ -73,8 +73,6 @@ namespace ChaosWarlords.Source.Systems
         public void CancelTargeting()
         {
             ClearState();
-            // DOUBLE SAFETY: Explicitly null it here too to be sure
-            PendingCard = null;
             GameLogger.Log("ActionSystem: Targeting Cancelled. State cleared.", LogChannel.Info);
         }
 

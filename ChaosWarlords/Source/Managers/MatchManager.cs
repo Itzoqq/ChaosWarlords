@@ -91,7 +91,7 @@ namespace ChaosWarlords.Source.Systems
             _context.ActivePlayer.CleanUpTurn();
 
             // 3. Draw New Hand
-            _context.ActivePlayer.DrawCards(5);
+            _context.ActivePlayer.DrawCards(GameConstants.HAND_SIZE);
 
             // 4. Switch Player
             _context.TurnManager.EndTurn();

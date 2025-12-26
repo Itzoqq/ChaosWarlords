@@ -93,9 +93,11 @@ namespace ChaosWarlords.Tests.Source.Entities
             Assert.AreEqual(CardLocation.None, _card1.Location); // Or whatever default is
 
             // Act
-            _player.PromoteCard(_card1);
+            bool success = _player.TryPromoteCard(_card1, out string errorMessage);
 
             // Assert
+            Assert.IsTrue(success, "Promotion should succeed");
+            Assert.AreEqual(string.Empty, errorMessage);
             Assert.Contains(_card1, _player.InnerCircle, "Card should be in Inner Circle list");
             Assert.DoesNotContain(_card1, _player.Hand, "Card should be removed from Hand");
             Assert.AreEqual(CardLocation.InnerCircle, _card1.Location);
@@ -110,10 +112,11 @@ namespace ChaosWarlords.Tests.Source.Entities
             _player.PlayedCards.Add(_card3); // Will be discarded (played)
 
             // Act
-            _player.PromoteCard(_card1); // Action happens
+            bool success = _player.TryPromoteCard(_card1, out string errorMessage); // Action happens
             _player.CleanUpTurn();       // Turn ends
 
             // Assert
+            Assert.IsTrue(success, "Promotion should succeed");
             // 1. Inner Circle check
             Assert.HasCount(1, _player.InnerCircle);
             Assert.AreEqual(_card1, _player.InnerCircle[0]);

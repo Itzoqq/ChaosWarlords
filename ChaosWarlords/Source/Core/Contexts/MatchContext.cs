@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
@@ -35,7 +36,7 @@ namespace ChaosWarlords.Source.Contexts
         public Player ActivePlayer => TurnManager.ActivePlayer;
 
         // 3. Match-Specific Settings (that don't belong in a generic manager)
-        public int TargetVictoryPoints { get; set; } = 40;
+        public int TargetVictoryPoints { get; set; } = GameConstants.TARGET_VICTORY_POINTS;
         public bool IsGamePaused { get; set; } = false;
 
         // New Phase Tracking
@@ -48,11 +49,11 @@ namespace ChaosWarlords.Source.Contexts
             IActionSystem action,
             ICardDatabase cardDb)
         {
-            TurnManager = turn;
-            MapManager = map;
-            MarketManager = market;
-            ActionSystem = action;
-            CardDatabase = cardDb;
+            TurnManager = turn ?? throw new ArgumentNullException(nameof(turn));
+            MapManager = map ?? throw new ArgumentNullException(nameof(map));
+            MarketManager = market ?? throw new ArgumentNullException(nameof(market));
+            ActionSystem = action ?? throw new ArgumentNullException(nameof(action));
+            CardDatabase = cardDb ?? throw new ArgumentNullException(nameof(cardDb));
         }
     }
 }

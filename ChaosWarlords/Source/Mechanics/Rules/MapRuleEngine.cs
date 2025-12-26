@@ -1,8 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
-
 using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Source.Systems
@@ -78,43 +78,50 @@ namespace ChaosWarlords.Source.Systems
 
         public bool CanDeployAt(MapNode targetNode, PlayerColor player)
         {
+            if (targetNode == null) throw new ArgumentNullException(nameof(targetNode));
             if (targetNode.Occupant != PlayerColor.None) return false;
 
-            if (CurrentPhase == MatchPhase.Setup)
+            return CurrentPhase == MatchPhase.Setup 
+                ? CanDeployDuringSetup(targetNode, player)
+                : CanDeployDuringPlay(targetNode, player);
+        }
+
+        private bool CanDeployDuringSetup(MapNode targetNode, PlayerColor player)
+        {
+            var site = GetSiteForNode(targetNode);
+            if (site is not StartingSite)
             {
-                // Setup Phase Logic:
-                // 1. Must be Starting Site
-                Site pendingSite = GetSiteForNode(targetNode);
-                bool isStartingSite = pendingSite is StartingSite;
-                if (!isStartingSite)
-                {
-                   GameLogger.Log($"SetupDeploy Fail: {pendingSite?.Name} is {pendingSite?.GetType().Name}, not StartingSite.", LogChannel.Error);
-                   return false; // MUST be explicit return to match logic
-                }
-
-                // 2. Starting Site must not already be occupied by another player
-                bool siteHasOtherPlayer = pendingSite.NodesInternal.Any(n => n.Occupant != PlayerColor.None && n.Occupant != player);
-                if (siteHasOtherPlayer)
-                {
-                    GameLogger.Log($"SetupDeploy Fail: {pendingSite.Name} already occupied by another player.", LogChannel.Error);
-                    return false;
-                }
-
-                // 3. Player must have NO troops on map (First troop logic)
-                bool hasAnyTroops = _nodes.Any(n => n.Occupant == player);
-                if (hasAnyTroops) return false;
-
-                return true;
+                GameLogger.Log($"SetupDeploy Fail: {site?.Name} is {site?.GetType().Name}, not StartingSite.", LogChannel.Error);
+                return false;
             }
-            else
+
+            if (SiteOccupiedByOtherPlayer(site, player))
             {
-                // Playing Phase Logic:
-                bool hasAnyTroops = _nodes.Any(n => n.Occupant == player);
-                if (!hasAnyTroops) return true; // Fail-safe: if wiped out, can deploy anywhere or specific rule? 
-                                                // Actually original logic allowed deploy anywhere if 0 troops. Keeping that.
-
-                return HasPresence(targetNode, player);
+                GameLogger.Log($"SetupDeploy Fail: {site.Name} already occupied by another player.", LogChannel.Error);
+                return false;
             }
+
+            // Player must have NO troops on map (first troop logic)
+            return !PlayerHasTroopsOnMap(player);
+        }
+
+        private bool CanDeployDuringPlay(MapNode targetNode, PlayerColor player)
+        {
+            // If player has no troops, can deploy anywhere (eliminated - can deploy anywhere)
+            if (!PlayerHasTroopsOnMap(player)) return true;
+            
+            // Otherwise, must have presence at target node
+            return HasPresence(targetNode, player);
+        }
+
+        private bool PlayerHasTroopsOnMap(PlayerColor player)
+        {
+            return _nodes.Any(n => n.Occupant == player);
+        }
+
+        private bool SiteOccupiedByOtherPlayer(Site site, PlayerColor player)
+        {
+            return site.NodesInternal.Any(n => n.Occupant != PlayerColor.None && n.Occupant != player);
         }
 
         public bool CanAssassinate(MapNode target, Player attacker)

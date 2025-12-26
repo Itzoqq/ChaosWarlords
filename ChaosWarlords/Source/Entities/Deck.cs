@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using ChaosWarlords.Source.Utilities;
@@ -93,19 +94,12 @@ namespace ChaosWarlords.Source.Entities
             }
         }
 
-        private static readonly System.Random _rng = new System.Random();
+        // Instance-based Random for thread safety (each deck has its own)
+        private readonly Random _rng = new Random(Guid.NewGuid().GetHashCode());
 
         private void ShuffleList(List<Card> list)
         {
-            int n = list.Count;
-            while (n > 1)
-            {
-                n--;
-                int k = _rng.Next(n + 1);
-                Card value = list[k];
-                list[k] = list[n];
-                list[n] = value;
-            }
+            list.Shuffle(); // Use extension method from CollectionHelpers
         }
     }
 }

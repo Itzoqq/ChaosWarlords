@@ -60,9 +60,9 @@ namespace ChaosWarlords.Source.Entities
             }
 
             // Logic Padding for "Hit Box"
-            int sidePadding = 35;
-            int topPadding = 70;
-            int bottomPadding = 35;
+            int sidePadding = GameConstants.SiteVisuals.SIDE_PADDING;
+            int topPadding = GameConstants.SiteVisuals.TOP_PADDING;
+            int bottomPadding = GameConstants.SiteVisuals.BOTTOM_PADDING;
 
             int width = (int)(maxX - minX) + (sidePadding * 2);
             int height = (int)(maxY - minY) + topPadding + bottomPadding;
