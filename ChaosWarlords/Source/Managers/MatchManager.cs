@@ -84,8 +84,8 @@ namespace ChaosWarlords.Source.Systems
 
         public void EndTurn()
         {
-            // 1. Map Rewards
-            _context.MapManager.DistributeControlRewards(_context.ActivePlayer);
+            // 1. Map Rewards - REMOVED (Now Start of Turn)
+            // _context.MapManager.DistributeControlRewards(_context.ActivePlayer);
 
             // 2. Cleanup: Move Hand + Played -> Discard
             _context.ActivePlayer.CleanUpTurn();
@@ -95,6 +95,9 @@ namespace ChaosWarlords.Source.Systems
 
             // 4. Switch Player
             _context.TurnManager.EndTurn();
+
+            // 5. START OF TURN Actions for the NEW active player
+            _context.MapManager.DistributeStartOfTurnRewards(_context.ActivePlayer);
         }
     }
 }

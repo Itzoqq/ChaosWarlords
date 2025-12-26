@@ -329,7 +329,7 @@ namespace ChaosWarlords.Source.Systems
                 return;
             }
 
-            _mapManager.MoveTroop(PendingMoveSource, targetNode);
+            _mapManager.MoveTroop(PendingMoveSource, targetNode, CurrentPlayer);
             CompleteAction();
         }
 

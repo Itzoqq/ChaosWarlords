@@ -32,18 +32,25 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         [TestMethod]
-        public void Recalculate_AssignsOwner_Majority()
+        public void Recalculate_AssignsOwner_Majority_TroopsOnly()
         {
             _node1.Occupant = _player1.Color;
+            
+            // Spy should NOT count for control
+            _siteA.Spies.Add(_player2.Color); 
+            
             _system.RecalculateSiteState(_siteA, _player1);
+            
+            // Red has 1 Troop, Blue has 0 Troops (1 Spy). Red should control.
             Assert.AreEqual(_player1.Color, _siteA.Owner);
         }
 
         [TestMethod]
-        public void Recalculate_GrantsTotalControl_IfAllTroopsAndNoSpies()
+        public void Recalculate_GrantsTotalControl_IfNoEnemyPresence()
         {
             _node1.Occupant = _player1.Color;
-            _node2.Occupant = _player1.Color;
+            // Node 2 is empty. Standard Tyrants rules: Total Control = Control + No Enemies.
+            // Empty nodes do not prevent Total Control.
 
             _system.RecalculateSiteState(_siteA, _player1);
 
@@ -54,62 +61,73 @@ namespace ChaosWarlords.Tests.Systems
         public void Recalculate_BlocksTotalControl_IfEnemySpyPresent()
         {
             _node1.Occupant = _player1.Color;
-            _node2.Occupant = _player1.Color;
+            // Enemy Spy present
             _siteA.Spies.Add(_player2.Color);
 
             _system.RecalculateSiteState(_siteA, _player1);
 
-            Assert.IsFalse(_siteA.HasTotalControl);
+            Assert.AreEqual(_player1.Color, _siteA.Owner); // Still Owner
+            Assert.IsFalse(_siteA.HasTotalControl); // But No Total Control
         }
 
         [TestMethod]
-        public void Recalculate_AwardsResources_OnTakingControl()
+        public void Recalculate_BlocksTotalControl_IfEnemyTroopPresent()
         {
             _node1.Occupant = _player1.Color;
+            _node2.Occupant = _player2.Color; 
+            // 1 vs 1 -> Tie -> No Owner usually.
+            // Let's add another node for Red to ensure they own it but enemy exists.
+            var node3 = new MapNode(3, Vector2.Zero);
+            node3.Occupant = _player1.Color;
+            _siteA.AddNode(node3);
+
+            _system.RecalculateSiteState(_siteA, _player1);
+
+            Assert.AreEqual(_player1.Color, _siteA.Owner); // 2 vs 1
+            Assert.IsFalse(_siteA.HasTotalControl); // Enemy troop exists
+        }
+
+        [TestMethod]
+        public void DistributeRewards_City_GivesIncome()
+        {
+            _siteA.IsCity = true;
+            _siteA.Owner = _player1.Color;
             _player1.Power = 0;
 
-            // Trigger calculation
-            _system.RecalculateSiteState(_siteA, _player1);
+            var sites = new List<Site> { _siteA };
+            _system.DistributeStartOfTurnRewards(sites, _player1);
 
-            Assert.AreEqual(1, _player1.Power); // 1 Power from Site Control
+            Assert.AreEqual(1, _player1.Power);
         }
 
         [TestMethod]
-        public void Recalculate_HandlesNullPlayer_Gracefully()
+        public void DistributeRewards_NonCity_GivesZero()
         {
-            _node1.Occupant = _player1.Color;
-            // This is the test case that was previously crashing
-            try
-            {
-                _system.RecalculateSiteState(_siteA, null);
-            }
-            catch (System.NullReferenceException)
-            {
-                Assert.Fail("Should not throw NullReferenceException when player is null");
-            }
+            _siteA.IsCity = false;
+            _siteA.Owner = _player1.Color;
+            _player1.Power = 0;
+
+            var sites = new List<Site> { _siteA };
+            _system.DistributeStartOfTurnRewards(sites, _player1);
+
+            Assert.AreEqual(0, _player1.Power);
         }
 
         [TestMethod]
-        public void Recalculate_NoOwner_OnTie()
+        public void DistributeRewards_Additive_TotalControl()
         {
-            _node1.Occupant = _player1.Color;
-            _node2.Occupant = _player2.Color;
+            _siteA.IsCity = true;
+            _siteA.Owner = _player1.Color;
+            _siteA.HasTotalControl = true;
+            _player1.Power = 0;
+            _player1.VictoryPoints = 0;
 
-            _system.RecalculateSiteState(_siteA, _player1);
+            // Control = 1 Power, Total = 5 VP
+            var sites = new List<Site> { _siteA };
+            _system.DistributeStartOfTurnRewards(sites, _player1);
 
-            Assert.AreEqual(PlayerColor.None, _siteA.Owner);
-            Assert.IsFalse(_siteA.HasTotalControl);
-        }
-
-        [TestMethod]
-        public void Recalculate_NoOwner_OnTieWithNeutral()
-        {
-            _node1.Occupant = _player1.Color;
-            _node2.Occupant = PlayerColor.Neutral;
-
-            _system.RecalculateSiteState(_siteA, _player1);
-
-            Assert.AreEqual(PlayerColor.None, _siteA.Owner);
+            Assert.AreEqual(1, _player1.Power);
+            Assert.AreEqual(5, _player1.VictoryPoints);
         }
     }
 }

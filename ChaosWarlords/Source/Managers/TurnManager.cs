@@ -34,6 +34,23 @@ namespace ChaosWarlords.Source.Systems
 
             // Create a fresh context for the new turn
             CurrentTurnContext = new TurnContext(nextPlayer);
+
+            // New Rule: Distribute Rewards at START of Turn
+            // We need access to MapManager. Since TurnManager doesn't hold MapManager, 
+            // we should invoke this where the turn starts or inject it.
+            // BUT TurnManager doesn't reference MapManager in constructor.
+            // MatchManager calls TurnManager.EndTurn().
+            // We should do it in MatchManager.EndTurn() right before or after switching players?
+            // Actually, TurnManager.StartTurn is private.
+            
+            // Re-evaluating Design:
+            // MatchManager orchestrates the game loop.
+            // MatchManager.EndTurn:
+            //   1. Cleanup Old Player
+            //   2. TurnManager.EndTurn() -> Switches Index, Creates Context.
+            
+            // So MatchManager is the right place to trigger "Start of Turn Actions" for the NEW player.
+            // Let's modify MatchManager to trigger rewards AFTER switching the player.
         }
 
         public void PlayCard(Card card)

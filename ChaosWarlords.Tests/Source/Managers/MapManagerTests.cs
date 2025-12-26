@@ -202,7 +202,7 @@ namespace ChaosWarlords.Tests.Systems
             _node1.Occupant = _player2.Color; // Source
             _node5.Occupant = PlayerColor.None; // Destination
 
-            _mapManager.MoveTroop(_node1, _node5);
+            _mapManager.MoveTroop(_node1, _node5, _player2);
 
             Assert.AreEqual(PlayerColor.None, _node1.Occupant);
             Assert.AreEqual(_player2.Color, _node5.Occupant);
@@ -379,7 +379,9 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.Assassinate(_node3, _player2);
 
             // Assert
-            Assert.IsFalse(_siteA.HasTotalControl);
+            // New Rule: Empty nodes do NOT prevent Total Control.
+            // Since P2 is not ON the site, P1 still has Total Control.
+            Assert.IsTrue(_siteA.HasTotalControl);
             Assert.AreEqual(_player1.Color, _siteA.Owner, "Should still own site (1 vs 0)");
         }
 
@@ -455,12 +457,14 @@ namespace ChaosWarlords.Tests.Systems
             _player1.VictoryPoints = 0;
 
             // Act
-            _mapManager.DistributeControlRewards(_player1);
+            _mapManager.DistributeStartOfTurnRewards(_player1);
 
             // Assert
-            // Site A: Total Control (1 VP) ONLY (replaces Control reward)
+            // Site A: Control (1 Power) + Total Control (1 VP) (Additive)
             Assert.AreEqual(1, _player1.VictoryPoints, "Should gain 1 VP from Total Control.");
-            Assert.AreEqual(0, _player1.Power, "Should gain 0 Power because Total Control replaces normal Control.");
+            // OLD LOGIC WAS: Control = 0 if Total Control.
+            // NEW LOGIC IS: Additive.
+            Assert.AreEqual(1, _player1.Power, "Should gain 1 Power from Control (Additive).");
         }
 
         [TestMethod]
@@ -485,7 +489,7 @@ namespace ChaosWarlords.Tests.Systems
             _player1.VictoryPoints = 0;
 
             // Act
-            _mapManager.DistributeControlRewards(_player1);
+            _mapManager.DistributeStartOfTurnRewards(_player1);
 
             // Assert
             Assert.AreEqual(0, _player1.VictoryPoints, "Should NOT gain Total Control reward due to spy.");

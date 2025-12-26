@@ -25,6 +25,7 @@ namespace ChaosWarlords.Source.Systems
 
         private PlayerColor CalculateSiteOwner(Site site)
         {
+            // RULE: Control is determined by TROOPS ONLY (Spies do not count for majority)
             int redCount = site.NodesInternal.Count(n => n.Occupant == PlayerColor.Red);
             int blueCount = site.NodesInternal.Count(n => n.Occupant == PlayerColor.Blue);
             int neutralCount = site.NodesInternal.Count(n => n.Occupant == PlayerColor.Neutral);
@@ -38,21 +39,30 @@ namespace ChaosWarlords.Source.Systems
         private bool CalculateTotalControl(Site site, PlayerColor owner)
         {
             if (owner == PlayerColor.None) return false;
-            bool ownsAllNodes = site.NodesInternal.All(n => n.Occupant == owner);
-            if (!ownsAllNodes) return false;
 
+            // RULE: Total Control = You Control Site AND No Enemy Presence (Troops OR Spies)
+            // Empty nodes are ALLOWED.
+
+            // 1. Check for Enemy Troops
+            bool hasEnemyTroops = site.NodesInternal.Any(n => n.Occupant != owner && n.Occupant != PlayerColor.None);
+            if (hasEnemyTroops) return false;
+
+            // 2. Check for Enemy Spies
             bool hasEnemySpy = site.Spies.Any(spyColor => spyColor != owner && spyColor != PlayerColor.None);
-            return !hasEnemySpy;
+            if (hasEnemySpy) return false;
+
+            return true;
         }
 
         private void HandleControlChange(Site site, Player activePlayer, PlayerColor oldOwner, PlayerColor newOwner)
         {
             if (newOwner != oldOwner)
             {
+                // RULE: City Sites grant Immediate Influence when you take control
                 if (activePlayer != null && newOwner == activePlayer.Color && site.IsCity)
                 {
                     ApplyReward(activePlayer, site.ControlResource, site.ControlAmount);
-                    GameLogger.Log($"Seized Control of {site.Name}!", LogChannel.Economy);
+                    GameLogger.Log($"Seized Control of {site.Name}! (+{site.ControlAmount} {site.ControlResource})", LogChannel.Economy);
                 }
             }
         }
@@ -61,35 +71,37 @@ namespace ChaosWarlords.Source.Systems
         {
             if (isTotal != wasTotal)
             {
-                // Added 'activePlayer != null' checks to prevent crash during troop movement
+                // RULE: City Sites grant Immediate VP when you take TOTAL control
                 if (isTotal && activePlayer != null && owner == activePlayer.Color && site.IsCity)
                 {
                     ApplyReward(activePlayer, site.TotalControlResource, site.TotalControlAmount);
-                    GameLogger.Log($"Total Control established in {site.Name}!", LogChannel.Economy);
+                    GameLogger.Log($"Total Control established in {site.Name}! (+{site.TotalControlAmount} {site.TotalControlResource})", LogChannel.Economy);
                 }
                 else if (!isTotal && wasTotal && activePlayer != null && activePlayer.Color == owner)
                 {
-                    GameLogger.Log($"Lost Total Control of {site.Name} (Spies or Troops lost).", LogChannel.Combat);
+                    GameLogger.Log($"Lost Total Control of {site.Name}.", LogChannel.Combat);
                 }
             }
         }
 
-        public void DistributeControlRewards(System.Collections.Generic.IReadOnlyList<Site> sites, Player activePlayer)
+        public void DistributeStartOfTurnRewards(System.Collections.Generic.IReadOnlyList<Site> sites, Player activePlayer)
         {
             if (sites == null) return;
             foreach (var site in sites)
             {
-                if (site.Owner == activePlayer.Color && site.IsCity)
+                // RULE: Only City Sites grant passive income (at Start of Turn)
+                // RULE: Rewards are ADDITIVE (Control + Total Control)
+                if (site.IsCity && site.Owner == activePlayer.Color)
                 {
-                    // If Total Control, GET Total Control Reward (replaces normal Control Reward)
+                    // 1. Base Control Reward
+                    ApplyReward(activePlayer, site.ControlResource, site.ControlAmount);
+                    GameLogger.Log($"Income ({site.Name}): +{site.ControlAmount} {site.ControlResource}", LogChannel.Economy);
+
+                    // 2. Total Control Bonus
                     if (site.HasTotalControl)
                     {
                         ApplyReward(activePlayer, site.TotalControlResource, site.TotalControlAmount);
-                    }
-                    else
-                    {
-                        // Otherwise, get normal Control Reward
-                        ApplyReward(activePlayer, site.ControlResource, site.ControlAmount);
+                        GameLogger.Log($"Total Control Bonus ({site.Name}): +{site.TotalControlAmount} {site.TotalControlResource}", LogChannel.Economy);
                     }
                 }
             }

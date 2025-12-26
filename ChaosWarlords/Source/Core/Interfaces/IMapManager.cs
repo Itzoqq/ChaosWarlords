@@ -40,14 +40,15 @@ namespace ChaosWarlords.Source.Systems
         void PlaceSpy(Site site, Player player);
         bool ReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor);
 
+
         // Move troop action
         bool HasValidMoveSource(Player activePlayer);
         bool CanMoveSource(MapNode node, Player activePlayer);
         bool CanMoveDestination(MapNode node);
-        void MoveTroop(MapNode source, MapNode destination);
+        void MoveTroop(MapNode source, MapNode destination, Player activePlayer);
 
         // Game State / Rewards
-        void DistributeControlRewards(Player activePlayer);
+        void DistributeStartOfTurnRewards(Player activePlayer);
         void RecalculateSiteState(Site site, Player activePlayer);
     }
 }

@@ -85,7 +85,7 @@ namespace ChaosWarlords.Tests.States
             state.Update(new GameTime());
 
             // TurnManager.EndTurn() should have been called (or rewards distributed)
-            _mapManager.Received().DistributeControlRewards(Arg.Any<Player>());
+            _mapManager.Received().DistributeStartOfTurnRewards(Arg.Any<Player>());
         }
 
         [TestMethod]
@@ -335,7 +335,7 @@ namespace ChaosWarlords.Tests.States
             state.Update(new GameTime());
 
             Assert.IsTrue(state.IsConfirmationPopupOpen);
-            _mapManager.DidNotReceive().DistributeControlRewards(Arg.Any<Player>());
+            _mapManager.DidNotReceive().DistributeStartOfTurnRewards(Arg.Any<Player>());
         }
 
         [TestMethod]
@@ -350,7 +350,7 @@ namespace ChaosWarlords.Tests.States
             state.Update(new GameTime());
 
             Assert.IsFalse(state.IsConfirmationPopupOpen);
-            _mapManager.Received(1).DistributeControlRewards(Arg.Any<Player>());
+            _mapManager.Received(1).DistributeStartOfTurnRewards(Arg.Any<Player>());
         }
 
         [TestMethod]
@@ -371,7 +371,7 @@ namespace ChaosWarlords.Tests.States
             mockUI.RaisePopupConfirm();
 
             Assert.IsFalse(state.IsConfirmationPopupOpen);
-            _mapManager.Received(1).DistributeControlRewards(Arg.Any<Player>());
+            _mapManager.Received(1).DistributeStartOfTurnRewards(Arg.Any<Player>());
         }
 
         [TestMethod]
@@ -392,7 +392,7 @@ namespace ChaosWarlords.Tests.States
             mockUI.RaisePopupCancel();
 
             Assert.IsFalse(state.IsConfirmationPopupOpen);
-            _mapManager.DidNotReceive().DistributeControlRewards(Arg.Any<Player>());
+            _mapManager.DidNotReceive().DistributeStartOfTurnRewards(Arg.Any<Player>());
         }
 
         [TestMethod]
@@ -464,7 +464,7 @@ namespace ChaosWarlords.Tests.States
             state.Update(new GameTime());
 
             // ASSERT: End Turn should NOT have fired
-            _mapManager.DidNotReceive().DistributeControlRewards(Arg.Any<Player>());
+            _mapManager.DidNotReceive().DistributeStartOfTurnRewards(Arg.Any<Player>());
         }
     }
 }

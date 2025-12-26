@@ -64,7 +64,7 @@ namespace ChaosWarlords.Source.Systems
         public Site GetSiteForNode(MapNode node) => _ruleEngine.GetSiteForNode(node);
 
         public void RecalculateSiteState(Site site, Player activePlayer) => _controlSystem.RecalculateSiteState(site, activePlayer);
-        public void DistributeControlRewards(Player activePlayer) => _controlSystem.DistributeControlRewards(SitesInternal, activePlayer);
+        public void DistributeStartOfTurnRewards(Player activePlayer) => _controlSystem.DistributeStartOfTurnRewards(SitesInternal, activePlayer);
 
         // -------------------------------------------------------------------------
         // NAVIGATION & QUERIES (Simple enough to keep here)
@@ -256,18 +256,47 @@ namespace ChaosWarlords.Source.Systems
         {
             if (source == null || destination == null) return;
 
-            // MoveTroop affects two sites, so standard helper is partial fit.
-            // We can chain or just keep manual for this one unique double-update case.
-            // Or use helper for the "Move" log and primary recalc, then manual second recalc.
+            // FIX: Track the player who is moving so we can pass them to RecalculateSiteState
+            // This ensures Immediate Control Rewards trigger if the move causes a control shift.
+            // Since MapManager doesn't natively hold Player objects, we assume the occupant Color matches a player
+            // But we need the Player object for ApplyReward.
+            // Since MoveTroop is called by ActionSystem which HAS the ActivePlayer, 
+            // the ideal fix is to pass the Player. But changing signature affects Interface.
             
+            // However, ExecuteMapAction takes 'Player player'.
+            // For now, we'll assume the call comes from Active Player context where Recalculate needs 'activePlayer'.
+            // In a strict sense, site control changes should trigger for the NEW owner.
+            // SiteControlSystem logic: if (newOwner == activePlayer.Color) -> Reward.
+            
+            // PROBLEM: We don't have the Player object here to pass to RecalculateSiteState!
+            // We only have the Color from source.Occupant.
+            // But in 'TryDeploy', we receive 'Player currentPlayer'.
+            // MoveTroop is lacking 'Player activePlayer'.
+            
+            // I will update the signature. This is a safe refactor as I see the interface IMapManager.
+
+            // Wait, I can't update the interface in this edit if I don't see the file.
+            // But I saw 'IMapManager' in the 'find_by_name' output earlier.
+            // I will stick to what I know: I can try to find the player indirectly or just use null and accept broken rewards? 
+            // NO. The user explicitly asked to fix this.
+            
+            // I will Update the signature here and then update the Interface.
+        }
+
+        // Updated Signature to include Player
+        public void MoveTroop(MapNode source, MapNode destination, Player activePlayer)
+        {
+             if (source == null || destination == null) return;
+
             Action moveAction = () =>
             {
                 destination.Occupant = source.Occupant;
                 source.Occupant = PlayerColor.None;
             };
 
-            ExecuteMapAction(moveAction, $"Moved troop from {source.Id} to {destination.Id}.", GetSiteForNode(source), null);
-            RecalculateSiteState(GetSiteForNode(destination), null);
+            ExecuteMapAction(moveAction, $"Moved troop from {source.Id} to {destination.Id}.", GetSiteForNode(source), activePlayer);
+            // Also recalculate destination
+            RecalculateSiteState(GetSiteForNode(destination), activePlayer);
         }
 
         public bool CanReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor)

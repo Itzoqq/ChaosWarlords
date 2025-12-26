@@ -517,7 +517,7 @@ namespace ChaosWarlords.Tests.Systems
             // Assert
             Assert.IsTrue(_eventCompletedFired, "Action should complete");
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "State should reset to Normal");
-            _mapManager.Received(1).MoveTroop(_node1, _node2); // Verify logic was called
+            _mapManager.Received(1).MoveTroop(_node1, _node2, Arg.Any<Player>()); // Verify logic was called
         }
 
         [TestMethod]
@@ -537,7 +537,7 @@ namespace ChaosWarlords.Tests.Systems
             // Assert
             Assert.IsTrue(_eventFailedFired);
             Assert.AreEqual(ActionState.TargetingMoveDestination, _actionSystem.CurrentState, "Should stay in Step 2 to allow retry");
-            _mapManager.DidNotReceive().MoveTroop(Arg.Any<MapNode>(), Arg.Any<MapNode>());
+            _mapManager.DidNotReceive().MoveTroop(Arg.Any<MapNode>(), Arg.Any<MapNode>(), Arg.Any<Player>());
         }
 
         #endregion
