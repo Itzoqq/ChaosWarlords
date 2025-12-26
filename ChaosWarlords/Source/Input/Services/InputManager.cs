@@ -1,9 +1,10 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using ChaosWarlords.Source.Interfaces;
 
 namespace ChaosWarlords.Source.Systems
 {
-    public class InputManager
+    public class InputManager : IInputManager
     {
         private readonly IInputProvider _provider;
 

@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Interfaces;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -15,7 +16,7 @@ namespace ChaosWarlords
     {
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
-        public StateManager StateManager { get; private set; }
+        public IStateManager StateManager { get; private set; }
         public IInputProvider InputProvider { get; private set; }
         public ICardDatabase CardDatabase { get; private set; }
 

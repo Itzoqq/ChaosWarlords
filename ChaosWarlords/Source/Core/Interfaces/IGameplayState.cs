@@ -3,13 +3,14 @@ using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.States.Input;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Interfaces;
 
 namespace ChaosWarlords.Source.States
 {
     public interface IGameplayState : IState
     {
         // --- Managers ---
-        InputManager InputManager { get; }
+        IInputManager InputManager { get; }
         IUIManager UIManager { get; }
         IMapManager MapManager { get; }
         IMarketManager MarketManager { get; }

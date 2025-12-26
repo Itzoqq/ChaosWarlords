@@ -7,6 +7,7 @@ using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Views;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.States.Input;
+using ChaosWarlords.Source.Interfaces;
 using System;
 using System.Linq;
 
@@ -30,7 +31,7 @@ namespace ChaosWarlords.Source.States
         private InteractionMapper _interactionMapper;
         private CardPlaySystem _cardPlaySystem;
 
-        public InputManager InputManager => _inputManagerBacking;
+        public IInputManager InputManager => _inputManagerBacking;
         public IUIManager UIManager => _uiManagerBacking;
         public IMatchManager MatchManager => _matchManager;
 

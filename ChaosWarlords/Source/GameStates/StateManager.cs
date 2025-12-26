@@ -1,10 +1,11 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
+using ChaosWarlords.Source.Interfaces;
 
 namespace ChaosWarlords.Source.States
 {
-    public class StateManager
+    public class StateManager : IStateManager
     {
         // Internal: Allows Unit Tests to verify "Did the state actually pop?"
         internal Stack<IState> _states;
