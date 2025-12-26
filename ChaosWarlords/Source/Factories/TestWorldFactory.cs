@@ -38,12 +38,14 @@ namespace ChaosWarlords.Source.Systems
             var playerRed = new Player(PlayerColor.Red);
             for (int i = 0; i < 3; i++) playerRed.DeckManager.AddToTop(CardFactory.CreateSoldier());
             for (int i = 0; i < 7; i++) playerRed.DeckManager.AddToTop(CardFactory.CreateNoble());
+            playerRed.DeckManager.Shuffle();
             players.Add(playerRed);
 
             // Player 2 (Blue)
             var playerBlue = new Player(PlayerColor.Blue);
             for (int i = 0; i < 3; i++) playerBlue.DeckManager.AddToTop(CardFactory.CreateSoldier());
             for (int i = 0; i < 7; i++) playerBlue.DeckManager.AddToTop(CardFactory.CreateNoble());
+            playerBlue.DeckManager.Shuffle();
             players.Add(playerBlue);
 
             // 3. Setup Turn Manager
