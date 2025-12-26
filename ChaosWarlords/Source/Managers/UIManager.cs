@@ -2,6 +2,7 @@ using System;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Interfaces;
 
 namespace ChaosWarlords.Source.Systems
 {
@@ -239,13 +240,13 @@ namespace ChaosWarlords.Source.Systems
         }
 
         // Updated Update Loop to Check Pause Menu
-        public void Update(InputManager input)
+        public void Update(IInputManager input)
         {
             UpdateHovers(input);
             HandleClicks(input);
         }
 
-        private void UpdateHovers(InputManager input)
+        private void UpdateHovers(IInputManager input)
         {
             foreach (var element in _elements)
             {
@@ -263,7 +264,7 @@ namespace ChaosWarlords.Source.Systems
             }
         }
 
-        private void HandleClicks(InputManager input)
+        private void HandleClicks(IInputManager input)
         {
             if (!input.IsLeftMouseJustClicked()) return;
 

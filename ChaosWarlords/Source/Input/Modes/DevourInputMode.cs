@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Interfaces;
 using ChaosWarlords.Source.Entities;
 
 namespace ChaosWarlords.Source.States.Input
@@ -8,11 +9,11 @@ namespace ChaosWarlords.Source.States.Input
     public class DevourInputMode : IInputMode
     {
         private readonly IGameplayState _gameplayState;
-        private readonly InputManager _inputManager;
+        private readonly IInputManager _inputManager;
         private readonly IActionSystem _actionSystem;
         private readonly Card _sourceCard; // The card causing the devour (to prevent self-devour)
 
-        public DevourInputMode(IGameplayState gameplayState, InputManager inputManager, IActionSystem actionSystem)
+        public DevourInputMode(IGameplayState gameplayState, IInputManager inputManager, IActionSystem actionSystem)
         {
             _gameplayState = gameplayState;
             _inputManager = inputManager;
@@ -22,7 +23,7 @@ namespace ChaosWarlords.Source.States.Input
             GameLogger.Log("Select a card from your HAND to Devour (Remove from game).", LogChannel.General);
         }
 
-        public IGameCommand HandleInput(InputManager input, IMarketManager market, IMapManager map, Player activePlayer, IActionSystem actionSystem)
+        public IGameCommand HandleInput(IInputManager input, IMarketManager market, IMapManager map, Player activePlayer, IActionSystem actionSystem)
         {
             // 1. Cancel / Back out
             if (input.IsRightMouseJustClicked() || input.IsKeyJustPressed(Keys.Escape))
@@ -62,3 +63,4 @@ namespace ChaosWarlords.Source.States.Input
         }
     }
 }
+

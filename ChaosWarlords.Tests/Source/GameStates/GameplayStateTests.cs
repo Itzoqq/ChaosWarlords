@@ -221,7 +221,7 @@ namespace ChaosWarlords.Tests.States
             {
                 _inputManagerBacking = new InputManager(_testInput);
                 _inputManagerBacking = new InputManager(_testInput);
-                _uiManagerBacking = new MockUISystem();
+                _uiManagerBacking = Substitute.For<IUIManager>();
 
                 var p1 = new Player(PlayerColor.Red);
                 var p2 = new Player(PlayerColor.Blue);
@@ -367,8 +367,7 @@ namespace ChaosWarlords.Tests.States
             Assert.IsTrue(state.IsConfirmationPopupOpen);
 
             // Confirm
-            var mockUI = (MockUISystem)state.UIManager;
-            mockUI.RaisePopupConfirm();
+            state.UIManager.OnPopupConfirm += Raise.Event();
 
             Assert.IsFalse(state.IsConfirmationPopupOpen);
             _mapManager.Received(1).DistributeStartOfTurnRewards(Arg.Any<Player>());
@@ -388,8 +387,7 @@ namespace ChaosWarlords.Tests.States
             Assert.IsTrue(state.IsConfirmationPopupOpen);
 
             // Cancel
-            var mockUI = (MockUISystem)state.UIManager;
-            mockUI.RaisePopupCancel();
+            state.UIManager.OnPopupCancel += Raise.Event();
 
             Assert.IsFalse(state.IsConfirmationPopupOpen);
             _mapManager.DidNotReceive().DistributeStartOfTurnRewards(Arg.Any<Player>());
@@ -435,9 +433,8 @@ namespace ChaosWarlords.Tests.States
             state.Update(new GameTime());
             Assert.IsTrue(state.IsPauseMenuOpen);
 
-            // Trigger Resume via Mock Event
-            var mockUI = (MockUISystem)state.UIManager;
-            mockUI.RaiseResumeRequest();
+            // Trigger Resume via NSubstitute Event
+            state.UIManager.OnResumeRequest += Raise.Event();
 
             Assert.IsFalse(state.IsPauseMenuOpen);
             Assert.IsFalse(state.IsPauseMenuOpen);

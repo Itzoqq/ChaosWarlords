@@ -4,6 +4,7 @@ using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Interfaces;
 using NSubstitute;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Contexts;
@@ -15,9 +16,9 @@ namespace ChaosWarlords.Tests.States.Input
     {
         private MarketInputMode _inputMode = null!;
         private MockInputProvider _mockInput = null!;
-        private InputManager _inputManager = null!;
+        private IInputManager _inputManager = null!;
         private IMarketManager _marketSub = null!;
-        private MockUISystem _mockUI = null!;
+        private IUIManager _mockUI = null!;
         private Player _activePlayer = null!;
         private IGameplayState _stateSub = null!;
         private IMapManager _mapSub = null!;
@@ -44,7 +45,7 @@ namespace ChaosWarlords.Tests.States.Input
             // If your test uses ITurnManager, keep using Substitute.For<ITurnManager>()
             var turnSub = Substitute.For<ITurnManager>();
 
-            _mockUI = new MockUISystem();
+            _mockUI = Substitute.For<IUIManager>();
 
             // 2. Setup the State to return our Mock UI 
             // (This is crucial if you used Fix #1: accessing UI via state.UIManager)
@@ -115,7 +116,7 @@ namespace ChaosWarlords.Tests.States.Input
         [TestMethod]
         public void HandleInput_ClickingMarketButton_DoesNotCloseMarket()
         {
-            _mockUI.IsMarketHovered = true;
+            _mockUI.IsMarketHovered.Returns(true);
 
             // Simulate Click
             _mockInput.SetMouseState(new MouseState(10, 10, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));

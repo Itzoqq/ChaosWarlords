@@ -1,13 +1,16 @@
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Entities;
+using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Interfaces;
 
 namespace ChaosWarlords.Source.States.Input
 {
-    // Defines the interface for all input/update modes within the GameplayState
+    /// <summary>
+    /// Defines the contract for input handling modes.
+    /// </summary>
     public interface IInputMode
     {
-        // Executes the update and handles all relevant input for this mode.
-        // It returns an IGameCommand that the GameplayState should execute.
-        IGameCommand HandleInput(InputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem);
+        IGameCommand HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem);
     }
 }

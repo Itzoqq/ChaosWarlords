@@ -5,6 +5,7 @@ using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Interfaces;
 using NSubstitute;
 
 namespace ChaosWarlords.Tests.States.Input
@@ -14,7 +15,7 @@ namespace ChaosWarlords.Tests.States.Input
     {
         private PromoteInputMode _inputMode = null!;
         private MockInputProvider _mockInput = null!;
-        private InputManager _inputManager = null!;
+        private IInputManager _inputManager = null!;
         private IGameplayState _stateSub = null!;
         private IActionSystem _actionSub = null!;
         private Player _activePlayer = null!;

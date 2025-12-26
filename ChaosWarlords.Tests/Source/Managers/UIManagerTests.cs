@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Interfaces;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using NSubstitute;
@@ -9,7 +10,7 @@ namespace ChaosWarlords.Tests.Systems
     public class UIManagerTests
     {
         private UIManager _ui = null!;
-        private InputManager _input = null!;
+        private IInputManager _input = null!;
         private IInputProvider _inputProvider = null!;
 
         private const int ScreenWidth = 800;

@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Interfaces;
 using ChaosWarlords.Source.Entities;
 
 namespace ChaosWarlords.Source.States.Input
@@ -8,11 +9,11 @@ namespace ChaosWarlords.Source.States.Input
     public class PromoteInputMode : IInputMode
     {
         private readonly IGameplayState _gameplayState; // Changed type to concrete to access EndTurn easily
-        private readonly InputManager _inputManager;
+        private readonly IInputManager _inputManager;
         private readonly IActionSystem _actionSystem;
         private int _cardsLeftToPromote;
 
-        public PromoteInputMode(IGameplayState gameplayState, InputManager inputManager, IActionSystem actionSystem, int amountToPromote)
+        public PromoteInputMode(IGameplayState gameplayState, IInputManager inputManager, IActionSystem actionSystem, int amountToPromote)
         {
             _gameplayState = gameplayState;
             _inputManager = inputManager;
@@ -22,7 +23,7 @@ namespace ChaosWarlords.Source.States.Input
             GameLogger.Log($"Select {_cardsLeftToPromote} card(s) from your PLAYED pile to Promote.", LogChannel.General);
         }
 
-        public IGameCommand HandleInput(InputManager input, IMarketManager market, IMapManager map, Player activePlayer, IActionSystem actionSystem)
+        public IGameCommand HandleInput(IInputManager input, IMarketManager market, IMapManager map, Player activePlayer, IActionSystem actionSystem)
         {
             if (input.IsRightMouseJustClicked() || input.IsKeyJustPressed(Keys.Escape))
             {
@@ -71,3 +72,4 @@ namespace ChaosWarlords.Source.States.Input
         }
     }
 }
+

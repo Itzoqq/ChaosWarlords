@@ -2,19 +2,20 @@ using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Interfaces;
 
 namespace ChaosWarlords.Source.States.Input
 {
     public class MarketInputMode : IInputMode
     {
         private readonly IGameplayState _state;
-        private readonly InputManager _inputManager;
+        private readonly IInputManager _inputManager;
         private readonly IUIManager _uiManager;
         private readonly IMarketManager _marketManager;
         private readonly TurnManager _turnManager;
         private MatchContext _context;
 
-        public MarketInputMode(IGameplayState state, InputManager input, MatchContext context)
+        public MarketInputMode(IGameplayState state, IInputManager input, MatchContext context)
         {
             _context = context;
             _state = state;
@@ -26,7 +27,7 @@ namespace ChaosWarlords.Source.States.Input
             _turnManager = context.TurnManager as TurnManager;
         }
 
-        public IGameCommand HandleInput(InputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        public IGameCommand HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             if (!inputManager.IsLeftMouseJustClicked()) return null;
 
@@ -47,3 +48,4 @@ namespace ChaosWarlords.Source.States.Input
         }
     }
 }
+

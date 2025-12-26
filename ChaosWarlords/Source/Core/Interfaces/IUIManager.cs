@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Interfaces;
 
 namespace ChaosWarlords.Source.Systems
 {
@@ -21,7 +22,7 @@ namespace ChaosWarlords.Source.Systems
         Rectangle PopupCancelButtonRect { get; }
 
         // Input Handling
-        void Update(InputManager input);
+        void Update(IInputManager input);
 
         // Events
         event EventHandler OnMarketToggleRequest;

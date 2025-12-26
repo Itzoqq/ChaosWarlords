@@ -6,6 +6,7 @@ using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Interfaces;
 using NSubstitute;
 
 namespace ChaosWarlords.Tests.States.Input
@@ -15,14 +16,13 @@ namespace ChaosWarlords.Tests.States.Input
     {
         private TargetingInputMode _inputMode = null!;
         private MockInputProvider _mockInput = null!;
-        private InputManager _inputManager = null!;
+        private IInputManager _inputManager = null!;
 
         private IMapManager _mapSub = null!;
         private IActionSystem _actionSub = null!;
         private IGameplayState _stateSub = null!;
         private IMarketManager _marketSub = null!;
-
-        private MockUISystem _mockUI = null!;
+        private IUIManager _mockUI = null!;
         private TurnManager _turnManager = null!;
         private Player _activePlayer = null!;
 
@@ -36,8 +36,7 @@ namespace ChaosWarlords.Tests.States.Input
             _actionSub = Substitute.For<IActionSystem>();
             _stateSub = Substitute.For<IGameplayState>();
             _marketSub = Substitute.For<IMarketManager>();
-
-            _mockUI = new MockUISystem();
+            _mockUI = Substitute.For<IUIManager>();
             _activePlayer = new Player(PlayerColor.Red);
             _turnManager = new TurnManager(new List<Player> { _activePlayer });
 
@@ -81,7 +80,7 @@ namespace ChaosWarlords.Tests.States.Input
         public void HandleInput_UIBlocking_IfMarketHovered_DoesNothing()
         {
             _actionSub.CurrentState.Returns(ActionState.TargetingPlaceSpy);
-            _mockUI.IsMarketHovered = true;
+            _mockUI.IsMarketHovered.Returns(true);
 
             _mockInput.SetMouseState(new MouseState(100, 100, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
             _inputManager.Update();
