@@ -79,10 +79,7 @@ namespace ChaosWarlords.Tests.States.Input
             _stateSub.GetHoveredMarketCard().Returns(card);
 
             // Simulate Click
-            _mockInput.SetMouseState(new MouseState(110, 110, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
-            _mockInput.SetMouseState(new MouseState(110, 110, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
+            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 110, 110);
 
             // 2. Act
             var result = _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
@@ -100,10 +97,7 @@ namespace ChaosWarlords.Tests.States.Input
             _stateSub.GetHoveredMarketCard().Returns((Card?)null);
 
             // Simulate Click
-            _mockInput.SetMouseState(new MouseState(10, 10, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
-            _mockInput.SetMouseState(new MouseState(10, 10, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
+            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 10, 10);
 
             // 2. Act
             var result = _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
@@ -119,10 +113,7 @@ namespace ChaosWarlords.Tests.States.Input
             _mockUI.IsMarketHovered.Returns(true);
 
             // Simulate Click
-            _mockInput.SetMouseState(new MouseState(10, 10, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
-            _mockInput.SetMouseState(new MouseState(10, 10, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
+            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 10, 10);
 
             var result = _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
 

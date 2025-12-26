@@ -1,6 +1,5 @@
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Entities;
-using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Interfaces;
 

@@ -146,12 +146,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
 
             var mockInputProvider = new ChaosWarlords.Tests.MockInputProvider();
             var inputManager = new InputManager(mockInputProvider);
-            mockInputProvider.SetMouseState(new Microsoft.Xna.Framework.Input.MouseState(110, 110, 0, 
-                Microsoft.Xna.Framework.Input.ButtonState.Released,
-                Microsoft.Xna.Framework.Input.ButtonState.Released,
-                Microsoft.Xna.Framework.Input.ButtonState.Released,
-                Microsoft.Xna.Framework.Input.ButtonState.Released,
-                Microsoft.Xna.Framework.Input.ButtonState.Released));
+            mockInputProvider.SetMouseState(InputTestHelpers.CreateReleasedMouseState(110, 110));
             inputManager.Update(); // Update to load the mouse state
 
             // Act
@@ -172,12 +167,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
 
             var mockInputProvider = new ChaosWarlords.Tests.MockInputProvider();
             var inputManager = new InputManager(mockInputProvider);
-            mockInputProvider.SetMouseState(new Microsoft.Xna.Framework.Input.MouseState(500, 500, 0,
-                Microsoft.Xna.Framework.Input.ButtonState.Released,
-                Microsoft.Xna.Framework.Input.ButtonState.Released,
-                Microsoft.Xna.Framework.Input.ButtonState.Released,
-                Microsoft.Xna.Framework.Input.ButtonState.Released,
-                Microsoft.Xna.Framework.Input.ButtonState.Released));
+            mockInputProvider.SetMouseState(InputTestHelpers.CreateReleasedMouseState(500, 500));
             inputManager.Update(); // Update to load the mouse state
 
             // Act
@@ -193,12 +183,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
             // Arrange - empty played cards
             var mockInputProvider = new ChaosWarlords.Tests.MockInputProvider();
             var inputManager = new InputManager(mockInputProvider);
-            mockInputProvider.SetMouseState(new Microsoft.Xna.Framework.Input.MouseState(110, 110, 0,
-                Microsoft.Xna.Framework.Input.ButtonState.Released,
-                Microsoft.Xna.Framework.Input.ButtonState.Released,
-                Microsoft.Xna.Framework.Input.ButtonState.Released,
-                Microsoft.Xna.Framework.Input.ButtonState.Released,
-                Microsoft.Xna.Framework.Input.ButtonState.Released));
+            mockInputProvider.SetMouseState(InputTestHelpers.CreateReleasedMouseState(110, 110));
             inputManager.Update(); // Update to load the mouse state
 
             // Act

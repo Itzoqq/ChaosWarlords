@@ -65,10 +65,7 @@ namespace ChaosWarlords.Tests.States.Input
         {
             _actionSub.CurrentState.Returns(ActionState.TargetingAssassinate);
 
-            _mockInput.SetMouseState(new MouseState(100, 100, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
-            _mockInput.SetMouseState(new MouseState(100, 100, 0, ButtonState.Released, ButtonState.Released, ButtonState.Pressed, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
+            InputTestHelpers.SimulateRightClick(_mockInput, _inputManager, 100, 100);
 
             var result = _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
 
@@ -82,10 +79,7 @@ namespace ChaosWarlords.Tests.States.Input
             _actionSub.CurrentState.Returns(ActionState.TargetingPlaceSpy);
             _mockUI.IsMarketHovered.Returns(true);
 
-            _mockInput.SetMouseState(new MouseState(100, 100, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
-            _mockInput.SetMouseState(new MouseState(100, 100, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
+            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 100, 100);
 
             var result = _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
 
@@ -101,10 +95,7 @@ namespace ChaosWarlords.Tests.States.Input
             var node = new MapNode(1, new Vector2(200, 200));
             _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns(node);
 
-            _mockInput.SetMouseState(new MouseState(200, 200, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
-            _mockInput.SetMouseState(new MouseState(200, 200, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
+            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 200, 200);
 
             _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
 
@@ -127,8 +118,7 @@ namespace ChaosWarlords.Tests.States.Input
             _mapSub.GetEnemySpiesAtSite(site, _activePlayer).Returns(new List<PlayerColor> { PlayerColor.Blue });
 
             // Click FAR AWAY at (800, 600)
-            _mockInput.SetMouseState(new MouseState(800, 600, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
+            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 800, 600);
 
             // 2. Act
             _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
@@ -147,8 +137,7 @@ namespace ChaosWarlords.Tests.States.Input
             _mapSub.GetSiteAt(Arg.Any<Vector2>()).Returns(targetSite);
             _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns((MapNode?)null);
 
-            _mockInput.SetMouseState(new MouseState(300, 300, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
+            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 300, 300);
 
             _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
 

@@ -62,7 +62,7 @@ namespace ChaosWarlords.Tests.States.Input
             _stateSub.GetHoveredHandCard().Returns(card);
 
             // Simulate Click
-            SimulateClick(110, 110);
+            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 110, 110);
 
             // 2. Act
             var result = _inputMode.HandleInput(
@@ -91,7 +91,7 @@ namespace ChaosWarlords.Tests.States.Input
             _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns(targetNode);
 
             // Simulate Click at 200,200
-            SimulateClick(200, 200);
+            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 200, 200);
 
             // 2. Act
             var result = _inputMode.HandleInput(
@@ -120,7 +120,7 @@ namespace ChaosWarlords.Tests.States.Input
             _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns(node);
 
             // Simulate Click
-            SimulateClick(110, 110);
+            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 110, 110);
 
             // 2. Act
             var result = _inputMode.HandleInput(
@@ -145,7 +145,7 @@ namespace ChaosWarlords.Tests.States.Input
             _stateSub.GetHoveredHandCard().Returns((Card?)null);
             _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns((MapNode?)null);
 
-            SimulateClick(500, 500);
+            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 500, 500);
 
             // 2. Act
             var result = _inputMode.HandleInput(
@@ -161,12 +161,6 @@ namespace ChaosWarlords.Tests.States.Input
             _mapSub.DidNotReceive().TryDeploy(Arg.Any<Player>(), Arg.Any<MapNode>());
         }
 
-        private void SimulateClick(int x, int y)
-        {
-            _mockInput.SetMouseState(new MouseState(x, y, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
-            _mockInput.SetMouseState(new MouseState(x, y, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
-        }
+
     }
 }

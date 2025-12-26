@@ -30,8 +30,8 @@ namespace ChaosWarlords.Tests.Systems
 
         private void SetMouse(int x, int y)
         {
-            // Define the state we want the mock to return
-            var mouseState = new MouseState(x, y, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
+            // Use the new helper to create mouse state
+            var mouseState = InputTestHelpers.CreateReleasedMouseState(x, y);
 
             // Configure the mock
             _inputProvider.GetMouseState().Returns(mouseState);

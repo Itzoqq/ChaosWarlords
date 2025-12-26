@@ -74,7 +74,7 @@ namespace ChaosWarlords.Tests.States.Input
             _stateSub.GetHoveredPlayedCard().Returns(card);
 
             // Simulate Left Click
-            SimulateLeftClick();
+            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 100, 100);
 
             // Act
             _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
@@ -102,7 +102,7 @@ namespace ChaosWarlords.Tests.States.Input
             _stateSub.GetHoveredPlayedCard().Returns(targetCard);
 
             // Simulate Left Click
-            SimulateLeftClick();
+            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 100, 100);
 
             // Act
             _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
@@ -117,12 +117,6 @@ namespace ChaosWarlords.Tests.States.Input
             _actionSub.Received().CancelTargeting();
         }
 
-        private void SimulateLeftClick()
-        {
-            _mockInput.SetMouseState(new MouseState(100, 100, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
-            _mockInput.SetMouseState(new MouseState(100, 100, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            _inputManager.Update();
-        }
+
     }
 }
