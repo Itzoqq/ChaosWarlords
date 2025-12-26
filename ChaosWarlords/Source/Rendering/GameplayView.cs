@@ -80,8 +80,11 @@ namespace ChaosWarlords.Source.Views
             Site hoveredSite = context.MapManager.GetSiteAt(inputManager.MousePosition);
             _mapRenderer.Draw(spriteBatch, context.MapManager, hoveredNode, hoveredSite);
 
-            // 2. Draw Cards (Hand & Played)
-            foreach (var vm in HandViewModels) _cardRenderer.Draw(spriteBatch, vm);
+            // 2. Draw Cards (Hand & Played) - Skip hand during Setup
+            if (context.CurrentPhase != MatchPhase.Setup)
+            {
+                foreach (var vm in HandViewModels) _cardRenderer.Draw(spriteBatch, vm);
+            }
             foreach (var vm in PlayedViewModels) _cardRenderer.Draw(spriteBatch, vm);
 
             // 3. Draw Market Overlay
@@ -258,6 +261,31 @@ namespace ChaosWarlords.Source.Views
 
                 yOffset += 40;
             }
+        }
+        public void DrawSetupPhaseOverlay(SpriteBatch sb, Player activePlayer)
+        {
+            if (_defaultFont == null) return;
+
+            string line1 = "INITIAL DEPLOYMENT ROUND";
+            string line2 = $"Current Player: {activePlayer.Color}";
+
+            Vector2 size1 = _defaultFont.MeasureString(line1);
+            Vector2 size2 = _defaultFont.MeasureString(line2);
+
+            int screenW = _graphicsDevice.Viewport.Width;
+            
+            // Position: Center middle of X axis, right below top bar (approx Y=60)
+            // Top bar is usually small, assuming 40-50px.
+            Vector2 pos1 = new Vector2((screenW - size1.X) / 2, 60);
+            Vector2 pos2 = new Vector2((screenW - size2.X) / 2, 85);
+
+            Color color = activePlayer.Color == PlayerColor.Red ? Color.Red : Color.Blue;
+
+            // Draw a subtle background for contrast? Not strictly requested but good practice.
+            // Skipping background to keep it simple as requested.
+            
+            sb.DrawString(_defaultFont, line1, pos1, Color.Yellow); // Yellow for attention on "Round"
+            sb.DrawString(_defaultFont, line2, pos2, color);
         }
     }
 }

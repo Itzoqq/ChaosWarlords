@@ -272,6 +272,7 @@
         {
             "Name": "Crystal Cave",
             "IsCity": false,
+            "IsStartingSite": true,
             "NodeIds": [
                 101,
                 102
@@ -285,6 +286,7 @@
         {
             "Name": "Shadow Market",
             "IsCity": false,
+            "IsStartingSite": true,
             "NodeIds": [
                 301,
                 302

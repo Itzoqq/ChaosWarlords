@@ -54,6 +54,7 @@ namespace ChaosWarlords.Tests.Systems
 
             // The Manager now uses the SubSystems internally, but we test the RESULT of that integration here
             _mapManager = new MapManager(nodes, sites);
+            _mapManager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
         }
 
         #region 1. Deployment Actions (State & Resources)
@@ -234,6 +235,7 @@ namespace ChaosWarlords.Tests.Systems
                 new List<MapNode> { cityNodeTL, cityNodeTR, cityNodeDL, cityNodeDR, routeNode },
                 new List<Site> { citySite }
             );
+            manager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
 
             // Red blocks the exit nodes
             cityNodeTL.Occupant = PlayerColor.Red;
@@ -256,6 +258,7 @@ namespace ChaosWarlords.Tests.Systems
             var farNode = new MapNode(99, Vector2.Zero);
 
             var manager = new MapManager(new List<MapNode> { startNode, farNode }, new List<Site>());
+            manager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
 
             bool result = manager.CanDeployAt(farNode, _player1.Color);
 
@@ -274,6 +277,7 @@ namespace ChaosWarlords.Tests.Systems
             siteB.AddNode(siteBNode);
 
             var manager = new MapManager(new List<MapNode> { siteANode, siteBNode }, new List<Site> { siteA, siteB });
+            manager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
 
             siteA.Spies.Add(_player1.Color);
 

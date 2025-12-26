@@ -15,7 +15,7 @@ namespace ChaosWarlords.Source.Utilities
     [ExcludeFromCodeCoverage]
     public class RouteData { public int From { get; set; } public int To { get; set; } }
     [ExcludeFromCodeCoverage]
-    public class SiteData { public string Name { get; set; } public bool IsCity { get; set; } public List<int> NodeIds { get; set; } public string ControlResource { get; set; } public int ControlAmount { get; set; } public string TotalControlResource { get; set; } public int TotalControlAmount { get; set; } }
+    public class SiteData { public string Name { get; set; } public bool IsCity { get; set; } public bool IsStartingSite { get; set; } public List<int> NodeIds { get; set; } public string ControlResource { get; set; } public int ControlAmount { get; set; } public string TotalControlResource { get; set; } public int TotalControlAmount { get; set; } }
 
     public static class MapFactory
     {
@@ -35,7 +35,7 @@ namespace ChaosWarlords.Source.Utilities
             }
         }
 
-        internal static (List<MapNode>, List<Site>) LoadFromData(string json)
+        public static (List<MapNode>, List<Site>) LoadFromData(string json)
         {
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var data = JsonSerializer.Deserialize<MapData>(json, options);
@@ -94,7 +94,6 @@ namespace ChaosWarlords.Source.Utilities
                 if (nodeA != null && nodeB != null) nodeA.AddNeighbor(nodeB);
             }
         }
-
         private static List<Site> CreateSites(List<SiteData> siteDataList, List<MapNode> nodes)
         {
             var sites = new List<Site>();
@@ -110,8 +109,14 @@ namespace ChaosWarlords.Source.Utilities
                 {
                     newSite = new CitySite(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
                 }
+                else if (s.IsStartingSite)
+                {
+                    GameLogger.Log($"Creating StartingSite: {s.Name}", LogChannel.General);
+                    newSite = new StartingSite(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
+                }
                 else
                 {
+                    GameLogger.Log($"Creating NonCitySite: {s.Name}", LogChannel.General);
                     newSite = new NonCitySite(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
                 }
                 

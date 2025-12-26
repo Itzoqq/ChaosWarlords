@@ -41,6 +41,15 @@ namespace ChaosWarlords.Tests.Source.Systems
             );
 
             _controller = new MatchManager(_context);
+
+            // Fix for Random Player Order introduced in Phase 0:
+            // Ensure _p1 always refers to the Active Player for test consistency.
+            if (_context.ActivePlayer != _p1)
+            {
+                var temp = _p1;
+                _p1 = _p2;
+                _p2 = temp;
+            }
         }
 
         [TestMethod]

@@ -78,7 +78,7 @@ namespace ChaosWarlords.Source.States
             // 1. Initialize InteractionMapper
             _interactionMapper = new InteractionMapper(_view);
 
-            var builder = new TestWorldFactory(_cardDatabase, "data/map.json");
+            var builder = new TestWorldFactory(_cardDatabase);
             var worldData = builder.Build();
 
             _matchContext = new MatchContext(
@@ -91,7 +91,8 @@ namespace ChaosWarlords.Source.States
 
             _matchManager = new MatchManager(_matchContext);
 
-            if (_matchContext.TurnManager.Players != null)
+            // Don't draw cards during Setup phase
+            if (_matchContext.CurrentPhase != MatchPhase.Setup && _matchContext.TurnManager.Players != null)
             {
                 foreach (var player in _matchContext.TurnManager.Players)
                 {
@@ -102,6 +103,15 @@ namespace ChaosWarlords.Source.States
             _matchContext.MapManager.CenterMap(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
 
             InitializeEventSubscriptions();
+
+            // Subscribe to Setup auto-advance
+            _matchContext.MapManager.OnSetupDeploymentComplete += () => 
+            {
+                if (_matchContext.CurrentPhase == MatchPhase.Setup)
+                {
+                    _matchManager.EndTurn();
+                }
+            };
 
             // 2. Initialize InputCoordinator
             _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
@@ -163,6 +173,13 @@ namespace ChaosWarlords.Source.States
             }
 
             _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, (UIManager)_uiManagerBacking, IsMarketOpen, targetingText, IsConfirmationPopupOpen, IsPauseMenuOpen);
+
+            // Phase 0 UI Overlay
+            if (_matchContext.CurrentPhase == MatchPhase.Setup)
+            {
+                // We delegate this to the View to ensure consistent font usage
+                _view?.DrawSetupPhaseOverlay(spriteBatch, _matchContext.TurnManager.ActivePlayer);
+            }
         }
 
         public void PlayCard(Card card)

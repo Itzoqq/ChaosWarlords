@@ -97,6 +97,23 @@ namespace ChaosWarlords.Source.Systems
             _context.TurnManager.EndTurn();
 
             // 5. START OF TURN Actions for the NEW active player
+            
+            // Phase Check: Transition from Setup to Playing?
+            if (_context.CurrentPhase == MatchPhase.Setup)
+            {
+                // Check if ALL players have placed their initial troop
+                // (Assuming 1 troop per player for Setup)
+                bool allDeployed = _context.TurnManager.Players.All(p => 
+                    _context.MapManager.Nodes.Count(n => n.Occupant == p.Color) >= 1);
+
+                if (allDeployed)
+                {
+                    GameLogger.Log("All armies deployed. The War Begins! (Entering Playing Phase)", LogChannel.General);
+                    _context.CurrentPhase = MatchPhase.Playing;
+                    _context.MapManager.SetPhase(MatchPhase.Playing);
+                }
+            }
+            
             _context.MapManager.DistributeStartOfTurnRewards(_context.ActivePlayer);
         }
     }

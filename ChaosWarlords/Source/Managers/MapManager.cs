@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Source.Systems
 {
@@ -17,6 +18,9 @@ namespace ChaosWarlords.Source.Systems
         // Sub-Systems
         private readonly MapRuleEngine _ruleEngine;
         private readonly SiteControlSystem _controlSystem;
+
+        // Events
+        public event System.Action OnSetupDeploymentComplete;
 
         // Interface Implementation
         IReadOnlyList<MapNode> IMapManager.Nodes => NodesInternal;
@@ -65,6 +69,9 @@ namespace ChaosWarlords.Source.Systems
 
         public void RecalculateSiteState(Site site, Player activePlayer) => _controlSystem.RecalculateSiteState(site, activePlayer);
         public void DistributeStartOfTurnRewards(Player activePlayer) => _controlSystem.DistributeStartOfTurnRewards(SitesInternal, activePlayer);
+        
+        public void SetPhase(MatchPhase phase) => _ruleEngine.SetPhase(phase);
+        public MatchPhase CurrentPhase => _ruleEngine.CurrentPhase;
 
         // -------------------------------------------------------------------------
         // NAVIGATION & QUERIES (Simple enough to keep here)
@@ -78,6 +85,8 @@ namespace ChaosWarlords.Source.Systems
             Vector2 screenCenter = new(screenWidth / 2f, screenHeight / 2f);
             ApplyOffset(screenCenter - mapCenter);
         }
+
+        // ... (Skipping ApplyOffset, GetNodeAt, GetSiteAt, GetEnemySpiesAtSite) ...
 
         private void ApplyOffset(Vector2 offset)
         {
@@ -101,16 +110,16 @@ namespace ChaosWarlords.Source.Systems
         }
 
         // -------------------------------------------------------------------------
-        // STATE MUTATION ACTIONS (Orchestration)
-        // -------------------------------------------------------------------------
-
-        // -------------------------------------------------------------------------
         // CORE LOGIC HELPERS (For reuse in complex actions like Supplant)
         // -------------------------------------------------------------------------
 
         private void ExecuteDeployCore(MapNode node, Player player)
         {
-            player.Power -= 1;
+            // FREE in Setup Phase
+            if (CurrentPhase != MatchPhase.Setup)
+            {
+                player.Power -= 1;
+            }
             player.TroopsInBarracks--;
             node.Occupant = player.Color;
         }
@@ -143,7 +152,8 @@ namespace ChaosWarlords.Source.Systems
                 return false;
             }
 
-            if (currentPlayer.Power < 1)
+            // Power Check skipped in Setup Phase
+            if (CurrentPhase != MatchPhase.Setup && currentPlayer.Power < 1)
             {
                 GameLogger.Log("Cannot Deploy: Not enough Power!", LogChannel.Economy);
                 return false;
@@ -154,6 +164,13 @@ namespace ChaosWarlords.Source.Systems
             $"Deployed Troop at Node {targetNode.Id}. Supply: {currentPlayer.TroopsInBarracks}", 
             GetSiteForNode(targetNode), 
             currentPlayer);
+
+            // Auto-advance turn in Setup Phase
+            if (CurrentPhase == MatchPhase.Setup)
+            {
+                GameLogger.Log("Setup deployment complete. Auto-advancing turn...", LogChannel.Info);
+                OnSetupDeploymentComplete?.Invoke();
+            }
 
             if (currentPlayer.TroopsInBarracks == 0)
                 GameLogger.Log("FINAL TROOP DEPLOYED! Game ends this round.", LogChannel.General);

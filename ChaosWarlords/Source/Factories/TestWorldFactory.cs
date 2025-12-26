@@ -17,12 +17,10 @@ namespace ChaosWarlords.Source.Systems
     public class TestWorldFactory
     {
         private readonly ICardDatabase _cardDatabase;
-        private readonly string _mapDataPath;
 
-        public TestWorldFactory(ICardDatabase cardDatabase, string mapDataPath)
+        public TestWorldFactory(ICardDatabase cardDatabase)
         {
             _cardDatabase = cardDatabase;
-            _mapDataPath = mapDataPath;
         }
 
         // Build Method
@@ -57,17 +55,18 @@ namespace ChaosWarlords.Source.Systems
             var config = new MapGenerationConfig();
 
             // -- Define Sites --
-            // 1. Crystal Cave (Start)
+            // 1. Crystal Cave (Starting Site)
             config.Sites.Add(new SiteConfig 
             { 
                 Name = "Crystal Cave", 
-                IsCity = false, 
+                IsCity = false,
+                IsStartingSite = true,
                 Position = new Microsoft.Xna.Framework.Vector2(250, 100), 
                 NodeCount = 2,
                 ControlResource = ResourceType.Power, 
-                ControlAmount = 1,
+                ControlAmount = 0,
                 TotalControlResource = ResourceType.Power, 
-                TotalControlAmount = 1,
+                TotalControlAmount = 0,
                 EndGameVP = 2
             });
 
@@ -79,23 +78,24 @@ namespace ChaosWarlords.Source.Systems
                 Position = new Microsoft.Xna.Framework.Vector2(250, 400), 
                 NodeCount = 3,
                 ControlResource = ResourceType.Power, 
-                ControlAmount = 1,
+                ControlAmount = 0,
                 TotalControlResource = ResourceType.Power, 
-                TotalControlAmount = 1,
+                TotalControlAmount = 0,
                 EndGameVP = 1
             });
 
-            // 3. Shadow Market
+            // 3. Shadow Market (Starting Site)
             config.Sites.Add(new SiteConfig 
             { 
                 Name = "Shadow Market", 
-                IsCity = false, 
+                IsCity = false,
+                IsStartingSite = true,
                 Position = new Microsoft.Xna.Framework.Vector2(250, 700), 
                 NodeCount = 2,
                 ControlResource = ResourceType.Power, 
-                ControlAmount = 1,
+                ControlAmount = 0,
                 TotalControlResource = ResourceType.Power, 
-                TotalControlAmount = 1,
+                TotalControlAmount = 0,
                 EndGameVP = 2
             });
 
@@ -128,12 +128,10 @@ namespace ChaosWarlords.Source.Systems
             });
 
             // -- Define Routes --
-            config.Routes.Add(new RouteConfig { FromSiteName = "Crystal Cave", ToSiteName = "Void Portal", NodeCount = 2 }); // Route down to Void
-            config.Routes.Add(new RouteConfig { FromSiteName = "Void Portal", ToSiteName = "Shadow Market", NodeCount = 2 }); // Route down to Shadow
-            
-            config.Routes.Add(new RouteConfig { FromSiteName = "Void Portal", ToSiteName = "City of Gold", NodeCount = 1 }); // Route right to Gold
-            
-            config.Routes.Add(new RouteConfig { FromSiteName = "City of Gold", ToSiteName = "Obsidian Fortress", NodeCount = 3 }); // Route right to Obsidian
+            config.Routes.Add(new RouteConfig { FromSiteName = "Crystal Cave", ToSiteName = "Void Portal", NodeCount = 2 });
+            config.Routes.Add(new RouteConfig { FromSiteName = "Void Portal", ToSiteName = "Shadow Market", NodeCount = 2 });
+            config.Routes.Add(new RouteConfig { FromSiteName = "Void Portal", ToSiteName = "City of Gold", NodeCount = 1 });
+            config.Routes.Add(new RouteConfig { FromSiteName = "City of Gold", ToSiteName = "Obsidian Fortress", NodeCount = 3 });
 
             // Generate
             var layoutEngine = new MapLayoutEngine();

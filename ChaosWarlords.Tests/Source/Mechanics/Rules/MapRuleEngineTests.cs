@@ -4,6 +4,7 @@ using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
+using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -41,6 +42,8 @@ namespace ChaosWarlords.Tests.Systems
             var lookup = new Dictionary<MapNode, Site> { { _node3, _siteA } };
 
             _engine = new MapRuleEngine(nodes, sites, lookup);
+            // Default to Playing for legacy tests
+            _engine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
         }
 
         [TestMethod]
@@ -167,6 +170,101 @@ namespace ChaosWarlords.Tests.Systems
             // Spy logic: Spies grant presence at their specific location, but NEVER adjacency presence.
             
             Assert.IsFalse(_engine.HasPresence(_node2, _player1.Color), "Spy should NOT grant presence to adjacent nodes.");
+        }
+
+        // -------------------------------------------------------------------------
+        // MATCH PHASE TESTS
+        // -------------------------------------------------------------------------
+
+        [TestMethod]
+        public void CanDeployAt_SetupPhase_True_ForStartingSite()
+        {
+            // Arrange: Setup Phase needs a StartingSite
+            var startNode = new MapNode(99, Vector2.Zero);
+            var startSite = new StartingSite("Start", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            startSite.AddNode(startNode);
+            
+            // Re-init engine with this new site included
+            var nodes = new List<MapNode> { startNode };
+            var sites = new List<Site> { startSite };
+            var lookup = new Dictionary<MapNode, Site> { { startNode, startSite } };
+            var localEngine = new MapRuleEngine(nodes, sites, lookup);
+            
+            localEngine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Setup);
+
+            // Act & Assert
+            // Player has 0 troops, Target is StartingSite -> Should be TRUE
+            Assert.IsTrue(localEngine.CanDeployAt(startNode, _player1.Color));
+        }
+
+        [TestMethod]
+        public void CanDeployAt_SetupPhase_False_ForNormalSite()
+        {
+            _engine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Setup);
+            
+            // _siteA is NonCitySite (Normal)
+            Assert.IsFalse(_engine.CanDeployAt(_node3, _player1.Color), "Should not allow deployment on Normal Site in Setup Phase.");
+        }
+
+        [TestMethod]
+        public void CanDeployAt_SetupPhase_False_IfHasTroops()
+        {
+            var startNode = new MapNode(99, Vector2.Zero);
+            var startSite = new StartingSite("Start", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            startSite.AddNode(startNode);
+
+            // Re-init engine 
+            var nodes = new List<MapNode> { startNode, _node1 };
+            var sites = new List<Site> { startSite };
+            var lookup = new Dictionary<MapNode, Site> { { startNode, startSite } };
+            var localEngine = new MapRuleEngine(nodes, sites, lookup);
+            localEngine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Setup);
+
+            // Player already has a troop somewhere else
+            _node1.Occupant = _player1.Color; 
+
+            // Act & Assert
+            // Player has >0 troops -> Should be FALSE
+            Assert.IsFalse(localEngine.CanDeployAt(startNode, _player1.Color), "Should only allow 1 troop placement in Setup Phase.");
+        }
+
+        [TestMethod]
+        public void CanDeployAt_PlayingPhase_StandardRules()
+        {
+            _engine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
+
+            // 0 Troops -> Can deploy anywhere (Standard Rule)
+            Assert.IsTrue(_engine.CanDeployAt(_node1, _player1.Color));
+
+            // Has Troops -> Must have presence
+            _node1.Occupant = _player1.Color;
+            Assert.IsTrue(_engine.CanDeployAt(_node2, _player1.Color)); // Adjacent
+            Assert.IsFalse(_engine.CanDeployAt(_node3, _player1.Color)); // Not adjacent (Node 3 connects to 2, not 1 directly, wait. 1->2->3. 1 is adjacent to 2. 2 is adjacent to 3. 1 is NOT adjacent to 3.)
+        }
+
+        [TestMethod]
+        public void CanDeployAt_SetupPhase_False_IfStartingSiteOccupiedByOtherPlayer()
+        {
+            // Arrange: Create a StartingSite with 2 nodes
+            var startNode1 = new MapNode(100, Vector2.Zero);
+            var startNode2 = new MapNode(101, new Vector2(50, 0));
+            var startSite = new StartingSite("Start", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            startSite.AddNode(startNode1);
+            startSite.AddNode(startNode2);
+            
+            var nodes = new List<MapNode> { startNode1, startNode2 };
+            var sites = new List<Site> { startSite };
+            var lookup = new Dictionary<MapNode, Site> { { startNode1, startSite }, { startNode2, startSite } };
+            var localEngine = new MapRuleEngine(nodes, sites, lookup);
+            localEngine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Setup);
+
+            // Player 1 occupies one node of the Starting Site
+            startNode1.Occupant = _player1.Color;
+
+            // Act & Assert
+            // Player 2 should NOT be able to deploy to the same Starting Site
+            Assert.IsFalse(localEngine.CanDeployAt(startNode2, _player2.Color), 
+                "Should not allow multiple players in the same Starting Site during Setup Phase.");
         }
     }
 }

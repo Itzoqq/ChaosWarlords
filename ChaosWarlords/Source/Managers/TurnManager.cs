@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities;
 
@@ -24,7 +25,8 @@ namespace ChaosWarlords.Source.Systems
                 throw new ArgumentException("TurnManager requires at least one player.", nameof(players));
             }
 
-            Players = players;
+            // Randomize Player Order
+            Players = players.OrderBy(x => Guid.NewGuid()).ToList();
             StartTurn();
         }
 

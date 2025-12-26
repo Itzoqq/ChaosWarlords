@@ -5,6 +5,12 @@ using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Contexts
 {
+    public enum MatchPhase
+    {
+        Setup,
+        Playing
+    }
+
     /// <summary>
     /// Holds all the dependencies required to run a Match.
     /// Passes this single object around instead of 6 individual managers.
@@ -31,6 +37,9 @@ namespace ChaosWarlords.Source.Contexts
         // 3. Match-Specific Settings (that don't belong in a generic manager)
         public int TargetVictoryPoints { get; set; } = 40;
         public bool IsGamePaused { get; set; } = false;
+
+        // New Phase Tracking
+        public MatchPhase CurrentPhase { get; set; } = MatchPhase.Setup;
 
         public MatchContext(
             ITurnManager turn,

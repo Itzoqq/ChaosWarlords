@@ -35,9 +35,11 @@ namespace ChaosWarlords.Tests.Systems
         public void Constructor_InitializesCorrectly()
         {
             Assert.HasCount(2, _turnManager.Players);
-            Assert.AreEqual(_playerRed, _turnManager.Players[0]);
-            Assert.AreEqual(_playerBlue, _turnManager.Players[1]);
-            Assert.AreEqual(_playerRed, _turnManager.ActivePlayer);
+            CollectionAssert.Contains(_turnManager.Players, _playerRed);
+            CollectionAssert.Contains(_turnManager.Players, _playerBlue);
+            
+            // ActivePlayer should be the first one in the randomized list
+            Assert.AreEqual(_turnManager.Players[0], _turnManager.ActivePlayer);
 
             // Access PlayedAspectCounts via CurrentTurnContext
             Assert.IsNotNull(_turnManager.CurrentTurnContext.PlayedAspectCounts);
@@ -47,11 +49,13 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void EndTurn_SwitchesToNextPlayer()
         {
+            var initialPlayer = _turnManager.ActivePlayer;
+            
             _turnManager.EndTurn();
-            Assert.AreEqual(_playerBlue, _turnManager.ActivePlayer);
+            Assert.AreNotEqual(initialPlayer, _turnManager.ActivePlayer);
 
             _turnManager.EndTurn();
-            Assert.AreEqual(_playerRed, _turnManager.ActivePlayer);
+            Assert.AreEqual(initialPlayer, _turnManager.ActivePlayer);
         }
 
         [TestMethod]

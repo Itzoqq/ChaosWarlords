@@ -16,11 +16,11 @@ namespace ChaosWarlords.Tests.Systems
             var mockDb = Substitute.For<ICardDatabase>();
             mockDb.GetAllMarketCards().Returns(new List<Card>());
 
-            var builder = new TestWorldFactory(mockDb, "dummy_map.json");
-            var world = builder.Build();
+            var builder = new TestWorldFactory(mockDb);
+            var result = builder.Build();
 
-            Assert.IsNotNull(world.TurnManager.ActivePlayer);
-            Assert.IsNotNull(world.MapManager);
+            Assert.IsNotNull(result.TurnManager.ActivePlayer);
+            Assert.IsNotNull(result.MapManager);
         }
     }
 }

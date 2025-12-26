@@ -24,6 +24,10 @@ namespace ChaosWarlords.Source.Utilities
                 {
                     site = new CitySite(siteConfig.Name, siteConfig.ControlResource, siteConfig.ControlAmount, siteConfig.TotalControlResource, siteConfig.TotalControlAmount);
                 }
+                else if (siteConfig.IsStartingSite)
+                {
+                    site = new StartingSite(siteConfig.Name, siteConfig.ControlResource, siteConfig.ControlAmount, siteConfig.TotalControlResource, siteConfig.TotalControlAmount);
+                }
                 else
                 {
                     site = new NonCitySite(siteConfig.Name, siteConfig.ControlResource, siteConfig.ControlAmount, siteConfig.TotalControlResource, siteConfig.TotalControlAmount);

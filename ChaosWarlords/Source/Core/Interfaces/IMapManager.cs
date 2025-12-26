@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Contexts;
 using System.Collections.Generic;
 
 namespace ChaosWarlords.Source.Systems
@@ -8,6 +9,12 @@ namespace ChaosWarlords.Source.Systems
     {
         IReadOnlyList<MapNode> Nodes { get; }
         IReadOnlyList<Site> Sites { get; }
+        
+        void SetPhase(MatchPhase phase);
+        MatchPhase CurrentPhase { get; }
+
+        // Events
+        event System.Action OnSetupDeploymentComplete;
 
         void CenterMap(int screenWidth, int screenHeight);
 

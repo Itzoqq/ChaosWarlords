@@ -6,6 +6,7 @@ using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
 using System.Diagnostics.CodeAnalysis;
+using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Source.Views
 {
@@ -39,12 +40,13 @@ namespace ChaosWarlords.Source.Views
         public void Draw(SpriteBatch spriteBatch, IMapManager map, MapNode hoveredNode, Site hoveredSite)
         {
             DrawRoutes(spriteBatch, map);
-            DrawSites(spriteBatch, map.Sites);
+            DrawSites(spriteBatch, map);
             DrawNodes(spriteBatch, map.Nodes, hoveredNode);
         }
 
-        private void DrawSites(SpriteBatch spriteBatch, IReadOnlyList<Site> sites)
+        private void DrawSites(SpriteBatch spriteBatch, IMapManager map)
         {
+            var sites = map.Sites;
             if (sites == null) return;
             foreach (var site in sites)
             {
@@ -53,7 +55,16 @@ namespace ChaosWarlords.Source.Views
 
                 // Border
                 Color borderColor = (site.Owner == PlayerColor.None) ? Color.Gray : GetColor(site.Owner);
-                DrawBorder(spriteBatch, site.Bounds, borderColor, 2);
+                int thickness = 2;
+
+                // Visual Cue for Phase 0 (Setup)
+                if (map.CurrentPhase == MatchPhase.Setup && site is StartingSite)
+                {
+                    borderColor = Color.LimeGreen;
+                    thickness = 4;
+                }
+
+                DrawBorder(spriteBatch, site.Bounds, borderColor, thickness);
 
                 // Text
                 DrawSiteText(spriteBatch, site);
