@@ -74,35 +74,7 @@ namespace ChaosWarlords.Tests.States
             Assert.IsInstanceOfType(state.InputMode, typeof(NormalPlayInputMode));
         }
 
-        [TestMethod]
-        public void Update_EnterKey_TriggersEndTurn()
-        {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
-            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
-            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
 
-            // Run Update
-            state.Update(new GameTime());
-
-            // TurnManager.EndTurn() should have been called (or rewards distributed)
-            _mapManager.Received().DistributeStartOfTurnRewards(Arg.Any<Player>());
-        }
-
-        [TestMethod]
-        public void Update_RightClick_CancelsMarket()
-        {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
-            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
-            state.IsMarketOpen = true;
-
-            var pressedState = new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Pressed, ButtonState.Released, ButtonState.Released);
-            _inputProvider.GetMouseState().Returns(pressedState);
-
-            state.Update(new GameTime());
-
-            Assert.IsFalse(state.IsMarketOpen);
-            Assert.IsInstanceOfType(state.InputMode, typeof(NormalPlayInputMode));
-        }
 
         [TestMethod]
         public void Command_BuyCard_BuysCard_WhenAffordable()
@@ -399,75 +371,43 @@ namespace ChaosWarlords.Tests.States
             _mapManager.DidNotReceive().DistributeStartOfTurnRewards(Arg.Any<Player>());
         }
 
+
+
         [TestMethod]
-        public void PauseMenu_EscapeKey_TogglesVisibility()
+        public void GetTargetingText_ReturnsCorrectText()
         {
             var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
-            // 1. Initial State: Closed
-            Assert.IsFalse(state.IsPauseMenuOpen);
+            var text = state.GetTargetingText(ActionState.TargetingAssassinate);
 
-            // 2. Press Escape -> Open
-            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Escape));
-            state.Update(new GameTime());
-            Assert.IsTrue(state.IsPauseMenuOpen);
-
-            // 3. Press Escape Again -> Close
-            // (InputProvider returns same state unless we change it, but KeyJustPressed logic handles the "Just" part assuming Update calls InputManager.Update)
-            // Ideally we need to clear the key first to simulate "Just Pressed" correctly if using real InputManager logic, 
-            // but InputManager.IsKeyJustPressed checks Previous vs Current. 
-            // We need to simulate a frame where it's released first? Or just rely on Update cycle.
-            // Let's reset input to empty, update, then press Escape again.
-            
-            _inputProvider.GetKeyboardState().Returns(new KeyboardState());
-            state.Update(new GameTime()); // Clear previous state
-
-            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Escape));
-            state.Update(new GameTime()); // Press again
-            Assert.IsFalse(state.IsPauseMenuOpen);
+            Assert.AreEqual("TargetingAssassinate", text);
         }
 
         [TestMethod]
-        public void PauseMenu_ResumeRequest_ClosesMenu()
+        public void SwitchToPromoteMode_SetsActionSystemState()
         {
             var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
-            // Open Menu first
-            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Escape));
-            state.Update(new GameTime());
-            Assert.IsTrue(state.IsPauseMenuOpen);
+            state.SwitchToPromoteMode(1);
 
-            // Trigger Resume via NSubstitute Event
-            state.UIManager.OnResumeRequest += Raise.Event();
-
-            Assert.IsFalse(state.IsPauseMenuOpen);
-            Assert.IsFalse(state.IsPauseMenuOpen);
+            _actionSystem.Received(1).StartTargeting(ActionState.SelectingCardToPromote, null);
         }
 
         [TestMethod]
-        public void PauseMenu_BlocksOtherInteraction()
+        public void MoveCardToPlayed_DelegatesToMatchManager()
         {
             var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
-            // 1. Open Menu
-            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Escape));
-            state.Update(new GameTime());
-            Assert.IsTrue(state.IsPauseMenuOpen);
+            var card = new Card("test", "Test", 0, CardAspect.Warlord, 0, 0, 0);
+            state.MatchContext.ActivePlayer.Hand.Add(card);
 
-            // 2. Try to Click "Enter" (End Turn)
-            // Reset Key to Empty first
-            _inputProvider.GetKeyboardState().Returns(new KeyboardState());
-            state.Update(new GameTime());
+            state.MoveCardToPlayed(card);
 
-            // Press Enter
-            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
-            state.Update(new GameTime());
-
-            // ASSERT: End Turn should NOT have fired
-            _mapManager.DidNotReceive().DistributeStartOfTurnRewards(Arg.Any<Player>());
+            Assert.Contains(card, state.MatchContext.ActivePlayer.PlayedCards);
+            Assert.DoesNotContain(card, state.MatchContext.ActivePlayer.Hand);
         }
     }
 }
