@@ -4,6 +4,11 @@ using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Core.Interfaces;
+using ChaosWarlords.Source.Interfaces;
+using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Graphics;
+using ChaosWarlords.Source.Rendering.UI;
 
 namespace ChaosWarlords.Tests.GameStates
 {
@@ -21,39 +26,94 @@ namespace ChaosWarlords.Tests.GameStates
         {
             // Arrange
             var mockGame = Substitute.For<Game1>();
+            var mockInput = Substitute.For<IInputProvider>();
 
             // Act
-            var state = new MainMenuState(mockGame);
+            var state = new MainMenuState(mockGame, mockInput, Substitute.For<IStateManager>(), Substitute.For<ICardDatabase>());
 
-            // Assert - if no exception thrown, initialization succeeded
+            // Assert
             Assert.IsNotNull(state);
         }
 
         [TestMethod]
-        public void UnloadContent_DoesNotThrow()
+        public void Update_StartBoundsClick_TriggersGameStart()
         {
             // Arrange
             var mockGame = Substitute.For<Game1>();
-            var state = new MainMenuState(mockGame);
+            var mockInput = Substitute.For<IInputProvider>();
+            var mockButtonManager = Substitute.For<IButtonManager>();
+            var mockStateManager = Substitute.For<IStateManager>();
+            var mockCardDb = Substitute.For<ICardDatabase>();
+
+            // Capture the buttons added to the manager
+            SimpleButton startButton = null;
+            mockButtonManager.When(x => x.AddButton(Arg.Any<SimpleButton>()))
+                             .Do(x => 
+                             {
+                                 var btn = x.Arg<SimpleButton>();
+                                 if (btn.Text == "Start Game") startButton = btn;
+                             });
+
+            // Standard Constructor Injection
+            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, mockButtonManager);
+            state.LoadContent(); 
+
+            Assert.IsNotNull(startButton, "Start Button was not added");
 
             // Act
-            state.UnloadContent();
+            startButton.OnClick?.Invoke();
 
-            // Assert - method should complete without exception
-            Assert.IsTrue(true);
+            // Assert
+            mockStateManager.Received(1).ChangeState(Arg.Any<GameplayState>());
         }
 
-        // Note: Additional tests for MainMenuState are challenging to implement due to:
-        // 1. MonoGame's sealed GraphicsDevice and ContentManager classes cannot be mocked
-        // 2. Static Mouse.GetState() method requires refactoring to accept IInputProvider
-        // 3. Texture2D creation requires real GraphicsDevice instances
-        //
-        // Recommendations for improving testability:
-        // - Refactor MainMenuState to accept IInputProvider instead of using Mouse.GetState()
-        // - Extract button logic into a testable ButtonManager class
-        // - Use integration tests with a real MonoGame test harness for UI testing
-        //
-        // Current coverage: Constructor and UnloadContent methods
-        // Untested: LoadContent, Update, Draw, StartGame, SetupButtons, DrawButton
+        [TestMethod]
+        public void Update_ExitBoundsClick_TriggersExit()
+        {
+            // Arrange
+            var mockGame = Substitute.For<Game1>();
+            var mockInput = Substitute.For<IInputProvider>();
+            var mockButtonManager = Substitute.For<IButtonManager>();
+            var mockStateManager = Substitute.For<IStateManager>();
+            var mockCardDb = Substitute.For<ICardDatabase>();
+            
+            SimpleButton exitButton = null;
+            mockButtonManager.When(x => x.AddButton(Arg.Any<SimpleButton>()))
+                             .Do(x => 
+                             {
+                                 var btn = x.Arg<SimpleButton>();
+                                 if (btn.Text == "Exit") exitButton = btn;
+                             });
+
+            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, mockButtonManager);
+            state.LoadContent();
+
+            Assert.IsNotNull(exitButton, "Exit Button was not added");
+
+            // Act
+            exitButton.OnClick?.Invoke();
+
+            // Assert
+            mockGame.Received(1).Exit();
+        }
+
+        [TestMethod]
+        public void Update_DelegatesToButtonManager()
+        {
+            // Arrange
+            var mockGame = Substitute.For<Game1>();
+            var mockInput = Substitute.For<IInputProvider>();
+            var mockButtonManager = Substitute.For<IButtonManager>();
+            var mockStateManager = Substitute.For<IStateManager>();
+            var mockCardDb = Substitute.For<ICardDatabase>();
+
+            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, mockButtonManager);
+            
+            // Act
+            state.Update(new GameTime());
+
+            // Assert
+            mockButtonManager.Received(1).Update(Arg.Any<Point>(), Arg.Any<bool>());
+        }
     }
 }

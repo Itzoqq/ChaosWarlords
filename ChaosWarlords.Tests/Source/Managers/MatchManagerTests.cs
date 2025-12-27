@@ -275,6 +275,15 @@ namespace ChaosWarlords.Tests.Source.Systems
             _mapManager.Nodes.Returns(new List<MapNode> { node1, node2 });
 
             // Simulate P1 having played a card (Adding to Discard Pile)
+            // Simulate P1 having played a card (Adding to Discard Pile)
+            
+            // 1. Populate Deck so DrawCards(5) doesn't trigger a Reshuffle (which clears Discard)
+            for (int i = 0; i < 10; i++)
+            {
+                _p1.DeckManager.AddToTop(new Card("filler", "Filler", 0, 0, 0, 0, 0));
+            }
+
+            // 2. Now add the played card to Discard. It will stay there.
             _p1.DeckManager.AddToDiscard(new Card("test", "Test", 0, 0, 0, 0, 0));
 
             // Act
