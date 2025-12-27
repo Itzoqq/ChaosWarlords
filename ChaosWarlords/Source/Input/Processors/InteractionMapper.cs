@@ -3,6 +3,7 @@ using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Views;
 using System.Linq;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Interfaces;
 
 namespace ChaosWarlords.Source.Systems
 {
@@ -10,7 +11,7 @@ namespace ChaosWarlords.Source.Systems
     /// Translates Mouse Coordinates into Game Entities.
     /// Decouples Input logic from Rendering logic.
     /// </summary>
-    public class InteractionMapper
+    public class InteractionMapper : IInteractionMapper
     {
         private readonly GameplayView _view;
 

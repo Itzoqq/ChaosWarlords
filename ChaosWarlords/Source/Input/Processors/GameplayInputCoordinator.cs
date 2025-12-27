@@ -3,10 +3,11 @@ using ChaosWarlords.Source.States.Input;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Interfaces;
 
 namespace ChaosWarlords.Source.Systems
 {
-    public class GameplayInputCoordinator
+    public class GameplayInputCoordinator : IGameplayInputCoordinator
     {
         private IInputMode _currentMode;
         private readonly GameplayState _state; // Reference back to main state for context

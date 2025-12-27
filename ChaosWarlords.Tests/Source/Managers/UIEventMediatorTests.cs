@@ -1,27 +1,107 @@
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.States;
+using ChaosWarlords.Source.Interfaces;
+using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Contexts;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 
 namespace ChaosWarlords.Tests.Managers
 {
-    /// <summary>
-    /// Tests for UIEventMediator - UI event handling and state management.
-    /// NOTE: These tests are simplified stubs. Full integration tests would require
-    /// actual instances of UIManager and complex game state setup.
-    /// </summary>
     [TestClass]
     public class UIEventMediatorTests
     {
-        [TestMethod]
-        public void UIEventMediator_CanBeInstantiated()
+        private IGameplayState _mockGameState = null!;
+        private IUIManager _mockUIManager = null!;
+        private IActionSystem _mockActionSystem = null!;
+        private UIEventMediator _mediator = null!;
+
+        [TestInitialize]
+        public void Setup()
         {
-            // This is a placeholder test to maintain test file structure.
-            // Full tests would require complex setup of concrete dependencies.
-            Assert.IsTrue(true, "UIEventMediator test file exists and compiles.");
+            _mockGameState = Substitute.For<IGameplayState>();
+            _mockUIManager = Substitute.For<IUIManager>();
+            _mockActionSystem = Substitute.For<IActionSystem>();
+
+            _mediator = new UIEventMediator(_mockGameState, _mockUIManager, _mockActionSystem, null);
         }
 
-        // TODO: Add integration tests when UIEventMediator dependencies are better isolated
-        // or when we have a proper test harness for UI event testing.
+        [TestMethod]
+        public void Initialize_CanBeCalledWithoutError()
+        {
+            // Act
+            _mediator.Initialize();
+
+            // Assert - No exception thrown
+            Assert.IsNotNull(_mediator);
+        }
+
+        [TestMethod]
+        public void Cleanup_CanBeCalledWithoutError()
+        {
+            // Arrange
+            _mediator.Initialize();
+
+            // Act
+            _mediator.Cleanup();
+
+            // Assert - No exception thrown
+            Assert.IsNotNull(_mediator);
+        }
+
+        [TestMethod]
+        public void HandleEscapeKeyPress_WhenClosed_OpensMenu()
+        {
+            // Arrange
+            _mockGameState.IsPauseMenuOpen.Returns(false);
+
+            // Act
+            _mediator.HandleEscapeKeyPress();
+
+            // Assert - Verify internal state changed
+            Assert.IsTrue(_mediator.IsPauseMenuOpen);
+        }
+
+        [TestMethod]
+        public void HandleEscapeKeyPress_WhenOpen_ClosesMenu()
+        {
+            // Arrange - First open the menu
+            _mockGameState.IsPauseMenuOpen.Returns(false);
+            _mediator.HandleEscapeKeyPress();
+            
+            // Now close it
+            _mockGameState.IsPauseMenuOpen.Returns(true);
+
+            // Act
+            _mediator.HandleEscapeKeyPress();
+
+            // Assert - Verify internal state changed
+            Assert.IsFalse(_mediator.IsPauseMenuOpen);
+        }
+
+        [TestMethod]
+        public void Update_CanBeCalledWithoutError()
+        {
+            // Act
+            _mediator.Update();
+
+            // Assert - No exception thrown
+            Assert.IsNotNull(_mediator);
+        }
+
+        [TestMethod]
+        public void IsConfirmationPopupOpen_InitiallyFalse()
+        {
+            // Assert
+            Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
+        }
+
+        [TestMethod]
+        public void IsPauseMenuOpen_InitiallyFalse()
+        {
+            // Assert
+            Assert.IsFalse(_mediator.IsPauseMenuOpen);
+        }
     }
 }
