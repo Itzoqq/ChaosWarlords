@@ -266,5 +266,21 @@ namespace ChaosWarlords.Tests.Systems
             Assert.IsFalse(localEngine.CanDeployAt(startNode2, _player2.Color), 
                 "Should not allow multiple players in the same Starting Site during Setup Phase.");
         }
+
+        [TestMethod]
+        public void CanDeployAt_PlayingPhase_True_IfWipedFromBoard()
+        {
+            // Arrange
+            _engine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
+            
+            // Ensure Player 1 is wiped (no troops on map)
+            _node1.Occupant = PlayerColor.None;
+            _node2.Occupant = PlayerColor.None;
+            _node3.Occupant = PlayerColor.None;
+
+            // Act & Assert
+            // Should be able to deploy ANYWHERE (e.g., node 3 which is far away and disconnected)
+            Assert.IsTrue(_engine.CanDeployAt(_node3, _player1.Color), "Wiped player should be able to deploy anywhere.");
+        }
     }
 }

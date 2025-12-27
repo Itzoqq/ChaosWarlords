@@ -224,5 +224,63 @@ namespace ChaosWarlords.Tests.Source.Systems
             Assert.DoesNotContain(cardInDeck, _context.VoidPile, "Should not move card if it wasn't in the expected source (Hand).");
             Assert.IsEmpty(_p1.Hand);
         }
+
+        [TestMethod]
+        public void EndTurn_StaysInSetup_IfPlayerHasNoTroops()
+        {
+            // Arrange
+            _context.CurrentPhase = MatchPhase.Setup;
+            // MapManager Mock: P1 has 1 troop, P2 has 0 troops
+            var node1 = new MapNode(1, Microsoft.Xna.Framework.Vector2.Zero) { Occupant = _p1.Color };
+            var node2 = new MapNode(2, Microsoft.Xna.Framework.Vector2.Zero) { Occupant = PlayerColor.None };
+            
+            _mapManager.Nodes.Returns(new List<MapNode> { node1, node2 });
+
+            // Act
+            _controller.EndTurn();
+
+            // Assert
+            Assert.AreEqual(MatchPhase.Setup, _context.CurrentPhase, "Should stay in Setup if not all players deployed.");
+            _mapManager.DidNotReceive().SetPhase(MatchPhase.Playing);
+        }
+
+        [TestMethod]
+        public void EndTurn_TransitionsToPlaying_IfAllPlayersHaveTroops()
+        {
+            // Arrange
+            _context.CurrentPhase = MatchPhase.Setup;
+            // MapManager Mock: P1 has 1 troop, P2 has 1 troop
+            var node1 = new MapNode(1, Microsoft.Xna.Framework.Vector2.Zero) { Occupant = _p1.Color };
+            var node2 = new MapNode(2, Microsoft.Xna.Framework.Vector2.Zero) { Occupant = _p2.Color };
+            
+            _mapManager.Nodes.Returns(new List<MapNode> { node1, node2 });
+
+            // Act
+            _controller.EndTurn();
+
+            // Assert
+            Assert.AreEqual(MatchPhase.Playing, _context.CurrentPhase, "Should transition to Playing if all players deployed.");
+            _mapManager.Received(1).SetPhase(MatchPhase.Playing);
+        [TestMethod]
+        public void EndTurn_TransitionsToPlaying_IfPlayerHasPlayedCards_EvenIfDeploymentIncomplete()
+        {
+            // Arrange
+            _context.CurrentPhase = MatchPhase.Setup;
+            // MapManager Mock: P1 has 1 troop, P2 has 0 (Failed to deploy)
+            var node1 = new MapNode(1, Microsoft.Xna.Framework.Vector2.Zero) { Occupant = _p1.Color };
+            var node2 = new MapNode(2, Microsoft.Xna.Framework.Vector2.Zero) { Occupant = PlayerColor.None };
+            
+            _mapManager.Nodes.Returns(new List<MapNode> { node1, node2 });
+
+            // Simulate P1 having played a card (Adding to Discard Pile)
+            _p1.DiscardPile.Add(new Card("test", "Test", 0, 0, 0, 0, 0));
+
+            // Act
+            _controller.EndTurn();
+
+            // Assert
+            Assert.AreEqual(MatchPhase.Playing, _context.CurrentPhase, "Should transition to Playing if game has progressed (Discard Pile not empty).");
+            _mapManager.Received(1).SetPhase(MatchPhase.Playing);
+        }
     }
 }

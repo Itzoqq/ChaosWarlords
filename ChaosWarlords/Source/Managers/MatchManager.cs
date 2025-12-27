@@ -99,6 +99,7 @@ namespace ChaosWarlords.Source.Systems
             // 5. START OF TURN Actions for the NEW active player
             
             // Phase Check: Transition from Setup to Playing?
+            // Phase Check: Transition from Setup to Playing?
             if (_context.CurrentPhase == MatchPhase.Setup)
             {
                 // Check if ALL players have placed their initial troop
@@ -106,9 +107,13 @@ namespace ChaosWarlords.Source.Systems
                 bool allDeployed = _context.TurnManager.Players.All(p => 
                     _context.MapManager.Nodes.Count(n => n.Occupant == p.Color) >= 1);
 
-                if (allDeployed)
+                // SAFEGUARD: If any player has cards in Discard Pile, the game has clearly started (Setup phase doesn't use cards).
+                // This prevents getting stuck in Setup if a player is wiped or deployment logic fails.
+                bool gameHasProgressed = _context.TurnManager.Players.Any(p => p.DiscardPile.Count > 0);
+
+                if (allDeployed || gameHasProgressed)
                 {
-                    GameLogger.Log("All armies deployed. The War Begins! (Entering Playing Phase)", LogChannel.General);
+                    GameLogger.Log("All armies deployed (or game in progress). The War Begins! (Entering Playing Phase)", LogChannel.General);
                     _context.CurrentPhase = MatchPhase.Playing;
                     _context.MapManager.SetPhase(MatchPhase.Playing);
                 }
