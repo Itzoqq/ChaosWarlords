@@ -152,8 +152,8 @@ namespace ChaosWarlords.Tests.Source.Entities
 
             _player.CleanUpTurn();
 
-            Assert.AreEqual(0, _player.Hand.Count, "Hand must be empty after cleanup");
-            Assert.AreEqual(0, _player.PlayedCards.Count, "PlayedCards must be empty after cleanup");
+            Assert.IsEmpty(_player.Hand, "Hand must be empty after cleanup");
+            Assert.IsEmpty(_player.PlayedCards, "PlayedCards must be empty after cleanup");
         }
 
         [TestMethod]
@@ -177,7 +177,7 @@ namespace ChaosWarlords.Tests.Source.Entities
                 _player.DrawCards(handSize);
 
                 // Verify Hand Size (unless deck total < 5, which shouldn't happen here)
-                Assert.AreEqual(handSize, _player.Hand.Count, $"Turn {turn}: Hand size incorrect.");
+                Assert.HasCount(handSize, _player.Hand, $"Turn {turn}: Hand size incorrect.");
 
                 // Check Mass
                 int currentTotal = _player.Deck.Count + _player.Hand.Count + _player.DiscardPile.Count + _player.PlayedCards.Count;
@@ -185,7 +185,7 @@ namespace ChaosWarlords.Tests.Source.Entities
 
                 // 2. Play some cards (Move Hand -> Played)
                 int playCount = 3;
-                for(int j=0; j<playCount; j++)
+                for (int j = 0; j < playCount; j++)
                 {
                     var card = _player.Hand[0];
                     _player.Hand.RemoveAt(0);

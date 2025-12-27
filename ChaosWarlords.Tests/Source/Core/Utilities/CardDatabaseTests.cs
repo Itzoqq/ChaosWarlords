@@ -84,7 +84,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
 
       // Assert
       Assert.IsNotNull(card);
-      Assert.IsTrue(card.Id.StartsWith("noble")); // Factory appends GUID
+      Assert.StartsWith("noble", card.Id); // Factory appends GUID
       Assert.AreEqual("Noble", card.Name);
     }
 
@@ -105,19 +105,19 @@ namespace ChaosWarlords.Tests.Source.Utilities
     [TestMethod]
     public void Load_ReadsFromStream_AndPopulatesCache()
     {
-        // Arrange
-        var db = new CardDatabase();
-        var json = MockCardJson;
-        using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json)))
-        {
-            // Act
-            db.Load(stream);
-        }
+      // Arrange
+      var db = new CardDatabase();
+      var json = MockCardJson;
+      using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json)))
+      {
+        // Act
+        db.Load(stream);
+      }
 
-        // Assert
-        var card = db.GetCardById("noble");
-        Assert.IsNotNull(card);
-        Assert.AreEqual("Noble", card.Name);
+      // Assert
+      var card = db.GetCardById("noble");
+      Assert.IsNotNull(card);
+      Assert.AreEqual("Noble", card.Name);
     }
   }
 }

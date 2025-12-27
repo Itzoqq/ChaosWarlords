@@ -81,7 +81,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             command.Execute(_mockState);
 
             // Assert
-            Assert.AreEqual(2, callOrder.Count);
+            Assert.HasCount(2, callOrder);
             Assert.AreEqual("DevourCard", callOrder[0]);
             Assert.AreEqual("CompleteAction", callOrder[1]);
         }

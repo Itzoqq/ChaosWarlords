@@ -102,7 +102,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             _processor.ResolveEffects(card, _context, hasFocus: false);
 
-            Assert.AreEqual(2, _player.Hand.Count);
+            Assert.HasCount(2, _player.Hand);
         }
 
         [TestMethod]

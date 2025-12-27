@@ -32,7 +32,7 @@ namespace ChaosWarlords.Tests.Map
             _spyOps.ExecutePlaceSpy(site, player);
 
             // Assert
-            Assert.IsTrue(site.Spies.Contains(PlayerColor.Red));
+            Assert.Contains(PlayerColor.Red, site.Spies);
             Assert.AreEqual(2, player.SpiesInBarracks);
             Assert.IsTrue(_siteRecalculated);
         }
@@ -67,7 +67,7 @@ namespace ChaosWarlords.Tests.Map
 
             // Assert
             Assert.IsTrue(result);
-            Assert.IsFalse(site.Spies.Contains(PlayerColor.Blue));
+            Assert.DoesNotContain(PlayerColor.Blue, site.Spies);
             Assert.IsTrue(_siteRecalculated);
         }
 
@@ -84,7 +84,7 @@ namespace ChaosWarlords.Tests.Map
 
             // Assert
             Assert.IsFalse(result);
-            Assert.IsTrue(site.Spies.Contains(PlayerColor.Red)); // Still there
+            Assert.Contains(PlayerColor.Red, site.Spies); // Still there
         }
 
         [TestMethod]
@@ -101,10 +101,10 @@ namespace ChaosWarlords.Tests.Map
             var result = _spyOps.GetEnemySpiesAtSite(site, player);
 
             // Assert
-            Assert.AreEqual(2, result.Count);
-            Assert.IsTrue(result.Contains(PlayerColor.Blue));
-            Assert.IsTrue(result.Contains(PlayerColor.Orange));
-            Assert.IsFalse(result.Contains(PlayerColor.Red));
+            Assert.HasCount(2, result);
+            Assert.Contains(PlayerColor.Blue, result);
+            Assert.Contains(PlayerColor.Orange, result);
+            Assert.DoesNotContain(PlayerColor.Red, result);
         }
     }
 }
