@@ -89,5 +89,27 @@ namespace ChaosWarlords.Tests.Source.Entities
             
             // Let's just trust logic for now or inspect internals via Draw.
         }
+        [TestMethod]
+        public void Reshuffle_MaintainsIntegrity()
+        {
+            // Scenario: Draw Count > Deck Count. Needs Reshuffle.
+            // Setup: Deck=1, Discard=2. Request=2.
+            // Expected: Draw 1 from Deck. Deck Empty. Reshuffle (Deck becomes 2). Draw 1 from Deck. Total Drawn=2. Left=1.
+            
+            _deck.AddToTop(_c1);
+            _deck.AddToDiscard(_c2);
+            _deck.AddToDiscard(_c3);
+
+            var drawn = _deck.Draw(2);
+
+            Assert.HasCount(2, drawn, "Should have drawn 2 cards");
+            Assert.AreEqual(1, _deck.Count, "Should have 1 card remaining in deck");
+            Assert.AreEqual(0, _deck.DiscardCount, "Discard should be empty after reshuffle");
+            
+            // Ensuring unique cards (no dupes)
+            var distinct = drawn.Distinct().ToList();
+            Assert.AreEqual(2, distinct.Count, "Drawn cards must be unique");
+            Assert.IsFalse(drawn.Contains(_deck.DrawPile[0]), "Remaining card should not be in drawn list");
+        }
     }
 }

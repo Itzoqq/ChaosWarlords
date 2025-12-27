@@ -143,5 +143,66 @@ namespace ChaosWarlords.Tests.Source.Entities
 
             Assert.AreEqual(0, _player.Influence, "Influence should clamp to 0.");
         }
+        [TestMethod]
+        public void CleanUpTurn_EnsuresListsAreEmpty()
+        {
+            // Verify strict clearing of lists to prevent "sticky cards"
+            _player.Hand.Add(_card1);
+            _player.PlayedCards.Add(_card2);
+
+            _player.CleanUpTurn();
+
+            Assert.AreEqual(0, _player.Hand.Count, "Hand must be empty after cleanup");
+            Assert.AreEqual(0, _player.PlayedCards.Count, "PlayedCards must be empty after cleanup");
+        }
+
+        [TestMethod]
+        public void ConservationOfMass_Simulation()
+        {
+            // Simulate 100 turns to ensure no cards are lost (e.g. drawn but not added to hand, or lost during reshuffle)
+            // Goal: Total Cards (Deck + Hand + Discard + Played) must always equal Initial Count.
+
+            // Setup: 10 Cards
+            int totalCards = 10;
+            for (int i = 0; i < totalCards; i++)
+            {
+                _player.DeckManager.AddToTop(new Card($"sim_{i}", "Sim", 0, CardAspect.Neutral, 0, 0, 0));
+            }
+
+            int handSize = 5;
+
+            for (int turn = 1; turn <= 100; turn++)
+            {
+                // 1. Draw
+                _player.DrawCards(handSize);
+
+                // Verify Hand Size (unless deck total < 5, which shouldn't happen here)
+                Assert.AreEqual(handSize, _player.Hand.Count, $"Turn {turn}: Hand size incorrect.");
+
+                // Check Mass
+                int currentTotal = _player.Deck.Count + _player.Hand.Count + _player.DiscardPile.Count + _player.PlayedCards.Count;
+                Assert.AreEqual(totalCards, currentTotal, $"Turn {turn}: Conservation of mass violated after Draw.");
+
+                // 2. Play some cards (Move Hand -> Played)
+                int playCount = 3;
+                for(int j=0; j<playCount; j++)
+                {
+                    var card = _player.Hand[0];
+                    _player.Hand.RemoveAt(0);
+                    _player.PlayedCards.Add(card);
+                }
+
+                // Check Mass
+                currentTotal = _player.Deck.Count + _player.Hand.Count + _player.DiscardPile.Count + _player.PlayedCards.Count;
+                Assert.AreEqual(totalCards, currentTotal, $"Turn {turn}: Conservation of mass violated after Play.");
+
+                // 3. Cleanup
+                _player.CleanUpTurn();
+
+                // Check Mass
+                currentTotal = _player.Deck.Count + _player.Hand.Count + _player.DiscardPile.Count + _player.PlayedCards.Count;
+                Assert.AreEqual(totalCards, currentTotal, $"Turn {turn}: Conservation of mass violated after Cleanup.");
+            }
+        }
     }
 }

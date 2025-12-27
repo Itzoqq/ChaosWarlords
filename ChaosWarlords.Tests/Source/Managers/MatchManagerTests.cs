@@ -261,6 +261,8 @@ namespace ChaosWarlords.Tests.Source.Systems
             // Assert
             Assert.AreEqual(MatchPhase.Playing, _context.CurrentPhase, "Should transition to Playing if all players deployed.");
             _mapManager.Received(1).SetPhase(MatchPhase.Playing);
+        }
+
         [TestMethod]
         public void EndTurn_TransitionsToPlaying_IfPlayerHasPlayedCards_EvenIfDeploymentIncomplete()
         {
@@ -273,7 +275,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _mapManager.Nodes.Returns(new List<MapNode> { node1, node2 });
 
             // Simulate P1 having played a card (Adding to Discard Pile)
-            _p1.DiscardPile.Add(new Card("test", "Test", 0, 0, 0, 0, 0));
+            _p1.DeckManager.AddToDiscard(new Card("test", "Test", 0, 0, 0, 0, 0));
 
             // Act
             _controller.EndTurn();
@@ -281,6 +283,22 @@ namespace ChaosWarlords.Tests.Source.Systems
             // Assert
             Assert.AreEqual(MatchPhase.Playing, _context.CurrentPhase, "Should transition to Playing if game has progressed (Discard Pile not empty).");
             _mapManager.Received(1).SetPhase(MatchPhase.Playing);
+        }
+        [TestMethod]
+        public void PlayCard_Fails_IfCardNotOwnedByPlayer()
+        {
+            // Scenario: UI mistakenly sends a card commanded by the player but physically located in another player's hand/deck.
+            // This happens if references are leaked or UI targeting is loose.
+            
+            var alienCard = new Card("alien", "Alien", 0, CardAspect.Neutral, 0, 0, 0);
+            _p2.Hand.Add(alienCard); // Belongs to P2
+
+            // Act: P1 (Active) tries to play P2's card
+            _controller.PlayCard(alienCard);
+
+            // Assert
+            Assert.DoesNotContain(alienCard, _p1.PlayedCards, "Should NOT add alien card to PlayedCards");
+            Assert.Contains(alienCard, _p2.Hand, "Card should remain in P2's hand");
         }
     }
 }

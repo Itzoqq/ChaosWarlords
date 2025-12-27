@@ -33,11 +33,15 @@ namespace ChaosWarlords.Source.Systems
 
             // --- 2. STATE MUTATION ---
 
-            // Remove from Hand if present
-            if (_context.ActivePlayer.Hand.Contains(card))
+            // Verify Ownership: Cannot play a card that isn't in your hand!
+            if (!_context.ActivePlayer.Hand.Contains(card))
             {
-                _context.ActivePlayer.Hand.Remove(card);
+                GameLogger.Log($"Attempted to play card {card.Name} which is NOT in active player's hand.", LogChannel.Error);
+                return;
             }
+
+            // Remove from Hand
+            _context.ActivePlayer.Hand.Remove(card);
 
             // Add to PlayedCards
             _context.ActivePlayer.PlayedCards.Add(card);
