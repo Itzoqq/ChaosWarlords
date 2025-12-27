@@ -6,7 +6,7 @@ using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework;
+
 
 namespace ChaosWarlords.Source.Core.Interfaces.State
 {

@@ -1,3 +1,4 @@
+#nullable enable
 using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
@@ -32,28 +33,28 @@ namespace ChaosWarlords.Source.States
         private readonly int _viewportWidth;
         private readonly int _viewportHeight;
 
-        internal IGameplayView _view;
-        internal IMatchManager _matchManager;
-        internal MatchContext _matchContext;
-        internal InputManager _inputManagerBacking;
-        internal IUIManager _uiManagerBacking;
+        internal IGameplayView? _view;
+        internal IMatchManager _matchManager = null!;
+        internal MatchContext _matchContext = null!;
+        internal InputManager _inputManagerBacking = null!;
+        internal IUIManager _uiManagerBacking = null!;
         internal bool _isMarketOpenBacking = false;
 
         // New Coordinators
-        internal GameplayInputCoordinator _inputCoordinator;
+        internal GameplayInputCoordinator _inputCoordinator = null!;
         internal InteractionMapper? _interactionMapper;
-        internal CardPlaySystem _cardPlaySystem;
-        internal PlayerController _playerController;
-        internal UIEventMediator _uiEventMediator;
+        internal CardPlaySystem _cardPlaySystem = null!;
+        internal PlayerController _playerController = null!;
+        internal UIEventMediator _uiEventMediator = null!;
 
         public IInputManager InputManager => _inputManagerBacking;
         public IUIManager UIManager => _uiManagerBacking;
         public IMatchManager MatchManager => _matchManager;
 
-        public IMapManager MapManager => _matchContext?.MapManager;
-        public IMarketManager MarketManager => _matchContext?.MarketManager;
-        public IActionSystem ActionSystem => _matchContext?.ActionSystem;
-        public ITurnManager TurnManager => _matchContext?.TurnManager;
+        public IMapManager MapManager => _matchContext?.MapManager!;
+        public IMarketManager MarketManager => _matchContext?.MarketManager!;
+        public IActionSystem ActionSystem => _matchContext?.ActionSystem!;
+        public ITurnManager TurnManager => _matchContext?.TurnManager!;
         public MatchContext MatchContext => _matchContext;
 
         public IInputMode InputMode => _inputCoordinator.CurrentMode;
@@ -75,7 +76,7 @@ namespace ChaosWarlords.Source.States
         public bool IsConfirmationPopupOpen => _uiEventMediator?.IsConfirmationPopupOpen ?? false;
         public bool IsPauseMenuOpen => _uiEventMediator?.IsPauseMenuOpen ?? false;
 
-        public GameplayState(Game? game, IInputProvider inputProvider, ICardDatabase cardDatabase, IGameplayView view = null, int viewportWidth = 1920, int viewportHeight = 1080)
+        public GameplayState(Game? game, IInputProvider inputProvider, ICardDatabase cardDatabase, IGameplayView? view = null, int viewportWidth = 1920, int viewportHeight = 1080)
         {
             _game = game;
             _inputProvider = inputProvider;
@@ -262,9 +263,9 @@ namespace ChaosWarlords.Source.States
 
         public string GetTargetingText(ActionState state) => state.ToString();
 
-        public Card GetHoveredHandCard() => _interactionMapper.GetHoveredHandCard();
-        public Card GetHoveredPlayedCard() => _interactionMapper.GetHoveredPlayedCard(_inputManagerBacking);
-        public Card GetHoveredMarketCard() => _interactionMapper.GetHoveredMarketCard();
+        public Card? GetHoveredHandCard() => _interactionMapper?.GetHoveredHandCard();
+        public Card? GetHoveredPlayedCard() => _interactionMapper?.GetHoveredPlayedCard(_inputManagerBacking);
+        public Card? GetHoveredMarketCard() => _interactionMapper?.GetHoveredMarketCard();
     }
 }
 

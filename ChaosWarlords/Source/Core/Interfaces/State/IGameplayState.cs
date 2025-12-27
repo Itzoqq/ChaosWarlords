@@ -1,3 +1,4 @@
+#nullable enable
 using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
@@ -64,9 +65,10 @@ namespace ChaosWarlords.Source.Core.Interfaces.State
 
         // --- Interaction Helpers ---
         // These delegates are required for InputModes to interact with the View
-        Card GetHoveredHandCard();
-        Card GetHoveredPlayedCard();
-        Card GetHoveredMarketCard();
+        // Does not require 'set' because this is typically a read-only query from the View/InteractionMapper
+        Card? GetHoveredHandCard();
+        Card? GetHoveredPlayedCard();
+        Card? GetHoveredMarketCard();
     }
 }
 

@@ -62,7 +62,12 @@ namespace ChaosWarlords.Source.Systems
             
             // So MatchManager is the right place to trigger "Start of Turn Actions" for the NEW player.
             // Let's modify MatchManager to trigger rewards AFTER switching the player.
+
+            // Notify listeners (UI, Audio, Animations)
+            OnTurnChanged?.Invoke(this, nextPlayer);
         }
+
+        public event EventHandler<Player> OnTurnChanged;
 
         public void PlayCard(Card card)
         {

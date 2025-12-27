@@ -190,7 +190,7 @@ namespace ChaosWarlords.Tests.States
             private readonly IInputProvider _testInput;
             private readonly ICardDatabase _testDb;
 
-            public TestableGameplayState(Game? game, IInputProvider input, ICardDatabase db, IGameplayView view = null)
+            public TestableGameplayState(Game? game, IInputProvider input, ICardDatabase db, IGameplayView? view = null)
                 : base(game, input, db, view ?? Substitute.For<IGameplayView>())
             {
                 _testInput = input;

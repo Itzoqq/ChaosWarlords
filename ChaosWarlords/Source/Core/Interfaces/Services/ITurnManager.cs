@@ -10,6 +10,7 @@ using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
+using System;
 
 namespace ChaosWarlords.Source.Core.Interfaces.Services
 {
@@ -27,6 +28,8 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         // Actions
         void PlayCard(Card card);
         void EndTurn();
+        
+        event EventHandler<Player> OnTurnChanged;
     }
 }
 
