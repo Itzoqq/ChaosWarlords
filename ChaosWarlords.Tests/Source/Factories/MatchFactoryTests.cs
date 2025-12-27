@@ -8,7 +8,7 @@ using System.Collections.Generic;
 namespace ChaosWarlords.Tests.Systems
 {
     [TestClass]
-    public class TestWorldFactoryTests
+    public class MatchFactoryTests
     {
         [TestMethod]
         public void Build_CreatesValidWorldState_Headless()
@@ -16,7 +16,7 @@ namespace ChaosWarlords.Tests.Systems
             var mockDb = Substitute.For<ICardDatabase>();
             mockDb.GetAllMarketCards().Returns(new List<Card>());
 
-            var builder = new TestWorldFactory(mockDb);
+            var builder = new MatchFactory(mockDb);
             var result = builder.Build();
 
             Assert.IsNotNull(result.TurnManager.ActivePlayer);

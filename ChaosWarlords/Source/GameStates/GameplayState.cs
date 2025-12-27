@@ -87,7 +87,7 @@ namespace ChaosWarlords.Source.States
             // 1. Initialize InteractionMapper
             _interactionMapper = new InteractionMapper(_view);
 
-            var builder = new TestWorldFactory(_cardDatabase);
+            var builder = new MatchFactory(_cardDatabase);
             var worldData = builder.Build();
 
             _matchContext = new MatchContext(

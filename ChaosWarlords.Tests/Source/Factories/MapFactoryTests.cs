@@ -39,7 +39,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
     {
       // ARRANGE & ACT
       // Call the actual internal method that takes JSON data directly.
-      var (nodes, sites) = MapFactory.LoadFromData(MockMapJson);
+      var (nodes, sites, _) = MapFactory.LoadFromData(MockMapJson);
 
       // ASSERT - Nodes
       Assert.HasCount(3, nodes, "Should load all 3 nodes from the JSON.");
@@ -59,7 +59,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
     public void LoadFromData_CreatesCorrectSitesAndAssignsNodes()
     {
       // ARRANGE & ACT
-      var (nodes, sites) = MapFactory.LoadFromData(MockMapJson);
+      var (nodes, sites, _) = MapFactory.LoadFromData(MockMapJson);
 
       // ASSERT - Sites
       Assert.HasCount(1, sites, "Should load the single site from JSON.");
@@ -89,7 +89,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
         using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(MockMapJson)))
         {
             // Act
-            var (nodes, sites) = MapFactory.LoadFromStream(stream);
+            var (nodes, sites, _) = MapFactory.LoadFromStream(stream);
 
             // Assert
             Assert.HasCount(3, nodes);
@@ -105,11 +105,11 @@ namespace ChaosWarlords.Tests.Source.Utilities
         using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(invalidJson)))
         {
             // Act
-            var (nodes, sites) = MapFactory.LoadFromStream(stream);
+            var (nodes, sites, _) = MapFactory.LoadFromStream(stream);
 
             // Assert - Should return Test Map (3 nodes, no sites)
-            Assert.HasCount(3, nodes);
-            Assert.HasCount(0, sites); 
+            Assert.HasCount(25, nodes);
+            Assert.HasCount(5, sites); 
         }
     }
 
@@ -117,11 +117,11 @@ namespace ChaosWarlords.Tests.Source.Utilities
     public void CreateTestMap_ReturnsValidDefaultMap()
     {
         // Act
-        var (nodes, sites) = MapFactory.CreateTestMap();
+        var (nodes, sites, _) = MapFactory.CreateTestMap();
 
         // Assert
-        Assert.HasCount(3, nodes);
-        Assert.HasCount(0, sites);
+        Assert.HasCount(25, nodes);
+        Assert.HasCount(5, sites);
         
         var n1 = nodes.FirstOrDefault(n => n.Id == 1);
         var n2 = nodes.FirstOrDefault(n => n.Id == 2);

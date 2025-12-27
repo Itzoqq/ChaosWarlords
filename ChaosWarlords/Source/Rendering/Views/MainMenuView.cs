@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Core.Interfaces;
 using ChaosWarlords.Source.Rendering.UI;
 using System.Diagnostics.CodeAnalysis;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Rendering.Views
 {
@@ -38,7 +39,7 @@ namespace ChaosWarlords.Source.Rendering.Views
                 // However, ButtonRenderer might handle null font or we could try a system font if supported.
                 // For now, we will suppress the crash, but buttons might be invisible text-wise.
                 // Ideally, we log this.
-                System.Diagnostics.Debug.WriteLine("Failed to load generic font.");
+                GameLogger.Log("Failed to load generic font.", LogChannel.Error);
             }
 
             // 2. Load Background with Fallback

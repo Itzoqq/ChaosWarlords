@@ -12,9 +12,7 @@ namespace ChaosWarlords.Source.States
     public class MainMenuState : IState
     {
         private Game1 _game;
-        // Render fields delegated to View
-        // private Texture2D _background; // Unused
-        // private SpriteFont _font; // Unused
+
         
         // Dependencies
         private readonly IInputProvider _inputProvider;
