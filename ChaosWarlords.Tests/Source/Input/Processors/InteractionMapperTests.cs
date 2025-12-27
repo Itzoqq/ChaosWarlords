@@ -4,8 +4,10 @@ using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Rendering.Views;
 using ChaosWarlords.Source.Views; // For CardViewModel
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Interfaces;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
+using NSubstitute;
 
 namespace ChaosWarlords.Tests.Source.Input.Processors
 {
@@ -13,14 +15,19 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
     public class InteractionMapperTests
     {
         private InteractionMapper _mapper = null!;
-        private GameplayView _view = null!;
+        private IGameplayView _view = null!;
 
         [TestInitialize]
         public void Setup()
         {
-            // GameplayView's internal properties are accessible from tests
-            // We pass null for GraphicsDevice since InteractionMapper doesn't use it
-            _view = new GameplayView(null!);
+            // Mock the View using NSubstitute
+            _view = Substitute.For<IGameplayView>();
+            
+            // Setup List properties to return real lists so we can add to them in tests
+            _view.HandViewModels.Returns(new List<CardViewModel>());
+            _view.MarketViewModels.Returns(new List<CardViewModel>());
+            _view.PlayedViewModels.Returns(new List<CardViewModel>());
+
             _mapper = new InteractionMapper(_view);
         }
 

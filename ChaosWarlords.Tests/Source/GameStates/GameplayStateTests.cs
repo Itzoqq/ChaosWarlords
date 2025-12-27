@@ -12,6 +12,7 @@ using ChaosWarlords.Source.Contexts;
 using System.Collections.Generic;
 using System.Linq;
 using ChaosWarlords.Source.Views;
+using ChaosWarlords.Source.Interfaces;
 using System.Reflection;
 using ChaosWarlords.Tests;
 
@@ -183,15 +184,19 @@ namespace ChaosWarlords.Tests.States
             private readonly ICardDatabase _testDb;
 
             public TestableGameplayState(Game game, IInputProvider input, ICardDatabase db)
-                : base(game, input, db)
+                : base(game, input, db, Substitute.For<IGameplayView>())
             {
                 _testInput = input;
                 _testDb = db;
+                
+                // Initialize View Mock Properties to avoid potential NREs
+                _view.HandViewModels.Returns(new List<CardViewModel>());
+                _view.PlayedViewModels.Returns(new List<CardViewModel>());
+                _view.MarketViewModels.Returns(new List<CardViewModel>());
             }
 
             public void InitializeTestEnvironment(IMapManager map, IMarketManager market, IActionSystem action)
             {
-                _inputManagerBacking = new InputManager(_testInput);
                 _inputManagerBacking = new InputManager(_testInput);
                 _uiManagerBacking = Substitute.For<IUIManager>();
 
