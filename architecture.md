@@ -1,101 +1,183 @@
 # ChaosWarlords Architecture & Organization
 
 ## Overview
-This document outlines the architecture of the `ChaosWarlords` codebase, which is a digital adaptation of the board game *Chaos Warlords*. The design follows a strict separation of concerns, utilizing an Event-Driven architecture and Dependency Injection via a centralized Context.
+This document outlines the architecture of the `ChaosWarlords` codebase, a digital adaptation of the board game *Chaos Warlords*. The design utilizes **Dependency Injection**, **Event-Driven Architecture**, and **Interface-Based Abstraction** to ensure testabilty, maintainability, and support for a future Multiplayer (Headless) port.
 
-## System Architecture
+## Organization Principles (Industry Standards)
 
-### 1. Functional Layers
-We avoid a flat "Systems" directory in favor of semantic categorization:
+### 1. Separation of Concerns (SRP)
+- **Logic != Rendering**: Game Logic (`GameplayState`) must never depend on `Microsoft.Xna.Framework.Graphics`. It delegates all visualization to an injected `IGameplayView`.
+- **Input != Action**: Input handling (`PlayerController`) detects *intent*, then delegates execution to the `InputCoordinator` or specific Managers.
+
+### 2. Dependency Injection
+- **No Global Statics**: We avoid `static` managers.
+- **Constructor Injection**: All dependencies are passed in the constructor.
+- **MatchContext**: Acts as the scoped container for a single match lifecycle, holding references to `IMapManager`, `ITurnManager`, etc.
+
+### 3. Interface-Based Design
+- **Testability**: Components depend on `IInterface`, not concrete classes. This allows `NSubstitute` to mock dependencies during Unit Testing.
+- **Headless Support**: The Server can inject "Null" or "Headless" implementations of View interfaces (e.g., `IGameplayView`), allowing the exact same Game Logic to run without a GPU.
+- **Structure**: Interfaces are grouped by layer (Services, Input, Rendering, Logic, State, Data) in `Source/Core/Interfaces`.
+
+### 4. Namespace Convention
+- Namespaces strictly follow the directory structure (e.g., `ChaosWarlords.Source.Core.Interfaces.Services`).
+
+---
+
+## Directory Structure & File Listing
+
+The project uses a semantic folder structure. Below is a detailed listing of all files and their responsibilities.
 
 ```text
 Source/
-├── Core/                   # The Foundation
-│   ├── Contexts/           # Data Holders (MatchContext, TurnContext) - The "Glue"
-│   ├── Interfaces/         # Contracts (IMapManager, IActionSystem)
-│   └── Utilities/          # Helpers (CardDatabase, LayoutConsts, Enums)
-├── Entities/               # Domain Models (Pure Data)
-│   ├── Card.cs, Player.cs  # State Containers
-│   └── Site.cs, MapNode.cs # Spatial Graph Nodes
-├── Factories/              # Creation Logic
-│   ├── MapFactory.cs       # Object Composition
-│   └── CardFactory.cs      # Data Injection
-├── GameStates/             # High-Level Flow (State Machine)
-│   └── GameplayState.cs    # The "Main Loop" Orchestrator
-├── Input/                  # Logic for User Commands
-│   ├── Services/           # Raw MonoGame Input Wrappers
-│   ├── Processors/         # InteractionMapper (Space -> Logic)
-│   └── Modes/              # State Pattern for Input (Targeting, Market)
-├── Managers/               # State & Lifecycle Managers (Services)
-│   ├── MapManager.cs       # Facade for Map Logic
-│   └── TurnManager.cs      # Phase & Player Rotation
-├── Mechanics/              # Business Logic (The Rules)
-│   ├── Actions/            # ActionSystem (Targeting State Machine)
-│   ├── Commands/           # Legacy Command Pattern
-│   └── Rules/              # Pure Logic Engines (SiteControl, CardEffects, MapRules)
-└── Rendering/              # Presentation Layer
-    ├── World/              # Draw Calls (MapRenderer)
-    └── UI/                 # HUD & Interactive Elements
+├── Core/
+│   ├── Contexts/                   # Data Holders (The "Glue")
+│   │   ├── MatchContext.cs         # Scoped container dependencies for a single match (Map, Market, etc.).
+│   │   └── TurnContext.cs          # Tracks transient state for the current turn (e.g., actions remaining).
+│   ├── Interfaces/                 # Contracts (API Definitions)
+│   │   ├── Data/
+│   │   │   └── ICardDatabase.cs    # Contract for retrieving card definitions.
+│   │   ├── Input/
+│   │   │   ├── IGameplayInputCoordinator.cs # Manages input flow during gameplay.
+│   │   │   ├── IInputManager.cs    # Abstraction for raw input (keyboard/mouse).
+│   │   │   ├── IInputMode.cs       # Strategy pattern interface for input handling modes.
+│   │   │   ├── IInputProvider.cs   # Provider for input state snapshots.
+│   │   │   └── IInteractionMapper.cs # Maps screen coordinates to game entities.
+│   │   ├── Logic/
+│   │   │   ├── IActionSystem.cs    # Manages complex multi-step actions (Targeting).
+│   │   │   └── IGameCommand.cs     # Command pattern interface for game actions.
+│   │   ├── Rendering/
+│   │   │   ├── IButtonManager.cs   # Manages UI buttons and interactions.
+│   │   │   ├── IGameplayView.cs    # The contract for the Gameplay visualization layer.
+│   │   │   ├── IMainMenuView.cs    # The contract for the Main Menu visualization.
+│   │   │   └── IUIManager.cs       # Contract for high-level UI management.
+│   │   ├── Services/
+│   │   │   ├── IMapManager.cs      # API for map logic and queries.
+│   │   │   ├── IMarketManager.cs   # API for market economy and card rows.
+│   │   │   ├── IMatchManager.cs    # API for match lifecycle (win/loss).
+│   │   │   └── ITurnManager.cs     # API for turn rotation and player state.
+│   │   └── State/
+│   │       ├── IGameplayState.cs   # Contract for the main game loop state.
+│   │       ├── IState.cs           # Generic state interface (Update/Draw/Load).
+│   │       └── IStateManager.cs    # Service for managing the state stack.
+│   └── Utilities/                  # Infrastructure & Constants
+│       ├── CardDatabase.cs         # Implementation of the card library.
+│       ├── CollectionHelpers.cs    # Extension methods for generic collections.
+│       ├── GameConstants.cs        # Global configuration values.
+│       ├── GameEnums.cs            # Enums (PlayerColor, ResourceType, etc.).
+│       ├── GameLogger.cs           # Central logging facility.
+│       ├── MapGenerationConfig.cs  # Parameters for procedural map generation.
+│       ├── MapGeometry.cs          # Helper for hexagonal grid math.
+│       ├── MapLayoutEngine.cs      # Procedural map generation logic.
+│       └── TextCache.cs            # Caches string measurements for performance.
+├── Entities/                       # Domain Models
+│   ├── Actors/
+│   │   └── Player.cs               # Represents a human or AI player (Hand, Resources).
+│   ├── Cards/
+│   │   ├── Card.cs                 # Data model for a playable card.
+│   │   ├── CardEffects.cs          # Definitions for card effects and mechanics.
+│   │   └── Deck.cs                 # Manages a collection of cards (Draw/Shuffle).
+│   ├── Map/
+│   │   ├── CitySite.cs             # Represents a Capturable City.
+│   │   ├── MapNode.cs              # A graph node representing a location on the map.
+│   │   ├── NonCitySite.cs          # Represents a neutral/resource site.
+│   │   ├── Route.cs                # A path connection between two MapNodes.
+│   │   ├── Site.cs                 # Abstract base class for all sites.
+│   │   └── StartingSite.cs         # Special site where players spawn.
+├── Factories/                      # Object Creation Logic
+│   ├── CardFactory.cs              # Creates Card instances from data.
+│   ├── MapFactory.cs               # Generates the map graph and nodes.
+│   └── MatchFactory.cs             # Assembles all dependencies for a new match.
+├── GameStates/                     # Application State Machine
+│   ├── GameplayState.cs            # The Core Game Loop (Logic Only, no rendering code).
+│   ├── MainMenuState.cs            # Entry Point / Composition Root for the game.
+│   └── StateManager.cs             # Stack-based State Machine implementation.
+├── Input/                          # Human Interface Layer
+│   ├── Controllers/
+│   │   └── PlayerController.cs     # High-Level Intent Parser.
+│   ├── Modes/                      # Input State Machine (Strategy Pattern)
+│   │   ├── DevourInputMode.cs      # Input mode for trashing a card.
+│   │   ├── MarketInputMode.cs      # Input mode for interacting with the market.
+│   │   ├── NormalPlayInputMode.cs  # Default input mode for standard play.
+│   │   ├── PromoteInputMode.cs     # Input mode for upgrading units/sites.
+│   │   └── TargetingInputMode.cs   # Input mode for selecting targets (hexes/units).
+│   ├── Processors/
+│   │   ├── GameplayInputCoordinator.cs # Orchestrates input flow between Controller and Modes.
+│   │   └── InteractionMapper.cs    # Translates Screen(X,Y) -> Entity (MapNode, Card).
+│   └── Services/
+│       └── InputManager.cs         # Raw MonoGame Input Wrapper.
+├── Managers/                       # Business Logic Services
+│   ├── MapManager.cs               # Facade for Board Logic (Movement, Control).
+│   ├── MarketManager.cs            # Manages the Card Market and purchasing.
+│   ├── MatchManager.cs             # Manages Victory Conditions and End of Match.
+│   ├── TurnManager.cs              # Manages Turn Order and Phase Transitions.
+│   ├── UIEventMediator.cs          # Decouples Game Logic from UI Events/Popups.
+│   └── UIManager.cs                # Manages layout and state of UI widgets.
+├── Mechanics/                      # The "Rules" of the Game
+│   ├── Actions/
+│   │   ├── ActionSystem.cs         # Handles targeting logic for multi-step actions.
+│   │   └── CardPlaySystem.cs       # Validates condition and costs for playing cards.
+│   ├── Commands/                   # Command Pattern (Undo/Replay Support)
+│   │   ├── ActionCompletedCommand.cs # Signals an action was successfully finished.
+│   │   ├── BuyCardCommand.cs       # Command to purchase a card from market.
+│   │   ├── CancelActionCommand.cs  # Command to cancel current targeting.
+│   │   ├── DeployTroopCommand.cs   # Command to place a unit on the board.
+│   │   ├── DevourCardCommand.cs    # Command to trash a card for resources.
+│   │   ├── EndTurnCommand.cs       # Command to pass turn to next player.
+│   │   ├── PlayCardCommand.cs      # Command to play a card from hand.
+│   │   ├── ResolveSpyCommand.cs    # Command to execute spy mechanics.
+│   │   ├── StartAssassinateCommand.cs # Command to initiate assassination targeting.
+│   │   ├── StartReturnSpyCommand.cs # Command to initiate spy return targeting.
+│   │   ├── SwitchToNormalModeCommand.cs # Command to reset input mode.
+│   │   └── ToggleMarketCommand.cs  # Command to open/close market view.
+│   └── Rules/                      # Pure Logic Engines
+│       ├── CardEffectProcessor.cs  # Applies the effects of played cards.
+│       ├── CombatResolver.cs       # Determines outcomes of battles.
+│       ├── MapRewardSystem.cs      # Calculates resource generation from sites.
+│       ├── MapRuleEngine.cs        # Validates movement and placement rules.
+│       ├── MapTopology.cs          # Calculates distances and recursive paths.
+│       ├── SiteControlSystem.cs    # Manages ownership changes of sites.
+│       └── SpyOperations.cs        # Handles spy placement and removal logic.
+└── Rendering/                      # Presentation Layer (The "View")
+    ├── UI/
+    │   ├── ButtonManager.cs        # Handles button registration and hit-testing.
+    │   ├── SimpleButton.cs         # Basic UI button implementation.
+    │   └── UIRenderer.cs           # Renders UI elements (Bars, Buttons, Overlays).
+    ├── ViewModels/                 # MVVM State
+    │   └── CardViewModel.cs        # View-Logic wrapper for Card animations/state.
+    └── Views/
+        ├── CardRenderer.cs         # Draws individual cards to screen.
+        ├── GameplayView.cs         # The Concrete Implementation of IGameplayView.
+        ├── MainMenuView.cs         # Main Menu screen renderer.
+        └── MapRenderer.cs          # Draws the hex map and units.
 ```
 
-### 2. Core Dependencies (MatchContext)
-The `MatchContext` is the heart of the dependency injection. It is created once per match and passed to all systems.
-*   **Role**: Service Locator / Dependency Container.
-*   **Contains**: `ITurnManager`, `IMapManager`, `IMarketManager`, `IActionSystem`.
-*   **Lifetime**: Scope of a single Match.
+---
 
-## Detailed System Breakdown
+## Key Systems Breakdown
 
-### A. Map & Area Control System (`Source/Mechanics/Rules/`)
-The game board is a graph of `Sites` (collections of nodes) and `Routes`.
-*   **`MapRuleEngine.cs` (The Judge)**: Pure logic component. Determines if a move is legal.
-    *   *Presence Check*: Handles the critical rule where Spies grant presence at their site, but Troops grant presence to adjacent nodes.
-*   **`SiteControlSystem.cs` (The Accountant)**: Handles ownership rules.
-    *   *Control*: You have more troops than anyone else.
-    *   *Total Control*: You "Control" the site AND no enemy presence exists anywhere on it.
-    *   *Rewards*: Calculates immediate (Influence/VP) and turn-start income.
+### 1. Decoupled Rendering System
+This architecture supports multiplayer by strictly separating Logic from Views.
+- **`IGameplayView`**: The contract. Defines methods like `Draw`, `Update`, `LoadContent`.
+- **`GameplayState`**: Takes `IGameplayView` in its constructor. It calculates *what* happens, then tells the View *what* to update.
+- **`InteractionMapper`**: Translates Mouse interactions using the `IGameplayView` interface to find screen elements, ensuring hit-testing matches rendering.
 
-### B. Action & Card System (`Source/Mechanics/Actions/`)
-*   **`ActionSystem.cs` (The Hand)**: A State Machine that handles the "Click-to-Target" flow.
-    *   States: `Normal`, `TargetingAssassinate`, `TargetingPlaceSpy`, `TargetingSupplant`.
-    *   **Validation Check**: Before entering a targeting state, it queries `MapManager` to ensure valid targets exist, preventing dead-ends for the user.
-*   **`CardEffectProcessor.cs` (The Brain)**: Executes card text.
-    *   Resolves: `Assassinate`, `Deploy`, `Promote`, `Devour`.
-    *   Connects card data (Effects) to Game Systems (`ActionSystem`).
+### 2. Input Coordination System
+We use a layered approach to handle complex inputs (Targeting, Market, etc.):
+1.  **`InputManager`**: "Key A was pressed." (Raw Data)
+2.  **`PlayerController`**: "User wants to End Turn." (Intent)
+3.  **`GameplayInputCoordinator`**: "Can we End Turn? Yes -> Delegate to Manager." (Orchestration)
+4.  **`IInputMode`**: "We are in Targeting Mode, so clicks select Nodes, not Cards." (Contextual Interpretation)
 
-### C. Deck Building (`Source/Entities/Player.cs`)
-Accurately models the *Chaos* deck zones:
-*   **Deck**: Draw pile.
-*   **Hand**: Current turn options.
-*   **Played**: Active area.
-*   **Discard**: Recycled when Deck is empty.
-*   **Inner Circle**: Promoted cards (high VP, removed from cycling).
-*   **Void**: Devoured cards (Removed from game entirely).
-
-### D. Input System (`Source/Input/`)
-Uses the State Pattern to change how clicks are interpreted.
-*   **MarketMode**: Clicks buy cards.
-*   **TargetingMode**: Clicks select map nodes.
-*   **InteractionMapper**: Converts screen pixels -> World Coordinates -> `MapNode`.
-
-## Planned Future Systems (Analysis)
-
-### 1. Victory Conditions
-*   **Current State**: Infinite Loop.
-*   **Requirement**: Implement `VictoryManager`.
-    *   Trigger 1: `EmptyBarracks` (Last troop deployed).
-    *   Trigger 2: `EmptyMarket` (Market deck depleted).
-    *   Scoring: Sum VP Tokens + Trophy Hall + Deck Value + Inner Circle Value + Site Control VP.
-
-### 2. Start Phase
-*   **Current State**: Puts players directly into Turn 1 with 0 board presence.
-*   **Requirement**: Implement `SetupPhase`.
-    *   Players take turns placing initial troops on "Starting Sites" (Neutral/Black start zones).
-
-### 3. Event Bus
-The architecture is moving towards C# Events for decoupling UI from Logic.
-*   `ActionSystem.OnActionFailed` -> UI Message.
-*   `TurnManager.OnTurnChanged` -> UI Turn Banner.
+### 3. Command Pattern (Mechanics/Commands/)
+All significant game actions (Move, Attack, Buy) are encapsulated in `IGameCommand` objects.
+- **Execution**: `Command.Execute(IGameplayState)`
+- **Benefit**: Allows for easier debugging, potential Replay systems, and specific Unit Testing of atomic actions.
 
 ---
-*Last Updated: 2025-12-26*
+
+## Future Guidelines for Contributors
+
+1.  **Keep it Testable**: If you add a new Manager, add an `IManager` interface.
+2.  **Keep it Clean**: Do not put drawing code in `Managers/` or `Mechanics/`. Use `Rendering/` or emit an event that the View subscribes to.
+3.  **Keep it Safe**: Use `NSubstitute` for all unit tests. Avoid using real `Game` or `GraphicsDevice` in tests.

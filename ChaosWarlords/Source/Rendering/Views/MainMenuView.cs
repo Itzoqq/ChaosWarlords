@@ -1,7 +1,13 @@
+using ChaosWarlords.Source.Rendering.ViewModels;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
-using ChaosWarlords.Source.Core.Interfaces;
+using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Core.Interfaces.Input;
+using ChaosWarlords.Source.Core.Interfaces.Rendering;
+using ChaosWarlords.Source.Core.Interfaces.Data;
+using ChaosWarlords.Source.Core.Interfaces.State;
+using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Rendering.UI;
 using System.Diagnostics.CodeAnalysis;
 using ChaosWarlords.Source.Utilities;
@@ -80,3 +86,5 @@ namespace ChaosWarlords.Source.Rendering.Views
         }
     }
 }
+
+

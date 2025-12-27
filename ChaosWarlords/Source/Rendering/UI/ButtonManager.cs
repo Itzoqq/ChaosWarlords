@@ -1,7 +1,13 @@
+using ChaosWarlords.Source.Rendering.ViewModels;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using ChaosWarlords.Source.Core.Interfaces;
+using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Core.Interfaces.Input;
+using ChaosWarlords.Source.Core.Interfaces.Rendering;
+using ChaosWarlords.Source.Core.Interfaces.Data;
+using ChaosWarlords.Source.Core.Interfaces.State;
+using ChaosWarlords.Source.Core.Interfaces.Logic;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Rendering.UI
@@ -69,3 +75,5 @@ namespace ChaosWarlords.Source.Rendering.UI
         // If needed we can implement IDisposable.
     }
 }
+
+

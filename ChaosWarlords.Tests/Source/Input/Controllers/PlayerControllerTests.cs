@@ -1,6 +1,13 @@
+using ChaosWarlords.Source.Rendering.ViewModels;
+using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Core.Interfaces.Input;
+using ChaosWarlords.Source.Core.Interfaces.Rendering;
+using ChaosWarlords.Source.Core.Interfaces.Data;
+using ChaosWarlords.Source.Core.Interfaces.State;
+using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Input.Controllers;
 using ChaosWarlords.Source.States;
-using ChaosWarlords.Source.Interfaces;
+
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Systems;
 using Microsoft.Xna.Framework;
@@ -137,7 +144,7 @@ namespace ChaosWarlords.Tests.Input.Controllers
             // Arrange
             var mockActionSystem = Substitute.For<IActionSystem>();
             mockActionSystem.CurrentState.Returns(ActionState.SelectingSpyToReturn);
-            var mockSite = Substitute.For<ChaosWarlords.Source.Entities.Site>("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 1);
+            var mockSite = Substitute.For<ChaosWarlords.Source.Entities.Map.Site>("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 1);
             mockActionSystem.PendingSite.Returns(mockSite);
             _mockGameState.ActionSystem.Returns(mockActionSystem);
 
@@ -160,3 +167,5 @@ namespace ChaosWarlords.Tests.Input.Controllers
         }
     }
 }
+
+
