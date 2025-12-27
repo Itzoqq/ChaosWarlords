@@ -1,4 +1,7 @@
 using ChaosWarlords.Source.Utilities;
+using System.IO;
+using System.Linq;
+using System.Text;
 
 namespace ChaosWarlords.Tests.Source.Utilities
 {
@@ -68,6 +71,53 @@ namespace ChaosWarlords.Tests.Source.Utilities
       // Assert
       Assert.IsNotNull(marketCards);
       Assert.IsEmpty(marketCards, "Should return an empty list if the database was not loaded.");
+    }
+    [TestMethod]
+    public void GetCardById_ReturnsCard_WhenIdExists()
+    {
+      // Arrange
+      var db = new CardDatabase();
+      db.LoadFromJson(MockCardJson);
+
+      // Act
+      var card = db.GetCardById("noble");
+
+      // Assert
+      Assert.IsNotNull(card);
+      Assert.IsTrue(card.Id.StartsWith("noble")); // Factory appends GUID
+      Assert.AreEqual("Noble", card.Name);
+    }
+
+    [TestMethod]
+    public void GetCardById_ReturnsNull_WhenIdDoesNotExist()
+    {
+      // Arrange
+      var db = new CardDatabase();
+      db.LoadFromJson(MockCardJson);
+
+      // Act
+      var card = db.GetCardById("nonExistentId");
+
+      // Assert
+      Assert.IsNull(card);
+    }
+
+    [TestMethod]
+    public void Load_ReadsFromStream_AndPopulatesCache()
+    {
+        // Arrange
+        var db = new CardDatabase();
+        var json = MockCardJson;
+        using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json)))
+        {
+            // Act
+            db.Load(stream);
+        }
+
+        // Assert
+        var card = db.GetCardById("noble");
+        Assert.IsNotNull(card);
+        Assert.AreEqual("Noble", card.Name);
     }
   }
 }

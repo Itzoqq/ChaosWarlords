@@ -1,5 +1,8 @@
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
+using System.IO;
+using System.Linq;
+using System.Text;
 
 namespace ChaosWarlords.Tests.Source.Utilities
 {
@@ -78,6 +81,54 @@ namespace ChaosWarlords.Tests.Source.Utilities
       Assert.HasCount(2, site.NodesInternal, "Site should contain 2 nodes.");
       Assert.Contains(node2, site.NodesInternal, "Site should contain Node 2.");
       Assert.Contains(node3, site.NodesInternal, "Site should contain Node 3.");
+    }
+    [TestMethod]
+    public void LoadFromStream_ParsesDataCorrectly()
+    {
+        // Arrange
+        using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(MockMapJson)))
+        {
+            // Act
+            var (nodes, sites) = MapFactory.LoadFromStream(stream);
+
+            // Assert
+            Assert.HasCount(3, nodes);
+            Assert.HasCount(1, sites);
+        }
+    }
+
+    [TestMethod]
+    public void LoadFromStream_ReturnsTestMap_OnError()
+    {
+        // Arrange - Invalid JSON
+        var invalidJson = "{ invalid_json }";
+        using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(invalidJson)))
+        {
+            // Act
+            var (nodes, sites) = MapFactory.LoadFromStream(stream);
+
+            // Assert - Should return Test Map (3 nodes, no sites)
+            Assert.HasCount(3, nodes);
+            Assert.HasCount(0, sites); 
+        }
+    }
+
+    [TestMethod]
+    public void CreateTestMap_ReturnsValidDefaultMap()
+    {
+        // Act
+        var (nodes, sites) = MapFactory.CreateTestMap();
+
+        // Assert
+        Assert.HasCount(3, nodes);
+        Assert.HasCount(0, sites);
+        
+        var n1 = nodes.FirstOrDefault(n => n.Id == 1);
+        var n2 = nodes.FirstOrDefault(n => n.Id == 2);
+        
+        Assert.IsNotNull(n1);
+        Assert.IsNotNull(n2);
+        Assert.Contains(n2, n1.Neighbors);
     }
   }
 }

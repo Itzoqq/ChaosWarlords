@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Interfaces;
 using ChaosWarlords.Source.Systems;
@@ -23,6 +24,37 @@ namespace ChaosWarlords.Tests.Managers
             _mockGameState = Substitute.For<IGameplayState>();
             _mockUIManager = Substitute.For<IUIManager>();
             _mockActionSystem = Substitute.For<IActionSystem>();
+            
+            // Additional Mocks for MatchContext
+            var mockTurn = Substitute.For<ITurnManager>();
+            var mockMap = Substitute.For<IMapManager>();
+            var mockMarket = Substitute.For<IMarketManager>();
+            var mockDb = Substitute.For<ICardDatabase>();
+
+            // Setup recursively accessible properties
+            _mockGameState.TurnManager.Returns(mockTurn);
+            _mockGameState.MapManager.Returns(mockMap);
+            _mockGameState.MarketManager.Returns(mockMarket);
+            _mockGameState.MatchManager.Returns(Substitute.For<IMatchManager>());
+
+            // Construct concrete MatchContext
+            var matchContext = new MatchContext(
+                mockTurn,
+                mockMap,
+                mockMarket,
+                _mockActionSystem,
+                mockDb
+            );
+            
+            _mockGameState.MatchContext.Returns(matchContext);
+
+            // Setup ActivePlayer (returning a real Player object is easiest)
+            var player = new Player(PlayerColor.Red);
+            mockTurn.ActivePlayer.Returns(player);
+            
+            // Mock TurnContext for promotion check
+            var turnContext = new TurnContext(player);
+            mockTurn.CurrentTurnContext.Returns(turnContext);
 
             _mediator = new UIEventMediator(_mockGameState, _mockUIManager, _mockActionSystem, null);
         }
@@ -102,6 +134,144 @@ namespace ChaosWarlords.Tests.Managers
         {
             // Assert
             Assert.IsFalse(_mediator.IsPauseMenuOpen);
+        }
+        [TestMethod]
+        public void HandleMarketToggle_DelegatesToGameState()
+        {
+            // Arrange
+            _mediator.Initialize();
+
+            // Act
+            _mockUIManager.OnMarketToggleRequest += Raise.Event();
+
+            // Assert
+            _mockGameState.Received(1).ToggleMarket();
+        }
+
+        [TestMethod]
+        public void HandleAssassinateRequest_StartsTargeting()
+        {
+            // Arrange
+            _mediator.Initialize();
+            _mockActionSystem.IsTargeting().Returns(true); // Simulate successful start
+
+            // Act
+            _mockUIManager.OnAssassinateRequest += Raise.Event();
+
+            // Assert
+            _mockActionSystem.Received(1).TryStartAssassinate();
+            _mockGameState.Received(1).SwitchToTargetingMode();
+        }
+
+        [TestMethod]
+        public void HandleReturnSpyRequest_StartsTargeting()
+        {
+            // Arrange
+            _mediator.Initialize();
+            _mockActionSystem.IsTargeting().Returns(true); // Simulate successful start
+
+            // Act
+            _mockUIManager.OnReturnSpyRequest += Raise.Event();
+
+            // Assert
+            _mockActionSystem.Received(1).TryStartReturnSpy();
+            _mockGameState.Received(1).SwitchToTargetingMode();
+        }
+
+        [TestMethod]
+        public void HandleEndTurnRequest_OpensPopup_WhenCardsUnplayed()
+        {
+            // Arrange
+            _mediator.Initialize();
+            // Add a card to the real player's hand
+            var player = _mockGameState.MatchContext.ActivePlayer;
+            player.Hand.Add(new Card("test", "Test", 1, CardAspect.Warlord, 0, 0, 0));
+
+            // Act
+            _mockUIManager.OnEndTurnRequest += Raise.Event();
+
+            // Assert
+            Assert.IsTrue(_mediator.IsConfirmationPopupOpen);
+        }
+
+        [TestMethod]
+        public void HandleEndTurnRequest_EndsTurn_WhenNoCardsUnplayed()
+        {
+            // Arrange
+            _mediator.Initialize();
+            // Ensure hand is empty (it is by default)
+            var player = _mockGameState.MatchContext.ActivePlayer;
+            player.Hand.Clear();
+            
+            
+            // Mock no pending promotions
+            // _mockGameState.TurnManager.CurrentTurnContext.PendingPromotionsCount is 0 by default (concrete class)
+
+            // Act
+            _mockUIManager.OnEndTurnRequest += Raise.Event();
+
+            // Assert
+            _mockGameState.Received(1).EndTurn();
+            Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
+        }
+
+        [TestMethod]
+        public void HandlePopupConfirm_EndsTurn()
+        {
+            // Arrange
+            _mediator.Initialize();
+            // Add card to trigger popup logic
+            var player = _mockGameState.MatchContext.ActivePlayer;
+            player.Hand.Add(new Card("test", "Test", 1, CardAspect.Warlord, 0, 0, 0));
+            _mediator.HandleEndTurnKeyPress(); // Open popup
+            
+            Assert.IsTrue(_mediator.IsConfirmationPopupOpen, "Popup should be open");
+
+            // Mock no pending promotions for simple EndTurn
+            // _mockGameState.TurnManager.CurrentTurnContext.PendingPromotionsCount is 0 by default
+
+            // Act
+            _mockUIManager.OnPopupConfirm += Raise.Event();
+
+            // Assert
+            Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
+            _mockGameState.Received(1).EndTurn();
+        }
+
+        [TestMethod]
+        public void HandlePopupCancel_ClosesPopup()
+        {
+            // Arrange
+            _mediator.Initialize();
+            var player = _mockGameState.MatchContext.ActivePlayer;
+            player.Hand.Add(new Card("test", "Test", 1, CardAspect.Warlord, 0, 0, 0));
+            _mediator.HandleEndTurnKeyPress(); // Open popup
+            
+            Assert.IsTrue(_mediator.IsConfirmationPopupOpen);
+
+            // Act
+            _mockUIManager.OnPopupCancel += Raise.Event();
+
+            // Assert
+            Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
+            _mockGameState.DidNotReceive().EndTurn();
+        }
+
+        [TestMethod]
+        public void HandleActionCompleted_PlaysPendingCard_AndResetsMode()
+        {
+            // Arrange
+            _mediator.Initialize();
+            var card = new Card("test", "test", 0, CardAspect.Warlord, 0, 0, 0);
+            _mockActionSystem.PendingCard.Returns(card);
+
+            // Act
+            _mockActionSystem.OnActionCompleted += Raise.Event();
+
+            // Assert
+            _mockGameState.MatchManager.Received(1).PlayCard(card);
+            _mockActionSystem.Received(1).CancelTargeting();
+            _mockGameState.Received(1).SwitchToNormalMode();
         }
     }
 }
