@@ -8,6 +8,8 @@ using ChaosWarlords.Source.Views;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.States.Input;
 using ChaosWarlords.Source.Interfaces;
+using ChaosWarlords.Source.Input.Controllers;
+using ChaosWarlords.Source.Managers;
 using System;
 using System.Linq;
 
@@ -30,6 +32,8 @@ namespace ChaosWarlords.Source.States
         private GameplayInputCoordinator _inputCoordinator;
         private InteractionMapper _interactionMapper;
         private CardPlaySystem _cardPlaySystem;
+        private PlayerController _playerController;
+        private UIEventMediator _uiEventMediator;
 
         public IInputManager InputManager => _inputManagerBacking;
         public IUIManager UIManager => _uiManagerBacking;
@@ -55,6 +59,10 @@ namespace ChaosWarlords.Source.States
                 _inputCoordinator.SetMarketMode(value);
             }
         }
+
+        // Expose UIEventMediator state for tests and views
+        public bool IsConfirmationPopupOpen => _uiEventMediator?.IsConfirmationPopupOpen ?? false;
+        public bool IsPauseMenuOpen => _uiEventMediator?.IsPauseMenuOpen ?? false;
 
         public GameplayState(Game game, IInputProvider inputProvider, ICardDatabase cardDatabase)
         {
@@ -103,8 +111,6 @@ namespace ChaosWarlords.Source.States
 
             _matchContext.MapManager.CenterMap(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
 
-            InitializeEventSubscriptions();
-
             // Subscribe to Setup auto-advance
             _matchContext.MapManager.OnSetupDeploymentComplete += () => 
             {
@@ -119,48 +125,34 @@ namespace ChaosWarlords.Source.States
             
             // 3. Initialize CardPlaySystem
             _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, () => SwitchToTargetingMode());
+
+            // 4. Initialize UIEventMediator
+            _uiEventMediator = new UIEventMediator(this, _uiManagerBacking, _matchContext.ActionSystem, _game as Game1);
+            _uiEventMediator.Initialize();
+
+            // 5. Initialize PlayerController
+            _playerController = new PlayerController(this, _inputManagerBacking, _inputCoordinator, _interactionMapper);
         }
 
         public void UnloadContent()
         {
-            if (_uiManagerBacking != null)
-            {
-                _uiManagerBacking.OnMarketToggleRequest -= HandleMarketToggle;
-                _uiManagerBacking.OnAssassinateRequest -= HandleAssassinateRequest;
-                _uiManagerBacking.OnReturnSpyRequest -= HandleReturnSpyRequest;
-            }
-
-            if (_matchContext?.ActionSystem != null)
-            {
-                _matchContext.ActionSystem.OnActionCompleted -= HandleActionCompleted;
-                _matchContext.ActionSystem.OnActionFailed -= HandleActionFailed;
-            }
+            _uiEventMediator?.Cleanup();
         }
 
         public void Update(GameTime gameTime)
         {
             _inputManagerBacking.Update();
             
-            // Sync State to UIManager
-            _uiManagerBacking.IsPaused = _isPauseMenuOpen;
-            _uiManagerBacking.IsPopupVisible = _isConfirmationPopupOpen;
-            
+            // Sync UI state via mediator
+            _uiEventMediator.Update();
             _uiManagerBacking.Update(_inputManagerBacking);
 
-            if (_isConfirmationPopupOpen) return; // Block other input if popup is open
+            if (_uiEventMediator.IsConfirmationPopupOpen) return; // Block other input if popup is open
 
-            if (HandleGlobalInput()) return;
-
-            if (_matchContext.ActionSystem.CurrentState == ActionState.SelectingSpyToReturn)
-            {
-                HandleSpySelectionInput();
-                return;
-            }
+            // Delegate all input handling to PlayerController
+            _playerController.Update();
 
             _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
-
-            // 3. Delegate Input to Coordinator
-            _inputCoordinator.HandleInput();
         }
 
         public void Draw(SpriteBatch spriteBatch)
@@ -173,12 +165,11 @@ namespace ChaosWarlords.Source.States
                 targetingText = GetTargetingText(_matchContext.ActionSystem.CurrentState);
             }
 
-            _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, (UIManager)_uiManagerBacking, IsMarketOpen, targetingText, IsConfirmationPopupOpen, IsPauseMenuOpen);
+            _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, (UIManager)_uiManagerBacking, IsMarketOpen, targetingText, _uiEventMediator.IsConfirmationPopupOpen, _uiEventMediator.IsPauseMenuOpen);
 
             // Phase 0 UI Overlay
             if (_matchContext.CurrentPhase == MatchPhase.Setup)
             {
-                // We delegate this to the View to ensure consistent font usage
                 _view?.DrawSetupPhaseOverlay(spriteBatch, _matchContext.TurnManager.ActivePlayer);
             }
         }
@@ -229,231 +220,11 @@ namespace ChaosWarlords.Source.States
         }
         // -------------------
 
-        private bool HandleGlobalInput()
-        {
-            if (HandleEscapeKey()) return true;
-            if (_isPauseMenuOpen) return true;
-            if (HandleEnterKey()) return true;
-            if (HandleRightClick()) return true;
-            return false;
-        }
-
-        private bool HandleEscapeKey()
-        {
-            if (!_inputManagerBacking.IsKeyJustPressed(Keys.Escape)) return false;
-
-            if (_isPauseMenuOpen)
-            {
-                _isPauseMenuOpen = false;
-            }
-            else
-            {
-                _isPauseMenuOpen = true;
-                if (IsMarketOpen) IsMarketOpen = false;
-                _matchContext.ActionSystem.CancelTargeting();
-                SwitchToNormalMode();
-                if (_isConfirmationPopupOpen) _isConfirmationPopupOpen = false;
-            }
-            return true;
-        }
-
-        private bool HandleEnterKey()
-        {
-            if (!_inputManagerBacking.IsKeyJustPressed(Keys.Enter)) return false;
-
-            if (CanEndTurn(out string reason))
-            {
-                HandleEndTurnWithPromotionCheck();
-            }
-            else
-            {
-                GameLogger.Log(reason, LogChannel.Warning);
-            }
-            return true;
-        }
-
-        private void HandleEndTurnWithPromotionCheck()
-        {
-            int pending = _matchContext.TurnManager.CurrentTurnContext.PendingPromotionsCount;
-            if (pending > 0)
-            {
-                var activePlayer = _matchContext.TurnManager.ActivePlayer;
-                bool hasValidTargets = activePlayer.PlayedCards.Any(c =>
-                    _matchContext.TurnManager.CurrentTurnContext.HasValidCreditFor(c));
-
-                if (hasValidTargets)
-                {
-                    GameLogger.Log($"You must promote {pending} card(s) before ending your turn.", LogChannel.Warning);
-                    SwitchToPromoteMode(pending);
-                }
-                else
-                {
-                    GameLogger.Log("No valid cards to promote. Promotion effects skipped.", LogChannel.Info);
-                    HandleEndTurnRequest(this, EventArgs.Empty);
-                }
-            }
-            else
-            {
-                HandleEndTurnRequest(this, EventArgs.Empty);
-            }
-        }
-
-        private bool HandleRightClick()
-        {
-            if (!_inputManagerBacking.IsRightMouseJustClicked()) return false;
-
-            if (IsMarketOpen)
-            {
-                IsMarketOpen = false;
-                return true;
-            }
-
-            if (_matchContext.ActionSystem.IsTargeting())
-            {
-                _matchContext.ActionSystem.CancelTargeting();
-                SwitchToNormalMode();
-                return true;
-            }
-
-            return false;
-        }
-
-        private void HandleSpySelectionInput()
-        {
-            if (!_inputManagerBacking.IsLeftMouseJustClicked()) return;
-            if (_view == null) return;
-
-            var site = _matchContext.ActionSystem.PendingSite;
-
-            PlayerColor? clickedSpy = _interactionMapper.GetClickedSpyReturnButton(
-                _inputManagerBacking.MousePosition.ToPoint(),
-                site,
-                _uiManagerBacking.ScreenWidth);
-
-            if (clickedSpy.HasValue)
-            {
-                _matchContext.ActionSystem.FinalizeSpyReturn(clickedSpy.Value);
-            }
-        }
-
-
+        // --- Input Delegation Methods (called by PlayerController) ---
+        public void HandleEscapeKeyPress() => _uiEventMediator.HandleEscapeKeyPress();
+        public void HandleEndTurnKeyPress() => _uiEventMediator.HandleEndTurnKeyPress();
 
         public string GetTargetingText(ActionState state) => state.ToString();
-
-        internal void InitializeEventSubscriptions()
-        {
-            _uiManagerBacking.OnMarketToggleRequest -= HandleMarketToggle;
-            _uiManagerBacking.OnAssassinateRequest -= HandleAssassinateRequest;
-            _uiManagerBacking.OnReturnSpyRequest -= HandleReturnSpyRequest;
-            _uiManagerBacking.OnEndTurnRequest -= HandleEndTurnRequest;
-            _uiManagerBacking.OnPopupConfirm -= HandlePopupConfirm;
-            _uiManagerBacking.OnPopupCancel -= HandlePopupCancel;
-
-            _matchContext.ActionSystem.OnActionCompleted -= HandleActionCompleted;
-            _matchContext.ActionSystem.OnActionFailed -= HandleActionFailed;
-
-            _uiManagerBacking.OnMarketToggleRequest += HandleMarketToggle;
-            _uiManagerBacking.OnAssassinateRequest += HandleAssassinateRequest;
-            _uiManagerBacking.OnReturnSpyRequest += HandleReturnSpyRequest;
-            _uiManagerBacking.OnEndTurnRequest += HandleEndTurnRequest;
-            _uiManagerBacking.OnPopupConfirm += HandlePopupConfirm;
-            _uiManagerBacking.OnPopupCancel += HandlePopupCancel;
-
-            _uiManagerBacking.OnResumeRequest += HandleResumeRequest;
-            _uiManagerBacking.OnMainMenuRequest += HandleMainMenuRequest;
-            _uiManagerBacking.OnExitRequest += HandleExitRequest; // Exit from Pause Menu
-
-            _matchContext.ActionSystem.OnActionCompleted += HandleActionCompleted;
-            _matchContext.ActionSystem.OnActionFailed += HandleActionFailed;
-        }
-
-        private void HandleMarketToggle(object sender, EventArgs e) => ToggleMarket();
-        private void HandleAssassinateRequest(object sender, EventArgs e) { _matchContext.ActionSystem.TryStartAssassinate(); if (_matchContext.ActionSystem.IsTargeting()) SwitchToTargetingMode(); }
-        private void HandleReturnSpyRequest(object sender, EventArgs e) { _matchContext.ActionSystem.TryStartReturnSpy(); if (_matchContext.ActionSystem.IsTargeting()) SwitchToTargetingMode(); }
-        
-        // End Turn Logic
-        private bool _isConfirmationPopupOpen = false;
-        public bool IsConfirmationPopupOpen => _isConfirmationPopupOpen;
-
-        // Pause Menu Logic
-        private bool _isPauseMenuOpen = false;
-        public bool IsPauseMenuOpen => _isPauseMenuOpen;
-
-        private void HandleEndTurnRequest(object sender, EventArgs e)
-        {
-            GameLogger.Log("Gameplay: EndTurn Request Received", LogChannel.Info);
-            bool hasUnplayedCards = _matchContext.ActivePlayer.Hand.Count > 0;
-            if (hasUnplayedCards)
-            {
-                GameLogger.Log("Gameplay: Opening Confirmation Popup", LogChannel.Info);
-                _isConfirmationPopupOpen = true;
-            }
-            else
-            {
-                GameLogger.Log("Gameplay: Ending Turn Immediately", LogChannel.Info);
-                EndTurn();
-            }
-        }
-
-        private void HandlePopupConfirm(object sender, EventArgs e)
-        {
-            if (_isConfirmationPopupOpen)
-            {
-                GameLogger.Log("Gameplay: Popup Confirmed - Ending Turn", LogChannel.Info);
-                _isConfirmationPopupOpen = false;
-                EndTurn();
-            }
-        }
-
-        private void HandlePopupCancel(object sender, EventArgs e)
-        {
-            if (_isConfirmationPopupOpen)
-            {
-                GameLogger.Log("Gameplay: Popup Cancelled", LogChannel.Info);
-                _isConfirmationPopupOpen = false;
-            }
-        }
-
-        // --- PAUSE MENU HANDLERS ---
-        private void HandleResumeRequest(object sender, EventArgs e)
-        {
-            if (_isPauseMenuOpen) _isPauseMenuOpen = false;
-        }
-
-        private void HandleMainMenuRequest(object sender, EventArgs e)
-        {
-            if (_isPauseMenuOpen)
-            {
-                // Navigate to Main Menu
-                // We access StateManager via Game1 usually, but here we only have Game. 
-                // We can cast `_game` if it's Game1, or we need to pass StateManager in constructor.
-                // Assuming Game1 is the type since it was used in MainMenuState.
-                if (_game is Game1 g1)
-                {
-                    g1.StateManager.ChangeState(new MainMenuState(g1));
-                }
-            }
-        }
-
-        private void HandleExitRequest(object sender, EventArgs e)
-        {
-            if (_isPauseMenuOpen)
-            {
-                _game.Exit();
-            }
-        }
-
-        private void HandleActionFailed(object sender, string msg) => GameLogger.Log(msg, LogChannel.Error);
-
-        private void HandleActionCompleted(object sender, EventArgs e)
-        {
-            if (_matchContext.ActionSystem.PendingCard != null)
-            {
-                _matchManager.PlayCard(_matchContext.ActionSystem.PendingCard);
-            }
-            _matchContext.ActionSystem.CancelTargeting();
-            SwitchToNormalMode();
-        }
 
         public Card GetHoveredHandCard() => _interactionMapper.GetHoveredHandCard();
         public Card GetHoveredPlayedCard() => _interactionMapper.GetHoveredPlayedCard(_inputManagerBacking);

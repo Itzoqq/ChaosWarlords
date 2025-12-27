@@ -23,6 +23,8 @@ namespace ChaosWarlords.Source.States
         // Removed 'set' because this is now managed by the InputCoordinator
         IInputMode InputMode { get; }
         bool IsMarketOpen { get; set; }
+        bool IsConfirmationPopupOpen { get; }
+        bool IsPauseMenuOpen { get; }
 
         // --- Layout ---
         int HandY { get; }
@@ -37,6 +39,10 @@ namespace ChaosWarlords.Source.States
         void SwitchToTargetingMode();
         void SwitchToNormalMode();
         void SwitchToPromoteMode(int amount);
+
+        // --- Input Delegation (for PlayerController) ---
+        void HandleEscapeKeyPress();
+        void HandleEndTurnKeyPress();
 
         // --- Gameplay Actions ---
         void PlayCard(Card card);

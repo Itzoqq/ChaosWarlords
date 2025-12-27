@@ -250,9 +250,15 @@ namespace ChaosWarlords.Tests.States
                 var cardSystem = new CardPlaySystem(_matchContext, _matchManager, () => SwitchToTargetingMode());
                 SetPrivateField("_cardPlaySystem", cardSystem);
 
-                // --- END FIX ---
+                // 4. UIEventMediator (NEW dependency)
+                var uiMediator = new ChaosWarlords.Source.Managers.UIEventMediator(this, _uiManagerBacking, action, null);
+                uiMediator.Initialize();
+                SetPrivateField("_uiEventMediator", uiMediator);
 
-                InitializeEventSubscriptions();
+                // 5. PlayerController (NEW dependency)
+                var playerController = new ChaosWarlords.Source.Input.Controllers.PlayerController(this, _inputManagerBacking, coordinator, mapper);
+                SetPrivateField("_playerController", playerController);
+
                 SwitchToNormalMode();
             }
 

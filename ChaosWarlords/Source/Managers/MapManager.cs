@@ -5,6 +5,7 @@ using System.Linq;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Map;
 
 namespace ChaosWarlords.Source.Systems
 {
@@ -15,9 +16,15 @@ namespace ChaosWarlords.Source.Systems
         public List<Site> SitesInternal { get; private set; }
         private readonly Dictionary<MapNode, Site> _nodeSiteLookup;
 
-        // Sub-Systems
+        // Sub-Systems (Original)
         private readonly MapRuleEngine _ruleEngine;
         private readonly SiteControlSystem _controlSystem;
+
+        // New Service Classes (Phase 2 Refactoring)
+        private readonly MapTopology _topology;
+        private readonly CombatResolver _combat;
+        private readonly SpyOperations _spyOps;
+        private readonly MapRewardSystem _rewards;
 
         // Events
         public event System.Action OnSetupDeploymentComplete;
@@ -44,9 +51,18 @@ namespace ChaosWarlords.Source.Systems
             }
 
             // Initialize Sub-Systems (Composition)
-            // We pass the live lists/dictionary so the sub-systems always see current data
             _ruleEngine = new MapRuleEngine(NodesInternal, SitesInternal, _nodeSiteLookup);
             _controlSystem = new SiteControlSystem();
+
+            // Initialize New Service Classes
+            _topology = new MapTopology(NodesInternal, SitesInternal);
+            _rewards = new MapRewardSystem(_controlSystem);
+            _combat = new CombatResolver(
+                node => GetSiteForNode(node),
+                (site, player) => RecalculateSiteState(site, player),
+                () => CurrentPhase
+            );
+            _spyOps = new SpyOperations((site, player) => RecalculateSiteState(site, player));
         }
 
         // -------------------------------------------------------------------------
@@ -67,68 +83,25 @@ namespace ChaosWarlords.Source.Systems
 
         public Site GetSiteForNode(MapNode node) => _ruleEngine.GetSiteForNode(node);
 
-        public void RecalculateSiteState(Site site, Player activePlayer) => _controlSystem.RecalculateSiteState(site, activePlayer);
-        public void DistributeStartOfTurnRewards(Player activePlayer) => _controlSystem.DistributeStartOfTurnRewards(SitesInternal, activePlayer);
+        public void RecalculateSiteState(Site site, Player activePlayer) => _rewards.RecalculateSiteState(site, activePlayer);
+        public void DistributeStartOfTurnRewards(Player activePlayer) => _rewards.DistributeStartOfTurnRewards(SitesInternal, activePlayer);
         
         public void SetPhase(MatchPhase phase) => _ruleEngine.SetPhase(phase);
         public MatchPhase CurrentPhase => _ruleEngine.CurrentPhase;
 
         // -------------------------------------------------------------------------
-        // NAVIGATION & QUERIES (Simple enough to keep here)
+        // SPATIAL QUERIES (Delegated to MapTopology)
         // -------------------------------------------------------------------------
 
-        public void CenterMap(int screenWidth, int screenHeight)
-        {
-            if (NodesInternal.Count == 0) return;
-            var (MinX, MinY, MaxX, MaxY) = MapGeometry.CalculateBounds(NodesInternal);
-            Vector2 mapCenter = new((MinX + MaxX) / 2f, (MinY + MaxY) / 2f);
-            Vector2 screenCenter = new(screenWidth / 2f, screenHeight / 2f);
-            ApplyOffset(screenCenter - mapCenter);
-        }
-
-        // ... (Skipping ApplyOffset, GetNodeAt, GetSiteAt, GetEnemySpiesAtSite) ...
-
-        private void ApplyOffset(Vector2 offset)
-        {
-            foreach (var node in NodesInternal) node.Position += offset;
-            if (SitesInternal != null) foreach (var site in SitesInternal) site.RecalculateBounds();
-        }
-
-        public MapNode GetNodeAt(Vector2 position)
-        {
-            return NodesInternal.FirstOrDefault(n => Vector2.Distance(position, n.Position) <= MapNode.Radius);
-        }
-
-        public Site GetSiteAt(Vector2 position)
-        {
-            return SitesInternal?.FirstOrDefault(s => s.Bounds.Contains(position));
-        }
-
-        public List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer)
-        {
-            return site.Spies.Where(s => s != activePlayer.Color && s != PlayerColor.None).ToList();
-        }
+        public void CenterMap(int screenWidth, int screenHeight) => _topology.CenterMap(screenWidth, screenHeight);
+        public void ApplyOffset(Vector2 offset) => _topology.ApplyOffset(offset);
+        public MapNode GetNodeAt(Vector2 position) => _topology.GetNodeAt(position);
+        public Site GetSiteAt(Vector2 position) => _topology.GetSiteAt(position);
+        public List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer) => _spyOps.GetEnemySpiesAtSite(site, activePlayer);
 
         // -------------------------------------------------------------------------
-        // CORE LOGIC HELPERS (For reuse in complex actions like Supplant)
+        // COMBAT OPERATIONS (Delegated to CombatResolver)
         // -------------------------------------------------------------------------
-
-        private void ExecuteDeployCore(MapNode node, Player player)
-        {
-            // FREE in Setup Phase
-            if (CurrentPhase != MatchPhase.Setup)
-            {
-                player.Power -= GameConstants.DEPLOY_POWER_COST;
-            }
-            player.TroopsInBarracks--;
-            node.Occupant = player.Color;
-        }
-
-        private void ExecuteAssassinateCore(MapNode node, Player attacker)
-        {
-            node.Occupant = PlayerColor.None;
-            attacker.TrophyHall++;
-        }
 
         // -------------------------------------------------------------------------
         // STATE MUTATION ACTIONS (Orchestration)
@@ -160,11 +133,8 @@ namespace ChaosWarlords.Source.Systems
                 return false;
             }
 
-            // Step 3: Execution
-            ExecuteMapAction(() => ExecuteDeployCore(targetNode, currentPlayer), 
-            $"Deployed Troop at Node {targetNode.Id}. Supply: {currentPlayer.TroopsInBarracks}", 
-            GetSiteForNode(targetNode), 
-            currentPlayer);
+            // Step 3: Execution (Delegated to CombatResolver)
+            _combat.ExecuteDeploy(targetNode, currentPlayer);
 
             // Auto-advance turn in Setup Phase
             if (CurrentPhase == MatchPhase.Setup)
@@ -181,14 +151,7 @@ namespace ChaosWarlords.Source.Systems
 
         public void Assassinate(MapNode node, Player attacker)
         {
-            if (node == null) throw new ArgumentNullException(nameof(node));
-            if (attacker == null) throw new ArgumentNullException(nameof(attacker));
-            if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
-
-            ExecuteMapAction(() => ExecuteAssassinateCore(node, attacker),
-            $"Assassinated enemy at Node {node.Id}. Trophy Hall: {attacker.TrophyHall}",
-            GetSiteForNode(node),
-            attacker);
+            _combat.ExecuteAssassinate(node, attacker);
         }
 
         public bool CanReturnTroop(MapNode node, Player requestingPlayer)
@@ -207,93 +170,24 @@ namespace ChaosWarlords.Source.Systems
         public void ReturnTroop(MapNode node, Player requestingPlayer)
         {
             if (!CanReturnTroop(node, requestingPlayer)) return;
-            
-            if (node.Occupant == requestingPlayer.Color)
-            {
-                ExecuteMapAction(() =>
-                {
-                    node.Occupant = PlayerColor.None;
-                    requestingPlayer.TroopsInBarracks++;
-                },
-                $"Returned friendly troop at Node {node.Id} to barracks.",
-                GetSiteForNode(node),
-                requestingPlayer);
-            }
-            else if (node.Occupant != PlayerColor.None)
-            {
-                PlayerColor enemyColor = node.Occupant;
-                ExecuteMapAction(() =>
-                {
-                    node.Occupant = PlayerColor.None;
-                },
-                $"Returned {enemyColor} troop at Node {node.Id} to their barracks.",
-                GetSiteForNode(node),
-                requestingPlayer);
-            }
+            _combat.ExecuteReturnTroop(node, requestingPlayer);
         }
 
         public void PlaceSpy(Site site, Player player)
         {
-            if (site == null) throw new ArgumentNullException(nameof(site));
-            if (player == null) throw new ArgumentNullException(nameof(player));
-
-            if (site.Spies.Contains(player.Color))
-            {
-                GameLogger.Log("You already have a spy at this site.", LogChannel.Error);
-                return;
-            }
-
-            if (player.SpiesInBarracks > 0)
-            {
-                ExecuteMapAction(() =>
-                {
-                    player.SpiesInBarracks--;
-                    site.Spies.Add(player.Color);
-                },
-                $"Spy placed at {site.Name}.",
-                site,
-                player);
-            }
-            else
-            {
-                GameLogger.Log("No Spies left in supply!", LogChannel.Error);
-            }
+            _spyOps.ExecutePlaceSpy(site, player);
         }
 
         public void Supplant(MapNode node, Player attacker)
         {
-            if (node == null) throw new ArgumentNullException(nameof(node));
-            if (attacker == null) throw new ArgumentNullException(nameof(attacker));
-            if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
-
-            // Atomic Action: Assassinate + Deploy in one transaction
-            ExecuteMapAction(() =>
-            {
-                ExecuteAssassinateCore(node, attacker);
-                ExecuteDeployCore(node, attacker);
-            },
-            $"Supplanted enemy at Node {node.Id} (Added to Trophy Hall) and Deployed.",
-            GetSiteForNode(node),
-            attacker);
+            _combat.ExecuteSupplant(node, attacker);
         }
 
         // Removed dead code: MoveTroop(MapNode, MapNode) overload
         // Only the 3-parameter version with Player is kept
         public void MoveTroop(MapNode source, MapNode destination, Player activePlayer)
         {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            if (activePlayer == null) throw new ArgumentNullException(nameof(activePlayer));
-
-            Action moveAction = () =>
-            {
-                destination.Occupant = source.Occupant;
-                source.Occupant = PlayerColor.None;
-            };
-
-            ExecuteMapAction(moveAction, $"Moved troop from {source.Id} to {destination.Id}.", GetSiteForNode(source), activePlayer);
-            // Also recalculate destination
-            RecalculateSiteState(GetSiteForNode(destination), activePlayer);
+            _combat.ExecuteMove(source, destination, activePlayer);
         }
 
         public bool CanReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor)
@@ -321,27 +215,8 @@ namespace ChaosWarlords.Source.Systems
                 return false;
             }
 
-            ExecuteMapAction(() =>
-            {
-                site.Spies.Remove(targetSpyColor);
-            },
-            $"Returned {targetSpyColor} Spy from {site.Name} to barracks.",
-            site,
-            activePlayer);
-            return true;
+            return _spyOps.ExecuteReturnSpy(site, activePlayer, targetSpyColor);
         }
 
-        private void ExecuteMapAction(System.Action action, string message, Site site, Player player)
-        {
-            action?.Invoke();
-            if (!string.IsNullOrEmpty(message))
-            {
-                GameLogger.Log(message, LogChannel.Combat);
-            }
-            if (site != null)
-            {
-                RecalculateSiteState(site, player);
-            }
-        }
     }
 }
