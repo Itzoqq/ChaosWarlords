@@ -112,6 +112,21 @@ namespace ChaosWarlords.Source.Systems
             if (currentPlayer == null) throw new ArgumentNullException(nameof(currentPlayer));
             if (targetNode == null) throw new ArgumentNullException(nameof(targetNode));
 
+            if (!ValidateDeployment(currentPlayer, targetNode))
+            {
+                return false;
+            }
+
+            // Step 3: Execution (Delegated to CombatResolver)
+            _combat.ExecuteDeploy(targetNode, currentPlayer);
+
+            HandlePostDeployment(currentPlayer);
+
+            return true;
+        }
+
+        private bool ValidateDeployment(Player currentPlayer, MapNode targetNode)
+        {
             // Step 1: Validation (Delegated)
             if (!CanDeployAt(targetNode, currentPlayer.Color))
             {
@@ -133,9 +148,11 @@ namespace ChaosWarlords.Source.Systems
                 return false;
             }
 
-            // Step 3: Execution (Delegated to CombatResolver)
-            _combat.ExecuteDeploy(targetNode, currentPlayer);
+            return true;
+        }
 
+        private void HandlePostDeployment(Player currentPlayer)
+        {
             // Auto-advance turn in Setup Phase
             if (CurrentPhase == MatchPhase.Setup)
             {
@@ -145,8 +162,6 @@ namespace ChaosWarlords.Source.Systems
 
             if (currentPlayer.TroopsInBarracks == 0)
                 GameLogger.Log("FINAL TROOP DEPLOYED! Game ends this round.", LogChannel.General);
-
-            return true;
         }
 
         public void Assassinate(MapNode node, Player attacker)

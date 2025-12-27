@@ -36,7 +36,7 @@ namespace ChaosWarlords.Source.States.Input
             }
 
             // 2. UI Blocking
-            if (_uiManager.IsMarketHovered || _uiManager.IsAssassinateHovered || _uiManager.IsReturnSpyHovered)
+            if (IsUIBlocking())
             {
                 return null;
             }
@@ -44,32 +44,47 @@ namespace ChaosWarlords.Source.States.Input
             // 3. Right-Click to Cancel
             if (inputManager.IsRightMouseJustClicked())
             {
-                // Safety Log
-                string cardName = actionSystem.PendingCard != null ? actionSystem.PendingCard.Name : "Unknown";
-                GameLogger.Log($"Input: Cancelled Action for {cardName}. Card returned to hand.", LogChannel.Info);
-
-                actionSystem.CancelTargeting();
-                // We return this command to ensure immediate update, 
-                // though the event system could handle cancellation too if you wired OnActionCancelled.
-                return new SwitchToNormalModeCommand();
+                return HandleCancellation(actionSystem);
             }
 
             // 4. Handle Specific Targeting Logic
             if (inputManager.IsLeftMouseJustClicked())
             {
-                if (actionSystem.CurrentState == ActionState.SelectingSpyToReturn)
-                {
-                    HandleSpySelection(inputManager, mapManager, activePlayer, actionSystem);
-                    // Return null; if action completed, the event handler in GameplayState 
-                    // will switch the mode for the next frame.
-                    return null;
-                }
+                return HandleLeftClickInternal(inputManager, mapManager, activePlayer, actionSystem);
+            }
 
-                HandleTargetingClick(inputManager, mapManager, actionSystem);
-                // Return null; if action completed, event handler handles state switch.
+            return null;
+        }
+
+        private bool IsUIBlocking()
+        {
+            return _uiManager.IsMarketHovered || _uiManager.IsAssassinateHovered || _uiManager.IsReturnSpyHovered;
+        }
+
+        private IGameCommand HandleCancellation(IActionSystem actionSystem)
+        {
+            // Safety Log
+            string cardName = actionSystem.PendingCard != null ? actionSystem.PendingCard.Name : "Unknown";
+            GameLogger.Log($"Input: Cancelled Action for {cardName}. Card returned to hand.", LogChannel.Info);
+
+            actionSystem.CancelTargeting();
+            // We return this command to ensure immediate update, 
+            // though the event system could handle cancellation too if you wired OnActionCancelled.
+            return new SwitchToNormalModeCommand();
+        }
+
+        private IGameCommand HandleLeftClickInternal(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        {
+            if (actionSystem.CurrentState == ActionState.SelectingSpyToReturn)
+            {
+                HandleSpySelection(inputManager, mapManager, activePlayer, actionSystem);
+                // Return null; if action completed, the event handler in GameplayState 
+                // will switch the mode for the next frame.
                 return null;
             }
 
+            HandleTargetingClick(inputManager, mapManager, actionSystem);
+            // Return null; if action completed, event handler handles state switch.
             return null;
         }
 

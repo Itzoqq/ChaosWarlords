@@ -74,19 +74,31 @@ namespace ChaosWarlords.Source.States
         public void LoadContent()
         {
             if (_game == null) return;
-            var graphicsDevice = _game.GraphicsDevice;
-
+            
             GameLogger.Initialize();
 
+            InitializeInfrastructure();
+            InitializeView();
+            InitializeMatch();
+            InitializeSystems();
+        }
+
+        private void InitializeInfrastructure()
+        {
             _inputManagerBacking = new InputManager(_inputProvider);
+            var graphicsDevice = _game.GraphicsDevice;
             _uiManagerBacking = new UIManager(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
+        }
 
-            _view = new GameplayView(graphicsDevice);
+        private void InitializeView()
+        {
+            _view = new GameplayView(_game.GraphicsDevice);
             _view.LoadContent(_game.Content);
-
-            // 1. Initialize InteractionMapper
             _interactionMapper = new InteractionMapper(_view);
+        }
 
+        private void InitializeMatch()
+        {
             var builder = new MatchFactory(_cardDatabase);
             var worldData = builder.Build();
 
@@ -109,29 +121,29 @@ namespace ChaosWarlords.Source.States
                 }
             }
 
-            _matchContext.MapManager.CenterMap(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
+            _matchContext.MapManager.CenterMap(_game.GraphicsDevice.Viewport.Width, _game.GraphicsDevice.Viewport.Height);
 
             // Subscribe to Setup auto-advance
-            _matchContext.MapManager.OnSetupDeploymentComplete += () => 
-            {
-                if (_matchContext.CurrentPhase == MatchPhase.Setup)
-                {
-                    _matchManager.EndTurn();
-                }
-            };
+            _matchContext.MapManager.OnSetupDeploymentComplete += HandleSetupDeploymentComplete;
+        }
 
-            // 2. Initialize InputCoordinator
+        private void InitializeSystems()
+        {
             _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
-            
-            // 3. Initialize CardPlaySystem
             _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, () => SwitchToTargetingMode());
-
-            // 4. Initialize UIEventMediator
+            
             _uiEventMediator = new UIEventMediator(this, _uiManagerBacking, _matchContext.ActionSystem, _game as Game1);
             _uiEventMediator.Initialize();
 
-            // 5. Initialize PlayerController
             _playerController = new PlayerController(this, _inputManagerBacking, _inputCoordinator, _interactionMapper);
+        }
+
+        private void HandleSetupDeploymentComplete()
+        {
+            if (_matchContext.CurrentPhase == MatchPhase.Setup)
+            {
+                _matchManager.EndTurn();
+            }
         }
 
         public void UnloadContent()

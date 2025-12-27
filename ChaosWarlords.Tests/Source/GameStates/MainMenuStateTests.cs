@@ -46,9 +46,9 @@ namespace ChaosWarlords.Tests.GameStates
             var mockCardDb = Substitute.For<ICardDatabase>();
 
             // Capture the buttons added to the manager
-            SimpleButton startButton = null;
+            SimpleButton? startButton = null;
             mockButtonManager.When(x => x.AddButton(Arg.Any<SimpleButton>()))
-                             .Do(x => 
+                             .Do(x =>
                              {
                                  var btn = x.Arg<SimpleButton>();
                                  if (btn.Text == "Start Game") startButton = btn;
@@ -56,7 +56,7 @@ namespace ChaosWarlords.Tests.GameStates
 
             // Standard Constructor Injection
             var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, null, mockButtonManager);
-            state.LoadContent(); 
+            state.LoadContent();
 
             Assert.IsNotNull(startButton, "Start Button was not added");
 
@@ -76,10 +76,10 @@ namespace ChaosWarlords.Tests.GameStates
             var mockButtonManager = Substitute.For<IButtonManager>();
             var mockStateManager = Substitute.For<IStateManager>();
             var mockCardDb = Substitute.For<ICardDatabase>();
-            
-            SimpleButton exitButton = null;
+
+            SimpleButton? exitButton = null;
             mockButtonManager.When(x => x.AddButton(Arg.Any<SimpleButton>()))
-                             .Do(x => 
+                             .Do(x =>
                              {
                                  var btn = x.Arg<SimpleButton>();
                                  if (btn.Text == "Exit") exitButton = btn;
@@ -108,7 +108,7 @@ namespace ChaosWarlords.Tests.GameStates
             var mockCardDb = Substitute.For<ICardDatabase>();
 
             var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, null, mockButtonManager);
-            
+
             // Act
             state.Update(new GameTime());
 

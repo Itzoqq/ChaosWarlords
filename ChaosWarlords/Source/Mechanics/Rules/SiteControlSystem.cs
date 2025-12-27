@@ -69,18 +69,33 @@ namespace ChaosWarlords.Source.Systems
 
         private void HandleTotalControlChange(Site site, Player activePlayer, bool wasTotal, bool isTotal, PlayerColor owner)
         {
-            if (isTotal != wasTotal)
+            if (isTotal == wasTotal) return;
+
+            if (isTotal)
             {
-                // RULE: City Sites grant Immediate VP when you take TOTAL control
-                if (isTotal && activePlayer != null && owner == activePlayer.Color && site.IsCity)
-                {
-                    ApplyReward(activePlayer, site.TotalControlResource, site.TotalControlAmount);
-                    GameLogger.Log($"Total Control established in {site.Name}! (+{site.TotalControlAmount} {site.TotalControlResource})", LogChannel.Economy);
-                }
-                else if (!isTotal && wasTotal && activePlayer != null && activePlayer.Color == owner)
-                {
-                    GameLogger.Log($"Lost Total Control of {site.Name}.", LogChannel.Combat);
-                }
+                HandleTotalControlGain(site, activePlayer, owner);
+            }
+            else
+            {
+                HandleTotalControlLoss(site, activePlayer, owner);
+            }
+        }
+
+        private void HandleTotalControlGain(Site site, Player activePlayer, PlayerColor owner)
+        {
+            // RULE: City Sites grant Immediate VP when you take TOTAL control
+            if (activePlayer != null && owner == activePlayer.Color && site.IsCity)
+            {
+                ApplyReward(activePlayer, site.TotalControlResource, site.TotalControlAmount);
+                GameLogger.Log($"Total Control established in {site.Name}! (+{site.TotalControlAmount} {site.TotalControlResource})", LogChannel.Economy);
+            }
+        }
+
+        private void HandleTotalControlLoss(Site site, Player activePlayer, PlayerColor owner)
+        {
+            if (activePlayer != null && activePlayer.Color == owner)
+            {
+                GameLogger.Log($"Lost Total Control of {site.Name}.", LogChannel.Combat);
             }
         }
 

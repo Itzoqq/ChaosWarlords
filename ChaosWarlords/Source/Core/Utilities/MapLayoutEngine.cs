@@ -16,37 +16,25 @@ namespace ChaosWarlords.Source.Utilities
             var sites = new List<Site>();
             var routes = new List<Route>();
 
-            // 1. Generate Sites and their internal nodes
+            GenerateSites(config, nodes, sites);
+            GenerateRoutes(config, nodes, sites, routes);
+
+            return (nodes, sites, routes);
+        }
+
+        private void GenerateSites(MapGenerationConfig config, List<MapNode> nodes, List<Site> sites)
+        {
             foreach (var siteConfig in config.Sites)
             {
-                Site site;
-                if (siteConfig.IsCity)
-                {
-                    site = new CitySite(siteConfig.Name, siteConfig.ControlResource, siteConfig.ControlAmount, siteConfig.TotalControlResource, siteConfig.TotalControlAmount);
-                }
-                else if (siteConfig.IsStartingSite)
-                {
-                    site = new StartingSite(siteConfig.Name, siteConfig.ControlResource, siteConfig.ControlAmount, siteConfig.TotalControlResource, siteConfig.TotalControlAmount);
-                }
-                else
-                {
-                    site = new NonCitySite(siteConfig.Name, siteConfig.ControlResource, siteConfig.ControlAmount, siteConfig.TotalControlResource, siteConfig.TotalControlAmount);
-                }
+                // Create Site Object
+                Site site = CreateSiteFromConfig(siteConfig);
                 site.EndGameVictoryPoints = siteConfig.EndGameVP;
 
                 // Generate nodes for the site
                 var siteNodes = GenerateSiteNodes(siteConfig.Position, siteConfig.NodeCount, siteConfig.IsCity);
                 
                 // Interconnect all site nodes (Fully Connected Mesh)
-                // This ensures that being at one node in the site allows access/adjacency to all others.
-                for (int i = 0; i < siteNodes.Count; i++)
-                {
-                    for (int j = i + 1; j < siteNodes.Count; j++)
-                    {
-                        siteNodes[i].AddNeighbor(siteNodes[j]);
-                        siteNodes[j].AddNeighbor(siteNodes[i]);
-                    }
-                }
+                ConnectSiteNodes(siteNodes);
 
                 foreach (var node in siteNodes)
                 {
@@ -56,8 +44,38 @@ namespace ChaosWarlords.Source.Utilities
 
                 sites.Add(site);
             }
+        }
 
-            // 2. Generate Routes
+        private Site CreateSiteFromConfig(SiteConfig siteConfig)
+        {
+            if (siteConfig.IsCity)
+            {
+                return new CitySite(siteConfig.Name, siteConfig.ControlResource, siteConfig.ControlAmount, siteConfig.TotalControlResource, siteConfig.TotalControlAmount);
+            }
+            else if (siteConfig.IsStartingSite)
+            {
+                return new StartingSite(siteConfig.Name, siteConfig.ControlResource, siteConfig.ControlAmount, siteConfig.TotalControlResource, siteConfig.TotalControlAmount);
+            }
+            else
+            {
+                return new NonCitySite(siteConfig.Name, siteConfig.ControlResource, siteConfig.ControlAmount, siteConfig.TotalControlResource, siteConfig.TotalControlAmount);
+            }
+        }
+
+        private void ConnectSiteNodes(List<MapNode> siteNodes)
+        {
+            for (int i = 0; i < siteNodes.Count; i++)
+            {
+                for (int j = i + 1; j < siteNodes.Count; j++)
+                {
+                    siteNodes[i].AddNeighbor(siteNodes[j]);
+                    siteNodes[j].AddNeighbor(siteNodes[i]);
+                }
+            }
+        }
+
+        private void GenerateRoutes(MapGenerationConfig config, List<MapNode> nodes, List<Site> sites, List<Route> routes)
+        {
             foreach (var routeConfig in config.Routes)
             {
                 var fromSite = sites.FirstOrDefault(s => s.Name == routeConfig.FromSiteName);
@@ -74,41 +92,48 @@ namespace ChaosWarlords.Source.Utilities
                     {
                         var routeNodes = GenerateRouteNodes(connection.StartNode, connection.EndNode, routeConfig.NodeCount);
                         
-                        // Link start node to first route node
-                        if (routeNodes.Count > 0)
-                        {
-                            connection.StartNode.AddNeighbor(routeNodes[0]);
-                        }
-                        else
-                        {
-                            // Direct connection if no route nodes
-                            connection.StartNode.AddNeighbor(connection.EndNode);
-                        }
-
-                        // Link intermediate route nodes
-                        for (int i = 0; i < routeNodes.Count; i++)
-                        {
-                            nodes.Add(routeNodes[i]);
-                            route.AddNode(routeNodes[i]);
-
-                            if (i < routeNodes.Count - 1)
-                            {
-                                routeNodes[i].AddNeighbor(routeNodes[i + 1]);
-                            }
-                        }
-
-                        // Link last route node to end node
-                        if (routeNodes.Count > 0)
-                        {
-                            routeNodes[routeNodes.Count - 1].AddNeighbor(connection.EndNode);
-                        }
+                        ConnectRouteNodes(connection, routeNodes, nodes, route);
                     }
 
                     routes.Add(route);
                 }
             }
+        }
 
-            return (nodes, sites, routes);
+        private void ConnectRouteNodes(
+            (MapNode StartNode, MapNode EndNode) connection, 
+            List<MapNode> routeNodes, 
+            List<MapNode> allNodes, 
+            Route route)
+        {
+            // Link start node to first route node
+            if (routeNodes.Count > 0)
+            {
+                connection.StartNode.AddNeighbor(routeNodes[0]);
+            }
+            else
+            {
+                // Direct connection if no route nodes
+                connection.StartNode.AddNeighbor(connection.EndNode);
+            }
+
+            // Link intermediate route nodes
+            for (int i = 0; i < routeNodes.Count; i++)
+            {
+                allNodes.Add(routeNodes[i]);
+                route.AddNode(routeNodes[i]);
+
+                if (i < routeNodes.Count - 1)
+                {
+                    routeNodes[i].AddNeighbor(routeNodes[i + 1]);
+                }
+            }
+
+            // Link last route node to end node
+            if (routeNodes.Count > 0)
+            {
+                routeNodes[routeNodes.Count - 1].AddNeighbor(connection.EndNode);
+            }
         }
 
         private List<MapNode> GenerateSiteNodes(Vector2 center, int count, bool isCity)

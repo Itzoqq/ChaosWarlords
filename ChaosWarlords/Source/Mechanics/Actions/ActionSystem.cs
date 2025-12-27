@@ -255,36 +255,36 @@ namespace ChaosWarlords.Source.Systems
         {
             if (PendingSite == null) return;
 
-            // 1. Validation (Dry Run)
-            // Note: We use the newly added CanReturnSpecificSpy for safety
-            // but since MapManager is mocked in old tests without this method, we rely on ReturnSpecificSpy behaving transactionally or matching the test expectation.
-            // However, to fix the bug WE MUST CHECK BEFORE SPENDING.
+            // 1. Validation & Cost Check
+            if (!ValidateSpyReturn(CurrentPlayer))
+            {
+                // ValidateSpyReturn handles failure notification
+                return;
+            }
 
-            // To be safe with Mocks that might not have CanReturnSpecificSpy setup, we might need to rely on the logic flow or update tests.
-            // But since we are fixing the bug, let's assume we updated MapManager (we did).
+            // 2. Attempt Execution
+            ExecuteSpyReturn(PendingSite, selectedSpyColor);
+        }
 
-            // Wait, for Testing with NSubstitute, if we call a method that isn't setup, it returns default.
-            // We should use the mock's setup for ReturnSpecificSpy if possible, OR expect CanReturnSpecificSpy to be called.
-            // For now, let's implement the logic assuming the Manager works.
-
-            // 2. Cost Check
+        private bool ValidateSpyReturn(Player player)
+        {
+            // Cost Check
             if (PendingCard == null)
             {
-                if (CurrentPlayer.Power < RETURN_SPY_COST)
+                if (player.Power < RETURN_SPY_COST)
                 {
                     CancelTargeting();
                     OnActionFailed?.Invoke(this, "Not enough Power!");
-                    return;
+                    return false;
                 }
             }
+            return true;
+        }
 
-            // 3. Attempt Execution
-            // If we blindly spend power here, we risk the bug again if ReturnSpecificSpy fails.
-            // But if we trust CanReturnSpecificSpy, we can spend.
-            // MapManager.ReturnSpecificSpy performs validation too.
-
+        private void ExecuteSpyReturn(Site site, PlayerColor selectedSpyColor)
+        {
             // We only spend power IF the action succeeds.
-            bool success = _mapManager.ReturnSpecificSpy(PendingSite, CurrentPlayer, selectedSpyColor);
+            bool success = _mapManager.ReturnSpecificSpy(site, CurrentPlayer, selectedSpyColor);
 
             if (success)
             {
