@@ -9,20 +9,12 @@ namespace ChaosWarlords.Source.Rendering.UI
     [ExcludeFromCodeCoverage]
     public class ButtonManager : IButtonManager
     {
-        private readonly GraphicsDevice _graphicsDevice;
-        private readonly SpriteFont _font;
+        // Logic Only - No Rendering Dependencies
         private readonly List<SimpleButton> _buttons;
-        private Texture2D _pixelTexture;
 
-        public ButtonManager(GraphicsDevice graphicsDevice, SpriteFont font)
+        public ButtonManager()
         {
-            _graphicsDevice = graphicsDevice;
-            _font = font;
             _buttons = new List<SimpleButton>();
-            
-            // Create a 1x1 white texture for drawing primitives
-            _pixelTexture = new Texture2D(_graphicsDevice, 1, 1);
-            _pixelTexture.SetData(new[] { Color.White });
         }
 
         public void AddButton(SimpleButton button)
@@ -68,12 +60,9 @@ namespace ChaosWarlords.Source.Rendering.UI
             }
         }
 
-        public void Draw(SpriteBatch spriteBatch)
+        public IEnumerable<SimpleButton> GetButtons()
         {
-            foreach (var button in _buttons)
-            {
-                button.Draw(spriteBatch, _pixelTexture, _font);
-            }
+            return _buttons;
         }
 
         // Texture disposal should be handled if the manager is destroyed, but usually it lasts for the state.

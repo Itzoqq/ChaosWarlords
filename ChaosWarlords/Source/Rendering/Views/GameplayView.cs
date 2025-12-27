@@ -7,9 +7,10 @@ using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Views;
 using System.Diagnostics.CodeAnalysis;
 
-namespace ChaosWarlords.Source.Views
+namespace ChaosWarlords.Source.Rendering.Views
 {
     /// <summary>
     /// Handles the "Presentation" layer.

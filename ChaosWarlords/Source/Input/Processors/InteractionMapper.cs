@@ -1,6 +1,6 @@
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Entities;
-using ChaosWarlords.Source.Views;
+using ChaosWarlords.Source.Rendering.Views;
 using System.Linq;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Interfaces;

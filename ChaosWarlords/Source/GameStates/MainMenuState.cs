@@ -12,13 +12,15 @@ namespace ChaosWarlords.Source.States
     public class MainMenuState : IState
     {
         private Game1 _game;
-        private Texture2D _background;
-        private SpriteFont _font;
+        // Render fields delegated to View
+        // private Texture2D _background; // Unused
+        // private SpriteFont _font; // Unused
         
         // Dependencies
         private readonly IInputProvider _inputProvider;
         private readonly IStateManager _stateManager;
         private readonly ICardDatabase _cardDatabase;
+        private readonly IMainMenuView _view; // Can be null for Headless Server
         private IButtonManager _buttonManager;
 
         // Input state just for click detection
@@ -32,6 +34,7 @@ namespace ChaosWarlords.Source.States
             game.InputProvider, 
             game.StateManager, 
             game.CardDatabase, 
+            null,
             null) { }
 
         public MainMenuState(
@@ -39,55 +42,36 @@ namespace ChaosWarlords.Source.States
             IInputProvider inputProvider, 
             IStateManager stateManager,
             ICardDatabase cardDatabase,
+            IMainMenuView view = null,
             IButtonManager buttonManager = null)
         {
             _game = game;
             _inputProvider = inputProvider ?? throw new System.ArgumentNullException(nameof(inputProvider));
-            _stateManager = stateManager; // Can be null if game not fully init? No, should be required.
+            _stateManager = stateManager;
             _cardDatabase = cardDatabase;
+            _view = view;
             _buttonManager = buttonManager;
         }
 
         public void LoadContent()
         {
-            // Try to load background
-            try 
+             // Logic Setup
+            if (_buttonManager == null)
             {
-                _background = _game.Content.Load<Texture2D>("Textures/Backgrounds/MainMenuBG");
-            }
-            catch 
-            {
-                if (_game.GraphicsDevice != null)
-                {
-                    _background = new Texture2D(_game.GraphicsDevice, 1, 1);
-                    _background.SetData(new Color[] { Color.DarkSlateGray });
-                }
-                GameLogger.Log("MainMenuBG not found, using placeholder.", LogChannel.Warning);
-            }
-
-            // Load font
-            try
-            {
-                _font = _game.Content.Load<SpriteFont>("fonts/DefaultFont");
-            }
-            catch
-            {
-                // Fallback handled by ButtonManager not crashing if font is null? 
-                // We'll pass it anyway.
+               _buttonManager = new ButtonManager(); // Logic Only
             }
 
             SetupButtons();
+
+            // View Setup (Only if View exists - Client Side)
+            _view?.LoadContent();
         }
 
         private void SetupButtons()
         {
-            // Initialize ButtonManager if not injected
-            if (_buttonManager == null)
-            {
-                 _buttonManager = new ButtonManager(_game.GraphicsDevice, _font);
-            }
-
             // Safe viewport access for testing where GraphicsDevice might be null
+            // This logic should ideally be moved to the view or passed in, but for now, we keep it here
+            // to define button positions for the logical button manager.
             var viewport = (_game.GraphicsDevice != null) ? _game.GraphicsDevice.Viewport : new Viewport(0, 0, 800, 600);
             
             int buttonWidth = 200;
@@ -115,6 +99,7 @@ namespace ChaosWarlords.Source.States
         {
             // Clean up
              _buttonManager?.Clear();
+             _view?.UnloadContent();
         }
 
         public void Update(GameTime gameTime)
@@ -125,6 +110,7 @@ namespace ChaosWarlords.Source.States
             bool isClick = currentMouse.LeftButton == ButtonState.Released && _previousMouseState.LeftButton == ButtonState.Pressed;
 
             _buttonManager?.Update(mousePos, isClick);
+            _view?.Update(gameTime); // Allow view to update its own elements
 
             _previousMouseState = currentMouse;
         }
@@ -142,14 +128,10 @@ namespace ChaosWarlords.Source.States
 
         public void Draw(SpriteBatch spriteBatch)
         {
-            var viewport = _game.GraphicsDevice.Viewport;
-
-            if (_background != null)
-            {
-                spriteBatch.Draw(_background, new Rectangle(0, 0, viewport.Width, viewport.Height), Color.White);
-            }
-
-            _buttonManager?.Draw(spriteBatch);
+            // Delegate to the View
+            // If _view is null (Server/Headless), we simply don't draw.
+            // This decouples the State from the GraphicsDevice.
+            _view?.Draw(spriteBatch);
         }
     }
 }

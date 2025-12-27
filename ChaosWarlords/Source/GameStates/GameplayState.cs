@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Systems;
-using ChaosWarlords.Source.Views;
+using ChaosWarlords.Source.Rendering.Views;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.States.Input;
 using ChaosWarlords.Source.Interfaces;

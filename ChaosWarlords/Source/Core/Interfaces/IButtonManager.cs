@@ -8,7 +8,7 @@ namespace ChaosWarlords.Source.Core.Interfaces
     {
         void AddButton(SimpleButton button);
         void Update(Point mousePosition, bool isMouseClicked);
-        void Draw(SpriteBatch spriteBatch);
         void Clear();
+        System.Collections.Generic.IEnumerable<SimpleButton> GetButtons();
     }
 }

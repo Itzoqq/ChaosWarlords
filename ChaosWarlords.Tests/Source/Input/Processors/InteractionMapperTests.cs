@@ -1,7 +1,8 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Entities;
-using ChaosWarlords.Source.Views;
+using ChaosWarlords.Source.Rendering.Views;
+using ChaosWarlords.Source.Views; // For CardViewModel
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;

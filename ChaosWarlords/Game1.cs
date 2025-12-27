@@ -69,8 +69,24 @@ namespace ChaosWarlords
             // 3. Inject BOTH into GameplayState
             // This line is correct because GameplayState implements IGameplayState, 
             // which implements IState, and PushState expects IState.
-            // 3. Start with Main Menu
-            StateManager.PushState(new MainMenuState(this));
+            // 3. Start with Main Menu (MVC Wiring)
+            // Logic
+            var buttonManager = new ChaosWarlords.Source.Rendering.UI.ButtonManager();
+            
+            // View
+            var mainMenuView = new ChaosWarlords.Source.Rendering.Views.MainMenuView(GraphicsDevice, Content, buttonManager);
+
+            // State (Controller)
+            var mainMenuState = new MainMenuState(
+                this, 
+                InputProvider, 
+                StateManager, 
+                CardDatabase, 
+                mainMenuView, 
+                buttonManager
+            );
+
+            StateManager.PushState(mainMenuState);
         }
 
         protected override void Update(GameTime gameTime)

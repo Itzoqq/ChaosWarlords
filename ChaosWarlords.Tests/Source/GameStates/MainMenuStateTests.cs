@@ -29,7 +29,7 @@ namespace ChaosWarlords.Tests.GameStates
             var mockInput = Substitute.For<IInputProvider>();
 
             // Act
-            var state = new MainMenuState(mockGame, mockInput, Substitute.For<IStateManager>(), Substitute.For<ICardDatabase>());
+            var state = new MainMenuState(mockGame, mockInput, Substitute.For<IStateManager>(), Substitute.For<ICardDatabase>(), null, null);
 
             // Assert
             Assert.IsNotNull(state);
@@ -55,7 +55,7 @@ namespace ChaosWarlords.Tests.GameStates
                              });
 
             // Standard Constructor Injection
-            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, mockButtonManager);
+            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, null, mockButtonManager);
             state.LoadContent(); 
 
             Assert.IsNotNull(startButton, "Start Button was not added");
@@ -85,7 +85,7 @@ namespace ChaosWarlords.Tests.GameStates
                                  if (btn.Text == "Exit") exitButton = btn;
                              });
 
-            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, mockButtonManager);
+            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, null, mockButtonManager);
             state.LoadContent();
 
             Assert.IsNotNull(exitButton, "Exit Button was not added");
@@ -107,7 +107,7 @@ namespace ChaosWarlords.Tests.GameStates
             var mockStateManager = Substitute.For<IStateManager>();
             var mockCardDb = Substitute.For<ICardDatabase>();
 
-            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, mockButtonManager);
+            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, null, mockButtonManager);
             
             // Act
             state.Update(new GameTime());
