@@ -16,7 +16,7 @@ using ChaosWarlords.Source.Rendering.Views;
 
 namespace ChaosWarlords.Source.States
 {
-    public class MainMenuState : IState
+    public class MainMenuState : IState, IDrawableState
     {
         private Game1 _game;
 
@@ -75,9 +75,7 @@ namespace ChaosWarlords.Source.States
         private void SetupButtons()
         {
             // Safe viewport access for testing where GraphicsDevice might be null
-            // This logic should ideally be moved to the view or passed in, but for now, we keep it here
-            // to define button positions for the logical button manager.
-            var viewport = (_game.GraphicsDevice != null) ? _game.GraphicsDevice.Viewport : new Viewport(0, 0, 800, 600);
+            var viewport = (_game?.GraphicsDevice != null) ? _game.GraphicsDevice.Viewport : new Viewport(0, 0, 800, 600);
             
             int buttonWidth = 200;
             int buttonHeight = 50;
@@ -130,12 +128,17 @@ namespace ChaosWarlords.Source.States
 
             // Create View (if GraphicsDevice is available - Client Mode)
             IGameplayView gameplayView = null;
-            if (_game.GraphicsDevice != null)
+            int width = 1920;
+            int height = 1080;
+
+            if (_game?.GraphicsDevice != null)
             {
                 gameplayView = new GameplayView(_game.GraphicsDevice);
+                width = _game.GraphicsDevice.Viewport.Width;
+                height = _game.GraphicsDevice.Viewport.Height;
             }
 
-            _stateManager.ChangeState(new GameplayState(_game, _inputProvider, _cardDatabase, gameplayView));
+            _stateManager.ChangeState(new GameplayState(_game, _inputProvider, _cardDatabase, gameplayView, width, height));
         }
 
         public void Draw(SpriteBatch spriteBatch)

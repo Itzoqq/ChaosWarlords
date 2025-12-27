@@ -9,6 +9,7 @@ using ChaosWarlords.Source.States;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using NSubstitute;
+using ChaosWarlords.Source.Core.Interfaces.State;
 
 namespace ChaosWarlords.Tests.States
 {
@@ -72,7 +73,8 @@ namespace ChaosWarlords.Tests.States
         public void Draw_CallsDrawOnTopState()
         {
             // Arrange
-            var state = Substitute.For<IState>();
+            // We need a mock that implements BOTH IState and IDrawableState
+            var state = Substitute.For<IState, IDrawableState>();
             _manager.PushState(state);
             SpriteBatch? sb = null; // Can be null for this test as we just check the call
 
@@ -80,7 +82,7 @@ namespace ChaosWarlords.Tests.States
             _manager.Draw(sb!);
 
             // Assert
-            state.Received(1).Draw(sb!);
+            ((IDrawableState)state).Received(1).Draw(sb!);
         }
 
         [TestMethod]

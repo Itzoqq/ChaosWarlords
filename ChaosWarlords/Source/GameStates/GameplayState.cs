@@ -24,11 +24,13 @@ using System.Linq;
 
 namespace ChaosWarlords.Source.States
 {
-    public class GameplayState : IGameplayState
+    public class GameplayState : IGameplayState, IDrawableState
     {
         private readonly Game _game;
         private readonly IInputProvider _inputProvider;
         private readonly ICardDatabase _cardDatabase;
+        private readonly int _viewportWidth;
+        private readonly int _viewportHeight;
 
         internal IGameplayView _view;
         internal IMatchManager _matchManager;
@@ -73,17 +75,26 @@ namespace ChaosWarlords.Source.States
         public bool IsConfirmationPopupOpen => _uiEventMediator?.IsConfirmationPopupOpen ?? false;
         public bool IsPauseMenuOpen => _uiEventMediator?.IsPauseMenuOpen ?? false;
 
-        public GameplayState(Game game, IInputProvider inputProvider, ICardDatabase cardDatabase, IGameplayView view = null)
+        public GameplayState(Game game, IInputProvider inputProvider, ICardDatabase cardDatabase, IGameplayView view = null, int viewportWidth = 1920, int viewportHeight = 1080)
         {
             _game = game;
             _inputProvider = inputProvider;
             _cardDatabase = cardDatabase;
             _view = view;
+            _viewportWidth = viewportWidth;
+            _viewportHeight = viewportHeight;
         }
 
         public void LoadContent()
         {
-            if (_game == null) return;
+            // Game might be null in headless mode, but if we need to load content we might need a ContentProvider.
+            // For now, checks are strict:
+            if (_game == null && _view != null) 
+            {
+                 // If view exists but game is null, we can't load content.
+                 GameLogger.Log("GameplayState: Skipping view content load because Game is null (Headless mode?)");
+                 return;
+            }
             
             GameLogger.Initialize();
 
@@ -96,8 +107,8 @@ namespace ChaosWarlords.Source.States
         private void InitializeInfrastructure()
         {
             _inputManagerBacking = new InputManager(_inputProvider);
-            var graphicsDevice = _game.GraphicsDevice;
-            _uiManagerBacking = new UIManager(graphicsDevice.Viewport.Width, graphicsDevice.Viewport.Height);
+            // Replaced direct GraphicsDevice access with injected viewport properties
+            _uiManagerBacking = new UIManager(_viewportWidth, _viewportHeight);
         }
 
         private void InitializeView()
@@ -134,7 +145,7 @@ namespace ChaosWarlords.Source.States
                 }
             }
 
-            _matchContext.MapManager.CenterMap(_game.GraphicsDevice.Viewport.Width, _game.GraphicsDevice.Viewport.Height);
+            _matchContext.MapManager.CenterMap(_viewportWidth, _viewportHeight);
 
             // Subscribe to Setup auto-advance
             _matchContext.MapManager.OnSetupDeploymentComplete += HandleSetupDeploymentComplete;

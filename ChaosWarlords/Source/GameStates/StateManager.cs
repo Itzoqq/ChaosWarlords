@@ -59,8 +59,8 @@ namespace ChaosWarlords.Source.States
 
         public void Draw(SpriteBatch spriteBatch)
         {
-            if (_states.Count > 0)
-                _states.Peek().Draw(spriteBatch);
+            if (_states.Count > 0 && _states.Peek() is IDrawableState drawableState)
+                drawableState.Draw(spriteBatch);
         }
     }
 }
