@@ -9,7 +9,7 @@ using ChaosWarlords.Source.States;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using NSubstitute;
-using ChaosWarlords.Source.Core.Interfaces.State;
+
 
 namespace ChaosWarlords.Tests.States
 {

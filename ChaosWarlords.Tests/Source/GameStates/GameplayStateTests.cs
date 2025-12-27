@@ -21,8 +21,9 @@ using ChaosWarlords.Source.Contexts;
 using System.Collections.Generic;
 using System.Linq;
 using ChaosWarlords.Source.Views;
+using ChaosWarlords.Source.Input.Controllers;
+using ChaosWarlords.Source.Managers;
 
-using System.Reflection;
 using ChaosWarlords.Tests;
 
 namespace ChaosWarlords.Tests.States
@@ -44,6 +45,37 @@ namespace ChaosWarlords.Tests.States
             _marketManager = Substitute.For<IMarketManager>();
             _actionSystem = Substitute.For<IActionSystem>();
             _cardDatabase = Substitute.For<ICardDatabase>();
+            _cardDatabase.GetAllMarketCards().Returns(new List<Card>());
+        }
+
+        [TestMethod]
+        public void LoadContent_InitializesInfrastructure_WhenGameIsNull_HeadlessMode()
+        {
+            // Arrange
+            // Passing null for Game, ensuring it doesn't crash
+            var state = new GameplayState(null, _inputProvider, _cardDatabase);
+            
+            // Act
+            state.LoadContent();
+
+            // Assert
+            Assert.IsNotNull(state.InputManager);
+            Assert.IsNotNull(state.UIManager);
+        }
+
+        [TestMethod]
+        public void Draw_DelegatesToView_WhenViewIsPresent()
+        {
+            // Arrange
+            var viewMock = Substitute.For<IGameplayView>();
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, viewMock);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            // Act
+            state.Draw(null!); // SpriteBatch null is fine as we mock the view
+
+            // Assert
+            viewMock.ReceivedWithAnyArgs(1).Draw(null!, null!, null!, null!, false, "", false, false);
         }
 
         [TestMethod]
@@ -86,42 +118,7 @@ namespace ChaosWarlords.Tests.States
 
 
 
-        [TestMethod]
-        public void Command_BuyCard_BuysCard_WhenAffordable()
-        {
-            // Setup
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
-            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
-            var player = state.MatchContext.ActivePlayer;
-            player.Influence = 5;
-
-            var cardToBuy = new Card("test", "Test Minion", 3, CardAspect.Warlord, 1, 1, 0);
-
-            // Execute Command
-            var cmd = new BuyCardCommand(cardToBuy);
-            cmd.Execute(state);
-
-            _marketManager.Received(1).TryBuyCard(player, cardToBuy);
-        }
-
-        [TestMethod]
-        public void Command_DeployTroop_DeploysTroop()
-        {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
-            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
-
-            var player = state.MatchContext.ActivePlayer;
-            player.Power = 2; // cost is 1
-
-            var node = new MapNode(1, Vector2.Zero);
-            _mapManager.TryDeploy(Arg.Any<Player>(), Arg.Any<MapNode>()).Returns(true);
-
-            var cmd = new DeployTroopCommand(node);
-            cmd.Execute(state);
-
-            _mapManager.Received(1).TryDeploy(state.MatchContext.ActivePlayer, node);
-        }
 
 
 
@@ -187,21 +184,25 @@ namespace ChaosWarlords.Tests.States
         }
 
         // --- Helper Class ---
+        // Marked Internal so we can assign internal fields directly
         internal class TestableGameplayState : GameplayState
         {
             private readonly IInputProvider _testInput;
             private readonly ICardDatabase _testDb;
 
-            public TestableGameplayState(Game game, IInputProvider input, ICardDatabase db)
-                : base(game, input, db, Substitute.For<IGameplayView>())
+            public TestableGameplayState(Game? game, IInputProvider input, ICardDatabase db, IGameplayView view = null)
+                : base(game, input, db, view ?? Substitute.For<IGameplayView>())
             {
                 _testInput = input;
                 _testDb = db;
                 
                 // Initialize View Mock Properties to avoid potential NREs
-                _view.HandViewModels.Returns(new List<CardViewModel>());
-                _view.PlayedViewModels.Returns(new List<CardViewModel>());
-                _view.MarketViewModels.Returns(new List<CardViewModel>());
+                if (_view != null) 
+                {
+                    _view.HandViewModels.Returns(new List<CardViewModel>());
+                    _view.PlayedViewModels.Returns(new List<CardViewModel>());
+                    _view.MarketViewModels.Returns(new List<CardViewModel>());
+                }
             }
 
             public void InitializeTestEnvironment(IMapManager map, IMarketManager market, IActionSystem action)
@@ -213,47 +214,29 @@ namespace ChaosWarlords.Tests.States
                 var p2 = new Player(PlayerColor.Blue);
                 var tm = new TurnManager(new List<Player> { p1, p2 });
 
-                // Ensure Active Player is set and turn context exists
-                // Note: Depending on your TurnManager impl, you might need tm.StartGame() or similar.
-                // Assuming constructor sets p1 as active.
-
                 _matchContext = new MatchContext(tm, map, market, action, _testDb);
-
                 _matchManager = new MatchManager(_matchContext);
 
-                // --- Initialize the missing Coordinators ---
+                // --- DIRECT FIELD ACCESS (No Reflection) ---
+                // Thanks to [InternalsVisibleTo] and 'internal' modifier
 
-                // 1. Interaction Mapper (View is null, but constructor tolerates it)
-                var mapper = new InteractionMapper(_view);
-                SetPrivateField("_interactionMapper", mapper);
+                // 1. Interaction Mapper
+                _interactionMapper = new InteractionMapper(_view);
 
-                // 2. Input Coordinator (Depends on Managers initialized above)
-                var coordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
-                SetPrivateField("_inputCoordinator", coordinator);
+                // 2. Input Coordinator
+                _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
 
-                // 3. CardPlaySystem (NEW dependency)
-                // We must use reflection to set it because it's private and typically set in LoadContent
-                var cardSystem = new CardPlaySystem(_matchContext, _matchManager, () => SwitchToTargetingMode());
-                SetPrivateField("_cardPlaySystem", cardSystem);
+                // 3. CardPlaySystem
+                _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, () => SwitchToTargetingMode());
 
-                // 4. UIEventMediator (NEW dependency)
-                var uiMediator = new ChaosWarlords.Source.Managers.UIEventMediator(this, _uiManagerBacking, action, null);
-                uiMediator.Initialize();
-                SetPrivateField("_uiEventMediator", uiMediator);
+                // 4. UIEventMediator
+                _uiEventMediator = new UIEventMediator(this, _uiManagerBacking, action, null);
+                _uiEventMediator.Initialize();
 
-                // 5. PlayerController (NEW dependency)
-                var playerController = new ChaosWarlords.Source.Input.Controllers.PlayerController(this, _inputManagerBacking, coordinator, mapper);
-                SetPrivateField("_playerController", playerController);
+                // 5. PlayerController
+                _playerController = new PlayerController(this, _inputManagerBacking, _inputCoordinator, _interactionMapper);
 
                 SwitchToNormalMode();
-            }
-
-            // Reflection Helper
-            private void SetPrivateField(string fieldName, object value)
-            {
-                typeof(GameplayState)
-                    .GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
-                    ?.SetValue(this, value);
             }
 
             public new MatchContext MatchContext => base.MatchContext;

@@ -84,7 +84,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             if (isMarketOpen) UpdateVisualsHover(MarketViewModels, inputManager);
         }
 
-        public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, UIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen)
+        public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen)
         {
             // 1. Draw Map
             MapNode hoveredNode = context.MapManager.GetNodeAt(inputManager.MousePosition);

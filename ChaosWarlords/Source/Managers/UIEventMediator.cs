@@ -28,7 +28,7 @@ namespace ChaosWarlords.Source.Managers
         private readonly IGameplayState _gameState;
         private readonly IUIManager _uiManager;
         private readonly IActionSystem _actionSystem;
-        private readonly Game1 _game; // For main menu navigation
+        private readonly Game1? _game; // For main menu navigation
 
         // State
         private bool _isConfirmationPopupOpen = false;
@@ -41,7 +41,7 @@ namespace ChaosWarlords.Source.Managers
             IGameplayState gameState,
             IUIManager uiManager,
             IActionSystem actionSystem,
-            Game1 game)
+            Game1? game)
         {
             _gameState = gameState ?? throw new ArgumentNullException(nameof(gameState));
             _uiManager = uiManager ?? throw new ArgumentNullException(nameof(uiManager));

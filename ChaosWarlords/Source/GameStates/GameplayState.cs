@@ -26,7 +26,7 @@ namespace ChaosWarlords.Source.States
 {
     public class GameplayState : IGameplayState, IDrawableState
     {
-        private readonly Game _game;
+        private readonly Game? _game;
         private readonly IInputProvider _inputProvider;
         private readonly ICardDatabase _cardDatabase;
         private readonly int _viewportWidth;
@@ -40,11 +40,11 @@ namespace ChaosWarlords.Source.States
         internal bool _isMarketOpenBacking = false;
 
         // New Coordinators
-        private GameplayInputCoordinator _inputCoordinator;
-        private InteractionMapper _interactionMapper;
-        private CardPlaySystem _cardPlaySystem;
-        private PlayerController _playerController;
-        private UIEventMediator _uiEventMediator;
+        internal GameplayInputCoordinator _inputCoordinator;
+        internal InteractionMapper? _interactionMapper;
+        internal CardPlaySystem _cardPlaySystem;
+        internal PlayerController _playerController;
+        internal UIEventMediator _uiEventMediator;
 
         public IInputManager InputManager => _inputManagerBacking;
         public IUIManager UIManager => _uiManagerBacking;
@@ -75,7 +75,7 @@ namespace ChaosWarlords.Source.States
         public bool IsConfirmationPopupOpen => _uiEventMediator?.IsConfirmationPopupOpen ?? false;
         public bool IsPauseMenuOpen => _uiEventMediator?.IsPauseMenuOpen ?? false;
 
-        public GameplayState(Game game, IInputProvider inputProvider, ICardDatabase cardDatabase, IGameplayView view = null, int viewportWidth = 1920, int viewportHeight = 1080)
+        public GameplayState(Game? game, IInputProvider inputProvider, ICardDatabase cardDatabase, IGameplayView view = null, int viewportWidth = 1920, int viewportHeight = 1080)
         {
             _game = game;
             _inputProvider = inputProvider;
@@ -193,7 +193,7 @@ namespace ChaosWarlords.Source.States
 
         public void Draw(SpriteBatch spriteBatch)
         {
-            if (_game == null) return;
+            // if (_game == null) return; // Allow drawing via View even if Game is null (for tests/tools)
 
             string targetingText = "";
             if (_matchContext.ActionSystem.IsTargeting())
@@ -201,7 +201,7 @@ namespace ChaosWarlords.Source.States
                 targetingText = GetTargetingText(_matchContext.ActionSystem.CurrentState);
             }
 
-            _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, (UIManager)_uiManagerBacking, IsMarketOpen, targetingText, _uiEventMediator.IsConfirmationPopupOpen, _uiEventMediator.IsPauseMenuOpen);
+            _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, _uiManagerBacking, IsMarketOpen, targetingText, _uiEventMediator.IsConfirmationPopupOpen, _uiEventMediator.IsPauseMenuOpen);
 
             // Phase 0 UI Overlay
             if (_matchContext.CurrentPhase == MatchPhase.Setup)

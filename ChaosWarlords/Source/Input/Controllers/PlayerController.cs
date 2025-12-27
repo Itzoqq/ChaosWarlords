@@ -28,18 +28,18 @@ namespace ChaosWarlords.Source.Input.Controllers
         private readonly IGameplayState _gameState;
         private readonly IInputManager _inputManager;
         private readonly IGameplayInputCoordinator _inputCoordinator;
-        private readonly IInteractionMapper _interactionMapper;
+        private readonly IInteractionMapper? _interactionMapper;
 
         public PlayerController(
             IGameplayState gameState,
             IInputManager inputManager,
             IGameplayInputCoordinator inputCoordinator,
-            IInteractionMapper interactionMapper)
+            IInteractionMapper? interactionMapper)
         {
             _gameState = gameState ?? throw new ArgumentNullException(nameof(gameState));
             _inputManager = inputManager ?? throw new ArgumentNullException(nameof(inputManager));
             _inputCoordinator = inputCoordinator ?? throw new ArgumentNullException(nameof(inputCoordinator));
-            _interactionMapper = interactionMapper ?? throw new ArgumentNullException(nameof(interactionMapper));
+            _interactionMapper = interactionMapper;
         }
 
         /// <summary>
@@ -121,6 +121,8 @@ namespace ChaosWarlords.Source.Input.Controllers
 
             var site = _gameState.ActionSystem.PendingSite;
             if (site == null) return false;
+            
+            if (_interactionMapper == null) return false;
 
             PlayerColor? clickedSpy = _interactionMapper.GetClickedSpyReturnButton(
                 _inputManager.MousePosition.ToPoint(),
