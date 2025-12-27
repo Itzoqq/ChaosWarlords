@@ -6,6 +6,7 @@ using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Core.Interfaces;
 using ChaosWarlords.Source.Rendering.UI;
 using ChaosWarlords.Source.Interfaces;
+using ChaosWarlords.Source.Rendering.Views;
 
 namespace ChaosWarlords.Source.States
 {
@@ -121,7 +122,14 @@ namespace ChaosWarlords.Source.States
                 return;
             }
 
-            _stateManager.ChangeState(new GameplayState(_game, _inputProvider, _cardDatabase));
+            // Create View (if GraphicsDevice is available - Client Mode)
+            IGameplayView gameplayView = null;
+            if (_game.GraphicsDevice != null)
+            {
+                gameplayView = new GameplayView(_game.GraphicsDevice);
+            }
+
+            _stateManager.ChangeState(new GameplayState(_game, _inputProvider, _cardDatabase, gameplayView));
         }
 
         public void Draw(SpriteBatch spriteBatch)

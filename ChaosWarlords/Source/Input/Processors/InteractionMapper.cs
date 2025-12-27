@@ -1,6 +1,6 @@
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Entities;
-using ChaosWarlords.Source.Rendering.Views;
+using ChaosWarlords.Source.Interfaces;
 using System.Linq;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Interfaces;
@@ -13,9 +13,9 @@ namespace ChaosWarlords.Source.Systems
     /// </summary>
     public class InteractionMapper : IInteractionMapper
     {
-        private readonly GameplayView _view;
+        private readonly IGameplayView _view;
 
-        public InteractionMapper(GameplayView view)
+        public InteractionMapper(IGameplayView view)
         {
             _view = view;
         }

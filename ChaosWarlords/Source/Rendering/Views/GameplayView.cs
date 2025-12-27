@@ -8,6 +8,7 @@ using ChaosWarlords.Source.Entities;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Views;
+using ChaosWarlords.Source.Interfaces;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Rendering.Views
@@ -17,7 +18,7 @@ namespace ChaosWarlords.Source.Rendering.Views
     /// Responsible for rendering the game state, managing animations/view models, and UI layout.
     /// </summary>
     [ExcludeFromCodeCoverage]
-    public class GameplayView
+    public class GameplayView : IGameplayView
     {
         private readonly GraphicsDevice _graphicsDevice;
 
@@ -31,12 +32,12 @@ namespace ChaosWarlords.Source.Rendering.Views
         private UIRenderer _uiRenderer;
 
         // --- View Models ---
-        // CHANGED: Converted to Internal Properties so Tests can access them
-        internal List<CardViewModel> HandViewModels { get; private set; } = new List<CardViewModel>();
-        internal List<CardViewModel> PlayedViewModels { get; private set; } = new List<CardViewModel>();
+        // CHANGED: Public for Interface Implementation
+        public List<CardViewModel> HandViewModels { get; private set; } = new List<CardViewModel>();
+        public List<CardViewModel> PlayedViewModels { get; private set; } = new List<CardViewModel>();
 
         // Market is internal just in case, but kept as a backing property style
-        internal List<CardViewModel> MarketViewModels { get; private set; } = new List<CardViewModel>();
+        public List<CardViewModel> MarketViewModels { get; private set; } = new List<CardViewModel>();
 
         // --- Layout State ---
         public int HandY { get; private set; }

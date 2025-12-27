@@ -21,7 +21,7 @@ namespace ChaosWarlords.Source.States
         private readonly IInputProvider _inputProvider;
         private readonly ICardDatabase _cardDatabase;
 
-        internal GameplayView _view;
+        internal IGameplayView _view;
         internal IMatchManager _matchManager;
         internal MatchContext _matchContext;
         internal InputManager _inputManagerBacking;
@@ -64,11 +64,12 @@ namespace ChaosWarlords.Source.States
         public bool IsConfirmationPopupOpen => _uiEventMediator?.IsConfirmationPopupOpen ?? false;
         public bool IsPauseMenuOpen => _uiEventMediator?.IsPauseMenuOpen ?? false;
 
-        public GameplayState(Game game, IInputProvider inputProvider, ICardDatabase cardDatabase)
+        public GameplayState(Game game, IInputProvider inputProvider, ICardDatabase cardDatabase, IGameplayView view = null)
         {
             _game = game;
             _inputProvider = inputProvider;
             _cardDatabase = cardDatabase;
+            _view = view;
         }
 
         public void LoadContent()
@@ -92,9 +93,12 @@ namespace ChaosWarlords.Source.States
 
         private void InitializeView()
         {
-            _view = new GameplayView(_game.GraphicsDevice);
-            _view.LoadContent(_game.Content);
-            _interactionMapper = new InteractionMapper(_view);
+            if (_view != null)
+            {
+                 // Content loading is managed by State lifecycle
+                 if (_game != null) _view.LoadContent(_game.Content);
+                 _interactionMapper = new InteractionMapper(_view);
+            }
         }
 
         private void InitializeMatch()
