@@ -84,7 +84,8 @@ namespace ChaosWarlords.Source.Utilities
         AI,
         Error,
         Warning,
-        Info
+        Info,
+        Debug
     }
 }
 
