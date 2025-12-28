@@ -19,7 +19,7 @@ namespace ChaosWarlords.Source.Managers
         private readonly IGameplayState _gameState;
         private readonly IUIManager _uiManager;
         private readonly IActionSystem _actionSystem;
-        private readonly Game1 _game; // For main menu navigation
+        private readonly Game1? _game; // For main menu navigation
 
         // State
         private bool _isConfirmationPopupOpen = false;
@@ -32,7 +32,7 @@ namespace ChaosWarlords.Source.Managers
             IGameplayState gameState,
             IUIManager uiManager,
             IActionSystem actionSystem,
-            Game1 game)
+            Game1? game)
         {
             _gameState = gameState ?? throw new ArgumentNullException(nameof(gameState));
             _uiManager = uiManager ?? throw new ArgumentNullException(nameof(uiManager));
@@ -132,12 +132,12 @@ namespace ChaosWarlords.Source.Managers
 
         // --- Private Event Handlers ---
 
-        private void HandleMarketToggle(object sender, EventArgs e)
+        private void HandleMarketToggle(object? sender, EventArgs e)
         {
             _gameState.ToggleMarket();
         }
 
-        private void HandleAssassinateRequest(object sender, EventArgs e)
+        private void HandleAssassinateRequest(object? sender, EventArgs e)
         {
             _actionSystem.TryStartAssassinate();
             if (_actionSystem.IsTargeting())
@@ -146,7 +146,7 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
-        private void HandleReturnSpyRequest(object sender, EventArgs e)
+        private void HandleReturnSpyRequest(object? sender, EventArgs e)
         {
             _actionSystem.TryStartReturnSpy();
             if (_actionSystem.IsTargeting())
@@ -155,7 +155,7 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
-        private void HandleEndTurnRequest(object sender, EventArgs e)
+        private void HandleEndTurnRequest(object? sender, EventArgs e)
         {
             GameLogger.Log("Gameplay: EndTurn Request Received", LogChannel.Info);
             bool hasUnplayedCards = _gameState.MatchContext.ActivePlayer.Hand.Count > 0;
@@ -171,7 +171,7 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
-        private void HandlePopupConfirm(object sender, EventArgs e)
+        private void HandlePopupConfirm(object? sender, EventArgs e)
         {
             if (_isConfirmationPopupOpen)
             {
@@ -181,7 +181,7 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
-        private void HandlePopupCancel(object sender, EventArgs e)
+        private void HandlePopupCancel(object? sender, EventArgs e)
         {
             if (_isConfirmationPopupOpen)
             {
@@ -190,16 +190,17 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
-        private void HandleResumeRequest(object sender, EventArgs e)
+        private void HandleResumeRequest(object? sender, EventArgs e)
         {
             if (_isPauseMenuOpen) _isPauseMenuOpen = false;
         }
 
-        private void HandleMainMenuRequest(object sender, EventArgs e)
+        private void HandleMainMenuRequest(object? sender, EventArgs e)
         {
             if (_isPauseMenuOpen && _game != null)
             {
                 // Properly create MainMenuState with view and button manager
+                // This matches the initialization pattern in Game1.LoadContent()
                 // This matches the initialization pattern in Game1.LoadContent()
                 var buttonManager = new ChaosWarlords.Source.Rendering.UI.ButtonManager();
                 var mainMenuView = new ChaosWarlords.Source.Rendering.Views.MainMenuView(
@@ -219,7 +220,7 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
-        private void HandleExitRequest(object sender, EventArgs e)
+        private void HandleExitRequest(object? sender, EventArgs e)
         {
             if (_isPauseMenuOpen && _game != null)
             {
@@ -227,12 +228,12 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
-        private void HandleActionFailed(object sender, string msg)
+        private void HandleActionFailed(object? sender, string msg)
         {
             GameLogger.Log(msg, LogChannel.Error);
         }
 
-        private void HandleActionCompleted(object sender, EventArgs e)
+        private void HandleActionCompleted(object? sender, EventArgs e)
         {
             if (_actionSystem.PendingCard != null)
             {

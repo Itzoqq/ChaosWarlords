@@ -18,7 +18,7 @@ namespace ChaosWarlords.Source.States.Input
         private readonly IInputManager _inputManager;
         private readonly IUIManager _uiManager;
         private readonly IMarketManager _marketManager;
-        private readonly TurnManager _turnManager;
+
         private MatchContext _context;
 
         public MarketInputMode(IGameplayState state, IInputManager input, MatchContext context)
@@ -30,17 +30,16 @@ namespace ChaosWarlords.Source.States.Input
             _uiManager = state.UIManager;
 
             _marketManager = context.MarketManager;
-            _turnManager = context.TurnManager as TurnManager;
         }
 
-        public IGameCommand HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             if (!inputManager.IsLeftMouseJustClicked()) return null;
 
             if (_uiManager.IsMarketHovered) return null;
 
             // Get hovered card from View Model (via State)
-            Card cardToBuy = _state.GetHoveredMarketCard();
+            Card? cardToBuy = _state.GetHoveredMarketCard();
 
             if (cardToBuy != null)
             {

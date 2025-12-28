@@ -48,7 +48,7 @@ namespace ChaosWarlords.Source.Utilities
         {
             if (messageObj == null) return;
 
-            string message = messageObj.ToString();
+            string message = messageObj.ToString() ?? string.Empty;
             string timestamp = DateTime.Now.ToString("HH:mm:ss");
 
             lock (_lock)

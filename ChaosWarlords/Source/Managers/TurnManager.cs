@@ -13,7 +13,7 @@ namespace ChaosWarlords.Source.Managers
         private int _currentPlayerIndex = 0;
 
         // The distinct data object for the current turn
-        public TurnContext CurrentTurnContext { get; private set; }
+        public TurnContext CurrentTurnContext { get; private set; } = null!;
 
         // Convenience property
         public Player ActivePlayer => CurrentTurnContext?.ActivePlayer ?? Players[_currentPlayerIndex];
@@ -71,7 +71,7 @@ namespace ChaosWarlords.Source.Managers
             OnTurnChanged?.Invoke(this, nextPlayer);
         }
 
-        public event EventHandler<Player> OnTurnChanged;
+        public event EventHandler<Player>? OnTurnChanged;
 
         public void PlayCard(Card card)
         {

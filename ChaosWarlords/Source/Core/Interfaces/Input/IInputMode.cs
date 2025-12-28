@@ -9,7 +9,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Input
     /// </summary>
     public interface IInputMode
     {
-        IGameCommand HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem);
+        IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem);
     }
 }
 

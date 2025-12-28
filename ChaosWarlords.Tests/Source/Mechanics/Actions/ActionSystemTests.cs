@@ -111,7 +111,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.CanAssassinate(_node2, _player1).Returns(true);
 
             // Act
-            _actionSystem.HandleTargetClick(_node2, null);
+            _actionSystem.HandleTargetClick(_node2, null!);
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
@@ -127,7 +127,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.CanAssassinate(_node2, _player1).Returns(false);
 
             // Act
-            _actionSystem.HandleTargetClick(_node2, null);
+            _actionSystem.HandleTargetClick(_node2, null!);
 
             // Assert
             Assert.IsTrue(_eventFailedFired);
@@ -142,7 +142,7 @@ namespace ChaosWarlords.Tests.Systems
             _player1.SpiesInBarracks = 1;
 
             // Act
-            _actionSystem.HandleTargetClick(null, _siteA);
+            _actionSystem.HandleTargetClick(null!, _siteA);
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
@@ -158,7 +158,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.CanAssassinate(_node2, _player1).Returns(true);
 
             // Act
-            _actionSystem.HandleTargetClick(_node2, null);
+            _actionSystem.HandleTargetClick(_node2, null!);
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
@@ -174,7 +174,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.HasPresence(_node1, _player1.Color).Returns(true);
 
             // Act
-            _actionSystem.HandleTargetClick(_node1, null);
+            _actionSystem.HandleTargetClick(_node1, null!);
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
@@ -197,7 +197,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.ReturnSpecificSpy(_siteA, _player1, PlayerColor.Blue).Returns(true);
 
             // Act
-            _actionSystem.HandleTargetClick(null, _siteA);
+            _actionSystem.HandleTargetClick(null!, _siteA);
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
@@ -216,7 +216,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.GetEnemySpiesAtSite(_siteA, _player1).Returns(new List<PlayerColor> { PlayerColor.Blue, PlayerColor.Neutral });
 
             // Act
-            _actionSystem.HandleTargetClick(null, _siteA);
+            _actionSystem.HandleTargetClick(null!, _siteA);
 
             // Assert
             Assert.IsFalse(_eventCompletedFired, "Should wait for selection.");
@@ -235,7 +235,7 @@ namespace ChaosWarlords.Tests.Systems
 
             // Set up ambiguity to set PendingSite
             _mapManager.GetEnemySpiesAtSite(_siteA, _player1).Returns(new List<PlayerColor> { PlayerColor.Blue, PlayerColor.Neutral });
-            _actionSystem.HandleTargetClick(null, _siteA);
+            _actionSystem.HandleTargetClick(null!, _siteA);
 
             _mapManager.ReturnSpecificSpy(_siteA, _player1, PlayerColor.Neutral).Returns(true);
 
@@ -263,7 +263,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.CanAssassinate(_node2, _player1).Returns(true);
 
             // Act
-            _actionSystem.HandleTargetClick(_node2, null);
+            _actionSystem.HandleTargetClick(_node2, null!);
 
             // Assert
             Assert.IsFalse(_eventCompletedFired);
@@ -284,7 +284,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.ReturnSpecificSpy(Arg.Any<Site>(), Arg.Any<Player>(), Arg.Any<PlayerColor>()).Returns(false);
 
             // Act
-            _actionSystem.HandleTargetClick(null, _siteA);
+            _actionSystem.HandleTargetClick(null!, _siteA);
 
             // Assert
             Assert.IsFalse(_eventCompletedFired, "Action should not complete.");
@@ -303,7 +303,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.CanAssassinate(_node2, _player1).Returns(false);
 
             // Act
-            _actionSystem.HandleTargetClick(_node2, null);
+            _actionSystem.HandleTargetClick(_node2, null!);
 
             // Assert
             Assert.IsTrue(_eventFailedFired);
@@ -319,7 +319,7 @@ namespace ChaosWarlords.Tests.Systems
             _siteA.Spies.Add(_player1.Color); // Already have a spy here
 
             // Act
-            _actionSystem.HandleTargetClick(null, _siteA);
+            _actionSystem.HandleTargetClick(null!, _siteA);
 
             // Assert
             Assert.IsFalse(_eventCompletedFired);
@@ -334,7 +334,7 @@ namespace ChaosWarlords.Tests.Systems
             _player1.SpiesInBarracks = 0;
 
             // Act
-            _actionSystem.HandleTargetClick(null, _siteA);
+            _actionSystem.HandleTargetClick(null!, _siteA);
 
             // Assert
             Assert.IsFalse(_eventCompletedFired);
@@ -350,7 +350,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.CanAssassinate(_node2, _player1).Returns(true);
 
             // Act
-            _actionSystem.HandleTargetClick(_node2, null);
+            _actionSystem.HandleTargetClick(_node2, null!);
 
             // Assert
             Assert.IsFalse(_eventCompletedFired);
@@ -366,7 +366,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.HasPresence(_node1, _player1.Color).Returns(true);
 
             // Act
-            _actionSystem.HandleTargetClick(_node1, null);
+            _actionSystem.HandleTargetClick(_node1, null!);
 
             // Assert
             Assert.IsFalse(_eventCompletedFired);
@@ -391,7 +391,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.CanAssassinate(_node2, _player1).Returns(true);
 
             // Act
-            _actionSystem.HandleTargetClick(_node2, null);
+            _actionSystem.HandleTargetClick(_node2, null!);
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
@@ -412,7 +412,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.ReturnSpecificSpy(_siteA, _player1, PlayerColor.Blue).Returns(true);
 
             // Act
-            _actionSystem.HandleTargetClick(null, _siteA);
+            _actionSystem.HandleTargetClick(null!, _siteA);
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
@@ -431,7 +431,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.GetEnemySpiesAtSite(_siteA, _player1).Returns(new List<PlayerColor> { PlayerColor.Blue, PlayerColor.Neutral });
 
             // Initial Click
-            _actionSystem.HandleTargetClick(null, _siteA);
+            _actionSystem.HandleTargetClick(null!, _siteA);
             _player1.Power = 0; // Ensure no power needed for step 2
 
             _mapManager.ReturnSpecificSpy(_siteA, _player1, PlayerColor.Blue).Returns(true);
@@ -455,7 +455,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.CanAssassinate(_node2, _player1).Returns(true);
 
             // Act
-            _actionSystem.HandleTargetClick(_node2, null);
+            _actionSystem.HandleTargetClick(_node2, null!);
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
@@ -477,7 +477,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.CanMoveSource(_node1, _player1).Returns(true);
 
             // Act
-            _actionSystem.HandleTargetClick(_node1, null);
+            _actionSystem.HandleTargetClick(_node1, null!);
 
             // Assert
             Assert.AreEqual(ActionState.TargetingMoveDestination, _actionSystem.CurrentState, "Should transition to Step 2");
@@ -493,7 +493,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.CanMoveSource(_node1, _player1).Returns(false); // Invalid
 
             // Act
-            _actionSystem.HandleTargetClick(_node1, null);
+            _actionSystem.HandleTargetClick(_node1, null!);
 
             // Assert
             Assert.IsTrue(_eventFailedFired, "Should fire failure event");
@@ -509,13 +509,13 @@ namespace ChaosWarlords.Tests.Systems
 
             // Perform Step 1 manually to set internal state
             _mapManager.CanMoveSource(_node1, _player1).Returns(true);
-            _actionSystem.HandleTargetClick(_node1, null);
+            _actionSystem.HandleTargetClick(_node1, null!);
 
             // Mock Step 2 checks
             _mapManager.CanMoveDestination(_node2).Returns(true);
 
             // Act: Step 2 (Select Destination)
-            _actionSystem.HandleTargetClick(_node2, null);
+            _actionSystem.HandleTargetClick(_node2, null!);
 
             // Assert
             Assert.IsTrue(_eventCompletedFired, "Action should complete");
@@ -529,13 +529,13 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange: Manually advance to Step 2
             _actionSystem.StartTargeting(ActionState.TargetingMoveSource);
             _mapManager.CanMoveSource(_node1, _player1).Returns(true);
-            _actionSystem.HandleTargetClick(_node1, null);
+            _actionSystem.HandleTargetClick(_node1, null!);
 
             // Mock Step 2 check (Target is occupied)
             _mapManager.CanMoveDestination(_node2).Returns(false);
 
             // Act
-            _actionSystem.HandleTargetClick(_node2, null);
+            _actionSystem.HandleTargetClick(_node2, null!);
 
             // Assert
             Assert.IsTrue(_eventFailedFired);

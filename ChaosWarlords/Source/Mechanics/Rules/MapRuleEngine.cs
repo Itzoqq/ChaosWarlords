@@ -21,10 +21,10 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             _nodeSiteLookup = lookup;
         }
 
-        public Site GetSiteForNode(MapNode node)
+        public Site? GetSiteForNode(MapNode node)
         {
             if (node == null) return null;
-            _nodeSiteLookup.TryGetValue(node, out Site site);
+            _nodeSiteLookup.TryGetValue(node, out var site);
             return site;
         }
 
@@ -38,18 +38,18 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
             if (targetNode.Occupant == player) return true;
 
-            Site parentSite = GetSiteForNode(targetNode);
+            Site? parentSite = GetSiteForNode(targetNode);
             if (HasSpyPresence(parentSite, player)) return true;
 
             return IsAdjacentToFriendly(targetNode, parentSite, player);
         }
 
-        private bool HasSpyPresence(Site site, PlayerColor player)
+        private bool HasSpyPresence(Site? site, PlayerColor player)
         {
             return site != null && site.Spies.Contains(player);
         }
 
-        private bool IsAdjacentToFriendly(MapNode targetNode, Site parentSite, PlayerColor player)
+        private bool IsAdjacentToFriendly(MapNode targetNode, Site? parentSite, PlayerColor player)
         {
             IEnumerable<MapNode> boundaryNodes = parentSite != null
                 ? parentSite.NodesInternal
@@ -66,7 +66,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         private bool IsSourceOfPresence(MapNode neighbor, PlayerColor player)
         {
             if (neighbor.Occupant == player) return true;
-            Site neighborSite = GetSiteForNode(neighbor);
+            Site? neighborSite = GetSiteForNode(neighbor);
             return neighborSite != null && neighborSite.HasTroop(player);
         }
 

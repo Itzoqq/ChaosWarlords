@@ -19,10 +19,10 @@ namespace ChaosWarlords.Source.States.Input
         private readonly IInputManager _inputManager;
         private readonly IUIManager _uiManager;
         private readonly IMapManager _mapManager;
-        private readonly TurnManager _turnManager;
+        private readonly ITurnManager _turnManager;
         private readonly IActionSystem _actionSystem;
 
-        public TargetingInputMode(IGameplayState state, IInputManager inputManager, IUIManager uiManager, IMapManager mapManager, TurnManager turnManager, IActionSystem actionSystem)
+        public TargetingInputMode(IGameplayState state, IInputManager inputManager, IUIManager uiManager, IMapManager mapManager, ITurnManager turnManager, IActionSystem actionSystem)
         {
             _state = state;
             _inputManager = inputManager;
@@ -32,7 +32,7 @@ namespace ChaosWarlords.Source.States.Input
             _actionSystem = actionSystem;
         }
 
-        public IGameCommand HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             // 1. SAFETY: State Desync Protection
             if (actionSystem.CurrentState == ActionState.Normal)
@@ -78,7 +78,7 @@ namespace ChaosWarlords.Source.States.Input
             return new SwitchToNormalModeCommand();
         }
 
-        private IGameCommand HandleLeftClickInternal(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        private IGameCommand? HandleLeftClickInternal(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             if (actionSystem.CurrentState == ActionState.SelectingSpyToReturn)
             {
@@ -95,7 +95,7 @@ namespace ChaosWarlords.Source.States.Input
 
         private void HandleSpySelection(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
-            Site site = actionSystem.PendingSite;
+            Site? site = actionSystem.PendingSite;
             if (site == null)
             {
                 actionSystem.CancelTargeting();
@@ -124,8 +124,8 @@ namespace ChaosWarlords.Source.States.Input
         private void HandleTargetingClick(IInputManager inputManager, IMapManager mapManager, IActionSystem actionSystem)
         {
             Vector2 mousePos = inputManager.MousePosition;
-            MapNode targetNode = mapManager.GetNodeAt(mousePos);
-            Site targetSite = mapManager.GetSiteAt(mousePos);
+            MapNode? targetNode = mapManager.GetNodeAt(mousePos);
+            Site? targetSite = mapManager.GetSiteAt(mousePos);
 
             if (targetNode == null && targetSite == null)
             {

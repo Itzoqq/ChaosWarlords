@@ -49,7 +49,7 @@ namespace ChaosWarlords.Source.Entities.Cards
         /// <summary>
         /// List of special effects triggered when the card is played.
         /// </summary>
-        public List<CardEffect> Effects { get; private set; } = new List<CardEffect>();
+        public List<CardEffect> Effects { get; private set; } = [];
 
         /// <summary>
         /// User-visible description of what the card does.

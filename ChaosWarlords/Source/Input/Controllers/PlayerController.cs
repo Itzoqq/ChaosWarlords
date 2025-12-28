@@ -16,13 +16,13 @@ namespace ChaosWarlords.Source.Input.Controllers
         private readonly IGameplayState _gameState;
         private readonly IInputManager _inputManager;
         private readonly IGameplayInputCoordinator _inputCoordinator;
-        private readonly IInteractionMapper _interactionMapper;
+        private readonly IInteractionMapper? _interactionMapper;
 
         public PlayerController(
             IGameplayState gameState,
             IInputManager inputManager,
             IGameplayInputCoordinator inputCoordinator,
-            IInteractionMapper interactionMapper)
+            IInteractionMapper? interactionMapper)
         {
             _gameState = gameState ?? throw new ArgumentNullException(nameof(gameState));
             _inputManager = inputManager ?? throw new ArgumentNullException(nameof(inputManager));

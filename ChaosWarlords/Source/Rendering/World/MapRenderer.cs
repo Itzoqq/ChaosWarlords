@@ -37,7 +37,7 @@ namespace ChaosWarlords.Source.Views
             _font = font;
         }
 
-        public void Draw(SpriteBatch spriteBatch, IMapManager map, MapNode hoveredNode, Site hoveredSite)
+        public void Draw(SpriteBatch spriteBatch, IMapManager map, MapNode? hoveredNode, Site? hoveredSite)
         {
             DrawRoutes(spriteBatch, map);
             DrawSites(spriteBatch, map);
@@ -85,7 +85,7 @@ namespace ChaosWarlords.Source.Views
         private void DrawSiteText(SpriteBatch spriteBatch, Site site)
         {
             // 1. Get or Create Cache Entry
-            if (!_siteCache.TryGetValue(site, out SiteVisualData cache))
+            if (!_siteCache.TryGetValue(site, out var cache))
             {
                 cache = new SiteVisualData();
                 _siteCache[site] = cache;
@@ -161,7 +161,7 @@ namespace ChaosWarlords.Source.Views
             }
         }
 
-        private void DrawNodes(SpriteBatch spriteBatch, IReadOnlyList<MapNode> nodes, MapNode hoveredNode)
+        private void DrawNodes(SpriteBatch spriteBatch, IReadOnlyList<MapNode> nodes, MapNode? hoveredNode)
         {
             foreach (var node in nodes)
             {
@@ -219,8 +219,8 @@ namespace ChaosWarlords.Source.Views
 
         private void DrawSingleRoute(SpriteBatch spriteBatch, IMapManager map, MapNode node, MapNode neighbor)
         {
-            Site startSite = map.GetSiteForNode(node);
-            Site endSite = map.GetSiteForNode(neighbor);
+            Site? startSite = map.GetSiteForNode(node);
+            Site? endSite = map.GetSiteForNode(neighbor);
 
             if (startSite != null && startSite == endSite) return;
 

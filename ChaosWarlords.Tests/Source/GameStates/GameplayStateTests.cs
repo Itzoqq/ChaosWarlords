@@ -45,7 +45,7 @@ namespace ChaosWarlords.Tests.States
         {
             // Arrange
             // Passing null for Game, ensuring it doesn't crash
-            var state = new GameplayState(null, _inputProvider, _cardDatabase);
+            var state = new GameplayState(null!, _inputProvider, _cardDatabase);
 
             // Act
             state.LoadContent();
@@ -215,7 +215,7 @@ namespace ChaosWarlords.Tests.States
                 // Thanks to [InternalsVisibleTo] and 'internal' modifier
 
                 // 1. Interaction Mapper
-                _interactionMapper = new InteractionMapper(_view);
+                _interactionMapper = new InteractionMapper(_view!);
 
                 // 2. Input Coordinator
                 _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
@@ -224,7 +224,7 @@ namespace ChaosWarlords.Tests.States
                 _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, () => SwitchToTargetingMode());
 
                 // 4. UIEventMediator
-                _uiEventMediator = new UIEventMediator(this, _uiManagerBacking, action, null);
+                _uiEventMediator = new UIEventMediator(this, _uiManagerBacking, action, null!);
                 _uiEventMediator.Initialize();
 
                 // 5. PlayerController
@@ -383,7 +383,7 @@ namespace ChaosWarlords.Tests.States
 
             state.SwitchToPromoteMode(1);
 
-            _actionSystem.Received(1).StartTargeting(ActionState.SelectingCardToPromote, null);
+            _actionSystem.Received(1).StartTargeting(ActionState.SelectingCardToPromote, null!);
         }
 
         [TestMethod]

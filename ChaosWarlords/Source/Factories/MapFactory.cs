@@ -9,13 +9,13 @@ using System.Diagnostics.CodeAnalysis;
 namespace ChaosWarlords.Source.Utilities
 {
     [ExcludeFromCodeCoverage]
-    public class MapData { public List<NodeData> Nodes { get; set; } public List<RouteData> Routes { get; set; } public List<SiteData> Sites { get; set; } }
+    public class MapData { public required List<NodeData> Nodes { get; set; } public required List<RouteData> Routes { get; set; } public required List<SiteData> Sites { get; set; } }
     [ExcludeFromCodeCoverage]
-    public class NodeData { public int Id { get; set; } public int X { get; set; } public int Y { get; set; } public string Occupant { get; set; } }
+    public class NodeData { public int Id { get; set; } public int X { get; set; } public int Y { get; set; } public string? Occupant { get; set; } }
     [ExcludeFromCodeCoverage]
     public class RouteData { public int From { get; set; } public int To { get; set; } }
     [ExcludeFromCodeCoverage]
-    public class SiteData { public string Name { get; set; } public bool IsCity { get; set; } public bool IsStartingSite { get; set; } public List<int> NodeIds { get; set; } public string ControlResource { get; set; } public int ControlAmount { get; set; } public string TotalControlResource { get; set; } public int TotalControlAmount { get; set; } }
+    public class SiteData { public required string Name { get; set; } public bool IsCity { get; set; } public bool IsStartingSite { get; set; } public required List<int> NodeIds { get; set; } public required string ControlResource { get; set; } public int ControlAmount { get; set; } public required string TotalControlResource { get; set; } public int TotalControlAmount { get; set; } }
 
     public static class MapFactory
     {
@@ -39,6 +39,7 @@ namespace ChaosWarlords.Source.Utilities
         {
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var data = JsonSerializer.Deserialize<MapData>(json, options);
+            if (data == null) throw new InvalidDataException("Failed to deserialize map data.");
 
             var nodes = CreateNodes(data.Nodes);
             CreateRoutes(data.Routes, nodes);
@@ -54,7 +55,7 @@ namespace ChaosWarlords.Source.Utilities
             // ... actually CreateRoutes logic above (lines 87-96) constructs adjacency but doesn't build Route objects. 
             // Given this is legacy JSON loading vs New Procedural Generation, we should align them.
             // For now, return null for routes is acceptable for legacy loader if nothing consumes it yet. 
-            return (nodes, sites, null);
+            return (nodes, sites, new List<Route>());
         }
 
         public static (List<MapNode>, List<Site>, List<Route>) LoadFromStream(Stream stream)

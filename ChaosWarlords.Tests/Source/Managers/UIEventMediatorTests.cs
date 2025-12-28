@@ -59,7 +59,7 @@ namespace ChaosWarlords.Tests.Managers
             var turnContext = new TurnContext(player);
             mockTurn.CurrentTurnContext.Returns(turnContext);
 
-            _mediator = new UIEventMediator(_mockGameState, _mockUIManager, _mockActionSystem, null);
+            _mediator = new UIEventMediator(_mockGameState, _mockUIManager, _mockActionSystem, null!);
         }
 
         [TestMethod]

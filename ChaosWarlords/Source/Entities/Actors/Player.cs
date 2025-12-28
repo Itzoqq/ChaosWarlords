@@ -79,14 +79,14 @@ namespace ChaosWarlords.Source.Entities.Actors
         // --- Card Piles ---
 
         // Encapsulated Deck Manager
-        private readonly Deck _deckManager = new Deck();
+        private readonly Deck _deckManager = new();
 
         // Standard Collections
-        internal List<Card> Hand { get; private set; } = new List<Card>();
-        internal List<Card> PlayedCards { get; private set; } = new List<Card>();
+        internal List<Card> Hand { get; private set; } = [];
+        internal List<Card> PlayedCards { get; private set; } = [];
 
         // Distinct list for Promoted cards
-        internal List<Card> InnerCircle { get; private set; } = new List<Card>();
+        internal List<Card> InnerCircle { get; private set; } = [];
 
         // Expose via read-only lists
         /// <summary>

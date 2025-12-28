@@ -26,7 +26,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.State
         /// <summary>
         /// Gets the current active state.
         /// </summary>
-        IState GetCurrentState();
+        IState? GetCurrentState();
 
         /// <summary>
         /// Updates the current state.

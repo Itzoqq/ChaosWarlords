@@ -26,7 +26,7 @@ namespace ChaosWarlords.Source.States.Input
             GameLogger.Log($"Select {_cardsLeftToPromote} card(s) from your PLAYED pile to Promote.", LogChannel.General);
         }
 
-        public IGameCommand HandleInput(IInputManager input, IMarketManager market, IMapManager map, Player activePlayer, IActionSystem actionSystem)
+        public IGameCommand? HandleInput(IInputManager input, IMarketManager market, IMapManager map, Player activePlayer, IActionSystem actionSystem)
         {
             if (input.IsRightMouseJustClicked() || input.IsKeyJustPressed(Keys.Escape))
             {
@@ -37,7 +37,7 @@ namespace ChaosWarlords.Source.States.Input
 
             if (input.IsLeftMouseJustClicked())
             {
-                Card targetCard = _gameplayState.GetHoveredPlayedCard();
+                Card? targetCard = _gameplayState.GetHoveredPlayedCard();
 
                 if (targetCard != null)
                 {

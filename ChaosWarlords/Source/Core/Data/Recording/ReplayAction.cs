@@ -14,11 +14,11 @@ namespace ChaosWarlords.Source.Core.Data.Recording
         /// <summary>
         /// The fully qualified type name of the Command.
         /// </summary>
-        public string CommandType { get; set; }
+        public required string CommandType { get; set; }
         
         /// <summary>
         /// JSON serialized serialization of the command DTO/Fields.
         /// </summary>
-        public string CommandJson { get; set; }
+        public required string CommandJson { get; set; }
     }
 }

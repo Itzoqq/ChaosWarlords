@@ -17,10 +17,10 @@ namespace ChaosWarlords.Source.States.Input
         private readonly IInputManager _inputManager;
         private readonly IUIManager _uiManager;
         private readonly IMapManager _mapManager;
-        private readonly TurnManager _turnManager;
+        private readonly ITurnManager _turnManager;
         private readonly IActionSystem _actionSystem;
 
-        public NormalPlayInputMode(IGameplayState state, IInputManager inputManager, IUIManager uiManager, IMapManager mapManager, TurnManager turnManager, IActionSystem actionSystem)
+        public NormalPlayInputMode(IGameplayState state, IInputManager inputManager, IUIManager uiManager, IMapManager mapManager, ITurnManager turnManager, IActionSystem actionSystem)
         {
             _state = state;
             _inputManager = inputManager;
@@ -30,12 +30,12 @@ namespace ChaosWarlords.Source.States.Input
             _actionSystem = actionSystem;
         }
 
-        public IGameCommand HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             if (inputManager.IsLeftMouseJustClicked())
             {
                 // 1. Check Card Click
-                Card clickedCard = _state.GetHoveredHandCard();
+                Card? clickedCard = _state.GetHoveredHandCard();
                 if (clickedCard != null)
                 {
                     return new PlayCardCommand(clickedCard);

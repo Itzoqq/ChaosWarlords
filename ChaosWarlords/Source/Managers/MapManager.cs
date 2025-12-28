@@ -28,16 +28,16 @@ namespace ChaosWarlords.Source.Managers
         private readonly CombatResolver _combat;
         private readonly SpyOperations _spyOps;
         private readonly MapRewardSystem _rewards;
-        private IPlayerStateManager _playerStateManager;
+        private IPlayerStateManager? _playerStateManager;
 
         // Events
-        public event System.Action OnSetupDeploymentComplete;
+        public event System.Action? OnSetupDeploymentComplete;
 
         // Interface Implementation
         IReadOnlyList<MapNode> IMapManager.Nodes => NodesInternal;
         IReadOnlyList<Site> IMapManager.Sites => SitesInternal;
 
-        public MapManager(List<MapNode> nodes, List<Site> sites, IPlayerStateManager playerState = null)
+        public MapManager(List<MapNode> nodes, List<Site> sites, IPlayerStateManager playerState = null!)
         {
             NodesInternal = nodes;
             SitesInternal = sites;
@@ -64,12 +64,12 @@ namespace ChaosWarlords.Source.Managers
             _topology = new MapTopology(NodesInternal, SitesInternal);
             _rewards = new MapRewardSystem(_controlSystem);
             _combat = new CombatResolver(
-                node => GetSiteForNode(node),
+                node => GetSiteForNode(node)!,
                 (site, player) => RecalculateSiteState(site, player),
                 () => CurrentPhase,
-                _playerStateManager
+                _playerStateManager!
             );
-            _spyOps = new SpyOperations((site, player) => RecalculateSiteState(site, player), _playerStateManager);
+            _spyOps = new SpyOperations((site, player) => RecalculateSiteState(site, player), _playerStateManager!);
         }
 
         public void SetPlayerStateManager(IPlayerStateManager stateManager)
@@ -96,8 +96,7 @@ namespace ChaosWarlords.Source.Managers
         public bool HasValidPlaceSpyTarget(Player activePlayer) => _ruleEngine.HasValidPlaceSpyTarget(activePlayer);
         public bool HasValidMoveSource(Player activePlayer) => _ruleEngine.HasValidMoveSource(activePlayer);
 
-        public Site GetSiteForNode(MapNode node) => _ruleEngine.GetSiteForNode(node);
-
+        public Site? GetSiteForNode(MapNode node) => _ruleEngine.GetSiteForNode(node);
         public void RecalculateSiteState(Site site, Player activePlayer) => _rewards.RecalculateSiteState(site, activePlayer);
         public void DistributeStartOfTurnRewards(Player activePlayer) => _rewards.DistributeStartOfTurnRewards(SitesInternal, activePlayer);
 
@@ -110,8 +109,8 @@ namespace ChaosWarlords.Source.Managers
 
         public void CenterMap(int screenWidth, int screenHeight) => _topology.CenterMap(screenWidth, screenHeight);
         public void ApplyOffset(Vector2 offset) => _topology.ApplyOffset(offset);
-        public MapNode GetNodeAt(Vector2 position) => _topology.GetNodeAt(position);
-        public Site GetSiteAt(Vector2 position) => _topology.GetSiteAt(position);
+        public MapNode? GetNodeAt(Vector2 position) => _topology.GetNodeAt(position);
+        public Site? GetSiteAt(Vector2 position) => _topology.GetSiteAt(position);
         public List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer) => _spyOps.GetEnemySpiesAtSite(site, activePlayer);
 
         // -------------------------------------------------------------------------

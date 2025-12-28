@@ -23,17 +23,17 @@ namespace ChaosWarlords.Source.Input
             _view = view;
         }
 
-        public Card GetHoveredHandCard()
+        public Card? GetHoveredHandCard()
         {
             return _view.HandViewModels.FirstOrDefault(vm => vm.IsHovered)?.Model;
         }
 
-        public Card GetHoveredMarketCard()
+        public Card? GetHoveredMarketCard()
         {
             return _view.MarketViewModels.FirstOrDefault(vm => vm.IsHovered)?.Model;
         }
 
-        public Card GetHoveredPlayedCard(InputManager input)
+        public Card? GetHoveredPlayedCard(InputManager input)
         {
             // We ask the ViewModels directly instead of recalculating rectangles
             return _view.PlayedViewModels.FirstOrDefault(vm => vm.Bounds.Contains(input.MousePosition))?.Model;

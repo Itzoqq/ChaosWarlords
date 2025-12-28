@@ -18,10 +18,10 @@ namespace ChaosWarlords
     public class Game1 : Game
     {
         private GraphicsDeviceManager _graphics;
-        private SpriteBatch _spriteBatch;
-        public IStateManager StateManager { get; private set; }
-        public IInputProvider InputProvider { get; private set; }
-        public ICardDatabase CardDatabase { get; private set; }
+        private SpriteBatch _spriteBatch = null!;
+        public IStateManager StateManager { get; private set; } = null!;
+        public IInputProvider InputProvider { get; private set; } = null!;
+        public ICardDatabase CardDatabase { get; private set; } = null!;
 
         public Game1()
         {

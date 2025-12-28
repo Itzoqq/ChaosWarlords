@@ -61,7 +61,7 @@ namespace ChaosWarlords.Tests.Systems
             _system.PlayCard(card);
 
             // Verify: No targeting started
-            _actionSystem.DidNotReceiveWithAnyArgs().StartTargeting(default, default);
+            _actionSystem.DidNotReceiveWithAnyArgs().StartTargeting(default!, default!);
             _targetingCallback.DidNotReceive().Invoke();
 
             // Verify: Card played
@@ -97,7 +97,7 @@ namespace ChaosWarlords.Tests.Systems
             _system.PlayCard(card);
 
             // Verify: No targeting
-            _actionSystem.DidNotReceiveWithAnyArgs().StartTargeting(default, default);
+            _actionSystem.DidNotReceiveWithAnyArgs().StartTargeting(default!, default!);
 
             // Verify: Card played
             _matchManager.Received(1).PlayCard(card);

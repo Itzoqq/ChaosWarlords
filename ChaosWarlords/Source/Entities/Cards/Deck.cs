@@ -11,8 +11,8 @@ namespace ChaosWarlords.Source.Entities.Cards
     /// </summary>
     public class Deck
     {
-        private readonly List<Card> _drawPile = new List<Card>();
-        private readonly List<Card> _discardPile = new List<Card>();
+        private readonly List<Card> _drawPile = [];
+        private readonly List<Card> _discardPile = [];
 
         // Public read-only access if needed for UI/Debugging
         public IReadOnlyList<Card> DrawPile => _drawPile.AsReadOnly();

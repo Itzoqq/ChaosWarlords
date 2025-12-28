@@ -211,7 +211,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
             var mousePos = new Point(100, 100);
 
             // Act
-            var result = _mapper.GetClickedSpyReturnButton(mousePos, null, 800);
+            var result = _mapper.GetClickedSpyReturnButton(mousePos, null!, 800);
 
             // Assert
             Assert.IsNull(result);

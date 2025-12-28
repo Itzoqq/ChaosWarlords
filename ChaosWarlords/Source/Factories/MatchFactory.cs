@@ -13,11 +13,11 @@ namespace ChaosWarlords.Source.Factories
     // WorldData structure
     public class WorldData
     {
-        public PlayerStateManager PlayerStateManager { get; set; }
-        public TurnManager TurnManager { get; set; }
-        public MarketManager MarketManager { get; set; }
-        public MapManager MapManager { get; set; }
-        public ActionSystem ActionSystem { get; set; }
+        public required PlayerStateManager PlayerStateManager { get; set; }
+        public required TurnManager TurnManager { get; set; }
+        public required MarketManager MarketManager { get; set; }
+        public required MapManager MapManager { get; set; }
+        public required ActionSystem ActionSystem { get; set; }
     }
 
     public class MatchFactory

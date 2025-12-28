@@ -11,7 +11,7 @@ namespace ChaosWarlords.Source.Utilities
 
     public class SiteConfig
     {
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public bool IsCity { get; set; }
         public bool IsStartingSite { get; set; }
         public Vector2 Position { get; set; } // Center position
@@ -25,8 +25,8 @@ namespace ChaosWarlords.Source.Utilities
 
     public class RouteConfig
     {
-        public string FromSiteName { get; set; }
-        public string ToSiteName { get; set; }
+        public required string FromSiteName { get; set; }
+        public required string ToSiteName { get; set; }
         public int NodeCount { get; set; } // Nodes *between* the sites
     }
 }

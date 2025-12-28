@@ -12,7 +12,7 @@ namespace ChaosWarlords.Source.Core.Events
         public string NewValue { get; init; }
         public string OldValue { get; init; }
 
-        public StateChangeEvent(string stateName, object newValue, object oldValue = null)
+        public StateChangeEvent(string stateName, object newValue, object oldValue = null!)
         {
             StateName = stateName;
             NewValue = newValue?.ToString() ?? "null";

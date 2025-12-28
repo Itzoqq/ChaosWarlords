@@ -15,8 +15,8 @@ namespace ChaosWarlords.Source.Rendering.Views
         private readonly ContentManager _content;
         private readonly IButtonManager _buttonManager;
 
-        private ButtonRenderer _buttonRenderer;
-        private Texture2D _backgroundTexture;
+        private ButtonRenderer? _buttonRenderer;
+        private Texture2D _backgroundTexture = null!;
 
         public MainMenuView(GraphicsDevice graphicsDevice, ContentManager content, IButtonManager buttonManager)
         {
@@ -28,7 +28,7 @@ namespace ChaosWarlords.Source.Rendering.Views
         public void LoadContent()
         {
             // 1. Load Font with Fallback
-            SpriteFont font = null;
+            SpriteFont? font = null;
             try
             {
                 font = _content.Load<SpriteFont>("Fonts/DefaultFont");
@@ -54,7 +54,10 @@ namespace ChaosWarlords.Source.Rendering.Views
                 _backgroundTexture.SetData(new[] { Color.DarkSlateGray });
             }
 
-            _buttonRenderer = new ButtonRenderer(_graphicsDevice, font);
+            if (font != null)
+            {
+                _buttonRenderer = new ButtonRenderer(_graphicsDevice, font);
+            }
         }
 
         public void UnloadContent()

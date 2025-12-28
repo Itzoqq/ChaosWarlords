@@ -30,17 +30,17 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// <summary>
         /// Gets the card involved in the current pending action, if any.
         /// </summary>
-        Card PendingCard { get; }
+        Card? PendingCard { get; }
 
         /// <summary>
         /// Gets the sites involved in the current pending action, if any.
         /// </summary>
-        Site PendingSite { get; }
+        Site? PendingSite { get; }
 
         /// <summary>
         /// Gets the source node for a move action sequence.
         /// </summary>
-        MapNode PendingMoveSource { get; }
+        MapNode? PendingMoveSource { get; }
 
         /// <summary>
         /// Initiates the Assassination action flow.
@@ -57,7 +57,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// </summary>
         /// <param name="state">The target action state (e.g. SelectingSpyToReturn).</param>
         /// <param name="card">The card initiating this action, if applicable.</param>
-        void StartTargeting(ActionState state, Card card = null);
+        void StartTargeting(ActionState state, Card? card = null);
 
         /// <summary>
         /// Cancels the current targeting sequence and returns to Normal state.
@@ -80,7 +80,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// </summary>
         /// <param name="targetNode">The node clicked.</param>
         /// <param name="targetSite">The specific site within the node (unused if node-level action).</param>
-        void HandleTargetClick(MapNode targetNode, Site targetSite);
+        void HandleTargetClick(MapNode? targetNode, Site? targetSite);
 
         /// <summary>
         /// Completes the Return Spy action for a specific selected spy color.

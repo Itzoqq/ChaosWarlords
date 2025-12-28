@@ -15,17 +15,17 @@ namespace ChaosWarlords.Source.Core.Interfaces.Input
         /// <summary>
         /// Gets the card currently hovered in the player's hand.
         /// </summary>
-        Card GetHoveredHandCard();
+        Card? GetHoveredHandCard();
 
         /// <summary>
         /// Gets the card currently hovered in the market.
         /// </summary>
-        Card GetHoveredMarketCard();
+        Card? GetHoveredMarketCard();
 
         /// <summary>
         /// Gets the card currently hovered in the played cards area.
         /// </summary>
-        Card GetHoveredPlayedCard(InputManager input);
+        Card? GetHoveredPlayedCard(InputManager input);
 
         /// <summary>
         /// Gets the spy color clicked in the spy return UI.

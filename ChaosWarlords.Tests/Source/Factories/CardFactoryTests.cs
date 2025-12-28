@@ -17,7 +17,8 @@ namespace ChaosWarlords.Tests.Source.Utilities
                 Aspect = "Sorcery",
                 DeckVP = 1,
                 InnerCircleVP = 0,
-                Description = "A test card"
+                Description = "A test card",
+                Effects = new List<CardEffectData>()
             };
 
             // ACT
@@ -42,9 +43,11 @@ namespace ChaosWarlords.Tests.Source.Utilities
             {
                 Id = "test_card",
                 Name = "Test Card",
+                Description = "Test effects",
+                Aspect = "Neutral",
                 Effects = new List<CardEffectData>
                 {
-                    new CardEffectData { Type = "Promote", Amount = 1 },
+                    new CardEffectData { Type = "Promote", Amount = 1, TargetResource = "None" },
                     new CardEffectData { Type = "GainResource", Amount = 2, TargetResource = "Power" }
                 }
             };
@@ -94,7 +97,9 @@ namespace ChaosWarlords.Tests.Source.Utilities
                 Id = "old_card",
                 Name = "Old Card",
                 Cost = 1,
-                Aspect = "Neutral"
+                Aspect = "Neutral",
+                Description = "Old description",
+                Effects = new List<CardEffectData>()
             };
 
             var card = CardFactory.CreateFromData(cardData);
@@ -112,7 +117,10 @@ namespace ChaosWarlords.Tests.Source.Utilities
             {
                 Id = "inf_test",
                 Name = "Influence Test",
-                Cost = 1
+                Cost = 1,
+                Description = "Influence test",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>()
             };
 
             var card = CardFactory.CreateFromData(cardData);

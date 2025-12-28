@@ -8,7 +8,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 {
     public class SiteControlSystem
     {
-        private IPlayerStateManager _stateManager;
+        private IPlayerStateManager _stateManager = null!;
 
         public void SetPlayerStateManager(IPlayerStateManager stateManager)
         {

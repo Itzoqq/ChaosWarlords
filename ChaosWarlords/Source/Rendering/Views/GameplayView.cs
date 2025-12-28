@@ -27,21 +27,21 @@ namespace ChaosWarlords.Source.Rendering.Views
         private readonly GraphicsDevice _graphicsDevice;
 
         // --- Renderers & Assets ---
-        private SpriteFont _defaultFont;
-        private SpriteFont _smallFont;
-        private Texture2D _pixelTexture;
+        private SpriteFont _defaultFont = null!;
+        private SpriteFont _smallFont = null!;
+        private Texture2D _pixelTexture = null!;
 
-        private MapRenderer _mapRenderer;
-        private CardRenderer _cardRenderer;
-        private UIRenderer _uiRenderer;
+        private MapRenderer _mapRenderer = null!;
+        private CardRenderer _cardRenderer = null!;
+        private UIRenderer _uiRenderer = null!;
 
         // --- View Models ---
         // CHANGED: Public for Interface Implementation
-        public List<CardViewModel> HandViewModels { get; private set; } = new List<CardViewModel>();
-        public List<CardViewModel> PlayedViewModels { get; private set; } = new List<CardViewModel>();
+        public List<CardViewModel> HandViewModels { get; private set; } = [];
+        public List<CardViewModel> PlayedViewModels { get; private set; } = [];
 
         // Market is internal just in case, but kept as a backing property style
-        public List<CardViewModel> MarketViewModels { get; private set; } = new List<CardViewModel>();
+        public List<CardViewModel> MarketViewModels { get; private set; } = [];
 
         // --- Layout State ---
         public int HandY { get; private set; }
@@ -82,8 +82,8 @@ namespace ChaosWarlords.Source.Rendering.Views
         public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen)
         {
             // 1. Draw Map
-            MapNode hoveredNode = context.MapManager.GetNodeAt(inputManager.MousePosition);
-            Site hoveredSite = context.MapManager.GetSiteAt(inputManager.MousePosition);
+            MapNode? hoveredNode = context.MapManager.GetNodeAt(inputManager.MousePosition);
+            Site? hoveredSite = context.MapManager.GetSiteAt(inputManager.MousePosition);
             _mapRenderer.Draw(spriteBatch, context.MapManager, hoveredNode, hoveredSite);
 
             // 2. Draw Cards (Hand & Played) - Skip hand during Setup
@@ -160,7 +160,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             int viewportWidth = _graphicsDevice.Viewport.Width;
             int startX = (viewportWidth - totalWidth) / 2;
 
-            var sortedVMs = new List<CardViewModel>();
+            List<CardViewModel> sortedVMs = [];
             for (int i = 0; i < hand.Count; i++)
             {
                 var vm = HandViewModels.FirstOrDefault(v => v.Model == hand[i]);
@@ -246,7 +246,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             sb.DrawString(_defaultFont, text, new Vector2(20, 50), c);
         }
 
-        private void DrawSpySelectionUI(SpriteBatch sb, Site site, int screenWidth)
+        private void DrawSpySelectionUI(SpriteBatch sb, Site? site, int screenWidth)
         {
             if (site == null) return;
 

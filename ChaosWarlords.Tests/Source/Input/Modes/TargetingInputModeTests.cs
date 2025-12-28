@@ -104,7 +104,7 @@ namespace ChaosWarlords.Tests.States.Input
 
             _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
 
-            _actionSub.Received(1).HandleTargetClick(node, null);
+            _actionSub.Received(1).HandleTargetClick(node, null!);
         }
 
         [TestMethod]
@@ -146,7 +146,7 @@ namespace ChaosWarlords.Tests.States.Input
 
             _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
 
-            _actionSub.Received(1).HandleTargetClick(null, targetSite);
+            _actionSub.Received(1).HandleTargetClick(null!, targetSite);
         }
     }
 }

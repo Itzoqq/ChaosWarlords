@@ -21,13 +21,13 @@ namespace ChaosWarlords.Source.Managers
         // Internals (encapsulated)
         private class InteractiveElement
         {
-            public Func<Rectangle> GetBounds { get; set; }
-            public Action<bool> SetHover { get; set; }
-            public Action OnClick { get; set; }
+            public required Func<Rectangle> GetBounds { get; set; }
+            public required Action<bool> SetHover { get; set; }
+            public required Action OnClick { get; set; }
             public Func<bool> IsActive { get; set; } = () => true; // Default to always active
         }
 
-        private List<InteractiveElement> _elements;
+        private List<InteractiveElement> _elements = null!;
 
         private Rectangle _marketButtonRect;
         private Rectangle _assassinateButtonRect;
@@ -45,12 +45,12 @@ namespace ChaosWarlords.Source.Managers
         private Rectangle _popupCancelButtonRect;
 
         // Interface Implementation
-        public event EventHandler OnMarketToggleRequest;
-        public event EventHandler OnAssassinateRequest;
-        public event EventHandler OnReturnSpyRequest;
-        public event EventHandler OnEndTurnRequest;
-        public event EventHandler OnPopupConfirm;
-        public event EventHandler OnPopupCancel;
+        public event EventHandler? OnMarketToggleRequest;
+        public event EventHandler? OnAssassinateRequest;
+        public event EventHandler? OnReturnSpyRequest;
+        public event EventHandler? OnEndTurnRequest;
+        public event EventHandler? OnPopupConfirm;
+        public event EventHandler? OnPopupCancel;
 
         public bool IsMarketHovered { get; private set; }
         public bool IsAssassinateHovered { get; private set; }
@@ -199,9 +199,9 @@ namespace ChaosWarlords.Source.Managers
         public Rectangle MainMenuButtonRect => _mainMenuButtonRect;
         public Rectangle ExitButtonRect => _exitButtonRect;
 
-        public event EventHandler OnResumeRequest;
-        public event EventHandler OnMainMenuRequest;
-        public event EventHandler OnExitRequest;
+        public event EventHandler? OnResumeRequest;
+        public event EventHandler? OnMainMenuRequest;
+        public event EventHandler? OnExitRequest;
 
         public bool IsResumeHovered { get; private set; }
         public bool IsMainMenuHovered { get; private set; }

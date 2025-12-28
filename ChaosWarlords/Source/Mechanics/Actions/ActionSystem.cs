@@ -15,20 +15,20 @@ namespace ChaosWarlords.Source.Managers
         private const int RETURN_SPY_COST = GameConstants.RETURN_SPY_POWER_COST;
 
         // Event Definitions
-        public event EventHandler OnActionCompleted;
-        public event EventHandler<string> OnActionFailed;
+        public event EventHandler? OnActionCompleted;
+        public event EventHandler<string>? OnActionFailed;
 
         public ActionState CurrentState { get; internal set; } = ActionState.Normal;
-        public Card PendingCard { get; internal set; }
-        public Site PendingSite { get; private set; }
+        public Card? PendingCard { get; internal set; }
+        public Site? PendingSite { get; private set; }
 
         private readonly ITurnManager _turnManager;
         private readonly IMapManager _mapManager;
-        private IPlayerStateManager _playerStateManager;
+        private IPlayerStateManager _playerStateManager = null!;
 
         private Player CurrentPlayer => _turnManager.ActivePlayer;
 
-        public MapNode PendingMoveSource { get; private set; }
+        public MapNode? PendingMoveSource { get; private set; }
 
         public ActionSystem(ITurnManager turnManager, IMapManager mapManager)
         {
@@ -65,7 +65,7 @@ namespace ChaosWarlords.Source.Managers
             GameLogger.Log($"Select a SITE to remove Enemy Spy (Cost: {RETURN_SPY_COST} Power)...", LogChannel.General);
         }
 
-        public void StartTargeting(ActionState state, Card card = null)
+        public void StartTargeting(ActionState state, Card? card = null)
         {
             CurrentState = state;
             PendingCard = card;
@@ -90,30 +90,30 @@ namespace ChaosWarlords.Source.Managers
             return CurrentState != ActionState.Normal;
         }
 
-        public void HandleTargetClick(MapNode targetNode, Site targetSite)
+        public void HandleTargetClick(MapNode? targetNode, Site? targetSite)
         {
             switch (CurrentState)
             {
                 case ActionState.TargetingAssassinate:
-                    HandleAssassinate(targetNode);
+                    if (targetNode != null) HandleAssassinate(targetNode);
                     break;
                 case ActionState.TargetingReturn:
-                    HandleReturn(targetNode);
+                    if (targetNode != null) HandleReturn(targetNode);
                     break;
                 case ActionState.TargetingSupplant:
-                    HandleSupplant(targetNode);
+                    if (targetNode != null) HandleSupplant(targetNode);
                     break;
                 case ActionState.TargetingPlaceSpy:
-                    HandlePlaceSpy(targetSite);
+                    if (targetSite != null) HandlePlaceSpy(targetSite);
                     break;
                 case ActionState.TargetingReturnSpy:
-                    HandleReturnSpyInitialClick(targetSite);
+                    if (targetSite != null) HandleReturnSpyInitialClick(targetSite);
                     break;
                 case ActionState.TargetingMoveSource:
-                    HandleMoveSource(targetNode);
+                    if (targetNode != null) HandleMoveSource(targetNode);
                     break;
                 case ActionState.TargetingMoveDestination:
-                    HandleMoveDestination(targetNode);
+                    if (targetNode != null) HandleMoveDestination(targetNode);
                     break;
             }
         }

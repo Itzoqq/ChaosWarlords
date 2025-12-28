@@ -19,7 +19,7 @@ namespace ChaosWarlords.Source.Managers
             if (gameEvent == null) return;
 
             var eventType = gameEvent.GetType();
-            List<Delegate> handlers = null;
+            List<Delegate>? handlers = null;
 
             lock (_lock)
             {

@@ -14,7 +14,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     public class PlayerDto : IDto<Player>
     {
         public Guid PlayerId { get; set; }
-        public string DisplayName { get; set; }
+        public required string DisplayName { get; set; }
         public PlayerColor Color { get; set; }
 
         public int Power { get; set; }
@@ -33,7 +33,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
 
         public static PlayerDto FromEntity(Player player)
         {
-            if (player == null) return null;
+            if (player == null) throw new ArgumentNullException(nameof(player));
 
             var dto = new PlayerDto
             {

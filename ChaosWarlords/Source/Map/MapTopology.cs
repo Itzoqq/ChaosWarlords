@@ -56,7 +56,7 @@ namespace ChaosWarlords.Source.Map
         /// <summary>
         /// Finds the node at the given screen position (within click radius).
         /// </summary>
-        public MapNode GetNodeAt(Vector2 position)
+        public MapNode? GetNodeAt(Vector2 position)
         {
             return _nodes.FirstOrDefault(n => Vector2.Distance(position, n.Position) <= MapNode.Radius);
         }
@@ -64,7 +64,7 @@ namespace ChaosWarlords.Source.Map
         /// <summary>
         /// Finds the site containing the given screen position.
         /// </summary>
-        public Site GetSiteAt(Vector2 position)
+        public Site? GetSiteAt(Vector2 position)
         {
             return _sites?.FirstOrDefault(s => s.Bounds.Contains(position));
         }

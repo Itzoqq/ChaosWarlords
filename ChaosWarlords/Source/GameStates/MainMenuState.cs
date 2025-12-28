@@ -36,8 +36,8 @@ namespace ChaosWarlords.Source.States
             game.InputProvider,
             game.StateManager,
             game.CardDatabase,
-            null,
-            null)
+            null!,
+            null!)
         { }
 
         public MainMenuState(
@@ -45,8 +45,8 @@ namespace ChaosWarlords.Source.States
             IInputProvider inputProvider,
             IStateManager stateManager,
             ICardDatabase cardDatabase,
-            IMainMenuView view = null,
-            IButtonManager buttonManager = null)
+            IMainMenuView view = null!,
+            IButtonManager buttonManager = null!)
         {
             _game = game;
             _inputProvider = inputProvider ?? throw new System.ArgumentNullException(nameof(inputProvider));
@@ -95,7 +95,7 @@ namespace ChaosWarlords.Source.States
             _buttonManager.AddButton(new SimpleButton(
                 exitBtnRect,
                 "Exit",
-                () => _game.Exit()
+                () => _game?.Exit()
             ));
         }
 
@@ -159,7 +159,7 @@ namespace ChaosWarlords.Source.States
             }
 
             // Create View (if GraphicsDevice is available - Client Mode)
-            IGameplayView gameplayView = null;
+            IGameplayView? gameplayView = null;
             int width = 1920;
             int height = 1080;
 
@@ -170,7 +170,7 @@ namespace ChaosWarlords.Source.States
                 height = _game.GraphicsDevice.Viewport.Height;
             }
 
-            _stateManager.ChangeState(new GameplayState(_game, _inputProvider, _cardDatabase, gameplayView, width, height));
+            _stateManager.ChangeState(new GameplayState(_game, _inputProvider, _cardDatabase, gameplayView!, width, height));
         }
 
         public void Draw(SpriteBatch spriteBatch)

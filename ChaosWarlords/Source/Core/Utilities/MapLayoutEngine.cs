@@ -90,9 +90,9 @@ namespace ChaosWarlords.Source.Utilities
 
                     if (connection.StartNode != null && connection.EndNode != null)
                     {
-                        var routeNodes = GenerateRouteNodes(connection.StartNode, connection.EndNode, routeConfig.NodeCount);
+                        var routeNodes = GenerateRouteNodes(connection.StartNode!, connection.EndNode!, routeConfig.NodeCount);
 
-                        ConnectRouteNodes(connection, routeNodes, nodes, route);
+                        ConnectRouteNodes((connection.StartNode!, connection.EndNode!), routeNodes, nodes, route);
                     }
 
                     routes.Add(route);
@@ -183,11 +183,11 @@ namespace ChaosWarlords.Source.Utilities
             return results;
         }
 
-        private (MapNode StartNode, MapNode EndNode) FindBestConnectionPoints(Site from, Site to)
+        private (MapNode? StartNode, MapNode? EndNode) FindBestConnectionPoints(Site from, Site to)
         {
             // Simple approach: find the pair of nodes (one from each site) with the minimum distance
-            MapNode bestStart = null;
-            MapNode bestEnd = null;
+            MapNode? bestStart = null;
+            MapNode? bestEnd = null;
             float minDstSq = float.MaxValue;
 
             foreach (var n1 in from.NodesInternal)

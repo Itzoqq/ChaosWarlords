@@ -23,7 +23,7 @@ namespace ChaosWarlords.Source.Entities.Map
         /// <summary>
         /// List of adjacent nodes directly connected to this one.
         /// </summary>
-        public List<MapNode> Neighbors { get; private set; } = new List<MapNode>();
+        public List<MapNode> Neighbors { get; private set; } = [];
 
         // Logic Constant (Used for Hit-Testing)
         public const int Radius = 20;

@@ -9,7 +9,7 @@ namespace ChaosWarlords.Source.Input
 {
     public class GameplayInputCoordinator : IGameplayInputCoordinator
     {
-        private IInputMode _currentMode;
+        private IInputMode _currentMode = null!;
         private readonly GameplayState _state; // Reference back to main state for context
         private readonly InputManager _inputManager;
         private readonly MatchContext _context;
@@ -26,7 +26,7 @@ namespace ChaosWarlords.Source.Input
 
         public void HandleInput()
         {
-            IGameCommand command = _currentMode.HandleInput(
+            IGameCommand? command = _currentMode.HandleInput(
                _inputManager,
                _context.MarketManager,
                _context.MapManager,
@@ -43,7 +43,7 @@ namespace ChaosWarlords.Source.Input
                 _inputManager,
                 _state.UIManager,
                 _context.MapManager,
-                _context.TurnManager as TurnManager,
+                _context.TurnManager,
                 _context.ActionSystem
             );
         }
@@ -71,7 +71,7 @@ namespace ChaosWarlords.Source.Input
                     _inputManager,
                     _state.UIManager,
                     _context.MapManager,
-                    _context.TurnManager as TurnManager,
+                    _context.TurnManager,
                     _context.ActionSystem
                 );
             }

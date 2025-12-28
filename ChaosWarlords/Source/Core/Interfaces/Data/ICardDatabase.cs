@@ -13,7 +13,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Data
         /// <summary>
         /// Retrieves a specific card definition by its ID (useful for networking/modding).
         /// </summary>
-        Card GetCardById(string id);
+        Card? GetCardById(string id);
     }
 }
 

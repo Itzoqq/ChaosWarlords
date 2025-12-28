@@ -40,7 +40,7 @@ namespace ChaosWarlords.Source.States
             PushState(state);
         }
 
-        public IState GetCurrentState()
+        public IState? GetCurrentState()
         {
             return _states.Count > 0 ? _states.Peek() : null;
         }

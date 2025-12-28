@@ -23,9 +23,9 @@ namespace ChaosWarlords.Source.Entities.Map
 
         public bool IsCity { get; set; }
 
-        public List<MapNode> NodesInternal { get; protected set; } = new List<MapNode>();
+        public List<MapNode> NodesInternal { get; protected set; } = [];
         public PlayerColor Owner { get; internal set; } = PlayerColor.None;
-        internal List<PlayerColor> Spies { get; private set; } = new List<PlayerColor>();
+        internal List<PlayerColor> Spies { get; private set; } = [];
         public bool HasTotalControl { get; internal set; } = false;
 
         // Visual Bounds (Kept in Model for Hit-Testing logic)
