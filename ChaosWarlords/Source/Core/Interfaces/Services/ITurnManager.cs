@@ -6,21 +6,41 @@ using System;
 
 namespace ChaosWarlords.Source.Core.Interfaces.Services
 {
+    /// <summary>
+    /// Manages the turn-based lifecycle of a match, including tracking active players and phases.
+    /// </summary>
     public interface ITurnManager
     {
-        // Publicly accessible list of all players
+        /// <summary>
+        /// Gets the list of all players participating in the current match.
+        /// </summary>
         List<Player> Players { get; }
 
-        // The player whose turn it currently is (Shortcut to CurrentTurnContext.ActivePlayer)
+        /// <summary>
+        /// Gets the player whose turn it currently is.
+        /// Convenience property for CurrentTurnContext.ActivePlayer.
+        /// </summary>
         Player ActivePlayer { get; }
 
-        // The data object for the current turn
+        /// <summary>
+        /// Gets the context object containing data for the current turn.
+        /// </summary>
         TurnContext CurrentTurnContext { get; }
 
-        // Actions
+        /// <summary>
+        /// Executes a card play action for the current turn.
+        /// </summary>
+        /// <param name="card">The card to be played.</param>
         void PlayCard(Card card);
+
+        /// <summary>
+        /// Concludes the current turn and advances the game state to the next player or phase.
+        /// </summary>
         void EndTurn();
 
+        /// <summary>
+        /// Event fired when the turn control passes to a new player.
+        /// </summary>
         event EventHandler<Player> OnTurnChanged;
     }
 }
