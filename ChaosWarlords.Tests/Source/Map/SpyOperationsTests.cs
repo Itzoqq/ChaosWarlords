@@ -10,6 +10,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Managers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,7 +27,8 @@ namespace ChaosWarlords.Tests.Map
         public void Setup()
         {
             _siteRecalculated = false;
-            _spyOps = new SpyOperations((site, player) => _siteRecalculated = true);
+            var stateManager = new PlayerStateManager();
+            _spyOps = new SpyOperations((site, player) => _siteRecalculated = true, stateManager);
         }
 
         [TestMethod]

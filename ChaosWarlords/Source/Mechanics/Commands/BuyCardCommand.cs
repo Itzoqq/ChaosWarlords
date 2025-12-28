@@ -20,7 +20,7 @@ namespace ChaosWarlords.Source.Commands
         public void Execute(IGameplayState state)
         {
             // Accessing via interface properties
-            state.MarketManager.TryBuyCard(state.TurnManager.ActivePlayer, _card);
+            state.MarketManager.TryBuyCard(state.TurnManager.ActivePlayer, _card, state.MatchContext.PlayerStateManager);
         }
     }
 }

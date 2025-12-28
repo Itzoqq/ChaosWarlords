@@ -11,7 +11,7 @@ using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 
-namespace ChaosWarlords.Source.Systems
+namespace ChaosWarlords.Source.Mechanics.Rules
 {
     /// <summary>
     /// Pure Logic Class. Responsible solely for executing the mechanics of card effects.
@@ -74,14 +74,14 @@ namespace ChaosWarlords.Source.Systems
         private void ApplyGainResource(CardEffect effect, MatchContext context)
         {
             if (effect.TargetResource == ResourceType.Power)
-                context.ActivePlayer.Power += effect.Amount;
+                context.PlayerStateManager.AddPower(context.ActivePlayer, effect.Amount);
             else if (effect.TargetResource == ResourceType.Influence)
-                context.ActivePlayer.Influence += effect.Amount;
+                context.PlayerStateManager.AddInfluence(context.ActivePlayer, effect.Amount);
         }
 
         private void ApplyDrawCard(CardEffect effect, MatchContext context)
         {
-            context.ActivePlayer.DrawCards(effect.Amount);
+            context.PlayerStateManager.DrawCards(context.ActivePlayer, effect.Amount, context.Random);
         }
 
         private void ApplyPromote(CardEffect effect, Card sourceCard, MatchContext context)

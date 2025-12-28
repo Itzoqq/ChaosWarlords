@@ -19,6 +19,8 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         IReadOnlyList<MapNode> Nodes { get; }
         IReadOnlyList<Site> Sites { get; }
         
+        void SetPlayerStateManager(IPlayerStateManager stateManager);
+        
         void SetPhase(MatchPhase phase);
         MatchPhase CurrentPhase { get; }
 

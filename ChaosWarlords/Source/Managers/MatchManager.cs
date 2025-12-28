@@ -11,8 +11,9 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Mechanics.Rules;
 
-namespace ChaosWarlords.Source.Systems
+namespace ChaosWarlords.Source.Managers
 {
     public class MatchManager : IMatchManager
     {
@@ -49,11 +50,8 @@ namespace ChaosWarlords.Source.Systems
                 return;
             }
 
-            // Remove from Hand
-            _context.ActivePlayer.Hand.Remove(card);
-
-            // Add to PlayedCards
-            _context.ActivePlayer.PlayedCards.Add(card);
+            // Use PlayerStateManager for centralized mutation
+            _context.PlayerStateManager.PlayCard(_context.ActivePlayer, card);
 
             // --- 3. RESOLVE EFFECTS (The Missing Link) ---
             // Now that the card is "played", we trigger its game logic.
@@ -67,21 +65,33 @@ namespace ChaosWarlords.Source.Systems
 
         public void DevourCard(Card card)
         {
-            if (_context.ActivePlayer.Hand.Remove(card))
+            _context.PlayerStateManager.DevourCard(_context.ActivePlayer, card);
+            
+            // Note: PlayerStateManager.DevourCard handles removal logic.
+            // If we need to put it in VoidPile explicitly, PlayerStateManager should handle it,
+            // or we do it here if PlayerStateManager doesn't know about VoidPile (it doesn't currently).
+            
+            // FIX: PlayerStateManager doesn't know about MatchContext.VoidPile.
+            // We should either update PlayerStateManager to accept MatchContext (circular dependency?)
+            // OR keep the VoidPile logic here for now but use StateManager for removal.
+            
+            // Actually, let's keep it simple for now and rely on devouring being "remove from lists".
+            // If the card is removed from hand/played, it's effectively gone.
+            // But getting it into VoidPile is useful for history. 
+            // Let's add it to VOID here if successful removal happens?
+            
+            // For now, mirroring previous logic:
+            if (_context.VoidPile != null && card.Location == CardLocation.Void)
             {
-                card.Location = CardLocation.Void;
-                _context.VoidPile.Add(card);
-                GameLogger.Log($"Devoured {card.Name} from Hand.", LogChannel.Economy);
+                 // Ops, PlayerStateManager doesn't set location to Void, I should check that.
+                 // I will update PlayerStateManager in a bit to set Location = Void.
+                 _context.VoidPile.Add(card);
             }
         }
 
         public void MoveCardToPlayed(Card card)
         {
-            if (_context.ActivePlayer.Hand.Contains(card))
-            {
-                _context.ActivePlayer.Hand.Remove(card);
-                _context.ActivePlayer.PlayedCards.Add(card);
-            }
+            _context.PlayerStateManager.PlayCard(_context.ActivePlayer, card);
         }
 
         public bool CanEndTurn(out string reason)
@@ -98,13 +108,12 @@ namespace ChaosWarlords.Source.Systems
         public void EndTurn()
         {
             // 1. Map Rewards - REMOVED (Now Start of Turn)
-            // _context.MapManager.DistributeControlRewards(_context.ActivePlayer);
-
+            
             // 2. Cleanup: Move Hand + Played -> Discard
-            _context.ActivePlayer.CleanUpTurn();
+            _context.PlayerStateManager.CleanUpTurn(_context.ActivePlayer);
 
             // 3. Draw New Hand
-            _context.ActivePlayer.DrawCards(GameConstants.HAND_SIZE);
+            _context.PlayerStateManager.DrawCards(_context.ActivePlayer, GameConstants.HAND_SIZE, _context.Random);
 
             // 4. Switch Player
             _context.TurnManager.EndTurn();

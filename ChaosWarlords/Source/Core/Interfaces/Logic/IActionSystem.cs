@@ -34,6 +34,9 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         void HandleTargetClick(MapNode targetNode, Site targetSite);
         void FinalizeSpyReturn(PlayerColor selectedSpyColor);
         void TryStartDevourHand(Card sourceCard);
+        
+        // Dependency Injection Setter (to avoid circular constructor dependencies if necessary, usually optional)
+        void SetPlayerStateManager(IPlayerStateManager stateManager);
     }
 }
 

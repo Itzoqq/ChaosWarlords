@@ -11,6 +11,7 @@ using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Managers;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -22,6 +23,7 @@ namespace ChaosWarlords.Tests.Systems
         private Card _cheapCard = null!;
         private Card _expensiveCard = null!;
         private ICardDatabase _mockDb = null!;
+        private IPlayerStateManager _stateManager = null!;
 
         [TestInitialize]
         public void Setup()
@@ -36,10 +38,11 @@ namespace ChaosWarlords.Tests.Systems
             _mockDb = Substitute.For<ICardDatabase>();
 
             // 2. Configure the Mock behavior
-            // We return a list containing our test cards.
-            // Note: MarketManager modifies this list, so we create a fresh list in Setup() every time.
             var deck = new List<Card> { _cheapCard, _expensiveCard };
             _mockDb.GetAllMarketCards().Returns(deck);
+            
+            // 4. Use Real StateManager (or Mock if strictly isolating, but Real is better for logic verification)
+            _stateManager = new PlayerStateManager();
 
             // 3. Inject the Mock
             _market = new MarketManager(_mockDb);
@@ -48,12 +51,11 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void TryBuyCard_Succeeds_WhenAffordable()
         {
+            // Use StateManager or direct set for setup ??
+            // Actually, tests should simulate flow.
             _player.Influence = 5;
 
-            // The cheap card is in the deck provided by the mock in Setup()
-            // Note: Deck is shuffled, so we must find the card instance in the row if it exists
-            // Or assume setup creates small deck where both might be in row (deck size 2 < row size 6)
-            bool result = _market.TryBuyCard(_player, _cheapCard);
+            bool result = _market.TryBuyCard(_player, _cheapCard, _stateManager);
 
             Assert.IsTrue(result);
             Assert.AreEqual(3, _player.Influence);
@@ -66,7 +68,7 @@ namespace ChaosWarlords.Tests.Systems
         {
             _player.Influence = 5;
 
-            bool result = _market.TryBuyCard(_player, _expensiveCard);
+            bool result = _market.TryBuyCard(_player, _expensiveCard, _stateManager);
 
             Assert.IsFalse(result);
             Assert.AreEqual(5, _player.Influence);
@@ -76,7 +78,7 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void RefillMarket_Refills_WhenCardPurchased_AndDeckHasReserves()
         {
-            // Arrange: Create a specific scenario with more cards than the default Setup
+            // Arrange
             var cards = new List<Card>();
             for (int i = 0; i < 6; i++)
             {
@@ -85,9 +87,7 @@ namespace ChaosWarlords.Tests.Systems
             var reserveCard = new Card("reserve", "Reserve", 1, CardAspect.Neutral, 0, 0, 0);
             cards.Add(reserveCard);
 
-            // Create a local mock for this specific test
             var localMockDb = Substitute.For<ICardDatabase>();
-            // Return a COPY so we can compare against original list later
             localMockDb.GetAllMarketCards().Returns(new List<Card>(cards));
 
             var localMarket = new MarketManager(localMockDb);
@@ -95,7 +95,6 @@ namespace ChaosWarlords.Tests.Systems
             _player.Influence = 100;
 
             // Handle Random Shuffle
-            // Identify which card was left in the deck
             var cardsInRow = localMarket.MarketRow;
             var cardLeftInDeck = cards.Except(cardsInRow).FirstOrDefault();
 
@@ -104,7 +103,7 @@ namespace ChaosWarlords.Tests.Systems
 
             // Act: Buy one card to trigger refill
             var cardToBuy = localMarket.MarketRow[0];
-            bool bought = localMarket.TryBuyCard(_player, cardToBuy);
+            bool bought = localMarket.TryBuyCard(_player, cardToBuy, _stateManager);
 
             // Assert
             Assert.IsTrue(bought);
@@ -123,7 +122,7 @@ namespace ChaosWarlords.Tests.Systems
             _player.Influence = 3;
 
             // Act
-            bool result = _market.TryBuyCard(_player, exactCard);
+            bool result = _market.TryBuyCard(_player, exactCard, _stateManager);
 
             // Assert
             Assert.IsTrue(result);
@@ -136,7 +135,7 @@ namespace ChaosWarlords.Tests.Systems
         {
             _player.Influence = 0;
 
-            bool result = _market.TryBuyCard(_player, _cheapCard);
+            bool result = _market.TryBuyCard(_player, _cheapCard, _stateManager);
 
             Assert.IsFalse(result);
             Assert.AreEqual(0, _player.Influence);

@@ -10,6 +10,7 @@ using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Factories;
 using NSubstitute;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;

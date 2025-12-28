@@ -14,7 +14,7 @@ using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
-
+using ChaosWarlords.Source.Managers;
 using NSubstitute;
 
 namespace ChaosWarlords.Tests.States.Input
@@ -59,7 +59,8 @@ namespace ChaosWarlords.Tests.States.Input
                 _mapSub,
                 _marketSub,
                 _actionSub,
-                Substitute.For<ICardDatabase>()
+                Substitute.For<ICardDatabase>(),
+                new PlayerStateManager()
             );
 
             // Link MatchContext to State

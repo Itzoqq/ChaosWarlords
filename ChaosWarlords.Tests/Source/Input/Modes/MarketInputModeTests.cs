@@ -13,7 +13,7 @@ using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Utilities;
-
+using ChaosWarlords.Source.Managers;
 using NSubstitute;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Contexts;
@@ -67,7 +67,8 @@ namespace ChaosWarlords.Tests.States.Input
                 _mapSub,
                 _marketSub,
                 _actionSub,
-                _cardDbSub
+                _cardDbSub,
+                new PlayerStateManager()
             );
 
             // 4. Instantiate MarketInputMode with the new signature

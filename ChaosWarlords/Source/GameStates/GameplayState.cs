@@ -20,6 +20,7 @@ using ChaosWarlords.Source.States.Input;
 
 using ChaosWarlords.Source.Input.Controllers;
 using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Factories;
 using System;
 using System.Linq;
 
@@ -132,7 +133,8 @@ namespace ChaosWarlords.Source.States
                 worldData.MapManager,
                 worldData.MarketManager,
                 worldData.ActionSystem,
-                _cardDatabase
+                _cardDatabase,
+                worldData.PlayerStateManager
             );
 
             _matchManager = new MatchManager(_matchContext);
@@ -142,7 +144,7 @@ namespace ChaosWarlords.Source.States
             {
                 foreach (var player in _matchContext.TurnManager.Players)
                 {
-                    player.DrawCards(5);
+                    player.DrawCards(5, _matchContext.Random);
                 }
             }
 
@@ -178,17 +180,31 @@ namespace ChaosWarlords.Source.States
 
         public void Update(GameTime gameTime)
         {
+            // 1. Update input state (captures current frame's mouse/keyboard state)
             _inputManagerBacking.Update();
             
-            // Sync UI state via mediator
+            // 2. Sync UI state (updates pause menu and popup flags)
             _uiEventMediator.Update();
+            
+            // 3. CRITICAL: Process UI clicks FIRST (highest priority)
+            // This includes pause menu buttons, popups, and game UI buttons
+            // UIManager will handle clicks and fire events (like OnMainMenuRequest)
             _uiManagerBacking.Update(_inputManagerBacking);
+            
+            // 4. If modal UI is open (pause or popup), BLOCK all other input
+            // This prevents game input from processing while UI is active
+            if (_uiEventMediator.IsPauseMenuOpen || _uiEventMediator.IsConfirmationPopupOpen)
+            {
+                // Still update view for visual feedback (hovers, animations)
+                _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
+                return; // Exit early - no game input processing
+            }
 
-            if (_uiEventMediator.IsConfirmationPopupOpen) return; // Block other input if popup is open
-
-            // Delegate all input handling to PlayerController
+            // 5. Process game input (map clicks, card clicks, etc.)
+            // Only reached if no modal UI is blocking
             _playerController.Update();
 
+            // 6. Update view (card hovers, animations, etc.)
             _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
         }
 

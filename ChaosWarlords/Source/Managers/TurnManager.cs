@@ -13,7 +13,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 
-namespace ChaosWarlords.Source.Systems
+namespace ChaosWarlords.Source.Managers
 {
     public class TurnManager : ITurnManager
     {
@@ -26,7 +26,12 @@ namespace ChaosWarlords.Source.Systems
         // Convenience property
         public Player ActivePlayer => CurrentTurnContext?.ActivePlayer ?? Players[_currentPlayerIndex];
 
-        public TurnManager(List<Player> players)
+        /// <summary>
+        /// Creates a new TurnManager with randomized player order.
+        /// </summary>
+        /// <param name="players">List of players in the match.</param>
+        /// <param name="random">Random number generator for determining player order.</param>
+        public TurnManager(List<Player> players, IGameRandom random)
         {
             // Industry Standard: "Guard Clauses"
             if (players == null || players.Count == 0)
@@ -34,8 +39,15 @@ namespace ChaosWarlords.Source.Systems
                 throw new ArgumentException("TurnManager requires at least one player.", nameof(players));
             }
 
-            // Randomize Player Order
-            Players = players.OrderBy(x => Guid.NewGuid()).ToList();
+            if (random == null)
+            {
+                throw new ArgumentNullException(nameof(random));
+            }
+
+            // Randomize Player Order using deterministic RNG
+            Players = new List<Player>(players);
+            random.Shuffle(Players);
+            
             StartTurn();
         }
 
@@ -85,5 +97,4 @@ namespace ChaosWarlords.Source.Systems
         }
     }
 }
-
 

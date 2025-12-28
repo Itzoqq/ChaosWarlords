@@ -50,6 +50,7 @@ namespace ChaosWarlords.Source.Utilities
         None = 0,
         Market,
         Hand,
+        Played,
         Deck,
         DiscardPile,
         InnerCircle,   // The "Promoted" pile (Tyrants' Inner Circle)

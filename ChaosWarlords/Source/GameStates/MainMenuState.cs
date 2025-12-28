@@ -30,6 +30,7 @@ namespace ChaosWarlords.Source.States
 
         // Input state just for click detection
         private MouseState _previousMouseState;
+        private bool _waitingForInitialRelease = true; // Wait for button release before accepting input
 
         // For testing/DI support
         // We still keep Game1 for Content loading (Service Locator pattern for assets is common in MonoGame)
@@ -70,6 +71,9 @@ namespace ChaosWarlords.Source.States
 
             // View Setup (Only if View exists - Client Side)
             _view?.LoadContent();
+
+            // Initialize mouse state
+            _previousMouseState = _inputProvider.GetMouseState();
         }
 
         private void SetupButtons()
@@ -110,10 +114,41 @@ namespace ChaosWarlords.Source.States
             MouseState currentMouse = _inputProvider.GetMouseState();
             Point mousePos = currentMouse.Position;
             
-            bool isClick = currentMouse.LeftButton == ButtonState.Released && _previousMouseState.LeftButton == ButtonState.Pressed;
+            // ROBUST FIX: Wait for Initial Release
+            // If the user enters this state with the mouse button held down (from clicking the menu button),
+            // we MUST wait until they release it before we start tracking clicks.
+            // This prevents "drag-through" clicks or immediate triggering.
+            if (_waitingForInitialRelease)
+            {
+                if (currentMouse.LeftButton == ButtonState.Released)
+                {
+                    _waitingForInitialRelease = false;
+                    _previousMouseState = currentMouse;
+                }
+                else
+                {
+                    // Still holding button, ignore and update previous state to current
+                    // so we don't trigger a 'click' the moment we unlock
+                    _previousMouseState = currentMouse; 
+                    _view?.Update(gameTime);
+                    return; 
+                }
+            }
+            
+            // Industry Standard: Require FRESH clicks only
+            // A click is only valid if BOTH the press AND release happen in this state
+            // This prevents clicks from previous states from bleeding through
+            bool isClick = false;
+            
+            // Only detect click if we saw the button pressed in a previous frame
+            if (currentMouse.LeftButton == ButtonState.Released && 
+                _previousMouseState.LeftButton == ButtonState.Pressed)
+            {
+                isClick = true;
+            }
 
             _buttonManager?.Update(mousePos, isClick);
-            _view?.Update(gameTime); // Allow view to update its own elements
+            _view?.Update(gameTime);
 
             _previousMouseState = currentMouse;
         }

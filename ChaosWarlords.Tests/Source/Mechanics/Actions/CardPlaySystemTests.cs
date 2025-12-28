@@ -11,6 +11,7 @@ using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Managers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using System.Collections.Generic;
@@ -45,7 +46,8 @@ namespace ChaosWarlords.Tests.Systems
             var cardDb = Substitute.For<ICardDatabase>();
 
             // Create context with our mocked MapManager and ActionSystem
-            _matchContext = new MatchContext(turnManager, _mapManager, marketManager, _actionSystem, cardDb);
+            var ps = new PlayerStateManager();
+            _matchContext = new MatchContext(turnManager, _mapManager, marketManager, _actionSystem, cardDb, ps);
 
             // Set Active Player manually if needed
             var player = new Player(PlayerColor.Red);

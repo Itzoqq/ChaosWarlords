@@ -59,7 +59,7 @@ namespace ChaosWarlords.Source.Entities.Cards
             }
         }
 
-        public List<Card> Draw(int count)
+        public List<Card> Draw(int count, IGameRandom random)
         {
             var drawnCards = new List<Card>();
 
@@ -67,7 +67,7 @@ namespace ChaosWarlords.Source.Entities.Cards
             {
                 if (_drawPile.Count == 0)
                 {
-                    ReshuffleDiscard();
+                    ReshuffleDiscard(random);
                     if (_drawPile.Count == 0) break; // Still empty? Stop drawing.
                 }
 
@@ -79,12 +79,19 @@ namespace ChaosWarlords.Source.Entities.Cards
             return drawnCards;
         }
 
-        public void Shuffle()
+        /// <summary>
+        /// Shuffles the draw pile using the provided random number generator.
+        /// </summary>
+        /// <param name="random">The random number generator to use for shuffling.</param>
+        public void Shuffle(IGameRandom random)
         {
-            ShuffleList(_drawPile);
+            if (random == null)
+                throw new ArgumentNullException(nameof(random));
+                
+            random.Shuffle(_drawPile);
         }
 
-        private void ReshuffleDiscard()
+        private void ReshuffleDiscard(IGameRandom random)
         {
             if (_discardPile.Count > 0)
             {
@@ -97,16 +104,8 @@ namespace ChaosWarlords.Source.Entities.Cards
                 _discardPile.Clear();
 
                 // Shuffle
-                Shuffle();
+                Shuffle(random);
             }
-        }
-
-        // Instance-based Random for thread safety (each deck has its own)
-        private readonly Random _rng = new Random(Guid.NewGuid().GetHashCode());
-
-        private void ShuffleList(List<Card> list)
-        {
-            list.Shuffle(); // Use extension method from CollectionHelpers
         }
     }
 }

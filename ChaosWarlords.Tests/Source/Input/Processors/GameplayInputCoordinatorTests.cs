@@ -8,6 +8,8 @@ using ChaosWarlords.Source.Core.Interfaces.Logic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Core.Utilities;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.States.Input;
@@ -35,14 +37,16 @@ namespace ChaosWarlords.Tests.Source.Systems
             // (The Coordinator casts 'ITurnManager' to 'TurnManager', so a Mock would become null)
             var p1 = new Player(PlayerColor.Red);
             var p2 = new Player(PlayerColor.Blue);
-            var turnManager = new TurnManager(new List<Player> { p1, p2 });
+            var mockRandom = Substitute.For<IGameRandom>();
+            var turnManager = new TurnManager(new List<Player> { p1, p2 }, mockRandom);
 
             var mapManager = Substitute.For<IMapManager>();
             var marketManager = Substitute.For<IMarketManager>();
             _actionSub = Substitute.For<IActionSystem>();
             var cardDb = Substitute.For<ICardDatabase>();
 
-            _context = new MatchContext(turnManager, mapManager, marketManager, _actionSub, cardDb);
+            var ps = new PlayerStateManager();
+            _context = new MatchContext(turnManager, mapManager, marketManager, _actionSub, cardDb, ps);
 
             // 2. Setup Testable State
             // We pass null for Game/InputProvider because our subclass doesn't use them in this specific test scope

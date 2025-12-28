@@ -9,6 +9,8 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Core.Utilities;
+using NSubstitute;
 
 namespace ChaosWarlords.Tests.Source.Entities
 {
@@ -34,7 +36,8 @@ namespace ChaosWarlords.Tests.Source.Entities
             _player.DeckManager.AddToTop(_card2);
             _player.DeckManager.AddToTop(_card3);
 
-            _player.DrawCards(2);
+            var mockRandom = Substitute.For<IGameRandom>();
+            _player.DrawCards(2, mockRandom);
 
             Assert.HasCount(2, _player.Hand);
             Assert.HasCount(1, _player.Deck);
@@ -47,7 +50,8 @@ namespace ChaosWarlords.Tests.Source.Entities
             _player.DeckManager.AddToTop(_card1);
             _player.DeckManager.AddToDiscard(new[] { _card2, _card3 });
 
-            _player.DrawCards(3);
+            var mockRandom = Substitute.For<IGameRandom>();
+            _player.DrawCards(3, mockRandom);
 
             Assert.HasCount(3, _player.Hand);
             Assert.IsEmpty(_player.Deck);
@@ -64,7 +68,8 @@ namespace ChaosWarlords.Tests.Source.Entities
         {
             _player.DeckManager.AddToTop(_card1);
 
-            _player.DrawCards(5); // Tries to draw 5, but only 1 is available
+            var mockRandom = Substitute.For<IGameRandom>();
+            _player.DrawCards(5, mockRandom); // Tries to draw 5, but only 1 is available
 
             Assert.HasCount(1, _player.Hand);
             Assert.IsEmpty(_player.Deck);
@@ -183,7 +188,8 @@ namespace ChaosWarlords.Tests.Source.Entities
             for (int turn = 1; turn <= 100; turn++)
             {
                 // 1. Draw
-                _player.DrawCards(handSize);
+                var mockRandom = Substitute.For<IGameRandom>();
+                _player.DrawCards(handSize, mockRandom);
 
                 // Verify Hand Size (unless deck total < 5, which shouldn't happen here)
                 Assert.HasCount(handSize, _player.Hand, $"Turn {turn}: Hand size incorrect.");

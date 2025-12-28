@@ -121,6 +121,55 @@ namespace ChaosWarlords.Tests.GameStates
             // Assert
             mockButtonManager.Received(1).Update(Arg.Any<Point>(), Arg.Any<bool>());
         }
+        [TestMethod]
+        public void Update_WaitReleaseLogic_PreventsDragThroughClick()
+        {
+            // Arrange
+            var mockGame = Substitute.For<Game1>();
+            var mockInput = Substitute.For<IInputProvider>();
+            var mockButtonManager = Substitute.For<IButtonManager>();
+            var mockStateManager = Substitute.For<IStateManager>();
+            var mockCardDb = Substitute.For<ICardDatabase>();
+
+            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, null, mockButtonManager);
+
+            // 1. Initial Load - Button is PRESSED (e.g. from previous screen click)
+            mockInput.GetMouseState().Returns(new MouseState(0, 0, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
+            state.LoadContent(); // Captures initial state
+
+            // 2. First Update - Still Pressed (User holding button)
+            // Should be ignored (locked)
+            mockInput.GetMouseState().Returns(new MouseState(0, 0, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
+            state.Update(new GameTime());
+
+            // Assert: ButtonManager NOT called while locked
+            mockButtonManager.DidNotReceive().Update(Arg.Any<Point>(), Arg.Any<bool>());
+
+            // 3. Second Update - Released (User lets go)
+            // Should unlock, but NOT trigger click
+            mockInput.GetMouseState().Returns(new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
+            state.Update(new GameTime());
+
+            // Assert: ButtonManager called, but isClick should be FALSE
+            mockButtonManager.Received(1).Update(Arg.Any<Point>(), false);
+
+            // 4. Third Update - Pressed again (Start of new click)
+            mockInput.GetMouseState().Returns(new MouseState(100, 100, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
+            mockButtonManager.ClearReceivedCalls(); // Clear previous calls
+            state.Update(new GameTime());
+
+            // Assert: ButtonManager called, isClick FALSE (press only)
+            mockButtonManager.Received(1).Update(new Point(100, 100), false);
+
+            // 5. Fourth Update - Released again (End of new click)
+            // Should trigger valid click
+            mockInput.GetMouseState().Returns(new MouseState(100, 100, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
+            mockButtonManager.ClearReceivedCalls();
+            state.Update(new GameTime());
+
+            // Assert: ButtonManager called, isClick TRUE
+            mockButtonManager.Received(1).Update(new Point(100, 100), true);
+        }
     }
 }
 

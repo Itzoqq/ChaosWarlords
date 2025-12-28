@@ -209,7 +209,23 @@ namespace ChaosWarlords.Source.Managers
         {
             if (_isPauseMenuOpen && _game != null)
             {
-                _game.StateManager.ChangeState(new MainMenuState(_game));
+                // Properly create MainMenuState with view and button manager
+                // This matches the initialization pattern in Game1.LoadContent()
+                var buttonManager = new ChaosWarlords.Source.Rendering.UI.ButtonManager();
+                var mainMenuView = new ChaosWarlords.Source.Rendering.Views.MainMenuView(
+                    _game.GraphicsDevice, 
+                    _game.Content, 
+                    buttonManager);
+                
+                var mainMenuState = new MainMenuState(
+                    _game,
+                    _game.InputProvider,
+                    _game.StateManager,
+                    _game.CardDatabase,
+                    mainMenuView,
+                    buttonManager);
+                
+                _game.StateManager.ChangeState(mainMenuState);
             }
         }
 

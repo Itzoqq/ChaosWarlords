@@ -52,7 +52,8 @@ namespace ChaosWarlords.Tests.Managers
                 mockMap,
                 mockMarket,
                 _mockActionSystem,
-                mockDb
+                mockDb,
+                new PlayerStateManager()
             );
             
             _mockGameState.MatchContext.Returns(matchContext);

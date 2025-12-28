@@ -10,6 +10,7 @@ using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Managers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
@@ -23,6 +24,7 @@ namespace ChaosWarlords.Tests.Systems
         private Player _player1 = null!;
         private Player _player2 = null!;
         private MapManager _mapManager = null!;
+        private IPlayerStateManager _stateManager = null!;
 
         // Nodes & Sites for testing
         private MapNode _node1 = null!, _node2 = null!, _node3 = null!, _node4 = null!, _node5 = null!;
@@ -61,8 +63,10 @@ namespace ChaosWarlords.Tests.Systems
             var nodes = new List<MapNode> { _node1, _node2, _node3, _node4, _node5 };
             var sites = new List<Site> { _siteA, _siteB };
 
+            _stateManager = new PlayerStateManager();
+
             // The Manager now uses the SubSystems internally, but we test the RESULT of that integration here
-            _mapManager = new MapManager(nodes, sites);
+            _mapManager = new MapManager(nodes, sites, _stateManager);
             _mapManager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
         }
 
@@ -184,7 +188,7 @@ namespace ChaosWarlords.Tests.Systems
             remoteSite.AddNode(remoteNode);
 
             // New manager instance for isolation
-            var manager = new MapManager(new List<MapNode> { remoteNode }, new List<Site> { remoteSite });
+            var manager = new MapManager(new List<MapNode> { remoteNode }, new List<Site> { remoteSite }, _stateManager);
 
             bool result = manager.HasValidPlaceSpyTarget(_player1);
             Assert.IsTrue(result, "Should be able to place a spy on a remote site with zero presence.");
@@ -242,7 +246,8 @@ namespace ChaosWarlords.Tests.Systems
 
             var manager = new MapManager(
                 new List<MapNode> { cityNodeTL, cityNodeTR, cityNodeDL, cityNodeDR, routeNode },
-                new List<Site> { citySite }
+                new List<Site> { citySite },
+                _stateManager
             );
             manager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
 
@@ -266,7 +271,7 @@ namespace ChaosWarlords.Tests.Systems
             var startNode = new MapNode(1, Vector2.Zero) { Occupant = _player1.Color };
             var farNode = new MapNode(99, Vector2.Zero);
 
-            var manager = new MapManager(new List<MapNode> { startNode, farNode }, new List<Site>());
+            var manager = new MapManager(new List<MapNode> { startNode, farNode }, new List<Site>(), _stateManager);
             manager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
 
             bool result = manager.CanDeployAt(farNode, _player1.Color);
@@ -285,7 +290,7 @@ namespace ChaosWarlords.Tests.Systems
             var siteB = new NonCitySite("Target Fort", ResourceType.Power, 1, ResourceType.Power, 1);
             siteB.AddNode(siteBNode);
 
-            var manager = new MapManager(new List<MapNode> { siteANode, siteBNode }, new List<Site> { siteA, siteB });
+            var manager = new MapManager(new List<MapNode> { siteANode, siteBNode }, new List<Site> { siteA, siteB }, _stateManager);
             manager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
 
             siteA.Spies.Add(_player1.Color);

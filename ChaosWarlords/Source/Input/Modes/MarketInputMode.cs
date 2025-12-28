@@ -11,6 +11,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Managers;
 
 
 namespace ChaosWarlords.Source.States.Input

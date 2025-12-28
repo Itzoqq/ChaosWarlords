@@ -15,6 +15,13 @@ namespace ChaosWarlords.Source.Systems
 {
     public class SiteControlSystem
     {
+        private IPlayerStateManager _stateManager;
+
+        public void SetPlayerStateManager(IPlayerStateManager stateManager)
+        {
+            _stateManager = stateManager;
+        }
+
         public void RecalculateSiteState(Site site, Player activePlayer)
         {
             if (site == null) return;
@@ -133,9 +140,17 @@ namespace ChaosWarlords.Source.Systems
 
         private void ApplyReward(Player player, ResourceType type, int amount)
         {
-            if (type == ResourceType.Power) player.Power += amount;
-            if (type == ResourceType.Influence) player.Influence += amount;
-            if (type == ResourceType.VictoryPoints) player.VictoryPoints += amount;
+            if (_stateManager == null)
+            {
+                if (type == ResourceType.Power) player.Power += amount;
+                if (type == ResourceType.Influence) player.Influence += amount;
+                if (type == ResourceType.VictoryPoints) player.VictoryPoints += amount;
+                return;
+            }
+
+            if (type == ResourceType.Power) _stateManager.AddPower(player, amount);
+            if (type == ResourceType.Influence) _stateManager.AddInfluence(player, amount);
+            if (type == ResourceType.VictoryPoints) _stateManager.AddVictoryPoints(player, amount);
         }
     }
 }

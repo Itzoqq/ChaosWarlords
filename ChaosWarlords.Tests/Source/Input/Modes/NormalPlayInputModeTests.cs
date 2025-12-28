@@ -9,6 +9,8 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.States.Input;
 using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Core.Utilities;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
@@ -49,7 +51,8 @@ namespace ChaosWarlords.Tests.States.Input
             _marketSub = Substitute.For<IMarketManager>();
             _mockUI = Substitute.For<IUIManager>();
             _activePlayer = new Player(PlayerColor.Red);
-            _turnManager = new TurnManager(new List<Player> { _activePlayer });
+            var mockRandom = Substitute.For<IGameRandom>();
+            _turnManager = new TurnManager(new List<Player> { _activePlayer }, mockRandom);
 
             _inputMode = new NormalPlayInputMode(
                 _stateSub,

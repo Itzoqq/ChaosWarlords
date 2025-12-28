@@ -6,12 +6,13 @@ using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using NSubstitute;
-using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Core.Utilities;
 
 namespace ChaosWarlords.Tests.Source.Systems
 {
@@ -32,21 +33,23 @@ namespace ChaosWarlords.Tests.Source.Systems
         {
             _p1 = new Player(PlayerColor.Red);
             _p2 = new Player(PlayerColor.Blue);
-            var players = new List<Player> { _p1, _p2 };
 
             _mapManager = Substitute.For<IMapManager>();
             _marketManager = Substitute.For<IMarketManager>();
             _actionSystem = Substitute.For<IActionSystem>();
             _cardDatabase = Substitute.For<ICardDatabase>();
 
-            var turnManagerConcrete = new TurnManager(players);
+            var mockRandom = Substitute.For<IGameRandom>();
+            var playerState = new PlayerStateManager();
+            var turnManagerConcrete = new TurnManager(new List<Player> { _p1, _p2 }, mockRandom);
 
             _context = new MatchContext(
                 turnManagerConcrete,
                 _mapManager,
                 _marketManager,
                 _actionSystem,
-                _cardDatabase
+                _cardDatabase,
+                playerState
             );
 
             _controller = new MatchManager(_context);

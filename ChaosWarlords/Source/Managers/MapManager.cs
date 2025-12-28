@@ -34,6 +34,7 @@ namespace ChaosWarlords.Source.Systems
         private readonly CombatResolver _combat;
         private readonly SpyOperations _spyOps;
         private readonly MapRewardSystem _rewards;
+        private IPlayerStateManager _playerStateManager;
 
         // Events
         public event System.Action OnSetupDeploymentComplete;
@@ -42,10 +43,11 @@ namespace ChaosWarlords.Source.Systems
         IReadOnlyList<MapNode> IMapManager.Nodes => NodesInternal;
         IReadOnlyList<Site> IMapManager.Sites => SitesInternal;
 
-        public MapManager(List<MapNode> nodes, List<Site> sites)
+        public MapManager(List<MapNode> nodes, List<Site> sites, IPlayerStateManager playerState = null)
         {
             NodesInternal = nodes;
             SitesInternal = sites;
+            _playerStateManager = playerState;
             _nodeSiteLookup = new Dictionary<MapNode, Site>();
 
             // Build Lookup
@@ -62,6 +64,7 @@ namespace ChaosWarlords.Source.Systems
             // Initialize Sub-Systems (Composition)
             _ruleEngine = new MapRuleEngine(NodesInternal, SitesInternal, _nodeSiteLookup);
             _controlSystem = new SiteControlSystem();
+            if (_playerStateManager != null) _controlSystem.SetPlayerStateManager(_playerStateManager);
 
             // Initialize New Service Classes
             _topology = new MapTopology(NodesInternal, SitesInternal);
@@ -69,9 +72,18 @@ namespace ChaosWarlords.Source.Systems
             _combat = new CombatResolver(
                 node => GetSiteForNode(node),
                 (site, player) => RecalculateSiteState(site, player),
-                () => CurrentPhase
+                () => CurrentPhase,
+                _playerStateManager
             );
-            _spyOps = new SpyOperations((site, player) => RecalculateSiteState(site, player));
+            _spyOps = new SpyOperations((site, player) => RecalculateSiteState(site, player), _playerStateManager);
+        }
+
+        public void SetPlayerStateManager(IPlayerStateManager stateManager)
+        {
+            _playerStateManager = stateManager;
+            _controlSystem.SetPlayerStateManager(stateManager);
+            _combat.SetPlayerStateManager(stateManager);
+            _spyOps.SetPlayerStateManager(stateManager);
         }
 
         // -------------------------------------------------------------------------

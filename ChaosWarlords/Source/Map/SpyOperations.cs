@@ -22,10 +22,17 @@ namespace ChaosWarlords.Source.Map
     public class SpyOperations
     {
         private readonly Action<Site, Player> _recalculateSiteState;
+        private IPlayerStateManager _stateManager;
 
-        public SpyOperations(Action<Site, Player> recalculateSiteState)
+        public void SetPlayerStateManager(IPlayerStateManager stateManager)
+        {
+            _stateManager = stateManager;
+        }
+
+        public SpyOperations(Action<Site, Player> recalculateSiteState, IPlayerStateManager stateManager)
         {
             _recalculateSiteState = recalculateSiteState;
+            _stateManager = stateManager;
         }
 
         /// <summary>
@@ -44,7 +51,7 @@ namespace ChaosWarlords.Source.Map
 
             if (player.SpiesInBarracks > 0)
             {
-                player.SpiesInBarracks--;
+                _stateManager.RemoveSpies(player, 1);
                 site.Spies.Add(player.Color);
                 
                 GameLogger.Log($"Spy placed at {site.Name}.", LogChannel.Combat);

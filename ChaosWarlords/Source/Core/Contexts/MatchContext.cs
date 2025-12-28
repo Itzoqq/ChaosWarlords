@@ -12,6 +12,7 @@ using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Systems;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Core.Utilities;
 
 namespace ChaosWarlords.Source.Contexts
 {
@@ -36,6 +37,24 @@ namespace ChaosWarlords.Source.Contexts
         public IMarketManager MarketManager { get; private set; }
         public IActionSystem ActionSystem { get; private set; }
         public ICardDatabase CardDatabase { get; private set; }
+        
+        /// <summary>
+        /// Deterministic random number generator for this match.
+        /// All random events must use this to ensure reproducible gameplay.
+        /// </summary>
+        public IGameRandom Random { get; private set; }
+        
+        /// <summary>
+        /// Centralized state manager for all player mutations.
+        /// </summary>
+        public IPlayerStateManager PlayerStateManager { get; private set; }
+        
+        /// <summary>
+        /// The seed used to initialize the random number generator.
+        /// Can be used to reproduce the exact same match.
+        /// </summary>
+        public int Seed { get; private set; }
+        
         /// <summary>
         /// Universal pile for all devoured cards (removed from game).
         /// </summary>
@@ -47,6 +66,11 @@ namespace ChaosWarlords.Source.Contexts
         // 3. Match-Specific Settings (that don't belong in a generic manager)
         public int TargetVictoryPoints { get; set; } = GameConstants.TARGET_VICTORY_POINTS;
         public bool IsGamePaused { get; set; } = false;
+        
+        /// <summary>
+        /// Tracks the current turn number for logging and replay purposes.
+        /// </summary>
+        public int CurrentTurnNumber { get; set; } = 0;
 
         // New Phase Tracking
         public MatchPhase CurrentPhase { get; set; } = MatchPhase.Setup;
@@ -56,13 +80,20 @@ namespace ChaosWarlords.Source.Contexts
             IMapManager map,
             IMarketManager market,
             IActionSystem action,
-            ICardDatabase cardDb)
+            ICardDatabase cardDb,
+            IPlayerStateManager playerState,
+            int? seed = null)
         {
             TurnManager = turn ?? throw new ArgumentNullException(nameof(turn));
             MapManager = map ?? throw new ArgumentNullException(nameof(map));
             MarketManager = market ?? throw new ArgumentNullException(nameof(market));
             ActionSystem = action ?? throw new ArgumentNullException(nameof(action));
             CardDatabase = cardDb ?? throw new ArgumentNullException(nameof(cardDb));
+            PlayerStateManager = playerState ?? throw new ArgumentNullException(nameof(playerState));
+            
+            // Initialize seeded RNG
+            Seed = seed ?? Environment.TickCount;
+            Random = new SeededGameRandom(Seed);
         }
     }
 }

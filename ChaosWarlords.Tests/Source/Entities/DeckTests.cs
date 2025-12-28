@@ -9,6 +9,8 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Core.Utilities;
+using NSubstitute;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,7 +41,8 @@ namespace ChaosWarlords.Tests.Source.Entities
             _deck.AddToTop(_c1);
             _deck.AddToTop(_c2);
 
-            var drawn = _deck.Draw(1);
+            var mockRandom = Substitute.For<IGameRandom>();
+            var drawn = _deck.Draw(1, mockRandom);
 
             Assert.HasCount(1, drawn);
             Assert.AreEqual(_c2, drawn[0]); // c2 was added last (top)
@@ -53,7 +56,8 @@ namespace ChaosWarlords.Tests.Source.Entities
             _deck.AddToDiscard(_c2);
             // Draw pile is empty
 
-            var drawn = _deck.Draw(1);
+            var mockRandom = Substitute.For<IGameRandom>();
+            var drawn = _deck.Draw(1, mockRandom);
 
             Assert.HasCount(1, drawn);
             Assert.AreEqual(1, _deck.Count); // 2 total - 1 drawn = 1 left
@@ -68,7 +72,8 @@ namespace ChaosWarlords.Tests.Source.Entities
         {
             _deck.AddToTop(_c1);
 
-            var drawn = _deck.Draw(5);
+            var mockRandom = Substitute.For<IGameRandom>();
+            var drawn = _deck.Draw(5, mockRandom);
 
             Assert.HasCount(1, drawn);
             Assert.AreEqual(0, _deck.Count);
@@ -90,7 +95,8 @@ namespace ChaosWarlords.Tests.Source.Entities
                 cards.Add(new Card(i.ToString(), i.ToString(), 0, CardAspect.Neutral, 0, 0, 0));
 
             _deck.AddToDiscard(cards);
-            _deck.Draw(1); // Triggers reshuffle
+            var mockRandom = Substitute.For<IGameRandom>();
+            _deck.Draw(1, mockRandom); // Triggers reshuffle
 
             // Very small chance this fails if it randomly shuffles to same order, but negligible for 50 items.
             // However, we only have read-only access to DrawPile list. 
@@ -109,7 +115,8 @@ namespace ChaosWarlords.Tests.Source.Entities
             _deck.AddToDiscard(_c2);
             _deck.AddToDiscard(_c3);
 
-            var drawn = _deck.Draw(2);
+            var mockRandom = Substitute.For<IGameRandom>();
+            var drawn = _deck.Draw(2, mockRandom);
 
             Assert.HasCount(2, drawn, "Should have drawn 2 cards");
             Assert.AreEqual(1, _deck.Count, "Should have 1 card remaining in deck");

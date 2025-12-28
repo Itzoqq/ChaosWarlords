@@ -277,39 +277,18 @@ namespace ChaosWarlords.Source.Systems
 
             foreach (var element in _elements)
             {
-                if (element.IsActive() && input.IsMouseOver(element.GetBounds()))
+                if (element.IsActive())
                 {
-                    element.OnClick?.Invoke();
-                    // We might want to break here if we only allow one click per frame, 
-                    // but original code allowed multiple (theoretical overlap). 
-                    // Keeping it equivalent.
-                    return; // Retaining the 'return' behavior from original code for the first match? 
-                            // Actually original code had 'return' for pause/popup but not for game buttons.
-                            // The pause/popup were blocking. 
-                            // To strictly maintain behavior we might need ordering or layers, 
-                            // but simpler is: first valid click takes it? 
-                            // The original code returned on Pause/Popup clicks, preventing Game clicks.
-                            // My list order puts Game first, then Popup, then Pause. 
-                            // Wait, if Pause is over Game, we want Pause to win.
-                            // The original code checked checks sequentially and returned.
-                            // So if Resume was clicked, it returned.
-                            // If Market was clicked, it did NOT return.
-                            
-                    // CORRECT BEHAVIOR REPLICATION:
-                    // The standard way is to respect the return for exclusive UI.
-                    // For now, I will let it fall through as the original code was a bit mixed.
-                    // Actually, the original code had returns for Pause and Popup, but not for Game Buttons.
-                    // Meaning if you clicked Resume, it wouldn't check Market.
-                    // But if you clicked Market, it would continue checking Assassinate (unlikely to overlap).
+                    var bounds = element.GetBounds();
+                    bool isOver = input.IsMouseOver(bounds);
                     
-                    // Since I put Game buttons FIRST in the list, and Pause/Popup later...
-                    // If I want Pause to block Game, I should check Pause FIRST.
-                    // Or I can add a layer priority.
-                    // For complexity reduction, I will assume non-overlapping handling is fine for now,
-                    // or I'll just follow the list order.
+                    if (isOver)
+                    {
+                        element.OnClick?.Invoke();
+                        return;
+                    }
                 }
             }
         }
     }
 }
-

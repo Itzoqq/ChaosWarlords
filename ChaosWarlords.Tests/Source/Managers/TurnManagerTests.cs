@@ -1,11 +1,12 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using System.Collections.Generic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using NSubstitute;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Core.Utilities;
 
 namespace ChaosWarlords.Tests.Managers
 {
@@ -23,7 +24,8 @@ namespace ChaosWarlords.Tests.Managers
             };
 
             // Act
-            var manager = new TurnManager(players);
+            var mockRandom = Substitute.For<IGameRandom>();
+            var manager = new TurnManager(players, mockRandom);
 
             // Assert
             Assert.IsNotNull(manager.ActivePlayer);
@@ -36,7 +38,8 @@ namespace ChaosWarlords.Tests.Managers
         {
             try
             {
-                new TurnManager(new List<Player>());
+                var mockRandom = Substitute.For<IGameRandom>();
+                new TurnManager(new List<Player>(), mockRandom);
                 Assert.Fail("Expected ArgumentException was not thrown.");
             }
             catch (System.ArgumentException)
@@ -51,7 +54,8 @@ namespace ChaosWarlords.Tests.Managers
             // Arrange
             var p1 = new Player(PlayerColor.Red);
             var p2 = new Player(PlayerColor.Blue);
-            var manager = new TurnManager(new List<Player> { p1, p2 });
+            var mockRandom = Substitute.For<IGameRandom>();
+            var manager = new TurnManager(new List<Player> { p1, p2 }, mockRandom);
             var firstPlayer = manager.ActivePlayer;
 
             // Act
@@ -67,7 +71,8 @@ namespace ChaosWarlords.Tests.Managers
             // Arrange
             var p1 = new Player(PlayerColor.Red);
             var p2 = new Player(PlayerColor.Blue);
-            var manager = new TurnManager(new List<Player> { p1, p2 });
+            var mockRandom = Substitute.For<IGameRandom>();
+            var manager = new TurnManager(new List<Player> { p1, p2 }, mockRandom);
             
             bool eventFired = false;
             Player? eventPlayer = null;

@@ -23,15 +23,23 @@ namespace ChaosWarlords.Source.Map
         private readonly Func<MapNode, Site> _getSiteForNode;
         private readonly Action<Site, Player> _recalculateSiteState;
         private readonly Func<MatchPhase> _getCurrentPhase;
+        private IPlayerStateManager _stateManager;
+
+        public void SetPlayerStateManager(IPlayerStateManager stateManager)
+        {
+            _stateManager = stateManager;
+        }
 
         public CombatResolver(
             Func<MapNode, Site> getSiteForNode,
             Action<Site, Player> recalculateSiteState,
-            Func<MatchPhase> getCurrentPhase)
+            Func<MatchPhase> getCurrentPhase,
+            IPlayerStateManager stateManager)
         {
             _getSiteForNode = getSiteForNode;
             _recalculateSiteState = recalculateSiteState;
             _getCurrentPhase = getCurrentPhase;
+            _stateManager = stateManager;
         }
 
         /// <summary>
@@ -45,10 +53,10 @@ namespace ChaosWarlords.Source.Map
             // FREE in Setup Phase
             if (_getCurrentPhase() != MatchPhase.Setup)
             {
-                player.Power -= GameConstants.DEPLOY_POWER_COST;
+                _stateManager.TrySpendPower(player, GameConstants.DEPLOY_POWER_COST);
             }
             
-            player.TroopsInBarracks--;
+            _stateManager.RemoveTroops(player, 1);
             node.Occupant = player.Color;
 
             GameLogger.Log($"Deployed Troop at Node {node.Id}. Supply: {player.TroopsInBarracks}", LogChannel.Combat);
@@ -65,7 +73,7 @@ namespace ChaosWarlords.Source.Map
             if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
 
             node.Occupant = PlayerColor.None;
-            attacker.TrophyHall++;
+            _stateManager.AddTrophy(attacker);
 
             GameLogger.Log($"Assassinated enemy at Node {node.Id}. Trophy Hall: {attacker.TrophyHall}", LogChannel.Combat);
             _recalculateSiteState(_getSiteForNode(node), attacker);
@@ -99,7 +107,7 @@ namespace ChaosWarlords.Source.Map
             if (node.Occupant == requestingPlayer.Color)
             {
                 node.Occupant = PlayerColor.None;
-                requestingPlayer.TroopsInBarracks++;
+                _stateManager.AddTroops(requestingPlayer, 1);
                 GameLogger.Log($"Returned friendly troop at Node {node.Id} to barracks.", LogChannel.Combat);
             }
             else if (node.Occupant != PlayerColor.None)
@@ -123,13 +131,13 @@ namespace ChaosWarlords.Source.Map
 
             // Atomic: Assassinate + Deploy
             node.Occupant = PlayerColor.None;
-            attacker.TrophyHall++;
+            _stateManager.AddTrophy(attacker);
             
             if (_getCurrentPhase() != MatchPhase.Setup)
             {
-                attacker.Power -= GameConstants.DEPLOY_POWER_COST;
+                _stateManager.TrySpendPower(attacker, GameConstants.DEPLOY_POWER_COST);
             }
-            attacker.TroopsInBarracks--;
+            _stateManager.RemoveTroops(attacker, 1);
             node.Occupant = attacker.Color;
 
             GameLogger.Log($"Supplanted enemy at Node {node.Id} (Added to Trophy Hall) and Deployed.", LogChannel.Combat);

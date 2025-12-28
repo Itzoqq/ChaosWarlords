@@ -7,12 +7,13 @@ using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
-using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Managers;
 
 namespace ChaosWarlords.Tests.Source.Systems
 {
@@ -40,7 +41,8 @@ namespace ChaosWarlords.Tests.Source.Systems
                 Substitute.For<IMapManager>(),
                 Substitute.For<IMarketManager>(),
                 Substitute.For<IActionSystem>(),
-                Substitute.For<ICardDatabase>()
+                Substitute.For<ICardDatabase>(),
+                new PlayerStateManager() // <--- Use real StateManager for logic testing
             );
         }
 

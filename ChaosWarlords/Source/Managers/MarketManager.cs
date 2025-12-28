@@ -20,24 +20,32 @@ namespace ChaosWarlords.Source.Systems
 
         public List<Card> MarketRow { get; private set; }
 
-        public MarketManager(ICardDatabase cardDatabase)
+        public MarketManager(ICardDatabase cardDatabase, IGameRandom random = null)
         {
             _cardDatabase = cardDatabase;
             _marketDeck = _cardDatabase.GetAllMarketCards();
             MarketRow = new List<Card>();
 
-            ShuffleDeck(_marketDeck);
+            if (random != null)
+                random.Shuffle(_marketDeck);
+            else
+                _marketDeck.Shuffle(); // Fallback to System.Random logic if no seed provided (legacy/test support)
+                
             RefillMarket();
         }
 
-        public bool TryBuyCard(Player player, Card card)
+        public bool TryBuyCard(Player player, Card card, IPlayerStateManager stateManager)
         {
             if (!MarketRow.Contains(card)) return false;
-            if (player.Influence < card.Cost) return false;
 
-            player.Influence -= card.Cost;
+            // Use PlayerStateManager for Resource Check & Spend
+            if (!stateManager.TrySpendInfluence(player, card.Cost)) return false;
+
+            // Remove from Market
             MarketRow.Remove(card);
-            player.DeckManager.AddToDiscard(card);
+
+            // Add to Player via StateManager
+            stateManager.AcquireCard(player, card);
 
             RefillMarket();
             return true;
@@ -53,11 +61,8 @@ namespace ChaosWarlords.Source.Systems
                 MarketRow.Add(card);
             }
         }
-
-        private void ShuffleDeck(List<Card> deck)
-        {
-            deck.Shuffle(); // Use extension method from CollectionHelpers
-        }
+        
+        // Removed ShuffleDeck private method as it's handled in constructor now
 
     }
 }

@@ -11,6 +11,7 @@ using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Managers;
 using Microsoft.Xna.Framework;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -31,10 +32,13 @@ namespace ChaosWarlords.Tests.Map
             _testSite = new NonCitySite("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
             _siteRecalculated = false;
 
+            var stateManager = new PlayerStateManager();
+
             _resolver = new CombatResolver(
                 node => _testSite,
                 (site, player) => _siteRecalculated = true,
-                () => _currentPhase
+                () => _currentPhase,
+                stateManager
             );
         }
 

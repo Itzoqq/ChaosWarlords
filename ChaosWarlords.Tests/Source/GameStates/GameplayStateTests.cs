@@ -23,6 +23,7 @@ using System.Linq;
 using ChaosWarlords.Source.Views;
 using ChaosWarlords.Source.Input.Controllers;
 using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Core.Utilities;
 
 using ChaosWarlords.Tests;
 
@@ -212,9 +213,11 @@ namespace ChaosWarlords.Tests.States
 
                 var p1 = new Player(PlayerColor.Red);
                 var p2 = new Player(PlayerColor.Blue);
-                var tm = new TurnManager(new List<Player> { p1, p2 });
+                var mockRandom = Substitute.For<IGameRandom>();
+                var tm = new TurnManager(new List<Player> { p1, p2 }, mockRandom);
 
-                _matchContext = new MatchContext(tm, map, market, action, _testDb);
+                var ps = new PlayerStateManager();
+                _matchContext = new MatchContext(tm, map, market, action, _testDb, ps);
                 _matchManager = new MatchManager(_matchContext);
 
                 // --- DIRECT FIELD ACCESS (No Reflection) ---

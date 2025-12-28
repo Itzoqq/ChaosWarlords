@@ -14,7 +14,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
 {
     public interface IMarketManager
     {
-        bool TryBuyCard(Player player, Card card);
+        bool TryBuyCard(Player player, Card card, IPlayerStateManager stateManager);
         List<Card> MarketRow { get; }
     }
 }

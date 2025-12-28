@@ -52,6 +52,13 @@ namespace ChaosWarlords.Source.Input.Controllers
             if (HandleGlobalInput()) return true;
             if (HandleSpySelectionInput()) return true;
 
+            // CRITICAL: Block all game input when pause menu or popup is open
+            // This prevents clicks from passing through UI to the game world
+            if (_gameState.IsPauseMenuOpen || _gameState.IsConfirmationPopupOpen)
+            {
+                return true; // Input blocked
+            }
+
             // Delegate to input coordinator for mode-specific input
             _inputCoordinator.HandleInput();
             return false;

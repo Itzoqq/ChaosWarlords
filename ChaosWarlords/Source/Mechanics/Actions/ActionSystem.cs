@@ -30,6 +30,7 @@ namespace ChaosWarlords.Source.Systems
 
         private readonly ITurnManager _turnManager;
         private readonly IMapManager _mapManager;
+        private IPlayerStateManager _playerStateManager;
 
         private Player CurrentPlayer => _turnManager.ActivePlayer;
 
@@ -39,6 +40,11 @@ namespace ChaosWarlords.Source.Systems
         {
             _turnManager = turnManager;
             _mapManager = mapManager;
+        }
+
+        public void SetPlayerStateManager(IPlayerStateManager stateManager)
+        {
+            _playerStateManager = stateManager;
         }
 
         public void TryStartAssassinate()
@@ -150,7 +156,15 @@ namespace ChaosWarlords.Source.Systems
             // 3. Execution (Spend & Do)
             if (PendingCard == null)
             {
-                CurrentPlayer.TrySpendPower(ASSASSINATE_COST);
+                if (_playerStateManager != null)
+                {
+                     _playerStateManager.TrySpendPower(CurrentPlayer, ASSASSINATE_COST);
+                }
+                else
+                {
+                     // Fallback if not injected (should catch in tests) or direct mod for now
+                     CurrentPlayer.Power -= ASSASSINATE_COST; 
+                }
             }
 
             _mapManager.Assassinate(targetNode, CurrentPlayer);
@@ -299,7 +313,15 @@ namespace ChaosWarlords.Source.Systems
             {
                 if (PendingCard == null)
                 {
-                    CurrentPlayer.TrySpendPower(RETURN_SPY_COST);
+                     if (_playerStateManager != null)
+                     {
+                         _playerStateManager.TrySpendPower(CurrentPlayer, RETURN_SPY_COST);
+                     }
+                     else
+                     {
+                         // Fallback
+                         CurrentPlayer.Power -= RETURN_SPY_COST;
+                     }
                 }
                 OnActionCompleted?.Invoke(this, EventArgs.Empty);
                 ClearState();
