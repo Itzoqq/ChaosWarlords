@@ -1,16 +1,14 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Core.Events;
-using System;
 
 namespace ChaosWarlords.Tests.Source.Core.Events
 {
     [TestClass]
     public class EventManagerTests
     {
-        private EventManager _eventManager;
+        private EventManager _eventManager = null!;
         private bool _eventReceived;
-        private GameEvent _receivedEvent;
+        private GameEvent? _receivedEvent;
 
         [TestInitialize]
         public void Setup()
@@ -75,7 +73,7 @@ namespace ChaosWarlords.Tests.Source.Core.Events
 
         private record TestEvent : GameEvent
         {
-            public string Message { get; init; }
+            public string? Message { get; init; }
         }
     }
 }

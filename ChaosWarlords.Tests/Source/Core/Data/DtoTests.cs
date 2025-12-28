@@ -1,8 +1,6 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Core.Data.Dtos;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
-using System.Linq;
 
 namespace ChaosWarlords.Tests.Source.Core.Data
 {
@@ -37,13 +35,13 @@ namespace ChaosWarlords.Tests.Source.Core.Data
             // Using internal list access if possible, or mocking if accessible.
             // Since DTOs are structural, we will test empty list behavior or rely on mocked cards if we had specific internal access.
             // For now, testing empty consistency.
-            
+
             // Act
             var dto = PlayerDto.FromEntity(player);
 
             // Assert
             Assert.IsNotNull(dto.Hand);
-            Assert.AreEqual(0, dto.Hand.Count);
+            Assert.IsEmpty(dto.Hand);
         }
     }
 }
