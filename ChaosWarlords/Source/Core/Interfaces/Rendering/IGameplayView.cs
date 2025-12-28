@@ -9,7 +9,10 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 using ChaosWarlords.Source.Contexts;
-using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Mechanics.Rules;
+using ChaosWarlords.Source.Mechanics.Actions;
+using ChaosWarlords.Source.Input;
 using ChaosWarlords.Source.Views;
 using ChaosWarlords.Source.Entities.Actors;
 

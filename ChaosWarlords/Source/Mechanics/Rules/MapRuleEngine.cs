@@ -14,7 +14,7 @@ using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
 
-namespace ChaosWarlords.Source.Systems
+namespace ChaosWarlords.Source.Mechanics.Rules
 {
     public class MapRuleEngine
     {
@@ -164,22 +164,17 @@ namespace ChaosWarlords.Source.Systems
 
         public bool HasValidReturnSpyTarget(Player activePlayer)
         {
-            if (_sites == null) return false;
-            // Check for ANY spies (Validation logic allows returning any spy), not just own.
-            // Also robust presence check using Any node.
-            return _sites.Any(s =>
+            return _sites?.Any(s =>
                 s.Spies.Count > 0 &&
-                s.NodesInternal.Any(n => HasPresence(n, activePlayer.Color)));
+                s.NodesInternal.Any(n => HasPresence(n, activePlayer.Color))) ?? false;
         }
 
         public bool HasValidReturnTroopTarget(Player activePlayer)
         {
-            if (_nodes == null) return false;
-            // Check for any node with a non-neutral troop where we have presence
-            return _nodes.Any(n =>
+            return _nodes?.Any(n =>
                 n.Occupant != PlayerColor.None &&
                 n.Occupant != PlayerColor.Neutral &&
-                HasPresence(n, activePlayer.Color));
+                HasPresence(n, activePlayer.Color)) ?? false;
         }
 
         public bool HasValidPlaceSpyTarget(Player activePlayer)

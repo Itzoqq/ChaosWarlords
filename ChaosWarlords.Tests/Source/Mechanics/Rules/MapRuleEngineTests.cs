@@ -8,7 +8,10 @@ using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Mechanics.Rules;
+using ChaosWarlords.Source.Mechanics.Actions;
+using ChaosWarlords.Source.Input;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -291,7 +294,49 @@ namespace ChaosWarlords.Tests.Systems
             // Should be able to deploy ANYWHERE (e.g., node 3 which is far away and disconnected)
             Assert.IsTrue(_engine.CanDeployAt(_node3, _player1.Color), "Wiped player should be able to deploy anywhere.");
         }
+        [TestMethod]
+        public void HasValidReturnSpyTarget_True_IfEnemySpyAndPresence()
+        {
+            // Arrange
+            _siteA.Spies.Add(_player2.Color); // Enemy spy
+            _node3.Occupant = _player1.Color; // P1 presence via occupation
+            
+            // Act & Assert
+            Assert.IsTrue(_engine.HasValidReturnSpyTarget(_player1));
+        }
+
+        [TestMethod]
+        public void HasValidReturnSpyTarget_False_IfNoSpies()
+        {
+            // Arrange
+            _node3.Occupant = _player1.Color;
+            
+            // Act & Assert
+            Assert.IsFalse(_engine.HasValidReturnSpyTarget(_player1));
+        }
+
+        [TestMethod]
+        public void HasValidReturnTroopTarget_True_IfEnemyTroopAndPresence()
+        {
+            // Arrange
+            _node1.Occupant = _player1.Color; // P1 presence
+            _node2.Occupant = _player2.Color; // P2 target
+            
+            // Act & Assert
+            Assert.IsTrue(_engine.HasValidReturnTroopTarget(_player1));
+        }
+
+        [TestMethod]
+        public void HasValidReturnTroopTarget_False_IfOnlyNeutral()
+        {
+            // Arrange: P1 has spy at site, granting presence to Node 3.
+            _siteA.Spies.Add(_player1.Color); 
+            _node3.Occupant = PlayerColor.Neutral; 
+            _node1.Occupant = PlayerColor.None;
+            _node2.Occupant = PlayerColor.None;
+            
+            // Act & Assert
+            Assert.IsFalse(_engine.HasValidReturnTroopTarget(_player1));
+        }
     }
 }
-
-

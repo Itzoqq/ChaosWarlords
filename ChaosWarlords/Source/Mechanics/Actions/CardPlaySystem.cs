@@ -14,7 +14,7 @@ using ChaosWarlords.Source.Contexts;
 
 using ChaosWarlords.Source.Utilities;
 
-namespace ChaosWarlords.Source.Systems
+namespace ChaosWarlords.Source.Mechanics.Actions
 {
     public class CardPlaySystem
     {

@@ -9,9 +9,10 @@ using System;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 using ChaosWarlords.Source.Utilities;
+using System.Linq;
 
 
-namespace ChaosWarlords.Source.Systems
+namespace ChaosWarlords.Source.Managers
 {
     public class UIManager : IUIManager
     {
@@ -275,20 +276,8 @@ namespace ChaosWarlords.Source.Systems
         {
             if (!input.IsLeftMouseJustClicked()) return;
 
-            foreach (var element in _elements)
-            {
-                if (element.IsActive())
-                {
-                    var bounds = element.GetBounds();
-                    bool isOver = input.IsMouseOver(bounds);
-                    
-                    if (isOver)
-                    {
-                        element.OnClick?.Invoke();
-                        return;
-                    }
-                }
-            }
+            var clickedElement = _elements.FirstOrDefault(e => e.IsActive() && input.IsMouseOver(e.GetBounds()));
+            clickedElement?.OnClick?.Invoke();
         }
     }
 }

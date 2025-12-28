@@ -8,7 +8,7 @@ using ChaosWarlords.Source.Core.Interfaces.Logic;
 using Microsoft.Xna.Framework.Input;
 using System.Diagnostics.CodeAnalysis;
 
-namespace ChaosWarlords.Source.Systems
+namespace ChaosWarlords.Source.Input
 {
     [ExcludeFromCodeCoverage]
     public class MonoGameInputProvider : IInputProvider

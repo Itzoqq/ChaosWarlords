@@ -11,7 +11,7 @@ using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 
-namespace ChaosWarlords.Source.Systems
+namespace ChaosWarlords.Source.Mechanics.Rules
 {
     public class SiteControlSystem
     {

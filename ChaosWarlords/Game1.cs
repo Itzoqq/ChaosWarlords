@@ -9,7 +9,8 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Input;
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;

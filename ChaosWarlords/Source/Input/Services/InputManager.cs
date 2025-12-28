@@ -9,7 +9,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 
 
-namespace ChaosWarlords.Source.Systems
+namespace ChaosWarlords.Source.Managers
 {
     public class InputManager : IInputManager
     {

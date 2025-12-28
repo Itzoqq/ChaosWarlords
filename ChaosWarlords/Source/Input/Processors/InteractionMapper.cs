@@ -12,9 +12,10 @@ using ChaosWarlords.Source.Entities.Actors;
 
 using System.Linq;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Managers;
 
 
-namespace ChaosWarlords.Source.Systems
+namespace ChaosWarlords.Source.Input
 {
     /// <summary>
     /// Translates Mouse Coordinates into Game Entities.

@@ -12,7 +12,7 @@ using ChaosWarlords.Source.Utilities;
 using System;
 using System.Linq;
 
-namespace ChaosWarlords.Source.Systems
+namespace ChaosWarlords.Source.Managers
 {
     public class ActionSystem : IActionSystem
     {
@@ -134,41 +134,50 @@ namespace ChaosWarlords.Source.Systems
         {
             if (targetNode == null) return;
 
-            // 1. Validation (Dry Run)
+            if (!ValidateAssassinate(targetNode)) return;
+
+            ExecuteAssassinate(targetNode);
+        }
+
+        private bool ValidateAssassinate(MapNode targetNode)
+        {
             if (!_mapManager.CanAssassinate(targetNode, CurrentPlayer))
             {
                 OnActionFailed?.Invoke(this, "Invalid Target!");
-                return;
+                return false;
             }
 
-            // 2. Cost Check
-            if (PendingCard == null)
+            if (PendingCard == null && CurrentPlayer.Power < ASSASSINATE_COST)
             {
-                // Verify funds first
-                if (CurrentPlayer.Power < ASSASSINATE_COST)
-                {
-                    CancelTargeting();
-                    OnActionFailed?.Invoke(this, $"Not enough Power to execute Assassinate! (Need {ASSASSINATE_COST})");
-                    return;
-                }
+                CancelTargeting();
+                OnActionFailed?.Invoke(this, $"Not enough Power to execute Assassinate! (Need {ASSASSINATE_COST})");
+                return false;
             }
 
-            // 3. Execution (Spend & Do)
+            return true;
+        }
+
+        private void ExecuteAssassinate(MapNode targetNode)
+        {
             if (PendingCard == null)
             {
-                if (_playerStateManager != null)
-                {
-                     _playerStateManager.TrySpendPower(CurrentPlayer, ASSASSINATE_COST);
-                }
-                else
-                {
-                     // Fallback if not injected (should catch in tests) or direct mod for now
-                     CurrentPlayer.Power -= ASSASSINATE_COST; 
-                }
+                SpendAssassinateCost();
             }
 
             _mapManager.Assassinate(targetNode, CurrentPlayer);
             CompleteAction();
+        }
+
+        private void SpendAssassinateCost()
+        {
+            if (_playerStateManager != null)
+            {
+                _playerStateManager.TrySpendPower(CurrentPlayer, ASSASSINATE_COST);
+            }
+            else
+            {
+                CurrentPlayer.Power -= ASSASSINATE_COST;
+            }
         }
 
         private void HandleReturn(MapNode targetNode)

@@ -11,7 +11,7 @@ using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using System.Collections.Generic;
 
-namespace ChaosWarlords.Source.Systems
+namespace ChaosWarlords.Source.Managers
 {
     public class MarketManager : IMarketManager
     {

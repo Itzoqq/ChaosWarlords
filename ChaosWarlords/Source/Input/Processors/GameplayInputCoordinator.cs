@@ -7,13 +7,16 @@ using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.States.Input;
-using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Mechanics.Rules;
+using ChaosWarlords.Source.Mechanics.Actions;
+using ChaosWarlords.Source.Input;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Managers;
 
 
-namespace ChaosWarlords.Source.Systems
+namespace ChaosWarlords.Source.Input
 {
     public class GameplayInputCoordinator : IGameplayInputCoordinator
     {

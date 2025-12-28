@@ -11,7 +11,10 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Systems;
+using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Mechanics.Rules;
+using ChaosWarlords.Source.Mechanics.Actions;
+using ChaosWarlords.Source.Input;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 

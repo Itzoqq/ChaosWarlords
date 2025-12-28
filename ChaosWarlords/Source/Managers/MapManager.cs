@@ -15,8 +15,9 @@ using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Map;
+using ChaosWarlords.Source.Mechanics.Rules;
 
-namespace ChaosWarlords.Source.Systems
+namespace ChaosWarlords.Source.Managers
 {
     public class MapManager : IMapManager
     {
