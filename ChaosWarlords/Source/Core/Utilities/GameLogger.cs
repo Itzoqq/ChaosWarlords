@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Diagnostics.CodeAnalysis;
@@ -8,9 +9,9 @@ namespace ChaosWarlords.Source.Utilities
     [ExcludeFromCodeCoverage]
     public struct LogEntry
     {
-        public string Timestamp;
-        public LogChannel Channel;
-        public string Message;
+        public string Timestamp { get; set; }
+        public LogChannel Channel { get; set; }
+        public string Message { get; set; }
 
         public override string ToString()
         {
@@ -49,7 +50,7 @@ namespace ChaosWarlords.Source.Utilities
             if (messageObj == null) return;
 
             string message = messageObj.ToString() ?? string.Empty;
-            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            string timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
 
             lock (_lock)
             {

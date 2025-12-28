@@ -88,7 +88,7 @@ namespace ChaosWarlords.Source.Managers
         public bool CanDeployAt(MapNode targetNode, PlayerColor player) => _ruleEngine.CanDeployAt(targetNode, player);
         public bool CanAssassinate(MapNode target, Player attacker) => _ruleEngine.CanAssassinate(target, attacker);
         public bool CanMoveSource(MapNode node, Player activePlayer) => _ruleEngine.CanMoveSource(node, activePlayer);
-        public bool CanMoveDestination(MapNode node) => _ruleEngine.CanMoveDestination(node);
+        public bool CanMoveDestination(MapNode node) => MapRuleEngine.CanMoveDestination(node);
 
         public bool HasValidAssassinationTarget(Player activePlayer) => _ruleEngine.HasValidAssassinationTarget(activePlayer);
         public bool HasValidReturnSpyTarget(Player activePlayer) => _ruleEngine.HasValidReturnSpyTarget(activePlayer);
@@ -111,7 +111,7 @@ namespace ChaosWarlords.Source.Managers
         public void ApplyOffset(Vector2 offset) => _topology.ApplyOffset(offset);
         public MapNode? GetNodeAt(Vector2 position) => _topology.GetNodeAt(position);
         public Site? GetSiteAt(Vector2 position) => _topology.GetSiteAt(position);
-        public List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer) => _spyOps.GetEnemySpiesAtSite(site, activePlayer);
+        public List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer) => SpyOperations.GetEnemySpiesAtSite(site, activePlayer);
 
         // -------------------------------------------------------------------------
         // COMBAT OPERATIONS (Delegated to CombatResolver)
@@ -123,8 +123,8 @@ namespace ChaosWarlords.Source.Managers
 
         public virtual bool TryDeploy(Player currentPlayer, MapNode targetNode)
         {
-            if (currentPlayer == null) throw new ArgumentNullException(nameof(currentPlayer));
-            if (targetNode == null) throw new ArgumentNullException(nameof(targetNode));
+            ArgumentNullException.ThrowIfNull(currentPlayer);
+            ArgumentNullException.ThrowIfNull(targetNode);
 
             if (!ValidateDeployment(currentPlayer, targetNode))
             {
@@ -156,7 +156,7 @@ namespace ChaosWarlords.Source.Managers
             }
 
             // Power Check skipped in Setup Phase
-            if (CurrentPhase != MatchPhase.Setup && currentPlayer.Power < GameConstants.DEPLOY_POWER_COST)
+            if (CurrentPhase != MatchPhase.Setup && currentPlayer.Power < GameConstants.DeployPowerCost)
             {
                 GameLogger.Log("Cannot Deploy: Not enough Power!", LogChannel.Economy);
                 return false;

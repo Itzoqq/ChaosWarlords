@@ -58,13 +58,13 @@ namespace ChaosWarlords.Source.Contexts
         public Player ActivePlayer => TurnManager.ActivePlayer;
 
         // 3. Match-Specific Settings (that don't belong in a generic manager)
-        public int TargetVictoryPoints { get; set; } = GameConstants.TARGET_VICTORY_POINTS;
-        public bool IsGamePaused { get; set; } = false;
+        public int TargetVictoryPoints { get; set; } = GameConstants.TargetVictoryPoints;
+        public bool IsGamePaused { get; set; }
 
         /// <summary>
         /// Tracks the current turn number for logging and replay purposes.
         /// </summary>
-        public int CurrentTurnNumber { get; set; } = 0;
+        public int CurrentTurnNumber { get; set; }
 
         // Phase Tracking
         public MatchPhase CurrentPhase { get; set; } = MatchPhase.Setup;

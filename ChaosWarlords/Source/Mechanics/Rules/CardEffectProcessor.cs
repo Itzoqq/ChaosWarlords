@@ -9,7 +9,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
     /// </summary>
     public class CardEffectProcessor
     {
-        public void ResolveEffects(Card card, MatchContext context, bool hasFocus)
+        public static void ResolveEffects(Card card, MatchContext context, bool hasFocus)
         {
             foreach (var effect in card.Effects)
             {
@@ -20,49 +20,26 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
         }
 
-        private void ApplyEffect(CardEffect effect, Card sourceCard, MatchContext context)
+        private static void ApplyEffect(CardEffect effect, Card sourceCard, MatchContext context)
         {
-            switch (effect.Type)
+            Action action = effect.Type switch
             {
-                case EffectType.GainResource:
-                    ApplyGainResource(effect, context);
-                    break;
+                EffectType.GainResource => () => ApplyGainResource(effect, context),
+                EffectType.DrawCard => () => ApplyDrawCard(effect, context),
+                EffectType.Promote => () => ApplyPromote(effect, sourceCard, context),
+                EffectType.MoveUnit => () => ApplyMoveUnit(sourceCard, context),
+                EffectType.Assassinate => () => ApplyAssassinate(sourceCard, context),
+                EffectType.Supplant => () => ApplySupplant(sourceCard, context),
+                EffectType.PlaceSpy => () => ApplyPlaceSpy(sourceCard, context),
+                EffectType.ReturnUnit => () => ApplyReturnUnit(sourceCard, context),
+                EffectType.Devour => () => ApplyDevour(sourceCard, context),
+                _ => () => { }
+            };
 
-                case EffectType.DrawCard:
-                    ApplyDrawCard(effect, context);
-                    break;
-
-                case EffectType.Promote:
-                    ApplyPromote(effect, sourceCard, context);
-                    break;
-
-                case EffectType.MoveUnit:
-                    ApplyMoveUnit(sourceCard, context);
-                    break;
-
-                case EffectType.Assassinate:
-                    ApplyAssassinate(sourceCard, context);
-                    break;
-
-                case EffectType.Supplant:
-                    ApplySupplant(sourceCard, context);
-                    break;
-
-                case EffectType.PlaceSpy:
-                    ApplyPlaceSpy(sourceCard, context);
-                    break;
-
-                case EffectType.ReturnUnit:
-                    ApplyReturnUnit(sourceCard, context);
-                    break;
-
-                case EffectType.Devour:
-                    ApplyDevour(sourceCard, context);
-                    break;
-            }
+            action();
         }
 
-        private void ApplyGainResource(CardEffect effect, MatchContext context)
+        private static void ApplyGainResource(CardEffect effect, MatchContext context)
         {
             if (effect.TargetResource == ResourceType.Power)
                 context.PlayerStateManager.AddPower(context.ActivePlayer, effect.Amount);
@@ -70,18 +47,18 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 context.PlayerStateManager.AddInfluence(context.ActivePlayer, effect.Amount);
         }
 
-        private void ApplyDrawCard(CardEffect effect, MatchContext context)
+        private static void ApplyDrawCard(CardEffect effect, MatchContext context)
         {
             context.PlayerStateManager.DrawCards(context.ActivePlayer, effect.Amount, context.Random);
         }
 
-        private void ApplyPromote(CardEffect effect, Card sourceCard, MatchContext context)
+        private static void ApplyPromote(CardEffect effect, Card sourceCard, MatchContext context)
         {
             context.TurnManager.CurrentTurnContext.AddPromotionCredit(sourceCard, effect.Amount);
             GameLogger.Log($"Promotion pending! Added {effect.Amount} point(s) from {sourceCard.Name}.", LogChannel.Info);
         }
 
-        private void ApplyMoveUnit(Card sourceCard, MatchContext context)
+        private static void ApplyMoveUnit(Card sourceCard, MatchContext context)
         {
             if (context.MapManager.HasValidMoveSource(context.ActivePlayer))
             {
@@ -94,7 +71,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
         }
 
-        private void ApplyAssassinate(Card sourceCard, MatchContext context)
+        private static void ApplyAssassinate(Card sourceCard, MatchContext context)
         {
             if (context.MapManager.HasValidAssassinationTarget(context.ActivePlayer))
             {
@@ -107,7 +84,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
         }
 
-        private void ApplySupplant(Card sourceCard, MatchContext context)
+        private static void ApplySupplant(Card sourceCard, MatchContext context)
         {
             bool canAssassinate = context.MapManager.HasValidAssassinationTarget(context.ActivePlayer);
             bool hasTroops = context.ActivePlayer.TroopsInBarracks > 0;
@@ -124,7 +101,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
         }
 
-        private void ApplyPlaceSpy(Card sourceCard, MatchContext context)
+        private static void ApplyPlaceSpy(Card sourceCard, MatchContext context)
         {
             if (context.MapManager.HasValidPlaceSpyTarget(context.ActivePlayer) && context.ActivePlayer.SpiesInBarracks > 0)
             {
@@ -138,7 +115,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
         }
 
-        private void ApplyReturnUnit(Card sourceCard, MatchContext context)
+        private static void ApplyReturnUnit(Card sourceCard, MatchContext context)
         {
             if (context.MapManager.HasValidReturnTroopTarget(context.ActivePlayer))
             {
@@ -151,7 +128,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
         }
 
-        private void ApplyDevour(Card sourceCard, MatchContext context)
+        private static void ApplyDevour(Card sourceCard, MatchContext context)
         {
             if (context.ActivePlayer.Hand.Count > 0)
             {

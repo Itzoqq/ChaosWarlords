@@ -15,14 +15,14 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         public MatchPhase Phase { get; set; }
 
         // Entities
-        public List<PlayerDto> Players { get; set; } = new List<PlayerDto>();
+        public List<PlayerDto> Players { get; set; } = [];
         public MapDto Map { get; set; } = new MapDto();
         
         // Market (Row of cards)
-        public List<CardDto> Market { get; set; } = new List<CardDto>();
+        public List<CardDto> Market { get; set; } = [];
         
         // Void (Removed cards)
-        public List<CardDto> VoidPile { get; set; } = new List<CardDto>();
+        public List<CardDto> VoidPile { get; set; } = [];
 
         public GameStateDto() { }
     }

@@ -11,8 +11,8 @@ namespace ChaosWarlords.Source.Managers
     public class ActionSystem : IActionSystem
     {
         // Logic Constants
-        private const int ASSASSINATE_COST = GameConstants.ASSASSINATE_POWER_COST;
-        private const int RETURN_SPY_COST = GameConstants.RETURN_SPY_POWER_COST;
+        private const int ASSASSINATE_COST = GameConstants.AssassinatePowerCost;
+        private const int RETURN_SPY_COST = GameConstants.ReturnSpyPowerCost;
 
         // Event Definitions
         public event EventHandler? OnActionCompleted;
@@ -92,30 +92,19 @@ namespace ChaosWarlords.Source.Managers
 
         public void HandleTargetClick(MapNode? targetNode, Site? targetSite)
         {
-            switch (CurrentState)
+            Action action = CurrentState switch
             {
-                case ActionState.TargetingAssassinate:
-                    if (targetNode != null) HandleAssassinate(targetNode);
-                    break;
-                case ActionState.TargetingReturn:
-                    if (targetNode != null) HandleReturn(targetNode);
-                    break;
-                case ActionState.TargetingSupplant:
-                    if (targetNode != null) HandleSupplant(targetNode);
-                    break;
-                case ActionState.TargetingPlaceSpy:
-                    if (targetSite != null) HandlePlaceSpy(targetSite);
-                    break;
-                case ActionState.TargetingReturnSpy:
-                    if (targetSite != null) HandleReturnSpyInitialClick(targetSite);
-                    break;
-                case ActionState.TargetingMoveSource:
-                    if (targetNode != null) HandleMoveSource(targetNode);
-                    break;
-                case ActionState.TargetingMoveDestination:
-                    if (targetNode != null) HandleMoveDestination(targetNode);
-                    break;
-            }
+                ActionState.TargetingAssassinate when targetNode != null => () => HandleAssassinate(targetNode),
+                ActionState.TargetingReturn when targetNode != null => () => HandleReturn(targetNode),
+                ActionState.TargetingSupplant when targetNode != null => () => HandleSupplant(targetNode),
+                ActionState.TargetingPlaceSpy when targetSite != null => () => HandlePlaceSpy(targetSite),
+                ActionState.TargetingReturnSpy when targetSite != null => () => HandleReturnSpyInitialClick(targetSite),
+                ActionState.TargetingMoveSource when targetNode != null => () => HandleMoveSource(targetNode),
+                ActionState.TargetingMoveDestination when targetNode != null => () => HandleMoveDestination(targetNode),
+                _ => () => { }
+            };
+
+            action();
         }
 
         public void CompleteAction()

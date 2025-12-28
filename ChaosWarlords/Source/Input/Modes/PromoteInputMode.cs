@@ -26,16 +26,16 @@ namespace ChaosWarlords.Source.States.Input
             GameLogger.Log($"Select {_cardsLeftToPromote} card(s) from your PLAYED pile to Promote.", LogChannel.General);
         }
 
-        public IGameCommand? HandleInput(IInputManager input, IMarketManager market, IMapManager map, Player activePlayer, IActionSystem actionSystem)
+        public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
-            if (input.IsRightMouseJustClicked() || input.IsKeyJustPressed(Keys.Escape))
+            if (inputManager.IsRightMouseJustClicked() || inputManager.IsKeyJustPressed(Keys.Escape))
             {
                 // Strict Rule Enforcement:
                 GameLogger.Log("Mandatory Action: You must select a card to promote.", LogChannel.Warning);
                 return null;
             }
 
-            if (input.IsLeftMouseJustClicked())
+            if (inputManager.IsLeftMouseJustClicked())
             {
                 Card? targetCard = _gameplayState.GetHoveredPlayedCard();
 
@@ -51,9 +51,8 @@ namespace ChaosWarlords.Source.States.Input
                         return null;
                     }
 
-                    if (activePlayer.PlayedCards.Contains(targetCard))
+                    if (activePlayer.PlayedCards.Remove(targetCard))
                     {
-                        activePlayer.PlayedCards.Remove(targetCard);
                         activePlayer.InnerCircle.Add(targetCard);
 
                         // --- CHANGED: Consume specific credit ---

@@ -68,7 +68,7 @@ namespace ChaosWarlords.Source.Views
             sb.Draw(_pixelTexture, new Rectangle(rect.Right - thickness, rect.Y, thickness, rect.Height), color);
         }
 
-        private Color GetAspectColor(CardAspect aspect)
+        private static Color GetAspectColor(CardAspect aspect)
         {
             return aspect switch
             {
@@ -80,7 +80,7 @@ namespace ChaosWarlords.Source.Views
             };
         }
 
-        private string GetEffectText(CardEffect effect)
+        private static string GetEffectText(CardEffect effect)
         {
             if (effect.Type == EffectType.GainResource) return $"+{effect.Amount} {effect.TargetResource}";
             return effect.Type.ToString();

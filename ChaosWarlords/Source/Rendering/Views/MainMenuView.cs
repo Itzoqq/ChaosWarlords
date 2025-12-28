@@ -5,11 +5,12 @@ using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Rendering.UI;
 using System.Diagnostics.CodeAnalysis;
 using ChaosWarlords.Source.Utilities;
+using System;
 
 namespace ChaosWarlords.Source.Rendering.Views
 {
     [ExcludeFromCodeCoverage]
-    public class MainMenuView : IMainMenuView
+    public class MainMenuView : IMainMenuView, IDisposable
     {
         private readonly GraphicsDevice _graphicsDevice;
         private readonly ContentManager _content;
@@ -63,6 +64,14 @@ namespace ChaosWarlords.Source.Rendering.Views
         public void UnloadContent()
         {
             // View-specific cleanup if needed (e.g. dynamic textures)
+            ((IDisposable)this).Dispose();
+        }
+
+        public void Dispose()
+        {
+             _backgroundTexture?.Dispose();
+             _buttonRenderer?.Dispose();
+             GC.SuppressFinalize(this);
         }
 
         public void Update(GameTime gameTime)

@@ -3,6 +3,7 @@ using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.States.Input;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Core.Interfaces.Logic;
 
 
 namespace ChaosWarlords.Source.Input

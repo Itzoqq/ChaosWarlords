@@ -94,8 +94,7 @@ namespace ChaosWarlords.Source.Entities.Cards
         /// <param name="random">The random number generator to use for shuffling.</param>
         public void Shuffle(IGameRandom random)
         {
-            if (random == null)
-                throw new ArgumentNullException(nameof(random));
+            ArgumentNullException.ThrowIfNull(random);
 
             random.Shuffle(_drawPile);
         }

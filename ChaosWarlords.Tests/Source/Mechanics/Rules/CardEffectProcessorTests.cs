@@ -46,7 +46,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             var card = new Card("t", "t", 0, CardAspect.Warlord, 0, 0, 0);
             card.Effects.Add(new CardEffect(EffectType.GainResource, 3) { TargetResource = ResourceType.Power });
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             Assert.AreEqual(3, _player.Power);
         }
@@ -57,7 +57,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             var card = new Card("t", "t", 0, CardAspect.Warlord, 0, 0, 0);
             card.Effects.Add(new CardEffect(EffectType.GainResource, 3) { TargetResource = ResourceType.Power, RequiresFocus = true });
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             Assert.AreEqual(0, _player.Power);
         }
@@ -68,7 +68,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             var card = new Card("t", "t", 0, CardAspect.Warlord, 0, 0, 0);
             card.Effects.Add(new CardEffect(EffectType.GainResource, 3) { TargetResource = ResourceType.Power, RequiresFocus = true });
 
-            _processor.ResolveEffects(card, _context, hasFocus: true);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true);
 
             Assert.AreEqual(3, _player.Power);
         }
@@ -79,7 +79,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             var card = new Card("t", "t", 0, CardAspect.Blasphemy, 0, 0, 0);
             card.Effects.Add(new CardEffect(EffectType.Promote, 1));
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             Assert.AreEqual(1, _context.TurnManager.CurrentTurnContext.PendingPromotionsCount);
         }
@@ -90,7 +90,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             var card = new Card("t", "t", 0, CardAspect.Warlord, 0, 0, 0);
             card.Effects.Add(new CardEffect(EffectType.GainResource, 5) { TargetResource = ResourceType.Influence });
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             Assert.AreEqual(5, _player.Influence);
         }
@@ -105,7 +105,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _player.DeckManager.AddToTop(new Card("c1", "c1", 0, CardAspect.Warlord, 0, 0, 0));
             _player.DeckManager.AddToTop(new Card("c2", "c2", 0, CardAspect.Warlord, 0, 0, 0));
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             Assert.HasCount(2, _player.Hand);
         }
@@ -118,7 +118,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             _context.MapManager.HasValidMoveSource(_player).Returns(true);
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             _context.ActionSystem.Received(1).StartTargeting(ActionState.TargetingMoveSource, card);
         }
@@ -131,7 +131,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             _context.MapManager.HasValidMoveSource(_player).Returns(false);
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
         }
@@ -144,7 +144,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             _context.MapManager.HasValidAssassinationTarget(_player).Returns(true);
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             _context.ActionSystem.Received(1).StartTargeting(ActionState.TargetingAssassinate, card);
         }
@@ -157,7 +157,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             _context.MapManager.HasValidAssassinationTarget(_player).Returns(false);
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
         }
@@ -171,7 +171,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _context.MapManager.HasValidAssassinationTarget(_player).Returns(true);
             _player.TroopsInBarracks = 1;
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             _context.ActionSystem.Received(1).StartTargeting(ActionState.TargetingSupplant, card);
         }
@@ -185,7 +185,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _context.MapManager.HasValidAssassinationTarget(_player).Returns(true);
             _player.TroopsInBarracks = 0;
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
         }
@@ -199,7 +199,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _context.MapManager.HasValidAssassinationTarget(_player).Returns(false);
             _player.TroopsInBarracks = 1;
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
         }
@@ -213,7 +213,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _context.MapManager.HasValidPlaceSpyTarget(_player).Returns(true);
             _player.SpiesInBarracks = 1;
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             _context.ActionSystem.Received(1).StartTargeting(ActionState.TargetingPlaceSpy, card);
         }
@@ -227,7 +227,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _context.MapManager.HasValidPlaceSpyTarget(_player).Returns(true);
             _player.SpiesInBarracks = 0;
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
         }
@@ -241,7 +241,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _context.MapManager.HasValidPlaceSpyTarget(_player).Returns(false);
             _player.SpiesInBarracks = 1;
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
         }
@@ -254,7 +254,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             _context.MapManager.HasValidReturnTroopTarget(_player).Returns(true);
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             _context.ActionSystem.Received(1).StartTargeting(ActionState.TargetingReturn, card);
         }
@@ -267,7 +267,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             _context.MapManager.HasValidReturnTroopTarget(_player).Returns(false);
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
         }
@@ -280,7 +280,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             _player.Hand.Add(new Card("h1", "h1", 0, CardAspect.Warlord, 0, 0, 0));
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             _context.ActionSystem.Received(1).TryStartDevourHand(card);
         }
@@ -293,7 +293,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             // Hand is empty by default
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             _context.ActionSystem.DidNotReceive().TryStartDevourHand(Arg.Any<Card>());
         }
@@ -306,7 +306,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             card.Effects.Add(new CardEffect(EffectType.GainResource, 3) { TargetResource = ResourceType.Influence });
             card.Effects.Add(new CardEffect(EffectType.Promote, 1));
 
-            _processor.ResolveEffects(card, _context, hasFocus: false);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             Assert.AreEqual(2, _player.Power);
             Assert.AreEqual(3, _player.Influence);

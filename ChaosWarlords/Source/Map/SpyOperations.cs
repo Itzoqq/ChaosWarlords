@@ -33,8 +33,8 @@ namespace ChaosWarlords.Source.Map
         /// </summary>
         public void ExecutePlaceSpy(Site site, Player player)
         {
-            if (site == null) throw new ArgumentNullException(nameof(site));
-            if (player == null) throw new ArgumentNullException(nameof(player));
+            ArgumentNullException.ThrowIfNull(site);
+            ArgumentNullException.ThrowIfNull(player);
 
             if (site.Spies.Contains(player.Color))
             {
@@ -61,8 +61,8 @@ namespace ChaosWarlords.Source.Map
         /// </summary>
         public bool ExecuteReturnSpy(Site site, Player activePlayer, PlayerColor targetSpyColor)
         {
-            if (site == null) throw new ArgumentNullException(nameof(site));
-            if (activePlayer == null) throw new ArgumentNullException(nameof(activePlayer));
+            ArgumentNullException.ThrowIfNull(site);
+            ArgumentNullException.ThrowIfNull(activePlayer);
 
             if (!site.Spies.Contains(targetSpyColor) || targetSpyColor == activePlayer.Color)
             {
@@ -80,7 +80,7 @@ namespace ChaosWarlords.Source.Map
         /// <summary>
         /// Gets list of enemy spies at a site (excluding the active player's spies).
         /// </summary>
-        public List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer)
+        public static List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer)
         {
             if (site == null) return new List<PlayerColor>();
             return site.Spies.Where(s => s != activePlayer.Color && s != PlayerColor.None).ToList();

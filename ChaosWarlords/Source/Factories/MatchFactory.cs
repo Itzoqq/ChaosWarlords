@@ -7,6 +7,7 @@ using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Managers;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace ChaosWarlords.Source.Factories
 {
@@ -61,7 +62,7 @@ namespace ChaosWarlords.Source.Factories
             };
         }
 
-        private List<Player> CreatePlayers(IGameRandom random)
+        private static List<Player> CreatePlayers(IGameRandom random)
         {
             var players = new List<Player>();
 
@@ -76,7 +77,7 @@ namespace ChaosWarlords.Source.Factories
             return players;
         }
 
-        private Player CreateDefaultPlayer(PlayerColor color, string name, IGameRandom random)
+        private static Player CreateDefaultPlayer(PlayerColor color, string name, IGameRandom random)
         {
             var player = new Player(color, displayName: name);
             for (int i = 0; i < 3; i++) player.DeckManager.AddToTop(CardFactory.CreateSoldier());
@@ -85,26 +86,26 @@ namespace ChaosWarlords.Source.Factories
             return player;
         }
 
-        private MapManager SetupMap(IPlayerStateManager playerStateManager)
+        private static MapManager SetupMap(IPlayerStateManager playerStateManager)
         {
             (List<MapNode> nodes, List<Site> sites, _) = MapFactory.CreateScenarioMap();
             return new MapManager(nodes, sites, playerStateManager);
         }
 
-        private ActionSystem SetupActionSystem(ITurnManager turnManager, IMapManager mapManager, IPlayerStateManager playerStateManager)
+        private static ActionSystem SetupActionSystem(ITurnManager turnManager, IMapManager mapManager, IPlayerStateManager playerStateManager)
         {
             var actionSystem = new ActionSystem(turnManager, mapManager);
             actionSystem.SetPlayerStateManager(playerStateManager);
             return actionSystem;
         }
 
-        private void ApplyScenarioRules(MapManager mapManager)
+        private static void ApplyScenarioRules(MapManager mapManager)
         {
             if (mapManager.SitesInternal == null) return;
 
             foreach (var site in mapManager.SitesInternal)
             {
-                if (site.Name.ToLower().Contains("city of gold"))
+                if (site.Name.Contains("city of gold", StringComparison.OrdinalIgnoreCase))
                 {
                     site.Spies.Add(PlayerColor.Blue);
                     site.Spies.Add(PlayerColor.Red);

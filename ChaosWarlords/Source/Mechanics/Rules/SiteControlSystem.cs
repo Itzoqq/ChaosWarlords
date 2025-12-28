@@ -32,7 +32,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             HandleTotalControlChange(site, activePlayer, previousTotal, newTotalControl, newOwner);
         }
 
-        private PlayerColor CalculateSiteOwner(Site site)
+        private static PlayerColor CalculateSiteOwner(Site site)
         {
             // RULE: Control is determined by TROOPS ONLY (Spies do not count for majority)
             int redCount = site.NodesInternal.Count(n => n.Occupant == PlayerColor.Red);
@@ -45,7 +45,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             return PlayerColor.None;
         }
 
-        private bool CalculateTotalControl(Site site, PlayerColor owner)
+        private static bool CalculateTotalControl(Site site, PlayerColor owner)
         {
             if (owner == PlayerColor.None) return false;
 
@@ -100,7 +100,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
         }
 
-        private void HandleTotalControlLoss(Site site, Player activePlayer, PlayerColor owner)
+        private static void HandleTotalControlLoss(Site site, Player activePlayer, PlayerColor owner)
         {
             if (activePlayer != null && activePlayer.Color == owner)
             {

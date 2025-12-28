@@ -48,7 +48,7 @@ namespace ChaosWarlords.Source.Managers
             // --- 3. RESOLVE EFFECTS (The Missing Link) ---
             // Now that the card is "played", we trigger its game logic.
             // We pass the 'hasFocus' snapshot we calculated earlier.
-            _effectProcessor.ResolveEffects(card, _context, hasFocus);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus);
 
             // --- 4. UPDATE STATS ---
             // Finally, register the card with the turn manager to update Aspect counts for future Focus checks.
@@ -91,7 +91,7 @@ namespace ChaosWarlords.Source.Managers
             _context.PlayerStateManager.CleanUpTurn(_context.ActivePlayer);
 
             // 3. Draw New Hand
-            _context.PlayerStateManager.DrawCards(_context.ActivePlayer, GameConstants.HAND_SIZE, _context.Random);
+            _context.PlayerStateManager.DrawCards(_context.ActivePlayer, GameConstants.HandSize, _context.Random);
 
             // 4. Switch Player
             _context.TurnManager.EndTurn();
@@ -105,7 +105,7 @@ namespace ChaosWarlords.Source.Managers
                 // Check if ALL players have placed their initial troop
                 // (Assuming 1 troop per player for Setup)
                 bool allDeployed = _context.TurnManager.Players.All(p =>
-                    _context.MapManager.Nodes.Count(n => n.Occupant == p.Color) >= 1);
+                    _context.MapManager.Nodes.Any(n => n.Occupant == p.Color));
 
                 // SAFEGUARD: If any player has cards in Discard Pile, the game has clearly started (Setup phase doesn't use cards).
                 // This prevents getting stuck in Setup if a player is wiped or deployment logic fails.

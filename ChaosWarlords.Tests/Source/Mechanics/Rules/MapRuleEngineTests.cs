@@ -148,14 +148,14 @@ namespace ChaosWarlords.Tests.Systems
         public void CanMoveDestination_True_ForEmptyNode()
         {
             _node1.Occupant = PlayerColor.None;
-            Assert.IsTrue(_engine.CanMoveDestination(_node1));
+            Assert.IsTrue(MapRuleEngine.CanMoveDestination(_node1));
         }
 
         [TestMethod]
         public void CanMoveDestination_False_ForOccupiedNode()
         {
             _node1.Occupant = _player2.Color;
-            Assert.IsFalse(_engine.CanMoveDestination(_node1));
+            Assert.IsFalse(MapRuleEngine.CanMoveDestination(_node1));
         }
         [TestMethod]
         public void HasPresence_False_ForAdjacentToSpy()

@@ -7,25 +7,25 @@ namespace ChaosWarlords.Source.Utilities
     public static class GameConstants
     {
         // Combat Costs
-        public const int DEPLOY_POWER_COST = 1;
-        public const int ASSASSINATE_POWER_COST = 3;
-        public const int RETURN_SPY_POWER_COST = 3;
+        public const int DeployPowerCost = 1;
+        public const int AssassinatePowerCost = 3;
+        public const int ReturnSpyPowerCost = 3;
 
         // Card Management
-        public const int HAND_SIZE = 5;
-        public const int MARKET_ROW_SIZE = 6;
+        public const int HandSize = 5;
+        public const int MarketRowSize = 6;
 
         // Starting Resources
-        public const int STARTING_TROOPS = 40;
-        public const int STARTING_SPIES = 5;
-        public const int TARGET_VICTORY_POINTS = 40;
+        public const int StartingTroops = 40;
+        public const int StartingSpies = 5;
+        public const int TargetVictoryPoints = 40;
 
         // UI Layout (Site Bounds)
         public static class SiteVisuals
         {
-            public const int SIDE_PADDING = 35;
-            public const int TOP_PADDING = 70;
-            public const int BOTTOM_PADDING = 35;
+            public const int SidePadding = 35;
+            public const int TopPadding = 70;
+            public const int BottomPadding = 35;
         }
     }
 }

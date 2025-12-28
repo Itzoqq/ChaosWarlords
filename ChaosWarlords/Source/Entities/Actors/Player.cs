@@ -64,17 +64,17 @@ namespace ChaosWarlords.Source.Entities.Actors
         /// <summary>
         /// Troops available in the barracks (reserve) ready for deployment.
         /// </summary>
-        public int TroopsInBarracks { get; internal set; } = GameConstants.STARTING_TROOPS;
+        public int TroopsInBarracks { get; internal set; } = GameConstants.StartingTroops;
 
         /// <summary>
         /// Spies available in the barracks (reserve) ready for placement.
         /// </summary>
-        public int SpiesInBarracks { get; internal set; } = GameConstants.STARTING_SPIES;
+        public int SpiesInBarracks { get; internal set; } = GameConstants.StartingSpies;
 
         /// <summary>
         /// Count of trophies collected (e.g. from assassinations).
         /// </summary>
-        public int TrophyHall { get; internal set; } = 0;
+        public int TrophyHall { get; internal set; }
 
         // --- Card Piles ---
 

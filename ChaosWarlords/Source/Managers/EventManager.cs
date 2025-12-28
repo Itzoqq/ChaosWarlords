@@ -55,11 +55,12 @@ namespace ChaosWarlords.Source.Managers
             lock (_lock)
             {
                 var eventType = typeof(T);
-                if (!_subscribers.ContainsKey(eventType))
+                if (!_subscribers.TryGetValue(eventType, out var handlers))
                 {
-                    _subscribers[eventType] = new List<Delegate>();
+                    handlers = new List<Delegate>();
+                    _subscribers[eventType] = handlers;
                 }
-                _subscribers[eventType].Add(handler);
+                handlers.Add(handler);
             }
         }
 

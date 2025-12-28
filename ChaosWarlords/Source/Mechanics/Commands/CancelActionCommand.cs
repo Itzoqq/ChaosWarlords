@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Core.Interfaces.State;
+using ChaosWarlords.Source.Core.Interfaces.Logic;
 
 namespace ChaosWarlords.Source.Commands
 {

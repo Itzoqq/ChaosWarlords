@@ -98,7 +98,7 @@ namespace ChaosWarlords.Tests.Map
             var player = new Player(PlayerColor.Red);
 
             // Act
-            var result = _spyOps.GetEnemySpiesAtSite(site, player);
+            var result = SpyOperations.GetEnemySpiesAtSite(site, player);
 
             // Assert
             Assert.HasCount(2, result);

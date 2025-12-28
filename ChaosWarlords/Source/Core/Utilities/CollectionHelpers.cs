@@ -18,7 +18,7 @@ namespace ChaosWarlords.Source.Utilities
         /// <exception cref="ArgumentNullException">Thrown when list is null.</exception>
         public static void Shuffle<T>(this List<T> list)
         {
-            if (list == null) throw new ArgumentNullException(nameof(list));
+            ArgumentNullException.ThrowIfNull(list);
 
             int n = list.Count;
             while (n > 1)

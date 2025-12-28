@@ -47,7 +47,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void RefillMarket()
         {
-            while (MarketRow.Count < GameConstants.MARKET_ROW_SIZE && _marketDeck.Count > 0)
+            while (MarketRow.Count < GameConstants.MarketRowSize && _marketDeck.Count > 0)
             {
                 Card card = _marketDeck[0];
                 _marketDeck.RemoveAt(0);

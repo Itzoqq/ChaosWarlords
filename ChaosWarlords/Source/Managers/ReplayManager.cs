@@ -11,7 +11,7 @@ namespace ChaosWarlords.Source.Managers
     public class ReplayManager : IReplayManager
     {
         private List<ReplayAction> _recording = new List<ReplayAction>();
-        private bool _isReplaying = false;
+        private bool _isReplaying;
 
         public bool IsReplaying => _isReplaying;
 

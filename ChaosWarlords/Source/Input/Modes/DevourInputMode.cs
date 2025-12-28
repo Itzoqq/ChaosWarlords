@@ -26,10 +26,10 @@ namespace ChaosWarlords.Source.States.Input
             GameLogger.Log("Select a card from your HAND to Devour (Remove from game).", LogChannel.General);
         }
 
-        public IGameCommand? HandleInput(IInputManager input, IMarketManager market, IMapManager map, Player activePlayer, IActionSystem actionSystem)
+        public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             // 1. Cancel / Back out
-            if (input.IsRightMouseJustClicked() || input.IsKeyJustPressed(Keys.Escape))
+            if (inputManager.IsRightMouseJustClicked() || inputManager.IsKeyJustPressed(Keys.Escape))
             {
                 actionSystem.CancelTargeting();
                 _gameplayState.SwitchToNormalMode();
@@ -38,7 +38,7 @@ namespace ChaosWarlords.Source.States.Input
             }
 
             // 2. Select Card
-            if (input.IsLeftMouseJustClicked())
+            if (inputManager.IsLeftMouseJustClicked())
             {
                 // We specifically look at the HAND, not Played cards
                 Card? targetCard = _gameplayState.GetHoveredHandCard();

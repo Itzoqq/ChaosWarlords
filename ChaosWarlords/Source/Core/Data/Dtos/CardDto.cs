@@ -22,7 +22,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
         public CardDto(Card card, int index = 0)
         {
-            if (card == null) throw new ArgumentNullException(nameof(card));
+            ArgumentNullException.ThrowIfNull(card);
             DefinitionId = card.Id;
             InstanceId = Guid.NewGuid().ToString(); // Generate a temporary ID if one doesn't exist on Entity yet, or map it if it did. 
             // Ideally Card entity should have an InstanceId. For now, we generate one or use DefinitionId if strictly one-to-one (which it isn't).
@@ -56,7 +56,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
                 card.Location = Location;
                 return card;
             }
-            throw new System.Exception($"Failed to hydrate card: {DefinitionId} not found.");
+            throw new System.InvalidOperationException($"Failed to hydrate card: {DefinitionId} not found.");
         }
     }
 }

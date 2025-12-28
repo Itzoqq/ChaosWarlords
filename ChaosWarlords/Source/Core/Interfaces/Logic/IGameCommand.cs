@@ -2,18 +2,18 @@ using ChaosWarlords.Source.Core.Interfaces.State;
 
 using ChaosWarlords.Source.States;
 
-/// <summary>
-/// Represents a discrete game action encapsulated as a command object.
-/// Used for the Command Pattern to support Replays, Network Synchronization, and Undo/Redo.
-/// </summary>
-public interface IGameCommand
+namespace ChaosWarlords.Source.Core.Interfaces.Logic
 {
     /// <summary>
-    /// Executes the command logic against the provided game state.
+    /// Represents a discrete game action encapsulated as a command object.
+    /// Used for the Command Pattern to support Replays, Network Synchronization, and Undo/Redo.
     /// </summary>
-    /// <param name="state">The context in which to execute (allows deterministic simulation).</param>
-    void Execute(IGameplayState state);
+    public interface IGameCommand
+    {
+        /// <summary>
+        /// Executes the command logic against the provided game state.
+        /// </summary>
+        /// <param name="state">The context in which to execute (allows deterministic simulation).</param>
+        void Execute(IGameplayState state);
+    }
 }
-
-
-

@@ -71,8 +71,8 @@ namespace ChaosWarlords.Source.Managers
 
         private void InitializeInteractiveElements()
         {
-            _elements = new List<InteractiveElement>
-            {
+            _elements =
+            [
                 // Pause Menu (Highest Priority)
                 new InteractiveElement
                 {
@@ -141,7 +141,7 @@ namespace ChaosWarlords.Source.Managers
                     OnClick = () => { GameLogger.Log("UI: EndTurn Clicked", LogChannel.Info); OnEndTurnRequest?.Invoke(this, EventArgs.Empty); },
                     IsActive = () => !IsPaused && !IsPopupVisible
                 },
-            };
+            ];
         }
 
         private void RecalculateLayout()

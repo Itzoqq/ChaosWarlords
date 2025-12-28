@@ -14,7 +14,7 @@ namespace ChaosWarlords.Tests.Core.Utilities
 
             for (int i = 0; i < 100; i++)
             {
-                Assert.AreEqual(rng1.Next(100), rng2.Next(100));
+                Assert.AreEqual(rng1.NextInt(100), rng2.NextInt(100));
             }
         }
 
@@ -27,7 +27,7 @@ namespace ChaosWarlords.Tests.Core.Utilities
 
             for (int i = 0; i < 100; i++)
             {
-                Assert.AreEqual(rng1.Next(50, 150), rng2.Next(50, 150));
+                Assert.AreEqual(rng1.NextInt(50, 150), rng2.NextInt(50, 150));
             }
         }
 
@@ -67,7 +67,7 @@ namespace ChaosWarlords.Tests.Core.Utilities
             bool matches = true;
             for (int i = 0; i < 20; i++)
             {
-                if (rng1.Next(1000000) != rng2.Next(1000000))
+                if (rng1.NextInt(1000000) != rng2.NextInt(1000000))
                 {
                     matches = false;
                     break;

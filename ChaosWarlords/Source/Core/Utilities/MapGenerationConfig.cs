@@ -5,8 +5,8 @@ namespace ChaosWarlords.Source.Utilities
 {
     public class MapGenerationConfig
     {
-        public List<SiteConfig> Sites { get; set; } = new List<SiteConfig>();
-        public List<RouteConfig> Routes { get; set; } = new List<RouteConfig>();
+        public List<SiteConfig> Sites { get; set; } = [];
+        public List<RouteConfig> Routes { get; set; } = [];
     }
 
     public class SiteConfig

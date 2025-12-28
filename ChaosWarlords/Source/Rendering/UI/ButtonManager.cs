@@ -13,7 +13,7 @@ namespace ChaosWarlords.Source.Rendering.UI
 
         public ButtonManager()
         {
-            _buttons = new List<SimpleButton>();
+            _buttons = [];
         }
 
         public void AddButton(SimpleButton button)

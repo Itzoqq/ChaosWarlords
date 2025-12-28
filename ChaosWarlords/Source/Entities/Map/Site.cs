@@ -26,7 +26,7 @@ namespace ChaosWarlords.Source.Entities.Map
         public List<MapNode> NodesInternal { get; protected set; } = [];
         public PlayerColor Owner { get; internal set; } = PlayerColor.None;
         internal List<PlayerColor> Spies { get; private set; } = [];
-        public bool HasTotalControl { get; internal set; } = false;
+        public bool HasTotalControl { get; internal set; }
 
         // Visual Bounds (Kept in Model for Hit-Testing logic)
         public Rectangle Bounds { get; protected set; }
@@ -67,9 +67,9 @@ namespace ChaosWarlords.Source.Entities.Map
             }
 
             // Logic Padding for "Hit Box"
-            int sidePadding = GameConstants.SiteVisuals.SIDE_PADDING;
-            int topPadding = GameConstants.SiteVisuals.TOP_PADDING;
-            int bottomPadding = GameConstants.SiteVisuals.BOTTOM_PADDING;
+            int sidePadding = GameConstants.SiteVisuals.SidePadding;
+            int topPadding = GameConstants.SiteVisuals.TopPadding;
+            int bottomPadding = GameConstants.SiteVisuals.BottomPadding;
 
             int width = (int)(maxX - minX) + (sidePadding * 2);
             int height = (int)(maxY - minY) + topPadding + bottomPadding;

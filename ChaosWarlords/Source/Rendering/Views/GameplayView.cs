@@ -14,6 +14,7 @@ using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Views;
 
 using System.Diagnostics.CodeAnalysis;
+using System;
 
 namespace ChaosWarlords.Source.Rendering.Views
 {
@@ -22,7 +23,7 @@ namespace ChaosWarlords.Source.Rendering.Views
     /// Responsible for rendering the game state, managing animations/view models, and UI layout.
     /// </summary>
     [ExcludeFromCodeCoverage]
-    public class GameplayView : IGameplayView
+    public class GameplayView : IGameplayView, IDisposable
     {
         private readonly GraphicsDevice _graphicsDevice;
 
@@ -220,7 +221,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             }
         }
 
-        private void UpdateVisualsHover(List<CardViewModel> vms, InputManager input)
+        private static void UpdateVisualsHover(List<CardViewModel> vms, InputManager input)
         {
             Point mousePos = input.MousePosition.ToPoint();
             bool foundHovered = false;
@@ -268,7 +269,7 @@ namespace ChaosWarlords.Source.Rendering.Views
                 yOffset += 40;
             }
         }
-        public void DrawSetupPhaseOverlay(SpriteBatch sb, Player activePlayer)
+        public void DrawSetupPhaseOverlay(SpriteBatch spriteBatch, Player activePlayer)
         {
             if (_defaultFont == null) return;
 
@@ -290,8 +291,15 @@ namespace ChaosWarlords.Source.Rendering.Views
             // Draw a subtle background for contrast? Not strictly requested but good practice.
             // Skipping background to keep it simple as requested.
 
-            sb.DrawString(_defaultFont, line1, pos1, Color.Yellow); // Yellow for attention on "Round"
-            sb.DrawString(_defaultFont, line2, pos2, color);
+            spriteBatch.DrawString(_defaultFont, line1, pos1, Color.Yellow); // Yellow for attention on "Round"
+            spriteBatch.DrawString(_defaultFont, line2, pos2, color);
+        }
+
+        public void Dispose()
+        {
+            _pixelTexture?.Dispose();
+            _uiRenderer?.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

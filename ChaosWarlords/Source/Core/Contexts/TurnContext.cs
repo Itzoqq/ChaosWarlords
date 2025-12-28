@@ -17,7 +17,7 @@ namespace ChaosWarlords.Source.Contexts
         private readonly List<Card> _promotionCredits;
 
         // --- Action Sequencing ---
-        private int _actionSequence = 0;
+        private int _actionSequence;
         private readonly List<ExecutedAction> _actionHistory = new();
 
         public IReadOnlyDictionary<CardAspect, int> PlayedAspectCounts => _playedAspectCounts;
@@ -35,8 +35,8 @@ namespace ChaosWarlords.Source.Contexts
 
         public void RecordPlayedCard(CardAspect aspect)
         {
-            if (_playedAspectCounts.ContainsKey(aspect))
-                _playedAspectCounts[aspect]++;
+            if (_playedAspectCounts.TryGetValue(aspect, out int count))
+                _playedAspectCounts[aspect] = count + 1;
             else
                 _playedAspectCounts[aspect] = 1;
         }

@@ -2,11 +2,12 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System;
 
 namespace ChaosWarlords.Source.Rendering.UI
 {
     [ExcludeFromCodeCoverage]
-    public class ButtonRenderer
+    public class ButtonRenderer : IDisposable
     {
         private readonly GraphicsDevice _graphicsDevice;
         private readonly SpriteFont _font;
@@ -28,6 +29,11 @@ namespace ChaosWarlords.Source.Rendering.UI
             {
                 button.Draw(spriteBatch, _pixelTexture, _font);
             }
+        }
+        public void Dispose()
+        {
+            _pixelTexture?.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

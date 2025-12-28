@@ -12,9 +12,9 @@ namespace ChaosWarlords.Source.Utilities
 
         public (List<MapNode> Nodes, List<Site> Sites, List<Route> Routes) GenerateMap(MapGenerationConfig config)
         {
-            var nodes = new List<MapNode>();
-            var sites = new List<Site>();
-            var routes = new List<Route>();
+            List<MapNode> nodes = [];
+            List<Site> sites = [];
+            List<Route> routes = [];
 
             GenerateSites(config, nodes, sites);
             GenerateRoutes(config, nodes, sites, routes);
@@ -46,7 +46,7 @@ namespace ChaosWarlords.Source.Utilities
             }
         }
 
-        private Site CreateSiteFromConfig(SiteConfig siteConfig)
+        private static Site CreateSiteFromConfig(SiteConfig siteConfig)
         {
             if (siteConfig.IsCity)
             {
@@ -62,7 +62,7 @@ namespace ChaosWarlords.Source.Utilities
             }
         }
 
-        private void ConnectSiteNodes(List<MapNode> siteNodes)
+        private static void ConnectSiteNodes(List<MapNode> siteNodes)
         {
             for (int i = 0; i < siteNodes.Count; i++)
             {
@@ -100,7 +100,7 @@ namespace ChaosWarlords.Source.Utilities
             }
         }
 
-        private void ConnectRouteNodes(
+        private static void ConnectRouteNodes(
             (MapNode StartNode, MapNode EndNode) connection,
             List<MapNode> routeNodes,
             List<MapNode> allNodes,
@@ -138,7 +138,7 @@ namespace ChaosWarlords.Source.Utilities
 
         private List<MapNode> GenerateSiteNodes(Vector2 center, int count, bool isCity)
         {
-            var results = new List<MapNode>();
+            List<MapNode> results = [];
             if (count <= 0) return results;
 
             int maxCols = 3;
@@ -169,7 +169,7 @@ namespace ChaosWarlords.Source.Utilities
 
         private List<MapNode> GenerateRouteNodes(MapNode start, MapNode end, int count)
         {
-            var results = new List<MapNode>();
+            List<MapNode> results = [];
             if (count <= 0) return results;
 
             // Linear interpolation
@@ -183,7 +183,7 @@ namespace ChaosWarlords.Source.Utilities
             return results;
         }
 
-        private (MapNode? StartNode, MapNode? EndNode) FindBestConnectionPoints(Site from, Site to)
+        private static (MapNode? StartNode, MapNode? EndNode) FindBestConnectionPoints(Site from, Site to)
         {
             // Simple approach: find the pair of nodes (one from each site) with the minimum distance
             MapNode? bestStart = null;

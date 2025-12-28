@@ -33,7 +33,7 @@ namespace ChaosWarlords.Source.States
         internal MatchContext _matchContext = null!;
         internal InputManager _inputManagerBacking = null!;
         internal IUIManager _uiManagerBacking = null!;
-        internal bool _isMarketOpenBacking = false;
+        internal bool _isMarketOpenBacking;
 
         // New Coordinators
         internal GameplayInputCoordinator _inputCoordinator = null!;
@@ -223,7 +223,7 @@ namespace ChaosWarlords.Source.States
 
         public void PlayCard(Card card)
         {
-            if (card == null) throw new ArgumentNullException(nameof(card));
+            ArgumentNullException.ThrowIfNull(card);
             _cardPlaySystem.PlayCard(card);
         }
 
@@ -233,7 +233,7 @@ namespace ChaosWarlords.Source.States
 
         public void MoveCardToPlayed(Card card)
         {
-            if (card == null) throw new ArgumentNullException(nameof(card));
+            ArgumentNullException.ThrowIfNull(card);
             _matchManager.MoveCardToPlayed(card);
         }
 
@@ -254,8 +254,8 @@ namespace ChaosWarlords.Source.States
 
         public void SwitchToPromoteMode(int amount)
         {
-            if (_matchContext == null) throw new InvalidOperationException("Match context not initialized");
-            if (_matchContext.ActionSystem == null) throw new InvalidOperationException("Action system not initialized");
+            ArgumentNullException.ThrowIfNull(_matchContext, nameof(_matchContext));
+            ArgumentNullException.ThrowIfNull(_matchContext.ActionSystem, nameof(_matchContext.ActionSystem));
 
             // We must set the ActionSystem state explicitly so the InputCoordinator knows 
             // to instantiate the PromoteInputMode instead of the generic TargetingInputMode.

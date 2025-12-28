@@ -23,17 +23,17 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         public int Troops { get; set; }
         public int Spies { get; set; }
 
-        public List<CardDto> Hand { get; set; } = new List<CardDto>();
-        public List<CardDto> InnerCircle { get; set; } = new List<CardDto>();
-        public List<CardDto> PlayedCards { get; set; } = new List<CardDto>();
-        public List<CardDto> Deck { get; set; } = new List<CardDto>();
-        public List<CardDto> DiscardPile { get; set; } = new List<CardDto>();
+        public List<CardDto> Hand { get; set; } = [];
+        public List<CardDto> InnerCircle { get; set; } = [];
+        public List<CardDto> PlayedCards { get; set; } = [];
+        public List<CardDto> Deck { get; set; } = [];
+        public List<CardDto> DiscardPile { get; set; } = [];
 
         public PlayerDto() { }
 
         public static PlayerDto FromEntity(Player player)
         {
-            if (player == null) throw new ArgumentNullException(nameof(player));
+            ArgumentNullException.ThrowIfNull(player);
 
             var dto = new PlayerDto
             {

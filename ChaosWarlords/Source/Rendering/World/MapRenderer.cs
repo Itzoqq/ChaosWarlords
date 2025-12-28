@@ -7,6 +7,7 @@ using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
 using System.Diagnostics.CodeAnalysis;
 using ChaosWarlords.Source.Contexts;
+using System.Globalization;
 
 namespace ChaosWarlords.Source.Views
 {
@@ -23,7 +24,7 @@ namespace ChaosWarlords.Source.Views
         {
             public StringBuilder Text { get; } = new StringBuilder();
             public PlayerColor LastOwner { get; set; } = PlayerColor.None;
-            public bool LastTotalControl { get; set; } = false;
+            public bool LastTotalControl { get; set; }
             // We force an update on the first draw
             public bool IsDirty { get; set; } = true;
         }
@@ -109,36 +110,39 @@ namespace ChaosWarlords.Source.Views
             spriteBatch.DrawString(_font, cache.Text, textPos, site.IsCity ? Color.Gold : Color.LightGray);
         }
 
-        private void UpdateSiteText(SiteVisualData cache, Site site)
+        private static void UpdateSiteText(SiteVisualData cache, Site site)
         {
             var sb = cache.Text;
             sb.Clear();
-            sb.Append(site.Name.ToUpper());
+            sb.Append(site.Name.ToUpper(CultureInfo.InvariantCulture));
 
             if (site.Owner != PlayerColor.None)
             {
                 sb.Append("\n[Control: +");
                 sb.Append(site.ControlAmount);
-                sb.Append(" ");
+                sb.Append(' ');
                 sb.Append(site.ControlResource);
-                sb.Append("]");
+                sb.Append(']');
 
                 if (site.HasTotalControl)
                 {
                     sb.Append("\n[TOTAL: +");
                     sb.Append(site.TotalControlAmount);
-                    sb.Append(" ");
+                    sb.Append(' ');
                     sb.Append(site.TotalControlResource);
-                    sb.Append("]");
+                    sb.Append(']');
                 }
             }
             else
             {
-                sb.Append("\n(");
+            {
+                sb.Append('\n');
+                sb.Append('(');
                 sb.Append(site.ControlAmount);
-                sb.Append(" ");
+                sb.Append(' ');
                 sb.Append(site.ControlResource);
-                sb.Append(")");
+                sb.Append(')');
+            }
             }
         }
 
@@ -243,7 +247,7 @@ namespace ChaosWarlords.Source.Views
                 null, color, angle, new Vector2(0, 0.5f), SpriteEffects.None, 0);
         }
 
-        private Vector2 GetIntersection(Rectangle rect, Vector2 start, Vector2 end)
+        private static Vector2 GetIntersection(Rectangle rect, Vector2 start, Vector2 end)
         {
             if (MapGeometry.TryGetLineIntersection(start, end, new Vector2(rect.Left, rect.Top), new Vector2(rect.Right, rect.Top), out Vector2 r)) return r;
             if (MapGeometry.TryGetLineIntersection(start, end, new Vector2(rect.Right, rect.Top), new Vector2(rect.Right, rect.Bottom), out r)) return r;
@@ -252,7 +256,7 @@ namespace ChaosWarlords.Source.Views
             return end;
         }
 
-        private Color GetColor(PlayerColor p)
+        private static Color GetColor(PlayerColor p)
         {
             if (p == PlayerColor.Red) return Color.Red;
             if (p == PlayerColor.Blue) return Color.Blue;

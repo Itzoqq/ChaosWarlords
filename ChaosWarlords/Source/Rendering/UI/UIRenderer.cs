@@ -4,11 +4,13 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Entities.Actors;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System;
 
 namespace ChaosWarlords.Source.Views
 {
     [ExcludeFromCodeCoverage]
-    public class UIRenderer
+    public class UIRenderer : IDisposable
     {
         private readonly SpriteFont _defaultFont;
         private readonly SpriteFont _smallFont;
@@ -35,9 +37,9 @@ namespace ChaosWarlords.Source.Views
             // SECTION 1: ECONOMY & SCORE (Left Aligned)
             // ====================================================
             int leftX = 20;
-            DrawStat(spriteBatch, "Influence", player.Influence.ToString(), Color.Cyan, ref leftX);
-            DrawStat(spriteBatch, "Power", player.Power.ToString(), Color.Orange, ref leftX);
-            DrawStat(spriteBatch, "VP", player.VictoryPoints.ToString(), Color.Gold, ref leftX);
+            DrawStat(spriteBatch, "Influence", player.Influence.ToString(CultureInfo.InvariantCulture), Color.Cyan, ref leftX);
+            DrawStat(spriteBatch, "Power", player.Power.ToString(CultureInfo.InvariantCulture), Color.Orange, ref leftX);
+            DrawStat(spriteBatch, "VP", player.VictoryPoints.ToString(CultureInfo.InvariantCulture), Color.Gold, ref leftX);
 
             // ====================================================
             // SECTION 2: MILITARY (Centered)
@@ -74,13 +76,13 @@ namespace ChaosWarlords.Source.Views
             // Order: Deck -> Discard -> Inner Circle (Draws from Right to Left)
 
             // Deck (White)
-            DrawRightAlignedStat(spriteBatch, "Deck", player.Deck.Count.ToString(), Color.White, ref rightX);
+            DrawRightAlignedStat(spriteBatch, "Deck", player.Deck.Count.ToString(CultureInfo.InvariantCulture), Color.White, ref rightX);
 
             // Discard (Gray)
-            DrawRightAlignedStat(spriteBatch, "Discard", player.DiscardPile.Count.ToString(), Color.Gray, ref rightX);
+            DrawRightAlignedStat(spriteBatch, "Discard", player.DiscardPile.Count.ToString(CultureInfo.InvariantCulture), Color.Gray, ref rightX);
 
             // Inner Circle (Purple)
-            DrawRightAlignedStat(spriteBatch, "Inner Circle", player.InnerCircle.Count.ToString(), Color.MediumPurple, ref rightX);
+            DrawRightAlignedStat(spriteBatch, "Inner Circle", player.InnerCircle.Count.ToString(CultureInfo.InvariantCulture), Color.MediumPurple, ref rightX);
         }
 
         public void DrawActionButtons(SpriteBatch spriteBatch, IUIManager ui, Player player)
@@ -246,6 +248,11 @@ namespace ChaosWarlords.Source.Views
             DrawHorizontalButton(sb, ui.ExitButtonRect, "EXIT", ui.IsExitHovered, true, Color.Red);
         }
 
+        public void Dispose()
+        {
+            _pixelTexture?.Dispose();
+            GC.SuppressFinalize(this);
+        }
     }
 }
 

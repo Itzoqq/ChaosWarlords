@@ -40,13 +40,13 @@ namespace ChaosWarlords.Source.Map
         /// </summary>
         public void ExecuteDeploy(MapNode node, Player player)
         {
-            if (node == null) throw new ArgumentNullException(nameof(node));
-            if (player == null) throw new ArgumentNullException(nameof(player));
+            ArgumentNullException.ThrowIfNull(node);
+            ArgumentNullException.ThrowIfNull(player);
 
             // FREE in Setup Phase
             if (_getCurrentPhase() != MatchPhase.Setup)
             {
-                _stateManager.TrySpendPower(player, GameConstants.DEPLOY_POWER_COST);
+                _stateManager.TrySpendPower(player, GameConstants.DeployPowerCost);
             }
 
             _stateManager.RemoveTroops(player, 1);
@@ -61,8 +61,8 @@ namespace ChaosWarlords.Source.Map
         /// </summary>
         public void ExecuteAssassinate(MapNode node, Player attacker)
         {
-            if (node == null) throw new ArgumentNullException(nameof(node));
-            if (attacker == null) throw new ArgumentNullException(nameof(attacker));
+            ArgumentNullException.ThrowIfNull(node);
+            ArgumentNullException.ThrowIfNull(attacker);
             if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
 
             node.Occupant = PlayerColor.None;
@@ -77,9 +77,9 @@ namespace ChaosWarlords.Source.Map
         /// </summary>
         public void ExecuteMove(MapNode source, MapNode destination, Player activePlayer)
         {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            if (activePlayer == null) throw new ArgumentNullException(nameof(activePlayer));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(destination);
+            ArgumentNullException.ThrowIfNull(activePlayer);
 
             destination.Occupant = source.Occupant;
             source.Occupant = PlayerColor.None;
@@ -94,8 +94,8 @@ namespace ChaosWarlords.Source.Map
         /// </summary>
         public void ExecuteReturnTroop(MapNode node, Player requestingPlayer)
         {
-            if (node == null) throw new ArgumentNullException(nameof(node));
-            if (requestingPlayer == null) throw new ArgumentNullException(nameof(requestingPlayer));
+            ArgumentNullException.ThrowIfNull(node);
+            ArgumentNullException.ThrowIfNull(requestingPlayer);
 
             if (node.Occupant == requestingPlayer.Color)
             {
@@ -118,8 +118,8 @@ namespace ChaosWarlords.Source.Map
         /// </summary>
         public void ExecuteSupplant(MapNode node, Player attacker)
         {
-            if (node == null) throw new ArgumentNullException(nameof(node));
-            if (attacker == null) throw new ArgumentNullException(nameof(attacker));
+            ArgumentNullException.ThrowIfNull(node);
+            ArgumentNullException.ThrowIfNull(attacker);
             if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
 
             // Atomic: Assassinate + Deploy
@@ -128,7 +128,7 @@ namespace ChaosWarlords.Source.Map
 
             if (_getCurrentPhase() != MatchPhase.Setup)
             {
-                _stateManager.TrySpendPower(attacker, GameConstants.DEPLOY_POWER_COST);
+                _stateManager.TrySpendPower(attacker, GameConstants.DeployPowerCost);
             }
             _stateManager.RemoveTroops(attacker, 1);
             node.Occupant = attacker.Color;

@@ -19,7 +19,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// </summary>
         /// <param name="maxValue">The exclusive upper bound of the random number to be generated.</param>
         /// <returns>A 32-bit signed integer that is greater than or equal to 0, and less than maxValue.</returns>
-        int Next(int maxValue);
+        int NextInt(int maxValue);
 
         /// <summary>
         /// Returns a random integer that is within a specified range.
@@ -27,7 +27,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// <param name="minValue">The inclusive lower bound of the random number returned.</param>
         /// <param name="maxValue">The exclusive upper bound of the random number returned.</param>
         /// <returns>A 32-bit signed integer greater than or equal to minValue and less than maxValue.</returns>
-        int Next(int minValue, int maxValue);
+        int NextInt(int minValue, int maxValue);
 
         /// <summary>
         /// Shuffles the elements of a list using the Fisher-Yates algorithm.

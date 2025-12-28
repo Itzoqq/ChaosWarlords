@@ -22,8 +22,8 @@ namespace ChaosWarlords.Source.Managers
         private readonly Game1? _game; // For main menu navigation
 
         // State
-        private bool _isConfirmationPopupOpen = false;
-        private bool _isPauseMenuOpen = false;
+        private bool _isConfirmationPopupOpen;
+        private bool _isPauseMenuOpen;
 
         public bool IsConfirmationPopupOpen => _isConfirmationPopupOpen;
         public bool IsPauseMenuOpen => _isPauseMenuOpen;

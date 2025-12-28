@@ -66,7 +66,7 @@ namespace ChaosWarlords.Source.States.Input
             return _uiManager.IsMarketHovered || _uiManager.IsAssassinateHovered || _uiManager.IsReturnSpyHovered;
         }
 
-        private IGameCommand HandleCancellation(IActionSystem actionSystem)
+        private static SwitchToNormalModeCommand HandleCancellation(IActionSystem actionSystem)
         {
             // Safety Log
             string cardName = actionSystem.PendingCard != null ? actionSystem.PendingCard.Name : "Unknown";
@@ -78,7 +78,7 @@ namespace ChaosWarlords.Source.States.Input
             return new SwitchToNormalModeCommand();
         }
 
-        private IGameCommand? HandleLeftClickInternal(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        private static IGameCommand? HandleLeftClickInternal(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             if (actionSystem.CurrentState == ActionState.SelectingSpyToReturn)
             {
@@ -88,12 +88,15 @@ namespace ChaosWarlords.Source.States.Input
                 return null;
             }
 
-            HandleTargetingClick(inputManager, mapManager, actionSystem);
+            Vector2 mousePos = inputManager.MousePosition;
+            MapNode? targetNode = mapManager.GetNodeAt(mousePos);
+            Site? targetSite = mapManager.GetSiteAt(mousePos);
+            HandleTargetingClick(actionSystem, targetNode, targetSite);
             // Return null; if action completed, event handler handles state switch.
             return null;
         }
 
-        private void HandleSpySelection(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        private static void HandleSpySelection(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             Site? site = actionSystem.PendingSite;
             if (site == null)
@@ -121,12 +124,8 @@ namespace ChaosWarlords.Source.States.Input
             actionSystem.CancelTargeting();
         }
 
-        private void HandleTargetingClick(IInputManager inputManager, IMapManager mapManager, IActionSystem actionSystem)
+        private static void HandleTargetingClick(IActionSystem actionSystem, MapNode? targetNode, Site? targetSite)
         {
-            Vector2 mousePos = inputManager.MousePosition;
-            MapNode? targetNode = mapManager.GetNodeAt(mousePos);
-            Site? targetSite = mapManager.GetSiteAt(mousePos);
-
             if (targetNode == null && targetSite == null)
             {
                 return;

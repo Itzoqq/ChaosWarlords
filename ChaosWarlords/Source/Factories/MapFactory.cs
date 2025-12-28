@@ -19,6 +19,7 @@ namespace ChaosWarlords.Source.Utilities
 
     public static class MapFactory
     {
+        private static readonly JsonSerializerOptions s_jsonOptions = new() { PropertyNameCaseInsensitive = true };
         [ExcludeFromCodeCoverage]
         public static (List<MapNode>, List<Site>, List<Route>) LoadFromFile(string filePath)
         {
@@ -37,8 +38,7 @@ namespace ChaosWarlords.Source.Utilities
 
         public static (List<MapNode>, List<Site>, List<Route>) LoadFromData(string json)
         {
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var data = JsonSerializer.Deserialize<MapData>(json, options);
+            var data = JsonSerializer.Deserialize<MapData>(json, s_jsonOptions);
             if (data == null) throw new InvalidDataException("Failed to deserialize map data.");
 
             var nodes = CreateNodes(data.Nodes);
@@ -51,11 +51,12 @@ namespace ChaosWarlords.Source.Utilities
             // However, `MapLayoutEngine` DOES return a list of Route objects. 
             // Let's create a minimal list if needed, or update CreateRoutes to return list involved.
             // Updating CreateRoutes is better.
-            var routes = new List<Route>();
+            var routes = new List<Route>(); // Keeping as List initialization for now as it's modified later or just empty
+
             // ... actually CreateRoutes logic above (lines 87-96) constructs adjacency but doesn't build Route objects. 
             // Given this is legacy JSON loading vs New Procedural Generation, we should align them.
             // For now, return null for routes is acceptable for legacy loader if nothing consumes it yet. 
-            return (nodes, sites, new List<Route>());
+            return (nodes, sites, []);
         }
 
         public static (List<MapNode>, List<Site>, List<Route>) LoadFromStream(Stream stream)
@@ -112,8 +113,10 @@ namespace ChaosWarlords.Source.Utilities
 
             foreach (var s in siteDataList)
             {
-                System.Enum.TryParse(s.ControlResource, out ResourceType cType);
-                System.Enum.TryParse(s.TotalControlResource, out ResourceType tType);
+                if (!System.Enum.TryParse(s.ControlResource, out ResourceType cType))
+                    cType = ResourceType.Influence; // Default fallback
+                if (!System.Enum.TryParse(s.TotalControlResource, out ResourceType tType))
+                    tType = ResourceType.VictoryPoints; // Default fallback
 
                 Site newSite;
                 if (s.IsCity)

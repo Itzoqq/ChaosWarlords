@@ -33,6 +33,7 @@ namespace ChaosWarlords.Source.Utilities
 
     public class CardDatabase : ICardDatabase
     {
+        private static readonly JsonSerializerOptions s_jsonOptions = new() { PropertyNameCaseInsensitive = true };
         private List<CardData> _cardDataCache = [];
 
         public void Load(Stream stream)
@@ -46,8 +47,7 @@ namespace ChaosWarlords.Source.Utilities
 
         internal void LoadFromJson(string json)
         {
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            _cardDataCache = JsonSerializer.Deserialize<List<CardData>>(json, options) ?? new List<CardData>();
+            _cardDataCache = JsonSerializer.Deserialize<List<CardData>>(json, s_jsonOptions) ?? new List<CardData>();
         }
 
         public List<Card> GetAllMarketCards()

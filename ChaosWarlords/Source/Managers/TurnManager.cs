@@ -10,7 +10,7 @@ namespace ChaosWarlords.Source.Managers
     public class TurnManager : ITurnManager
     {
         public List<Player> Players { get; private set; }
-        private int _currentPlayerIndex = 0;
+        private int _currentPlayerIndex;
 
         // The distinct data object for the current turn
         public TurnContext CurrentTurnContext { get; private set; } = null!;
@@ -26,18 +26,16 @@ namespace ChaosWarlords.Source.Managers
         public TurnManager(List<Player> players, IGameRandom random)
         {
             // Industry Standard: "Guard Clauses"
-            if (players == null || players.Count == 0)
+            ArgumentNullException.ThrowIfNull(players);
+            if (players.Count == 0)
             {
                 throw new ArgumentException("TurnManager requires at least one player.", nameof(players));
             }
 
-            if (random == null)
-            {
-                throw new ArgumentNullException(nameof(random));
-            }
+            ArgumentNullException.ThrowIfNull(random);
 
             // Randomize Player Order using deterministic RNG
-            Players = new List<Player>(players);
+            Players = [.. players];
             random.Shuffle(Players);
 
             StartTurn();

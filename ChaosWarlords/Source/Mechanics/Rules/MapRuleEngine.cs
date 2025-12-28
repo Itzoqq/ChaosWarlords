@@ -44,7 +44,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             return IsAdjacentToFriendly(targetNode, parentSite, player);
         }
 
-        private bool HasSpyPresence(Site? site, PlayerColor player)
+        private static bool HasSpyPresence(Site? site, PlayerColor player)
         {
             return site != null && site.Spies.Contains(player);
         }
@@ -79,7 +79,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         public bool CanDeployAt(MapNode targetNode, PlayerColor player)
         {
-            if (targetNode == null) throw new ArgumentNullException(nameof(targetNode));
+            ArgumentNullException.ThrowIfNull(targetNode);
             if (targetNode.Occupant != PlayerColor.None) return false;
 
             return CurrentPhase == MatchPhase.Setup
@@ -120,7 +120,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             return _nodes.Any(n => n.Occupant == player);
         }
 
-        private bool SiteOccupiedByOtherPlayer(Site site, PlayerColor player)
+        private static bool SiteOccupiedByOtherPlayer(Site site, PlayerColor player)
         {
             return site.NodesInternal.Any(n => n.Occupant != PlayerColor.None && n.Occupant != player);
         }
@@ -138,7 +138,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             return isEnemy && HasPresence(node, activePlayer.Color);
         }
 
-        public bool CanMoveDestination(MapNode node)
+        public static bool CanMoveDestination(MapNode node)
         {
             return node.Occupant == PlayerColor.None;
         }

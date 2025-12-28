@@ -28,13 +28,13 @@ namespace ChaosWarlords.Source.Core.Utilities
         }
 
         /// <inheritdoc/>
-        public int Next(int maxValue)
+        public int NextInt(int maxValue)
         {
             return _rng.Next(maxValue);
         }
 
         /// <inheritdoc/>
-        public int Next(int minValue, int maxValue)
+        public int NextInt(int minValue, int maxValue)
         {
             return _rng.Next(minValue, maxValue);
         }
@@ -42,8 +42,7 @@ namespace ChaosWarlords.Source.Core.Utilities
         /// <inheritdoc/>
         public void Shuffle<T>(IList<T> list)
         {
-            if (list == null)
-                throw new ArgumentNullException(nameof(list));
+            ArgumentNullException.ThrowIfNull(list);
 
             // Fisher-Yates shuffle algorithm
             int n = list.Count;
