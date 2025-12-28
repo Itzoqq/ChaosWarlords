@@ -12,8 +12,8 @@ namespace ChaosWarlords.Tests.Managers
     [TestClass]
     public class PlayerStateManagerTests
     {
-        private PlayerStateManager _manager;
-        private Player _player;
+        private PlayerStateManager _manager = null!;
+        private Player _player = null!;
 
         [TestInitialize]
         public void Setup()
@@ -135,7 +135,7 @@ namespace ChaosWarlords.Tests.Managers
 
             _manager.DrawCards(_player, 1, mockRandom);
 
-            Assert.AreEqual(1, _player.Hand.Count);
+            Assert.HasCount(1, _player.Hand);
             Assert.AreEqual(card, _player.Hand[0]);
         }
 
@@ -148,8 +148,8 @@ namespace ChaosWarlords.Tests.Managers
 
             _manager.PlayCard(_player, card);
 
-            Assert.IsFalse(_player.Hand.Contains(card));
-            Assert.IsTrue(_player.PlayedCards.Contains(card));
+            Assert.DoesNotContain(card, _player.Hand);
+            Assert.Contains(card, _player.PlayedCards);
             Assert.AreEqual(CardLocation.Played, card.Location);
         }
 
@@ -159,7 +159,7 @@ namespace ChaosWarlords.Tests.Managers
             var card = new Card("c1", "Test", 0, CardAspect.Neutral, 0, 0, 0);
             _manager.AcquireCard(_player, card);
 
-            Assert.IsTrue(_player.DiscardPile.Contains(card));
+            Assert.Contains(card, _player.DiscardPile);
         }
 
         [TestMethod]
@@ -171,7 +171,7 @@ namespace ChaosWarlords.Tests.Managers
             bool success = _manager.TryPromoteCard(_player, card, out string error);
 
             Assert.IsTrue(success);
-            Assert.IsTrue(_player.InnerCircle.Contains(card));
+            Assert.Contains(card, _player.InnerCircle);
             Assert.AreEqual(CardLocation.InnerCircle, card.Location);
         }
 
@@ -184,7 +184,7 @@ namespace ChaosWarlords.Tests.Managers
 
             _manager.DevourCard(_player, card);
 
-            Assert.IsFalse(_player.Hand.Contains(card));
+            Assert.DoesNotContain(card, _player.Hand);
             Assert.AreEqual(CardLocation.Void, card.Location);
         }
 
@@ -200,8 +200,8 @@ namespace ChaosWarlords.Tests.Managers
 
             Assert.AreEqual(0, _player.Power);
             Assert.AreEqual(0, _player.Influence);
-            Assert.AreEqual(0, _player.Hand.Count);
-            Assert.IsTrue(_player.DiscardPile.Contains(card));
+            Assert.IsEmpty(_player.Hand);
+            Assert.Contains(card, _player.DiscardPile);
         }
     }
 }

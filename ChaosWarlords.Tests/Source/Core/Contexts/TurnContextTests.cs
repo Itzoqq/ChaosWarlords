@@ -93,6 +93,45 @@ namespace ChaosWarlords.Tests.Contexts
             // But B can use A's credit
             Assert.IsTrue(_turnContext.HasValidCreditFor(_cardB));
         }
+
+        [TestMethod]
+        public void RecordAction_AddsToHistory()
+        {
+            _turnContext.RecordAction("TestType", "Test Summary");
+
+            Assert.HasCount(1, _turnContext.ActionHistory);
+            Assert.AreEqual("TestType", _turnContext.ActionHistory[0].ActionType);
+            Assert.AreEqual("Test Summary", _turnContext.ActionHistory[0].Summary);
+        }
+
+        [TestMethod]
+        public void RecordAction_IncrementsSequence()
+        {
+            _turnContext.RecordAction("Action1", "Summary1");
+            _turnContext.RecordAction("Action2", "Summary2");
+
+            Assert.HasCount(2, _turnContext.ActionHistory);
+            Assert.AreEqual(0, _turnContext.ActionHistory[0].Sequence);
+            Assert.AreEqual(1, _turnContext.ActionHistory[1].Sequence);
+        }
+
+        [TestMethod]
+        public void RecordAction_CapturesCorrectPlayerId()
+        {
+            _turnContext.RecordAction("Type", "Summary");
+
+            Assert.AreEqual(_dummyPlayer.PlayerId, _turnContext.ActionHistory[0].PlayerId);
+        }
+
+        [TestMethod]
+        public void RecordAction_StoresTimestamp()
+        {
+            _turnContext.RecordAction("Type", "Summary");
+
+            // Timestamp should be recent
+            var diff = System.DateTime.Now - _turnContext.ActionHistory[0].Timestamp;
+            Assert.IsLessThan(5.0, diff.TotalSeconds);
+        }
     }
 }
 
