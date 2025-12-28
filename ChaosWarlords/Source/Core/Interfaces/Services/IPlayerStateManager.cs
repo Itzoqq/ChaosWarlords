@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 
@@ -14,19 +12,19 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         // --- Resources ---
         void AddPower(Player player, int amount);
         bool TrySpendPower(Player player, int amount);
-        
+
         void AddInfluence(Player player, int amount);
         bool TrySpendInfluence(Player player, int amount);
-        
+
         void AddVictoryPoints(Player player, int amount);
 
         // --- Military ---
         void AddTroops(Player player, int amount);
         void RemoveTroops(Player player, int amount);
-        
+
         void AddSpies(Player player, int amount);
         void RemoveSpies(Player player, int amount);
-        
+
         void AddTrophy(Player player);
 
         // --- Card Management ---
@@ -35,7 +33,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         void AcquireCard(Player player, Card card); // Moves to Discard (bought/gained)
         bool TryPromoteCard(Player player, Card card, out string errorMessage); // Inner Circle
         void DevourCard(Player player, Card card); // Removes from deck/hand entirely
-        
+
         // --- Turn Management ---
         void CleanUpTurn(Player player);
     }

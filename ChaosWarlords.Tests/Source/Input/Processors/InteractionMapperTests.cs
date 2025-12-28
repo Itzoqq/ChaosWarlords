@@ -1,24 +1,11 @@
 using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Mechanics.Rules;
-using ChaosWarlords.Source.Mechanics.Actions;
 using ChaosWarlords.Source.Input;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Rendering.Views;
-using ChaosWarlords.Source.Views; // For CardViewModel
 using ChaosWarlords.Source.Utilities;
-
 using Microsoft.Xna.Framework;
-using System.Collections.Generic;
 using NSubstitute;
 
 namespace ChaosWarlords.Tests.Source.Input.Processors
@@ -34,7 +21,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         {
             // Mock the View using NSubstitute
             _view = Substitute.For<IGameplayView>();
-            
+
             // Setup List properties to return real lists so we can add to them in tests
             _view.HandViewModels.Returns(new List<CardViewModel>());
             _view.MarketViewModels.Returns(new List<CardViewModel>());
@@ -236,7 +223,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
             // Arrange
             var site = new CitySite("Test Site", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
             site.AddSpy(PlayerColor.Red);
-            
+
             // Based on the logic: drawX = (800 - 200) / 2 = 300, startY = 200, yOffset = 40
             // First spy button: Rectangle(300, 240, 200, 30)
             var mousePos = new Point(350, 250); // Inside first spy button
@@ -254,7 +241,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
             // Arrange
             var site = new CitySite("Test Site", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
             site.AddSpy(PlayerColor.Red);
-            
+
             var mousePos = new Point(100, 100); // Outside button area
 
             // Act
@@ -271,7 +258,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
             var site = new CitySite("Test Site", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
             site.AddSpy(PlayerColor.Red);
             site.AddSpy(PlayerColor.Blue);
-            
+
             // Second spy button: yOffset = 40 + 40 = 80, so Rectangle(300, 280, 200, 30)
             var mousePos = new Point(350, 290); // Inside second spy button
 

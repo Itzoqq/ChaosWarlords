@@ -1,23 +1,13 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.States;
-
-using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Mechanics.Rules;
-using ChaosWarlords.Source.Mechanics.Actions;
-using ChaosWarlords.Source.Input;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 
 namespace ChaosWarlords.Tests.Managers
@@ -36,7 +26,7 @@ namespace ChaosWarlords.Tests.Managers
             _mockGameState = Substitute.For<IGameplayState>();
             _mockUIManager = Substitute.For<IUIManager>();
             _mockActionSystem = Substitute.For<IActionSystem>();
-            
+
             // Additional Mocks for MatchContext
             var mockTurn = Substitute.For<ITurnManager>();
             var mockMap = Substitute.For<IMapManager>();
@@ -58,13 +48,13 @@ namespace ChaosWarlords.Tests.Managers
                 mockDb,
                 new PlayerStateManager()
             );
-            
+
             _mockGameState.MatchContext.Returns(matchContext);
 
             // Setup ActivePlayer (returning a real Player object is easiest)
             var player = new Player(PlayerColor.Red);
             mockTurn.ActivePlayer.Returns(player);
-            
+
             // Mock TurnContext for promotion check
             var turnContext = new TurnContext(player);
             mockTurn.CurrentTurnContext.Returns(turnContext);
@@ -114,7 +104,7 @@ namespace ChaosWarlords.Tests.Managers
             // Arrange - First open the menu
             _mockGameState.IsPauseMenuOpen.Returns(false);
             _mediator.HandleEscapeKeyPress();
-            
+
             // Now close it
             _mockGameState.IsPauseMenuOpen.Returns(true);
 
@@ -215,8 +205,8 @@ namespace ChaosWarlords.Tests.Managers
             // Ensure hand is empty (it is by default)
             var player = _mockGameState.MatchContext.ActivePlayer;
             player.Hand.Clear();
-            
-            
+
+
             // Mock no pending promotions
             // _mockGameState.TurnManager.CurrentTurnContext.PendingPromotionsCount is 0 by default (concrete class)
 
@@ -237,7 +227,7 @@ namespace ChaosWarlords.Tests.Managers
             var player = _mockGameState.MatchContext.ActivePlayer;
             player.Hand.Add(new Card("test", "Test", 1, CardAspect.Warlord, 0, 0, 0));
             _mediator.HandleEndTurnKeyPress(); // Open popup
-            
+
             Assert.IsTrue(_mediator.IsConfirmationPopupOpen, "Popup should be open");
 
             // Mock no pending promotions for simple EndTurn
@@ -259,7 +249,7 @@ namespace ChaosWarlords.Tests.Managers
             var player = _mockGameState.MatchContext.ActivePlayer;
             player.Hand.Add(new Card("test", "Test", 1, CardAspect.Warlord, 0, 0, 0));
             _mediator.HandleEndTurnKeyPress(); // Open popup
-            
+
             Assert.IsTrue(_mediator.IsConfirmationPopupOpen);
 
             // Act

@@ -1,13 +1,6 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Rendering.UI
@@ -45,10 +38,10 @@ namespace ChaosWarlords.Source.Rendering.UI
                 // If i >= Count (because Count dropped to 0), we stop? No, loop condition is i>=0.
                 // But accessing _buttons[i] is dangerous if Count changed?
                 // If Count becomes 0, i is still, say, 1. _buttons[1] -> ArgumentOutOfRange.
-                
+
                 // Better approach: Iterate over a COPY for interactions to ensure safety
                 // OR check bounds.
-                
+
                 if (i >= _buttons.Count) continue;
 
                 var button = _buttons[i];
@@ -57,7 +50,7 @@ namespace ChaosWarlords.Source.Rendering.UI
                 if (button.IsHovered && isMouseClicked)
                 {
                     button.OnClick?.Invoke();
-                    
+
                     // If OnClick cleared the list, we must break to avoid invalid access next loop
                     // or if we rely on reverse loop, the next i-- might still be out of bounds if ALL were removed?
                     // Example: Handled index 1. Click clears all. Count=0. Next i=0. Access _buttons[0] -> Fails if cleared.

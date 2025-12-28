@@ -1,11 +1,9 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using NSubstitute;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Managers
 {

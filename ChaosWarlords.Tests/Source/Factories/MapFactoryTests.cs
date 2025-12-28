@@ -1,15 +1,5 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
-using System.IO;
-using System.Linq;
-using System.Text;
 
 namespace ChaosWarlords.Tests.Source.Utilities
 {
@@ -92,50 +82,50 @@ namespace ChaosWarlords.Tests.Source.Utilities
     [TestMethod]
     public void LoadFromStream_ParsesDataCorrectly()
     {
-        // Arrange
-        using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(MockMapJson)))
-        {
-            // Act
-            var (nodes, sites, _) = MapFactory.LoadFromStream(stream);
+      // Arrange
+      using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(MockMapJson)))
+      {
+        // Act
+        var (nodes, sites, _) = MapFactory.LoadFromStream(stream);
 
-            // Assert
-            Assert.HasCount(3, nodes);
-            Assert.HasCount(1, sites);
-        }
+        // Assert
+        Assert.HasCount(3, nodes);
+        Assert.HasCount(1, sites);
+      }
     }
 
     [TestMethod]
     public void LoadFromStream_ReturnsTestMap_OnError()
     {
-        // Arrange - Invalid JSON
-        var invalidJson = "{ invalid_json }";
-        using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(invalidJson)))
-        {
-            // Act
-            var (nodes, sites, _) = MapFactory.LoadFromStream(stream);
+      // Arrange - Invalid JSON
+      var invalidJson = "{ invalid_json }";
+      using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(invalidJson)))
+      {
+        // Act
+        var (nodes, sites, _) = MapFactory.LoadFromStream(stream);
 
-            // Assert - Should return Test Map (3 nodes, no sites)
-            Assert.HasCount(25, nodes);
-            Assert.HasCount(5, sites); 
-        }
+        // Assert - Should return Test Map (3 nodes, no sites)
+        Assert.HasCount(25, nodes);
+        Assert.HasCount(5, sites);
+      }
     }
 
     [TestMethod]
     public void CreateTestMap_ReturnsValidDefaultMap()
     {
-        // Act
-        var (nodes, sites, _) = MapFactory.CreateTestMap();
+      // Act
+      var (nodes, sites, _) = MapFactory.CreateTestMap();
 
-        // Assert
-        Assert.HasCount(25, nodes);
-        Assert.HasCount(5, sites);
-        
-        var n1 = nodes.FirstOrDefault(n => n.Id == 1);
-        var n2 = nodes.FirstOrDefault(n => n.Id == 2);
-        
-        Assert.IsNotNull(n1);
-        Assert.IsNotNull(n2);
-        Assert.Contains(n2, n1.Neighbors);
+      // Assert
+      Assert.HasCount(25, nodes);
+      Assert.HasCount(5, sites);
+
+      var n1 = nodes.FirstOrDefault(n => n.Id == 1);
+      var n2 = nodes.FirstOrDefault(n => n.Id == 2);
+
+      Assert.IsNotNull(n1);
+      Assert.IsNotNull(n2);
+      Assert.Contains(n2, n1.Neighbors);
     }
   }
 }

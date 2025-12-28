@@ -1,19 +1,9 @@
 using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Mechanics.Rules;
-using ChaosWarlords.Source.Mechanics.Actions;
-using ChaosWarlords.Source.Input;
-using ChaosWarlords.Source.Views;
 using ChaosWarlords.Source.Entities.Actors;
 
 namespace ChaosWarlords.Source.Core.Interfaces.Rendering

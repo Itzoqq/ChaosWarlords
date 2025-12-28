@@ -1,23 +1,7 @@
-#nullable enable
-using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using Microsoft.Xna.Framework.Input;
-
-using ChaosWarlords.Source.States.Input;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.States;
-using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Mechanics.Rules;
-using ChaosWarlords.Source.Mechanics.Actions;
-using ChaosWarlords.Source.Input;
-using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Entities.Actors;
 using System;
 
 namespace ChaosWarlords.Source.Input.Controllers
@@ -32,13 +16,13 @@ namespace ChaosWarlords.Source.Input.Controllers
         private readonly IGameplayState _gameState;
         private readonly IInputManager _inputManager;
         private readonly IGameplayInputCoordinator _inputCoordinator;
-        private readonly IInteractionMapper? _interactionMapper;
+        private readonly IInteractionMapper _interactionMapper;
 
         public PlayerController(
             IGameplayState gameState,
             IInputManager inputManager,
             IGameplayInputCoordinator inputCoordinator,
-            IInteractionMapper? interactionMapper)
+            IInteractionMapper interactionMapper)
         {
             _gameState = gameState ?? throw new ArgumentNullException(nameof(gameState));
             _inputManager = inputManager ?? throw new ArgumentNullException(nameof(inputManager));
@@ -132,7 +116,7 @@ namespace ChaosWarlords.Source.Input.Controllers
 
             var site = _gameState.ActionSystem.PendingSite;
             if (site == null) return false;
-            
+
             if (_interactionMapper == null) return false;
 
             PlayerColor? clickedSpy = _interactionMapper.GetClickedSpyReturnButton(

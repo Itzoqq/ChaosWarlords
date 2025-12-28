@@ -1,14 +1,6 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
@@ -90,7 +82,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             if (targetNode == null) throw new ArgumentNullException(nameof(targetNode));
             if (targetNode.Occupant != PlayerColor.None) return false;
 
-            return CurrentPhase == MatchPhase.Setup 
+            return CurrentPhase == MatchPhase.Setup
                 ? CanDeployDuringSetup(targetNode, player)
                 : CanDeployDuringPlay(targetNode, player);
         }
@@ -118,7 +110,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         {
             // If player has no troops, can deploy anywhere (eliminated - can deploy anywhere)
             if (!PlayerHasTroopsOnMap(player)) return true;
-            
+
             // Otherwise, must have presence at target node
             return HasPresence(targetNode, player);
         }

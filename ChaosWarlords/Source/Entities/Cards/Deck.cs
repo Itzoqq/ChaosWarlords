@@ -1,13 +1,6 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Entities.Cards
@@ -48,7 +41,7 @@ namespace ChaosWarlords.Source.Entities.Cards
                 AddToDiscard(card);
             }
         }
-        
+
         // For setup or special effects that add directly to deck
         public void AddToTop(Card card)
         {
@@ -87,7 +80,7 @@ namespace ChaosWarlords.Source.Entities.Cards
         {
             if (random == null)
                 throw new ArgumentNullException(nameof(random));
-                
+
             random.Shuffle(_drawPile);
         }
 

@@ -3,32 +3,20 @@ using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Mechanics.Actions;
 using ChaosWarlords.Source.Input;
 using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Commands;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.States.Input;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using ChaosWarlords.Source.Contexts;
-using System.Collections.Generic;
-using System.Linq;
-using ChaosWarlords.Source.Views;
 using ChaosWarlords.Source.Input.Controllers;
-using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Core.Utilities;
-
-using ChaosWarlords.Tests;
 
 namespace ChaosWarlords.Tests.States
 {
@@ -58,7 +46,7 @@ namespace ChaosWarlords.Tests.States
             // Arrange
             // Passing null for Game, ensuring it doesn't crash
             var state = new GameplayState(null, _inputProvider, _cardDatabase);
-            
+
             // Act
             state.LoadContent();
 
@@ -199,9 +187,9 @@ namespace ChaosWarlords.Tests.States
             {
                 _testInput = input;
                 _testDb = db;
-                
+
                 // Initialize View Mock Properties to avoid potential NREs
-                if (_view != null) 
+                if (_view != null)
                 {
                     _view.HandViewModels.Returns(new List<CardViewModel>());
                     _view.PlayedViewModels.Returns(new List<CardViewModel>());
@@ -308,10 +296,10 @@ namespace ChaosWarlords.Tests.States
             // but we can trigger the event handler directly if we expose it or use the mock approach.
             // Since TestableGameplayState uses 'new UIManager', we can't easily retrieve it unless we expose it.
             // BETTER: Use the TestableGameplayState to inject our MockUISystem!
-            
+
             // Re-initializing Test Environment with Mock UI would be cleaner, but let's stick to the current pattern.
             // We can invoke the private handler via reflection or just simulating the Enter Key which now calls HandleEndTurnRequest.
-            
+
             _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
             state.Update(new GameTime());
 
@@ -344,7 +332,7 @@ namespace ChaosWarlords.Tests.States
             state.MatchContext.ActivePlayer.Hand.Add(new Card("test", "Test", 0, CardAspect.Warlord, 0, 0, 0));
             _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
             state.Update(new GameTime());
-            
+
             Assert.IsTrue(state.IsConfirmationPopupOpen);
 
             // Confirm

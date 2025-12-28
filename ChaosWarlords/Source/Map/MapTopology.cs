@@ -1,16 +1,7 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 using System.Linq;
-using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Map
@@ -36,7 +27,7 @@ namespace ChaosWarlords.Source.Map
         public void CenterMap(int screenWidth, int screenHeight)
         {
             if (_nodes.Count == 0) return;
-            
+
             var (MinX, MinY, MaxX, MaxY) = MapGeometry.CalculateBounds(_nodes);
             Vector2 mapCenter = new((MinX + MaxX) / 2f, (MinY + MaxY) / 2f);
             Vector2 screenCenter = new(screenWidth / 2f, screenHeight / 2f);
@@ -52,7 +43,7 @@ namespace ChaosWarlords.Source.Map
             {
                 node.Position += offset;
             }
-            
+
             if (_sites != null)
             {
                 foreach (var site in _sites)

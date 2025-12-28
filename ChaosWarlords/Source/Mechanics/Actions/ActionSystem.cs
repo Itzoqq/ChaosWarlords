@@ -1,16 +1,10 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using System;
-using System.Linq;
 
 namespace ChaosWarlords.Source.Managers
 {
@@ -322,15 +316,15 @@ namespace ChaosWarlords.Source.Managers
             {
                 if (PendingCard == null)
                 {
-                     if (_playerStateManager != null)
-                     {
-                         _playerStateManager.TrySpendPower(CurrentPlayer, RETURN_SPY_COST);
-                     }
-                     else
-                     {
-                         // Fallback
-                         CurrentPlayer.Power -= RETURN_SPY_COST;
-                     }
+                    if (_playerStateManager != null)
+                    {
+                        _playerStateManager.TrySpendPower(CurrentPlayer, RETURN_SPY_COST);
+                    }
+                    else
+                    {
+                        // Fallback
+                        CurrentPlayer.Power -= RETURN_SPY_COST;
+                    }
                 }
                 OnActionCompleted?.Invoke(this, EventArgs.Empty);
                 ClearState();

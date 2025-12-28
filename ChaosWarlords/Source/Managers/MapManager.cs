@@ -1,15 +1,8 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
@@ -107,7 +100,7 @@ namespace ChaosWarlords.Source.Managers
 
         public void RecalculateSiteState(Site site, Player activePlayer) => _rewards.RecalculateSiteState(site, activePlayer);
         public void DistributeStartOfTurnRewards(Player activePlayer) => _rewards.DistributeStartOfTurnRewards(SitesInternal, activePlayer);
-        
+
         public void SetPhase(MatchPhase phase) => _ruleEngine.SetPhase(phase);
         public MatchPhase CurrentPhase => _ruleEngine.CurrentPhase;
 
@@ -200,7 +193,7 @@ namespace ChaosWarlords.Source.Managers
             if (node.Occupant == PlayerColor.Neutral) return false;
             // Must be occupied
             if (node.Occupant == PlayerColor.None) return false;
-            
+
             return true;
         }
 
@@ -230,18 +223,18 @@ namespace ChaosWarlords.Source.Managers
         public bool CanReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor)
         {
             if (site == null) return false;
-             // Check Presence using the Rule Engine
-             // We can check presence on any node in the site (if you have presence on one, you have presence on the site for interaction presumably, 
-             // although strictly presence is per node. But for Site interactions, usually you need presence *at* the site.
-             // The original code checked NodesInternal[0]. 
-             
-             // Safer check: Do we have presence at ANY node of the site?
-             bool hasPresence = site.NodesInternal.Any(n => HasPresence(n, activePlayer.Color));
-             if (!hasPresence) return false;
+            // Check Presence using the Rule Engine
+            // We can check presence on any node in the site (if you have presence on one, you have presence on the site for interaction presumably, 
+            // although strictly presence is per node. But for Site interactions, usually you need presence *at* the site.
+            // The original code checked NodesInternal[0]. 
 
-             if (!site.Spies.Contains(targetSpyColor) || targetSpyColor == activePlayer.Color) return false;
+            // Safer check: Do we have presence at ANY node of the site?
+            bool hasPresence = site.NodesInternal.Any(n => HasPresence(n, activePlayer.Color));
+            if (!hasPresence) return false;
 
-             return true;
+            if (!site.Spies.Contains(targetSpyColor) || targetSpyColor == activePlayer.Color) return false;
+
+            return true;
         }
 
         public bool ReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor)

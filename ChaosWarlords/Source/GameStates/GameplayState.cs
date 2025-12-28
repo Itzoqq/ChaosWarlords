@@ -1,5 +1,4 @@
 #nullable enable
-using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
@@ -8,24 +7,16 @@ using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Mechanics.Actions;
 using ChaosWarlords.Source.Input;
-using ChaosWarlords.Source.Rendering.Views;
 using ChaosWarlords.Source.Contexts;
-using ChaosWarlords.Source.States.Input;
 
 using ChaosWarlords.Source.Input.Controllers;
-using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Factories;
 using System;
-using System.Linq;
 
 namespace ChaosWarlords.Source.States
 {
@@ -94,13 +85,13 @@ namespace ChaosWarlords.Source.States
         {
             // Game might be null in headless mode, but if we need to load content we might need a ContentProvider.
             // For now, checks are strict:
-            if (_game == null && _view != null) 
+            if (_game == null && _view != null)
             {
-                 // If view exists but game is null, we can't load content.
-                 GameLogger.Log("GameplayState: Skipping view content load because Game is null (Headless mode?)");
-                 return;
+                // If view exists but game is null, we can't load content.
+                GameLogger.Log("GameplayState: Skipping view content load because Game is null (Headless mode?)");
+                return;
             }
-            
+
             GameLogger.Initialize();
 
             InitializeInfrastructure();
@@ -120,9 +111,9 @@ namespace ChaosWarlords.Source.States
         {
             if (_view != null)
             {
-                 // Content loading is managed by State lifecycle
-                 if (_game != null) _view.LoadContent(_game.Content);
-                 _interactionMapper = new InteractionMapper(_view);
+                // Content loading is managed by State lifecycle
+                if (_game != null) _view.LoadContent(_game.Content);
+                _interactionMapper = new InteractionMapper(_view);
             }
         }
 
@@ -161,7 +152,7 @@ namespace ChaosWarlords.Source.States
         {
             _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
             _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, () => SwitchToTargetingMode());
-            
+
             _uiEventMediator = new UIEventMediator(this, _uiManagerBacking, _matchContext.ActionSystem, _game as Game1);
             _uiEventMediator.Initialize();
 
@@ -185,15 +176,15 @@ namespace ChaosWarlords.Source.States
         {
             // 1. Update input state (captures current frame's mouse/keyboard state)
             _inputManagerBacking.Update();
-            
+
             // 2. Sync UI state (updates pause menu and popup flags)
             _uiEventMediator.Update();
-            
+
             // 3. CRITICAL: Process UI clicks FIRST (highest priority)
             // This includes pause menu buttons, popups, and game UI buttons
             // UIManager will handle clicks and fire events (like OnMainMenuRequest)
             _uiManagerBacking.Update(_inputManagerBacking);
-            
+
             // 4. If modal UI is open (pause or popup), BLOCK all other input
             // This prevents game input from processing while UI is active
             if (_uiEventMediator.IsPauseMenuOpen || _uiEventMediator.IsConfirmationPopupOpen)
@@ -261,7 +252,6 @@ namespace ChaosWarlords.Source.States
         public void SwitchToTargetingMode() => _inputCoordinator.SwitchToTargetingMode();
         public void SwitchToNormalMode() => _inputCoordinator.SwitchToNormalMode();
 
-        // --- FIX IS HERE ---
         public void SwitchToPromoteMode(int amount)
         {
             if (_matchContext == null) throw new InvalidOperationException("Match context not initialized");
@@ -274,7 +264,6 @@ namespace ChaosWarlords.Source.States
 
             _inputCoordinator.SwitchToTargetingMode();
         }
-        // -------------------
 
         // --- Input Delegation Methods (called by PlayerController) ---
         public void HandleEscapeKeyPress() => _uiEventMediator.HandleEscapeKeyPress();

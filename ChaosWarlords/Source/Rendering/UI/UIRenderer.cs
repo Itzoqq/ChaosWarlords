@@ -1,19 +1,8 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Mechanics.Rules;
-using ChaosWarlords.Source.Mechanics.Actions;
-using ChaosWarlords.Source.Input;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Views
@@ -193,8 +182,8 @@ namespace ChaosWarlords.Source.Views
         {
             // Re-use logic or duplicate for horizontal. 
             // Since VerticalButton rotates text, Horizontal won't.
-            
-            Color bgColor = isEnabled 
+
+            Color bgColor = isEnabled
                 ? (isHovered ? themeColor : Color.Lerp(themeColor, Color.Black, 0.4f))
                 : Color.DarkGray * 0.5f;
 
@@ -217,19 +206,19 @@ namespace ChaosWarlords.Source.Views
             // Dim Background
             // We can't access full screen rect easily here unless passed, but we can draw a large rect?
             // Or just draw the popup box.
-            
+
             // Draw Popup Box
             sb.Draw(_pixelTexture, background, Color.Black * 0.95f);
             DrawBorder(sb, _pixelTexture, background, 2, Color.White);
 
             // Draw Message
-             // Wrap text if needed, but for now simple center
+            // Wrap text if needed, but for now simple center
             SpriteFont font = _defaultFont;
             Vector2 textSize = font.MeasureString(message);
             Vector2 msgPos = new Vector2(
                 background.X + (background.Width - textSize.X) / 2,
                 background.Y + 40);
-            
+
             sb.DrawString(font, message, msgPos, Color.White);
 
             // Draw Buttons
@@ -256,7 +245,7 @@ namespace ChaosWarlords.Source.Views
             DrawHorizontalButton(sb, ui.MainMenuButtonRect, "MAIN MENU", ui.IsMainMenuHovered, true, Color.Orange);
             DrawHorizontalButton(sb, ui.ExitButtonRect, "EXIT", ui.IsExitHovered, true, Color.Red);
         }
-        
+
     }
 }
 

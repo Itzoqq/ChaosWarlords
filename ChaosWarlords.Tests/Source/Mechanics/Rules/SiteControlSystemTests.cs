@@ -1,21 +1,8 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Mechanics.Rules;
-using ChaosWarlords.Source.Mechanics.Actions;
-using ChaosWarlords.Source.Input;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -47,12 +34,12 @@ namespace ChaosWarlords.Tests.Systems
         public void Recalculate_AssignsOwner_Majority_TroopsOnly()
         {
             _node1.Occupant = _player1.Color;
-            
+
             // Spy should NOT count for control
-            _siteA.Spies.Add(_player2.Color); 
-            
+            _siteA.Spies.Add(_player2.Color);
+
             _system.RecalculateSiteState(_siteA, _player1);
-            
+
             // Red has 1 Troop, Blue has 0 Troops (1 Spy). Red should control.
             Assert.AreEqual(_player1.Color, _siteA.Owner);
         }
@@ -86,7 +73,7 @@ namespace ChaosWarlords.Tests.Systems
         public void Recalculate_BlocksTotalControl_IfEnemyTroopPresent()
         {
             _node1.Occupant = _player1.Color;
-            _node2.Occupant = _player2.Color; 
+            _node2.Occupant = _player2.Color;
             // 1 vs 1 -> Tie -> No Owner usually.
             // Let's add another node for Red to ensure they own it but enemy exists.
             var node3 = new MapNode(3, Vector2.Zero);

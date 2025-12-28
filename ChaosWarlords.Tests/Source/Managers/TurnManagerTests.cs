@@ -1,12 +1,8 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
-using System.Collections.Generic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using NSubstitute;
-using ChaosWarlords.Source.Contexts;
-using ChaosWarlords.Source.Core.Utilities;
 
 namespace ChaosWarlords.Tests.Managers
 {
@@ -17,10 +13,10 @@ namespace ChaosWarlords.Tests.Managers
         public void Constructor_InitializesPlayersAndStartsFirstTurn()
         {
             // Arrange
-            var players = new List<Player> 
-            { 
-                new Player(PlayerColor.Red), 
-                new Player(PlayerColor.Blue) 
+            var players = new List<Player>
+            {
+                new Player(PlayerColor.Red),
+                new Player(PlayerColor.Blue)
             };
 
             // Act
@@ -73,11 +69,11 @@ namespace ChaosWarlords.Tests.Managers
             var p2 = new Player(PlayerColor.Blue);
             var mockRandom = Substitute.For<IGameRandom>();
             var manager = new TurnManager(new List<Player> { p1, p2 }, mockRandom);
-            
+
             bool eventFired = false;
             Player? eventPlayer = null;
-            
-            manager.OnTurnChanged += (sender, player) => 
+
+            manager.OnTurnChanged += (sender, player) =>
             {
                 eventFired = true;
                 eventPlayer = player;

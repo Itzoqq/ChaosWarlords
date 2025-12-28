@@ -1,38 +1,31 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using System;
 using System.Collections.Generic;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Entities.Map;
 
 namespace ChaosWarlords.Source.Entities.Actors
 {
     public class Player
     {
         // --- Identity ---
-        
+
         /// <summary>
         /// Unique identifier for this player across all matches.
         /// Used for player tracking, statistics, and reconnection in multiplayer.
         /// </summary>
         public Guid PlayerId { get; private set; }
-        
+
         /// <summary>
         /// Display name for this player (for UI purposes).
         /// </summary>
         public string DisplayName { get; set; }
-        
+
         /// <summary>
         /// The faction color this player is using for the current match.
         /// </summary>
         public PlayerColor Color { get; private set; }
-        
+
         // --- Economy ---
         private int _power;
         private int _influence;
@@ -56,7 +49,7 @@ namespace ChaosWarlords.Source.Entities.Actors
         public int TrophyHall { get; internal set; } = 0;
 
         // --- Card Piles ---
-        
+
         // Encapsulated Deck Manager
         private readonly Deck _deckManager = new Deck();
 
@@ -70,7 +63,7 @@ namespace ChaosWarlords.Source.Entities.Actors
         // Expose via read-only lists
         internal IReadOnlyList<Card> Deck => _deckManager.DrawPile;
         internal IReadOnlyList<Card> DiscardPile => _deckManager.DiscardPile;
-        
+
         internal Deck DeckManager => _deckManager; // For Tests/Setup that need write access (e.g. AddToTop)
 
         /// <summary>

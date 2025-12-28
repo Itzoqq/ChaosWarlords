@@ -1,15 +1,7 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using System.Linq;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Mechanics.Rules;
 
@@ -66,7 +58,7 @@ namespace ChaosWarlords.Source.Managers
         public void DevourCard(Card card)
         {
             _context.PlayerStateManager.DevourCard(_context.ActivePlayer, card);
-            
+
             // If the card was successfully moved to Void location by the state manager,
             // we track it in the global VoidPile for match history.
             if (card.Location == CardLocation.Void)
@@ -94,7 +86,7 @@ namespace ChaosWarlords.Source.Managers
         public void EndTurn()
         {
             // 1. Map Rewards - REMOVED (Now Start of Turn)
-            
+
             // 2. Cleanup: Move Hand + Played -> Discard
             _context.PlayerStateManager.CleanUpTurn(_context.ActivePlayer);
 
@@ -105,14 +97,14 @@ namespace ChaosWarlords.Source.Managers
             _context.TurnManager.EndTurn();
 
             // 5. START OF TURN Actions for the NEW active player
-            
+
             // Phase Check: Transition from Setup to Playing?
             // Phase Check: Transition from Setup to Playing?
             if (_context.CurrentPhase == MatchPhase.Setup)
             {
                 // Check if ALL players have placed their initial troop
                 // (Assuming 1 troop per player for Setup)
-                bool allDeployed = _context.TurnManager.Players.All(p => 
+                bool allDeployed = _context.TurnManager.Players.All(p =>
                     _context.MapManager.Nodes.Count(n => n.Occupant == p.Color) >= 1);
 
                 // SAFEGUARD: If any player has cards in Discard Pile, the game has clearly started (Setup phase doesn't use cards).
@@ -126,7 +118,7 @@ namespace ChaosWarlords.Source.Managers
                     _context.MapManager.SetPhase(MatchPhase.Playing);
                 }
             }
-            
+
             _context.MapManager.DistributeStartOfTurnRewards(_context.ActivePlayer);
         }
     }

@@ -1,22 +1,8 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Mechanics.Rules;
-using ChaosWarlords.Source.Mechanics.Actions;
-using ChaosWarlords.Source.Input;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
-using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -180,7 +166,7 @@ namespace ChaosWarlords.Tests.Systems
             // Check presence at Node 3 (At Site) -> Should be True (Already covered by HasPresence_True_IfSiteHasFriendlySpy)
             // Check presence at Node 2 (Adjacent) -> Should be False
             // Spy logic: Spies grant presence at their specific location, but NEVER adjacency presence.
-            
+
             Assert.IsFalse(_engine.HasPresence(_node2, _player1.Color), "Spy should NOT grant presence to adjacent nodes.");
         }
 
@@ -195,13 +181,13 @@ namespace ChaosWarlords.Tests.Systems
             var startNode = new MapNode(99, Vector2.Zero);
             var startSite = new StartingSite("Start", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
             startSite.AddNode(startNode);
-            
+
             // Re-init engine with this new site included
             var nodes = new List<MapNode> { startNode };
             var sites = new List<Site> { startSite };
             var lookup = new Dictionary<MapNode, Site> { { startNode, startSite } };
             var localEngine = new MapRuleEngine(nodes, sites, lookup);
-            
+
             localEngine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Setup);
 
             // Act & Assert
@@ -213,7 +199,7 @@ namespace ChaosWarlords.Tests.Systems
         public void CanDeployAt_SetupPhase_False_ForNormalSite()
         {
             _engine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Setup);
-            
+
             // _siteA is NonCitySite (Normal)
             Assert.IsFalse(_engine.CanDeployAt(_node3, _player1.Color), "Should not allow deployment on Normal Site in Setup Phase.");
         }
@@ -233,7 +219,7 @@ namespace ChaosWarlords.Tests.Systems
             localEngine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Setup);
 
             // Player already has a troop somewhere else
-            _node1.Occupant = _player1.Color; 
+            _node1.Occupant = _player1.Color;
 
             // Act & Assert
             // Player has >0 troops -> Should be FALSE
@@ -263,7 +249,7 @@ namespace ChaosWarlords.Tests.Systems
             var startSite = new StartingSite("Start", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
             startSite.AddNode(startNode1);
             startSite.AddNode(startNode2);
-            
+
             var nodes = new List<MapNode> { startNode1, startNode2 };
             var sites = new List<Site> { startSite };
             var lookup = new Dictionary<MapNode, Site> { { startNode1, startSite }, { startNode2, startSite } };
@@ -275,7 +261,7 @@ namespace ChaosWarlords.Tests.Systems
 
             // Act & Assert
             // Player 2 should NOT be able to deploy to the same Starting Site
-            Assert.IsFalse(localEngine.CanDeployAt(startNode2, _player2.Color), 
+            Assert.IsFalse(localEngine.CanDeployAt(startNode2, _player2.Color),
                 "Should not allow multiple players in the same Starting Site during Setup Phase.");
         }
 
@@ -284,7 +270,7 @@ namespace ChaosWarlords.Tests.Systems
         {
             // Arrange
             _engine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
-            
+
             // Ensure Player 1 is wiped (no troops on map)
             _node1.Occupant = PlayerColor.None;
             _node2.Occupant = PlayerColor.None;
@@ -300,7 +286,7 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange
             _siteA.Spies.Add(_player2.Color); // Enemy spy
             _node3.Occupant = _player1.Color; // P1 presence via occupation
-            
+
             // Act & Assert
             Assert.IsTrue(_engine.HasValidReturnSpyTarget(_player1));
         }
@@ -310,7 +296,7 @@ namespace ChaosWarlords.Tests.Systems
         {
             // Arrange
             _node3.Occupant = _player1.Color;
-            
+
             // Act & Assert
             Assert.IsFalse(_engine.HasValidReturnSpyTarget(_player1));
         }
@@ -321,7 +307,7 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange
             _node1.Occupant = _player1.Color; // P1 presence
             _node2.Occupant = _player2.Color; // P2 target
-            
+
             // Act & Assert
             Assert.IsTrue(_engine.HasValidReturnTroopTarget(_player1));
         }
@@ -330,11 +316,11 @@ namespace ChaosWarlords.Tests.Systems
         public void HasValidReturnTroopTarget_False_IfOnlyNeutral()
         {
             // Arrange: P1 has spy at site, granting presence to Node 3.
-            _siteA.Spies.Add(_player1.Color); 
-            _node3.Occupant = PlayerColor.Neutral; 
+            _siteA.Spies.Add(_player1.Color);
+            _node3.Occupant = PlayerColor.Neutral;
             _node1.Occupant = PlayerColor.None;
             _node2.Occupant = PlayerColor.None;
-            
+
             // Act & Assert
             Assert.IsFalse(_engine.HasValidReturnTroopTarget(_player1));
         }

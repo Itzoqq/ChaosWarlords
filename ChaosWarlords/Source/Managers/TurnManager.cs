@@ -1,16 +1,8 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 
 namespace ChaosWarlords.Source.Managers
@@ -47,7 +39,7 @@ namespace ChaosWarlords.Source.Managers
             // Randomize Player Order using deterministic RNG
             Players = new List<Player>(players);
             random.Shuffle(Players);
-            
+
             StartTurn();
         }
 
@@ -65,13 +57,13 @@ namespace ChaosWarlords.Source.Managers
             // MatchManager calls TurnManager.EndTurn().
             // We should do it in MatchManager.EndTurn() right before or after switching players?
             // Actually, TurnManager.StartTurn is private.
-            
+
             // Re-evaluating Design:
             // MatchManager orchestrates the game loop.
             // MatchManager.EndTurn:
             //   1. Cleanup Old Player
             //   2. TurnManager.EndTurn() -> Switches Index, Creates Context.
-            
+
             // So MatchManager is the right place to trigger "Start of Turn Actions" for the NEW player.
             // Let's modify MatchManager to trigger rewards AFTER switching the player.
 

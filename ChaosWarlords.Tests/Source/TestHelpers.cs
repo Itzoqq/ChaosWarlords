@@ -1,17 +1,5 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
-using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
-using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Mechanics.Rules;
-using ChaosWarlords.Source.Mechanics.Actions;
-using ChaosWarlords.Source.Input;
-
 
 namespace ChaosWarlords.Tests
 {
@@ -79,7 +67,7 @@ namespace ChaosWarlords.Tests
             // Set released state first
             input.SetMouseState(CreateReleasedMouseState(x, y));
             manager.Update();
-            
+
             // Then set pressed state
             input.SetMouseState(CreateMouseState(x, y, left: ButtonState.Pressed));
             manager.Update();
@@ -98,7 +86,7 @@ namespace ChaosWarlords.Tests
             // Set released state first
             input.SetMouseState(CreateReleasedMouseState(x, y));
             manager.Update();
-            
+
             // Then set right button pressed
             input.SetMouseState(CreateMouseState(x, y, right: ButtonState.Pressed));
             manager.Update();

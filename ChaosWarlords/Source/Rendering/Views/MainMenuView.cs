@@ -1,13 +1,7 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Rendering.UI;
 using System.Diagnostics.CodeAnalysis;
 using ChaosWarlords.Source.Utilities;
@@ -20,7 +14,7 @@ namespace ChaosWarlords.Source.Rendering.Views
         private readonly GraphicsDevice _graphicsDevice;
         private readonly ContentManager _content;
         private readonly IButtonManager _buttonManager;
-        
+
         private ButtonRenderer _buttonRenderer;
         private Texture2D _backgroundTexture;
 
@@ -55,11 +49,11 @@ namespace ChaosWarlords.Source.Rendering.Views
             }
             catch
             {
-                 // Create a placeholder 1x1 texture
+                // Create a placeholder 1x1 texture
                 _backgroundTexture = new Texture2D(_graphicsDevice, 1, 1);
                 _backgroundTexture.SetData(new[] { Color.DarkSlateGray });
             }
-            
+
             _buttonRenderer = new ButtonRenderer(_graphicsDevice, font);
         }
 
@@ -75,7 +69,7 @@ namespace ChaosWarlords.Source.Rendering.Views
 
         public void Draw(SpriteBatch spriteBatch)
         {
-             // Draw Background
+            // Draw Background
             if (_backgroundTexture != null)
             {
                 spriteBatch.Draw(_backgroundTexture, new Rectangle(0, 0, _graphicsDevice.Viewport.Width, _graphicsDevice.Viewport.Height), Color.White);

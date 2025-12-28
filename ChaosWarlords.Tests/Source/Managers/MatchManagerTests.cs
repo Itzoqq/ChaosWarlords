@@ -1,9 +1,5 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using NSubstitute;
 using ChaosWarlords.Source.Managers;
@@ -12,7 +8,6 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Core.Utilities;
 
 namespace ChaosWarlords.Tests.Source.Systems
 {
@@ -54,7 +49,6 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             _controller = new MatchManager(_context);
 
-            // Fix for Random Player Order introduced in Phase 0:
             // Ensure _p1 always refers to the Active Player for test consistency.
             if (_context.ActivePlayer != _p1)
             {
@@ -105,7 +99,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             // Verify Turn Manager Switched
             Assert.AreEqual(_p2, _context.TurnManager.ActivePlayer);
-            
+
             // Verify Map Rewards Distributed to NEW player (Start of Turn)
             _mapManager.Received(1).DistributeStartOfTurnRewards(_p2);
         }
@@ -245,7 +239,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             // MapManager Mock: P1 has 1 troop, P2 has 0 troops
             var node1 = new MapNode(1, Microsoft.Xna.Framework.Vector2.Zero) { Occupant = _p1.Color };
             var node2 = new MapNode(2, Microsoft.Xna.Framework.Vector2.Zero) { Occupant = PlayerColor.None };
-            
+
             _mapManager.Nodes.Returns(new List<MapNode> { node1, node2 });
 
             // Act
@@ -264,7 +258,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             // MapManager Mock: P1 has 1 troop, P2 has 1 troop
             var node1 = new MapNode(1, Microsoft.Xna.Framework.Vector2.Zero) { Occupant = _p1.Color };
             var node2 = new MapNode(2, Microsoft.Xna.Framework.Vector2.Zero) { Occupant = _p2.Color };
-            
+
             _mapManager.Nodes.Returns(new List<MapNode> { node1, node2 });
 
             // Act
@@ -283,12 +277,12 @@ namespace ChaosWarlords.Tests.Source.Systems
             // MapManager Mock: P1 has 1 troop, P2 has 0 (Failed to deploy)
             var node1 = new MapNode(1, Microsoft.Xna.Framework.Vector2.Zero) { Occupant = _p1.Color };
             var node2 = new MapNode(2, Microsoft.Xna.Framework.Vector2.Zero) { Occupant = PlayerColor.None };
-            
+
             _mapManager.Nodes.Returns(new List<MapNode> { node1, node2 });
 
             // Simulate P1 having played a card (Adding to Discard Pile)
             // Simulate P1 having played a card (Adding to Discard Pile)
-            
+
             // 1. Populate Deck so DrawCards(5) doesn't trigger a Reshuffle (which clears Discard)
             for (int i = 0; i < 10; i++)
             {
@@ -310,7 +304,7 @@ namespace ChaosWarlords.Tests.Source.Systems
         {
             // Scenario: UI mistakenly sends a card commanded by the player but physically located in another player's hand/deck.
             // This happens if references are leaked or UI targeting is loose.
-            
+
             var alienCard = new Card("alien", "Alien", 0, CardAspect.Neutral, 0, 0, 0);
             _p2.Hand.Add(alienCard); // Belongs to P2
 

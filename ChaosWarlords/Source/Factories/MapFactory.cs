@@ -1,18 +1,9 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Linq;
 using Microsoft.Xna.Framework;
-using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Entities.Actors;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Utilities
@@ -53,16 +44,16 @@ namespace ChaosWarlords.Source.Utilities
             CreateRoutes(data.Routes, nodes);
             var sites = CreateSites(data.Sites, nodes);
 
-             // Routes need to be reconstructed from data if we want to return them, 
-             // but current LoadFromData logic (CreateRoutes) takes a void and modifies nodes directly.
-             // For now, to satisfy the signature change required by TestMap, we can return null or an empty list if data doesn't persist Route objects in a list.
-             // However, `MapLayoutEngine` DOES return a list of Route objects. 
-             // Let's create a minimal list if needed, or update CreateRoutes to return list involved.
-             // Updating CreateRoutes is better.
-            var routes = new List<Route>(); 
-             // ... actually CreateRoutes logic above (lines 87-96) constructs adjacency but doesn't build Route objects. 
-             // Given this is legacy JSON loading vs New Procedural Generation, we should align them.
-             // For now, return null for routes is acceptable for legacy loader if nothing consumes it yet. 
+            // Routes need to be reconstructed from data if we want to return them, 
+            // but current LoadFromData logic (CreateRoutes) takes a void and modifies nodes directly.
+            // For now, to satisfy the signature change required by TestMap, we can return null or an empty list if data doesn't persist Route objects in a list.
+            // However, `MapLayoutEngine` DOES return a list of Route objects. 
+            // Let's create a minimal list if needed, or update CreateRoutes to return list involved.
+            // Updating CreateRoutes is better.
+            var routes = new List<Route>();
+            // ... actually CreateRoutes logic above (lines 87-96) constructs adjacency but doesn't build Route objects. 
+            // Given this is legacy JSON loading vs New Procedural Generation, we should align them.
+            // For now, return null for routes is acceptable for legacy loader if nothing consumes it yet. 
             return (nodes, sites, null);
         }
 
@@ -138,7 +129,7 @@ namespace ChaosWarlords.Source.Utilities
                     GameLogger.Log($"Creating NonCitySite: {s.Name}", LogChannel.General);
                     newSite = new NonCitySite(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
                 }
-                
+
                 newSite.IsCity = s.IsCity;
 
                 foreach (int nodeId in s.NodeIds)
@@ -153,8 +144,8 @@ namespace ChaosWarlords.Source.Utilities
 
         public static (List<MapNode>, List<Site>, List<Route>) CreateTestMap()
         {
-             // Delegate to the full scenario creator
-             return CreateScenarioMap();
+            // Delegate to the full scenario creator
+            return CreateScenarioMap();
         }
 
         public static (List<MapNode>, List<Site>, List<Route>) CreateScenarioMap()
@@ -163,73 +154,73 @@ namespace ChaosWarlords.Source.Utilities
 
             // -- Define Sites --
             // 1. Crystal Cave (Starting Site)
-            config.Sites.Add(new SiteConfig 
-            { 
-                Name = "Crystal Cave", 
+            config.Sites.Add(new SiteConfig
+            {
+                Name = "Crystal Cave",
                 IsCity = false,
                 IsStartingSite = true,
-                Position = new Vector2(250, 100), 
+                Position = new Vector2(250, 100),
                 NodeCount = 2,
-                ControlResource = ResourceType.Power, 
+                ControlResource = ResourceType.Power,
                 ControlAmount = 0,
-                TotalControlResource = ResourceType.Power, 
+                TotalControlResource = ResourceType.Power,
                 TotalControlAmount = 0,
                 EndGameVP = 2
             });
 
             // 2. Void Portal
-            config.Sites.Add(new SiteConfig 
-            { 
-                Name = "Void Portal", 
-                IsCity = false, 
-                Position = new Vector2(250, 400), 
+            config.Sites.Add(new SiteConfig
+            {
+                Name = "Void Portal",
+                IsCity = false,
+                Position = new Vector2(250, 400),
                 NodeCount = 3,
-                ControlResource = ResourceType.Power, 
+                ControlResource = ResourceType.Power,
                 ControlAmount = 0,
-                TotalControlResource = ResourceType.Power, 
+                TotalControlResource = ResourceType.Power,
                 TotalControlAmount = 0,
                 EndGameVP = 1
             });
 
             // 3. Shadow Market (Starting Site)
-            config.Sites.Add(new SiteConfig 
-            { 
-                Name = "Shadow Market", 
+            config.Sites.Add(new SiteConfig
+            {
+                Name = "Shadow Market",
                 IsCity = false,
                 IsStartingSite = true,
-                Position = new Vector2(250, 700), 
+                Position = new Vector2(250, 700),
                 NodeCount = 2,
-                ControlResource = ResourceType.Power, 
+                ControlResource = ResourceType.Power,
                 ControlAmount = 0,
-                TotalControlResource = ResourceType.Power, 
+                TotalControlResource = ResourceType.Power,
                 TotalControlAmount = 0,
                 EndGameVP = 2
             });
 
             // 4. City of Gold
-            config.Sites.Add(new SiteConfig 
-            { 
-                Name = "City of Gold", 
-                IsCity = true, 
-                Position = new Vector2(600, 400), 
+            config.Sites.Add(new SiteConfig
+            {
+                Name = "City of Gold",
+                IsCity = true,
+                Position = new Vector2(600, 400),
                 NodeCount = 4,
-                ControlResource = ResourceType.Influence, 
+                ControlResource = ResourceType.Influence,
                 ControlAmount = 1,
-                TotalControlResource = ResourceType.VictoryPoints, 
+                TotalControlResource = ResourceType.VictoryPoints,
                 TotalControlAmount = 1,
                 EndGameVP = 0
             });
 
             // 5. Obsidian Fortress
-            config.Sites.Add(new SiteConfig 
-            { 
-                Name = "Obsidian Fortress", 
-                IsCity = true, 
-                Position = new Vector2(1000, 400), 
+            config.Sites.Add(new SiteConfig
+            {
+                Name = "Obsidian Fortress",
+                IsCity = true,
+                Position = new Vector2(1000, 400),
                 NodeCount = 6,
-                ControlResource = ResourceType.Influence, 
+                ControlResource = ResourceType.Influence,
                 ControlAmount = 1,
-                TotalControlResource = ResourceType.VictoryPoints, 
+                TotalControlResource = ResourceType.VictoryPoints,
                 TotalControlAmount = 2,
                 EndGameVP = 0
             });

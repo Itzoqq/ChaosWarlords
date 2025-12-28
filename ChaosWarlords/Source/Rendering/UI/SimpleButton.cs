@@ -1,10 +1,3 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -20,7 +13,7 @@ namespace ChaosWarlords.Source.Rendering.UI
         public Action OnClick { get; private set; }
         public Color NormalColor { get; set; } = Color.White;
         public Color HoverColor { get; set; } = Color.LightGreen;
-        
+
         public bool IsHovered { get; private set; }
 
         public SimpleButton(Rectangle bounds, string text, Action onClick)

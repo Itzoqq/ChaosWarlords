@@ -1,7 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Core.Utilities;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ChaosWarlords.Tests.Core.Utilities
 {
@@ -38,7 +35,7 @@ namespace ChaosWarlords.Tests.Core.Utilities
         public void Shuffle_WithSameSeed_ProducesSameOrder()
         {
             int seed = 42;
-            
+
             var list1 = Enumerable.Range(0, 50).ToList();
             var list2 = Enumerable.Range(0, 50).ToList();
 

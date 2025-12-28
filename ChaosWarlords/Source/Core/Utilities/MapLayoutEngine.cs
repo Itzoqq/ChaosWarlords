@@ -1,15 +1,6 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
-using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Entities.Actors;
 using System.Linq;
 using System;
 
@@ -41,7 +32,7 @@ namespace ChaosWarlords.Source.Utilities
 
                 // Generate nodes for the site
                 var siteNodes = GenerateSiteNodes(siteConfig.Position, siteConfig.NodeCount, siteConfig.IsCity);
-                
+
                 // Interconnect all site nodes (Fully Connected Mesh)
                 ConnectSiteNodes(siteNodes);
 
@@ -93,14 +84,14 @@ namespace ChaosWarlords.Source.Utilities
                 if (fromSite != null && toSite != null)
                 {
                     var route = new Route(fromSite, toSite);
-                    
+
                     // Find closest nodes between the two sites to connect
                     var connection = FindBestConnectionPoints(fromSite, toSite);
-                    
+
                     if (connection.StartNode != null && connection.EndNode != null)
                     {
                         var routeNodes = GenerateRouteNodes(connection.StartNode, connection.EndNode, routeConfig.NodeCount);
-                        
+
                         ConnectRouteNodes(connection, routeNodes, nodes, route);
                     }
 
@@ -110,9 +101,9 @@ namespace ChaosWarlords.Source.Utilities
         }
 
         private void ConnectRouteNodes(
-            (MapNode StartNode, MapNode EndNode) connection, 
-            List<MapNode> routeNodes, 
-            List<MapNode> allNodes, 
+            (MapNode StartNode, MapNode EndNode) connection,
+            List<MapNode> routeNodes,
+            List<MapNode> allNodes,
             Route route)
         {
             // Link start node to first route node
@@ -212,7 +203,7 @@ namespace ChaosWarlords.Source.Utilities
                     }
                 }
             }
-            
+
             return (bestStart, bestEnd);
         }
     }

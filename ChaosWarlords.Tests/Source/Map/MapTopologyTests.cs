@@ -1,18 +1,7 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Map;
-using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Map
 {
@@ -36,7 +25,7 @@ namespace ChaosWarlords.Tests.Map
             var testSite = new NonCitySite("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
             testSite.AddNode(_nodes[0]);
             testSite.AddNode(_nodes[1]);
-            
+
             _sites = new List<Site>
             {
                 testSite

@@ -1,24 +1,13 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Mechanics.Actions;
-using ChaosWarlords.Source.Input;
 using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Managers;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
-using System.Collections.Generic;
-using System;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -117,54 +106,54 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void PlayCard_Devour_SwitchesToTargeting_WhenHandHasCards()
         {
-             var card = new Card("devourer", "Devourer", 3, CardAspect.Shadow, 1, 1, 0);
-             card.AddEffect(new CardEffect(EffectType.Devour, 1));
+            var card = new Card("devourer", "Devourer", 3, CardAspect.Shadow, 1, 1, 0);
+            card.AddEffect(new CardEffect(EffectType.Devour, 1));
 
-             var player = _matchContext.ActivePlayer;
-             player.Hand.Add(card);
-             player.Hand.Add(new Card("food", "Food", 0, CardAspect.Neutral, 0, 0, 0));
+            var player = _matchContext.ActivePlayer;
+            player.Hand.Add(card);
+            player.Hand.Add(new Card("food", "Food", 0, CardAspect.Neutral, 0, 0, 0));
 
-             _system.PlayCard(card);
+            _system.PlayCard(card);
 
-             _actionSystem.Received(1).StartTargeting(ActionState.TargetingDevourHand, card);
-             _targetingCallback.Received(1).Invoke();
+            _actionSystem.Received(1).StartTargeting(ActionState.TargetingDevourHand, card);
+            _targetingCallback.Received(1).Invoke();
         }
 
         [TestMethod]
         public void PlayCard_Devour_SkipsTargeting_WhenHandEmpty()
         {
-             var card = new Card("devourer", "Devourer", 3, CardAspect.Shadow, 1, 1, 0);
-             card.AddEffect(new CardEffect(EffectType.Devour, 1));
+            var card = new Card("devourer", "Devourer", 3, CardAspect.Shadow, 1, 1, 0);
+            card.AddEffect(new CardEffect(EffectType.Devour, 1));
 
-             _matchContext.ActivePlayer.Hand.Clear();
-             // (Logic check: GameplayState tests assumed if Hand.Count > 0. If we pass empty hand here...)
+            _matchContext.ActivePlayer.Hand.Clear();
+            // (Logic check: GameplayState tests assumed if Hand.Count > 0. If we pass empty hand here...)
 
-             _system.PlayCard(card);
+            _system.PlayCard(card);
 
-             // Should play immediately
-             _matchManager.Received(1).PlayCard(card);
+            // Should play immediately
+            _matchManager.Received(1).PlayCard(card);
         }
 
         [TestMethod]
         public void HasViableTargets_ReturnsTrue_WhenTargetsExist()
         {
-             var card = new Card("assassin", "Assassin", 3, CardAspect.Shadow, 1, 1, 0);
-             card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
+            var card = new Card("assassin", "Assassin", 3, CardAspect.Shadow, 1, 1, 0);
+            card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
 
-             _mapManager.HasValidAssassinationTarget(Arg.Any<Player>()).Returns(true);
+            _mapManager.HasValidAssassinationTarget(Arg.Any<Player>()).Returns(true);
 
-             Assert.IsTrue(_system.HasViableTargets(card));
+            Assert.IsTrue(_system.HasViableTargets(card));
         }
 
         [TestMethod]
         public void HasViableTargets_ReturnsFalse_WhenNoTargets()
         {
-             var card = new Card("assassin", "Assassin", 3, CardAspect.Shadow, 1, 1, 0);
-             card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
+            var card = new Card("assassin", "Assassin", 3, CardAspect.Shadow, 1, 1, 0);
+            card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
 
-             _mapManager.HasValidAssassinationTarget(Arg.Any<Player>()).Returns(false);
+            _mapManager.HasValidAssassinationTarget(Arg.Any<Player>()).Returns(false);
 
-             Assert.IsFalse(_system.HasViableTargets(card));
+            Assert.IsFalse(_system.HasViableTargets(card));
         }
     }
 }

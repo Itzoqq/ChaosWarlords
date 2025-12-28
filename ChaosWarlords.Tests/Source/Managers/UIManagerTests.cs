@@ -1,17 +1,6 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Mechanics.Rules;
-using ChaosWarlords.Source.Mechanics.Actions;
-using ChaosWarlords.Source.Input;
-
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Input;
 using NSubstitute;
 
 namespace ChaosWarlords.Tests.Systems
@@ -90,7 +79,7 @@ namespace ChaosWarlords.Tests.Systems
             // 1. Hover Assassinate
             // Ensure pause is false (default, but explicit is good)
             _ui.IsPaused = false;
-            
+
             SetMouse(770, 200);
             _ui.Update(_input);
 

@@ -1,27 +1,17 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Mechanics.Rules;
-using ChaosWarlords.Source.Mechanics.Actions;
 using ChaosWarlords.Source.Input;
-using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Core.Utilities;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.States.Input;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using Microsoft.Xna.Framework;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Source.Systems
 {

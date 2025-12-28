@@ -1,14 +1,7 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
@@ -53,7 +46,7 @@ namespace ChaosWarlords.Source.Map
             {
                 _stateManager.RemoveSpies(player, 1);
                 site.Spies.Add(player.Color);
-                
+
                 GameLogger.Log($"Spy placed at {site.Name}.", LogChannel.Combat);
                 _recalculateSiteState(site, player);
             }
@@ -78,7 +71,7 @@ namespace ChaosWarlords.Source.Map
             }
 
             site.Spies.Remove(targetSpyColor);
-            
+
             GameLogger.Log($"Returned {targetSpyColor} Spy from {site.Name} to barracks.", LogChannel.Combat);
             _recalculateSiteState(site, activePlayer);
             return true;

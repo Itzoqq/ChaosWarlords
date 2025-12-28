@@ -1,10 +1,5 @@
 using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Xna.Framework;
@@ -15,9 +10,6 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Mechanics.Rules;
-using ChaosWarlords.Source.Mechanics.Actions;
-using ChaosWarlords.Source.Input;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Views;
 
@@ -111,9 +103,9 @@ namespace ChaosWarlords.Source.Rendering.Views
             // 4. Draw UI Elements
             _uiRenderer.DrawMarketButton(spriteBatch, uiManager);
             _uiRenderer.DrawActionButtons(spriteBatch, uiManager, context.ActivePlayer);
-            
+
             // Draw End Turn Button
-            bool canEndTurn = true; 
+            bool canEndTurn = true;
             _uiRenderer.DrawHorizontalButton(spriteBatch, uiManager.EndTurnButtonRect, "END TURN", uiManager.IsEndTurnHovered, canEndTurn, Color.Green);
 
             _uiRenderer.DrawTopBar(spriteBatch, context.ActivePlayer, uiManager.ScreenWidth);
@@ -135,15 +127,15 @@ namespace ChaosWarlords.Source.Rendering.Views
             if (isPopupOpen)
             {
                 _uiRenderer.DrawConfirmationPopup(
-                    spriteBatch, 
-                    "You have unplayed cards!\nEnd Turn anyway?", 
-                    uiManager.PopupBackgroundRect, 
-                    uiManager.PopupConfirmButtonRect, 
-                    uiManager.PopupCancelButtonRect, 
-                    uiManager.IsPopupConfirmHovered, 
+                    spriteBatch,
+                    "You have unplayed cards!\nEnd Turn anyway?",
+                    uiManager.PopupBackgroundRect,
+                    uiManager.PopupConfirmButtonRect,
+                    uiManager.PopupCancelButtonRect,
+                    uiManager.IsPopupConfirmHovered,
                     uiManager.IsPopupCancelHovered);
             }
-            
+
             // 8. Draw Pause Menu (Top-most Modal)
             if (isPauseMenuOpen)
             {
@@ -287,7 +279,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             Vector2 size2 = _defaultFont.MeasureString(line2);
 
             int screenW = _graphicsDevice.Viewport.Width;
-            
+
             // Position: Center middle of X axis, right below top bar (approx Y=60)
             // Top bar is usually small, assuming 40-50px.
             Vector2 pos1 = new Vector2((screenW - size1.X) / 2, 60);
@@ -297,7 +289,7 @@ namespace ChaosWarlords.Source.Rendering.Views
 
             // Draw a subtle background for contrast? Not strictly requested but good practice.
             // Skipping background to keep it simple as requested.
-            
+
             sb.DrawString(_defaultFont, line1, pos1, Color.Yellow); // Yellow for attention on "Round"
             sb.DrawString(_defaultFont, line2, pos2, color);
         }

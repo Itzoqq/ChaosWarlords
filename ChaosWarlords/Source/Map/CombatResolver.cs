@@ -1,12 +1,5 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using System;
-using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
@@ -55,7 +48,7 @@ namespace ChaosWarlords.Source.Map
             {
                 _stateManager.TrySpendPower(player, GameConstants.DEPLOY_POWER_COST);
             }
-            
+
             _stateManager.RemoveTroops(player, 1);
             node.Occupant = player.Color;
 
@@ -132,7 +125,7 @@ namespace ChaosWarlords.Source.Map
             // Atomic: Assassinate + Deploy
             node.Occupant = PlayerColor.None;
             _stateManager.AddTrophy(attacker);
-            
+
             if (_getCurrentPhase() != MatchPhase.Setup)
             {
                 _stateManager.TrySpendPower(attacker, GameConstants.DEPLOY_POWER_COST);
