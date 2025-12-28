@@ -1,3 +1,4 @@
+using System;
 using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
@@ -23,7 +24,12 @@ namespace ChaosWarlords.Source.Contexts
         // Each entry represents 1 promotion point provided by 'Card'
         private readonly List<Card> _promotionCredits;
 
+        // --- NEW: Action Sequencing ---
+        private int _actionSequence = 0;
+        private readonly List<ExecutedAction> _actionHistory = new();
+
         public IReadOnlyDictionary<CardAspect, int> PlayedAspectCounts => _playedAspectCounts;
+        public IReadOnlyList<ExecutedAction> ActionHistory => _actionHistory;
 
         // Expose count for UI checks
         public int PendingPromotionsCount => _promotionCredits.Count;
@@ -87,6 +93,27 @@ namespace ChaosWarlords.Source.Contexts
                 if (_promotionCredits.Count > 0)
                     _promotionCredits.RemoveAt(0);
             }
+        }
+
+        // --- Action Sequencing ---
+
+        public int GetNextSequence()
+        {
+            return _actionSequence++;
+        }
+
+        public void RecordAction(string actionType, string summary)
+        {
+            var action = new ExecutedAction(
+                GetNextSequence(),
+                actionType,
+                ActivePlayer.PlayerId,
+                summary,
+                DateTime.Now // Local time for logging, sequence is primary for logic
+            );
+            _actionHistory.Add(action);
+            
+            GameLogger.Log($"[Action {action.Sequence}] {ActivePlayer.DisplayName}: {summary}", LogChannel.Info);
         }
     }
 }

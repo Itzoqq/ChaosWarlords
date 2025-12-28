@@ -32,8 +32,9 @@ The project uses a semantic folder structure. Below is a detailed listing of all
 Source/
 ├── Core/
 │   ├── Contexts/                   # Data Holders (The "Glue")
+│   │   ├── ExecutedAction.cs       # Record capturing a single game event (Sequence, Type, Player).
 │   │   ├── MatchContext.cs         # Scoped container dependencies for a single match (Map, Market, etc.).
-│   │   └── TurnContext.cs          # Tracks transient state for the current turn (e.g., actions remaining).
+│   │   └── TurnContext.cs          # Tracks transient state and Action History for the current turn.
 │   ├── Interfaces/                 # Contracts (API Definitions)
 │   │   ├── Data/
 │   │   │   └── ICardDatabase.cs    # Contract for retrieving card definitions.
@@ -55,6 +56,8 @@ Source/
 │   │   │   ├── IMapManager.cs      # API for map logic and queries.
 │   │   │   ├── IMarketManager.cs   # API for market economy and card rows.
 │   │   │   ├── IMatchManager.cs    # API for match lifecycle (win/loss).
+│   │   │   ├── IPlayerStateManager.cs # API for centralized player mutations.
+│   │   │   ├── IGameRandom.cs      # Contract for deterministic random number generation.
 │   │   │   └── ITurnManager.cs     # API for turn rotation and player state.
 │   │   └── State/
 │   │       ├── IGameplayState.cs   # Contract for the main game loop state.
@@ -69,6 +72,8 @@ Source/
 │       ├── MapGenerationConfig.cs  # Parameters for procedural map generation.
 │       ├── MapGeometry.cs          # Helper for hexagonal grid math.
 │       ├── MapLayoutEngine.cs      # Procedural map generation logic.
+│       ├── MapTopology.cs          # Calculates distances and recursive paths.
+│       ├── SeededGameRandom.cs     # Deterministic RNG implementation.
 │       └── TextCache.cs            # Caches string measurements for performance.
 ├── Entities/                       # Domain Models
 │   ├── Actors/
@@ -110,6 +115,7 @@ Source/
 │   ├── MapManager.cs               # Facade for Board Logic (Movement, Control).
 │   ├── MarketManager.cs            # Manages the Card Market and purchasing.
 │   ├── MatchManager.cs             # Manages Victory Conditions and End of Match.
+│   ├── PlayerStateManager.cs       # Implementation of centralized player mutations.
 │   ├── TurnManager.cs              # Manages Turn Order and Phase Transitions.
 │   ├── UIEventMediator.cs          # Decouples Game Logic from UI Events/Popups.
 │   └── UIManager.cs                # Manages layout and state of UI widgets.
@@ -172,7 +178,15 @@ We use a layered approach to handle complex inputs (Targeting, Market, etc.):
 ### 3. Command Pattern (Mechanics/Commands/)
 All significant game actions (Move, Attack, Buy) are encapsulated in `IGameCommand` objects.
 - **Execution**: `Command.Execute(IGameplayState)`
-- **Benefit**: Allows for easier debugging, potential Replay systems, and specific Unit Testing of atomic actions.
+- **Traceability**: Every command execution is recorded in the `TurnContext.ActionHistory`.
+- **Benefit**: Allows for easier debugging, deterministic Replays, and specific Unit Testing of atomic actions.
+
+### 4. Multiplayer Readiness & Determinism
+The architecture is specifically designed for multiplayer synchronization without a shared memory model:
+- **Centralized Mutation (`PlayerStateManager`)**: All resource changes (Power, Influence, Troops) flow through this single point, allowing for easy logging and broadcasting of state changes.
+- **Action Sequencing**: Every player move is assigned a unique sequence number. This history allows clients to catch up or detect desyncs.
+- **Seeded RNG**: Match-wide deterministic randomness ensures that the same deck shuffles and combat outcomes occur on all clients if given the same seed.
+- **Headless Portability**: The strict separation of Logic from MonoGame types (via interfaces) allows the Core engine to run on a server without a display.
 
 ---
 

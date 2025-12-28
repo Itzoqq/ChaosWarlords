@@ -23,6 +23,7 @@ namespace ChaosWarlords.Source.Commands
 
         public void Execute(IGameplayState state)
         {
+            state.MatchContext?.RecordAction("ResolveSpy", $"Selected {_spyColor} spy to return");
             // We just call the method. 
             // If it succeeds, ActionSystem fires OnActionCompleted.
             // If it fails, ActionSystem fires OnActionFailed.

@@ -18,6 +18,7 @@ namespace ChaosWarlords.Source.Commands
     {
         public void Execute(IGameplayState state)
         {
+            state.MatchContext?.RecordAction("ActionCompleted", "Finalizing action");
             // Access system managers via public properties
             var actionSystem = state.ActionSystem;
 

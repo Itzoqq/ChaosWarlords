@@ -14,6 +14,7 @@ namespace ChaosWarlords.Source.Commands
     {
         public void Execute(IGameplayState state)
         {
+            state.MatchContext?.RecordAction("StartReturnSpy", "Initiated Return Spy targeting");
             state.ActionSystem.TryStartReturnSpy();
             if (state.ActionSystem.CurrentState == ActionState.TargetingReturnSpy)
             {

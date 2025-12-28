@@ -19,6 +19,7 @@ namespace ChaosWarlords.Source.Commands
 
         public void Execute(IGameplayState state)
         {
+            state.MatchContext?.RecordAction("PlayCard", $"Played {_card.Name}");
             // We can now call the PlayCard logic directly on the state interface
             // The logic inside PlayCard handles all the checks, targeting switches,
             // and final resolution.

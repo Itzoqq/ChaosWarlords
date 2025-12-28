@@ -13,6 +13,7 @@ namespace ChaosWarlords.Source.Commands
     {
         public void Execute(IGameplayState state)
         {
+            state.MatchContext?.RecordAction("ToggleMarket", state.IsMarketOpen ? "Closed Market" : "Opened Market");
             // Don't just flip the boolean. 
             // Call the methods that handle the State Transition logic.
 

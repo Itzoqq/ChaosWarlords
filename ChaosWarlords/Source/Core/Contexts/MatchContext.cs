@@ -95,6 +95,12 @@ namespace ChaosWarlords.Source.Contexts
             Seed = seed ?? Environment.TickCount;
             Random = new SeededGameRandom(Seed);
         }
+
+        public void RecordAction(string actionType, string summary)
+        {
+            // Null check for TurnManager and CurrentTurnContext to prevent crashes in partially mocked tests
+            TurnManager?.CurrentTurnContext?.RecordAction(actionType, summary);
+        }
     }
 }
 

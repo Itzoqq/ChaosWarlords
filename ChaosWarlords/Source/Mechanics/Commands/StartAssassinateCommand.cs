@@ -14,6 +14,7 @@ namespace ChaosWarlords.Source.Commands
     {
         public void Execute(IGameplayState state)
         {
+            state.MatchContext?.RecordAction("StartAssassinate", "Initiated Assassinate targeting");
             state.ActionSystem.TryStartAssassinate();
             if (state.ActionSystem.CurrentState == ActionState.TargetingAssassinate)
             {

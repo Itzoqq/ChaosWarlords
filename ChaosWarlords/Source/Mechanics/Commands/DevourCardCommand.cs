@@ -25,6 +25,7 @@ namespace ChaosWarlords.Source.Commands
         // This works for both the real GameplayState and your Test Mocks.
         public void Execute(IGameplayState state)
         {
+            state.MatchContext?.RecordAction("Devour", $"Devoured card {_cardToDevour.Name}");
             // 1. Perform the Devour 
             // We use .MatchManager (Property) instead of ._matchManager (Field)
             // because the Interface exposes the Property.

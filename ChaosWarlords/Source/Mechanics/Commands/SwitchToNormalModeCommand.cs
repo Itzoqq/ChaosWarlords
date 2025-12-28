@@ -16,6 +16,7 @@ namespace ChaosWarlords.Source.Commands
     {
         public void Execute(IGameplayState state)
         {
+            state.MatchContext?.RecordAction("SwitchToNormal", "Switched back to normal play mode");
             state.SwitchToNormalMode();
         }
     }

@@ -67,25 +67,11 @@ namespace ChaosWarlords.Source.Managers
         {
             _context.PlayerStateManager.DevourCard(_context.ActivePlayer, card);
             
-            // Note: PlayerStateManager.DevourCard handles removal logic.
-            // If we need to put it in VoidPile explicitly, PlayerStateManager should handle it,
-            // or we do it here if PlayerStateManager doesn't know about VoidPile (it doesn't currently).
-            
-            // FIX: PlayerStateManager doesn't know about MatchContext.VoidPile.
-            // We should either update PlayerStateManager to accept MatchContext (circular dependency?)
-            // OR keep the VoidPile logic here for now but use StateManager for removal.
-            
-            // Actually, let's keep it simple for now and rely on devouring being "remove from lists".
-            // If the card is removed from hand/played, it's effectively gone.
-            // But getting it into VoidPile is useful for history. 
-            // Let's add it to VOID here if successful removal happens?
-            
-            // For now, mirroring previous logic:
-            if (_context.VoidPile != null && card.Location == CardLocation.Void)
+            // If the card was successfully moved to Void location by the state manager,
+            // we track it in the global VoidPile for match history.
+            if (card.Location == CardLocation.Void)
             {
-                 // Ops, PlayerStateManager doesn't set location to Void, I should check that.
-                 // I will update PlayerStateManager in a bit to set Location = Void.
-                 _context.VoidPile.Add(card);
+                _context.VoidPile.Add(card);
             }
         }
 

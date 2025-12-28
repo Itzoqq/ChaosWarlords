@@ -13,6 +13,7 @@ namespace ChaosWarlords.Source.Commands
     {
         public void Execute(IGameplayState state)
         {
+            state.MatchContext?.RecordAction("CancelAction", "Cancelled current action");
             state.ActionSystem.CancelTargeting();
             state.SwitchToNormalMode();
         }
