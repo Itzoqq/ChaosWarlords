@@ -5,6 +5,10 @@ using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Entities.Cards
 {
+    /// <summary>
+    /// Manages the deck lifecycle: Draw, Discard, and Reshuffle.
+    /// Encapsulates the randomization and recycling logic.
+    /// </summary>
     public class Deck
     {
         private readonly List<Card> _drawPile = new List<Card>();
@@ -25,6 +29,10 @@ namespace ChaosWarlords.Source.Entities.Cards
             _drawPile.AddRange(cards);
         }
 
+        /// <summary>
+        /// Adds a card to the discard pile.
+        /// </summary>
+        /// <param name="card">The card to discard.</param>
         public void AddToDiscard(Card card)
         {
             if (card != null)
@@ -34,6 +42,10 @@ namespace ChaosWarlords.Source.Entities.Cards
             }
         }
 
+        /// <summary>
+        /// Adds a collection of cards to the discard pile.
+        /// </summary>
+        /// <param name="cards">The cards to discard.</param>
         public void AddToDiscard(IEnumerable<Card> cards)
         {
             foreach (var card in cards)
@@ -43,6 +55,10 @@ namespace ChaosWarlords.Source.Entities.Cards
         }
 
         // For setup or special effects that add directly to deck
+        /// <summary>
+        /// Adds a card to the top of the draw pile.
+        /// </summary>
+        /// <param name="card">The card to add.</param>
         public void AddToTop(Card card)
         {
             if (card != null)

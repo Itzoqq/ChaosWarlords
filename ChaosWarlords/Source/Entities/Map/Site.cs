@@ -5,6 +5,10 @@ using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Entities.Map
 {
+    /// <summary>
+    /// Represents a collection of nodes forming a named city or region (Site).
+    /// Manages control calculations based on troop presence.
+    /// </summary>
     public abstract class Site
     {
         public string Name { get; protected set; }
@@ -44,6 +48,9 @@ namespace ChaosWarlords.Source.Entities.Map
             RecalculateBounds();
         }
 
+        /// <summary>
+        /// Updates the bounding rectangle of the site based on the positions of its nodes.
+        /// </summary>
         public virtual void RecalculateBounds()
         {
             if (NodesInternal.Count == 0) return;
@@ -80,6 +87,11 @@ namespace ChaosWarlords.Source.Entities.Map
             return NodesInternal.Any(n => n.Occupant == color);
         }
 
+        /// <summary>
+        /// Determines which player currently controls the site.
+        /// Control is determined by having the majority of troops.
+        /// </summary>
+        /// <returns>The color of the controlling player, or None if tied/empty.</returns>
         public PlayerColor GetControllingPlayer()
         {
             var troopCounts = NodesInternal

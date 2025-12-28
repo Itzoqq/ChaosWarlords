@@ -6,6 +6,10 @@ using ChaosWarlords.Source.Entities.Cards;
 
 namespace ChaosWarlords.Source.Entities.Actors
 {
+    /// <summary>
+    /// Represents a participant in the game session.
+    /// Manages resources, card collections (Deck/Hand/Discard), and military assets.
+    /// </summary>
     public class Player
     {
         // --- Identity ---
@@ -30,22 +34,46 @@ namespace ChaosWarlords.Source.Entities.Actors
         private int _power;
         private int _influence;
 
+        /// <summary>
+        /// Gets the current Power resource amount.
+        /// Power is primarily used for deploying troops and assassinating spies.
+        /// </summary>
         public int Power
         {
             get => _power;
             internal set => _power = value < 0 ? 0 : value;
         }
 
+        /// <summary>
+        /// Gets the current Influence resource amount.
+        /// Influence is primarily used for purchasing cards and placing spies.
+        /// </summary>
         public int Influence
         {
             get => _influence;
             internal set => _influence = value < 0 ? 0 : value;
         }
+
+        /// <summary>
+        /// Gets the current Victory Points accumulated by the player.
+        /// </summary>
         public int VictoryPoints { get; internal set; }
 
         // --- Military ---
+
+        /// <summary>
+        /// Troops available in the barracks (reserve) ready for deployment.
+        /// </summary>
         public int TroopsInBarracks { get; internal set; } = GameConstants.STARTING_TROOPS;
+
+        /// <summary>
+        /// Spies available in the barracks (reserve) ready for placement.
+        /// </summary>
         public int SpiesInBarracks { get; internal set; } = GameConstants.STARTING_SPIES;
+
+        /// <summary>
+        /// Count of trophies collected (e.g. from assassinations).
+        /// </summary>
         public int TrophyHall { get; internal set; } = 0;
 
         // --- Card Piles ---
@@ -61,7 +89,14 @@ namespace ChaosWarlords.Source.Entities.Actors
         internal List<Card> InnerCircle { get; private set; } = new List<Card>();
 
         // Expose via read-only lists
+        /// <summary>
+        /// Read-only view of the cards currently in the draw pile.
+        /// </summary>
         internal IReadOnlyList<Card> Deck => _deckManager.DrawPile;
+
+        /// <summary>
+        /// Read-only view of the cards currently in the discard pile.
+        /// </summary>
         internal IReadOnlyList<Card> DiscardPile => _deckManager.DiscardPile;
 
         internal Deck DeckManager => _deckManager; // For Tests/Setup that need write access (e.g. AddToTop)
