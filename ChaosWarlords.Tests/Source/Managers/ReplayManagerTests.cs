@@ -1,6 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Core.Data.Recording;
+// using ChaosWarlords.Source.Core.Data.Recording;
 using System.Collections.Generic;
 using System;
 using ChaosWarlords.Source.Utilities;
@@ -17,16 +17,14 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             var manager = new ReplayManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            var action = new ReplayAction
-            {
-                Sequence = 1,
-                Timestamp = DateTime.Now,
-                CommandType = "TestCommand",
-                CommandJson = "{ \"foo\": \"bar\" }"
-            };
+            var player = new ChaosWarlords.Source.Entities.Actors.Player(ChaosWarlords.Source.Utilities.PlayerColor.Red);
+            var card = new ChaosWarlords.Source.Entities.Cards.Card("test_id", "Test", 1, ChaosWarlords.Source.Utilities.CardAspect.Neutral, 0, 0, 0);
+            player.Hand.Add(card);
+
+            var command = new ChaosWarlords.Source.Commands.PlayCardCommand(card);
 
             // Act
-            manager.RecordAction(action);
+            manager.RecordCommand(command, player);
             string json = manager.GetRecordingJson();
             
             // Simulate new session

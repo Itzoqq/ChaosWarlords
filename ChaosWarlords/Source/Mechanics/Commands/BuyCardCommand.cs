@@ -6,14 +6,14 @@ namespace ChaosWarlords.Source.Commands
 {
     public class BuyCardCommand : IGameCommand
     {
-        private readonly Card _card;
-        public BuyCardCommand(Card card) { _card = card; }
+        public Card Card { get; }
+        public BuyCardCommand(Card card) { Card = card; }
 
         public void Execute(IGameplayState state)
         {
-            state.MatchContext?.RecordAction("BuyCard", $"Bought {_card.Name}");
+            state.MatchContext?.RecordAction("BuyCard", $"Bought {Card.Name}");
             // Accessing via interface properties
-            state.MarketManager.TryBuyCard(state.TurnManager.ActivePlayer, _card, state.MatchContext!.PlayerStateManager);
+            state.MarketManager.TryBuyCard(state.TurnManager.ActivePlayer, Card, state.MatchContext!.PlayerStateManager);
         }
     }
 }

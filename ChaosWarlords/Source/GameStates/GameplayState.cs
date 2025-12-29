@@ -27,6 +27,7 @@ namespace ChaosWarlords.Source.States
         private readonly Game? _game;
 
         private readonly ICardDatabase _cardDatabase;
+        private readonly IReplayManager _replayManager;
         private readonly IGameLogger _logger;
         private readonly int _viewportWidth;
         private readonly int _viewportHeight;
@@ -107,7 +108,9 @@ namespace ChaosWarlords.Source.States
             else
                 throw new ArgumentException("GameplayState currently requires concrete InputManager", nameof(dependencies));
             
+            
             _cardDatabase = dependencies.CardDatabase;
+            _replayManager = dependencies.ReplayManager ?? throw new ArgumentException("ReplayManager must not be null", nameof(dependencies));
             _logger = dependencies.Logger ?? throw new InvalidOperationException("Dependency Logger must not be null");
             _uiManagerBacking = dependencies.UIManager;
             _view = dependencies.View;
@@ -220,9 +223,70 @@ namespace ChaosWarlords.Source.States
                 return; // Exit early - no game input processing
             }
 
-            // 5. Process game input (map clicks, card clicks, etc.)
-            // Only reached if no modal UI is blocking
-            _playerController.Update();
+            // 5. DEBUG: F5 to Load/Start Replay (For testing determinism)
+            if (_inputManagerBacking.IsKeyJustPressed(Microsoft.Xna.Framework.Input.Keys.F5))
+            {
+                if (!_replayManager.IsReplaying)
+                {
+                    // For testing: Save current, Restart (not implemented trivially without reload), or Load predefined.
+                    // Let's assume there's a "replay.json" on disk or in memory we want to load.
+                    // Or for now, just log state. 
+                    // To truly test full replay, we need to Reset the match first.
+                    // Simplest test flow: Play -> F5 dumps replay to file -> User restarts game -> F6 loads replay.
+                    
+                    // Let's implement F5 = Dump Replay to Disk/Log
+                    string json = _replayManager.GetRecordingJson();
+                    System.IO.File.WriteAllText("last_replay.json", json);
+                    _logger.Log("Replay saved to last_replay.json", LogChannel.Info);
+                }
+            }
+            // F6 to Load and Play
+            if (_inputManagerBacking.IsKeyJustPressed(Microsoft.Xna.Framework.Input.Keys.F6))
+            {
+                 if (System.IO.File.Exists("last_replay.json"))
+                 {
+                     string json = System.IO.File.ReadAllText("last_replay.json");
+                     
+                     // CRITICAL: We must RESET the match state before replaying!
+                     // But GameplayState doesn't have a Reset() method easily available without rebuilding everything.
+                     // IMPORTANT: The user must probably restart the state entirely.
+                     // Ideally we would trigger a state change to a NEW GameplayState with the replay data.
+                     // For now, let's just Try to start Replay and see chaos (or if it works on current state? No, needs fresh state).
+                     
+                     // Correct flow: The ReplayManager starts replaying. We need to handle the state reset.
+                     // Since we can't easily reset here, we'll assume the user is at the start of the game or accepts the risk.
+                     _replayManager.StartReplay(json);
+                 }
+            }
+
+            // 6. Process Input (OR Replay)
+            if (_replayManager.IsReplaying)
+            {
+                // REPLAY MODE: Ignore player input, execute replay commands
+                var cmd = _replayManager.GetNextCommand(this);
+                if (cmd != null)
+                {
+                    // Execute the command directly
+                    // Helper to execute commands is inside PlayerController logic typically, 
+                    // or we execute directly on systems?
+                    // Most commands are "Context Commands" or direct IGameCommands.
+                    // We need a way to execute them.
+                    
+                    // Simple execution:
+                    cmd.Execute(this);
+                    _logger.Log($"Replay Executed: {cmd.GetType().Name}", LogChannel.Debug);
+                    
+                    // Visual Delay?
+                    // Typically replays need a delay (tick rate) or they run instantly.
+                    // For verification, instant is fine. For watching, we might want a timer.
+                }
+            }
+            else
+            {
+                // NORMAL MODE: Process game input (map clicks, card clicks, etc.)
+                // Only reached if no modal UI is blocking
+                _playerController.Update();
+            }
 
             // 6. Update view (card hovers, animations, etc.)
             _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);

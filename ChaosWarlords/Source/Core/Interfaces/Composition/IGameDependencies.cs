@@ -20,6 +20,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Composition
         IGameLogger Logger { get; }
         IUIManager UIManager { get; }
         IGameplayView? View { get; }
+        IReplayManager ReplayManager { get; }
         
         // Configuration
         int ViewportWidth { get; }

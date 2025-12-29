@@ -56,6 +56,7 @@ namespace ChaosWarlords.Tests.States
                 CardDatabase = _cardDatabase,
                 Logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance,
                 UIManager = Substitute.For<IUIManager>(),
+                ReplayManager = Substitute.For<IReplayManager>(),
                 View = null
             };
             var state = new GameplayState(dependencies);
@@ -203,6 +204,7 @@ namespace ChaosWarlords.Tests.States
                    CardDatabase = db,
                    Logger = logger,
                    UIManager = Substitute.For<IUIManager>(), // Default Mock
+                   ReplayManager = Substitute.For<IReplayManager>(),
                    View = view ?? Substitute.For<IGameplayView>(),
                    ViewportWidth = 1920,
                    ViewportHeight = 1080

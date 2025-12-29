@@ -218,6 +218,7 @@ namespace ChaosWarlords.Source.Managers
                     _game.InputProvider,
                     _game.StateManager,
                     _game.CardDatabase,
+                    _game.ReplayManager,
                     _logger,
                     mainMenuView,
                     buttonManager);

@@ -9,17 +9,17 @@ namespace ChaosWarlords.Source.Commands
     /// </summary>
     public class ResolveSpyCommand : IGameCommand
     {
-        private readonly PlayerColor _spyColor;
-        public ResolveSpyCommand(PlayerColor spyColor) { _spyColor = spyColor; }
+        public PlayerColor SpyColor { get; }
+        public ResolveSpyCommand(PlayerColor spyColor) { SpyColor = spyColor; }
 
         public void Execute(IGameplayState state)
         {
-            state.MatchContext?.RecordAction("ResolveSpy", $"Selected {_spyColor} spy to return");
+            state.MatchContext?.RecordAction("ResolveSpy", $"Selected {SpyColor} spy to return");
             // We just call the method. 
             // If it succeeds, ActionSystem fires OnActionCompleted.
             // If it fails, ActionSystem fires OnActionFailed.
             // The GameplayState listens to these events and handles the rest.
-            state.ActionSystem.FinalizeSpyReturn(_spyColor);
+            state.ActionSystem.FinalizeSpyReturn(SpyColor);
         }
     }
 }

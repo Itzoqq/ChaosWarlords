@@ -108,6 +108,7 @@ namespace ChaosWarlords.Tests.Source.Systems
                     CardDatabase = db,
                     Logger = logger,
                     UIManager = Substitute.For<IUIManager>(), // Default mock
+                    ReplayManager = Substitute.For<IReplayManager>(),
                     View = Substitute.For<IGameplayView>(),   // Default mock
                     ViewportWidth = 1920,
                     ViewportHeight = 1080

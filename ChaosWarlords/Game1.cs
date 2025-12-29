@@ -24,6 +24,7 @@ namespace ChaosWarlords
         public IStateManager StateManager { get; private set; } = null!;
         public IInputProvider InputProvider { get; private set; } = null!;
         public ICardDatabase CardDatabase { get; private set; } = null!;
+        public IReplayManager ReplayManager { get; private set; } = null!;
         public IGameLogger Logger { get; }
 
         public Game1(IGameLogger logger)
@@ -70,6 +71,9 @@ namespace ChaosWarlords
                 Logger.Log($"Failed to load card database: {ex.Message}", LogChannel.Error);
             }
 
+            // 1.5 Initialize ReplayManager
+            ReplayManager = new ReplayManager(Logger);
+
             // 2. Create Input Service and UIManager (Composition Root)
             InputProvider = new MonoGameInputProvider();
             var inputManager = new ChaosWarlords.Source.Managers.InputManager(InputProvider); // Full qualification or ensure using
@@ -91,6 +95,7 @@ namespace ChaosWarlords
                 InputProvider,
                 StateManager,
                 CardDatabase,
+                ReplayManager,
                 Logger,
                 mainMenuView,
                 buttonManager

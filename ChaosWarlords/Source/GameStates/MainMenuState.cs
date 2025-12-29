@@ -22,6 +22,7 @@ namespace ChaosWarlords.Source.States
         private readonly IInputProvider _inputProvider;
         private readonly IStateManager _stateManager;
         private readonly ICardDatabase _cardDatabase;
+        private readonly IReplayManager _replayManager;
         private readonly IGameLogger _logger;
         private readonly IMainMenuView _view; // Can be null for Headless Server
         private IButtonManager _buttonManager;
@@ -38,6 +39,7 @@ namespace ChaosWarlords.Source.States
             game.InputProvider,
             game.StateManager,
             game.CardDatabase,
+            game.ReplayManager,
             game.Logger,
             null!,
             null!)
@@ -48,6 +50,7 @@ namespace ChaosWarlords.Source.States
             IInputProvider inputProvider,
             IStateManager stateManager,
             ICardDatabase cardDatabase,
+            IReplayManager replayManager,
             IGameLogger logger,
             IMainMenuView view = null!,
             IButtonManager buttonManager = null!)
@@ -56,6 +59,7 @@ namespace ChaosWarlords.Source.States
             _inputProvider = inputProvider ?? throw new System.ArgumentNullException(nameof(inputProvider));
             _stateManager = stateManager;
             _cardDatabase = cardDatabase;
+            _replayManager = replayManager ?? throw new System.ArgumentNullException(nameof(replayManager));
             _logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
             _view = view;
             _buttonManager = buttonManager;
@@ -194,6 +198,7 @@ namespace ChaosWarlords.Source.States
                 CardDatabase = _cardDatabase,
                 Logger = _logger,
                 UIManager = uiManager,
+                ReplayManager = _replayManager,
                 View = gameplayView,
                 ViewportWidth = width,
                 ViewportHeight = height

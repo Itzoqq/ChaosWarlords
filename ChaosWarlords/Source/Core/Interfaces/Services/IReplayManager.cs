@@ -26,5 +26,12 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// Stops the current replay and returns control to the normal game flow or menu.
         /// </summary>
         void StopReplay();
+
+        void RecordCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command, ChaosWarlords.Source.Entities.Actors.Player actor);
+        
+        /// <summary>
+        /// Retrieves the next command from the replay queue, if available.
+        /// </summary>
+        ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand? GetNextCommand(ChaosWarlords.Source.Core.Interfaces.State.IGameplayState state);
     }
 }
