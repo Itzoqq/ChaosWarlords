@@ -7,7 +7,8 @@ namespace ChaosWarlords.Tests.Source.Core.Data
     [TestClass]
 
     [TestCategory("Unit")]
-    public class DtoTests
+    [TestCategory("Unit")]
+    public class PlayerDtoTests
     {
         [TestMethod]
         public void PlayerDto_FromEntity_PreservesValues()

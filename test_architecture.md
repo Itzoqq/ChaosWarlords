@@ -37,32 +37,36 @@ public void MethodName_Scenario_ExpectedBehavior()
 }
 ```
 
-### 3. Test Data Builders
-Use fluent builders from `TestHelpers.cs` instead of raw constructors:
+### 3. Test Data Strategy
+
+We use a tiered approach for creating test data to ensure maintainability and readability.
+
+**1. Primary Preference: `TestData.cs`**
+Use `TestData` for standard, shared object instances. This reduces duplication and keeps tests clean.
 
 ```csharp
-// ❌ Bad: Hard to read, brittle
-var card = new Card("id", "name", 5, CardAspect.Warlord, 1, 2, 0);
+// ✅ Best: Reusable, consistent
+var player = TestData.Players.RedPlayer();
+var card = TestData.Cards.PowerCard();
+```
 
-// ✅ Good: Readable, maintainable
+**2. Secondary Preference: Builders (`TestHelpers.cs`)**
+Use fluent builders when you need a specific configuration not covered by standard `TestData` or need to test edge cases.
+
+```csharp
+// ✅ Good: Readable, customizable for specific test case
 var card = new CardBuilder()
-    .WithName("test_card")
-    .WithCost(5)
-    .WithAspect(CardAspect.Warlord)
+    .WithName("expensive_card")
+    .WithCost(99)
     .Build();
 ```
 
-### 4. Centralized Test Data
-Use `TestData.cs` for common test scenarios:
+**3. Avoid: Raw Constructors**
+Avoid `new ClassName(...)` unless creating DTOs or simple value objects. Raw constructors are brittle and hard to read.
 
 ```csharp
-// ❌ Bad: Duplication across tests
-var player = new Player(PlayerColor.Red);
-player.Power = 10;
-player.Influence = 10;
-
-// ✅ Good: Reusable, consistent
-var player = TestData.Players.RedPlayer();
+// ❌ Bad: Hard to read, breaks if constructor signature changes
+var card = new Card("id", "name", 5, CardAspect.Warlord, 1, 2, 0);
 ```
 
 ---
@@ -77,9 +81,14 @@ ChaosWarlords.Tests/Source/
 │   ├── Contexts/
 │   │   └── TurnContextTests.cs          [Unit] Tests TurnContext action history tracking
 │   ├── Data/
-│   │   └── DtoTests.cs                  [Unit] Tests DTO serialization/deserialization
+│   │   ├── CardDtoTests.cs              [Unit] Tests CardDto validation and hydration
+│   │   ├── GameStateDtoTests.cs         [Unit] Tests full game state DTO composition
+│   │   ├── MapDtoTests.cs               [Unit] Tests map DTO collection handling
+│   │   ├── MapNodeDtoTests.cs           [Unit] Tests node DTO properties and defaults
+│   │   └── PlayerDtoTests.cs            [Unit] Tests PlayerDto serialization
 │   ├── Events/
-│   │   └── EventManagerTests.cs         [Integration] Tests event publishing and subscriptions
+│   │   ├── EventManagerTests.cs         [Integration] Tests event publishing and subscriptions
+│   │   └── StateChangeEventTests.cs     [Unit] Tests state change record creation and strings
 │   ├── Logic/
 │   │   └── CommandValidatorTests.cs     [Unit] Tests command validation logic
 │   ├── Performance/
@@ -131,6 +140,7 @@ ChaosWarlords.Tests/Source/
 │       └── InputManagerTests.cs        [Integration] Tests input state management
 │
 ├── Managers/
+│   ├── GameEventLoggerTests.cs          [Unit] Tests logging of game events and subscriptions
 │   ├── MapManagerTests.cs               [Integration] Tests map operations (deploy, spy, combat)
 │   │                                      - Deployment validation and execution
 │   │                                      - Spy placement and removal
