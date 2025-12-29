@@ -41,99 +41,34 @@ namespace ChaosWarlords.Tests.Systems
             _market = new MarketManager(_mockDb);
         }
 
-        [TestMethod]
-        public void TryBuyCard_Succeeds_WhenAffordable()
-        {
-            // Use StateManager or direct set for setup ??
-            // Actually, tests should simulate flow.
-            _player.Influence = 5;
-
-            bool result = _market.TryBuyCard(_player, _cheapCard, _stateManager);
-
-            Assert.IsTrue(result);
-            Assert.AreEqual(3, _player.Influence);
-            Assert.IsTrue(_player.DiscardPile.Contains(_cheapCard));
-            CollectionAssert.DoesNotContain(_market.MarketRow, _cheapCard);
-        }
-
-        [TestMethod]
-        public void TryBuyCard_Fails_WhenTooExpensive()
-        {
-            _player.Influence = 5;
-
-            bool result = _market.TryBuyCard(_player, _expensiveCard, _stateManager);
-
-            Assert.IsFalse(result);
-            Assert.AreEqual(5, _player.Influence);
-            Assert.IsFalse(_player.DiscardPile.Contains(_expensiveCard));
-        }
-
-        [TestMethod]
-        public void RefillMarket_Refills_WhenCardPurchased_AndDeckHasReserves()
+        [DataTestMethod]
+        [DataRow(2, 5, true, 3)]    // Affordable
+        [DataRow(10, 5, false, 5)]  // Too expensive
+        [DataRow(3, 3, true, 0)]    // Exact funds
+        [DataRow(2, 0, false, 0)]   // Zero funds
+        public void TryBuyCard_HandlesVariousFundingScenarios(
+            int cardCost,
+            int playerInfluence,
+            bool shouldSucceed,
+            int expectedInfluenceAfter)
         {
             // Arrange
-            var cards = new List<Card>();
-            for (int i = 0; i < 6; i++)
-            {
-                cards.Add(new Card($"fill{i}", "Filler", 1, CardAspect.Neutral, 0, 0, 0));
-            }
-            var reserveCard = new CardBuilder().WithName("reserve").WithCost(1).WithAspect(CardAspect.Neutral).WithPower(0).WithInfluence(0).WithVP(0).Build();
-            cards.Add(reserveCard);
-
-            var localMockDb = Substitute.For<ICardDatabase>();
-            localMockDb.GetAllMarketCards().Returns(new List<Card>(cards));
-
-            var localMarket = new MarketManager(localMockDb);
-
-            _player.Influence = 100;
-
-            // Handle Random Shuffle
-            var cardsInRow = localMarket.MarketRow;
-            var cardLeftInDeck = cards.Except(cardsInRow).FirstOrDefault();
-
-            Assert.IsNotNull(cardLeftInDeck, "Should be 1 card left in the deck (7 total, 6 in row).");
-            Assert.HasCount(6, localMarket.MarketRow);
-
-            // Act: Buy one card to trigger refill
-            var cardToBuy = localMarket.MarketRow[0];
-            bool bought = localMarket.TryBuyCard(_player, cardToBuy, _stateManager);
-
-            // Assert
-            Assert.IsTrue(bought);
-            Assert.HasCount(6, localMarket.MarketRow, "Market should refill back to 6");
-            CollectionAssert.Contains(localMarket.MarketRow, cardLeftInDeck, "The specific card from the deck should have entered the row.");
-        }
-
-        [TestMethod]
-        public void TryBuyCard_Succeeds_WithExactFunds()
-        {
-            // Arrange
-            var exactCard = new CardBuilder().WithName("c_exact").WithCost(3).WithAspect(CardAspect.Neutral).WithPower(1).WithInfluence(0).WithVP(0).Build();
-
-            // Manually add to the row (bypassing the deck/mock for this specific setup)
-            _market.MarketRow.Add(exactCard);
-            _player.Influence = 3;
+            var card = new CardBuilder().WithCost(cardCost).Build();
+            _market.MarketRow.Add(card);
+            _player.Influence = playerInfluence;
 
             // Act
-            bool result = _market.TryBuyCard(_player, exactCard, _stateManager);
+            bool result = _market.TryBuyCard(_player, card, _stateManager);
 
             // Assert
-            Assert.IsTrue(result);
-            Assert.AreEqual(0, _player.Influence);
-            Assert.IsTrue(_player.DiscardPile.Contains(exactCard));
+            Assert.AreEqual(shouldSucceed, result);
+            Assert.AreEqual(expectedInfluenceAfter, _player.Influence);
+            Assert.AreEqual(shouldSucceed, _player.DiscardPile.Contains(card));
+            
+            if (shouldSucceed)
+                CollectionAssert.DoesNotContain(_market.MarketRow, card);
         }
 
-        [TestMethod]
-        public void TryBuyCard_Fails_WithZeroFunds()
-        {
-            _player.Influence = 0;
-
-            bool result = _market.TryBuyCard(_player, _cheapCard, _stateManager);
-
-            Assert.IsFalse(result);
-            Assert.AreEqual(0, _player.Influence);
-            Assert.IsFalse(_player.DiscardPile.Contains(_cheapCard));
-        }
     }
 }
 

@@ -61,46 +61,32 @@ namespace ChaosWarlords.Tests.Systems
 
         #region 1. Deployment Actions (State & Resources)
 
-        [TestMethod]
-        public void TryDeploy_Fails_WhenNotEnoughPower()
+
+        [DataTestMethod]
+        [DataRow(0, 1, false, PlayerColor.None, 10)] // No power
+        [DataRow(1, 0, false, PlayerColor.None, 1)]  // No troops
+        [DataRow(1, 1, true, PlayerColor.Red, 0)]    // Valid conditions
+        public void TryDeploy_ValidatesRequirements(
+            int playerPower,
+            int playerTroops,
+            bool shouldSucceed,
+            PlayerColor expectedOccupant,
+            int expectedTroopsAfter)
         {
-            // Integration: Checks if MapManager properly gates action based on Player State
-            _player1.Power = 0;
-            _node1.Occupant = _player1.Color; // Valid location
-
-            bool result = _mapManager.TryDeploy(_player1, _node2);
-
-            Assert.IsFalse(result);
-            Assert.AreEqual(PlayerColor.None, _node2.Occupant);
-            Assert.AreEqual(10, _player1.TroopsInBarracks); // No troops spent
-        }
-
-        [TestMethod]
-        public void TryDeploy_Fails_WhenNotEnoughTroops()
-        {
-            _player1.TroopsInBarracks = 0;
+            _player1.Power = playerPower;
+            _player1.TroopsInBarracks = playerTroops;
             _node1.Occupant = _player1.Color;
 
             bool result = _mapManager.TryDeploy(_player1, _node2);
 
-            Assert.IsFalse(result);
-            Assert.AreEqual(PlayerColor.None, _node2.Occupant);
+            Assert.AreEqual(shouldSucceed, result);
+            Assert.AreEqual(expectedOccupant, _node2.Occupant);
+            Assert.AreEqual(expectedTroopsAfter, _player1.TroopsInBarracks);
+            
+            if (shouldSucceed)
+                Assert.AreEqual(0, _player1.Power); // Power spent
         }
 
-        [TestMethod]
-        public void TryDeploy_Succeeds_WithValidConditions()
-        {
-            _player1.Power = 1;
-            _player1.TroopsInBarracks = 1;
-            _node1.Occupant = _player1.Color;
-
-            bool result = _mapManager.TryDeploy(_player1, _node2);
-
-            Assert.IsTrue(result);
-            Assert.AreEqual(_player1.Color, _node2.Occupant);
-            Assert.AreEqual(0, _player1.TroopsInBarracks); // Spent
-            Assert.AreEqual(0, _player1.Power); // Spent
-        }
 
         #endregion
 
@@ -133,23 +119,29 @@ namespace ChaosWarlords.Tests.Systems
 
         #region 3. Spy Actions (State Mutation)
 
-        [TestMethod]
-        public void PlaceSpy_Succeeds_AndReducesSpySupply()
+        [DataTestMethod]
+        [DataRow(4, false, true, 3)]   // Success: has spies, no existing spy
+        [DataRow(0, false, false, 0)]  // Fail: no spies in barracks
+        [DataRow(4, true, false, 4)]   // Fail: spy already present
+        public void PlaceSpy_HandlesVariousScenarios(
+            int initialSpies,
+            bool spyAlreadyPresent,
+            bool shouldSucceed,
+            int expectedSpiesAfter)
         {
+            _player1.SpiesInBarracks = initialSpies;
+            if (spyAlreadyPresent)
+                _siteA.Spies.Add(_player1.Color);
+
             _mapManager.PlaceSpy(_siteA, _player1);
 
-            CollectionAssert.Contains(_siteA.Spies.ToList(), _player1.Color);
-            Assert.AreEqual(3, _player1.SpiesInBarracks);
+            Assert.AreEqual(shouldSucceed, _siteA.Spies.Contains(_player1.Color));
+            Assert.AreEqual(expectedSpiesAfter, _player1.SpiesInBarracks);
+            
+            if (shouldSucceed)
+                Assert.AreEqual(1, _siteA.Spies.Count(c => c == _player1.Color));
         }
 
-        [TestMethod]
-        public void PlaceSpy_Fails_IfNoSpiesInBarracks()
-        {
-            _player1.SpiesInBarracks = 0;
-            _mapManager.PlaceSpy(_siteA, _player1);
-
-            CollectionAssert.DoesNotContain(_siteA.Spies.ToList(), _player1.Color);
-        }
 
         [TestMethod]
         public void ReturnSpy_ReturnsTargetedSpy_WhenMultipleArePresent()

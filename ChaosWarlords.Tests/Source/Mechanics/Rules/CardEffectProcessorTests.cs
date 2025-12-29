@@ -117,60 +117,60 @@ namespace ChaosWarlords.Tests.Source.Systems
             Assert.HasCount(2, _player.Hand);
         }
 
-        [TestMethod]
-        public void ResolveEffects_MoveUnit_WithValidTargets_StartsTargeting()
+
+        [DataTestMethod]
+        [DataRow(EffectType.MoveUnit, ActionState.TargetingMoveSource, "MoveSource")]
+        [DataRow(EffectType.Assassinate, ActionState.TargetingAssassinate, "Assassination")]
+        [DataRow(EffectType.ReturnUnit, ActionState.TargetingReturn, "ReturnTroop")]
+        public void ResolveEffects_WithValidTargets_StartsTargeting(
+            EffectType effectType,
+            ActionState expectedState,
+            string validationMethod)
         {
             var card = new CardBuilder()
-                .WithEffect(EffectType.MoveUnit, 1)
+                .WithEffect(effectType, 1)
                 .Build();
 
-            _context.MapManager.HasValidMoveSource(_player).Returns(true);
+            SetupValidTargets(validationMethod, hasTargets: true);
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
-            _context.ActionSystem.Received(1).StartTargeting(ActionState.TargetingMoveSource, card);
+            _context.ActionSystem.Received(1).StartTargeting(expectedState, card);
         }
 
-        [TestMethod]
-        public void ResolveEffects_MoveUnit_NoValidTargets_DoesNotStartTargeting()
+        [DataTestMethod]
+        [DataRow(EffectType.MoveUnit, "MoveSource")]
+        [DataRow(EffectType.Assassinate, "Assassination")]
+        [DataRow(EffectType.ReturnUnit, "ReturnTroop")]
+        public void ResolveEffects_NoValidTargets_DoesNotStartTargeting(
+            EffectType effectType,
+            string validationMethod)
         {
             var card = new CardBuilder()
-                .WithEffect(EffectType.MoveUnit, 1)
+                .WithEffect(effectType, 1)
                 .Build();
 
-            _context.MapManager.HasValidMoveSource(_player).Returns(false);
+            SetupValidTargets(validationMethod, hasTargets: false);
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 
             _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
         }
 
-        [TestMethod]
-        public void ResolveEffects_Assassinate_WithValidTargets_StartsTargeting()
+        private void SetupValidTargets(string validationMethod, bool hasTargets)
         {
-            var card = new CardBuilder()
-                .WithEffect(EffectType.Assassinate, 1)
-                .Build();
-
-            _context.MapManager.HasValidAssassinationTarget(_player).Returns(true);
-
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
-
-            _context.ActionSystem.Received(1).StartTargeting(ActionState.TargetingAssassinate, card);
-        }
-
-        [TestMethod]
-        public void ResolveEffects_Assassinate_NoValidTargets_DoesNotStartTargeting()
-        {
-            var card = new CardBuilder()
-                .WithEffect(EffectType.Assassinate, 1)
-                .Build();
-
-            _context.MapManager.HasValidAssassinationTarget(_player).Returns(false);
-
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
-
-            _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
+            switch (validationMethod)
+            {
+                case "MoveSource":
+                    _context.MapManager.HasValidMoveSource(_player).Returns(hasTargets);
+                    break;
+                case "Assassination":
+                    _context.MapManager.HasValidAssassinationTarget(_player).Returns(hasTargets);
+                    break;
+                case "ReturnTroop":
+                    _context.MapManager.HasValidReturnTroopTarget(_player).Returns(hasTargets);
+                    break;
+            }
         }
 
         [TestMethod]
@@ -257,34 +257,6 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             _context.MapManager.HasValidPlaceSpyTarget(_player).Returns(false);
             _player.SpiesInBarracks = 1;
-
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
-
-            _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
-        }
-
-        [TestMethod]
-        public void ResolveEffects_ReturnUnit_WithValidTargets_StartsTargeting()
-        {
-            var card = new CardBuilder()
-                .WithEffect(EffectType.ReturnUnit, 1)
-                .Build();
-
-            _context.MapManager.HasValidReturnTroopTarget(_player).Returns(true);
-
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
-
-            _context.ActionSystem.Received(1).StartTargeting(ActionState.TargetingReturn, card);
-        }
-
-        [TestMethod]
-        public void ResolveEffects_ReturnUnit_NoValidTargets_DoesNotStartTargeting()
-        {
-            var card = new CardBuilder()
-                .WithEffect(EffectType.ReturnUnit, 1)
-                .Build();
-
-            _context.MapManager.HasValidReturnTroopTarget(_player).Returns(false);
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false);
 

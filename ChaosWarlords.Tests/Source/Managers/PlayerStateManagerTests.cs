@@ -20,11 +20,14 @@ namespace ChaosWarlords.Tests.Managers
             _player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
         }
 
-        [TestMethod]
-        public void AddPower_IncreasesPlayerPower()
+        [DataTestMethod]
+        [DataRow(5, 5)]
+        [DataRow(10, 10)]
+        [DataRow(0, 0)]
+        public void AddPower_IncreasesPlayerPower(int amount, int expected)
         {
-            _manager.AddPower(_player, 5);
-            Assert.AreEqual(5, _player.Power);
+            _manager.AddPower(_player, amount);
+            Assert.AreEqual(expected, _player.Power);
         }
 
         [TestMethod]
@@ -35,85 +38,95 @@ namespace ChaosWarlords.Tests.Managers
             Assert.AreEqual(10, _player.Power);
         }
 
-        [TestMethod]
-        public void TrySpendPower_DecreasesPowerIfSufficient()
+        [DataTestMethod]
+        [DataRow(10, 4, true, 6)]
+        [DataRow(3, 5, false, 3)]
+        [DataRow(5, 5, true, 0)]
+        public void TrySpendPower_HandlesVariousScenarios(
+            int initialPower,
+            int spendAmount,
+            bool expectedSuccess,
+            int expectedFinal)
         {
-            _player.Power = 10;
-            bool success = _manager.TrySpendPower(_player, 4);
-            Assert.IsTrue(success);
-            Assert.AreEqual(6, _player.Power);
+            _player.Power = initialPower;
+            bool success = _manager.TrySpendPower(_player, spendAmount);
+            Assert.AreEqual(expectedSuccess, success);
+            Assert.AreEqual(expectedFinal, _player.Power);
         }
 
-        [TestMethod]
-        public void TrySpendPower_ReturnsFalseIfInsufficient()
+        [DataTestMethod]
+        [DataRow(5, 5)]
+        [DataRow(10, 10)]
+        public void AddInfluence_IncreasesPlayerInfluence(int amount, int expected)
         {
-            _player.Power = 3;
-            bool success = _manager.TrySpendPower(_player, 5);
-            Assert.IsFalse(success);
-            Assert.AreEqual(3, _player.Power);
+            _manager.AddInfluence(_player, amount);
+            Assert.AreEqual(expected, _player.Influence);
         }
 
-        [TestMethod]
-        public void AddInfluence_IncreasesPlayerInfluence()
+        [DataTestMethod]
+        [DataRow(10, 4, true, 6)]
+        [DataRow(3, 5, false, 3)]
+        public void TrySpendInfluence_HandlesVariousScenarios(
+            int initialInfluence,
+            int spendAmount,
+            bool expectedSuccess,
+            int expectedFinal)
         {
-            _manager.AddInfluence(_player, 5);
-            Assert.AreEqual(5, _player.Influence);
+            _player.Influence = initialInfluence;
+            bool success = _manager.TrySpendInfluence(_player, spendAmount);
+            Assert.AreEqual(expectedSuccess, success);
+            Assert.AreEqual(expectedFinal, _player.Influence);
         }
 
-        [TestMethod]
-        public void TrySpendInfluence_DecreasesInfluenceIfSufficient()
+        [DataTestMethod]
+        [DataRow(10, 10)]
+        [DataRow(5, 5)]
+        public void AddVictoryPoints_IncreasesVictoryPoints(int amount, int expected)
         {
-            _player.Influence = 10;
-            bool success = _manager.TrySpendInfluence(_player, 4);
-            Assert.IsTrue(success);
-            Assert.AreEqual(6, _player.Influence);
+            _manager.AddVictoryPoints(_player, amount);
+            Assert.AreEqual(expected, _player.VictoryPoints);
         }
 
-        [TestMethod]
-        public void AddVictoryPoints_IncreasesVictoryPoints()
-        {
-            _manager.AddVictoryPoints(_player, 10);
-            Assert.AreEqual(10, _player.VictoryPoints);
-        }
-
-        [TestMethod]
-        public void AddTroops_IncreasesTroops()
+        [DataTestMethod]
+        [DataRow(3)]
+        [DataRow(5)]
+        [DataRow(1)]
+        public void AddTroops_IncreasesTroops(int amount)
         {
             int initial = _player.TroopsInBarracks;
-            _manager.AddTroops(_player, 3);
-            Assert.AreEqual(initial + 3, _player.TroopsInBarracks);
+            _manager.AddTroops(_player, amount);
+            Assert.AreEqual(initial + amount, _player.TroopsInBarracks);
         }
 
-        [TestMethod]
-        public void RemoveTroops_DecreasesTroops()
+        [DataTestMethod]
+        [DataRow(10, 3, 7)]
+        [DataRow(2, 5, 0)]  // Boundary: doesn't go below zero
+        [DataRow(5, 5, 0)]
+        public void RemoveTroops_DecreasesTroops(int initial, int removeAmount, int expected)
         {
-            _player.TroopsInBarracks = 10;
-            _manager.RemoveTroops(_player, 3);
-            Assert.AreEqual(7, _player.TroopsInBarracks);
+            _player.TroopsInBarracks = initial;
+            _manager.RemoveTroops(_player, removeAmount);
+            Assert.AreEqual(expected, _player.TroopsInBarracks);
         }
 
-        [TestMethod]
-        public void RemoveTroops_DoesNotGoBelowZero()
-        {
-            _player.TroopsInBarracks = 2;
-            _manager.RemoveTroops(_player, 5);
-            Assert.AreEqual(0, _player.TroopsInBarracks);
-        }
-
-        [TestMethod]
-        public void AddSpies_IncreasesSpies()
+        [DataTestMethod]
+        [DataRow(2)]
+        [DataRow(3)]
+        public void AddSpies_IncreasesSpies(int amount)
         {
             int initial = _player.SpiesInBarracks;
-            _manager.AddSpies(_player, 2);
-            Assert.AreEqual(initial + 2, _player.SpiesInBarracks);
+            _manager.AddSpies(_player, amount);
+            Assert.AreEqual(initial + amount, _player.SpiesInBarracks);
         }
 
-        [TestMethod]
-        public void RemoveSpies_DecreasesSpies()
+        [DataTestMethod]
+        [DataRow(5, 2, 3)]
+        [DataRow(3, 3, 0)]
+        public void RemoveSpies_DecreasesSpies(int initial, int removeAmount, int expected)
         {
-            _player.SpiesInBarracks = 5;
-            _manager.RemoveSpies(_player, 2);
-            Assert.AreEqual(3, _player.SpiesInBarracks);
+            _player.SpiesInBarracks = initial;
+            _manager.RemoveSpies(_player, removeAmount);
+            Assert.AreEqual(expected, _player.SpiesInBarracks);
         }
 
         [TestMethod]

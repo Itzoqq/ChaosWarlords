@@ -63,40 +63,34 @@ namespace ChaosWarlords.Tests.Systems
 
         #region 1. Initiation Tests
 
-        [TestMethod]
-        public void TryStartAssassinate_Succeeds_WhenPlayerHasEnoughPower()
+
+        [DataTestMethod]
+        [DataRow("Assassinate", 3, 3, true, ActionState.TargetingAssassinate)]
+        [DataRow("Assassinate", 3, 2, false, ActionState.Normal)]
+        [DataRow("ReturnSpy", 3, 3, true, ActionState.TargetingReturnSpy)]
+        [DataRow("ReturnSpy", 3, 2, false, ActionState.Normal)]
+        public void TryStartAction_ChecksPowerRequirement(
+            string actionName,
+            int requiredPower,
+            int playerPower,
+            bool shouldSucceed,
+            ActionState expectedState)
         {
-            _player1.Power = 3;
-            _actionSystem.TryStartAssassinate();
-            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
-            Assert.IsFalse(_eventFailedFired);
+            _player1.Power = playerPower;
+            _eventFailedFired = false; // Reset
+
+            if (actionName == "Assassinate")
+                _actionSystem.TryStartAssassinate();
+            else
+                _actionSystem.TryStartReturnSpy();
+
+            Assert.AreEqual(expectedState, _actionSystem.CurrentState);
+            Assert.AreEqual(!shouldSucceed, _eventFailedFired, 
+                shouldSucceed 
+                    ? "Should not fire failure event when power is sufficient" 
+                    : "Should fire failure event when power is insufficient");
         }
 
-        [TestMethod]
-        public void TryStartAssassinate_Fails_WhenPlayerHasNotEnoughPower()
-        {
-            _player1.Power = 2;
-            _actionSystem.TryStartAssassinate();
-            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
-            Assert.IsTrue(_eventFailedFired, "Should fire failure event due to low power.");
-        }
-
-        [TestMethod]
-        public void TryStartReturnSpy_Succeeds_WhenPlayerHasEnoughPower()
-        {
-            _player1.Power = 3;
-            _actionSystem.TryStartReturnSpy();
-            Assert.AreEqual(ActionState.TargetingReturnSpy, _actionSystem.CurrentState);
-        }
-
-        [TestMethod]
-        public void TryStartReturnSpy_Fails_WhenPlayerHasNotEnoughPower()
-        {
-            _player1.Power = 2;
-            _actionSystem.TryStartReturnSpy();
-            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
-            Assert.IsTrue(_eventFailedFired);
-        }
 
         #endregion
 
