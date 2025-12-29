@@ -8,6 +8,7 @@ using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Rendering.UI;
 
+using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Rendering.Views;
 
 namespace ChaosWarlords.Source.States
@@ -21,6 +22,7 @@ namespace ChaosWarlords.Source.States
         private readonly IInputProvider _inputProvider;
         private readonly IStateManager _stateManager;
         private readonly ICardDatabase _cardDatabase;
+        private readonly IGameLogger _logger;
         private readonly IMainMenuView _view; // Can be null for Headless Server
         private IButtonManager _buttonManager;
 
@@ -36,6 +38,7 @@ namespace ChaosWarlords.Source.States
             game.InputProvider,
             game.StateManager,
             game.CardDatabase,
+            game.Logger,
             null!,
             null!)
         { }
@@ -45,6 +48,7 @@ namespace ChaosWarlords.Source.States
             IInputProvider inputProvider,
             IStateManager stateManager,
             ICardDatabase cardDatabase,
+            IGameLogger logger,
             IMainMenuView view = null!,
             IButtonManager buttonManager = null!)
         {
@@ -52,6 +56,7 @@ namespace ChaosWarlords.Source.States
             _inputProvider = inputProvider ?? throw new System.ArgumentNullException(nameof(inputProvider));
             _stateManager = stateManager;
             _cardDatabase = cardDatabase;
+            _logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
             _view = view;
             _buttonManager = buttonManager;
         }
@@ -154,7 +159,7 @@ namespace ChaosWarlords.Source.States
         {
             if (_cardDatabase is null || _inputProvider is null || _stateManager is null)
             {
-                GameLogger.Log("Cannot start game: Services not initialized.", LogChannel.Error);
+                _logger.Log("Cannot start game: Services not initialized.", LogChannel.Error);
                 return;
             }
 
@@ -170,7 +175,7 @@ namespace ChaosWarlords.Source.States
                 height = _game.GraphicsDevice.Viewport.Height;
             }
 
-            _stateManager.ChangeState(new GameplayState(_game, _inputProvider, _cardDatabase, gameplayView!, width, height));
+            _stateManager.ChangeState(new GameplayState(_game, _inputProvider, _cardDatabase, _logger, gameplayView!, width, height));
         }
 
         public void Draw(SpriteBatch spriteBatch)

@@ -9,6 +9,12 @@ namespace ChaosWarlords.Source.Mechanics.Rules
     public class SiteControlSystem
     {
         private IPlayerStateManager _stateManager = null!;
+        private readonly IGameLogger _logger;
+
+        public SiteControlSystem(IGameLogger logger)
+        {
+            _logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
+        }
 
         public void SetPlayerStateManager(IPlayerStateManager stateManager)
         {
@@ -71,7 +77,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 if (activePlayer is not null && newOwner == activePlayer.Color && site.IsCity)
                 {
                     ApplyReward(activePlayer, site.ControlResource, site.ControlAmount);
-                    GameLogger.Log($"Seized Control of {site.Name}! (+{site.ControlAmount} {site.ControlResource})", LogChannel.Economy);
+                    _logger.Log($"Seized Control of {site.Name}! (+{site.ControlAmount} {site.ControlResource})", LogChannel.Economy);
                 }
             }
         }
@@ -96,15 +102,15 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             if (activePlayer is not null && owner == activePlayer.Color && site.IsCity)
             {
                 ApplyReward(activePlayer, site.TotalControlResource, site.TotalControlAmount);
-                GameLogger.Log($"Total Control established in {site.Name}! (+{site.TotalControlAmount} {site.TotalControlResource})", LogChannel.Economy);
+                _logger.Log($"Total Control established in {site.Name}! (+{site.TotalControlAmount} {site.TotalControlResource})", LogChannel.Economy);
             }
         }
 
-        private static void HandleTotalControlLoss(Site site, Player activePlayer, PlayerColor owner)
+        private void HandleTotalControlLoss(Site site, Player activePlayer, PlayerColor owner)
         {
             if (activePlayer is not null && activePlayer.Color == owner)
             {
-                GameLogger.Log($"Lost Total Control of {site.Name}.", LogChannel.Combat);
+                _logger.Log($"Lost Total Control of {site.Name}.", LogChannel.Combat);
             }
         }
 
@@ -119,13 +125,13 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 {
                     // 1. Base Control Reward
                     ApplyReward(activePlayer, site.ControlResource, site.ControlAmount);
-                    GameLogger.Log($"Income ({site.Name}): +{site.ControlAmount} {site.ControlResource}", LogChannel.Economy);
+                    _logger.Log($"Income ({site.Name}): +{site.ControlAmount} {site.ControlResource}", LogChannel.Economy);
 
                     // 2. Total Control Bonus
                     if (site.HasTotalControl)
                     {
                         ApplyReward(activePlayer, site.TotalControlResource, site.TotalControlAmount);
-                        GameLogger.Log($"Total Control Bonus ({site.Name}): +{site.TotalControlAmount} {site.TotalControlResource}", LogChannel.Economy);
+                        _logger.Log($"Total Control Bonus ({site.Name}): +{site.TotalControlAmount} {site.TotalControlResource}", LogChannel.Economy);
                     }
                 }
             }

@@ -14,13 +14,16 @@ using System.Runtime.CompilerServices;
 
 namespace ChaosWarlords
 {
-    [ExcludeFromCodeCoverage] // Now we have a class to attach this to!
+    [ExcludeFromCodeCoverage] 
     public static class Program
     {
-        [STAThread] // Good practice for MonoGame/Windows apps
         static void Main()
         {
-            using var game = new ChaosWarlords.Game1();
+            // COMPOSITION ROOT: Initialize Logger
+            // We verify BufferedAsyncLogger is used for file I/O and diposed correctly.
+            using BufferedAsyncLogger logger = new BufferedAsyncLogger();
+
+            using var game = new ChaosWarlords.Game1(logger);
 
             try
             {
@@ -28,21 +31,14 @@ namespace ChaosWarlords
             }
             catch (Exception ex)
             {
-                // 1. Initialize logger if the crash happened BEFORE LoadContent
-                // (This is safe to call multiple times because of your specific implementation)
+                // 1. Log the fatal error using our instance
+                logger.Log("FATAL CRASH DETECTED", LogChannel.Error);
+                logger.Log(ex, LogChannel.Error);
 
-                // 2. Log the fatal error
-                GameLogger.Log("FATAL CRASH DETECTED", LogChannel.Error);
-                GameLogger.Log(ex);
-
-                // 3. Optional: Re-throw if you want the standard Windows "App has stopped working" dialog
-                // throw; 
+                // 2. Flush immediately just in case - Dispose handles this via FlushRemaining
+                logger.Dispose(); 
             }
-            finally
-            {
-                // Ensure logs are saved even if we crash
-                GameLogger.FlushToFile();
-            }
+            // 'using' block handles logger.Dispose() which flushes logs normally.
         }
     }
 }

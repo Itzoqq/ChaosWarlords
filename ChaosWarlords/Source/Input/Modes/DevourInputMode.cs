@@ -23,7 +23,7 @@ namespace ChaosWarlords.Source.States.Input
             _actionSystem = actionSystem;
             _sourceCard = actionSystem.PendingCard; // Capture which card triggered this
 
-            GameLogger.Log("Select a card from your HAND to Devour (Remove from game).", LogChannel.General);
+            _gameplayState.Logger.Log("Select a card from your HAND to Devour (Remove from game).", LogChannel.General);
         }
 
         public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
@@ -33,7 +33,7 @@ namespace ChaosWarlords.Source.States.Input
             {
                 actionSystem.CancelTargeting();
                 _gameplayState.SwitchToNormalMode();
-                GameLogger.Log("Cancelled Devour action.", LogChannel.General);
+                _gameplayState.Logger.Log("Cancelled Devour action.", LogChannel.General);
                 return null;
             }
 
@@ -48,7 +48,7 @@ namespace ChaosWarlords.Source.States.Input
                     // Validation: Cannot devour the card itself while it's being played
                     if (targetCard == _sourceCard)
                     {
-                        GameLogger.Log("Invalid Target: Cannot devour the card currently being played!", LogChannel.Warning);
+                        _gameplayState.Logger.Log("Invalid Target: Cannot devour the card currently being played!", LogChannel.Warning);
                         return null;
                     }
 

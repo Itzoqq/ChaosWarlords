@@ -25,6 +25,7 @@ namespace ChaosWarlords.Source.States
         private readonly Game? _game;
         private readonly IInputProvider _inputProvider;
         private readonly ICardDatabase _cardDatabase;
+        private readonly IGameLogger _logger;
         private readonly int _viewportWidth;
         private readonly int _viewportHeight;
 
@@ -43,6 +44,7 @@ namespace ChaosWarlords.Source.States
         internal UIEventMediator _uiEventMediator = null!;
 
         public IInputManager InputManager => _inputManagerBacking;
+        public IGameLogger Logger => _logger;
         public IUIManager UIManager => _uiManagerBacking;
         public IMatchManager MatchManager => _matchManager;
 
@@ -71,11 +73,12 @@ namespace ChaosWarlords.Source.States
         public bool IsConfirmationPopupOpen => _uiEventMediator?.IsConfirmationPopupOpen ?? false;
         public bool IsPauseMenuOpen => _uiEventMediator?.IsPauseMenuOpen ?? false;
 
-        public GameplayState(Game? game, IInputProvider inputProvider, ICardDatabase cardDatabase, IGameplayView? view = null, int viewportWidth = 1920, int viewportHeight = 1080)
+        public GameplayState(Game? game, IInputProvider inputProvider, ICardDatabase cardDatabase, IGameLogger logger, IGameplayView? view = null, int viewportWidth = 1920, int viewportHeight = 1080)
         {
             _game = game;
             _inputProvider = inputProvider;
             _cardDatabase = cardDatabase;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _view = view;
             _viewportWidth = viewportWidth;
             _viewportHeight = viewportHeight;
@@ -88,11 +91,11 @@ namespace ChaosWarlords.Source.States
             if (_game is null && _view is not null)
             {
                 // If view exists but game is null, we can't load content.
-                GameLogger.Log("GameplayState: Skipping view content load because Game is null (Headless mode?)");
+                _logger.Log("GameplayState: Skipping view content load because Game is null (Headless mode?)");
                 return;
             }
 
-            GameLogger.Initialize();
+            // GameLogger.Initialize(); // Removed: Handled by Composition Root
 
             InitializeInfrastructure();
             InitializeView();
@@ -104,7 +107,7 @@ namespace ChaosWarlords.Source.States
         {
             _inputManagerBacking = new InputManager(_inputProvider);
             // Replaced direct GraphicsDevice access with injected viewport properties
-            _uiManagerBacking = new UIManager(_viewportWidth, _viewportHeight);
+            _uiManagerBacking = new UIManager(_viewportWidth, _viewportHeight, _logger);
         }
 
         private void InitializeView()
@@ -119,7 +122,7 @@ namespace ChaosWarlords.Source.States
 
         private void InitializeMatch()
         {
-            var builder = new MatchFactory(_cardDatabase);
+            var builder = new MatchFactory(_cardDatabase, _logger);
             var worldData = builder.Build();
 
             _matchContext = new MatchContext(
@@ -128,10 +131,11 @@ namespace ChaosWarlords.Source.States
                 worldData.MarketManager,
                 worldData.ActionSystem,
                 _cardDatabase,
-                worldData.PlayerStateManager
+                worldData.PlayerStateManager,
+                _logger
             );
 
-            _matchManager = new MatchManager(_matchContext);
+            _matchManager = new MatchManager(_matchContext, _logger);
 
             // Don't draw cards during Setup phase
             if (_matchContext.CurrentPhase != MatchPhase.Setup && _matchContext.TurnManager.Players is not null)
@@ -151,9 +155,9 @@ namespace ChaosWarlords.Source.States
         private void InitializeSystems()
         {
             _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
-            _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, () => SwitchToTargetingMode());
+            _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, () => SwitchToTargetingMode(), _logger);
 
-            _uiEventMediator = new UIEventMediator(this, _uiManagerBacking, _matchContext.ActionSystem, _game as Game1);
+            _uiEventMediator = new UIEventMediator(this, _uiManagerBacking, _matchContext.ActionSystem, _logger, _game as Game1);
             _uiEventMediator.Initialize();
 
             _playerController = new PlayerController(this, _inputManagerBacking, _inputCoordinator, _interactionMapper);

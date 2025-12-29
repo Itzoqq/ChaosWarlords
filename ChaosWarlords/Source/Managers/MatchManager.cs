@@ -10,12 +10,14 @@ namespace ChaosWarlords.Source.Managers
     public class MatchManager : IMatchManager
     {
         private readonly MatchContext _context;
+        private readonly IGameLogger _logger;
         // 1. Add the Processor to handle the logic
         private readonly CardEffectProcessor _effectProcessor;
 
-        public MatchManager(MatchContext context)
+        public MatchManager(MatchContext context, IGameLogger logger)
         {
             _context = context;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _effectProcessor = new CardEffectProcessor();
         }
 
@@ -38,7 +40,7 @@ namespace ChaosWarlords.Source.Managers
             // Verify Ownership: Cannot play a card that isn't in your hand!
             if (!_context.ActivePlayer.Hand.Contains(card))
             {
-                GameLogger.Log($"Attempted to play card {card.Name} which is NOT in active player's hand.", LogChannel.Error);
+                _logger.Log($"Attempted to play card {card.Name} which is NOT in active player's hand.", LogChannel.Error);
                 return;
             }
 
@@ -48,7 +50,7 @@ namespace ChaosWarlords.Source.Managers
             // --- 3. RESOLVE EFFECTS (The Missing Link) ---
             // Now that the card is "played", we trigger its game logic.
             // We pass the 'hasFocus' snapshot we calculated earlier.
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus, _logger);
 
             // --- 4. UPDATE STATS ---
             // Finally, register the card with the turn manager to update Aspect counts for future Focus checks.
@@ -96,6 +98,9 @@ namespace ChaosWarlords.Source.Managers
             // 4. Switch Player
             _context.TurnManager.EndTurn();
 
+            // 4b. Log Turn Start (New)
+            _logger.Log($"Turn Started for {_context.ActivePlayer.DisplayName}", LogChannel.Info);
+
             // 5. START OF TURN Actions for the NEW active player
 
             // Phase Check: Transition from Setup to Playing?
@@ -113,7 +118,7 @@ namespace ChaosWarlords.Source.Managers
 
                 if (allDeployed || gameHasProgressed)
                 {
-                    GameLogger.Log("All armies deployed (or game in progress). The War Begins! (Entering Playing Phase)", LogChannel.General);
+                    _logger.Log("All armies deployed (or game in progress). The War Begins! (Entering Playing Phase)", LogChannel.General);
                     _context.CurrentPhase = MatchPhase.Playing;
                     _context.MapManager.SetPhase(MatchPhase.Playing);
                 }

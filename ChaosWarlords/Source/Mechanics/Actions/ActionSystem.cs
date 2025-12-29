@@ -24,16 +24,18 @@ namespace ChaosWarlords.Source.Managers
 
         private readonly ITurnManager _turnManager;
         private readonly IMapManager _mapManager;
+        private readonly IGameLogger _logger;
         private IPlayerStateManager _playerStateManager = null!;
 
         private Player CurrentPlayer => _turnManager.ActivePlayer;
 
         public MapNode? PendingMoveSource { get; private set; }
 
-        public ActionSystem(ITurnManager turnManager, IMapManager mapManager)
+        public ActionSystem(ITurnManager turnManager, IMapManager mapManager, IGameLogger logger)
         {
             _turnManager = turnManager;
             _mapManager = mapManager;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public void SetPlayerStateManager(IPlayerStateManager stateManager)
@@ -50,7 +52,7 @@ namespace ChaosWarlords.Source.Managers
             }
 
             StartTargeting(ActionState.TargetingAssassinate);
-            GameLogger.Log($"Select a TROOP to Assassinate (Cost: {ASSASSINATE_COST} Power)...", LogChannel.General);
+            _logger.Log($"Select a TROOP to Assassinate (Cost: {ASSASSINATE_COST} Power)...", LogChannel.General);
         }
 
         public void TryStartReturnSpy()
@@ -62,7 +64,7 @@ namespace ChaosWarlords.Source.Managers
             }
 
             StartTargeting(ActionState.TargetingReturnSpy);
-            GameLogger.Log($"Select a SITE to remove Enemy Spy (Cost: {RETURN_SPY_COST} Power)...", LogChannel.General);
+            _logger.Log($"Select a SITE to remove Enemy Spy (Cost: {RETURN_SPY_COST} Power)...", LogChannel.General);
         }
 
         public void StartTargeting(ActionState state, Card? card = null)
@@ -82,7 +84,7 @@ namespace ChaosWarlords.Source.Managers
         public void CancelTargeting()
         {
             ClearState();
-            GameLogger.Log("ActionSystem: Targeting Cancelled. State cleared.", LogChannel.Info);
+            _logger.Log("ActionSystem: Targeting Cancelled. State cleared.", LogChannel.Info);
         }
 
         public bool IsTargeting()
@@ -203,7 +205,7 @@ namespace ChaosWarlords.Source.Managers
             // 1. Sanity Checks
             if (clickedSite is null)
             {
-                GameLogger.Log("Invalid Target: You must click a Site.", LogChannel.Warning);
+                _logger.Log("Invalid Target: You must click a Site.", LogChannel.Warning);
                 return;
             }
 
@@ -263,7 +265,7 @@ namespace ChaosWarlords.Source.Managers
             // Case B: Ambiguous case (Multiple spies) -> Transition to Sub-State
             PendingSite = site;
             CurrentState = ActionState.SelectingSpyToReturn;
-            GameLogger.Log("Multiple spies detected. Select which spy to return.", LogChannel.General);
+            _logger.Log("Multiple spies detected. Select which spy to return.", LogChannel.General);
         }
 
         public void FinalizeSpyReturn(PlayerColor selectedSpyColor)
@@ -337,7 +339,7 @@ namespace ChaosWarlords.Source.Managers
 
             PendingMoveSource = targetNode;
             CurrentState = ActionState.TargetingMoveDestination;
-            GameLogger.Log("Select an empty destination space anywhere on the board.", LogChannel.General);
+            _logger.Log("Select an empty destination space anywhere on the board.", LogChannel.General);
         }
 
         private void HandleMoveDestination(MapNode targetNode)
@@ -358,13 +360,13 @@ namespace ChaosWarlords.Source.Managers
         {
             if (CurrentPlayer.Hand.Count == 0)
             {
-                GameLogger.Log("No cards in hand to Devour.", LogChannel.Warning);
+                _logger.Log("No cards in hand to Devour.", LogChannel.Warning);
                 OnActionCompleted?.Invoke(this, EventArgs.Empty);
                 return;
             }
 
             StartTargeting(ActionState.TargetingDevourHand, sourceCard);
-            GameLogger.Log("Select a card from your HAND to Devour (Remove from game).", LogChannel.General);
+            _logger.Log("Select a card from your HAND to Devour (Remove from game).", LogChannel.General);
         }
     }
 }

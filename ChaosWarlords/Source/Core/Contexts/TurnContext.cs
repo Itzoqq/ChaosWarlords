@@ -4,6 +4,7 @@ using System.Linq;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Core.Interfaces.Services;
 
 namespace ChaosWarlords.Source.Contexts
 {
@@ -11,6 +12,7 @@ namespace ChaosWarlords.Source.Contexts
     {
         public Player ActivePlayer { get; private set; }
         private readonly Dictionary<CardAspect, int> _playedAspectCounts;
+        private readonly IGameLogger _logger;
 
         // --- CHANGED: Track credits by Source Card ---
         // Each entry represents 1 promotion point provided by 'Card'
@@ -26,11 +28,12 @@ namespace ChaosWarlords.Source.Contexts
         // Expose count for UI checks
         public int PendingPromotionsCount => _promotionCredits.Count;
 
-        public TurnContext(Player activePlayer)
+        public TurnContext(Player activePlayer, IGameLogger logger)
         {
             ActivePlayer = activePlayer;
             _playedAspectCounts = new Dictionary<CardAspect, int>();
             _promotionCredits = new List<Card>();
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public void RecordPlayedCard(CardAspect aspect)
@@ -105,7 +108,7 @@ namespace ChaosWarlords.Source.Contexts
             );
             _actionHistory.Add(action);
 
-            GameLogger.Log($"[Action {action.Sequence}] {ActivePlayer.DisplayName}: {summary}", LogChannel.Info);
+            _logger.Log($"[Action {action.Sequence}] {ActivePlayer.DisplayName}: {summary}", LogChannel.Info);
         }
     }
 }

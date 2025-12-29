@@ -19,7 +19,7 @@ namespace ChaosWarlords.Tests.Contexts
         public void Setup()
         {
             _dummyPlayer = TestData.Players.RedPlayer();
-            _turnContext = new TurnContext(_dummyPlayer);
+            _turnContext = new TurnContext(_dummyPlayer, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             _cardA = TestData.Cards.CheapCard();
             _cardB = TestData.Cards.ExpensiveCard();

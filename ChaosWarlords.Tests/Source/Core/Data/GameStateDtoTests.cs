@@ -12,15 +12,15 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         {
             // Act
             var dto = new GameStateDto();
-            
+
             // Assert
             Assert.IsNotNull(dto.Players);
             Assert.IsNotNull(dto.Market);
             Assert.IsNotNull(dto.VoidPile);
             Assert.IsNotNull(dto.Map);
-            Assert.AreEqual(0, dto.Players.Count);
-            Assert.AreEqual(0, dto.Market.Count);
-            Assert.AreEqual(0, dto.VoidPile.Count);
+            Assert.IsEmpty(dto.Players);
+            Assert.IsEmpty(dto.Market);
+            Assert.IsEmpty(dto.VoidPile);
         }
 
         [TestMethod]
@@ -28,12 +28,12 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         {
             // Arrange
             var dto = new GameStateDto();
-            
+
             // Act
             dto.Seed = 12345;
             dto.TurnNumber = 10;
             dto.Phase = MatchPhase.Playing;
-            
+
             // Assert
             Assert.AreEqual(12345, dto.Seed);
             Assert.AreEqual(10, dto.TurnNumber);
@@ -47,13 +47,13 @@ namespace ChaosWarlords.Tests.Source.Core.Data
             var dto = new GameStateDto();
             var player1 = new PlayerDto { PlayerId = Guid.NewGuid(), DisplayName = "Player1" };
             var player2 = new PlayerDto { PlayerId = Guid.NewGuid(), DisplayName = "Player2" };
-            
+
             // Act
             dto.Players.Add(player1);
             dto.Players.Add(player2);
-            
+
             // Assert
-            Assert.AreEqual(2, dto.Players.Count);
+            Assert.HasCount(2, dto.Players);
             Assert.AreEqual("Player1", dto.Players[0].DisplayName);
             Assert.AreEqual("Player2", dto.Players[1].DisplayName);
         }
@@ -65,13 +65,13 @@ namespace ChaosWarlords.Tests.Source.Core.Data
             var dto = new GameStateDto();
             var card1 = new CardDto { DefinitionId = "card1", InstanceId = Guid.NewGuid().ToString() };
             var card2 = new CardDto { DefinitionId = "card2", InstanceId = Guid.NewGuid().ToString() };
-            
+
             // Act
             dto.Market.Add(card1);
             dto.Market.Add(card2);
-            
+
             // Assert
-            Assert.AreEqual(2, dto.Market.Count);
+            Assert.HasCount(2, dto.Market);
             Assert.AreEqual("card1", dto.Market[0].DefinitionId);
             Assert.AreEqual("card2", dto.Market[1].DefinitionId);
         }
@@ -82,12 +82,12 @@ namespace ChaosWarlords.Tests.Source.Core.Data
             // Arrange
             var dto = new GameStateDto();
             var card = new CardDto { DefinitionId = "void_card", InstanceId = Guid.NewGuid().ToString() };
-            
+
             // Act
             dto.VoidPile.Add(card);
-            
+
             // Assert
-            Assert.AreEqual(1, dto.VoidPile.Count);
+            Assert.HasCount(1, dto.VoidPile);
             Assert.AreEqual("void_card", dto.VoidPile[0].DefinitionId);
         }
 
@@ -98,13 +98,13 @@ namespace ChaosWarlords.Tests.Source.Core.Data
             var dto = new GameStateDto();
             var mapDto = new MapDto();
             mapDto.Nodes.Add(new MapNodeDto { Id = 1 });
-            
+
             // Act
             dto.Map = mapDto;
-            
+
             // Assert
             Assert.AreSame(mapDto, dto.Map);
-            Assert.AreEqual(1, dto.Map.Nodes.Count);
+            Assert.HasCount(1, dto.Map.Nodes);
         }
 
         [TestMethod]
@@ -112,7 +112,7 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         {
             // Act
             var dto = new GameStateDto();
-            
+
             // Assert
             Assert.AreEqual(default(MatchPhase), dto.Phase);
         }
@@ -122,10 +122,10 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         {
             // Arrange
             var dto = new GameStateDto();
-            
+
             // Act
             dto.Seed = -999;
-            
+
             // Assert
             Assert.AreEqual(-999, dto.Seed);
         }

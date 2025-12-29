@@ -1,6 +1,7 @@
 using ChaosWarlords.Source.Core.Events;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Utilities;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -43,7 +44,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             var fakeManager = new FakeEventManager();
-            var logger = new GameEventLogger(fakeManager);
+            var logger = new GameEventLogger(fakeManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             
             // Act
             logger.Initialize();
@@ -58,7 +59,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             var fakeManager = new FakeEventManager();
-            var logger = new GameEventLogger(fakeManager);
+            var logger = new GameEventLogger(fakeManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             
             // Act
             logger.Initialize();
@@ -73,7 +74,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             var fakeManager = new FakeEventManager();
-            var logger = new GameEventLogger(fakeManager);
+            var logger = new GameEventLogger(fakeManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             logger.Initialize();
             
             // Act
@@ -89,7 +90,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             var fakeManager = new FakeEventManager();
-            var logger = new GameEventLogger(fakeManager);
+            var logger = new GameEventLogger(fakeManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             logger.Initialize();
             
             // Act
@@ -105,7 +106,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             var fakeManager = new FakeEventManager();
-            var logger = new GameEventLogger(fakeManager);
+            var logger = new GameEventLogger(fakeManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             logger.Initialize();
             
             // Act - Invoke via our fake helper
@@ -127,7 +128,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             var fakeManager = new FakeEventManager();
-            var logger = new GameEventLogger(fakeManager);
+            var logger = new GameEventLogger(fakeManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             logger.Initialize();
             
             var evt = new TestSimpleEvent { Context = "TestEvent" };
@@ -143,7 +144,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             var fakeManager = new FakeEventManager();
-            var logger = new GameEventLogger(fakeManager);
+            var logger = new GameEventLogger(fakeManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             logger.Initialize();
             
             var evt = new StateChangeEvent("TestState", 10, 5);

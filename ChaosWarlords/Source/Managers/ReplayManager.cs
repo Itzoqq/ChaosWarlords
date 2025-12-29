@@ -12,12 +12,18 @@ namespace ChaosWarlords.Source.Managers
     {
         private List<ReplayAction> _recording = new List<ReplayAction>();
         private bool _isReplaying;
+        private readonly IGameLogger _logger;
+
+        public ReplayManager(IGameLogger logger)
+        {
+            _logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
+        }
 
         public bool IsReplaying => _isReplaying;
 
         public void StartReplay(string replayJson)
         {
-            GameLogger.Log("Starting Replay...", LogChannel.Info);
+            _logger.Log("Starting Replay...", LogChannel.Info);
             try 
             {
                 var actions = System.Text.Json.JsonSerializer.Deserialize<List<ReplayAction>>(replayJson);
@@ -26,12 +32,12 @@ namespace ChaosWarlords.Source.Managers
                     _isReplaying = true;
                     _recording.Clear();
                     _recording.AddRange(actions);
-                    GameLogger.Log($"Replay loaded: {actions.Count} actions.", LogChannel.Info);
+                    _logger.Log($"Replay loaded: {actions.Count} actions.", LogChannel.Info);
                 }
             }
             catch (System.Exception ex)
             {
-                GameLogger.Log($"Failed to load replay: {ex.Message}", LogChannel.Error);
+                _logger.Log($"Failed to load replay: {ex.Message}", LogChannel.Error);
             }
         }
 
@@ -43,7 +49,7 @@ namespace ChaosWarlords.Source.Managers
         public void StopReplay()
         {
             _isReplaying = false;
-            GameLogger.Log("Replay Stopped.", LogChannel.Info);
+            _logger.Log("Replay Stopped.", LogChannel.Info);
         }
 
         public void RecordAction(ReplayAction action)

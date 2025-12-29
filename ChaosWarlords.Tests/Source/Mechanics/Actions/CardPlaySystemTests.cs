@@ -40,15 +40,15 @@ namespace ChaosWarlords.Tests.Systems
             var cardDb = Substitute.For<ICardDatabase>();
 
             // Create context with our mocked MapManager and ActionSystem
-            var ps = new PlayerStateManager();
-            _matchContext = new MatchContext(turnManager, _mapManager, marketManager, _actionSystem, cardDb, ps);
+            var ps = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _matchContext = new MatchContext(turnManager, _mapManager, marketManager, _actionSystem, cardDb, ps, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             // Set Active Player manually if needed
             var player = TestData.Players.RedPlayer();
             turnManager.ActivePlayer.Returns(player);
 
             // System under test
-            _system = new CardPlaySystem(_matchContext, _matchManager, _targetingCallback);
+            _system = new CardPlaySystem(_matchContext, _matchManager, _targetingCallback, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
         }
 
         [TestMethod]

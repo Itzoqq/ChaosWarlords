@@ -76,6 +76,7 @@ namespace ChaosWarlords.Source.Contexts
             IActionSystem action,
             ICardDatabase cardDb,
             IPlayerStateManager playerState,
+            IGameLogger logger,
             int? seed = null)
         {
             TurnManager = turn ?? throw new ArgumentNullException(nameof(turn));
@@ -87,7 +88,7 @@ namespace ChaosWarlords.Source.Contexts
 
             // Initialize seeded RNG
             Seed = seed ?? Environment.TickCount;
-            Random = new SeededGameRandom(Seed);
+            Random = new SeededGameRandom(Seed, logger);
         }
 
         public void RecordAction(string actionType, string summary)

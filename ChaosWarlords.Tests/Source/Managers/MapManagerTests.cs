@@ -59,10 +59,10 @@ namespace ChaosWarlords.Tests.Systems
             var nodes = new List<MapNode> { _node1, _node2, _node3, _node4, _node5 };
             var sites = new List<Site> { _siteA, _siteB };
 
-            _stateManager = new PlayerStateManager();
+            _stateManager = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             // The Manager now uses the SubSystems internally, but we test the RESULT of that integration here
-            _mapManager = new MapManager(nodes, sites, _stateManager);
+            _mapManager = new MapManager(nodes, sites, ChaosWarlords.Tests.Utilities.TestLogger.Instance, _stateManager);
             _mapManager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
         }
 
@@ -93,7 +93,7 @@ namespace ChaosWarlords.Tests.Systems
             var testNodes = new List<MapNode> { testNode1, testNode2 };
             testNode1.AddNeighbor(testNode2);
             testNode2.AddNeighbor(testNode1);
-            var testManager = new MapManager(testNodes, new List<Site>(), _stateManager);
+            var testManager = new MapManager(testNodes, new List<Site>(), ChaosWarlords.Tests.Utilities.TestLogger.Instance, _stateManager);
             testManager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
 
             bool result = testManager.TryDeploy(testPlayer, testNode2);
@@ -161,7 +161,7 @@ namespace ChaosWarlords.Tests.Systems
             }
 
             // Create fresh manager with test site
-            var testManager = new MapManager(new List<MapNode>(), new List<Site> { testSite }, _stateManager);
+            var testManager = new MapManager(new List<MapNode>(), new List<Site> { testSite }, ChaosWarlords.Tests.Utilities.TestLogger.Instance, _stateManager);
 
             testManager.PlaceSpy(testSite, testPlayer);
 
@@ -203,7 +203,7 @@ namespace ChaosWarlords.Tests.Systems
             remoteSite.AddNode(remoteNode);
 
             // New manager instance for isolation
-            var manager = new MapManager(new List<MapNode> { remoteNode }, new List<Site> { remoteSite }, _stateManager);
+            var manager = new MapManager(new List<MapNode> { remoteNode }, new List<Site> { remoteSite }, ChaosWarlords.Tests.Utilities.TestLogger.Instance, _stateManager);
 
             bool result = manager.HasValidPlaceSpyTarget(_player1);
             Assert.IsTrue(result, "Should be able to place a spy on a remote site with zero presence.");
@@ -262,6 +262,7 @@ namespace ChaosWarlords.Tests.Systems
             var manager = new MapManager(
                 new List<MapNode> { cityNodeTL, cityNodeTR, cityNodeDL, cityNodeDR, routeNode },
                 new List<Site> { citySite },
+                ChaosWarlords.Tests.Utilities.TestLogger.Instance,
                 _stateManager
             );
             manager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
@@ -287,7 +288,7 @@ namespace ChaosWarlords.Tests.Systems
             startNode.Occupant = _player1.Color;
             var farNode = TestData.MapNodes.EmptyNode();
 
-            var manager = new MapManager(new List<MapNode> { startNode, farNode }, new List<Site>(), _stateManager);
+            var manager = new MapManager(new List<MapNode> { startNode, farNode }, new List<Site>(), ChaosWarlords.Tests.Utilities.TestLogger.Instance, _stateManager);
             manager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
 
             bool result = manager.CanDeployAt(farNode, _player1.Color);
@@ -306,7 +307,7 @@ namespace ChaosWarlords.Tests.Systems
             var siteB = TestData.Sites.NeutralSite();
             siteB.AddNode(siteBNode);
 
-            var manager = new MapManager(new List<MapNode> { siteANode, siteBNode }, new List<Site> { siteA, siteB }, _stateManager);
+            var manager = new MapManager(new List<MapNode> { siteANode, siteBNode }, new List<Site> { siteA, siteB }, ChaosWarlords.Tests.Utilities.TestLogger.Instance, _stateManager);
             manager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
 
             siteA.Spies.Add(_player1.Color);
@@ -437,6 +438,7 @@ namespace ChaosWarlords.Tests.Systems
             var manager = new MapManager(
                 new List<MapNode> { enemyNode, targetNode, myBaseNode },
                 new List<Site> { enemySite },
+                ChaosWarlords.Tests.Utilities.TestLogger.Instance,
                 _stateManager
             );
 

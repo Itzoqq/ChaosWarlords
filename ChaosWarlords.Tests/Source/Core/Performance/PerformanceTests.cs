@@ -31,7 +31,7 @@ namespace ChaosWarlords.Tests.Core.Performance
                     .Build());
             }
 
-            var random = new SeededGameRandom(12345);
+            var random = new SeededGameRandom(12345, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             var stopwatch = Stopwatch.StartNew();
 
             // Act
@@ -54,7 +54,7 @@ namespace ChaosWarlords.Tests.Core.Performance
                 deck.AddToTop(TestData.Cards.FreeCard());
             }
 
-            var random = new SeededGameRandom(12345);
+            var random = new SeededGameRandom(12345, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             var stopwatch = Stopwatch.StartNew();
 
             // Act
@@ -75,10 +75,10 @@ namespace ChaosWarlords.Tests.Core.Performance
         {
             // Arrange
             var player = TestData.Players.RedPlayer();
-            var stateManager = new ChaosWarlords.Source.Managers.PlayerStateManager();
+            var stateManager = new ChaosWarlords.Source.Managers.PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             var stopwatch = Stopwatch.StartNew();
 
-            GameLogger.IsEnabled = false;
+            ChaosWarlords.Tests.Utilities.TestLogger.IsEnabled = false;
             try
             {
                 // Act
@@ -91,7 +91,7 @@ namespace ChaosWarlords.Tests.Core.Performance
             }
             finally
             {
-                GameLogger.IsEnabled = true;
+                ChaosWarlords.Tests.Utilities.TestLogger.IsEnabled = true;
             }
 
             // Assert
@@ -115,10 +115,10 @@ namespace ChaosWarlords.Tests.Core.Performance
                     .Build());
             }
 
-            var stateManager = new ChaosWarlords.Source.Managers.PlayerStateManager();
+            var stateManager = new ChaosWarlords.Source.Managers.PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             var stopwatch = Stopwatch.StartNew();
 
-            GameLogger.IsEnabled = false;
+            ChaosWarlords.Tests.Utilities.TestLogger.IsEnabled = false;
             try
             {
                 // Act
@@ -138,7 +138,7 @@ namespace ChaosWarlords.Tests.Core.Performance
             }
             finally
             {
-                GameLogger.IsEnabled = true;
+                ChaosWarlords.Tests.Utilities.TestLogger.IsEnabled = true;
             }
 
             // Assert
@@ -182,7 +182,7 @@ namespace ChaosWarlords.Tests.Core.Performance
         public void SeededRandom_CompletesWithin20ms_For10000Generations()
         {
             // Arrange
-            var random = new SeededGameRandom(12345);
+            var random = new SeededGameRandom(12345, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             var stopwatch = Stopwatch.StartNew();
 
             // Act

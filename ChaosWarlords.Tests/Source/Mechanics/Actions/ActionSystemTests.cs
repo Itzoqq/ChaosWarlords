@@ -31,6 +31,7 @@ namespace ChaosWarlords.Tests.Systems
         public void Setup()
         {
             // ARRANGE
+            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
             _player1 = TestData.Players.RedPlayer();
             _player2 = TestData.Players.BluePlayer();
 
@@ -47,7 +48,7 @@ namespace ChaosWarlords.Tests.Systems
             _siteA = TestData.Sites.NeutralSite();
 
             // Inject the mock
-            _actionSystem = new ActionSystem(_turnManager, _mapManager);
+            _actionSystem = new ActionSystem(_turnManager, _mapManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             // Subscribe to events for every test
             _eventCompletedFired = false;

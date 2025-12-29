@@ -31,19 +31,19 @@ namespace ChaosWarlords.Tests.Source.Systems
             var p1 = TestData.Players.RedPlayer();
             var p2 = TestData.Players.BluePlayer();
             var mockRandom = Substitute.For<IGameRandom>();
-            var turnManager = new TurnManager(new List<Player> { p1, p2 }, mockRandom);
+            var tm = new TurnManager(new List<Player> { p1, p2 }, mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             var mapManager = Substitute.For<IMapManager>();
             var marketManager = Substitute.For<IMarketManager>();
             _actionSub = Substitute.For<IActionSystem>();
             var cardDb = Substitute.For<ICardDatabase>();
 
-            var ps = new PlayerStateManager();
-            _context = new MatchContext(turnManager, mapManager, marketManager, _actionSub, cardDb, ps);
+            var ps = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _context = new MatchContext(tm, mapManager, marketManager, _actionSub, cardDb, ps, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             // 2. Setup Testable State
             // We pass null for Game/InputProvider because our subclass doesn't use them in this specific test scope
-            _state = new TestableGameplayState(null!, Substitute.For<IInputProvider>(), cardDb);
+            _state = new TestableGameplayState(null!, Substitute.For<IInputProvider>(), cardDb, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             // Inject a Mock UIManager so SwitchToNormalMode() doesn't crash
             _state.SetUIManager(Substitute.For<IUIManager>());
@@ -99,8 +99,8 @@ namespace ChaosWarlords.Tests.Source.Systems
         // --- Helper Subclass to Expose Internals ---
         internal class TestableGameplayState : GameplayState
         {
-            public TestableGameplayState(Game game, IInputProvider input, ICardDatabase db)
-                : base(game, input, db)
+            public TestableGameplayState(Game game, IInputProvider input, ICardDatabase db, IGameLogger logger)
+                : base(game, input, db, logger)
             {
             }
 

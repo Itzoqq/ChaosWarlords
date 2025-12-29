@@ -43,7 +43,7 @@ namespace ChaosWarlords.Tests.States.Input
 
             // Setup Player and Context
             _activePlayer = TestData.Players.RedPlayer();
-            _realTurnContext = new TurnContext(_activePlayer);
+            _realTurnContext = new TurnContext(_activePlayer, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             // Setup MatchContext hierarchy for the InputMode to access TurnContext
             var turnManagerSub = Substitute.For<ITurnManager>();
@@ -56,7 +56,8 @@ namespace ChaosWarlords.Tests.States.Input
                 _marketSub,
                 _actionSub,
                 Substitute.For<ICardDatabase>(),
-                new PlayerStateManager()
+                new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance),
+                ChaosWarlords.Tests.Utilities.TestLogger.Instance
             );
 
             // Link MatchContext to State

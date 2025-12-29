@@ -23,7 +23,7 @@ namespace ChaosWarlords.Tests.Source.Core.Events
         public void Constructor_WithNullNewValue_SetsNullString()
         {
             // Act
-            var evt = new StateChangeEvent("TestState", null, 5);
+            var evt = new StateChangeEvent("TestState", null!, 5);
             
             // Assert
             Assert.AreEqual("null", evt.NewValue);
@@ -34,7 +34,7 @@ namespace ChaosWarlords.Tests.Source.Core.Events
         public void Constructor_WithNullOldValue_SetsNullString()
         {
             // Act
-            var evt = new StateChangeEvent("TestState", 10, null);
+            var evt = new StateChangeEvent("TestState", 10, null!);
             
             // Assert
             Assert.AreEqual("10", evt.NewValue);
@@ -48,7 +48,7 @@ namespace ChaosWarlords.Tests.Source.Core.Events
             var player = TestData.Players.RedPlayer();
             
             // Act
-            var evt = new StateChangeEvent("CurrentPlayer", player, null);
+            var evt = new StateChangeEvent("CurrentPlayer", player, null!);
             
             // Assert
             Assert.IsNotNull(evt.NewValue);
@@ -60,7 +60,7 @@ namespace ChaosWarlords.Tests.Source.Core.Events
         public void Constructor_WithBothNullValues_SetsBothToNullString()
         {
             // Act
-            var evt = new StateChangeEvent("TestState", null, null);
+            var evt = new StateChangeEvent("TestState", null!, null!);
             
             // Assert
             Assert.AreEqual("null", evt.NewValue);

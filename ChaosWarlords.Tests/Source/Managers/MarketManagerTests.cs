@@ -37,7 +37,7 @@ namespace ChaosWarlords.Tests.Systems
             _mockDb.GetAllMarketCards().Returns(deck);
 
             // 4. Use Real StateManager (or Mock if strictly isolating, but Real is better for logic verification)
-            _stateManager = new PlayerStateManager();
+            _stateManager = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             // 3. Inject the Mock
             _market = new MarketManager(_mockDb);

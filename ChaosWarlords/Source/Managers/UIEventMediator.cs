@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
+using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using System;
@@ -19,6 +20,7 @@ namespace ChaosWarlords.Source.Managers
         private readonly IGameplayState _gameState;
         private readonly IUIManager _uiManager;
         private readonly IActionSystem _actionSystem;
+        private readonly IGameLogger _logger;
         private readonly Game1? _game; // For main menu navigation
 
         // State
@@ -32,11 +34,13 @@ namespace ChaosWarlords.Source.Managers
             IGameplayState gameState,
             IUIManager uiManager,
             IActionSystem actionSystem,
+            IGameLogger logger,
             Game1? game)
         {
             _gameState = gameState ?? throw new ArgumentNullException(nameof(gameState));
             _uiManager = uiManager ?? throw new ArgumentNullException(nameof(uiManager));
             _actionSystem = actionSystem ?? throw new ArgumentNullException(nameof(actionSystem));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _game = game; // Can be null for testing
         }
 
@@ -120,7 +124,7 @@ namespace ChaosWarlords.Source.Managers
             bool hasUnplayedCards = _gameState.MatchContext.ActivePlayer.Hand.Count > 0;
             if (hasUnplayedCards)
             {
-                GameLogger.Log("Gameplay: Opening Confirmation Popup", LogChannel.Info);
+                _logger.Log("Gameplay: Opening Confirmation Popup", LogChannel.Info);
                 _isConfirmationPopupOpen = true;
             }
             else
@@ -157,16 +161,16 @@ namespace ChaosWarlords.Source.Managers
 
         private void HandleEndTurnRequest(object? sender, EventArgs e)
         {
-            GameLogger.Log("Gameplay: EndTurn Request Received", LogChannel.Info);
+            _logger.Log("Gameplay: EndTurn Request Received", LogChannel.Info);
             bool hasUnplayedCards = _gameState.MatchContext.ActivePlayer.Hand.Count > 0;
             if (hasUnplayedCards)
             {
-                GameLogger.Log("Gameplay: Opening Confirmation Popup", LogChannel.Info);
+                _logger.Log("Gameplay: Opening Confirmation Popup", LogChannel.Info);
                 _isConfirmationPopupOpen = true;
             }
             else
             {
-                GameLogger.Log("Gameplay: Ending Turn Immediately", LogChannel.Info);
+                _logger.Log("Gameplay: Ending Turn Immediately", LogChannel.Info);
                 HandleEndTurnWithPromotionCheck();
             }
         }
@@ -175,7 +179,7 @@ namespace ChaosWarlords.Source.Managers
         {
             if (_isConfirmationPopupOpen)
             {
-                GameLogger.Log("Gameplay: Popup Confirmed - Ending Turn", LogChannel.Info);
+                _logger.Log("Gameplay: Popup Confirmed - Ending Turn", LogChannel.Info);
                 _isConfirmationPopupOpen = false;
                 HandleEndTurnWithPromotionCheck();
             }
@@ -185,7 +189,7 @@ namespace ChaosWarlords.Source.Managers
         {
             if (_isConfirmationPopupOpen)
             {
-                GameLogger.Log("Gameplay: Popup Cancelled", LogChannel.Info);
+                _logger.Log("Gameplay: Popup Cancelled", LogChannel.Info);
                 _isConfirmationPopupOpen = false;
             }
         }
@@ -206,13 +210,15 @@ namespace ChaosWarlords.Source.Managers
                 var mainMenuView = new ChaosWarlords.Source.Rendering.Views.MainMenuView(
                     _game.GraphicsDevice,
                     _game.Content,
-                    buttonManager);
+                    buttonManager,
+                    _logger);
 
                 var mainMenuState = new MainMenuState(
                     _game,
                     _game.InputProvider,
                     _game.StateManager,
                     _game.CardDatabase,
+                    _logger,
                     mainMenuView,
                     buttonManager);
 
@@ -230,7 +236,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void HandleActionFailed(object? sender, string msg)
         {
-            GameLogger.Log(msg, LogChannel.Error);
+            _logger.Log(msg, LogChannel.Error);
         }
 
         private void HandleActionCompleted(object? sender, EventArgs e)
@@ -254,12 +260,12 @@ namespace ChaosWarlords.Source.Managers
 
                 if (hasValidTargets)
                 {
-                    GameLogger.Log($"You must promote {pending} card(s) before ending your turn.", LogChannel.Warning);
+                    _logger.Log($"You must promote {pending} card(s) before ending your turn.", LogChannel.Warning);
                     _gameState.SwitchToPromoteMode(pending);
                 }
                 else
                 {
-                    GameLogger.Log("No valid cards to promote. Promotion effects skipped.", LogChannel.Info);
+                    _logger.Log("No valid cards to promote. Promotion effects skipped.", LogChannel.Info);
                     _gameState.EndTurn();
                 }
             }

@@ -38,7 +38,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
     {
       // ARRANGE & ACT
       // Call the actual internal method that takes JSON data directly.
-      var (nodes, sites, _) = MapFactory.LoadFromData(MockMapJson);
+      var (nodes, sites, _) = MapFactory.LoadFromData(MockMapJson, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
       // ASSERT - Nodes
       Assert.HasCount(3, nodes, "Should load all 3 nodes from the JSON.");
@@ -58,7 +58,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
     public void LoadFromData_CreatesCorrectSitesAndAssignsNodes()
     {
       // ARRANGE & ACT
-      var (nodes, sites, _) = MapFactory.LoadFromData(MockMapJson);
+      var (nodes, sites, _) = MapFactory.LoadFromData(MockMapJson, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
       // ASSERT - Sites
       Assert.HasCount(1, sites, "Should load the single site from JSON.");
@@ -88,7 +88,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
       using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(MockMapJson)))
       {
         // Act
-        var (nodes, sites, _) = MapFactory.LoadFromStream(stream);
+        var (nodes, sites, _) = MapFactory.LoadFromStream(stream, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
         // Assert
         Assert.HasCount(3, nodes);
@@ -104,7 +104,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
       using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(invalidJson)))
       {
         // Act
-        var (nodes, sites, _) = MapFactory.LoadFromStream(stream);
+        var (nodes, sites, _) = MapFactory.LoadFromStream(stream, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
         // Assert - Should return Test Map (3 nodes, no sites)
         Assert.HasCount(25, nodes);
@@ -116,7 +116,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
     public void CreateTestMap_ReturnsValidDefaultMap()
     {
       // Act
-      var (nodes, sites, _) = MapFactory.CreateTestMap();
+      var (nodes, sites, _) = MapFactory.CreateTestMap(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
       // Assert
       Assert.HasCount(25, nodes);

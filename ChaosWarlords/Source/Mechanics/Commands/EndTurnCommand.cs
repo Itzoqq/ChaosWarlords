@@ -16,7 +16,7 @@ namespace ChaosWarlords.Source.Commands
             }
             else
             {
-                GameLogger.Log(reason, LogChannel.Warning);
+                state.Logger.Log(reason, LogChannel.Warning);
             }
         }
     }

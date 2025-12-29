@@ -41,7 +41,7 @@ namespace ChaosWarlords.Tests.Systems
             var sites = new List<Site> { _siteA };
             var lookup = new Dictionary<MapNode, Site> { { _node3, _siteA } };
 
-            _engine = new MapRuleEngine(nodes, sites, lookup);
+            _engine = new MapRuleEngine(nodes, sites, lookup, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             // Default to Playing for legacy tests
             _engine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
         }
@@ -188,7 +188,7 @@ namespace ChaosWarlords.Tests.Systems
             var nodes = new List<MapNode> { startNode };
             var sites = new List<Site> { startSite };
             var lookup = new Dictionary<MapNode, Site> { { startNode, startSite } };
-            var localEngine = new MapRuleEngine(nodes, sites, lookup);
+            var localEngine = new MapRuleEngine(nodes, sites, lookup, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             localEngine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Setup);
 
@@ -217,7 +217,7 @@ namespace ChaosWarlords.Tests.Systems
             var nodes = new List<MapNode> { startNode, _node1 };
             var sites = new List<Site> { startSite };
             var lookup = new Dictionary<MapNode, Site> { { startNode, startSite } };
-            var localEngine = new MapRuleEngine(nodes, sites, lookup);
+            var localEngine = new MapRuleEngine(nodes, sites, lookup, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             localEngine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Setup);
 
             // Player already has a troop somewhere else
@@ -255,7 +255,7 @@ namespace ChaosWarlords.Tests.Systems
             var nodes = new List<MapNode> { startNode1, startNode2 };
             var sites = new List<Site> { startSite };
             var lookup = new Dictionary<MapNode, Site> { { startNode1, startSite }, { startNode2, startSite } };
-            var localEngine = new MapRuleEngine(nodes, sites, lookup);
+            var localEngine = new MapRuleEngine(nodes, sites, lookup, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             localEngine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Setup);
 
             // Player 1 occupies one node of the Starting Site

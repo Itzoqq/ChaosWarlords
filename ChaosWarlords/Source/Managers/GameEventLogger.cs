@@ -11,10 +11,12 @@ namespace ChaosWarlords.Source.Managers
     public class GameEventLogger
     {
         private readonly IEventManager _eventManager;
+        private readonly IGameLogger _logger;
 
-        public GameEventLogger(IEventManager eventManager)
+        public GameEventLogger(IEventManager eventManager, IGameLogger logger)
         {
             _eventManager = eventManager;
+            _logger = logger;
         }
 
         public void Initialize()
@@ -31,7 +33,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void OnStateChanged(StateChangeEvent evt)
         {
-            GameLogger.Log($"[State] {evt.StateName}: {evt.OldValue} -> {evt.NewValue}", LogChannel.Info);
+            _logger.Log($"[State] {evt.StateName}: {evt.OldValue} -> {evt.NewValue}", LogChannel.Info);
         }
 
         private void OnGenericEvent(GameEvent evt)
@@ -39,7 +41,7 @@ namespace ChaosWarlords.Source.Managers
             // Avoid double logging StateChangeEvents since they inherit from GameEvent
             if (evt is StateChangeEvent) return;
 
-            GameLogger.Log($"[Event] {evt.Context}", LogChannel.Debug);
+            _logger.Log($"[Event] {evt.Context}", LogChannel.Debug);
         }
     }
 }

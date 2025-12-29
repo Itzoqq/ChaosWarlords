@@ -16,16 +16,18 @@ namespace ChaosWarlords.Source.Map
     {
         private readonly Action<Site, Player> _recalculateSiteState;
         private IPlayerStateManager _stateManager;
+        private readonly IGameLogger _logger;
 
         public void SetPlayerStateManager(IPlayerStateManager stateManager)
         {
             _stateManager = stateManager;
         }
 
-        public SpyOperations(Action<Site, Player> recalculateSiteState, IPlayerStateManager stateManager)
+        public SpyOperations(Action<Site, Player> recalculateSiteState, IPlayerStateManager stateManager, IGameLogger logger)
         {
             _recalculateSiteState = recalculateSiteState;
             _stateManager = stateManager;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>
@@ -38,7 +40,7 @@ namespace ChaosWarlords.Source.Map
 
             if (site.Spies.Contains(player.Color))
             {
-                GameLogger.Log("You already have a spy at this site.", LogChannel.Error);
+                _logger.Log("You already have a spy at this site.", LogChannel.Error);
                 return;
             }
 
@@ -47,12 +49,12 @@ namespace ChaosWarlords.Source.Map
                 _stateManager.RemoveSpies(player, 1);
                 site.Spies.Add(player.Color);
 
-                GameLogger.Log($"Spy placed at {site.Name}.", LogChannel.Combat);
+                _logger.Log($"Spy placed at {site.Name}.", LogChannel.Combat);
                 _recalculateSiteState(site, player);
             }
             else
             {
-                GameLogger.Log("No Spies left in supply!", LogChannel.Error);
+                _logger.Log("No Spies left in supply!", LogChannel.Error);
             }
         }
 
@@ -66,13 +68,13 @@ namespace ChaosWarlords.Source.Map
 
             if (!site.Spies.Contains(targetSpyColor) || targetSpyColor == activePlayer.Color)
             {
-                GameLogger.Log($"Cannot return spy: Invalid Target.", LogChannel.Error);
+                _logger.Log($"Cannot return spy: Invalid Target.", LogChannel.Error);
                 return false;
             }
 
             site.Spies.Remove(targetSpyColor);
 
-            GameLogger.Log($"Returned {targetSpyColor} Spy from {site.Name} to barracks.", LogChannel.Combat);
+            _logger.Log($"Returned {targetSpyColor} Spy from {site.Name} to barracks.", LogChannel.Combat);
             _recalculateSiteState(site, activePlayer);
             return true;
         }

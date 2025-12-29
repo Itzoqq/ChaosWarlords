@@ -20,7 +20,7 @@ namespace ChaosWarlords.Tests.Source.Commands
         [TestInitialize]
         public void Setup()
         {
-            GameLogger.Initialize();
+            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
 
             // 1. Create Mocks
             _stateSub = Substitute.For<IGameplayState>();

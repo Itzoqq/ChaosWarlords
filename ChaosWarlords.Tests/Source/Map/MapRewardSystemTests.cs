@@ -18,7 +18,8 @@ namespace ChaosWarlords.Tests.Map
         [TestInitialize]
         public void Setup()
         {
-            _mockControlSystem = Substitute.For<SiteControlSystem>();
+            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
+            _mockControlSystem = Substitute.For<SiteControlSystem>(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             _rewardSystem = new MapRewardSystem(_mockControlSystem);
         }
 

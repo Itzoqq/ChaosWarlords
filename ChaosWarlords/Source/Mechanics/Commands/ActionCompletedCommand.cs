@@ -31,7 +31,7 @@ namespace ChaosWarlords.Source.Commands
             state.SwitchToNormalMode();
 
             // 4. Log the completion
-            GameLogger.Log("Action Complete.", LogChannel.General);
+            state.Logger.Log("Action Complete.", LogChannel.General);
         }
     }
 }

@@ -45,7 +45,11 @@ namespace ChaosWarlords.Tests.States.Input
             _mockUI = Substitute.For<IUIManager>();
             _activePlayer = TestData.Players.RedPlayer();
             var mockRandom = Substitute.For<IGameRandom>();
-            _turnManager = new TurnManager(new List<Player> { _activePlayer }, mockRandom);
+            // Assuming p1 and p2 are intended to be defined here for the new TurnManager instantiation
+            var p1 = TestData.Players.RedPlayer();
+            var p2 = TestData.Players.BluePlayer();
+            var tm = new TurnManager(new List<Player> { p1, p2 }, mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _turnManager = tm; // Assign to _turnManager for consistency with existing tests
 
             _inputMode = new TargetingInputMode(
                 _stateSub,

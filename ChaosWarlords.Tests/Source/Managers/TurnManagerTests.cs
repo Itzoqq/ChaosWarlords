@@ -23,7 +23,7 @@ namespace ChaosWarlords.Tests.Managers
 
             // Act
             var mockRandom = Substitute.For<IGameRandom>();
-            var manager = new TurnManager(players, mockRandom);
+            var manager = new TurnManager(players, mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             // Assert
             Assert.IsNotNull(manager.ActivePlayer);
@@ -37,7 +37,7 @@ namespace ChaosWarlords.Tests.Managers
             try
             {
                 var mockRandom = Substitute.For<IGameRandom>();
-                new TurnManager(new List<Player>(), mockRandom);
+                new TurnManager(new List<Player>(), mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
                 Assert.Fail("Expected ArgumentException was not thrown.");
             }
             catch (System.ArgumentException)
@@ -53,7 +53,7 @@ namespace ChaosWarlords.Tests.Managers
             var p1 = TestData.Players.RedPlayer();
             var p2 = TestData.Players.BluePlayer();
             var mockRandom = Substitute.For<IGameRandom>();
-            var manager = new TurnManager(new List<Player> { p1, p2 }, mockRandom);
+            var manager = new TurnManager(new List<Player> { p1, p2 }, mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             var firstPlayer = manager.ActivePlayer;
 
             // Act
@@ -70,7 +70,7 @@ namespace ChaosWarlords.Tests.Managers
             var p1 = TestData.Players.RedPlayer();
             var p2 = TestData.Players.BluePlayer();
             var mockRandom = Substitute.For<IGameRandom>();
-            var manager = new TurnManager(new List<Player> { p1, p2 }, mockRandom);
+            var manager = new TurnManager(new List<Player> { p1, p2 }, mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             bool eventFired = false;
             Player? eventPlayer = null;

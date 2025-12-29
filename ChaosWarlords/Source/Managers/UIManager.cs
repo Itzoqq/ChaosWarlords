@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 using ChaosWarlords.Source.Utilities;
 using System.Linq;
+using ChaosWarlords.Source.Core.Interfaces.Services;
 
 
 namespace ChaosWarlords.Source.Managers
@@ -28,6 +29,7 @@ namespace ChaosWarlords.Source.Managers
         }
 
         private List<InteractiveElement> _elements = null!;
+        private readonly IGameLogger _logger;
 
         private Rectangle _marketButtonRect;
         private Rectangle _assassinateButtonRect;
@@ -60,8 +62,9 @@ namespace ChaosWarlords.Source.Managers
         public bool IsPopupConfirmHovered { get; private set; }
         public bool IsPopupCancelHovered { get; private set; }
 
-        public UIManager(int screenWidth, int screenHeight)
+        public UIManager(int screenWidth, int screenHeight, IGameLogger logger)
         {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             ScreenWidth = screenWidth;
             ScreenHeight = screenHeight;
             RecalculateLayout();
@@ -78,21 +81,21 @@ namespace ChaosWarlords.Source.Managers
                 {
                     GetBounds = () => _resumeButtonRect,
                     SetHover = (v) => IsResumeHovered = v,
-                    OnClick = () => { GameLogger.Log("UI: Resume Clicked", LogChannel.Info); OnResumeRequest?.Invoke(this, EventArgs.Empty); },
+                    OnClick = () => { _logger.Log("UI: Resume Clicked", LogChannel.Info); OnResumeRequest?.Invoke(this, EventArgs.Empty); },
                     IsActive = () => IsPaused
                 },
                 new InteractiveElement
                 {
                     GetBounds = () => _mainMenuButtonRect,
                     SetHover = (v) => IsMainMenuHovered = v,
-                    OnClick = () => { GameLogger.Log("UI: MainMenu Clicked", LogChannel.Info); OnMainMenuRequest?.Invoke(this, EventArgs.Empty); },
+                    OnClick = () => { _logger.Log("UI: MainMenu Clicked", LogChannel.Info); OnMainMenuRequest?.Invoke(this, EventArgs.Empty); },
                     IsActive = () => IsPaused
                 },
                 new InteractiveElement
                 {
                     GetBounds = () => _exitButtonRect,
                     SetHover = (v) => IsExitHovered = v,
-                    OnClick = () => { GameLogger.Log("UI: Exit Clicked", LogChannel.Info); OnExitRequest?.Invoke(this, EventArgs.Empty); },
+                    OnClick = () => { _logger.Log("UI: Exit Clicked", LogChannel.Info); OnExitRequest?.Invoke(this, EventArgs.Empty); },
                     IsActive = () => IsPaused
                 },
 
@@ -101,14 +104,14 @@ namespace ChaosWarlords.Source.Managers
                 {
                     GetBounds = () => _popupConfirmButtonRect,
                     SetHover = (v) => IsPopupConfirmHovered = v,
-                    OnClick = () => { GameLogger.Log("UI: Popup Confirm Clicked", LogChannel.Info); OnPopupConfirm?.Invoke(this, EventArgs.Empty); },
+                    OnClick = () => { _logger.Log("UI: Popup Confirm Clicked", LogChannel.Info); OnPopupConfirm?.Invoke(this, EventArgs.Empty); },
                     IsActive = () => IsPopupVisible
                 },
                 new InteractiveElement
                 {
                     GetBounds = () => _popupCancelButtonRect,
                     SetHover = (v) => IsPopupCancelHovered = v,
-                    OnClick = () => { GameLogger.Log("UI: Popup Cancel Clicked", LogChannel.Info); OnPopupCancel?.Invoke(this, EventArgs.Empty); },
+                    OnClick = () => { _logger.Log("UI: Popup Cancel Clicked", LogChannel.Info); OnPopupCancel?.Invoke(this, EventArgs.Empty); },
                     IsActive = () => IsPopupVisible
                 },
 
@@ -117,28 +120,28 @@ namespace ChaosWarlords.Source.Managers
                 {
                     GetBounds = () => _marketButtonRect,
                     SetHover = (v) => IsMarketHovered = v,
-                    OnClick = () => { GameLogger.Log("UI: Market Clicked", LogChannel.Info); OnMarketToggleRequest?.Invoke(this, EventArgs.Empty); },
+                    OnClick = () => { _logger.Log("UI: Market Clicked", LogChannel.Info); OnMarketToggleRequest?.Invoke(this, EventArgs.Empty); },
                     IsActive = () => !IsPaused && !IsPopupVisible
                 },
                 new InteractiveElement
                 {
                     GetBounds = () => _assassinateButtonRect,
                     SetHover = (v) => IsAssassinateHovered = v,
-                    OnClick = () => { GameLogger.Log("UI: Assassinate Clicked", LogChannel.Info); OnAssassinateRequest?.Invoke(this, EventArgs.Empty); },
+                    OnClick = () => { _logger.Log("UI: Assassinate Clicked", LogChannel.Info); OnAssassinateRequest?.Invoke(this, EventArgs.Empty); },
                     IsActive = () => !IsPaused && !IsPopupVisible
                 },
                 new InteractiveElement
                 {
                     GetBounds = () => _returnSpyButtonRect,
                     SetHover = (v) => IsReturnSpyHovered = v,
-                    OnClick = () => { GameLogger.Log("UI: ReturnSpy Clicked", LogChannel.Info); OnReturnSpyRequest?.Invoke(this, EventArgs.Empty); },
+                    OnClick = () => { _logger.Log("UI: ReturnSpy Clicked", LogChannel.Info); OnReturnSpyRequest?.Invoke(this, EventArgs.Empty); },
                     IsActive = () => !IsPaused && !IsPopupVisible
                 },
                 new InteractiveElement
                 {
                     GetBounds = () => _endTurnButtonRect,
                     SetHover = (v) => IsEndTurnHovered = v,
-                    OnClick = () => { GameLogger.Log("UI: EndTurn Clicked", LogChannel.Info); OnEndTurnRequest?.Invoke(this, EventArgs.Empty); },
+                    OnClick = () => { _logger.Log("UI: EndTurn Clicked", LogChannel.Info); OnEndTurnRequest?.Invoke(this, EventArgs.Empty); },
                     IsActive = () => !IsPaused && !IsPopupVisible
                 },
             ];

@@ -66,11 +66,11 @@ namespace ChaosWarlords.Source.States.Input
             return _uiManager.IsMarketHovered || _uiManager.IsAssassinateHovered || _uiManager.IsReturnSpyHovered;
         }
 
-        private static SwitchToNormalModeCommand HandleCancellation(IActionSystem actionSystem)
+        private SwitchToNormalModeCommand HandleCancellation(IActionSystem actionSystem)
         {
             // Safety Log
             string cardName = actionSystem.PendingCard is not null ? actionSystem.PendingCard.Name : "Unknown";
-            GameLogger.Log($"Input: Cancelled Action for {cardName}. Card returned to hand.", LogChannel.Info);
+            _state.Logger.Log($"Input: Cancelled Action for {cardName}. Card returned to hand.", LogChannel.Info);
 
             actionSystem.CancelTargeting();
             // We return this command to ensure immediate update, 
@@ -78,7 +78,7 @@ namespace ChaosWarlords.Source.States.Input
             return new SwitchToNormalModeCommand();
         }
 
-        private static IGameCommand? HandleLeftClickInternal(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        private IGameCommand? HandleLeftClickInternal(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             if (actionSystem.CurrentState == ActionState.SelectingSpyToReturn)
             {
@@ -96,7 +96,7 @@ namespace ChaosWarlords.Source.States.Input
             return null;
         }
 
-        private static void HandleSpySelection(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        private void HandleSpySelection(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             Site? site = actionSystem.PendingSite;
             if (site is null)
@@ -120,7 +120,7 @@ namespace ChaosWarlords.Source.States.Input
             }
 
             // If clicked outside buttons, maybe cancel?
-            GameLogger.Log("Cancelled spy selection.", LogChannel.General);
+            _state.Logger.Log("Cancelled spy selection.", LogChannel.General);
             actionSystem.CancelTargeting();
         }
 

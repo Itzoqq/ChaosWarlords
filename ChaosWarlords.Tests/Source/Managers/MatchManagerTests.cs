@@ -37,19 +37,20 @@ namespace ChaosWarlords.Tests.Source.Systems
             _cardDatabase = Substitute.For<ICardDatabase>();
 
             var mockRandom = Substitute.For<IGameRandom>();
-            var playerState = new PlayerStateManager();
-            var turnManagerConcrete = new TurnManager(new List<Player> { _p1, _p2 }, mockRandom);
+            var playerState = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var turnManager = new TurnManager(new List<Player> { _p1, _p2 }, mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             _context = new MatchContext(
-                turnManagerConcrete,
+                turnManager,
                 _mapManager,
                 _marketManager,
                 _actionSystem,
                 _cardDatabase,
-                playerState
+                playerState,
+                ChaosWarlords.Tests.Utilities.TestLogger.Instance
             );
 
-            _controller = new MatchManager(_context);
+            _controller = new MatchManager(_context, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             // Ensure _p1 always refers to the Active Player for test consistency.
             if (_context.ActivePlayer != _p1)

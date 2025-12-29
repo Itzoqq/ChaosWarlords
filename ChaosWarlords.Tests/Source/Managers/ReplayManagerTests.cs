@@ -3,6 +3,7 @@ using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Core.Data.Recording;
 using System.Collections.Generic;
 using System;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Tests.Source.Managers
 {
@@ -15,7 +16,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         public void RecordAndSerialize_ShouldVerifyRoundTrip()
         {
             // Arrange
-            var manager = new ReplayManager();
+            var manager = new ReplayManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             var action = new ReplayAction
             {
                 Sequence = 1,
@@ -29,7 +30,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             string json = manager.GetRecordingJson();
             
             // Simulate new session
-            var newManager = new ReplayManager();
+            var newManager = new ReplayManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             newManager.StartReplay(json);
             var serializedBack = newManager.GetRecordingJson();
 
@@ -42,7 +43,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         public void StartReplay_WithInvalidJson_ShouldLogAndNotCrash()
         {
             // Arrange
-            var manager = new ReplayManager();
+            var manager = new ReplayManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             
             // Act
             manager.StartReplay("INVALID JSON");

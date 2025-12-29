@@ -1,4 +1,5 @@
 using System;
+using ChaosWarlords.Source.Core.Interfaces.Services;
 using System.Collections.Generic;
 using System.Linq;
 using ChaosWarlords.Source.Entities.Map;
@@ -13,12 +14,14 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         private readonly Dictionary<MapNode, Site> _nodeSiteLookup;
         private readonly List<MapNode> _nodes;
         private readonly List<Site> _sites;
+        private readonly IGameLogger _logger;
 
-        public MapRuleEngine(List<MapNode> nodes, List<Site> sites, Dictionary<MapNode, Site> lookup)
+        public MapRuleEngine(List<MapNode> nodes, List<Site> sites, Dictionary<MapNode, Site> lookup, IGameLogger logger)
         {
             _nodes = nodes;
             _sites = sites;
             _nodeSiteLookup = lookup;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public Site? GetSiteForNode(MapNode node)
@@ -92,13 +95,13 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             var site = GetSiteForNode(targetNode);
             if (site is not StartingSite)
             {
-                GameLogger.Log($"SetupDeploy Fail: {site?.Name} is {site?.GetType().Name}, not StartingSite.", LogChannel.Error);
+                _logger.Log($"SetupDeploy Fail: {site?.Name} is {site?.GetType().Name}, not StartingSite.", LogChannel.Error);
                 return false;
             }
 
             if (SiteOccupiedByOtherPlayer(site, player))
             {
-                GameLogger.Log($"SetupDeploy Fail: {site.Name} already occupied by another player.", LogChannel.Error);
+                _logger.Log($"SetupDeploy Fail: {site.Name} already occupied by another player.", LogChannel.Error);
                 return false;
             }
 

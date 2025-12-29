@@ -23,7 +23,7 @@ namespace ChaosWarlords.Source.States.Input
             _actionSystem = actionSystem;
             _cardsLeftToPromote = amountToPromote;
 
-            GameLogger.Log($"Select {_cardsLeftToPromote} card(s) from your PLAYED pile to Promote.", LogChannel.General);
+            _gameplayState.Logger.Log($"Select {_cardsLeftToPromote} card(s) from your PLAYED pile to Promote.", LogChannel.General);
         }
 
         public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
@@ -31,7 +31,7 @@ namespace ChaosWarlords.Source.States.Input
             if (inputManager.IsRightMouseJustClicked() || inputManager.IsKeyJustPressed(Keys.Escape))
             {
                 // Strict Rule Enforcement:
-                GameLogger.Log("Mandatory Action: You must select a card to promote.", LogChannel.Warning);
+                _gameplayState.Logger.Log("Mandatory Action: You must select a card to promote.", LogChannel.Warning);
                 return null;
             }
 
@@ -47,7 +47,7 @@ namespace ChaosWarlords.Source.States.Input
                     // Prevent a card from promoting itself if it is the only source of points
                     if (!context.HasValidCreditFor(targetCard))
                     {
-                        GameLogger.Log("Invalid Target: This card cannot promote itself!", LogChannel.Warning);
+                        _gameplayState.Logger.Log("Invalid Target: This card cannot promote itself!", LogChannel.Warning);
                         return null;
                     }
 
@@ -59,7 +59,7 @@ namespace ChaosWarlords.Source.States.Input
                         context.ConsumeCreditFor(targetCard);
 
                         _cardsLeftToPromote--;
-                        GameLogger.Log($"Promoted {targetCard.Name} to Inner Circle!", LogChannel.Economy);
+                        _gameplayState.Logger.Log($"Promoted {targetCard.Name} to Inner Circle!", LogChannel.Economy);
 
                         if (_cardsLeftToPromote <= 0)
                         {

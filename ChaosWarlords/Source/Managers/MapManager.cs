@@ -27,8 +27,10 @@ namespace ChaosWarlords.Source.Managers
         private readonly MapTopology _topology;
         private readonly CombatResolver _combat;
         private readonly SpyOperations _spyOps;
+
         private readonly MapRewardSystem _rewards;
         private IPlayerStateManager? _playerStateManager;
+        private readonly IGameLogger _logger;
 
         // Events
         public event System.Action? OnSetupDeploymentComplete;
@@ -37,10 +39,11 @@ namespace ChaosWarlords.Source.Managers
         IReadOnlyList<MapNode> IMapManager.Nodes => NodesInternal;
         IReadOnlyList<Site> IMapManager.Sites => SitesInternal;
 
-        public MapManager(List<MapNode> nodes, List<Site> sites, IPlayerStateManager playerState = null!)
+        public MapManager(List<MapNode> nodes, List<Site> sites, IGameLogger logger, IPlayerStateManager playerState = null!)
         {
             NodesInternal = nodes;
             SitesInternal = sites;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _playerStateManager = playerState;
             _nodeSiteLookup = new Dictionary<MapNode, Site>();
 
@@ -56,8 +59,8 @@ namespace ChaosWarlords.Source.Managers
             }
 
             // Initialize Sub-Systems (Composition)
-            _ruleEngine = new MapRuleEngine(NodesInternal, SitesInternal, _nodeSiteLookup);
-            _controlSystem = new SiteControlSystem();
+            _ruleEngine = new MapRuleEngine(NodesInternal, SitesInternal, _nodeSiteLookup, _logger);
+            _controlSystem = new SiteControlSystem(_logger);
             if (_playerStateManager is not null) _controlSystem.SetPlayerStateManager(_playerStateManager);
 
             // Initialize New Service Classes
@@ -67,9 +70,10 @@ namespace ChaosWarlords.Source.Managers
                 node => GetSiteForNode(node)!,
                 (site, player) => RecalculateSiteState(site, player),
                 () => CurrentPhase,
-                _playerStateManager!
+                _playerStateManager!,
+                _logger
             );
-            _spyOps = new SpyOperations((site, player) => RecalculateSiteState(site, player), _playerStateManager!);
+            _spyOps = new SpyOperations((site, player) => RecalculateSiteState(site, player), _playerStateManager!, _logger);
         }
 
         public void SetPlayerStateManager(IPlayerStateManager stateManager)
@@ -144,21 +148,21 @@ namespace ChaosWarlords.Source.Managers
             // Step 1: Validation (Delegated)
             if (!CanDeployAt(targetNode, currentPlayer.Color))
             {
-                GameLogger.Log($"Invalid Deployment at Node {targetNode.Id}: Occupied or No Presence.", LogChannel.Error);
+                _logger.Log($"Invalid Deployment at Node {targetNode.Id}: Occupied or No Presence.", LogChannel.Error);
                 return false;
             }
 
             // Step 2: Resource Checks (Business Logic)
             if (currentPlayer.TroopsInBarracks <= 0)
             {
-                GameLogger.Log("Cannot Deploy: Barracks Empty!", LogChannel.Error);
+                _logger.Log("Cannot Deploy: Barracks Empty!", LogChannel.Error);
                 return false;
             }
 
             // Power Check skipped in Setup Phase
             if (CurrentPhase != MatchPhase.Setup && currentPlayer.Power < GameConstants.DeployPowerCost)
             {
-                GameLogger.Log("Cannot Deploy: Not enough Power!", LogChannel.Economy);
+                _logger.Log("Cannot Deploy: Not enough Power!", LogChannel.Economy);
                 return false;
             }
 
@@ -170,12 +174,12 @@ namespace ChaosWarlords.Source.Managers
             // Auto-advance turn in Setup Phase
             if (CurrentPhase == MatchPhase.Setup)
             {
-                GameLogger.Log("Setup deployment complete. Auto-advancing turn...", LogChannel.Info);
+                _logger.Log("Setup deployment complete. Auto-advancing turn...", LogChannel.Info);
                 OnSetupDeploymentComplete?.Invoke();
             }
 
             if (currentPlayer.TroopsInBarracks == 0)
-                GameLogger.Log("FINAL TROOP DEPLOYED! Game ends this round.", LogChannel.General);
+                _logger.Log("FINAL TROOP DEPLOYED! Game ends this round.", LogChannel.General);
         }
 
         public void Assassinate(MapNode node, Player attacker)
@@ -240,7 +244,7 @@ namespace ChaosWarlords.Source.Managers
         {
             if (!CanReturnSpecificSpy(site, activePlayer, targetSpyColor))
             {
-                GameLogger.Log($"Cannot return spy: Invalid Target or No Presence.", LogChannel.Error);
+                _logger.Log($"Cannot return spy: Invalid Target or No Presence.", LogChannel.Error);
                 return false;
             }
 

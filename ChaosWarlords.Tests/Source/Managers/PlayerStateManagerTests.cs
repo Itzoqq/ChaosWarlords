@@ -18,7 +18,7 @@ namespace ChaosWarlords.Tests.Managers
         [TestInitialize]
         public void Setup()
         {
-            _manager = new PlayerStateManager();
+            _manager = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             _player = TestData.Players.PoorPlayer();
         }
 

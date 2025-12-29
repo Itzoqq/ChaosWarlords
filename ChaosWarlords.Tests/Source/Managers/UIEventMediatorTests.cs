@@ -48,7 +48,8 @@ namespace ChaosWarlords.Tests.Managers
                 mockMarket,
                 _mockActionSystem,
                 mockDb,
-                new PlayerStateManager()
+                new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance),
+                ChaosWarlords.Tests.Utilities.TestLogger.Instance
             );
 
             _mockGameState.MatchContext.Returns(matchContext);
@@ -58,10 +59,10 @@ namespace ChaosWarlords.Tests.Managers
             mockTurn.ActivePlayer.Returns(player);
 
             // Mock TurnContext for promotion check
-            var turnContext = new TurnContext(player);
+            var turnContext = new TurnContext(player, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             mockTurn.CurrentTurnContext.Returns(turnContext);
 
-            _mediator = new UIEventMediator(_mockGameState, _mockUIManager, _mockActionSystem, null!);
+            _mediator = new UIEventMediator(_mockGameState, _mockUIManager, _mockActionSystem, ChaosWarlords.Tests.Utilities.TestLogger.Instance, null!);
         }
 
         [TestMethod]

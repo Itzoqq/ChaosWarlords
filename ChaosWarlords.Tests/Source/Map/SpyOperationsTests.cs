@@ -13,13 +13,19 @@ namespace ChaosWarlords.Tests.Map
     {
         private SpyOperations _spyOps = null!;
         private bool _siteRecalculated = false;
+        private PlayerStateManager _playerState = null!;
 
         [TestInitialize]
         public void Setup()
         {
+            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
             _siteRecalculated = false;
-            var stateManager = new PlayerStateManager();
-            _spyOps = new SpyOperations((site, player) => _siteRecalculated = true, stateManager);
+            _playerState = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _spyOps = new SpyOperations(
+                (site, player) => { _siteRecalculated = true; },
+                _playerState,
+                ChaosWarlords.Tests.Utilities.TestLogger.Instance
+            );
         }
 
         [TestMethod]

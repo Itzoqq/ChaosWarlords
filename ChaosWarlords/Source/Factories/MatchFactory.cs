@@ -24,10 +24,12 @@ namespace ChaosWarlords.Source.Factories
     public class MatchFactory
     {
         private readonly ICardDatabase _cardDatabase;
+        private readonly IGameLogger _logger;
 
-        public MatchFactory(ICardDatabase cardDatabase)
+        public MatchFactory(ICardDatabase cardDatabase, IGameLogger logger)
         {
             _cardDatabase = cardDatabase;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>
@@ -39,16 +41,16 @@ namespace ChaosWarlords.Source.Factories
         {
             // 0. Initialize seeded RNG
             int matchSeed = seed ?? Environment.TickCount;
-            var random = new SeededGameRandom(matchSeed);
-            GameLogger.Log($"Match created with seed: {matchSeed}", LogChannel.Info);
+            var random = new SeededGameRandom(matchSeed, _logger);
+            _logger.Log($"Match created with seed: {matchSeed}", LogChannel.Info);
 
-            var playerStateManager = new PlayerStateManager();
+            var playerStateManager = new PlayerStateManager(_logger);
             var marketManager = new MarketManager(_cardDatabase, random);
             var players = CreatePlayers(random);
-            var turnManager = new TurnManager(players, random);
+            var turnManager = new TurnManager(players, random, _logger);
 
-            var mapManager = SetupMap(playerStateManager);
-            var actionSystem = SetupActionSystem(turnManager, mapManager, playerStateManager);
+            var mapManager = SetupMap(playerStateManager, _logger);
+            var actionSystem = SetupActionSystem(turnManager, mapManager, playerStateManager, _logger);
 
             ApplyScenarioRules(mapManager);
 
@@ -86,15 +88,15 @@ namespace ChaosWarlords.Source.Factories
             return player;
         }
 
-        private static MapManager SetupMap(IPlayerStateManager playerStateManager)
+        private static MapManager SetupMap(IPlayerStateManager playerStateManager, IGameLogger logger)
         {
-            (List<MapNode> nodes, List<Site> sites, _) = MapFactory.CreateScenarioMap();
-            return new MapManager(nodes, sites, playerStateManager);
+            (List<MapNode> nodes, List<Site> sites, _) = MapFactory.CreateScenarioMap(logger);
+            return new MapManager(nodes, sites, logger, playerStateManager);
         }
 
-        private static ActionSystem SetupActionSystem(ITurnManager turnManager, IMapManager mapManager, IPlayerStateManager playerStateManager)
+        private static ActionSystem SetupActionSystem(ITurnManager turnManager, IMapManager mapManager, IPlayerStateManager playerStateManager, IGameLogger logger)
         {
-            var actionSystem = new ActionSystem(turnManager, mapManager);
+            var actionSystem = new ActionSystem(turnManager, mapManager, logger);
             actionSystem.SetPlayerStateManager(playerStateManager);
             return actionSystem;
         }

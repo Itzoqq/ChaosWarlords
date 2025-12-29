@@ -20,11 +20,11 @@ namespace ChaosWarlords.Source.Core.Utilities
         /// Initializes a new instance of the SeededGameRandom class with the specified seed.
         /// </summary>
         /// <param name="seed">The seed value for the random number generator.</param>
-        public SeededGameRandom(int seed)
+        public SeededGameRandom(int seed, IGameLogger logger)
         {
             Seed = seed;
             _rng = new Random(seed);
-            GameLogger.Log($"Game RNG initialized with seed: {seed}", LogChannel.Info);
+            logger?.Log($"Game RNG initialized with seed: {seed}", LogChannel.Info);
         }
 
         /// <inheritdoc/>

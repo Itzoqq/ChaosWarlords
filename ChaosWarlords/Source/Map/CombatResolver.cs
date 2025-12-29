@@ -17,6 +17,7 @@ namespace ChaosWarlords.Source.Map
         private readonly Action<Site, Player> _recalculateSiteState;
         private readonly Func<MatchPhase> _getCurrentPhase;
         private IPlayerStateManager _stateManager;
+        private readonly IGameLogger _logger;
 
         public void SetPlayerStateManager(IPlayerStateManager stateManager)
         {
@@ -27,12 +28,14 @@ namespace ChaosWarlords.Source.Map
             Func<MapNode, Site> getSiteForNode,
             Action<Site, Player> recalculateSiteState,
             Func<MatchPhase> getCurrentPhase,
-            IPlayerStateManager stateManager)
+            IPlayerStateManager stateManager,
+            IGameLogger logger)
         {
             _getSiteForNode = getSiteForNode;
             _recalculateSiteState = recalculateSiteState;
             _getCurrentPhase = getCurrentPhase;
             _stateManager = stateManager;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>
@@ -52,7 +55,7 @@ namespace ChaosWarlords.Source.Map
             _stateManager.RemoveTroops(player, 1);
             node.Occupant = player.Color;
 
-            GameLogger.Log($"Deployed Troop at Node {node.Id}. Supply: {player.TroopsInBarracks}", LogChannel.Combat);
+            _logger.Log($"Deployed Troop at Node {node.Id}. Supply: {player.TroopsInBarracks}", LogChannel.Combat);
             _recalculateSiteState(_getSiteForNode(node), player);
         }
 
@@ -68,7 +71,7 @@ namespace ChaosWarlords.Source.Map
             node.Occupant = PlayerColor.None;
             _stateManager.AddTrophy(attacker);
 
-            GameLogger.Log($"Assassinated enemy at Node {node.Id}. Trophy Hall: {attacker.TrophyHall}", LogChannel.Combat);
+            _logger.Log($"Assassinated enemy at Node {node.Id}. Trophy Hall: {attacker.TrophyHall}", LogChannel.Combat);
             _recalculateSiteState(_getSiteForNode(node), attacker);
         }
 
@@ -84,7 +87,7 @@ namespace ChaosWarlords.Source.Map
             destination.Occupant = source.Occupant;
             source.Occupant = PlayerColor.None;
 
-            GameLogger.Log($"Moved troop from {source.Id} to {destination.Id}.", LogChannel.Combat);
+            _logger.Log($"Moved troop from {source.Id} to {destination.Id}.", LogChannel.Combat);
             _recalculateSiteState(_getSiteForNode(source), activePlayer);
             _recalculateSiteState(_getSiteForNode(destination), activePlayer);
         }
@@ -101,13 +104,13 @@ namespace ChaosWarlords.Source.Map
             {
                 node.Occupant = PlayerColor.None;
                 _stateManager.AddTroops(requestingPlayer, 1);
-                GameLogger.Log($"Returned friendly troop at Node {node.Id} to barracks.", LogChannel.Combat);
+                _logger.Log($"Returned friendly troop at Node {node.Id} to barracks.", LogChannel.Combat);
             }
             else if (node.Occupant != PlayerColor.None)
             {
                 PlayerColor enemyColor = node.Occupant;
                 node.Occupant = PlayerColor.None;
-                GameLogger.Log($"Returned {enemyColor} troop at Node {node.Id} to their barracks.", LogChannel.Combat);
+                _logger.Log($"Returned {enemyColor} troop at Node {node.Id} to their barracks.", LogChannel.Combat);
             }
 
             _recalculateSiteState(_getSiteForNode(node), requestingPlayer);
@@ -133,11 +136,8 @@ namespace ChaosWarlords.Source.Map
             _stateManager.RemoveTroops(attacker, 1);
             node.Occupant = attacker.Color;
 
-            GameLogger.Log($"Supplanted enemy at Node {node.Id} (Added to Trophy Hall) and Deployed.", LogChannel.Combat);
+            _logger.Log($"Supplanted enemy at Node {node.Id} (Added to Trophy Hall) and Deployed.", LogChannel.Combat);
             _recalculateSiteState(_getSiteForNode(node), attacker);
         }
     }
 }
-
-
-

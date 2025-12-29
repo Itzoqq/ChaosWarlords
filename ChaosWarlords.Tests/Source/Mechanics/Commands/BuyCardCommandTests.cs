@@ -45,7 +45,8 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
                 mockMarketManager,
                 Substitute.For<IActionSystem>(),
                 Substitute.For<ICardDatabase>(),
-                mockStateManager
+                mockStateManager,
+                ChaosWarlords.Tests.Utilities.TestLogger.Instance
             );
 
             mockState.MatchContext.Returns(context);

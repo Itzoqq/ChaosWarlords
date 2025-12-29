@@ -24,13 +24,14 @@ namespace ChaosWarlords.Tests.Map
             _testSite = TestData.Sites.NeutralSite();
             _siteRecalculated = false;
 
-            var stateManager = new PlayerStateManager();
+            var stateManager = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             _resolver = new CombatResolver(
-                node => _testSite,
+                (node) => TestData.Sites.NeutralSite(),
                 (site, player) => _siteRecalculated = true,
                 () => _currentPhase,
-                stateManager
+                stateManager,
+                ChaosWarlords.Tests.Utilities.TestLogger.Instance
             );
         }
 

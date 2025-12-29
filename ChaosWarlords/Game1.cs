@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Input;
+using ChaosWarlords.Source.Core.Interfaces.Services;
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -22,9 +23,11 @@ namespace ChaosWarlords
         public IStateManager StateManager { get; private set; } = null!;
         public IInputProvider InputProvider { get; private set; } = null!;
         public ICardDatabase CardDatabase { get; private set; } = null!;
+        public IGameLogger Logger { get; }
 
-        public Game1()
+        public Game1(IGameLogger logger)
         {
+            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
@@ -63,7 +66,7 @@ namespace ChaosWarlords
             catch (System.Exception ex)
             {
                 // In a real game, you might show a fatal error screen here
-                GameLogger.Log($"Failed to load card database: {ex.Message}", LogChannel.Error);
+                Logger.Log($"Failed to load card database: {ex.Message}", LogChannel.Error);
             }
 
             // 2. Create Input Service
@@ -77,7 +80,7 @@ namespace ChaosWarlords
             var buttonManager = new ChaosWarlords.Source.Rendering.UI.ButtonManager();
 
             // View
-            var mainMenuView = new ChaosWarlords.Source.Rendering.Views.MainMenuView(GraphicsDevice, Content, buttonManager);
+            var mainMenuView = new ChaosWarlords.Source.Rendering.Views.MainMenuView(GraphicsDevice, Content, buttonManager, Logger);
 
             // State (Controller)
             var mainMenuState = new MainMenuState(
@@ -85,6 +88,7 @@ namespace ChaosWarlords
                 InputProvider,
                 StateManager,
                 CardDatabase,
+                Logger,
                 mainMenuView,
                 buttonManager
             );
@@ -115,8 +119,7 @@ namespace ChaosWarlords
 
         protected override void UnloadContent()
         {
-            GameLogger.Log("Session Ended. Flushing logs.", LogChannel.General);
-            GameLogger.FlushToFile();
+            Logger.Log("Session Ended. Flushing logs.", LogChannel.General);
             base.UnloadContent();
         }
     }

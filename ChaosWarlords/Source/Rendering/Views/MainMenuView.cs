@@ -7,6 +7,9 @@ using System.Diagnostics.CodeAnalysis;
 using ChaosWarlords.Source.Utilities;
 using System;
 
+using ChaosWarlords.Source.Core.Interfaces.Services;
+using System;
+
 namespace ChaosWarlords.Source.Rendering.Views
 {
     [ExcludeFromCodeCoverage]
@@ -15,15 +18,17 @@ namespace ChaosWarlords.Source.Rendering.Views
         private readonly GraphicsDevice _graphicsDevice;
         private readonly ContentManager _content;
         private readonly IButtonManager _buttonManager;
+        private readonly IGameLogger _logger;
 
         private ButtonRenderer? _buttonRenderer;
         private Texture2D _backgroundTexture = null!;
 
-        public MainMenuView(GraphicsDevice graphicsDevice, ContentManager content, IButtonManager buttonManager)
+        public MainMenuView(GraphicsDevice graphicsDevice, ContentManager content, IButtonManager buttonManager, IGameLogger logger)
         {
             _graphicsDevice = graphicsDevice;
             _content = content;
             _buttonManager = buttonManager;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public void LoadContent()
@@ -40,7 +45,7 @@ namespace ChaosWarlords.Source.Rendering.Views
                 // However, ButtonRenderer might handle null font or we could try a system font if supported.
                 // For now, we will suppress the crash, but buttons might be invisible text-wise.
                 // Ideally, we log this.
-                GameLogger.Log("Failed to load generic font.", LogChannel.Error);
+                _logger.Log("Failed to load generic font.", LogChannel.Error);
             }
 
             // 2. Load Background with Fallback

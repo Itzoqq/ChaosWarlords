@@ -13,12 +13,14 @@ namespace ChaosWarlords.Source.Mechanics.Actions
         private readonly MatchContext _matchContext;
         private readonly IMatchManager _matchManager;
         private readonly Action _onTargetingStarted;
+        private readonly IGameLogger _logger;
 
-        public CardPlaySystem(MatchContext matchContext, IMatchManager MatchManager, Action onTargetingStarted)
+        public CardPlaySystem(MatchContext matchContext, IMatchManager MatchManager, Action onTargetingStarted, IGameLogger logger)
         {
             _matchContext = matchContext;
             _matchManager = MatchManager;
             _onTargetingStarted = onTargetingStarted;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public void PlayCard(Card card)
@@ -43,7 +45,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions
                         // SKIPPING TARGETING:
                         // If no targets exist, we define this as "Targeting phase complete/skipped"
                         // and proceed to play the card data.
-                        GameLogger.Log($"Skipping targeting for {card.Name}: No valid targets for {effect.Type}.", LogChannel.Info);
+                        _logger.Log($"Skipping targeting for {card.Name}: No valid targets for {effect.Type}.", LogChannel.Info);
                     }
                 }
             }

@@ -20,7 +20,7 @@ namespace ChaosWarlords.Tests.Systems
         [TestInitialize]
         public void Setup()
         {
-            _system = new SiteControlSystem();
+            _system = new SiteControlSystem(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             _player1 = TestData.Players.RedPlayer();
             _player2 = TestData.Players.BluePlayer();
 

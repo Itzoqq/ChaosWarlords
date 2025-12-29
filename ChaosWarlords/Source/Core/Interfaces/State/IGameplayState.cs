@@ -24,6 +24,11 @@ namespace ChaosWarlords.Source.Core.Interfaces.State
         IInputManager InputManager { get; }
 
         /// <summary>
+        /// Gets the logger instance.
+        /// </summary>
+        IGameLogger Logger { get; }
+
+        /// <summary>
         /// Gets the UI manager responsible for HUD and Menu rendering/interaction.
         /// </summary>
         IUIManager UIManager { get; }

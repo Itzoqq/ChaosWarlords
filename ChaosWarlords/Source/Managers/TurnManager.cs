@@ -11,6 +11,7 @@ namespace ChaosWarlords.Source.Managers
     {
         public List<Player> Players { get; private set; }
         private int _currentPlayerIndex;
+        private readonly IGameLogger _logger;
 
         // The distinct data object for the current turn
         public TurnContext CurrentTurnContext { get; private set; } = null!;
@@ -23,7 +24,7 @@ namespace ChaosWarlords.Source.Managers
         /// </summary>
         /// <param name="players">List of players in the match.</param>
         /// <param name="random">Random number generator for determining player order.</param>
-        public TurnManager(List<Player> players, IGameRandom random)
+        public TurnManager(List<Player> players, IGameRandom random, IGameLogger logger)
         {
             // Industry Standard: "Guard Clauses"
             ArgumentNullException.ThrowIfNull(players);
@@ -33,6 +34,7 @@ namespace ChaosWarlords.Source.Managers
             }
 
             ArgumentNullException.ThrowIfNull(random);
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             // Randomize Player Order using deterministic RNG
             Players = [.. players];
@@ -46,7 +48,7 @@ namespace ChaosWarlords.Source.Managers
             Player nextPlayer = Players[_currentPlayerIndex];
 
             // Create a fresh context for the new turn
-            CurrentTurnContext = new TurnContext(nextPlayer);
+            CurrentTurnContext = new TurnContext(nextPlayer, _logger);
 
             // New Rule: Distribute Rewards at START of Turn
             // We need access to MapManager. Since TurnManager doesn't hold MapManager, 

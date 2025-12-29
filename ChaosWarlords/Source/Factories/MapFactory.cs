@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using System.Linq;
 using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Map;
 using System.Diagnostics.CodeAnalysis;
 
@@ -21,29 +22,29 @@ namespace ChaosWarlords.Source.Utilities
     {
         private static readonly JsonSerializerOptions s_jsonOptions = new() { PropertyNameCaseInsensitive = true };
         [ExcludeFromCodeCoverage]
-        public static (List<MapNode>, List<Site>, List<Route>) LoadFromFile(string filePath)
+        public static (List<MapNode>, List<Site>, List<Route>) LoadFromFile(string filePath, IGameLogger logger)
         {
             try
             {
                 string json = File.ReadAllText(filePath);
-                return LoadFromData(json);
+                return LoadFromData(json, logger);
             }
             catch (System.Exception ex)
             {
-                GameLogger.Log(ex);
-                GameLogger.Log("Map load failed. Reverting to Test Map.", LogChannel.Error);
-                return CreateTestMap();
+                logger.Log(ex, LogChannel.Error);
+                logger.Log("Map load failed. Reverting to Test Map.", LogChannel.Error);
+                return CreateTestMap(logger);
             }
         }
 
-        public static (List<MapNode>, List<Site>, List<Route>) LoadFromData(string json)
+        public static (List<MapNode>, List<Site>, List<Route>) LoadFromData(string json, IGameLogger logger)
         {
             var data = JsonSerializer.Deserialize<MapData>(json, s_jsonOptions);
             if (data is null) throw new InvalidDataException("Failed to deserialize map data.");
 
             var nodes = CreateNodes(data.Nodes);
             CreateRoutes(data.Routes, nodes);
-            var sites = CreateSites(data.Sites, nodes);
+            var sites = CreateSites(data.Sites, nodes, logger);
 
             // Routes need to be reconstructed from data if we want to return them, 
             // but current LoadFromData logic (CreateRoutes) takes a void and modifies nodes directly.
@@ -59,20 +60,20 @@ namespace ChaosWarlords.Source.Utilities
             return (nodes, sites, []);
         }
 
-        public static (List<MapNode>, List<Site>, List<Route>) LoadFromStream(Stream stream)
+        public static (List<MapNode>, List<Site>, List<Route>) LoadFromStream(Stream stream, IGameLogger logger)
         {
             try
             {
                 using (var reader = new StreamReader(stream))
                 {
                     string json = reader.ReadToEnd();
-                    return LoadFromData(json);
+                    return LoadFromData(json, logger);
                 }
             }
             catch (System.Exception ex)
             {
-                GameLogger.Log(ex);
-                return CreateTestMap();
+                logger.Log(ex, LogChannel.Error);
+                return CreateTestMap(logger);
             }
         }
 
@@ -106,7 +107,7 @@ namespace ChaosWarlords.Source.Utilities
                 if (nodeA is not null && nodeB is not null) nodeA.AddNeighbor(nodeB);
             }
         }
-        private static List<Site> CreateSites(List<SiteData> siteDataList, List<MapNode> nodes)
+        private static List<Site> CreateSites(List<SiteData> siteDataList, List<MapNode> nodes, IGameLogger logger)
         {
             var sites = new List<Site>();
             if (siteDataList is null) return sites;
@@ -125,12 +126,12 @@ namespace ChaosWarlords.Source.Utilities
                 }
                 else if (s.IsStartingSite)
                 {
-                    GameLogger.Log($"Creating StartingSite: {s.Name}", LogChannel.General);
+                    logger.Log($"Creating StartingSite: {s.Name}", LogChannel.General);
                     newSite = new StartingSite(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
                 }
                 else
                 {
-                    GameLogger.Log($"Creating NonCitySite: {s.Name}", LogChannel.General);
+                    logger.Log($"Creating NonCitySite: {s.Name}", LogChannel.General);
                     newSite = new NonCitySite(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
                 }
 
@@ -146,13 +147,13 @@ namespace ChaosWarlords.Source.Utilities
             return sites;
         }
 
-        public static (List<MapNode>, List<Site>, List<Route>) CreateTestMap()
+        public static (List<MapNode>, List<Site>, List<Route>) CreateTestMap(IGameLogger logger)
         {
             // Delegate to the full scenario creator
-            return CreateScenarioMap();
+            return CreateScenarioMap(logger);
         }
 
-        public static (List<MapNode>, List<Site>, List<Route>) CreateScenarioMap()
+        public static (List<MapNode>, List<Site>, List<Route>) CreateScenarioMap(IGameLogger logger)
         {
             var config = new MapGenerationConfig();
 

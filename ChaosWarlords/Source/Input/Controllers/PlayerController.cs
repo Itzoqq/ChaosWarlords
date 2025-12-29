@@ -82,7 +82,7 @@ namespace ChaosWarlords.Source.Input.Controllers
             }
             else
             {
-                GameLogger.Log(reason, LogChannel.Warning);
+                _gameState.Logger.Log(reason, LogChannel.Warning);
             }
             return true;
         }
