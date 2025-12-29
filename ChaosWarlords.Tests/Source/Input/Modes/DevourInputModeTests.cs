@@ -66,8 +66,8 @@ namespace ChaosWarlords.Tests.Input.Modes
         public void HandleInput_DevoursCard_WhenValidCardClicked()
         {
             // Arrange
-            var targetCard = new Card("test", "Test Card", 3, CardAspect.Warlord, 1, 1, 0);
-            var sourceCard = new Card("source", "Source Card", 5, CardAspect.Shadow, 2, 0, 0);
+            var targetCard = new CardBuilder().WithName("test").WithCost(3).WithAspect(CardAspect.Warlord).WithPower(1).WithInfluence(1).WithVP(0).Build();
+            var sourceCard = new CardBuilder().WithName("source").WithCost(5).WithAspect(CardAspect.Shadow).WithPower(2).WithInfluence(0).WithVP(0).Build();
 
             _mockActionSystem.PendingCard.Returns(sourceCard);
             _mockInputManager.IsLeftMouseJustClicked().Returns(true);
@@ -85,7 +85,7 @@ namespace ChaosWarlords.Tests.Input.Modes
         public void HandleInput_LogsWarning_WhenDevouringSelf()
         {
             // Arrange
-            var sourceCard = new Card("source", "Source Card", 5, CardAspect.Shadow, 2, 0, 0);
+            var sourceCard = new CardBuilder().WithName("source").WithCost(5).WithAspect(CardAspect.Shadow).WithPower(2).WithInfluence(0).WithVP(0).Build();
 
             _mockActionSystem.PendingCard.Returns(sourceCard);
             _mockInputManager.IsLeftMouseJustClicked().Returns(true);

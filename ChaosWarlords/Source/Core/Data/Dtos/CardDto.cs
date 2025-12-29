@@ -51,7 +51,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         public Card ToEntity(ICardDatabase cardDb)
         {
             var card = cardDb.GetCardById(DefinitionId)?.Clone();
-            if (card != null)
+            if (card is not null)
             {
                 card.Location = Location;
                 return card;

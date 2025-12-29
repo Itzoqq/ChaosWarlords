@@ -74,7 +74,7 @@ namespace ChaosWarlords.Source.Contexts
             // Find the first credit that is NOT from the target
             var validCredit = _promotionCredits.FirstOrDefault(source => source != target);
 
-            if (validCredit != null)
+            if (validCredit is not null)
             {
                 _promotionCredits.Remove(validCredit);
             }

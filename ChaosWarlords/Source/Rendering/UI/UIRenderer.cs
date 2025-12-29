@@ -27,7 +27,7 @@ namespace ChaosWarlords.Source.Views
 
         public void DrawTopBar(SpriteBatch spriteBatch, Player player, int screenWidth)
         {
-            if (_defaultFont == null) return;
+            if (_defaultFont is null) return;
 
             // 1. Draw Background
             spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, screenWidth, 40), Color.Black * 0.9f);
@@ -87,7 +87,7 @@ namespace ChaosWarlords.Source.Views
 
         public void DrawActionButtons(SpriteBatch spriteBatch, IUIManager ui, Player player)
         {
-            if (_smallFont == null) return;
+            if (_smallFont is null) return;
 
             // ASSASSINATE (Right Side - Vertical)
             bool canAffordAssassinate = player.Power >= 3;

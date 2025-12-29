@@ -39,7 +39,7 @@ namespace ChaosWarlords.Source.States.Input
             {
                 Card? targetCard = _gameplayState.GetHoveredPlayedCard();
 
-                if (targetCard != null)
+                if (targetCard is not null)
                 {
                     var context = _gameplayState.MatchContext.TurnManager.CurrentTurnContext;
 

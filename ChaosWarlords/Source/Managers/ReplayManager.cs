@@ -21,7 +21,7 @@ namespace ChaosWarlords.Source.Managers
             try 
             {
                 var actions = System.Text.Json.JsonSerializer.Deserialize<List<ReplayAction>>(replayJson);
-                if (actions != null)
+                if (actions is not null)
                 {
                     _isReplaying = true;
                     _recording.Clear();
@@ -48,7 +48,7 @@ namespace ChaosWarlords.Source.Managers
 
         public void RecordAction(ReplayAction action)
         {
-            if (!_isReplaying && action != null)
+            if (!_isReplaying && action is not null)
             {
                 _recording.Add(action);
             }

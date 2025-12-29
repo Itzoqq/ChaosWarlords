@@ -18,7 +18,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
 
         public MapNodeDto(MapNode node)
         {
-            if (node == null) return;
+            if (node is null) return;
             Id = node.Id;
             Occupant = node.Occupant;
         }

@@ -45,7 +45,7 @@ namespace ChaosWarlords.Source.Managers
             _nodeSiteLookup = new Dictionary<MapNode, Site>();
 
             // Build Lookup
-            if (sites != null)
+            if (sites is not null)
             {
                 foreach (var site in sites)
                 {
@@ -58,7 +58,7 @@ namespace ChaosWarlords.Source.Managers
             // Initialize Sub-Systems (Composition)
             _ruleEngine = new MapRuleEngine(NodesInternal, SitesInternal, _nodeSiteLookup);
             _controlSystem = new SiteControlSystem();
-            if (_playerStateManager != null) _controlSystem.SetPlayerStateManager(_playerStateManager);
+            if (_playerStateManager is not null) _controlSystem.SetPlayerStateManager(_playerStateManager);
 
             // Initialize New Service Classes
             _topology = new MapTopology(NodesInternal, SitesInternal);
@@ -185,7 +185,7 @@ namespace ChaosWarlords.Source.Managers
 
         public bool CanReturnTroop(MapNode node, Player requestingPlayer)
         {
-            if (node == null) return false;
+            if (node is null) return false;
             // Must have presence at the node (direct or adjacent)
             if (!HasPresence(node, requestingPlayer.Color)) return false;
             // Cannot return Neutral
@@ -221,7 +221,7 @@ namespace ChaosWarlords.Source.Managers
 
         public bool CanReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor)
         {
-            if (site == null) return false;
+            if (site is null) return false;
             // Check Presence using the Rule Engine
             // We can check presence on any node in the site (if you have presence on one, you have presence on the site for interaction presumably, 
             // although strictly presence is per node. But for Site interactions, usually you need presence *at* the site.

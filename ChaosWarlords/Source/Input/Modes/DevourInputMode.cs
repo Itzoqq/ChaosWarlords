@@ -43,7 +43,7 @@ namespace ChaosWarlords.Source.States.Input
                 // We specifically look at the HAND, not Played cards
                 Card? targetCard = _gameplayState.GetHoveredHandCard();
 
-                if (targetCard != null)
+                if (targetCard is not null)
                 {
                     // Validation: Cannot devour the card itself while it's being played
                     if (targetCard == _sourceCard)

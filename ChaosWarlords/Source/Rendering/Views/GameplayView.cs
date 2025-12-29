@@ -165,7 +165,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             for (int i = 0; i < hand.Count; i++)
             {
                 var vm = HandViewModels.FirstOrDefault(v => v.Model == hand[i]);
-                if (vm != null)
+                if (vm is not null)
                 {
                     vm.Position = new Vector2(startX + (i * (cardWidth + gap)), HandY);
                     sortedVMs.Add(vm);
@@ -189,7 +189,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             for (int i = 0; i < marketRow.Count; i++)
             {
                 var vm = MarketViewModels.FirstOrDefault(v => v.Model == marketRow[i]);
-                if (vm != null)
+                if (vm is not null)
                 {
                     vm.Position = new Vector2(startX + (i * (Card.Width + gap)), startY);
                 }
@@ -214,7 +214,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             for (int i = 0; i < played.Count; i++)
             {
                 var vm = PlayedViewModels.FirstOrDefault(v => v.Model == played[i]);
-                if (vm != null)
+                if (vm is not null)
                 {
                     vm.Position = new Vector2(startX + (i * (cardWidth + gap)), PlayedY);
                 }
@@ -249,7 +249,7 @@ namespace ChaosWarlords.Source.Rendering.Views
 
         private void DrawSpySelectionUI(SpriteBatch sb, Site? site, int screenWidth)
         {
-            if (site == null) return;
+            if (site is null) return;
 
             string header = "Select Spy to Return:";
             Vector2 size = _defaultFont.MeasureString(header);
@@ -271,7 +271,7 @@ namespace ChaosWarlords.Source.Rendering.Views
         }
         public void DrawSetupPhaseOverlay(SpriteBatch spriteBatch, Player activePlayer)
         {
-            if (_defaultFont == null) return;
+            if (_defaultFont is null) return;
 
             string line1 = "INITIAL DEPLOYMENT ROUND";
             string line2 = $"Current Player: {activePlayer.Color}";

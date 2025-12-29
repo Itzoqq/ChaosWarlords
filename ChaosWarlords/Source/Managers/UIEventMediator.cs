@@ -197,7 +197,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void HandleMainMenuRequest(object? sender, EventArgs e)
         {
-            if (_isPauseMenuOpen && _game != null)
+            if (_isPauseMenuOpen && _game is not null)
             {
                 // Properly create MainMenuState with view and button manager
                 // This matches the initialization pattern in Game1.LoadContent()
@@ -222,7 +222,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void HandleExitRequest(object? sender, EventArgs e)
         {
-            if (_isPauseMenuOpen && _game != null)
+            if (_isPauseMenuOpen && _game is not null)
             {
                 _game.Exit();
             }
@@ -235,7 +235,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void HandleActionCompleted(object? sender, EventArgs e)
         {
-            if (_actionSystem.PendingCard != null)
+            if (_actionSystem.PendingCard is not null)
             {
                 _gameState.MatchManager.PlayCard(_actionSystem.PendingCard);
             }

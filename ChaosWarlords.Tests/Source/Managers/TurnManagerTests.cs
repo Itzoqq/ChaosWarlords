@@ -15,8 +15,8 @@ namespace ChaosWarlords.Tests.Managers
             // Arrange
             var players = new List<Player>
             {
-                new Player(PlayerColor.Red),
-                new Player(PlayerColor.Blue)
+                new PlayerBuilder().WithColor(PlayerColor.Red).Build(),
+                new PlayerBuilder().WithColor(PlayerColor.Blue).Build()
             };
 
             // Act
@@ -48,8 +48,8 @@ namespace ChaosWarlords.Tests.Managers
         public void EndTurn_SwitchesActivePlayer()
         {
             // Arrange
-            var p1 = new Player(PlayerColor.Red);
-            var p2 = new Player(PlayerColor.Blue);
+            var p1 = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var p2 = new PlayerBuilder().WithColor(PlayerColor.Blue).Build();
             var mockRandom = Substitute.For<IGameRandom>();
             var manager = new TurnManager(new List<Player> { p1, p2 }, mockRandom);
             var firstPlayer = manager.ActivePlayer;
@@ -65,8 +65,8 @@ namespace ChaosWarlords.Tests.Managers
         public void EndTurn_FiresOnTurnChangedEvent()
         {
             // Arrange
-            var p1 = new Player(PlayerColor.Red);
-            var p2 = new Player(PlayerColor.Blue);
+            var p1 = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var p2 = new PlayerBuilder().WithColor(PlayerColor.Blue).Build();
             var mockRandom = Substitute.For<IGameRandom>();
             var manager = new TurnManager(new List<Player> { p1, p2 }, mockRandom);
 

@@ -103,7 +103,7 @@ namespace ChaosWarlords.Source.Managers
 
         public void PlayCard(Player player, Card card)
         {
-            if (card == null || !player.Hand.Contains(card)) return;
+            if (card is null || !player.Hand.Contains(card)) return;
 
             player.Hand.Remove(card);
             card.Location = CardLocation.Played;
@@ -114,7 +114,7 @@ namespace ChaosWarlords.Source.Managers
 
         public void AcquireCard(Player player, Card card)
         {
-            if (card == null) return;
+            if (card is null) return;
             player.DeckManager.AddToDiscard(card);
             GameLogger.Log($"[State] {player.DisplayName} acquired '{card.Name}'", LogChannel.Info);
         }

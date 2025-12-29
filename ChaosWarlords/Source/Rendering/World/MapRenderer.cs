@@ -48,7 +48,7 @@ namespace ChaosWarlords.Source.Views
         private void DrawSites(SpriteBatch spriteBatch, IMapManager map)
         {
             var sites = map.Sites;
-            if (sites == null) return;
+            if (sites is null) return;
             foreach (var site in sites)
             {
                 // Background
@@ -226,13 +226,13 @@ namespace ChaosWarlords.Source.Views
             Site? startSite = map.GetSiteForNode(node);
             Site? endSite = map.GetSiteForNode(neighbor);
 
-            if (startSite != null && startSite == endSite) return;
+            if (startSite is not null && startSite == endSite) return;
 
-            Vector2 p1 = startSite != null ? startSite.Bounds.Center.ToVector2() : node.Position;
-            Vector2 p2 = endSite != null ? endSite.Bounds.Center.ToVector2() : neighbor.Position;
+            Vector2 p1 = startSite is not null ? startSite.Bounds.Center.ToVector2() : node.Position;
+            Vector2 p2 = endSite is not null ? endSite.Bounds.Center.ToVector2() : neighbor.Position;
 
-            if (startSite != null) p1 = GetIntersection(startSite.Bounds, p2, p1);
-            if (endSite != null) p2 = GetIntersection(endSite.Bounds, p1, p2);
+            if (startSite is not null) p1 = GetIntersection(startSite.Bounds, p2, p1);
+            if (endSite is not null) p2 = GetIntersection(endSite.Bounds, p1, p2);
 
             DrawLine(spriteBatch, p1, p2, Color.DarkGray, 2);
         }

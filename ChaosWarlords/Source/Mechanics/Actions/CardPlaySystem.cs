@@ -57,7 +57,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions
 
         public bool HasViableTargets(Card card)
         {
-            if (card == null) return false;
+            if (card is null) return false;
 
             // Optimization: checking Any directly
             if (!card.Effects.Any(e => IsTargetingEffect(e.Type))) return true;

@@ -16,7 +16,7 @@ namespace ChaosWarlords.Source.Managers
 
         public void Publish(GameEvent gameEvent)
         {
-            if (gameEvent == null) return;
+            if (gameEvent is null) return;
 
             var eventType = gameEvent.GetType();
             List<Delegate>? handlers = null;
@@ -30,7 +30,7 @@ namespace ChaosWarlords.Source.Managers
                 }
             }
 
-            if (handlers != null)
+            if (handlers is not null)
             {
                 foreach (var handler in handlers)
                 {
@@ -50,7 +50,7 @@ namespace ChaosWarlords.Source.Managers
 
         public void Subscribe<T>(Action<T> handler) where T : GameEvent
         {
-            if (handler == null) return;
+            if (handler is null) return;
 
             lock (_lock)
             {
@@ -66,7 +66,7 @@ namespace ChaosWarlords.Source.Managers
 
         public void Unsubscribe<T>(Action<T> handler) where T : GameEvent
         {
-            if (handler == null) return;
+            if (handler is null) return;
 
             lock (_lock)
             {

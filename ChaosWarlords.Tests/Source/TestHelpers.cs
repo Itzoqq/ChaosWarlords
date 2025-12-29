@@ -1,4 +1,9 @@
 using ChaosWarlords.Source.Core.Interfaces.Input;
+using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Entities.Map;
+using ChaosWarlords.Source.Utilities;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 
 namespace ChaosWarlords.Tests
@@ -151,5 +156,302 @@ namespace ChaosWarlords.Tests
             return new MouseState(x, y, scrollWheel, left, middle, right, xButton1, xButton2);
         }
     }
-}
 
+    // ------------------------------------------------------------------------
+    // TEST DATA BUILDERS
+    // Fluent API for creating test objects with sensible defaults
+    // ------------------------------------------------------------------------
+
+    /// <summary>
+    /// Fluent builder for creating Card instances in tests.
+    /// Provides sensible defaults and chainable methods for customization.
+    /// </summary>
+    public class CardBuilder
+    {
+        private string _name = "Test Card";
+        private string _description = "Test Description";
+        private int _cost = 0;
+        private CardAspect _aspect = CardAspect.Warlord;
+        private int _power = 0;
+        private int _influence = 0;
+        private int _vp = 0;
+        private CardLocation _location = CardLocation.Deck;
+        private readonly List<CardEffect> _effects = [];
+
+        public CardBuilder WithName(string name)
+        {
+            _name = name;
+            return this;
+        }
+
+        public CardBuilder WithDescription(string description)
+        {
+            _description = description;
+            return this;
+        }
+
+        public CardBuilder WithCost(int cost)
+        {
+            _cost = cost;
+            return this;
+        }
+
+        public CardBuilder WithAspect(CardAspect aspect)
+        {
+            _aspect = aspect;
+            return this;
+        }
+
+        public CardBuilder WithPower(int power)
+        {
+            _power = power;
+            return this;
+        }
+
+        public CardBuilder WithInfluence(int influence)
+        {
+            _influence = influence;
+            return this;
+        }
+
+        public CardBuilder WithVP(int vp)
+        {
+            _vp = vp;
+            return this;
+        }
+
+        public CardBuilder WithEffect(EffectType type, int magnitude, ResourceType? targetResource = null)
+        {
+            var effect = new CardEffect(type, magnitude);
+            if (targetResource.HasValue)
+                effect.TargetResource = targetResource.Value;
+            _effects.Add(effect);
+            return this;
+        }
+
+        public CardBuilder WithFocusEffect(EffectType type, int magnitude, ResourceType? targetResource = null)
+        {
+            var effect = new CardEffect(type, magnitude) { RequiresFocus = true };
+            if (targetResource.HasValue)
+                effect.TargetResource = targetResource.Value;
+            _effects.Add(effect);
+            return this;
+        }
+
+        public CardBuilder InHand()
+        {
+            _location = CardLocation.Hand;
+            return this;
+        }
+
+        public CardBuilder InDeck()
+        {
+            _location = CardLocation.Deck;
+            return this;
+        }
+
+        public CardBuilder InDiscard()
+        {
+            _location = CardLocation.DiscardPile;
+            return this;
+        }
+
+        public CardBuilder InInnerCircle()
+        {
+            _location = CardLocation.InnerCircle;
+            return this;
+        }
+
+        public CardBuilder InPlayed()
+        {
+            _location = CardLocation.Played;
+            return this;
+        }
+
+        public Card Build()
+        {
+            var card = new Card(_name, _description, _cost, _aspect, _power, _influence, _vp);
+            card.Location = _location;
+            foreach (var effect in _effects)
+            {
+                card.Effects.Add(effect);
+            }
+            return card;
+        }
+    }
+
+    /// <summary>
+    /// Fluent builder for creating Player instances in tests.
+    /// Provides sensible defaults and chainable methods for customization.
+    /// </summary>
+    public class PlayerBuilder
+    {
+        private PlayerColor _color = PlayerColor.Red;
+        private string _displayName = "Test Player";
+        private int _power = 0;
+        private int _influence = 0;
+        private int _vp = 0;
+        private int _troops = 0;
+        private int _spies = 0;
+        private readonly List<Card> _handCards = [];
+        private readonly List<Card> _deckCards = [];
+        private readonly List<Card> _discardCards = [];
+        private readonly List<Card> _innerCircleCards = [];
+
+        public PlayerBuilder WithColor(PlayerColor color)
+        {
+            _color = color;
+            return this;
+        }
+
+        public PlayerBuilder WithName(string name)
+        {
+            _displayName = name;
+            return this;
+        }
+
+        public PlayerBuilder WithPower(int power)
+        {
+            _power = power;
+            return this;
+        }
+
+        public PlayerBuilder WithInfluence(int influence)
+        {
+            _influence = influence;
+            return this;
+        }
+
+        public PlayerBuilder WithVP(int vp)
+        {
+            _vp = vp;
+            return this;
+        }
+
+        public PlayerBuilder WithTroops(int troops)
+        {
+            _troops = troops;
+            return this;
+        }
+
+        public PlayerBuilder WithSpies(int spies)
+        {
+            _spies = spies;
+            return this;
+        }
+
+        public PlayerBuilder WithCardsInHand(params Card[] cards)
+        {
+            _handCards.AddRange(cards);
+            return this;
+        }
+
+        public PlayerBuilder WithCardsInDeck(params Card[] cards)
+        {
+            _deckCards.AddRange(cards);
+            return this;
+        }
+
+        public PlayerBuilder WithCardsInDiscard(params Card[] cards)
+        {
+            _discardCards.AddRange(cards);
+            return this;
+        }
+
+        public PlayerBuilder WithCardsInInnerCircle(params Card[] cards)
+        {
+            _innerCircleCards.AddRange(cards);
+            return this;
+        }
+
+        public Player Build()
+        {
+            var player = new Player(_color)
+            {
+                DisplayName = _displayName,
+                Power = _power,
+                Influence = _influence,
+                VictoryPoints = _vp,
+                TroopsInBarracks = _troops,
+                SpiesInBarracks = _spies
+            };
+
+            foreach (var card in _handCards)
+            {
+                card.Location = CardLocation.Hand;
+                player.Hand.Add(card);
+            }
+
+            foreach (var card in _deckCards)
+            {
+                card.Location = CardLocation.Deck;
+                player.DeckManager.AddToTop(card);
+            }
+
+            foreach (var card in _discardCards)
+            {
+                card.Location = CardLocation.DiscardPile;
+                player.DeckManager.AddToDiscard(card);
+            }
+
+            foreach (var card in _innerCircleCards)
+            {
+                card.Location = CardLocation.InnerCircle;
+                player.InnerCircle.Add(card);
+            }
+
+            return player;
+        }
+    }
+
+    /// <summary>
+    /// Fluent builder for creating MapNode instances in tests.
+    /// Provides sensible defaults and chainable methods for customization.
+    /// </summary>
+    public class MapNodeBuilder
+    {
+        private Vector2 _position = Vector2.Zero;
+        private int _id = 0;
+        private PlayerColor _occupant = PlayerColor.None;
+        private readonly List<MapNode> _neighbors = [];
+
+        public MapNodeBuilder At(float x, float y)
+        {
+            _position = new Vector2(x, y);
+            return this;
+        }
+
+        public MapNodeBuilder WithId(int id)
+        {
+            _id = id;
+            return this;
+        }
+
+        public MapNodeBuilder OccupiedBy(PlayerColor color)
+        {
+            _occupant = color;
+            return this;
+        }
+
+        public MapNodeBuilder ConnectedTo(params MapNode[] neighbors)
+        {
+            _neighbors.AddRange(neighbors);
+            return this;
+        }
+
+        public MapNode Build()
+        {
+            var node = new MapNode(_id, _position)
+            {
+                Occupant = _occupant
+            };
+
+            foreach (var neighbor in _neighbors)
+            {
+                node.AddNeighbor(neighbor);
+            }
+
+            return node;
+        }
+    }
+}

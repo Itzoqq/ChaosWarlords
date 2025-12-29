@@ -16,9 +16,9 @@ namespace ChaosWarlords.Tests.Source.Entities
         [TestInitialize]
         public void Setup()
         {
-            _c1 = new Card("1", "One", 0, CardAspect.Neutral, 0, 0, 0);
-            _c2 = new Card("2", "Two", 0, CardAspect.Neutral, 0, 0, 0);
-            _c3 = new Card("3", "Three", 0, CardAspect.Neutral, 0, 0, 0);
+            _c1 = new CardBuilder().WithName("1").WithCost(0).WithAspect(CardAspect.Neutral).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            _c2 = new CardBuilder().WithName("2").WithCost(0).WithAspect(CardAspect.Neutral).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            _c3 = new CardBuilder().WithName("3").WithCost(0).WithAspect(CardAspect.Neutral).WithPower(0).WithInfluence(0).WithVP(0).Build();
 
             _deck = new Deck();
         }

@@ -44,7 +44,7 @@ namespace ChaosWarlords.Source.Map
                 node.Position += offset;
             }
 
-            if (_sites != null)
+            if (_sites is not null)
             {
                 foreach (var site in _sites)
                 {

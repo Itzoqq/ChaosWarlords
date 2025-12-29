@@ -115,9 +115,9 @@ namespace ChaosWarlords.Source.Input.Controllers
             if (!_inputManager.IsLeftMouseJustClicked()) return false;
 
             var site = _gameState.ActionSystem.PendingSite;
-            if (site == null) return false;
+            if (site is null) return false;
 
-            if (_interactionMapper == null) return false;
+            if (_interactionMapper is null) return false;
 
             PlayerColor? clickedSpy = _interactionMapper.GetClickedSpyReturnButton(
                 _inputManager.MousePosition.ToPoint(),

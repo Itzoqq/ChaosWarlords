@@ -47,7 +47,7 @@ namespace ChaosWarlords.Source.Utilities
 
         public static void Log(object messageObj, LogChannel channel = LogChannel.General)
         {
-            if (messageObj == null) return;
+            if (messageObj is null) return;
 
             string message = messageObj.ToString() ?? string.Empty;
             string timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);

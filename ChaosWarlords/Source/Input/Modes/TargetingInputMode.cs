@@ -69,7 +69,7 @@ namespace ChaosWarlords.Source.States.Input
         private static SwitchToNormalModeCommand HandleCancellation(IActionSystem actionSystem)
         {
             // Safety Log
-            string cardName = actionSystem.PendingCard != null ? actionSystem.PendingCard.Name : "Unknown";
+            string cardName = actionSystem.PendingCard is not null ? actionSystem.PendingCard.Name : "Unknown";
             GameLogger.Log($"Input: Cancelled Action for {cardName}. Card returned to hand.", LogChannel.Info);
 
             actionSystem.CancelTargeting();
@@ -99,7 +99,7 @@ namespace ChaosWarlords.Source.States.Input
         private static void HandleSpySelection(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             Site? site = actionSystem.PendingSite;
-            if (site == null)
+            if (site is null)
             {
                 actionSystem.CancelTargeting();
                 return;
@@ -126,7 +126,7 @@ namespace ChaosWarlords.Source.States.Input
 
         private static void HandleTargetingClick(IActionSystem actionSystem, MapNode? targetNode, Site? targetSite)
         {
-            if (targetNode == null && targetSite == null)
+            if (targetNode is null && targetSite is null)
             {
                 return;
             }

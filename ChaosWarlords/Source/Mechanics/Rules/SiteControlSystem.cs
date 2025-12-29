@@ -17,7 +17,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         public void RecalculateSiteState(Site site, Player activePlayer)
         {
-            if (site == null) return;
+            if (site is null) return;
 
             PlayerColor previousOwner = site.Owner;
             bool previousTotal = site.HasTotalControl;
@@ -68,7 +68,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             if (newOwner != oldOwner)
             {
                 // RULE: City Sites grant Immediate Influence when you take control
-                if (activePlayer != null && newOwner == activePlayer.Color && site.IsCity)
+                if (activePlayer is not null && newOwner == activePlayer.Color && site.IsCity)
                 {
                     ApplyReward(activePlayer, site.ControlResource, site.ControlAmount);
                     GameLogger.Log($"Seized Control of {site.Name}! (+{site.ControlAmount} {site.ControlResource})", LogChannel.Economy);
@@ -93,7 +93,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         private void HandleTotalControlGain(Site site, Player activePlayer, PlayerColor owner)
         {
             // RULE: City Sites grant Immediate VP when you take TOTAL control
-            if (activePlayer != null && owner == activePlayer.Color && site.IsCity)
+            if (activePlayer is not null && owner == activePlayer.Color && site.IsCity)
             {
                 ApplyReward(activePlayer, site.TotalControlResource, site.TotalControlAmount);
                 GameLogger.Log($"Total Control established in {site.Name}! (+{site.TotalControlAmount} {site.TotalControlResource})", LogChannel.Economy);
@@ -102,7 +102,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         private static void HandleTotalControlLoss(Site site, Player activePlayer, PlayerColor owner)
         {
-            if (activePlayer != null && activePlayer.Color == owner)
+            if (activePlayer is not null && activePlayer.Color == owner)
             {
                 GameLogger.Log($"Lost Total Control of {site.Name}.", LogChannel.Combat);
             }
@@ -110,7 +110,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         public void DistributeStartOfTurnRewards(System.Collections.Generic.IReadOnlyList<Site> sites, Player activePlayer)
         {
-            if (sites == null) return;
+            if (sites is null) return;
             foreach (var site in sites)
             {
                 // RULE: Only City Sites grant passive income (at Start of Turn)
@@ -133,7 +133,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         private void ApplyReward(Player player, ResourceType type, int amount)
         {
-            if (_stateManager == null)
+            if (_stateManager is null)
             {
                 if (type == ResourceType.Power) player.Power += amount;
                 if (type == ResourceType.Influence) player.Influence += amount;

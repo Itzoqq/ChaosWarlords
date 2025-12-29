@@ -43,7 +43,7 @@ namespace ChaosWarlords.Source.Input
         {
             // This logic was previously hidden in View. 
             // Ideally, the View should expose a list of "ButtonRects", but for now, we calculate it here.
-            if (site == null) return null;
+            if (site is null) return null;
 
             // Note: In a production refactor, we would ask the UIRenderer for these bounds 
             // to ensure Drawing and Clicking never desync.

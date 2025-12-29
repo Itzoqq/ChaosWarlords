@@ -53,7 +53,7 @@ namespace ChaosWarlords.Source.Utilities
         public List<Card> GetAllMarketCards()
         {
             var cards = new List<Card>();
-            if (_cardDataCache == null) return cards;
+            if (_cardDataCache is null) return cards;
 
             foreach (var data in _cardDataCache)
             {
@@ -65,7 +65,7 @@ namespace ChaosWarlords.Source.Utilities
         public Card? GetCardById(string id)
         {
             var data = _cardDataCache?.FirstOrDefault(c => c.Id == id);
-            return data != null ? CardFactory.CreateFromData(data) : null;
+            return data is not null ? CardFactory.CreateFromData(data) : null;
         }
     }
 }

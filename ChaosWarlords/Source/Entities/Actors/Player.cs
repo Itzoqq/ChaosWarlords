@@ -141,19 +141,17 @@ namespace ChaosWarlords.Source.Entities.Actors
         /// <returns>True if promotion succeeded, false otherwise.</returns>
         internal bool TryPromoteCard(Card card, out string errorMessage)
         {
-            if (card == null)
+            // Guard clause: null check
+            if (card is null)
             {
                 errorMessage = "Card cannot be null";
                 return false;
             }
 
-            bool removed = Hand.Remove(card);
+            // Try to remove from Hand first, then PlayedCards
+            bool removed = Hand.Remove(card) || PlayedCards.Remove(card);
 
-            if (!removed)
-            {
-                removed = PlayedCards.Remove(card);
-            }
-
+            // Guard clause: card not found
             if (!removed)
             {
                 // Card not found in Hand or PlayedCards
@@ -162,6 +160,7 @@ namespace ChaosWarlords.Source.Entities.Actors
                 return false;
             }
 
+            // Success path
             card.Location = CardLocation.InnerCircle;
             InnerCircle.Add(card);
             errorMessage = string.Empty;

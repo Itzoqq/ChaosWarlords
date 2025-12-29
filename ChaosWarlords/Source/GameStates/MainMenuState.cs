@@ -59,7 +59,7 @@ namespace ChaosWarlords.Source.States
         public void LoadContent()
         {
             // Logic Setup
-            if (_buttonManager == null)
+            if (_buttonManager is null)
             {
                 _buttonManager = new ButtonManager(); // Logic Only
             }
@@ -76,7 +76,7 @@ namespace ChaosWarlords.Source.States
         private void SetupButtons()
         {
             // Safe viewport access for testing where GraphicsDevice might be null
-            var viewport = (_game?.GraphicsDevice != null) ? _game.GraphicsDevice.Viewport : new Viewport(0, 0, 800, 600);
+            var viewport = (_game?.GraphicsDevice is not null) ? _game.GraphicsDevice.Viewport : new Viewport(0, 0, 800, 600);
 
             int buttonWidth = 200;
             int buttonHeight = 50;
@@ -152,7 +152,7 @@ namespace ChaosWarlords.Source.States
 
         private void StartGame()
         {
-            if (_cardDatabase == null || _inputProvider == null || _stateManager == null)
+            if (_cardDatabase is null || _inputProvider is null || _stateManager is null)
             {
                 GameLogger.Log("Cannot start game: Services not initialized.", LogChannel.Error);
                 return;
@@ -163,7 +163,7 @@ namespace ChaosWarlords.Source.States
             int width = 1920;
             int height = 1080;
 
-            if (_game?.GraphicsDevice != null)
+            if (_game?.GraphicsDevice is not null)
             {
                 gameplayView = new GameplayView(_game.GraphicsDevice);
                 width = _game.GraphicsDevice.Viewport.Width;

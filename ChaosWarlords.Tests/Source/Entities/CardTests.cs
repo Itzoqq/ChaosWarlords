@@ -13,7 +13,7 @@ namespace ChaosWarlords.Tests.Source.Entities
         {
             // Constructor now requires (Id, Name, Cost, Aspect, DeckVP, InnerVP, Influence)
             // We pass 1 for DeckVP, 2 for InnerCircleVP, and 0 for Influence
-            _card = new Card("test_id", "Test Card", 3, CardAspect.Sorcery, 1, 2, 0);
+            _card = new CardBuilder().WithName("test_id").WithCost(3).WithAspect(CardAspect.Sorcery).WithPower(1).WithInfluence(2).WithVP(0).Build();
         }
 
         [TestMethod]

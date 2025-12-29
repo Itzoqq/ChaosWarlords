@@ -52,7 +52,7 @@ namespace ChaosWarlords.Tests.Managers
             _mockGameState.MatchContext.Returns(matchContext);
 
             // Setup ActivePlayer (returning a real Player object is easiest)
-            var player = new Player(PlayerColor.Red);
+            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
             mockTurn.ActivePlayer.Returns(player);
 
             // Mock TurnContext for promotion check
@@ -188,7 +188,7 @@ namespace ChaosWarlords.Tests.Managers
             _mediator.Initialize();
             // Add a card to the real player's hand
             var player = _mockGameState.MatchContext.ActivePlayer;
-            player.Hand.Add(new Card("test", "Test", 1, CardAspect.Warlord, 0, 0, 0));
+            player.Hand.Add(new CardBuilder().WithName("test").WithCost(1).WithAspect(CardAspect.Warlord).Build());
 
             // Act
             _mockUIManager.OnEndTurnRequest += Raise.Event();
@@ -225,7 +225,7 @@ namespace ChaosWarlords.Tests.Managers
             _mediator.Initialize();
             // Add card to trigger popup logic
             var player = _mockGameState.MatchContext.ActivePlayer;
-            player.Hand.Add(new Card("test", "Test", 1, CardAspect.Warlord, 0, 0, 0));
+            player.Hand.Add(new CardBuilder().WithName("test").WithCost(1).WithAspect(CardAspect.Warlord).Build());
             _mediator.HandleEndTurnKeyPress(); // Open popup
 
             Assert.IsTrue(_mediator.IsConfirmationPopupOpen, "Popup should be open");
@@ -247,7 +247,7 @@ namespace ChaosWarlords.Tests.Managers
             // Arrange
             _mediator.Initialize();
             var player = _mockGameState.MatchContext.ActivePlayer;
-            player.Hand.Add(new Card("test", "Test", 1, CardAspect.Warlord, 0, 0, 0));
+            player.Hand.Add(new CardBuilder().WithName("test").WithCost(1).WithAspect(CardAspect.Warlord).Build());
             _mediator.HandleEndTurnKeyPress(); // Open popup
 
             Assert.IsTrue(_mediator.IsConfirmationPopupOpen);
@@ -265,7 +265,7 @@ namespace ChaosWarlords.Tests.Managers
         {
             // Arrange
             _mediator.Initialize();
-            var card = new Card("test", "test", 0, CardAspect.Warlord, 0, 0, 0);
+            var card = new CardBuilder().WithName("test").WithAspect(CardAspect.Warlord).Build();
             _mockActionSystem.PendingCard.Returns(card);
 
             // Act

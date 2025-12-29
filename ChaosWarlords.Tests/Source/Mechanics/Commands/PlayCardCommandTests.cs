@@ -14,7 +14,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         {
             // Arrange
             var mockState = Substitute.For<IGameplayState>();
-            var card = new Card("test", "Test Card", 3, CardAspect.Warlord, 1, 1, 0);
+            var card = new CardBuilder().WithName("test").WithCost(3).WithAspect(CardAspect.Warlord).WithPower(1).WithInfluence(1).Build();
             var command = new PlayCardCommand(card);
 
             // Act

@@ -41,7 +41,7 @@ namespace ChaosWarlords.Source.States.Input
             // Get hovered card from View Model (via State)
             Card? cardToBuy = _state.GetHoveredMarketCard();
 
-            if (cardToBuy != null)
+            if (cardToBuy is not null)
             {
                 return new BuyCardCommand(cardToBuy);
             }

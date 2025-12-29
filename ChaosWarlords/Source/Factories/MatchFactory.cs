@@ -101,7 +101,7 @@ namespace ChaosWarlords.Source.Factories
 
         private static void ApplyScenarioRules(MapManager mapManager)
         {
-            if (mapManager.SitesInternal == null) return;
+            if (mapManager.SitesInternal is null) return;
 
             foreach (var site in mapManager.SitesInternal)
             {

@@ -35,7 +35,7 @@ namespace ChaosWarlords.Source.Entities.Cards
         /// <param name="card">The card to discard.</param>
         public void AddToDiscard(Card card)
         {
-            if (card != null)
+            if (card is not null)
             {
                 card.Location = CardLocation.DiscardPile;
                 _discardPile.Add(card);
@@ -61,7 +61,7 @@ namespace ChaosWarlords.Source.Entities.Cards
         /// <param name="card">The card to add.</param>
         public void AddToTop(Card card)
         {
-            if (card != null)
+            if (card is not null)
             {
                 card.Location = CardLocation.Deck;
                 _drawPile.Insert(0, card);

@@ -35,7 +35,7 @@ namespace ChaosWarlords.Source.Utilities
 
             card.Description = data.Description;
 
-            if (data.Effects != null)
+            if (data.Effects is not null)
             {
                 foreach (var effectData in data.Effects)
                 {

@@ -56,7 +56,7 @@ namespace ChaosWarlords.Source.Input
             {
                 int amount = _context.TurnManager.CurrentTurnContext.PendingPromotionsCount;
                 // Fallback to card effect if context is 0 (direct play)
-                if (amount == 0 && _context.ActionSystem.PendingCard != null)
+                if (amount == 0 && _context.ActionSystem.PendingCard is not null)
                     amount = 1; // Simplify for now
 
                 _currentMode = new PromoteInputMode(_state, _inputManager, _context.ActionSystem, amount);

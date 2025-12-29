@@ -18,13 +18,13 @@ namespace ChaosWarlords.Tests.Systems
         [TestInitialize]
         public void Setup()
         {
-            _player1 = new Player(PlayerColor.Red);
-            _player2 = new Player(PlayerColor.Blue);
+            _player1 = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            _player2 = new PlayerBuilder().WithColor(PlayerColor.Blue).Build();
 
             // Setup: [Node1] -- [Node2] -- [Node3 (SiteA)]
-            _node1 = new MapNode(1, Vector2.Zero);
-            _node2 = new MapNode(2, Vector2.Zero);
-            _node3 = new MapNode(3, Vector2.Zero);
+            _node1 = new MapNodeBuilder().WithId(1).Build();
+            _node2 = new MapNodeBuilder().WithId(2).Build();
+            _node3 = new MapNodeBuilder().WithId(3).Build();
 
             _node1.AddNeighbor(_node2);
             _node2.AddNeighbor(_node1);
@@ -178,7 +178,7 @@ namespace ChaosWarlords.Tests.Systems
         public void CanDeployAt_SetupPhase_True_ForStartingSite()
         {
             // Arrange: Setup Phase needs a StartingSite
-            var startNode = new MapNode(99, Vector2.Zero);
+            var startNode = new MapNodeBuilder().WithId(99).Build();
             var startSite = new StartingSite("Start", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
             startSite.AddNode(startNode);
 
@@ -207,7 +207,7 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void CanDeployAt_SetupPhase_False_IfHasTroops()
         {
-            var startNode = new MapNode(99, Vector2.Zero);
+            var startNode = new MapNodeBuilder().WithId(99).Build();
             var startSite = new StartingSite("Start", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
             startSite.AddNode(startNode);
 
@@ -244,8 +244,8 @@ namespace ChaosWarlords.Tests.Systems
         public void CanDeployAt_SetupPhase_False_IfStartingSiteOccupiedByOtherPlayer()
         {
             // Arrange: Create a StartingSite with 2 nodes
-            var startNode1 = new MapNode(100, Vector2.Zero);
-            var startNode2 = new MapNode(101, new Vector2(50, 0));
+            var startNode1 = new MapNodeBuilder().WithId(100).Build();
+            var startNode2 = new MapNodeBuilder().WithId(101).At(50, 0).Build();
             var startSite = new StartingSite("Start", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
             startSite.AddNode(startNode1);
             startSite.AddNode(startNode2);

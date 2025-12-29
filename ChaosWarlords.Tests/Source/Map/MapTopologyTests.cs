@@ -17,9 +17,9 @@ namespace ChaosWarlords.Tests.Map
         {
             _nodes = new List<MapNode>
             {
-                new MapNode(1, new Vector2(100, 100)),
-                new MapNode(2, new Vector2(200, 200)),
-                new MapNode(3, new Vector2(300, 300))
+                new MapNodeBuilder().WithId(1).At(100, 100).Build(),
+                new MapNodeBuilder().WithId(2).At(200, 200).Build(),
+                new MapNodeBuilder().WithId(3).At(300, 300).Build()
             };
 
             var testSite = new NonCitySite("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);

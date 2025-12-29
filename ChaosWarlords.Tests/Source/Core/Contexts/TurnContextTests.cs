@@ -16,11 +16,11 @@ namespace ChaosWarlords.Tests.Contexts
         [TestInitialize]
         public void Setup()
         {
-            _dummyPlayer = new Player(PlayerColor.Red);
+            _dummyPlayer = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
             _turnContext = new TurnContext(_dummyPlayer);
 
-            _cardA = new Card("A", "Card A", 1, CardAspect.Warlord, 0, 0, 0);
-            _cardB = new Card("B", "Card B", 1, CardAspect.Sorcery, 0, 0, 0);
+            _cardA = new CardBuilder().WithName("A").WithCost(1).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            _cardB = new CardBuilder().WithName("B").WithCost(1).WithAspect(CardAspect.Sorcery).WithPower(0).WithInfluence(0).WithVP(0).Build();
         }
 
         [TestMethod]

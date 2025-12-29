@@ -23,7 +23,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         public Site? GetSiteForNode(MapNode node)
         {
-            if (node == null) return null;
+            if (node is null) return null;
             _nodeSiteLookup.TryGetValue(node, out var site);
             return site;
         }
@@ -34,7 +34,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         public bool HasPresence(MapNode targetNode, PlayerColor player)
         {
-            if (targetNode == null) return false;
+            if (targetNode is null) return false;
 
             if (targetNode.Occupant == player) return true;
 
@@ -46,12 +46,12 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         private static bool HasSpyPresence(Site? site, PlayerColor player)
         {
-            return site != null && site.Spies.Contains(player);
+            return site is not null && site.Spies.Contains(player);
         }
 
         private bool IsAdjacentToFriendly(MapNode targetNode, Site? parentSite, PlayerColor player)
         {
-            IEnumerable<MapNode> boundaryNodes = parentSite != null
+            IEnumerable<MapNode> boundaryNodes = parentSite is not null
                 ? parentSite.NodesInternal
                 : Enumerable.Repeat(targetNode, 1);
 
@@ -67,7 +67,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         {
             if (neighbor.Occupant == player) return true;
             Site? neighborSite = GetSiteForNode(neighbor);
-            return neighborSite != null && neighborSite.HasTroop(player);
+            return neighborSite is not null && neighborSite.HasTroop(player);
         }
 
         public MatchPhase CurrentPhase { get; set; } = MatchPhase.Setup;
@@ -171,7 +171,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         public bool HasValidPlaceSpyTarget(Player activePlayer)
         {
-            if (_sites == null) return false;
+            if (_sites is null) return false;
             return _sites.Any(s => !s.Spies.Contains(activePlayer.Color) && s.NodesInternal.Count > 0);
         }
 

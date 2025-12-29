@@ -8,7 +8,7 @@ namespace ChaosWarlords.Source.Utilities
     {
         public static (float MinX, float MinY, float MaxX, float MaxY) CalculateBounds(List<MapNode> nodes)
         {
-            if (nodes == null || nodes.Count == 0) return (0, 0, 0, 0);
+            if (nodes is null || nodes.Count == 0) return (0, 0, 0, 0);
 
             float minX = float.MaxValue, minY = float.MaxValue;
             float maxX = float.MinValue, maxY = float.MinValue;

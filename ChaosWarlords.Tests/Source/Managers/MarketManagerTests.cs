@@ -21,11 +21,11 @@ namespace ChaosWarlords.Tests.Systems
         [TestInitialize]
         public void Setup()
         {
-            _player = new Player(PlayerColor.Red);
+            _player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
 
             // Setup dummy cards
-            _cheapCard = new Card("c1", "Cheap", 2, CardAspect.Neutral, 1, 1, 0);
-            _expensiveCard = new Card("c2", "Expensive", 10, CardAspect.Neutral, 1, 1, 0);
+            _cheapCard = new CardBuilder().WithName("c1").WithCost(2).WithAspect(CardAspect.Neutral).WithPower(1).WithInfluence(1).WithVP(0).Build();
+            _expensiveCard = new CardBuilder().WithName("c2").WithCost(10).WithAspect(CardAspect.Neutral).WithPower(1).WithInfluence(1).WithVP(0).Build();
 
             // 1. Create the Mock using NSubstitute
             _mockDb = Substitute.For<ICardDatabase>();
@@ -77,7 +77,7 @@ namespace ChaosWarlords.Tests.Systems
             {
                 cards.Add(new Card($"fill{i}", "Filler", 1, CardAspect.Neutral, 0, 0, 0));
             }
-            var reserveCard = new Card("reserve", "Reserve", 1, CardAspect.Neutral, 0, 0, 0);
+            var reserveCard = new CardBuilder().WithName("reserve").WithCost(1).WithAspect(CardAspect.Neutral).WithPower(0).WithInfluence(0).WithVP(0).Build();
             cards.Add(reserveCard);
 
             var localMockDb = Substitute.For<ICardDatabase>();
@@ -108,7 +108,7 @@ namespace ChaosWarlords.Tests.Systems
         public void TryBuyCard_Succeeds_WithExactFunds()
         {
             // Arrange
-            var exactCard = new Card("c_exact", "Exact", 3, CardAspect.Neutral, 1, 0, 0);
+            var exactCard = new CardBuilder().WithName("c_exact").WithCost(3).WithAspect(CardAspect.Neutral).WithPower(1).WithInfluence(0).WithVP(0).Build();
 
             // Manually add to the row (bypassing the deck/mock for this specific setup)
             _market.MarketRow.Add(exactCard);

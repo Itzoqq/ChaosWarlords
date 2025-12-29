@@ -94,13 +94,13 @@ namespace ChaosWarlords.Source.Managers
         {
             Action action = CurrentState switch
             {
-                ActionState.TargetingAssassinate when targetNode != null => () => HandleAssassinate(targetNode),
-                ActionState.TargetingReturn when targetNode != null => () => HandleReturn(targetNode),
-                ActionState.TargetingSupplant when targetNode != null => () => HandleSupplant(targetNode),
-                ActionState.TargetingPlaceSpy when targetSite != null => () => HandlePlaceSpy(targetSite),
-                ActionState.TargetingReturnSpy when targetSite != null => () => HandleReturnSpyInitialClick(targetSite),
-                ActionState.TargetingMoveSource when targetNode != null => () => HandleMoveSource(targetNode),
-                ActionState.TargetingMoveDestination when targetNode != null => () => HandleMoveDestination(targetNode),
+                ActionState.TargetingAssassinate when targetNode is not null => () => HandleAssassinate(targetNode),
+                ActionState.TargetingReturn when targetNode is not null => () => HandleReturn(targetNode),
+                ActionState.TargetingSupplant when targetNode is not null => () => HandleSupplant(targetNode),
+                ActionState.TargetingPlaceSpy when targetSite is not null => () => HandlePlaceSpy(targetSite),
+                ActionState.TargetingReturnSpy when targetSite is not null => () => HandleReturnSpyInitialClick(targetSite),
+                ActionState.TargetingMoveSource when targetNode is not null => () => HandleMoveSource(targetNode),
+                ActionState.TargetingMoveDestination when targetNode is not null => () => HandleMoveDestination(targetNode),
                 _ => () => { }
             };
 
@@ -115,7 +115,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void HandleAssassinate(MapNode targetNode)
         {
-            if (targetNode == null) return;
+            if (targetNode is null) return;
 
             if (!ValidateAssassinate(targetNode)) return;
 
@@ -130,7 +130,7 @@ namespace ChaosWarlords.Source.Managers
                 return false;
             }
 
-            if (PendingCard == null && CurrentPlayer.Power < ASSASSINATE_COST)
+            if (PendingCard is null && CurrentPlayer.Power < ASSASSINATE_COST)
             {
                 CancelTargeting();
                 OnActionFailed?.Invoke(this, $"Not enough Power to execute Assassinate! (Need {ASSASSINATE_COST})");
@@ -142,7 +142,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void ExecuteAssassinate(MapNode targetNode)
         {
-            if (PendingCard == null)
+            if (PendingCard is null)
             {
                 SpendAssassinateCost();
             }
@@ -153,7 +153,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void SpendAssassinateCost()
         {
-            if (_playerStateManager != null)
+            if (_playerStateManager is not null)
             {
                 _playerStateManager.TrySpendPower(CurrentPlayer, ASSASSINATE_COST);
             }
@@ -165,7 +165,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void HandleReturn(MapNode targetNode)
         {
-            if (targetNode == null) return;
+            if (targetNode is null) return;
             if (targetNode.Occupant != PlayerColor.None && _mapManager.HasPresence(targetNode, CurrentPlayer.Color))
             {
                 if (targetNode.Occupant == PlayerColor.Neutral) return;
@@ -178,7 +178,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void HandleSupplant(MapNode targetNode)
         {
-            if (targetNode == null) return;
+            if (targetNode is null) return;
             if (!_mapManager.CanAssassinate(targetNode, CurrentPlayer)) return;
             if (CurrentPlayer.TroopsInBarracks <= 0) return;
 
@@ -189,7 +189,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void HandlePlaceSpy(Site targetSite)
         {
-            if (targetSite == null) return;
+            if (targetSite is null) return;
             if (targetSite.Spies.Contains(CurrentPlayer.Color)) return;
             if (CurrentPlayer.SpiesInBarracks <= 0) return;
 
@@ -201,7 +201,7 @@ namespace ChaosWarlords.Source.Managers
         private void HandleReturnSpyInitialClick(Site clickedSite)
         {
             // 1. Sanity Checks
-            if (clickedSite == null)
+            if (clickedSite is null)
             {
                 GameLogger.Log("Invalid Target: You must click a Site.", LogChannel.Warning);
                 return;
@@ -225,7 +225,7 @@ namespace ChaosWarlords.Source.Managers
         private bool IsValidSpyReturnTarget(Site site, System.Collections.Generic.List<PlayerColor> enemySpies, out string reason)
         {
             // Rule 1: Must have a spy to return
-            if (enemySpies == null || enemySpies.Count == 0)
+            if (enemySpies is null || enemySpies.Count == 0)
             {
                 reason = "Target has no enemy spies.";
                 return false;
@@ -238,8 +238,8 @@ namespace ChaosWarlords.Source.Managers
             // This ensures we don't break unit tests while still relying on the Manager for logic.
 
             // Rule 3: Check Cost (3 Power)
-            // If paying via card (PendingCard != null), cost is ignored.
-            if (PendingCard == null && CurrentPlayer.Power < RETURN_SPY_COST)
+            // If paying via card (PendingCard is not null), cost is ignored.
+            if (PendingCard is null && CurrentPlayer.Power < RETURN_SPY_COST)
             {
                 reason = $"Not enough Power. Need {RETURN_SPY_COST}.";
                 return false;
@@ -268,7 +268,7 @@ namespace ChaosWarlords.Source.Managers
 
         public void FinalizeSpyReturn(PlayerColor selectedSpyColor)
         {
-            if (PendingSite == null) return;
+            if (PendingSite is null) return;
 
             // 1. Validation & Cost Check
             if (!ValidateSpyReturn(CurrentPlayer))
@@ -284,7 +284,7 @@ namespace ChaosWarlords.Source.Managers
         private bool ValidateSpyReturn(Player player)
         {
             // Cost Check
-            if (PendingCard == null)
+            if (PendingCard is null)
             {
                 if (player.Power < RETURN_SPY_COST)
                 {
@@ -303,9 +303,9 @@ namespace ChaosWarlords.Source.Managers
 
             if (success)
             {
-                if (PendingCard == null)
+                if (PendingCard is null)
                 {
-                    if (_playerStateManager != null)
+                    if (_playerStateManager is not null)
                     {
                         _playerStateManager.TrySpendPower(CurrentPlayer, RETURN_SPY_COST);
                     }
@@ -327,7 +327,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void HandleMoveSource(MapNode targetNode)
         {
-            if (targetNode == null) return;
+            if (targetNode is null) return;
 
             if (!_mapManager.CanMoveSource(targetNode, CurrentPlayer))
             {
@@ -342,7 +342,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void HandleMoveDestination(MapNode targetNode)
         {
-            if (targetNode == null || PendingMoveSource == null) return;
+            if (targetNode is null || PendingMoveSource is null) return;
 
             if (!_mapManager.CanMoveDestination(targetNode))
             {

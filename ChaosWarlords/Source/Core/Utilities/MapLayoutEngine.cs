@@ -81,14 +81,14 @@ namespace ChaosWarlords.Source.Utilities
                 var fromSite = sites.FirstOrDefault(s => s.Name == routeConfig.FromSiteName);
                 var toSite = sites.FirstOrDefault(s => s.Name == routeConfig.ToSiteName);
 
-                if (fromSite != null && toSite != null)
+                if (fromSite is not null && toSite is not null)
                 {
                     var route = new Route(fromSite, toSite);
 
                     // Find closest nodes between the two sites to connect
                     var connection = FindBestConnectionPoints(fromSite, toSite);
 
-                    if (connection.StartNode != null && connection.EndNode != null)
+                    if (connection.StartNode is not null && connection.EndNode is not null)
                     {
                         var routeNodes = GenerateRouteNodes(connection.StartNode!, connection.EndNode!, routeConfig.NodeCount);
 

@@ -39,7 +39,7 @@ namespace ChaosWarlords.Source.Utilities
         public static (List<MapNode>, List<Site>, List<Route>) LoadFromData(string json)
         {
             var data = JsonSerializer.Deserialize<MapData>(json, s_jsonOptions);
-            if (data == null) throw new InvalidDataException("Failed to deserialize map data.");
+            if (data is null) throw new InvalidDataException("Failed to deserialize map data.");
 
             var nodes = CreateNodes(data.Nodes);
             CreateRoutes(data.Routes, nodes);
@@ -79,7 +79,7 @@ namespace ChaosWarlords.Source.Utilities
         private static List<MapNode> CreateNodes(List<NodeData> nodeDataList)
         {
             var nodes = new List<MapNode>();
-            if (nodeDataList == null) return nodes;
+            if (nodeDataList is null) return nodes;
 
             foreach (var n in nodeDataList)
             {
@@ -98,18 +98,18 @@ namespace ChaosWarlords.Source.Utilities
 
         private static void CreateRoutes(List<RouteData> routeDataList, List<MapNode> nodes)
         {
-            if (routeDataList == null) return;
+            if (routeDataList is null) return;
             foreach (var r in routeDataList)
             {
                 var nodeA = nodes.FirstOrDefault(n => n.Id == r.From);
                 var nodeB = nodes.FirstOrDefault(n => n.Id == r.To);
-                if (nodeA != null && nodeB != null) nodeA.AddNeighbor(nodeB);
+                if (nodeA is not null && nodeB is not null) nodeA.AddNeighbor(nodeB);
             }
         }
         private static List<Site> CreateSites(List<SiteData> siteDataList, List<MapNode> nodes)
         {
             var sites = new List<Site>();
-            if (siteDataList == null) return sites;
+            if (siteDataList is null) return sites;
 
             foreach (var s in siteDataList)
             {
@@ -139,7 +139,7 @@ namespace ChaosWarlords.Source.Utilities
                 foreach (int nodeId in s.NodeIds)
                 {
                     var node = nodes.FirstOrDefault(n => n.Id == nodeId);
-                    if (node != null) newSite.AddNode(node);
+                    if (node is not null) newSite.AddNode(node);
                 }
                 sites.Add(newSite);
             }

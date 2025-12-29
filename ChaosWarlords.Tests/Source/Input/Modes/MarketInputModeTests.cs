@@ -71,14 +71,14 @@ namespace ChaosWarlords.Tests.States.Input
             _inputMode = new MarketInputMode(_stateSub, _inputManager, context);
 
             // Setup active player dummy
-            _activePlayer = new Player(PlayerColor.Red);
+            _activePlayer = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
         }
 
         [TestMethod]
         public void HandleInput_ClickingCard_ReturnsBuyCardCommand()
         {
             // 1. Arrange
-            var card = new Card("market_card", "Buy Me", 3, CardAspect.Order, 1, 0, 0);
+            var card = new CardBuilder().WithName("market_card").WithCost(3).WithAspect(CardAspect.Order).WithPower(1).WithInfluence(0).WithVP(0).Build();
 
             // Mock the State to say "Yes, the mouse is hovering this card"
             _stateSub.GetHoveredMarketCard().Returns(card);

@@ -82,7 +82,7 @@ namespace ChaosWarlords.Source.Map
         /// </summary>
         public static List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer)
         {
-            if (site == null) return new List<PlayerColor>();
+            if (site is null) return new List<PlayerColor>();
             return site.Spies.Where(s => s != activePlayer.Color && s != PlayerColor.None).ToList();
         }
     }

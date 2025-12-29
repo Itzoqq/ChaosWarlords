@@ -85,7 +85,7 @@ namespace ChaosWarlords.Source.States
         {
             // Game might be null in headless mode, but if we need to load content we might need a ContentProvider.
             // For now, checks are strict:
-            if (_game == null && _view != null)
+            if (_game is null && _view is not null)
             {
                 // If view exists but game is null, we can't load content.
                 GameLogger.Log("GameplayState: Skipping view content load because Game is null (Headless mode?)");
@@ -109,10 +109,10 @@ namespace ChaosWarlords.Source.States
 
         private void InitializeView()
         {
-            if (_view != null)
+            if (_view is not null)
             {
                 // Content loading is managed by State lifecycle
-                if (_game != null) _view.LoadContent(_game.Content);
+                if (_game is not null) _view.LoadContent(_game.Content);
                 _interactionMapper = new InteractionMapper(_view);
             }
         }
@@ -134,7 +134,7 @@ namespace ChaosWarlords.Source.States
             _matchManager = new MatchManager(_matchContext);
 
             // Don't draw cards during Setup phase
-            if (_matchContext.CurrentPhase != MatchPhase.Setup && _matchContext.TurnManager.Players != null)
+            if (_matchContext.CurrentPhase != MatchPhase.Setup && _matchContext.TurnManager.Players is not null)
             {
                 foreach (var player in _matchContext.TurnManager.Players)
                 {
@@ -204,7 +204,7 @@ namespace ChaosWarlords.Source.States
 
         public void Draw(SpriteBatch spriteBatch)
         {
-            // if (_game == null) return; // Allow drawing via View even if Game is null (for tests/tools)
+            // if (_game is null) return; // Allow drawing via View even if Game is null (for tests/tools)
 
             string targetingText = "";
             if (_matchContext.ActionSystem.IsTargeting())

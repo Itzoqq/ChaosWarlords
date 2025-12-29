@@ -28,8 +28,8 @@ namespace ChaosWarlords.Tests.Source.Systems
         {
             // 1. Setup Context with a REAL TurnManager
             // (The Coordinator casts 'ITurnManager' to 'TurnManager', so a Mock would become null)
-            var p1 = new Player(PlayerColor.Red);
-            var p2 = new Player(PlayerColor.Blue);
+            var p1 = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var p2 = new PlayerBuilder().WithColor(PlayerColor.Blue).Build();
             var mockRandom = Substitute.For<IGameRandom>();
             var turnManager = new TurnManager(new List<Player> { p1, p2 }, mockRandom);
 

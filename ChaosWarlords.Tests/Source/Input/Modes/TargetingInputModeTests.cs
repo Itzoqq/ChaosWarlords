@@ -41,7 +41,7 @@ namespace ChaosWarlords.Tests.States.Input
             _stateSub = Substitute.For<IGameplayState>();
             _marketSub = Substitute.For<IMarketManager>();
             _mockUI = Substitute.For<IUIManager>();
-            _activePlayer = new Player(PlayerColor.Red);
+            _activePlayer = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
             var mockRandom = Substitute.For<IGameRandom>();
             _turnManager = new TurnManager(new List<Player> { _activePlayer }, mockRandom);
 
@@ -97,7 +97,7 @@ namespace ChaosWarlords.Tests.States.Input
         {
             _actionSub.CurrentState.Returns(ActionState.TargetingAssassinate);
 
-            var node = new MapNode(1, new Vector2(200, 200));
+            var node = new MapNodeBuilder().WithId(1).At(200, 200).Build();
             _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns(node);
 
             InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 200, 200);

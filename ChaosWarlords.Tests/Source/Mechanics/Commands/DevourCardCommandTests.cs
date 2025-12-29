@@ -26,7 +26,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             _mockState.MatchManager.Returns(_mockMatchManager);
             _mockState.ActionSystem.Returns(_mockActionSystem);
 
-            _testCard = new Card("Devour Test", "Test", 1, CardAspect.Warlord, 0, 0, 0);
+            _testCard = new CardBuilder().WithName("Devour Test").WithCost(1).WithAspect(CardAspect.Warlord).Build();
         }
 
         [TestMethod]

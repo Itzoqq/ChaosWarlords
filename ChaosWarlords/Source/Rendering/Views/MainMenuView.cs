@@ -55,7 +55,7 @@ namespace ChaosWarlords.Source.Rendering.Views
                 _backgroundTexture.SetData(new[] { Color.DarkSlateGray });
             }
 
-            if (font != null)
+            if (font is not null)
             {
                 _buttonRenderer = new ButtonRenderer(_graphicsDevice, font);
             }
@@ -82,7 +82,7 @@ namespace ChaosWarlords.Source.Rendering.Views
         public void Draw(SpriteBatch spriteBatch)
         {
             // Draw Background
-            if (_backgroundTexture != null)
+            if (_backgroundTexture is not null)
             {
                 spriteBatch.Draw(_backgroundTexture, new Rectangle(0, 0, _graphicsDevice.Viewport.Width, _graphicsDevice.Viewport.Height), Color.White);
             }

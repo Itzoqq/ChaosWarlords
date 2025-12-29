@@ -36,14 +36,14 @@ namespace ChaosWarlords.Source.States.Input
             {
                 // 1. Check Card Click
                 Card? clickedCard = _state.GetHoveredHandCard();
-                if (clickedCard != null)
+                if (clickedCard is not null)
                 {
                     return new PlayCardCommand(clickedCard);
                 }
 
                 // 2. Check Map Click
                 var clickedNode = mapManager.GetNodeAt(inputManager.MousePosition);
-                if (clickedNode != null)
+                if (clickedNode is not null)
                 {
                     mapManager.TryDeploy(activePlayer, clickedNode);
                 }

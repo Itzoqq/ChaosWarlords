@@ -19,12 +19,12 @@ namespace ChaosWarlords.Tests.Systems
         public void Setup()
         {
             _system = new SiteControlSystem();
-            _player1 = new Player(PlayerColor.Red);
-            _player2 = new Player(PlayerColor.Blue);
+            _player1 = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            _player2 = new PlayerBuilder().WithColor(PlayerColor.Blue).Build();
 
             // Setup Site with 2 nodes
-            _node1 = new MapNode(1, Vector2.Zero);
-            _node2 = new MapNode(2, Vector2.Zero);
+            _node1 = new MapNodeBuilder().WithId(1).Build();
+            _node2 = new MapNodeBuilder().WithId(2).Build();
             _siteA = new CitySite("TestCity", ResourceType.Power, 1, ResourceType.VictoryPoints, 5);
             _siteA.AddNode(_node1);
             _siteA.AddNode(_node2);
@@ -76,7 +76,7 @@ namespace ChaosWarlords.Tests.Systems
             _node2.Occupant = _player2.Color;
             // 1 vs 1 -> Tie -> No Owner usually.
             // Let's add another node for Red to ensure they own it but enemy exists.
-            var node3 = new MapNode(3, Vector2.Zero);
+            var node3 = new MapNodeBuilder().WithId(3).Build();
             node3.Occupant = _player1.Color;
             _siteA.AddNode(node3);
 

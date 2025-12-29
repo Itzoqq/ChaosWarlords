@@ -36,7 +36,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetHoveredHandCard_ReturnsCard_WhenCardIsHovered()
         {
             // Arrange
-            var card = new Card("Test Card", "Test", 1, CardAspect.Warlord, 0, 0, 0);
+            var card = new CardBuilder().WithName("Test Card").WithCost(1).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build();
             var viewModel = new CardViewModel(card) { IsHovered = true };
             _view.HandViewModels.Add(viewModel);
 
@@ -51,7 +51,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetHoveredHandCard_ReturnsNull_WhenNoCardIsHovered()
         {
             // Arrange
-            var card = new Card("Test Card", "Test", 1, CardAspect.Warlord, 0, 0, 0);
+            var card = new CardBuilder().WithName("Test Card").WithCost(1).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build();
             var viewModel = new CardViewModel(card) { IsHovered = false };
             _view.HandViewModels.Add(viewModel);
 
@@ -66,8 +66,8 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetHoveredHandCard_ReturnsFirstHovered_WhenMultipleCardsExist()
         {
             // Arrange
-            var card1 = new Card("Card 1", "Test", 1, CardAspect.Warlord, 0, 0, 0);
-            var card2 = new Card("Card 2", "Test", 1, CardAspect.Warlord, 0, 0, 0);
+            var card1 = new CardBuilder().WithName("Card 1").WithCost(1).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var card2 = new CardBuilder().WithName("Card 2").WithCost(1).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build();
             var vm1 = new CardViewModel(card1) { IsHovered = false };
             var vm2 = new CardViewModel(card2) { IsHovered = true };
             _view.HandViewModels.Add(vm1);
@@ -100,7 +100,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetHoveredMarketCard_ReturnsCard_WhenCardIsHovered()
         {
             // Arrange
-            var card = new Card("Market Card", "Test", 2, CardAspect.Blasphemy, 0, 0, 0);
+            var card = new CardBuilder().WithName("Market Card").WithCost(2).WithAspect(CardAspect.Blasphemy).WithPower(0).WithInfluence(0).WithVP(0).Build();
             var viewModel = new CardViewModel(card) { IsHovered = true };
             _view.MarketViewModels.Add(viewModel);
 
@@ -115,7 +115,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetHoveredMarketCard_ReturnsNull_WhenNoCardIsHovered()
         {
             // Arrange
-            var card = new Card("Market Card", "Test", 2, CardAspect.Blasphemy, 0, 0, 0);
+            var card = new CardBuilder().WithName("Market Card").WithCost(2).WithAspect(CardAspect.Blasphemy).WithPower(0).WithInfluence(0).WithVP(0).Build();
             var viewModel = new CardViewModel(card) { IsHovered = false };
             _view.MarketViewModels.Add(viewModel);
 
@@ -146,7 +146,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetHoveredPlayedCard_ReturnsCard_WhenMouseIsWithinBounds()
         {
             // Arrange
-            var card = new Card("Played Card", "Test", 1, CardAspect.Warlord, 0, 0, 0);
+            var card = new CardBuilder().WithName("Played Card").WithCost(1).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build();
             var viewModel = new CardViewModel(card);
             viewModel.Position = new Vector2(100, 100);
             _view.PlayedViewModels.Add(viewModel);
@@ -167,7 +167,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetHoveredPlayedCard_ReturnsNull_WhenMouseIsOutsideBounds()
         {
             // Arrange
-            var card = new Card("Played Card", "Test", 1, CardAspect.Warlord, 0, 0, 0);
+            var card = new CardBuilder().WithName("Played Card").WithCost(1).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build();
             var viewModel = new CardViewModel(card);
             viewModel.Position = new Vector2(100, 100);
             _view.PlayedViewModels.Add(viewModel);

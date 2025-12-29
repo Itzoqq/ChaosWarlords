@@ -25,7 +25,7 @@ namespace ChaosWarlords.Tests.Map
         {
             // Arrange
             var site = new NonCitySite("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
-            var player = new Player(PlayerColor.Red);
+            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
             player.SpiesInBarracks = 3;
 
             // Act
@@ -43,7 +43,7 @@ namespace ChaosWarlords.Tests.Map
             // Arrange
             var site = new NonCitySite("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
             site.Spies.Add(PlayerColor.Red);
-            var player = new Player(PlayerColor.Red);
+            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
             player.SpiesInBarracks = 3;
 
             // Act
@@ -60,7 +60,7 @@ namespace ChaosWarlords.Tests.Map
             // Arrange
             var site = new NonCitySite("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
             site.Spies.Add(PlayerColor.Blue);
-            var player = new Player(PlayerColor.Red);
+            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
 
             // Act
             var result = _spyOps.ExecuteReturnSpy(site, player, PlayerColor.Blue);
@@ -77,7 +77,7 @@ namespace ChaosWarlords.Tests.Map
             // Arrange
             var site = new NonCitySite("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
             site.Spies.Add(PlayerColor.Red);
-            var player = new Player(PlayerColor.Red);
+            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
 
             // Act
             var result = _spyOps.ExecuteReturnSpy(site, player, PlayerColor.Red);
@@ -95,7 +95,7 @@ namespace ChaosWarlords.Tests.Map
             site.Spies.Add(PlayerColor.Red); // Own spy
             site.Spies.Add(PlayerColor.Blue); // Enemy spy
             site.Spies.Add(PlayerColor.Orange); // Enemy spy
-            var player = new Player(PlayerColor.Red);
+            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
 
             // Act
             var result = SpyOperations.GetEnemySpiesAtSite(site, player);

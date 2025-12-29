@@ -15,10 +15,10 @@ namespace ChaosWarlords.Tests.Source.Entities
         [TestInitialize]
         public void Setup()
         {
-            _player = new Player(PlayerColor.Red);
-            _card1 = new Card("c1", "Card One", 0, CardAspect.Shadow, 1, 2, 0);
-            _card2 = new Card("c2", "Card Two", 0, CardAspect.Shadow, 1, 2, 0);
-            _card3 = new Card("c3", "Card Three", 0, CardAspect.Shadow, 1, 2, 0);
+            _player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            _card1 = new CardBuilder().WithName("c1").WithAspect(CardAspect.Shadow).WithPower(1).WithInfluence(2).Build();
+            _card2 = new CardBuilder().WithName("c2").WithAspect(CardAspect.Shadow).WithPower(1).WithInfluence(2).Build();
+            _card3 = new CardBuilder().WithName("c3").WithAspect(CardAspect.Shadow).WithPower(1).WithInfluence(2).Build();
         }
 
         [TestMethod]

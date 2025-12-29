@@ -20,7 +20,7 @@ namespace ChaosWarlords.Source.Managers
             _marketDeck = _cardDatabase.GetAllMarketCards();
             MarketRow = new List<Card>();
 
-            if (random != null)
+            if (random is not null)
                 random.Shuffle(_marketDeck);
             else
                 _marketDeck.Shuffle(); // Fallback to System.Random logic if no seed provided (legacy/test support)

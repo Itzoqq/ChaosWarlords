@@ -34,7 +34,7 @@ namespace ChaosWarlords.Tests.Source.Commands
         public void Execute_WithPendingCard_DelegatesToMatchManager()
         {
             // Arrange
-            var card = new Card("test", "Test", 1, CardAspect.Warlord, 0, 0, 0);
+            var card = new CardBuilder().WithName("test").WithCost(1).WithAspect(CardAspect.Warlord).Build();
             _actionSub.PendingCard.Returns(card);
 
             var command = new ActionCompletedCommand();

@@ -42,7 +42,7 @@ namespace ChaosWarlords.Tests.Systems
             _matchContext = new MatchContext(turnManager, _mapManager, marketManager, _actionSystem, cardDb, ps);
 
             // Set Active Player manually if needed
-            var player = new Player(PlayerColor.Red);
+            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
             turnManager.ActivePlayer.Returns(player);
 
             // System under test
@@ -52,8 +52,14 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void PlayCard_WithTargetingEffect_ButNoTargets_SkipsTargeting_AndPlaysCard()
         {
-            var card = new Card("assassin", "Assassin", 3, CardAspect.Shadow, 1, 1, 0);
-            card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
+            var card = new CardBuilder()
+                .WithName("assassin")
+                .WithCost(3)
+                .WithAspect(CardAspect.Shadow)
+                .WithPower(1)
+                .WithInfluence(1)
+                .WithEffect(EffectType.Assassinate, 1)
+                .Build();
 
             // Map says NO targets
             _mapManager.HasValidAssassinationTarget(Arg.Any<Player>()).Returns(false);
@@ -71,8 +77,14 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void PlayCard_WithTargetingEffect_AndTargetsExist_StartsTargeting()
         {
-            var card = new Card("assassin", "Assassin", 3, CardAspect.Shadow, 1, 1, 0);
-            card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
+            var card = new CardBuilder()
+                .WithName("assassin")
+                .WithCost(3)
+                .WithAspect(CardAspect.Shadow)
+                .WithPower(1)
+                .WithInfluence(1)
+                .WithEffect(EffectType.Assassinate, 1)
+                .Build();
 
             // Map says YES targets
             _mapManager.HasValidAssassinationTarget(Arg.Any<Player>()).Returns(true);
@@ -91,8 +103,14 @@ namespace ChaosWarlords.Tests.Systems
         public void PlayCard_WithPromote_DoesNotSwitchToTargeting()
         {
             // Promote is NOT a targeting effect in CardPlaySystem (it's phase based)
-            var card = new Card("noble", "Noble", 3, CardAspect.Blasphemy, 1, 1, 0);
-            card.AddEffect(new CardEffect(EffectType.Promote, 1));
+            var card = new CardBuilder()
+                .WithName("noble")
+                .WithCost(3)
+                .WithAspect(CardAspect.Blasphemy)
+                .WithPower(1)
+                .WithInfluence(1)
+                .WithEffect(EffectType.Promote, 1)
+                .Build();
 
             _system.PlayCard(card);
 
@@ -106,12 +124,18 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void PlayCard_Devour_SwitchesToTargeting_WhenHandHasCards()
         {
-            var card = new Card("devourer", "Devourer", 3, CardAspect.Shadow, 1, 1, 0);
-            card.AddEffect(new CardEffect(EffectType.Devour, 1));
+            var card = new CardBuilder()
+                .WithName("devourer")
+                .WithCost(3)
+                .WithAspect(CardAspect.Shadow)
+                .WithPower(1)
+                .WithInfluence(1)
+                .WithEffect(EffectType.Devour, 1)
+                .Build();
 
             var player = _matchContext.ActivePlayer;
             player.Hand.Add(card);
-            player.Hand.Add(new Card("food", "Food", 0, CardAspect.Neutral, 0, 0, 0));
+            player.Hand.Add(new CardBuilder().WithName("food").WithAspect(CardAspect.Neutral).Build());
 
             _system.PlayCard(card);
 
@@ -122,8 +146,14 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void PlayCard_Devour_SkipsTargeting_WhenHandEmpty()
         {
-            var card = new Card("devourer", "Devourer", 3, CardAspect.Shadow, 1, 1, 0);
-            card.AddEffect(new CardEffect(EffectType.Devour, 1));
+            var card = new CardBuilder()
+                .WithName("devourer")
+                .WithCost(3)
+                .WithAspect(CardAspect.Shadow)
+                .WithPower(1)
+                .WithInfluence(1)
+                .WithEffect(EffectType.Devour, 1)
+                .Build();
 
             _matchContext.ActivePlayer.Hand.Clear();
             // (Logic check: GameplayState tests assumed if Hand.Count > 0. If we pass empty hand here...)
@@ -137,8 +167,14 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void HasViableTargets_ReturnsTrue_WhenTargetsExist()
         {
-            var card = new Card("assassin", "Assassin", 3, CardAspect.Shadow, 1, 1, 0);
-            card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
+            var card = new CardBuilder()
+                .WithName("assassin")
+                .WithCost(3)
+                .WithAspect(CardAspect.Shadow)
+                .WithPower(1)
+                .WithInfluence(1)
+                .WithEffect(EffectType.Assassinate, 1)
+                .Build();
 
             _mapManager.HasValidAssassinationTarget(Arg.Any<Player>()).Returns(true);
 
@@ -148,8 +184,14 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void HasViableTargets_ReturnsFalse_WhenNoTargets()
         {
-            var card = new Card("assassin", "Assassin", 3, CardAspect.Shadow, 1, 1, 0);
-            card.AddEffect(new CardEffect(EffectType.Assassinate, 1));
+            var card = new CardBuilder()
+                .WithName("assassin")
+                .WithCost(3)
+                .WithAspect(CardAspect.Shadow)
+                .WithPower(1)
+                .WithInfluence(1)
+                .WithEffect(EffectType.Assassinate, 1)
+                .Build();
 
             _mapManager.HasValidAssassinationTarget(Arg.Any<Player>()).Returns(false);
 

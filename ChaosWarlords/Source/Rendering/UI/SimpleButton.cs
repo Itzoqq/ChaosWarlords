@@ -42,7 +42,7 @@ namespace ChaosWarlords.Source.Rendering.UI
             spriteBatch.Draw(pixelTexture, new Rectangle(Bounds.X, Bounds.Y, border, Bounds.Height), color); // Left
             spriteBatch.Draw(pixelTexture, new Rectangle(Bounds.X + Bounds.Width - border, Bounds.Y, border, Bounds.Height), color); // Right
 
-            if (font != null)
+            if (font is not null)
             {
                 Vector2 textSize = font.MeasureString(Text);
                 Vector2 textPos = new Vector2(
