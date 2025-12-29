@@ -12,6 +12,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Systems
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class CardPlaySystemTests
     {
         private CardPlaySystem _system = null!;

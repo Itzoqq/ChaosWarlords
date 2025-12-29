@@ -7,6 +7,8 @@ using Microsoft.Xna.Framework;
 namespace ChaosWarlords.Tests.Systems
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class SiteControlSystemTests
     {
         private SiteControlSystem _system = null!;

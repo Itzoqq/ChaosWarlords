@@ -11,6 +11,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Source.Input.Processors
 {
     [TestClass]
+
+    [TestCategory("Integration")]
     public class InteractionMapperTests
     {
         private InteractionMapper _mapper = null!;

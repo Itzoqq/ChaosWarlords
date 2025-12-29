@@ -11,6 +11,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Input.Controllers
 {
     [TestClass]
+
+    [TestCategory("Integration")]
     public class PlayerControllerTests
     {
         private IGameplayState _mockGameState = null!;

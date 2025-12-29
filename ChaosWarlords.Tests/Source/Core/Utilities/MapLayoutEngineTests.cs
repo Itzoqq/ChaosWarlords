@@ -5,6 +5,8 @@ using Microsoft.Xna.Framework;
 namespace ChaosWarlords.Tests.Source.Utilities
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class MapLayoutEngineTests
     {
         [TestMethod]

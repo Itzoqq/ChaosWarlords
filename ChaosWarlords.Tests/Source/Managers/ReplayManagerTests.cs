@@ -7,6 +7,8 @@ using System;
 namespace ChaosWarlords.Tests.Source.Managers
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class ReplayManagerTests
     {
         [TestMethod]

@@ -7,6 +7,7 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Source.Entities
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class PlayerTests
     {
         private Player _player = null!;

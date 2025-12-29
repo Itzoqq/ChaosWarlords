@@ -7,6 +7,8 @@ using ChaosWarlords.Source.Managers;
 namespace ChaosWarlords.Tests.Map
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class SpyOperationsTests
     {
         private SpyOperations _spyOps = null!;

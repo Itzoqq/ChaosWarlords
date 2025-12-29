@@ -3,6 +3,8 @@ using ChaosWarlords.Source.Core.Utilities;
 namespace ChaosWarlords.Tests.Core.Utilities
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class SeededGameRandomTests
     {
         [TestMethod]

@@ -6,6 +6,8 @@ using Microsoft.Xna.Framework;
 namespace ChaosWarlords.Tests.Map
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class MapTopologyTests
     {
         private List<MapNode> _nodes = null!;

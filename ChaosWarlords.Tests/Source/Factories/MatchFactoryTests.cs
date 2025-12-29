@@ -6,6 +6,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Systems
 {
     [TestClass]
+
+    [TestCategory("Integration")]
     public class MatchFactoryTests
     {
         [TestMethod]

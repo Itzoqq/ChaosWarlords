@@ -4,6 +4,8 @@ using Microsoft.Xna.Framework;
 namespace ChaosWarlords.Tests.Source.Utilities
 {
   [TestClass]
+
+  [TestCategory("Integration")]
   public class MapFactoryTests
   {
     // A mock JSON string representing a small, simple map.

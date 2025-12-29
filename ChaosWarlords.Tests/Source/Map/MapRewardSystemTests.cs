@@ -8,6 +8,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Map
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class MapRewardSystemTests
     {
         private SiteControlSystem _mockControlSystem = null!;

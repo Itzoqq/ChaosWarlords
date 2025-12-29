@@ -16,6 +16,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.States.Input
 {
     [TestClass]
+
+    [TestCategory("Integration")]
     public class NormalPlayInputModeTests
     {
         private NormalPlayInputMode _inputMode = null!;

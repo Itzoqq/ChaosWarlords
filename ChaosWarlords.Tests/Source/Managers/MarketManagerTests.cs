@@ -9,6 +9,8 @@ using ChaosWarlords.Source.Utilities;
 namespace ChaosWarlords.Tests.Systems
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class MarketManagerTests
     {
         private MarketManager _market = null!;
@@ -41,7 +43,7 @@ namespace ChaosWarlords.Tests.Systems
             _market = new MarketManager(_mockDb);
         }
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(2, 5, true, 3)]    // Affordable
         [DataRow(10, 5, false, 5)]  // Too expensive
         [DataRow(3, 3, true, 0)]    // Exact funds
@@ -64,7 +66,7 @@ namespace ChaosWarlords.Tests.Systems
             Assert.AreEqual(shouldSucceed, result);
             Assert.AreEqual(expectedInfluenceAfter, _player.Influence);
             Assert.AreEqual(shouldSucceed, _player.DiscardPile.Contains(card));
-            
+
             if (shouldSucceed)
                 CollectionAssert.DoesNotContain(_market.MarketRow, card);
         }

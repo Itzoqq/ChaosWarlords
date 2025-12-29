@@ -12,6 +12,8 @@ using ChaosWarlords.Source.Managers;
 namespace ChaosWarlords.Tests.Source.Systems
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class CardEffectProcessorTests
     {
         private CardEffectProcessor _processor = null!;
@@ -118,7 +120,7 @@ namespace ChaosWarlords.Tests.Source.Systems
         }
 
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(EffectType.MoveUnit, ActionState.TargetingMoveSource, "MoveSource")]
         [DataRow(EffectType.Assassinate, ActionState.TargetingAssassinate, "Assassination")]
         [DataRow(EffectType.ReturnUnit, ActionState.TargetingReturn, "ReturnTroop")]
@@ -138,7 +140,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _context.ActionSystem.Received(1).StartTargeting(expectedState, card);
         }
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(EffectType.MoveUnit, "MoveSource")]
         [DataRow(EffectType.Assassinate, "Assassination")]
         [DataRow(EffectType.ReturnUnit, "ReturnTroop")]

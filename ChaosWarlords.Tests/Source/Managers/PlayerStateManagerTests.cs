@@ -8,6 +8,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Managers
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class PlayerStateManagerTests
     {
         private PlayerStateManager _manager = null!;
@@ -20,7 +22,7 @@ namespace ChaosWarlords.Tests.Managers
             _player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
         }
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(5, 5)]
         [DataRow(10, 10)]
         [DataRow(0, 0)]
@@ -38,7 +40,7 @@ namespace ChaosWarlords.Tests.Managers
             Assert.AreEqual(10, _player.Power);
         }
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(10, 4, true, 6)]
         [DataRow(3, 5, false, 3)]
         [DataRow(5, 5, true, 0)]
@@ -54,7 +56,7 @@ namespace ChaosWarlords.Tests.Managers
             Assert.AreEqual(expectedFinal, _player.Power);
         }
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(5, 5)]
         [DataRow(10, 10)]
         public void AddInfluence_IncreasesPlayerInfluence(int amount, int expected)
@@ -63,7 +65,7 @@ namespace ChaosWarlords.Tests.Managers
             Assert.AreEqual(expected, _player.Influence);
         }
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(10, 4, true, 6)]
         [DataRow(3, 5, false, 3)]
         public void TrySpendInfluence_HandlesVariousScenarios(
@@ -78,7 +80,7 @@ namespace ChaosWarlords.Tests.Managers
             Assert.AreEqual(expectedFinal, _player.Influence);
         }
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(10, 10)]
         [DataRow(5, 5)]
         public void AddVictoryPoints_IncreasesVictoryPoints(int amount, int expected)
@@ -87,7 +89,7 @@ namespace ChaosWarlords.Tests.Managers
             Assert.AreEqual(expected, _player.VictoryPoints);
         }
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(3)]
         [DataRow(5)]
         [DataRow(1)]
@@ -98,7 +100,7 @@ namespace ChaosWarlords.Tests.Managers
             Assert.AreEqual(initial + amount, _player.TroopsInBarracks);
         }
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(10, 3, 7)]
         [DataRow(2, 5, 0)]  // Boundary: doesn't go below zero
         [DataRow(5, 5, 0)]
@@ -109,7 +111,7 @@ namespace ChaosWarlords.Tests.Managers
             Assert.AreEqual(expected, _player.TroopsInBarracks);
         }
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(2)]
         [DataRow(3)]
         public void AddSpies_IncreasesSpies(int amount)
@@ -119,7 +121,7 @@ namespace ChaosWarlords.Tests.Managers
             Assert.AreEqual(initial + amount, _player.SpiesInBarracks);
         }
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(5, 2, 3)]
         [DataRow(3, 3, 0)]
         public void RemoveSpies_DecreasesSpies(int initial, int removeAmount, int expected)

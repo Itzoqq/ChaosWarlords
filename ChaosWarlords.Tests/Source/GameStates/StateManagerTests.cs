@@ -8,6 +8,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.States
 {
     [TestClass]
+
+    [TestCategory("Integration")]
     public class StateManagerTests
     {
         private StateManager _manager = null!;

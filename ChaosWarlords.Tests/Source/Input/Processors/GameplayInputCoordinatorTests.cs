@@ -16,6 +16,8 @@ using Microsoft.Xna.Framework;
 namespace ChaosWarlords.Tests.Source.Systems
 {
     [TestClass]
+
+    [TestCategory("Integration")]
     public class GameplayInputCoordinatorTests
     {
         private GameplayInputCoordinator _coordinator = null!;

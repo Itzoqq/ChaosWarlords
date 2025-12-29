@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 namespace ChaosWarlords.Tests.Entities
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class SiteTests
     {
         private MapNode _node1 = null!, _node2 = null!, _node3 = null!;

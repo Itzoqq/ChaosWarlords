@@ -4,6 +4,7 @@ using ChaosWarlords.Source.Utilities;
 namespace ChaosWarlords.Tests.Source.Entities
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class CardTests
     {
         private Card _card = null!;
@@ -13,7 +14,16 @@ namespace ChaosWarlords.Tests.Source.Entities
         {
             // Constructor now requires (Id, Name, Cost, Aspect, DeckVP, InnerVP, Influence)
             // We pass 1 for DeckVP, 2 for InnerCircleVP, and 0 for Influence
-            _card = new CardBuilder().WithName("test_id").WithCost(3).WithAspect(CardAspect.Sorcery).WithPower(1).WithInfluence(2).WithVP(0).Build();
+            // CardBuilder uses WithName for ID and WithDescription for Name
+            _card = new CardBuilder()
+                .WithName("test_id")
+                .WithDescription("Test Card")
+                .WithCost(3)
+                .WithAspect(CardAspect.Sorcery)
+                .WithPower(1)
+                .WithInfluence(2)
+                .WithVP(0)
+                .Build();
         }
 
         [TestMethod]

@@ -9,6 +9,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Source.Commands
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class ActionCompletedCommandTests
     {
         private IGameplayState _stateSub = null!;

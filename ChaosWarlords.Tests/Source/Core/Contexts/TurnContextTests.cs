@@ -6,6 +6,8 @@ using ChaosWarlords.Source.Utilities;
 namespace ChaosWarlords.Tests.Contexts
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class TurnContextTests
     {
         private TurnContext _turnContext = null!;

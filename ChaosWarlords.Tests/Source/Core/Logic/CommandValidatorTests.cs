@@ -7,6 +7,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Source.Core.Logic
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class CommandValidatorTests
     {
         // Mock Command

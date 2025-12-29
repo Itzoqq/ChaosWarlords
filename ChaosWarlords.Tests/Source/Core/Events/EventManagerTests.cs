@@ -4,6 +4,8 @@ using ChaosWarlords.Source.Core.Events;
 namespace ChaosWarlords.Tests.Source.Core.Events
 {
     [TestClass]
+
+    [TestCategory("Integration")]
     public class EventManagerTests
     {
         private EventManager _eventManager = null!;

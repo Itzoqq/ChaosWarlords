@@ -9,6 +9,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Mechanics.Commands
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class DevourCardCommandTests
     {
         private IGameplayState _mockState = null!;

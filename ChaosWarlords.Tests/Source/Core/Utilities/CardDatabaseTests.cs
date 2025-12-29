@@ -3,6 +3,8 @@ using ChaosWarlords.Source.Utilities;
 namespace ChaosWarlords.Tests.Source.Utilities
 {
   [TestClass]
+
+  [TestCategory("Unit")]
   public class CardDatabaseTests
   {
     private const string MockCardJson = @"

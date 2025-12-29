@@ -7,6 +7,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Managers
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class TurnManagerTests
     {
         [TestMethod]

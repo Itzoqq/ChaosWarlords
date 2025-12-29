@@ -4,6 +4,8 @@ using ChaosWarlords.Source.Utilities;
 namespace ChaosWarlords.Tests.Source.Entities
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class CardEffectTests
     {
         [TestMethod]

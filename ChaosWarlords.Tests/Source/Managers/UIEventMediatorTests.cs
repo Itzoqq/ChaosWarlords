@@ -13,6 +13,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Managers
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class UIEventMediatorTests
     {
         private IGameplayState _mockGameState = null!;

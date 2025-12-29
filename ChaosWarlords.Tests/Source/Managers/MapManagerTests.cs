@@ -8,6 +8,8 @@ using Microsoft.Xna.Framework;
 namespace ChaosWarlords.Tests.Systems
 {
     [TestClass]
+
+    [TestCategory("Integration")]
     public class MapManagerTests
     {
         private Player _player1 = null!;
@@ -22,8 +24,15 @@ namespace ChaosWarlords.Tests.Systems
         [TestInitialize]
         public void Setup()
         {
-            _player1 = new PlayerBuilder().WithColor(PlayerColor.Red).Build() { Power = 10, TroopsInBarracks = 10, SpiesInBarracks = 4 };
-            _player2 = new PlayerBuilder().WithColor(PlayerColor.Blue).Build() { Power = 10, TroopsInBarracks = 10, SpiesInBarracks = 4 };
+            _player1 = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            _player1.Power = 10;
+            _player1.TroopsInBarracks = 10;
+            _player1.SpiesInBarracks = 4;
+
+            _player2 = new PlayerBuilder().WithColor(PlayerColor.Blue).Build();
+            _player2.Power = 10;
+            _player2.TroopsInBarracks = 10;
+            _player2.SpiesInBarracks = 4;
 
             // Layout: [1] -- [2] -- [3, 4 are in SiteA] -- [5 is in SiteB]
             _node1 = new MapNodeBuilder().WithId(1).At(10, 10).Build();
@@ -62,10 +71,10 @@ namespace ChaosWarlords.Tests.Systems
         #region 1. Deployment Actions (State & Resources)
 
 
-        [DataTestMethod]
-        [DataRow(0, 1, false, PlayerColor.None, 10)] // No power
-        [DataRow(1, 0, false, PlayerColor.None, 1)]  // No troops
-        [DataRow(1, 1, true, PlayerColor.Red, 0)]    // Valid conditions
+        [TestMethod]
+        [DataRow(0, 1, false, PlayerColor.None, 1)] // No power - validation fails, troop NOT consumed
+        [DataRow(1, 0, false, PlayerColor.None, 0)]  // No troops - validation fails, remains 0
+        [DataRow(1, 1, true, PlayerColor.Red, 0)]    // Valid conditions - troop consumed
         public void TryDeploy_ValidatesRequirements(
             int playerPower,
             int playerTroops,
@@ -73,18 +82,30 @@ namespace ChaosWarlords.Tests.Systems
             PlayerColor expectedOccupant,
             int expectedTroopsAfter)
         {
-            _player1.Power = playerPower;
-            _player1.TroopsInBarracks = playerTroops;
-            _node1.Occupant = _player1.Color;
+            // Create fresh instances for each DataRow to avoid state pollution
+            var testPlayer = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            testPlayer.Power = playerPower;
+            testPlayer.TroopsInBarracks = playerTroops;
 
-            bool result = _mapManager.TryDeploy(_player1, _node2);
+            var testNode1 = new MapNodeBuilder().WithId(100).At(10, 10).Build();
+            var testNode2 = new MapNodeBuilder().WithId(101).At(20, 10).Build();
+            testNode1.Occupant = testPlayer.Color;
+
+            // Create fresh manager with test nodes
+            var testNodes = new List<MapNode> { testNode1, testNode2 };
+            testNode1.AddNeighbor(testNode2);
+            testNode2.AddNeighbor(testNode1);
+            var testManager = new MapManager(testNodes, new List<Site>(), _stateManager);
+            testManager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
+
+            bool result = testManager.TryDeploy(testPlayer, testNode2);
 
             Assert.AreEqual(shouldSucceed, result);
-            Assert.AreEqual(expectedOccupant, _node2.Occupant);
-            Assert.AreEqual(expectedTroopsAfter, _player1.TroopsInBarracks);
-            
+            Assert.AreEqual(expectedOccupant, testNode2.Occupant);
+            Assert.AreEqual(expectedTroopsAfter, testPlayer.TroopsInBarracks);
+
             if (shouldSucceed)
-                Assert.AreEqual(0, _player1.Power); // Power spent
+                Assert.AreEqual(0, testPlayer.Power); // Power spent
         }
 
 
@@ -119,7 +140,7 @@ namespace ChaosWarlords.Tests.Systems
 
         #region 3. Spy Actions (State Mutation)
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(4, false, true, 3)]   // Success: has spies, no existing spy
         [DataRow(0, false, false, 0)]  // Fail: no spies in barracks
         [DataRow(4, true, false, 4)]   // Fail: spy already present
@@ -129,17 +150,32 @@ namespace ChaosWarlords.Tests.Systems
             bool shouldSucceed,
             int expectedSpiesAfter)
         {
-            _player1.SpiesInBarracks = initialSpies;
+            // Create fresh instances for each DataRow to avoid state pollution
+            var testPlayer = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            testPlayer.SpiesInBarracks = initialSpies;
+
+            var testSite = new NonCitySite("TestSite", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            int initialSpyCount = 0;
             if (spyAlreadyPresent)
-                _siteA.Spies.Add(_player1.Color);
+            {
+                testSite.Spies.Add(testPlayer.Color);
+                initialSpyCount = 1;
+            }
 
-            _mapManager.PlaceSpy(_siteA, _player1);
+            // Create fresh manager with test site
+            var testManager = new MapManager(new List<MapNode>(), new List<Site> { testSite }, _stateManager);
 
-            Assert.AreEqual(shouldSucceed, _siteA.Spies.Contains(_player1.Color));
-            Assert.AreEqual(expectedSpiesAfter, _player1.SpiesInBarracks);
-            
+            testManager.PlaceSpy(testSite, testPlayer);
+
+            // Check if spy count changed (indicates success)
+            int finalSpyCount = testSite.Spies.Count(c => c == testPlayer.Color);
+            bool spyWasAdded = finalSpyCount > initialSpyCount;
+
+            Assert.AreEqual(shouldSucceed, spyWasAdded, "Spy placement success should match expected");
+            Assert.AreEqual(expectedSpiesAfter, testPlayer.SpiesInBarracks, "Spy count in barracks should match expected");
+
             if (shouldSucceed)
-                Assert.AreEqual(1, _siteA.Spies.Count(c => c == _player1.Color));
+                Assert.AreEqual(1, finalSpyCount, "Should have exactly 1 spy at site after successful placement");
         }
 
 
@@ -249,7 +285,8 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void CanDeploy_ReturnsFalse_WhenTargetIsTotallyDisconnected()
         {
-            var startNode = new MapNodeBuilder().WithId(1).Build() { Occupant = _player1.Color };
+            var startNode = new MapNodeBuilder().WithId(1).Build();
+            startNode.Occupant = _player1.Color;
             var farNode = new MapNodeBuilder().WithId(99).Build();
 
             var manager = new MapManager(new List<MapNode> { startNode, farNode }, new List<Site>(), _stateManager);
@@ -277,7 +314,8 @@ namespace ChaosWarlords.Tests.Systems
             siteA.Spies.Add(_player1.Color);
 
             // Add a troop somewhere else so board isn't empty
-            var baseNode = new MapNodeBuilder().WithId(99).Build() { Occupant = _player1.Color };
+            var baseNode = new MapNodeBuilder().WithId(99).Build();
+            baseNode.Occupant = _player1.Color;
             manager.NodesInternal.Add(baseNode);
 
             bool result = manager.CanDeployAt(siteBNode, _player1.Color);

@@ -10,6 +10,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Systems
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class ActionSystemTests
     {
         private Player _player1 = null!;
@@ -64,7 +66,7 @@ namespace ChaosWarlords.Tests.Systems
         #region 1. Initiation Tests
 
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow("Assassinate", 3, 3, true, ActionState.TargetingAssassinate)]
         [DataRow("Assassinate", 3, 2, false, ActionState.Normal)]
         [DataRow("ReturnSpy", 3, 3, true, ActionState.TargetingReturnSpy)]
@@ -85,9 +87,9 @@ namespace ChaosWarlords.Tests.Systems
                 _actionSystem.TryStartReturnSpy();
 
             Assert.AreEqual(expectedState, _actionSystem.CurrentState);
-            Assert.AreEqual(!shouldSucceed, _eventFailedFired, 
-                shouldSucceed 
-                    ? "Should not fire failure event when power is sufficient" 
+            Assert.AreEqual(!shouldSucceed, _eventFailedFired,
+                shouldSucceed
+                    ? "Should not fire failure event when power is sufficient"
                     : "Should fire failure event when power is insufficient");
         }
 

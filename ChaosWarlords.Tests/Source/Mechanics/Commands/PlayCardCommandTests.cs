@@ -7,6 +7,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Mechanics.Commands
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class PlayCardCommandTests
     {
         [TestMethod]

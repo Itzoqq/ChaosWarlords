@@ -6,6 +6,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Systems
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class UIManagerTests
     {
         private UIManager _ui = null!;

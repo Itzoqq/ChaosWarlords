@@ -5,6 +5,8 @@ using ChaosWarlords.Source.Utilities;
 namespace ChaosWarlords.Tests.Source.Core.Data
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class DtoTests
     {
         [TestMethod]

@@ -8,6 +8,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Input.Services
 {
     [TestClass]
+
+    [TestCategory("Integration")]
     public class InputManagerTests
     {
         private IInputProvider _mockProvider = null!;

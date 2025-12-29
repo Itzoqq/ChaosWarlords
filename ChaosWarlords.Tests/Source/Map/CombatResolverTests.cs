@@ -9,6 +9,8 @@ using Microsoft.Xna.Framework;
 namespace ChaosWarlords.Tests.Map
 {
     [TestClass]
+
+    [TestCategory("Unit")]
     public class CombatResolverTests
     {
         private CombatResolver _resolver = null!;

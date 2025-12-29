@@ -16,6 +16,8 @@ using ChaosWarlords.Source.Contexts;
 namespace ChaosWarlords.Tests.States.Input
 {
     [TestClass]
+
+    [TestCategory("Integration")]
     public class MarketInputModeTests
     {
         private MarketInputMode _inputMode = null!;

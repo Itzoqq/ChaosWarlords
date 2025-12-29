@@ -11,6 +11,8 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Input.Modes
 {
     [TestClass]
+
+    [TestCategory("Integration")]
     public class DevourInputModeTests
     {
         private IGameplayState _mockGameState = null!;

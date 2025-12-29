@@ -21,6 +21,8 @@ using ChaosWarlords.Source.Input.Controllers;
 namespace ChaosWarlords.Tests.States
 {
     [TestClass]
+
+    [TestCategory("Integration")]
     public class GameplayStateTests
     {
         private IInputProvider _inputProvider = null!;

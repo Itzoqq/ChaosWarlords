@@ -4,6 +4,7 @@ using ChaosWarlords.Source.Utilities;
 namespace ChaosWarlords.Tests.Entities
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class StartingSiteTests
     {
         [TestMethod]

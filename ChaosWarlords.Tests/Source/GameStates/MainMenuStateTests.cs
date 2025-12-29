@@ -12,6 +12,8 @@ using ChaosWarlords.Source.Rendering.UI;
 namespace ChaosWarlords.Tests.GameStates
 {
     [TestClass]
+
+    [TestCategory("Integration")]
     public class MainMenuStateTests
     {
         [TestInitialize]

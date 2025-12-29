@@ -12,6 +12,8 @@ using ChaosWarlords.Source.Utilities;
 namespace ChaosWarlords.Tests.Source.Systems
 {
     [TestClass]
+
+    [TestCategory("Integration")]
     public class MatchManagerTests
     {
         private MatchContext _context = null!;
@@ -243,8 +245,10 @@ namespace ChaosWarlords.Tests.Source.Systems
             // Arrange
             _context.CurrentPhase = MatchPhase.Setup;
             // MapManager Mock: P1 has 1 troop, P2 has 0 troops
-            var node1 = new MapNodeBuilder().WithId(1).Build() { Occupant = _p1.Color };
-            var node2 = new MapNodeBuilder().WithId(2).Build() { Occupant = PlayerColor.None };
+            var node1 = new MapNodeBuilder().WithId(1).Build();
+            node1.Occupant = _p1.Color;
+            var node2 = new MapNodeBuilder().WithId(2).Build();
+            node2.Occupant = PlayerColor.None;
 
             _mapManager.Nodes.Returns(new List<MapNode> { node1, node2 });
 
@@ -262,8 +266,10 @@ namespace ChaosWarlords.Tests.Source.Systems
             // Arrange
             _context.CurrentPhase = MatchPhase.Setup;
             // MapManager Mock: P1 has 1 troop, P2 has 1 troop
-            var node1 = new MapNodeBuilder().WithId(1).Build() { Occupant = _p1.Color };
-            var node2 = new MapNodeBuilder().WithId(2).Build() { Occupant = _p2.Color };
+            var node1 = new MapNodeBuilder().WithId(1).Build();
+            node1.Occupant = _p1.Color;
+            var node2 = new MapNodeBuilder().WithId(2).Build();
+            node2.Occupant = _p2.Color;
 
             _mapManager.Nodes.Returns(new List<MapNode> { node1, node2 });
 
@@ -281,8 +287,10 @@ namespace ChaosWarlords.Tests.Source.Systems
             // Arrange
             _context.CurrentPhase = MatchPhase.Setup;
             // MapManager Mock: P1 has 1 troop, P2 has 0 (Failed to deploy)
-            var node1 = new MapNodeBuilder().WithId(1).Build() { Occupant = _p1.Color };
-            var node2 = new MapNodeBuilder().WithId(2).Build() { Occupant = PlayerColor.None };
+            var node1 = new MapNodeBuilder().WithId(1).Build();
+            node1.Occupant = _p1.Color;
+            var node2 = new MapNodeBuilder().WithId(2).Build();
+            node2.Occupant = PlayerColor.None;
 
             _mapManager.Nodes.Returns(new List<MapNode> { node1, node2 });
 
