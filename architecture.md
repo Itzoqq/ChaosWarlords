@@ -75,6 +75,9 @@ public class TurnManager
 ```
 
 **Constructor Injection**: All dependencies are passed in the constructor.
+**Composition Root**: `Game1.cs` and `MainMenuState.cs` act as Composition Roots, wiring dependencies (`IGameDependencies`) before injecting them into `GameplayState`.
+
+**Parameter Object Pattern**: We use `IGameDependencies` to group core dependencies (Input, UI, Data) into a single object, simplifying constructors and preventing "parameter explosion".
 
 **MatchContext**: Acts as the scoped container for a single match lifecycle, holding references to `IMapManager`, `ITurnManager`, etc.
 
@@ -107,6 +110,9 @@ The project uses a semantic folder structure. Below is a detailed listing of all
 ```text
 Source/
 ├── Core/
+│   ├── Composition/                     # Dependency Injection composition roots
+│   │   ├── GameDependencies.cs          # Concrete dependency container
+│   │   └── IGameDependencies.cs         # Dependency contract for GameplayState
 │   ├── Contexts/                        # Data Holders (The "Glue")
 │   │   ├── ExecutedAction.cs            # Record capturing a single game event
 │   │   │                                  - Sequence number for ordering
@@ -227,9 +233,10 @@ Source/
 │       │                                  - PlayerColor: Red, Blue, Green, Yellow
 │       │                                  - ResourceType: Power, Influence, VictoryPoints
 │       │                                  - CardAspect: Warlord, Shadow, Sorcery, Neutral
-│       ├── GameLogger.cs                # Central logging facility
-│       │                                  - Log(message, LogChannel)
-│       │                                  - Channels: Info, Error, Combat, Economy
+│       ├── BufferedAsyncLogger.cs       # Async-optimized logging implementation
+│       │                                  - Writes logs to file in background thread
+│       │                                  - Non-blocking IGameLogger implementation
+│       │              
 │       ├── MapGenerationConfig.cs       # Parameters for procedural map generation
 │       ├── MapGeometry.cs               # Helper for hexagonal grid math
 │       │                                  - CalculateDistance(hex1, hex2)
@@ -303,8 +310,9 @@ Source/
 │
 ├── GameStates/                          # Application State Machine
 │   ├── GameplayState.cs                 # The Core Game Loop (Logic Only)
+│   │                                      - Constructor accepts `IGameDependencies`
 │   │                                      - Update(): Processes game logic
-│   │                                      - No rendering code (delegates to IGameplayView)
+│   │                                      - Delegates rendering to `IGameplayView`
 │   │                                      - Coordinates managers and systems
 │   │                                      - Handles turn flow and win conditions
 │   ├── MainMenuState.cs                 # Entry Point / Composition Root

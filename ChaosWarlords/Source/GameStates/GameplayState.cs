@@ -16,6 +16,8 @@ using ChaosWarlords.Source.Contexts;
 
 using ChaosWarlords.Source.Input.Controllers;
 using ChaosWarlords.Source.Factories;
+using ChaosWarlords.Source.Core.Interfaces.Composition;
+using ChaosWarlords.Source.Core.Composition;
 using System;
 
 namespace ChaosWarlords.Source.States
@@ -23,7 +25,7 @@ namespace ChaosWarlords.Source.States
     public class GameplayState : IGameplayState, IDrawableState
     {
         private readonly Game? _game;
-        private readonly IInputProvider _inputProvider;
+
         private readonly ICardDatabase _cardDatabase;
         private readonly IGameLogger _logger;
         private readonly int _viewportWidth;
@@ -73,15 +75,44 @@ namespace ChaosWarlords.Source.States
         public bool IsConfirmationPopupOpen => _uiEventMediator?.IsConfirmationPopupOpen ?? false;
         public bool IsPauseMenuOpen => _uiEventMediator?.IsPauseMenuOpen ?? false;
 
-        public GameplayState(Game? game, IInputProvider inputProvider, ICardDatabase cardDatabase, IGameLogger logger, IGameplayView? view = null, int viewportWidth = 1920, int viewportHeight = 1080)
+        public GameplayState(IGameDependencies dependencies)
         {
-            _game = game;
-            _inputProvider = inputProvider;
-            _cardDatabase = cardDatabase;
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _view = view;
-            _viewportWidth = viewportWidth;
-            _viewportHeight = viewportHeight;
+            ArgumentNullException.ThrowIfNull(dependencies);
+            
+            _game = dependencies.Game;
+            _inputManagerBacking = (InputManager)dependencies.InputManager; // Cast for now as internal usage relies on specific class features if any, or just assign interface
+            // Actually _inputManagerBacking is defined as InputManager internal field. 
+            // We should check if we can change that field to IInputManager or if we need the cast.
+            // Looking at the file, _inputManagerBacking is InputManager. 
+            // The interface IGameDependencies returns IInputManager.
+            // If InputManager implementation is required by other internal parts, we cast. 
+            // Better practice: Change internal fields to interfaces.
+            // For now, let's cast to keep changes minimal, but ideally we refactor the fields too.
+            // Wait, dependencies.InputManager comes from Game1 which creates 'new InputManager', so it's safe.
+            
+            // To be cleaner, let's try to stick to interfaces. 
+            // However, InputManagerBacking is passed to many internal coordinate systems.
+            // Let's assume strict cast for now or update the field type.
+            // Updating the field type to IInputManager is safer.
+            
+            // Re-reading file... 
+            // internal InputManager _inputManagerBacking = null!;
+            // public IInputManager InputManager => _inputManagerBacking;
+            
+            // I will update the constructor to Use dependencies. 
+            // I'll keep the logic simple.
+            
+            if (dependencies.InputManager is InputManager concretInput)
+                _inputManagerBacking = concretInput;
+            else
+                throw new ArgumentException("GameplayState currently requires concrete InputManager", nameof(dependencies));
+            
+            _cardDatabase = dependencies.CardDatabase;
+            _logger = dependencies.Logger ?? throw new InvalidOperationException("Dependency Logger must not be null");
+            _uiManagerBacking = dependencies.UIManager;
+            _view = dependencies.View;
+            _viewportWidth = dependencies.ViewportWidth;
+            _viewportHeight = dependencies.ViewportHeight;
         }
 
         public void LoadContent()
@@ -95,19 +126,10 @@ namespace ChaosWarlords.Source.States
                 return;
             }
 
-            // GameLogger.Initialize(); // Removed: Handled by Composition Root
-
-            InitializeInfrastructure();
+            // InitializeInfrastructure(); // REMOVED
             InitializeView();
             InitializeMatch();
             InitializeSystems();
-        }
-
-        private void InitializeInfrastructure()
-        {
-            _inputManagerBacking = new InputManager(_inputProvider);
-            // Replaced direct GraphicsDevice access with injected viewport properties
-            _uiManagerBacking = new UIManager(_viewportWidth, _viewportHeight, _logger);
         }
 
         private void InitializeView()

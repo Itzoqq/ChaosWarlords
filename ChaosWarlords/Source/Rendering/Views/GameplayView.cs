@@ -12,6 +12,7 @@ using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Views;
+using ChaosWarlords.Source.Core.Interfaces.Services;
 
 using System.Diagnostics.CodeAnalysis;
 using System;
@@ -48,9 +49,12 @@ namespace ChaosWarlords.Source.Rendering.Views
         public int HandY { get; private set; }
         public int PlayedY { get; private set; }
 
-        public GameplayView(GraphicsDevice graphicsDevice)
+        private readonly IGameLogger _logger;
+
+        public GameplayView(GraphicsDevice graphicsDevice, IGameLogger logger)
         {
             _graphicsDevice = graphicsDevice;
+            _logger = logger;
         }
 
         public void LoadContent(ContentManager content)
@@ -58,8 +62,13 @@ namespace ChaosWarlords.Source.Rendering.Views
             _pixelTexture = new Texture2D(_graphicsDevice, 1, 1);
             _pixelTexture.SetData(new[] { Color.White });
 
-            try { _defaultFont = content.Load<SpriteFont>("fonts/DefaultFont"); } catch { }
-            try { _smallFont = content.Load<SpriteFont>("fonts/SmallFont"); } catch { }
+            try { _defaultFont = content.Load<SpriteFont>("fonts/DefaultFont"); } 
+            catch (ContentLoadException ex) { _logger.Log($"Failed to load DefaultFont: {ex.Message}", LogChannel.Error); }
+            catch (Exception ex) { _logger.Log($"Unexpected error loading DefaultFont: {ex.Message}", LogChannel.Error); }
+
+            try { _smallFont = content.Load<SpriteFont>("fonts/SmallFont"); } 
+            catch (ContentLoadException ex) { _logger.Log($"Failed to load SmallFont: {ex.Message}", LogChannel.Error); }
+            catch (Exception ex) { _logger.Log($"Unexpected error loading SmallFont: {ex.Message}", LogChannel.Error); }
 
             _uiRenderer = new UIRenderer(_graphicsDevice, _defaultFont, _smallFont);
             _mapRenderer = new MapRenderer(_pixelTexture, _pixelTexture, _defaultFont);

@@ -11,6 +11,7 @@ using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.States.Input;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Core.Composition;
 using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Tests.Source.Systems
@@ -100,7 +101,17 @@ namespace ChaosWarlords.Tests.Source.Systems
         internal class TestableGameplayState : GameplayState
         {
             public TestableGameplayState(Game game, IInputProvider input, ICardDatabase db, IGameLogger logger)
-                : base(game, input, db, logger)
+                : base(new GameDependencies
+                {
+                    Game = game,
+                    InputManager = new InputManager(input),
+                    CardDatabase = db,
+                    Logger = logger,
+                    UIManager = Substitute.For<IUIManager>(), // Default mock
+                    View = Substitute.For<IGameplayView>(),   // Default mock
+                    ViewportWidth = 1920,
+                    ViewportHeight = 1080
+                })
             {
             }
 

@@ -170,12 +170,36 @@ namespace ChaosWarlords.Source.States
 
             if (_game?.GraphicsDevice is not null)
             {
-                gameplayView = new GameplayView(_game.GraphicsDevice);
+                gameplayView = new GameplayView(_game.GraphicsDevice, _logger);
                 width = _game.GraphicsDevice.Viewport.Width;
                 height = _game.GraphicsDevice.Viewport.Height;
             }
 
-            _stateManager.ChangeState(new GameplayState(_game, _inputProvider, _cardDatabase, _logger, gameplayView!, width, height));
+            // Create Dependencies (On-the-fly composition for transition)
+            // Ideally GameDependencies is passed into MainMenuState, but for now we build it here.
+            // We need to create NEW Input and UI Managers for GameplayState or reuse existing ones?
+            // GameplayState logic (previously) created its OWN infrastructure. 
+            // Now we must create it here to pass it in.
+            
+            // NOTE: Currently MainMenuState shares InputProvider but has its own ButtonManager.
+            // GameplayState needs InputManager (wrapper around Provider) and UIManager.
+            
+            var inputManager = new ChaosWarlords.Source.Managers.InputManager(_inputProvider);
+            var uiManager = new ChaosWarlords.Source.Managers.UIManager(width, height, _logger);
+            
+            var dependencies = new ChaosWarlords.Source.Core.Composition.GameDependencies
+            {
+                Game = _game,
+                InputManager = inputManager,
+                CardDatabase = _cardDatabase,
+                Logger = _logger,
+                UIManager = uiManager,
+                View = gameplayView,
+                ViewportWidth = width,
+                ViewportHeight = height
+            };
+
+            _stateManager.ChangeState(new GameplayState(dependencies));
         }
 
         public void Draw(SpriteBatch spriteBatch)

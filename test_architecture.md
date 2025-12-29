@@ -452,10 +452,10 @@ dotnet test --filter "Name=AddPower_WithPositiveAmount_IncreasesPlayerPower"
 
 ## Test Metrics
 
-**Total Tests**: 398  
-**Unit Tests**: 249 (62.6%)  
-**Integration Tests**: 142 (35.7%)  
-**Performance Tests**: 7 (1.8%)
+**Total Tests**: 446
+**Unit Tests**: 297 (est)
+**Integration Tests**: 142 (est)
+**Performance Tests**: 7
 
 **Execution Time**:
 - Unit: ~0.8s

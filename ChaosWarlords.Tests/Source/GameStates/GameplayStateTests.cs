@@ -17,6 +17,7 @@ using ChaosWarlords.Source.States.Input;
 using NSubstitute;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Input.Controllers;
+using ChaosWarlords.Source.Core.Composition;
 
 namespace ChaosWarlords.Tests.States
 {
@@ -46,8 +47,18 @@ namespace ChaosWarlords.Tests.States
         public void LoadContent_InitializesInfrastructure_WhenGameIsNull_HeadlessMode()
         {
             // Arrange
+            // Arrange
             // Passing null for Game, ensuring it doesn't crash
-            var state = new GameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var dependencies = new GameDependencies
+            {
+                Game = null!,
+                InputManager = new InputManager(_inputProvider),
+                CardDatabase = _cardDatabase,
+                Logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance,
+                UIManager = Substitute.For<IUIManager>(),
+                View = null
+            };
+            var state = new GameplayState(dependencies);
 
             // Act
             state.LoadContent();
@@ -183,13 +194,25 @@ namespace ChaosWarlords.Tests.States
             private readonly IInputProvider _testInput;
             private readonly ICardDatabase _testDb;
 
+            // Adapts old test signature to new Composition Root
             public TestableGameplayState(Game? game, IInputProvider input, ICardDatabase db, IGameLogger logger, IGameplayView? view = null)
-                : base(game, input, db, logger, view ?? Substitute.For<IGameplayView>())
+                : base(new GameDependencies
+                {
+                   Game = game,
+                   InputManager = new ChaosWarlords.Source.Managers.InputManager(input), // Use concrete wrapper
+                   CardDatabase = db,
+                   Logger = logger,
+                   UIManager = Substitute.For<IUIManager>(), // Default Mock
+                   View = view ?? Substitute.For<IGameplayView>(),
+                   ViewportWidth = 1920,
+                   ViewportHeight = 1080
+                })
             {
                 _testInput = input;
                 _testDb = db;
 
                 // Initialize View Mock Properties to avoid potential NREs
+                // Base constructor has already set _view from dependencies
                 if (_view != null)
                 {
                     _view.HandViewModels.Returns(new List<CardViewModel>());

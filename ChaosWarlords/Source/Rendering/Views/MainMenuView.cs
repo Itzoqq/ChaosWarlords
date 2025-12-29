@@ -53,8 +53,9 @@ namespace ChaosWarlords.Source.Rendering.Views
             {
                 _backgroundTexture = _content.Load<Texture2D>("Textures/Backgrounds/MainMenuBG");
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.Log($"Failed to load background: {ex.Message}. Using fallback.", LogChannel.Warning);
                 // Create a placeholder 1x1 texture
                 _backgroundTexture = new Texture2D(_graphicsDevice, 1, 1);
                 _backgroundTexture.SetData(new[] { Color.DarkSlateGray });

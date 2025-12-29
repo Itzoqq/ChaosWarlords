@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.States;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Input;
+using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 
 using System.Diagnostics.CodeAnalysis;
@@ -69,18 +70,20 @@ namespace ChaosWarlords
                 Logger.Log($"Failed to load card database: {ex.Message}", LogChannel.Error);
             }
 
-            // 2. Create Input Service
+            // 2. Create Input Service and UIManager (Composition Root)
             InputProvider = new MonoGameInputProvider();
+            var inputManager = new ChaosWarlords.Source.Managers.InputManager(InputProvider); // Full qualification or ensure using
+            
+            var viewportWidth = GraphicsDevice.Viewport.Width;
+            var viewportHeight = GraphicsDevice.Viewport.Height;
+            var uiManager = new UIManager(viewportWidth, viewportHeight, Logger);
 
-            // 3. Inject BOTH into GameplayState
-            // This line is correct because GameplayState implements IGameplayState, 
-            // which implements IState, and PushState expects IState.
-            // 3. Start with Main Menu (MVC Wiring)
-            // Logic
+            // Restore UI Elements
             var buttonManager = new ChaosWarlords.Source.Rendering.UI.ButtonManager();
-
-            // View
             var mainMenuView = new ChaosWarlords.Source.Rendering.Views.MainMenuView(GraphicsDevice, Content, buttonManager, Logger);
+
+
+
 
             // State (Controller)
             var mainMenuState = new MainMenuState(
@@ -92,7 +95,19 @@ namespace ChaosWarlords
                 mainMenuView,
                 buttonManager
             );
-
+            
+            // We need to instantiate GameplayState differently if it is used here, 
+            // but Game1 only pushes MainMenuState initially.
+            // If GameplayState is created elsewhere, it must use the new signature.
+            // However, Game1 usually doesn't create GameplayState directly here.
+            
+            // Wait, looking at the previous code, Game1 was NOT instantiating GameplayState in LoadContent.
+            // It was pushing MainMenuState. 
+            // So where is GameplayState instantiated? 
+            // Usually MainMenuState creates it when "Start Game" is clicked.
+            
+            // Checking MainMenuState...
+            
             StateManager.PushState(mainMenuState);
         }
 
