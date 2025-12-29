@@ -21,13 +21,13 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var mockState = Substitute.For<IGameplayState>();
             var mockMapManager = Substitute.For<IMapManager>();
             var mockTurnManager = Substitute.For<ITurnManager>();
-            var mockPlayer = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var mockPlayer = TestData.Players.RedPlayer();
 
             mockState.MapManager.Returns(mockMapManager);
             mockState.TurnManager.Returns(mockTurnManager);
             mockTurnManager.ActivePlayer.Returns(mockPlayer);
 
-            var node = new MapNodeBuilder().WithId(1).Build();
+            var node = TestData.MapNodes.Node1();
             var command = new DeployTroopCommand(node);
 
             // Act

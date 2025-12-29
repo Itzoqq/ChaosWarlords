@@ -12,8 +12,8 @@ namespace ChaosWarlords.Tests.Entities
         public void AddNeighbor_AddsToNeighborsListReciprocally()
         {
             // Removed null texture arg
-            var node1 = new MapNodeBuilder().WithId(1).At(0, 0).Build();
-            var node2 = new MapNodeBuilder().WithId(2).At(0, 0).Build();
+            var node1 = TestData.MapNodes.Node1();
+            var node2 = TestData.MapNodes.Node2();
 
             node1.AddNeighbor(node2);
 
@@ -24,7 +24,7 @@ namespace ChaosWarlords.Tests.Entities
         [TestMethod]
         public void IsOccupied_ReturnsCorrectState()
         {
-            var node = new MapNodeBuilder().WithId(1).At(0, 0).Build();
+            var node = TestData.MapNodes.Node1();
             Assert.IsFalse(node.IsOccupied());
 
             node.Occupant = PlayerColor.Red;

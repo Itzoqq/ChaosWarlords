@@ -21,7 +21,7 @@ namespace ChaosWarlords.Tests.Map
         [TestInitialize]
         public void Setup()
         {
-            _testSite = new NonCitySite("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
+            _testSite = TestData.Sites.NeutralSite();
             _siteRecalculated = false;
 
             var stateManager = new PlayerStateManager();
@@ -38,8 +38,8 @@ namespace ChaosWarlords.Tests.Map
         public void ExecuteDeploy_DeploysTroopAndDecreasesBarracks()
         {
             // Arrange
-            var node = new MapNodeBuilder().WithId(1).Build();
-            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var node = TestData.MapNodes.Node1();
+            var player = TestData.Players.RedPlayer();
             player.TroopsInBarracks = 5;
             player.Power = 10;
 
@@ -57,8 +57,9 @@ namespace ChaosWarlords.Tests.Map
         {
             // Arrange
             _currentPhase = MatchPhase.Setup;
-            var node = new MapNodeBuilder().WithId(1).Build();
-            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var node = TestData.MapNodes.Node1();
+            var player = TestData.Players.PoorPlayer();
+            // TestData.Players.PoorPlayer() has Red color and 0 resources.
             player.TroopsInBarracks = 5;
             player.Power = 0; // No power
 
@@ -74,9 +75,9 @@ namespace ChaosWarlords.Tests.Map
         public void ExecuteAssassinate_RemovesTroopAndIncreasesTophyHall()
         {
             // Arrange
-            var node = new MapNodeBuilder().WithId(1).Build();
+            var node = TestData.MapNodes.Node1();
             node.Occupant = PlayerColor.Blue;
-            var attacker = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var attacker = TestData.Players.RedPlayer();
             attacker.TrophyHall = 0;
 
             // Act
@@ -92,11 +93,11 @@ namespace ChaosWarlords.Tests.Map
         public void ExecuteMove_MovesTroopBetweenNodes()
         {
             // Arrange
-            var source = new MapNodeBuilder().WithId(1).Build();
+            var source = TestData.MapNodes.Node1();
             source.Occupant = PlayerColor.Red;
-            var destination = new MapNodeBuilder().WithId(2).Build();
+            var destination = TestData.MapNodes.Node2();
             destination.Occupant = PlayerColor.None;
-            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var player = TestData.Players.RedPlayer();
 
             // Act
             _resolver.ExecuteMove(source, destination, player);
@@ -111,9 +112,9 @@ namespace ChaosWarlords.Tests.Map
         public void ExecuteSupplant_AssassinatesAndDeploys()
         {
             // Arrange
-            var node = new MapNodeBuilder().WithId(1).Build();
+            var node = TestData.MapNodes.Node1();
             node.Occupant = PlayerColor.Blue;
-            var attacker = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var attacker = TestData.Players.RedPlayer();
             attacker.TroopsInBarracks = 5;
             attacker.Power = 10;
             attacker.TrophyHall = 0;
@@ -132,9 +133,9 @@ namespace ChaosWarlords.Tests.Map
         public void ExecuteReturnTroop_ReturnsFriendlyTroopToBarracks()
         {
             // Arrange
-            var node = new MapNodeBuilder().WithId(1).Build();
+            var node = TestData.MapNodes.Node1();
             node.Occupant = PlayerColor.Red;
-            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var player = TestData.Players.RedPlayer();
             player.TroopsInBarracks = 3;
 
             // Act

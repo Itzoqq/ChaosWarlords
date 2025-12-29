@@ -24,22 +24,20 @@ namespace ChaosWarlords.Tests.Systems
         [TestInitialize]
         public void Setup()
         {
-            _player1 = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
-            _player1.Power = 10;
+            _player1 = TestData.Players.RedPlayer();
             _player1.TroopsInBarracks = 10;
             _player1.SpiesInBarracks = 4;
 
-            _player2 = new PlayerBuilder().WithColor(PlayerColor.Blue).Build();
-            _player2.Power = 10;
+            _player2 = TestData.Players.BluePlayer();
             _player2.TroopsInBarracks = 10;
             _player2.SpiesInBarracks = 4;
 
             // Layout: [1] -- [2] -- [3, 4 are in SiteA] -- [5 is in SiteB]
-            _node1 = new MapNodeBuilder().WithId(1).At(10, 10).Build();
-            _node2 = new MapNodeBuilder().WithId(2).At(20, 10).Build();
-            _node3 = new MapNodeBuilder().WithId(3).At(30, 10).Build();
-            _node4 = new MapNodeBuilder().WithId(4).At(40, 10).Build();
-            _node5 = new MapNodeBuilder().WithId(5).At(50, 10).Build();
+            _node1 = TestData.MapNodes.Node1();
+            _node2 = TestData.MapNodes.Node2();
+            _node3 = TestData.MapNodes.Node3();
+            _node4 = TestData.MapNodes.Node4();
+            _node5 = TestData.MapNodes.Node5();
 
             // Wiring
             _node1.AddNeighbor(_node2);
@@ -51,11 +49,11 @@ namespace ChaosWarlords.Tests.Systems
             _node4.AddNeighbor(_node5);
             _node5.AddNeighbor(_node4);
 
-            _siteA = new CitySite("SiteA", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            _siteA = TestData.Sites.CitySite();
             _siteA.AddNode(_node3);
             _siteA.AddNode(_node4);
 
-            _siteB = new NonCitySite("SiteB", ResourceType.Influence, 1, ResourceType.VictoryPoints, 1);
+            _siteB = TestData.Sites.NeutralSite();
             _siteB.AddNode(_node5);
 
             var nodes = new List<MapNode> { _node1, _node2, _node3, _node4, _node5 };
@@ -83,12 +81,12 @@ namespace ChaosWarlords.Tests.Systems
             int expectedTroopsAfter)
         {
             // Create fresh instances for each DataRow to avoid state pollution
-            var testPlayer = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var testPlayer = TestData.Players.PoorPlayer();
             testPlayer.Power = playerPower;
             testPlayer.TroopsInBarracks = playerTroops;
 
-            var testNode1 = new MapNodeBuilder().WithId(100).At(10, 10).Build();
-            var testNode2 = new MapNodeBuilder().WithId(101).At(20, 10).Build();
+            var testNode1 = TestData.MapNodes.Node1();
+            var testNode2 = TestData.MapNodes.Node2();
             testNode1.Occupant = testPlayer.Color;
 
             // Create fresh manager with test nodes
@@ -151,10 +149,10 @@ namespace ChaosWarlords.Tests.Systems
             int expectedSpiesAfter)
         {
             // Create fresh instances for each DataRow to avoid state pollution
-            var testPlayer = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var testPlayer = TestData.Players.PoorPlayer();
             testPlayer.SpiesInBarracks = initialSpies;
 
-            var testSite = new NonCitySite("TestSite", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            var testSite = TestData.Sites.NeutralSite();
             int initialSpyCount = 0;
             if (spyAlreadyPresent)
             {
@@ -183,7 +181,7 @@ namespace ChaosWarlords.Tests.Systems
         public void ReturnSpy_ReturnsTargetedSpy_WhenMultipleArePresent()
         {
             // Complex integration: ensuring we remove the correct spy from the list
-            var player3 = new PlayerBuilder().WithColor(PlayerColor.Black).Build();
+            var player3 = TestData.Players.BlackPlayer();
             _node2.Occupant = _player1.Color; // P1 has presence
             _siteA.Spies.Add(_player2.Color);
             _siteA.Spies.Add(player3.Color);
@@ -200,8 +198,8 @@ namespace ChaosWarlords.Tests.Systems
         public void CanPlaceSpy_ReturnsTrue_EvenWithoutPresence()
         {
             // This tests that MapManager correctly delegates to RuleEngine for this specific rule
-            var remoteSite = new NonCitySite("Void", ResourceType.Power, 1, ResourceType.Power, 1);
-            var remoteNode = new MapNodeBuilder().WithId(99).Build();
+            var remoteSite = TestData.Sites.NeutralSite();
+            var remoteNode = TestData.MapNodes.EmptyNode();
             remoteSite.AddNode(remoteNode);
 
             // New manager instance for isolation
@@ -247,15 +245,15 @@ namespace ChaosWarlords.Tests.Systems
         public void CanDeploy_AllowsDeployment_FromSiteAdjacency_WithMixedControl()
         {
             // "City of Gold" Simulation
-            var cityNodeTL = new MapNodeBuilder().WithId(10).Build();
-            var cityNodeTR = new MapNodeBuilder().WithId(11).Build();
-            var cityNodeDL = new MapNodeBuilder().WithId(12).Build();
-            var cityNodeDR = new MapNodeBuilder().WithId(13).Build(); // Blue is here
-            var routeNode = new MapNodeBuilder().WithId(20).Build();  // Connected to TL
+            var cityNodeTL = TestData.MapNodes.Node1();
+            var cityNodeTR = TestData.MapNodes.Node2();
+            var cityNodeDL = TestData.MapNodes.Node3();
+            var cityNodeDR = TestData.MapNodes.Node4(); // Blue is here
+            var routeNode = TestData.MapNodes.Node5();  // Connected to TL
 
             routeNode.AddNeighbor(cityNodeTL);
 
-            var citySite = new CitySite("City of Gold", ResourceType.Power, 1, ResourceType.VictoryPoints, 2);
+            var citySite = TestData.Sites.CitySite();
             citySite.AddNode(cityNodeTL);
             citySite.AddNode(cityNodeTR);
             citySite.AddNode(cityNodeDL);
@@ -285,9 +283,9 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void CanDeploy_ReturnsFalse_WhenTargetIsTotallyDisconnected()
         {
-            var startNode = new MapNodeBuilder().WithId(1).Build();
+            var startNode = TestData.MapNodes.Node1();
             startNode.Occupant = _player1.Color;
-            var farNode = new MapNodeBuilder().WithId(99).Build();
+            var farNode = TestData.MapNodes.EmptyNode();
 
             var manager = new MapManager(new List<MapNode> { startNode, farNode }, new List<Site>(), _stateManager);
             manager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
@@ -301,11 +299,11 @@ namespace ChaosWarlords.Tests.Systems
         public void CanDeploy_ReturnsFalse_IfSpyIsAtDifferentSite()
         {
             // Site A has Spy. Site B is target.
-            var siteANode = new MapNodeBuilder().WithId(1).Build();
-            var siteBNode = new MapNodeBuilder().WithId(2).Build();
-            var siteA = new NonCitySite("Spy Hub", ResourceType.Power, 1, ResourceType.Power, 1);
+            var siteANode = TestData.MapNodes.Node1();
+            var siteBNode = TestData.MapNodes.Node2();
+            var siteA = TestData.Sites.NeutralSite();
             siteA.AddNode(siteANode);
-            var siteB = new NonCitySite("Target Fort", ResourceType.Power, 1, ResourceType.Power, 1);
+            var siteB = TestData.Sites.NeutralSite();
             siteB.AddNode(siteBNode);
 
             var manager = new MapManager(new List<MapNode> { siteANode, siteBNode }, new List<Site> { siteA, siteB }, _stateManager);
@@ -314,7 +312,7 @@ namespace ChaosWarlords.Tests.Systems
             siteA.Spies.Add(_player1.Color);
 
             // Add a troop somewhere else so board isn't empty
-            var baseNode = new MapNodeBuilder().WithId(99).Build();
+            var baseNode = TestData.MapNodes.EmptyNode();
             baseNode.Occupant = _player1.Color;
             manager.NodesInternal.Add(baseNode);
 
@@ -426,19 +424,20 @@ namespace ChaosWarlords.Tests.Systems
         public void CanDeploy_ReturnsFalse_WhenAdjacentToEnemySite_ButNoFriendlyPresence()
         {
             // Complex Topology Case from old file
-            var enemyNode = new MapNodeBuilder().WithId(100).Build();
-            var targetNode = new MapNodeBuilder().WithId(101).Build();
-            var myBaseNode = new MapNodeBuilder().WithId(199).Build();
+            var enemyNode = TestData.MapNodes.Node1();
+            var targetNode = TestData.MapNodes.Node2();
+            var myBaseNode = TestData.MapNodes.EmptyNode();
 
             targetNode.AddNeighbor(enemyNode);
 
-            var enemySite = new NonCitySite("Enemy Fortress", ResourceType.Power, 1, ResourceType.Power, 1);
+            var enemySite = TestData.Sites.NeutralSite();
             enemySite.AddNode(enemyNode);
             enemySite.AddNode(targetNode); // Target is inside the enemy site
 
             var manager = new MapManager(
                 new List<MapNode> { enemyNode, targetNode, myBaseNode },
-                new List<Site> { enemySite }
+                new List<Site> { enemySite },
+                _stateManager
             );
 
             enemyNode.Occupant = _player2.Color; // Enemy

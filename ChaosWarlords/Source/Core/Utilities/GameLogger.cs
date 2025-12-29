@@ -22,6 +22,7 @@ namespace ChaosWarlords.Source.Utilities
     public static class GameLogger
     {
         // Settings
+        public static bool IsEnabled { get; set; } = true;
         private static readonly string LogFilePath = "session_log.txt";
 
         // Storage (Buffer for file writing)
@@ -47,7 +48,7 @@ namespace ChaosWarlords.Source.Utilities
 
         public static void Log(object messageObj, LogChannel channel = LogChannel.General)
         {
-            if (messageObj is null) return;
+            if (!IsEnabled || messageObj is null) return;
 
             string message = messageObj.ToString() ?? string.Empty;
             string timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);

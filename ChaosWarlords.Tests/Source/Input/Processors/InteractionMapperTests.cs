@@ -38,7 +38,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetHoveredHandCard_ReturnsCard_WhenCardIsHovered()
         {
             // Arrange
-            var card = new CardBuilder().WithName("Test Card").WithCost(1).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var card = TestData.Cards.CheapCard();
             var viewModel = new CardViewModel(card) { IsHovered = true };
             _view.HandViewModels.Add(viewModel);
 
@@ -53,7 +53,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetHoveredHandCard_ReturnsNull_WhenNoCardIsHovered()
         {
             // Arrange
-            var card = new CardBuilder().WithName("Test Card").WithCost(1).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var card = TestData.Cards.CheapCard();
             var viewModel = new CardViewModel(card) { IsHovered = false };
             _view.HandViewModels.Add(viewModel);
 
@@ -68,8 +68,8 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetHoveredHandCard_ReturnsFirstHovered_WhenMultipleCardsExist()
         {
             // Arrange
-            var card1 = new CardBuilder().WithName("Card 1").WithCost(1).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build();
-            var card2 = new CardBuilder().WithName("Card 2").WithCost(1).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var card1 = TestData.Cards.CheapCard();
+            var card2 = TestData.Cards.ExpensiveCard();
             var vm1 = new CardViewModel(card1) { IsHovered = false };
             var vm2 = new CardViewModel(card2) { IsHovered = true };
             _view.HandViewModels.Add(vm1);
@@ -102,7 +102,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetHoveredMarketCard_ReturnsCard_WhenCardIsHovered()
         {
             // Arrange
-            var card = new CardBuilder().WithName("Market Card").WithCost(2).WithAspect(CardAspect.Blasphemy).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var card = TestData.Cards.PowerCard();
             var viewModel = new CardViewModel(card) { IsHovered = true };
             _view.MarketViewModels.Add(viewModel);
 
@@ -117,7 +117,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetHoveredMarketCard_ReturnsNull_WhenNoCardIsHovered()
         {
             // Arrange
-            var card = new CardBuilder().WithName("Market Card").WithCost(2).WithAspect(CardAspect.Blasphemy).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var card = TestData.Cards.PowerCard();
             var viewModel = new CardViewModel(card) { IsHovered = false };
             _view.MarketViewModels.Add(viewModel);
 
@@ -148,7 +148,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetHoveredPlayedCard_ReturnsCard_WhenMouseIsWithinBounds()
         {
             // Arrange
-            var card = new CardBuilder().WithName("Played Card").WithCost(1).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var card = TestData.Cards.CheapCard();
             var viewModel = new CardViewModel(card);
             viewModel.Position = new Vector2(100, 100);
             _view.PlayedViewModels.Add(viewModel);
@@ -169,7 +169,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetHoveredPlayedCard_ReturnsNull_WhenMouseIsOutsideBounds()
         {
             // Arrange
-            var card = new CardBuilder().WithName("Played Card").WithCost(1).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var card = TestData.Cards.CheapCard();
             var viewModel = new CardViewModel(card);
             viewModel.Position = new Vector2(100, 100);
             _view.PlayedViewModels.Add(viewModel);
@@ -223,7 +223,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetClickedSpyReturnButton_ReturnsPlayerColor_WhenClickingOnSpyButton()
         {
             // Arrange
-            var site = new CitySite("Test Site", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
+            var site = TestData.Sites.CitySite();
             site.AddSpy(PlayerColor.Red);
 
             // Based on the logic: drawX = (800 - 200) / 2 = 300, startY = 200, yOffset = 40
@@ -241,7 +241,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetClickedSpyReturnButton_ReturnsNull_WhenClickingOutsideButtons()
         {
             // Arrange
-            var site = new CitySite("Test Site", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
+            var site = TestData.Sites.CitySite();
             site.AddSpy(PlayerColor.Red);
 
             var mousePos = new Point(100, 100); // Outside button area
@@ -257,7 +257,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetClickedSpyReturnButton_ReturnsCorrectSpy_WithMultipleSpies()
         {
             // Arrange
-            var site = new CitySite("Test Site", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
+            var site = TestData.Sites.CitySite();
             site.AddSpy(PlayerColor.Red);
             site.AddSpy(PlayerColor.Blue);
 
@@ -275,7 +275,7 @@ namespace ChaosWarlords.Tests.Source.Input.Processors
         public void GetClickedSpyReturnButton_ReturnsNull_WhenSiteHasNoSpies()
         {
             // Arrange
-            var site = new CitySite("Test Site", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
+            var site = TestData.Sites.CitySite();
             var mousePos = new Point(350, 250);
 
             // Act

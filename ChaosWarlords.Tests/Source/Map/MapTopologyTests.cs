@@ -19,12 +19,12 @@ namespace ChaosWarlords.Tests.Map
         {
             _nodes = new List<MapNode>
             {
-                new MapNodeBuilder().WithId(1).At(100, 100).Build(),
-                new MapNodeBuilder().WithId(2).At(200, 200).Build(),
-                new MapNodeBuilder().WithId(3).At(300, 300).Build()
+                TestData.MapNodes.Node1(),
+                TestData.MapNodes.Node2(),
+                TestData.MapNodes.Node3()
             };
 
-            var testSite = new NonCitySite("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
+            var testSite = TestData.Sites.NeutralSite();
             testSite.AddNode(_nodes[0]);
             testSite.AddNode(_nodes[1]);
 
@@ -40,7 +40,7 @@ namespace ChaosWarlords.Tests.Map
         public void GetNodeAt_ReturnsNodeWithinRadius()
         {
             // Arrange
-            var searchPosition = new Vector2(105, 105); // Close to node 1
+            var searchPosition = new Vector2(12, 12); // Node 1 is at (10,10)
 
             // Act
             var result = _topology.GetNodeAt(searchPosition);
@@ -66,15 +66,15 @@ namespace ChaosWarlords.Tests.Map
         [TestMethod]
         public void GetSiteAt_ReturnsSiteContainingPosition()
         {
-            // Arrange - position within site bounds
-            var searchPosition = new Vector2(150, 150);
+            // Arrange - position within site bounds (Node1 is at 10,10, Node2 at 20,10)
+            var searchPosition = new Vector2(15, 10);
 
             // Act
             var result = _topology.GetSiteAt(searchPosition);
 
             // Assert
             Assert.IsNotNull(result);
-            Assert.AreEqual("TestSite", result.Name);
+            Assert.AreEqual("Neutral Site", result.Name);
         }
 
         [TestMethod]

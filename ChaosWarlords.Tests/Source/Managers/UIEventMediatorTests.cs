@@ -54,7 +54,7 @@ namespace ChaosWarlords.Tests.Managers
             _mockGameState.MatchContext.Returns(matchContext);
 
             // Setup ActivePlayer (returning a real Player object is easiest)
-            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var player = TestData.Players.RedPlayer();
             mockTurn.ActivePlayer.Returns(player);
 
             // Mock TurnContext for promotion check
@@ -190,7 +190,7 @@ namespace ChaosWarlords.Tests.Managers
             _mediator.Initialize();
             // Add a card to the real player's hand
             var player = _mockGameState.MatchContext.ActivePlayer;
-            player.Hand.Add(new CardBuilder().WithName("test").WithCost(1).WithAspect(CardAspect.Warlord).Build());
+            player.Hand.Add(TestData.Cards.CheapCard());
 
             // Act
             _mockUIManager.OnEndTurnRequest += Raise.Event();
@@ -267,7 +267,7 @@ namespace ChaosWarlords.Tests.Managers
         {
             // Arrange
             _mediator.Initialize();
-            var card = new CardBuilder().WithName("test").WithAspect(CardAspect.Warlord).Build();
+            var card = TestData.Cards.CheapCard();
             _mockActionSystem.PendingCard.Returns(card);
 
             // Act

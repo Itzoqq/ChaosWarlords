@@ -20,20 +20,20 @@ namespace ChaosWarlords.Tests.Systems
         [TestInitialize]
         public void Setup()
         {
-            _player1 = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
-            _player2 = new PlayerBuilder().WithColor(PlayerColor.Blue).Build();
+            _player1 = TestData.Players.RedPlayer();
+            _player2 = TestData.Players.BluePlayer();
 
             // Setup: [Node1] -- [Node2] -- [Node3 (SiteA)]
-            _node1 = new MapNodeBuilder().WithId(1).Build();
-            _node2 = new MapNodeBuilder().WithId(2).Build();
-            _node3 = new MapNodeBuilder().WithId(3).Build();
+            _node1 = TestData.MapNodes.Node1();
+            _node2 = TestData.MapNodes.Node2();
+            _node3 = TestData.MapNodes.Node3();
 
             _node1.AddNeighbor(_node2);
             _node2.AddNeighbor(_node1);
             _node2.AddNeighbor(_node3);
             _node3.AddNeighbor(_node2);
 
-            _siteA = new NonCitySite("SiteA", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            _siteA = TestData.Sites.NeutralSite();
             _siteA.AddNode(_node3);
 
             // Manual dependency injection for the engine
@@ -180,8 +180,8 @@ namespace ChaosWarlords.Tests.Systems
         public void CanDeployAt_SetupPhase_True_ForStartingSite()
         {
             // Arrange: Setup Phase needs a StartingSite
-            var startNode = new MapNodeBuilder().WithId(99).Build();
-            var startSite = new StartingSite("Start", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            var startNode = TestData.MapNodes.EmptyNode(); // ID 99
+            var startSite = TestData.Sites.StartingSite();
             startSite.AddNode(startNode);
 
             // Re-init engine with this new site included
@@ -209,8 +209,8 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void CanDeployAt_SetupPhase_False_IfHasTroops()
         {
-            var startNode = new MapNodeBuilder().WithId(99).Build();
-            var startSite = new StartingSite("Start", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            var startNode = TestData.MapNodes.EmptyNode(); // ID 99
+            var startSite = TestData.Sites.StartingSite();
             startSite.AddNode(startNode);
 
             // Re-init engine 
@@ -246,9 +246,9 @@ namespace ChaosWarlords.Tests.Systems
         public void CanDeployAt_SetupPhase_False_IfStartingSiteOccupiedByOtherPlayer()
         {
             // Arrange: Create a StartingSite with 2 nodes
-            var startNode1 = new MapNodeBuilder().WithId(100).Build();
-            var startNode2 = new MapNodeBuilder().WithId(101).At(50, 0).Build();
-            var startSite = new StartingSite("Start", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            var startNode1 = TestData.MapNodes.Node1();
+            var startNode2 = TestData.MapNodes.Node2();
+            var startSite = TestData.Sites.StartingSite();
             startSite.AddNode(startNode1);
             startSite.AddNode(startNode2);
 

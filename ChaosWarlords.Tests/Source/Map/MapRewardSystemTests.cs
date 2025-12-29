@@ -27,7 +27,7 @@ namespace ChaosWarlords.Tests.Map
         {
             // Arrange
             var sites = new List<Site>();
-            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var player = TestData.Players.RedPlayer();
 
             // Act
             _rewardSystem.DistributeStartOfTurnRewards(sites, player);
@@ -40,8 +40,8 @@ namespace ChaosWarlords.Tests.Map
         public void RecalculateSiteState_DelegatesToControlSystem()
         {
             // Arrange
-            var site = new NonCitySite("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
-            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var site = TestData.Sites.NeutralSite();
+            var player = TestData.Players.RedPlayer();
 
             // Act
             _rewardSystem.RecalculateSiteState(site, player);

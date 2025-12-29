@@ -139,7 +139,7 @@ namespace ChaosWarlords.Tests.Input.Controllers
             // Arrange
             var mockActionSystem = Substitute.For<IActionSystem>();
             mockActionSystem.CurrentState.Returns(ActionState.SelectingSpyToReturn);
-            var mockSite = Substitute.For<ChaosWarlords.Source.Entities.Map.Site>("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 1);
+            var mockSite = TestData.Sites.CitySite();
             mockActionSystem.PendingSite.Returns(mockSite);
             _mockGameState.ActionSystem.Returns(mockActionSystem);
 

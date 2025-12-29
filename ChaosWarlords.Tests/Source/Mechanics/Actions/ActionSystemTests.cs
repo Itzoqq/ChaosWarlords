@@ -31,8 +31,8 @@ namespace ChaosWarlords.Tests.Systems
         public void Setup()
         {
             // ARRANGE
-            _player1 = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
-            _player2 = new PlayerBuilder().WithColor(PlayerColor.Blue).Build();
+            _player1 = TestData.Players.RedPlayer();
+            _player2 = TestData.Players.BluePlayer();
 
             // Mock the Managers
             _mapManager = Substitute.For<IMapManager>();
@@ -42,11 +42,9 @@ namespace ChaosWarlords.Tests.Systems
             _turnManager.ActivePlayer.Returns(_player1);
 
             // Setup Data Entities
-            _node1 = new MapNodeBuilder().WithId(1).At(10, 10).Build();
-            _node2 = new MapNodeBuilder().WithId(2).At(20, 10).Build();
-
-            // Correct Constructor (Name, ControlRes, Amount, TotalControlRes, Amount)
-            _siteA = new NonCitySite("SiteA", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            _node1 = TestData.MapNodes.Node1();
+            _node2 = TestData.MapNodes.Node2();
+            _siteA = TestData.Sites.NeutralSite();
 
             // Inject the mock
             _actionSystem = new ActionSystem(_turnManager, _mapManager);
@@ -377,10 +375,7 @@ namespace ChaosWarlords.Tests.Systems
         public void HandleTargetClick_Assassinate_ViaCard_DoesNotSpendPower()
         {
             // Arrange
-            var card = new CardBuilder()
-                .WithName("kill_card")
-                .WithAspect(CardAspect.Sorcery)
-                .Build();
+            var card = TestData.Cards.CheapCard();
 
             // Start targeting WITH a pending card
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card);
@@ -403,10 +398,7 @@ namespace ChaosWarlords.Tests.Systems
         public void HandleTargetClick_ReturnSpy_ViaCard_DoesNotSpendPower()
         {
             // Arrange
-            var card = new CardBuilder()
-                .WithName("spy_card")
-                .WithAspect(CardAspect.Shadow)
-                .Build();
+            var card = TestData.Cards.CheapCard();
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy, card);
 
             _player1.Power = 0;
@@ -426,10 +418,7 @@ namespace ChaosWarlords.Tests.Systems
         public void FinalizeSpyReturn_ViaCard_DoesNotSpendPower()
         {
             // Arrange
-            var card = new CardBuilder()
-                .WithName("spy_card")
-                .WithAspect(CardAspect.Shadow)
-                .Build();
+            var card = TestData.Cards.CheapCard();
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy, card);
 
             // Setup Ambiguity to force the 'Finalize' path
@@ -453,10 +442,7 @@ namespace ChaosWarlords.Tests.Systems
         public void HandleTargetClick_Supplant_ViaCard_Succeeds()
         {
             // Arrange
-            var card = new CardBuilder()
-                .WithName("supplant_card")
-                .WithAspect(CardAspect.Warlord)
-                .Build();
+            var card = TestData.Cards.SupplantCard();
             _actionSystem.StartTargeting(ActionState.TargetingSupplant, card);
 
             _player1.TroopsInBarracks = 1;
@@ -478,10 +464,7 @@ namespace ChaosWarlords.Tests.Systems
         public void HandleTargetClick_MoveSource_TransitionsToDestination_OnValidTarget()
         {
             // Arrange
-            var card = new CardBuilder()
-                .WithName("move_card")
-                .WithAspect(CardAspect.Order)
-                .Build();
+            var card = TestData.Cards.MoveUnitCard();
             _actionSystem.StartTargeting(ActionState.TargetingMoveSource, card);
 
             // Mock: MapManager says this node is a valid source (Enemy + Presence)
@@ -515,10 +498,7 @@ namespace ChaosWarlords.Tests.Systems
         public void HandleTargetClick_MoveDestination_CompletesAction_OnValidTarget()
         {
             // Arrange: Set up state as if Step 1 just finished
-            var card = new CardBuilder()
-                .WithName("move_card")
-                .WithAspect(CardAspect.Order)
-                .Build();
+            var card = TestData.Cards.MoveUnitCard();
             _actionSystem.StartTargeting(ActionState.TargetingMoveSource, card);
 
             // Perform Step 1 manually to set internal state
@@ -563,8 +543,8 @@ namespace ChaosWarlords.Tests.Systems
         public void TryStartDevourHand_SetsState_ToTargetingDevourHand()
         {
             // Arrange
-            var sourceCard = new CardBuilder().WithName("eater").WithAspect(CardAspect.Sorcery).Build();
-            _player1.Hand.Add(new CardBuilder().WithName("food").WithAspect(CardAspect.Neutral).Build()); // Ensure hand is not empty
+            var sourceCard = TestData.Cards.DevourCard();
+            _player1.Hand.Add(TestData.Cards.CheapCard()); // Ensure hand is not empty
 
             // Act
             _actionSystem.TryStartDevourHand(sourceCard);
@@ -578,7 +558,7 @@ namespace ChaosWarlords.Tests.Systems
         public void TryStartDevourHand_CompletesImmediately_IfHandIsEmpty()
         {
             // Arrange
-            var sourceCard = new CardBuilder().WithName("eater").WithAspect(CardAspect.Sorcery).Build();
+            var sourceCard = TestData.Cards.DevourCard();
             _player1.Hand.Clear(); // Empty hand
 
             // Listen for completion

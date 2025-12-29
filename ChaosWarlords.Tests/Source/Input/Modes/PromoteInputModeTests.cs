@@ -42,7 +42,7 @@ namespace ChaosWarlords.Tests.States.Input
             _mapSub = Substitute.For<IMapManager>();
 
             // Setup Player and Context
-            _activePlayer = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            _activePlayer = TestData.Players.RedPlayer();
             _realTurnContext = new TurnContext(_activePlayer);
 
             // Setup MatchContext hierarchy for the InputMode to access TurnContext
@@ -70,7 +70,7 @@ namespace ChaosWarlords.Tests.States.Input
         public void HandleInput_ClickingSelfPromote_DoesNothing()
         {
             // Arrange
-            var card = new CardBuilder().WithName("A").WithCost(1).WithAspect(CardAspect.Order).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var card = TestData.Cards.CheapCard();
             _activePlayer.PlayedCards.Add(card);
 
             // Set credit coming ONLY from this card
@@ -95,8 +95,8 @@ namespace ChaosWarlords.Tests.States.Input
         public void HandleInput_ClickingValidTarget_PromotesAndEndsTurn()
         {
             // Arrange
-            var sourceCard = new CardBuilder().WithName("A").WithCost(1).WithAspect(CardAspect.Order).WithPower(0).WithInfluence(0).WithVP(0).Build();
-            var targetCard = new CardBuilder().WithName("B").WithCost(1).WithAspect(CardAspect.Order).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var sourceCard = TestData.Cards.CheapCard();
+            var targetCard = TestData.Cards.CheapCard();
 
             _activePlayer.PlayedCards.Add(sourceCard);
             _activePlayer.PlayedCards.Add(targetCard);

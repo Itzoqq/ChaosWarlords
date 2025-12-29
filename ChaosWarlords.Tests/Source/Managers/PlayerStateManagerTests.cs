@@ -19,7 +19,7 @@ namespace ChaosWarlords.Tests.Managers
         public void Setup()
         {
             _manager = new PlayerStateManager();
-            _player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            _player = TestData.Players.PoorPlayer();
         }
 
         [TestMethod]
@@ -143,7 +143,7 @@ namespace ChaosWarlords.Tests.Managers
         public void DrawCards_DelegatesToPlayer()
         {
             var mockRandom = Substitute.For<IGameRandom>();
-            var card = new CardBuilder().WithName("c1").WithAspect(CardAspect.Neutral).Build();
+            var card = TestData.Cards.CheapCard();
             _player.DeckManager.AddToTop(card);
 
             _manager.DrawCards(_player, 1, mockRandom);
@@ -155,7 +155,7 @@ namespace ChaosWarlords.Tests.Managers
         [TestMethod]
         public void PlayCard_MovesCardFromHandToPlayed()
         {
-            var card = new CardBuilder().WithName("c1").WithAspect(CardAspect.Neutral).Build();
+            var card = TestData.Cards.CheapCard();
             _player.Hand.Add(card);
             card.Location = CardLocation.Hand;
 
@@ -169,7 +169,7 @@ namespace ChaosWarlords.Tests.Managers
         [TestMethod]
         public void AcquireCard_AddsToDiscard()
         {
-            var card = new CardBuilder().WithName("c1").WithAspect(CardAspect.Neutral).Build();
+            var card = TestData.Cards.CheapCard();
             _manager.AcquireCard(_player, card);
 
             Assert.Contains(card, _player.DiscardPile);
@@ -178,7 +178,7 @@ namespace ChaosWarlords.Tests.Managers
         [TestMethod]
         public void TryPromoteCard_DelegatesToPlayer()
         {
-            var card = new CardBuilder().WithName("c1").WithAspect(CardAspect.Neutral).Build();
+            var card = TestData.Cards.CheapCard();
             _player.Hand.Add(card);
 
             bool success = _manager.TryPromoteCard(_player, card, out string error);
@@ -191,7 +191,7 @@ namespace ChaosWarlords.Tests.Managers
         [TestMethod]
         public void DevourCard_RemovesFromHandAndSetsLocationToVoid()
         {
-            var card = new CardBuilder().WithName("c1").WithAspect(CardAspect.Neutral).Build();
+            var card = TestData.Cards.CheapCard();
             _player.Hand.Add(card);
             card.Location = CardLocation.Hand;
 
@@ -206,7 +206,7 @@ namespace ChaosWarlords.Tests.Managers
         {
             _player.Power = 10;
             _player.Influence = 5;
-            var card = new CardBuilder().WithName("c1").WithAspect(CardAspect.Neutral).Build();
+            var card = TestData.Cards.CheapCard();
             _player.Hand.Add(card);
 
             _manager.CleanUpTurn(_player);

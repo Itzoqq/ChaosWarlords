@@ -43,7 +43,7 @@ namespace ChaosWarlords.Tests.States.Input
             _stateSub = Substitute.For<IGameplayState>();
             _marketSub = Substitute.For<IMarketManager>();
             _mockUI = Substitute.For<IUIManager>();
-            _activePlayer = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            _activePlayer = TestData.Players.RedPlayer();
             var mockRandom = Substitute.For<IGameRandom>();
             _turnManager = new TurnManager(new List<Player> { _activePlayer }, mockRandom);
 
@@ -99,7 +99,7 @@ namespace ChaosWarlords.Tests.States.Input
         {
             _actionSub.CurrentState.Returns(ActionState.TargetingAssassinate);
 
-            var node = new MapNodeBuilder().WithId(1).At(200, 200).Build();
+            var node = TestData.MapNodes.Node1();
             _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns(node);
 
             InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 200, 200);
@@ -115,7 +115,7 @@ namespace ChaosWarlords.Tests.States.Input
             // 1. Arrange
             _actionSub.CurrentState.Returns(ActionState.SelectingSpyToReturn);
 
-            var site = new NonCitySite("Test Site", ResourceType.Power, 1, ResourceType.Influence, 1);
+            var site = TestData.Sites.NeutralSite();
             // Use Reflection to set bounds if needed, or rely on defaults
             typeof(Site).GetProperty("Bounds")?.SetValue(site, new Rectangle(100, 100, 100, 100));
 
@@ -140,7 +140,7 @@ namespace ChaosWarlords.Tests.States.Input
         {
             _actionSub.CurrentState.Returns(ActionState.TargetingPlaceSpy);
 
-            var targetSite = new NonCitySite("Target Site", ResourceType.Power, 1, ResourceType.Influence, 1);
+            var targetSite = TestData.Sites.NeutralSite();
             _mapSub.GetSiteAt(Arg.Any<Vector2>()).Returns(targetSite);
             _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns((MapNode?)null);
 

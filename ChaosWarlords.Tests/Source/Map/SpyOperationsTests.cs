@@ -26,8 +26,8 @@ namespace ChaosWarlords.Tests.Map
         public void ExecutePlaceSpy_PlacesSpyAndDecreasesBarracks()
         {
             // Arrange
-            var site = new NonCitySite("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
-            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var site = TestData.Sites.NeutralSite();
+            var player = TestData.Players.RedPlayer();
             player.SpiesInBarracks = 3;
 
             // Act
@@ -43,9 +43,9 @@ namespace ChaosWarlords.Tests.Map
         public void ExecutePlaceSpy_WhenAlreadyHasSpy_DoesNotPlaceAgain()
         {
             // Arrange
-            var site = new NonCitySite("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
+            var site = TestData.Sites.NeutralSite();
             site.Spies.Add(PlayerColor.Red);
-            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var player = TestData.Players.RedPlayer();
             player.SpiesInBarracks = 3;
 
             // Act
@@ -60,9 +60,9 @@ namespace ChaosWarlords.Tests.Map
         public void ExecuteReturnSpy_RemovesEnemySpy()
         {
             // Arrange
-            var site = new NonCitySite("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
+            var site = TestData.Sites.NeutralSite();
             site.Spies.Add(PlayerColor.Blue);
-            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var player = TestData.Players.RedPlayer();
 
             // Act
             var result = _spyOps.ExecuteReturnSpy(site, player, PlayerColor.Blue);
@@ -77,9 +77,9 @@ namespace ChaosWarlords.Tests.Map
         public void ExecuteReturnSpy_CannotReturnOwnSpy()
         {
             // Arrange
-            var site = new NonCitySite("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
+            var site = TestData.Sites.NeutralSite();
             site.Spies.Add(PlayerColor.Red);
-            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var player = TestData.Players.RedPlayer();
 
             // Act
             var result = _spyOps.ExecuteReturnSpy(site, player, PlayerColor.Red);
@@ -93,11 +93,11 @@ namespace ChaosWarlords.Tests.Map
         public void GetEnemySpiesAtSite_ReturnsOnlyEnemySpies()
         {
             // Arrange
-            var site = new NonCitySite("TestSite", ResourceType.Influence, 1, ResourceType.VictoryPoints, 2);
+            var site = TestData.Sites.NeutralSite();
             site.Spies.Add(PlayerColor.Red); // Own spy
             site.Spies.Add(PlayerColor.Blue); // Enemy spy
             site.Spies.Add(PlayerColor.Orange); // Enemy spy
-            var player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var player = TestData.Players.RedPlayer();
 
             // Act
             var result = SpyOperations.GetEnemySpiesAtSite(site, player);

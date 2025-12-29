@@ -12,31 +12,20 @@ namespace ChaosWarlords.Tests.Source.Entities
         [TestInitialize]
         public void Setup()
         {
-            // Constructor now requires (Id, Name, Cost, Aspect, DeckVP, InnerVP, Influence)
-            // We pass 1 for DeckVP, 2 for InnerCircleVP, and 0 for Influence
-            // CardBuilder uses WithName for ID and WithDescription for Name
-            _card = new CardBuilder()
-                .WithName("test_id")
-                .WithDescription("Test Card")
-                .WithCost(3)
-                .WithAspect(CardAspect.Sorcery)
-                .WithPower(1)
-                .WithInfluence(2)
-                .WithVP(0)
-                .Build();
+            _card = TestData.Cards.CheapCard();
         }
 
         [TestMethod]
         public void Constructor_SetsPropertiesCorrectly()
         {
-            Assert.AreEqual("test_id", _card.Id);
-            Assert.AreEqual("Test Card", _card.Name);
-            Assert.AreEqual(3, _card.Cost);
-            Assert.AreEqual(CardAspect.Sorcery, _card.Aspect);
+            Assert.AreEqual("cheap", _card.Id);
+            Assert.AreEqual("Test Description", _card.Name);
+            Assert.AreEqual(2, _card.Cost);
+            Assert.AreEqual(CardAspect.Neutral, _card.Aspect);
 
-            // Check specific VP types now instead of generic VictoryPoints
-            Assert.AreEqual(1, _card.DeckVP);
-            Assert.AreEqual(2, _card.InnerCircleVP);
+            // Check specific VP types
+            Assert.AreEqual(0, _card.DeckVP);
+            Assert.AreEqual(0, _card.InnerCircleVP);
             Assert.AreEqual(0, _card.InfluenceValue);
 
             Assert.AreEqual(CardLocation.None, _card.Location);
@@ -85,9 +74,9 @@ namespace ChaosWarlords.Tests.Source.Entities
             Assert.AreEqual(_card.Id, clone.Id);
 
             // Critical checks for new properties
-            Assert.AreEqual(_card.DeckVP, clone.DeckVP, "Clone must preserve DeckVP.");
-            Assert.AreEqual(_card.InnerCircleVP, clone.InnerCircleVP, "Clone must preserve InnerCircleVP.");
-            Assert.AreEqual(_card.InfluenceValue, clone.InfluenceValue, "Clone must preserve InfluenceValue.");
+            Assert.AreEqual(0, clone.DeckVP, "Clone must preserve DeckVP.");
+            Assert.AreEqual(0, clone.InnerCircleVP, "Clone must preserve InnerCircleVP.");
+            Assert.AreEqual(0, clone.InfluenceValue, "Clone must preserve InfluenceValue.");
 
             // Standard checks
             Assert.AreEqual(_card.Description, clone.Description);

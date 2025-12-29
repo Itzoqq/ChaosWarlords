@@ -124,14 +124,7 @@ namespace ChaosWarlords.Tests.States
             var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
-            var card = new CardBuilder()
-                .WithName("assassin")
-                .WithCost(3)
-                .WithAspect(CardAspect.Shadow)
-                .WithPower(1)
-                .WithInfluence(1)
-                .WithEffect(EffectType.Assassinate, 1)
-                .Build();
+            var card = TestData.Cards.AssassinCard();
 
             // Add card to hand
             state.MatchContext.ActivePlayer.Hand.Add(card);
@@ -210,8 +203,8 @@ namespace ChaosWarlords.Tests.States
                 _inputManagerBacking = new InputManager(_testInput);
                 _uiManagerBacking = Substitute.For<IUIManager>();
 
-                var p1 = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
-                var p2 = new PlayerBuilder().WithColor(PlayerColor.Blue).Build();
+                var p1 = TestData.Players.RedPlayer();
+                var p2 = TestData.Players.BluePlayer();
                 var mockRandom = Substitute.For<IGameRandom>();
                 var tm = new TurnManager(new List<Player> { p1, p2 }, mockRandom);
 
@@ -253,7 +246,7 @@ namespace ChaosWarlords.Tests.States
 
             // 1. Simulate having Pending Promotions
             // We assume the TurnManager is real (based on your TestableGameplayState setup)
-            var creditSourceCard = new CardBuilder().WithName("drow_noble").WithCost(0).WithAspect(CardAspect.Blasphemy).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var creditSourceCard = TestData.Cards.NobleCard();
             state.MatchContext.TurnManager.CurrentTurnContext.AddPromotionCredit(creditSourceCard, 1);
 
             // 2. CRITICAL: Configure the Mock ActionSystem to behave like the real one
@@ -265,7 +258,7 @@ namespace ChaosWarlords.Tests.States
                           .Do(x => _actionSystem.CurrentState.Returns(ActionState.SelectingCardToPromote));
 
             // Add a DIFFERENT card to PlayedCards to satisfy "Cannot promote self" rule
-            var targetCard = new CardBuilder().WithName("minion").WithCost(0).WithAspect(CardAspect.Blasphemy).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var targetCard = TestData.Cards.CheapCard();
             state.MatchContext.ActivePlayer.PlayedCards.Add(targetCard);
 
             // 3. Simulate pressing 'Enter'
@@ -297,7 +290,7 @@ namespace ChaosWarlords.Tests.States
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             // Add unplayed card
-            state.MatchContext.ActivePlayer.Hand.Add(new CardBuilder().WithName("test").WithCost(0).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build());
+            state.MatchContext.ActivePlayer.Hand.Add(TestData.Cards.CheapCard());
 
             // Raise Request (simulating Button Click)
             // We need to access the mock UI system. TestableGameplayState creates a real UIManager, 
@@ -337,7 +330,7 @@ namespace ChaosWarlords.Tests.States
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             // Open Popup
-            state.MatchContext.ActivePlayer.Hand.Add(new CardBuilder().WithName("test").WithCost(0).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build());
+            state.MatchContext.ActivePlayer.Hand.Add(TestData.Cards.CheapCard());
             _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
             state.Update(new GameTime());
 
@@ -357,7 +350,7 @@ namespace ChaosWarlords.Tests.States
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             // Open Popup
-            state.MatchContext.ActivePlayer.Hand.Add(new CardBuilder().WithName("test").WithCost(0).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build());
+            state.MatchContext.ActivePlayer.Hand.Add(TestData.Cards.CheapCard());
             _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
             state.Update(new GameTime());
 
@@ -400,7 +393,7 @@ namespace ChaosWarlords.Tests.States
             var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
-            var card = new CardBuilder().WithName("test").WithCost(0).WithAspect(CardAspect.Warlord).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var card = TestData.Cards.CheapCard();
             state.MatchContext.ActivePlayer.Hand.Add(card);
 
             state.MoveCardToPlayed(card);

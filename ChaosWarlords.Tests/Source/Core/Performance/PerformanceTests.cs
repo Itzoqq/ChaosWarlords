@@ -78,12 +78,20 @@ namespace ChaosWarlords.Tests.Core.Performance
             var stateManager = new ChaosWarlords.Source.Managers.PlayerStateManager();
             var stopwatch = Stopwatch.StartNew();
 
-            // Act
-            for (int i = 0; i < 1000; i++)
+            GameLogger.IsEnabled = false;
+            try
             {
-                stateManager.AddPower(player, 1);
-                stateManager.AddInfluence(player, 1);
-                stateManager.AddVictoryPoints(player, 1);
+                // Act
+                for (int i = 0; i < 1000; i++)
+                {
+                    stateManager.AddPower(player, 1);
+                    stateManager.AddInfluence(player, 1);
+                    stateManager.AddVictoryPoints(player, 1);
+                }
+            }
+            finally
+            {
+                GameLogger.IsEnabled = true;
             }
 
             // Assert
@@ -110,19 +118,27 @@ namespace ChaosWarlords.Tests.Core.Performance
             var stateManager = new ChaosWarlords.Source.Managers.PlayerStateManager();
             var stopwatch = Stopwatch.StartNew();
 
-            // Act
-            foreach (var card in cards)
+            GameLogger.IsEnabled = false;
+            try
             {
-                foreach (var effect in card.Effects)
+                // Act
+                foreach (var card in cards)
                 {
-                    if (effect.Type == EffectType.GainResource)
+                    foreach (var effect in card.Effects)
                     {
-                        if (effect.TargetResource == ResourceType.Power)
-                            stateManager.AddPower(player, effect.Amount);
-                        else if (effect.TargetResource == ResourceType.Influence)
-                            stateManager.AddInfluence(player, effect.Amount);
+                        if (effect.Type == EffectType.GainResource)
+                        {
+                            if (effect.TargetResource == ResourceType.Power)
+                                stateManager.AddPower(player, effect.Amount);
+                            else if (effect.TargetResource == ResourceType.Influence)
+                                stateManager.AddInfluence(player, effect.Amount);
+                        }
                     }
                 }
+            }
+            finally
+            {
+                GameLogger.IsEnabled = true;
             }
 
             // Assert

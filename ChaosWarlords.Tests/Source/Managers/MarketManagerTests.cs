@@ -23,11 +23,11 @@ namespace ChaosWarlords.Tests.Systems
         [TestInitialize]
         public void Setup()
         {
-            _player = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            _player = TestData.Players.PoorPlayer();
 
             // Setup dummy cards
-            _cheapCard = new CardBuilder().WithName("c1").WithCost(2).WithAspect(CardAspect.Neutral).WithPower(1).WithInfluence(1).WithVP(0).Build();
-            _expensiveCard = new CardBuilder().WithName("c2").WithCost(10).WithAspect(CardAspect.Neutral).WithPower(1).WithInfluence(1).WithVP(0).Build();
+            _cheapCard = TestData.Cards.CheapCard();
+            _expensiveCard = TestData.Cards.ExpensiveCard();
 
             // 1. Create the Mock using NSubstitute
             _mockDb = Substitute.For<ICardDatabase>();
@@ -55,7 +55,7 @@ namespace ChaosWarlords.Tests.Systems
             int expectedInfluenceAfter)
         {
             // Arrange
-            var card = new CardBuilder().WithCost(cardCost).Build();
+            var card = new CardBuilder().WithCost(cardCost).Build(); // Keep CardBuilder here as it's specifically testing cost variation
             _market.MarketRow.Add(card);
             _player.Influence = playerInfluence;
 

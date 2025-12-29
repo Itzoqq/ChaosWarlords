@@ -21,13 +21,13 @@ namespace ChaosWarlords.Tests.Systems
         public void Setup()
         {
             _system = new SiteControlSystem();
-            _player1 = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
-            _player2 = new PlayerBuilder().WithColor(PlayerColor.Blue).Build();
+            _player1 = TestData.Players.RedPlayer();
+            _player2 = TestData.Players.BluePlayer();
 
             // Setup Site with 2 nodes
-            _node1 = new MapNodeBuilder().WithId(1).Build();
-            _node2 = new MapNodeBuilder().WithId(2).Build();
-            _siteA = new CitySite("TestCity", ResourceType.Power, 1, ResourceType.VictoryPoints, 5);
+            _node1 = TestData.MapNodes.Node1();
+            _node2 = TestData.MapNodes.Node2();
+            _siteA = TestData.Sites.CitySite();
             _siteA.AddNode(_node1);
             _siteA.AddNode(_node2);
         }
@@ -78,7 +78,7 @@ namespace ChaosWarlords.Tests.Systems
             _node2.Occupant = _player2.Color;
             // 1 vs 1 -> Tie -> No Owner usually.
             // Let's add another node for Red to ensure they own it but enemy exists.
-            var node3 = new MapNodeBuilder().WithId(3).Build();
+            var node3 = TestData.MapNodes.Node3();
             node3.Occupant = _player1.Color;
             _siteA.AddNode(node3);
 
@@ -123,12 +123,12 @@ namespace ChaosWarlords.Tests.Systems
             _player1.Power = 0;
             _player1.VictoryPoints = 0;
 
-            // Control = 1 Power, Total = 5 VP
+            // Control = 1 Power, Total = 5 VP (TestData.Sites.CitySite has 1 VP)
             var sites = new List<Site> { _siteA };
             _system.DistributeStartOfTurnRewards(sites, _player1);
 
             Assert.AreEqual(1, _player1.Power);
-            Assert.AreEqual(5, _player1.VictoryPoints);
+            Assert.AreEqual(1, _player1.VictoryPoints);
         }
     }
 }

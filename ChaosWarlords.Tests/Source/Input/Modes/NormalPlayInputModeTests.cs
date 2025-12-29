@@ -45,7 +45,7 @@ namespace ChaosWarlords.Tests.States.Input
             _stateSub = Substitute.For<IGameplayState>();
             _marketSub = Substitute.For<IMarketManager>();
             _mockUI = Substitute.For<IUIManager>();
-            _activePlayer = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            _activePlayer = TestData.Players.RedPlayer();
             var mockRandom = Substitute.For<IGameRandom>();
             _turnManager = new TurnManager(new List<Player> { _activePlayer }, mockRandom);
 
@@ -63,7 +63,7 @@ namespace ChaosWarlords.Tests.States.Input
         public void HandleInput_ClickOnCard_ReturnsPlayCardCommand()
         {
             // 1. Arrange
-            var card = new CardBuilder().WithName("test").WithCost(0).WithAspect(CardAspect.Neutral).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var card = TestData.Cards.CheapCard();
 
             // Mock State to return this card as hovered
             _stateSub.GetHoveredHandCard().Returns(card);
@@ -94,7 +94,7 @@ namespace ChaosWarlords.Tests.States.Input
             _stateSub.GetHoveredHandCard().Returns((Card?)null);
 
             // Setup Map Mock to return a node at click location
-            var targetNode = new MapNodeBuilder().WithId(1).At(200, 200).Build();
+            var targetNode = TestData.MapNodes.Node1();
             _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns(targetNode);
 
             // Simulate Click at 200,200
@@ -118,12 +118,12 @@ namespace ChaosWarlords.Tests.States.Input
         public void HandleInput_CardOverlapsNode_CardTakesPriority()
         {
             // 1. Arrange
-            var card = new CardBuilder().WithName("test").WithCost(0).WithAspect(CardAspect.Neutral).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var card = TestData.Cards.CheapCard();
 
             // Both Card and Map Node are "active" under the mouse
             _stateSub.GetHoveredHandCard().Returns(card);
 
-            var node = new MapNodeBuilder().WithId(1).At(100, 100).Build();
+            var node = TestData.MapNodes.Node1();
             _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns(node);
 
             // Simulate Click

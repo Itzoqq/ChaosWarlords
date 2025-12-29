@@ -15,10 +15,10 @@ namespace ChaosWarlords.Tests.Entities
         public void Setup()
         {
             // Removed null texture arg
-            _node1 = new MapNodeBuilder().WithId(1).At(0, 0).Build();
-            _node2 = new MapNodeBuilder().WithId(2).At(0, 0).Build();
-            _node3 = new MapNodeBuilder().WithId(3).At(0, 0).Build();
-            _site = new NonCitySite("Test Site", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            _node1 = TestData.MapNodes.Node1();
+            _node2 = TestData.MapNodes.Node2();
+            _node3 = TestData.MapNodes.Node3();
+            _site = TestData.Sites.NeutralSite();
             _site.AddNode(_node1);
             _site.AddNode(_node2);
             _site.AddNode(_node3);

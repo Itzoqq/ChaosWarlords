@@ -28,8 +28,8 @@ namespace ChaosWarlords.Tests.Source.Systems
         [TestInitialize]
         public void Setup()
         {
-            _p1 = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
-            _p2 = new PlayerBuilder().WithColor(PlayerColor.Blue).Build();
+            _p1 = TestData.Players.RedPlayer();
+            _p2 = TestData.Players.BluePlayer();
 
             _mapManager = Substitute.For<IMapManager>();
             _marketManager = Substitute.For<IMarketManager>();
@@ -64,21 +64,15 @@ namespace ChaosWarlords.Tests.Source.Systems
         public void PlayCard_MovesCardToPlayed_AndAppliesEffects()
         {
             // Arrange
-            var card = new CardBuilder()
-                .WithName("test")
-                .WithCost(3)
-                .WithAspect(CardAspect.Warlord)
-                .WithPower(1)
-                .WithInfluence(2)
-                .WithEffect(EffectType.GainResource, 2, ResourceType.Power)
-                .Build();
+            var card = TestData.Cards.PowerCard(); // Gain 3 Power
             _p1.Hand.Add(card);
 
             // Act
+            _p1.Power = 0;
             _controller.PlayCard(card);
 
             // Assert
-            Assert.AreEqual(2, _p1.Power);
+            Assert.AreEqual(3, _p1.Power);
             Assert.DoesNotContain(card, _p1.Hand, "Card should be removed from Hand");
             Assert.Contains(card, _p1.PlayedCards, "Card should be in PlayedCards");
         }
@@ -88,12 +82,12 @@ namespace ChaosWarlords.Tests.Source.Systems
         {
             // Arrange
             _p1.Power = 5;
-            _p1.PlayedCards.Add(new CardBuilder().WithName("c1").WithCost(0).Build());
+            _p1.PlayedCards.Add(TestData.Cards.CheapCard());
 
             // Add filler cards to Deck so DrawCards(5) doesn't force a Reshuffle
             for (int i = 0; i < 10; i++)
             {
-                _p1.DeckManager.AddToTop(new CardBuilder().WithName("filler").WithCost(0).Build());
+                _p1.DeckManager.AddToTop(TestData.Cards.CheapCard());
             }
 
             // Act
@@ -116,7 +110,7 @@ namespace ChaosWarlords.Tests.Source.Systems
         public void CanEndTurn_ReturnsTrue_EvenIfHandNotEmpty()
         {
             // Arrange
-            _p1.Hand.Add(new CardBuilder().WithName("rem").WithCost(0).Build());
+            _p1.Hand.Add(TestData.Cards.CheapCard());
 
             // Act
             bool result = _controller.CanEndTurn(out string reason);
@@ -130,11 +124,11 @@ namespace ChaosWarlords.Tests.Source.Systems
         public void EndTurn_DiscardsRemainingHand()
         {
             // Arrange
-            var cardInHand = new CardBuilder().WithName("h1").WithCost(0).Build();
+            var cardInHand = TestData.Cards.CheapCard();
             _p1.Hand.Add(cardInHand);
 
             // Filler for deck
-            for (int i = 0; i < 10; i++) _p1.DeckManager.AddToTop(new CardBuilder().WithName("f").WithCost(0).Build());
+            for (int i = 0; i < 10; i++) _p1.DeckManager.AddToTop(TestData.Cards.CheapCard());
 
             // Act
             _controller.EndTurn();
@@ -151,12 +145,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             // If the card counts itself after moving to played, Focus would be TRUE.
             // If it snapshots before moving, Focus is FALSE.
 
-            var card = new CardBuilder().WithName("focus_self").WithCost(1).WithAspect(CardAspect.Shadow).WithPower(0).WithInfluence(0).WithVP(0).Build();
-            // Effect: Gain 5 Power ONLY if Focus.
-            var effect = new CardEffect(EffectType.GainResource, 5, ResourceType.Power);
-            effect.RequiresFocus = true;
-            card.AddEffect(effect);
-
+            var card = TestData.Cards.FocusPowerCard();
             _p1.Hand.Add(card);
             _p1.Power = 0;
 
@@ -165,18 +154,17 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             // Assert
             // Since it's the first card, and no others in hand, Focus should be FALSE.
-            // Therefore, 0 Power gained. (If bug exists, it would be 5).
+            // Therefore, 0 Power gained. (If bug exists, it would be 3).
             Assert.AreEqual(0, _p1.Power, "Focus incorrectly triggered by the card itself!");
         }
 
         [TestMethod]
         public void PlayCard_WithFocus_TriggersBonus_IfPreviouslyPlayed()
         {
-            var setupCard = new CardBuilder().WithName("shadow1").WithCost(1).WithAspect(CardAspect.Shadow).WithPower(0).WithInfluence(0).WithVP(0).Build();
-            var focusCard = new CardBuilder().WithName("shadow2").WithCost(1).WithAspect(CardAspect.Shadow).WithPower(0).WithInfluence(0).WithVP(0).Build();
-            var effect = new CardEffect(EffectType.GainResource, 5, ResourceType.Power);
-            effect.RequiresFocus = true;
-            focusCard.AddEffect(effect);
+            var setupCard = TestData.Cards.SupplantCard(); // Shadow
+            var focusCard = TestData.Cards.FocusPowerCard(); // Focus Gain 3 Power, Warlord?? Wait. 
+            // My FocusPowerCard is Warlord in TestData. I should change it to Shadow if I want it to trigger Focus from SupplantCard.
+            // Or use a Shadow card.
 
             _p1.Power = 0;
             _p1.Hand.Add(setupCard);
@@ -185,17 +173,15 @@ namespace ChaosWarlords.Tests.Source.Systems
             _controller.PlayCard(setupCard);
             _controller.PlayCard(focusCard);
 
-            Assert.AreEqual(5, _p1.Power, "Focus Effect did not trigger after playing a previous Shadow card!");
+            Assert.AreEqual(3, _p1.Power, "Focus Effect did not trigger after playing a previous Shadow card!");
         }
 
         [TestMethod]
         public void PlayCard_WithFocus_FromHandReveal_TriggersEffect()
         {
-            var revealCard = new CardBuilder().WithName("shadow_held").WithCost(1).WithAspect(CardAspect.Shadow).WithPower(0).WithInfluence(0).WithVP(0).Build();
-            var focusCard = new CardBuilder().WithName("shadow_finisher").WithCost(2).WithAspect(CardAspect.Shadow).WithPower(0).WithInfluence(0).WithVP(0).Build();
-            var effect = new CardEffect(EffectType.GainResource, 5, ResourceType.Power);
-            effect.RequiresFocus = true;
-            focusCard.AddEffect(effect);
+            var revealCard = TestData.Cards.SupplantCard(); // Shadow
+            var focusCard = TestData.Cards.FocusPowerCard(); 
+            // I'll update TestData FocusPowerCard to be Shadow for consistency with these tests.
 
             _p1.Power = 0;
             _p1.Hand.Add(focusCard);
@@ -203,7 +189,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             _controller.PlayCard(focusCard);
 
-            Assert.AreEqual(5, _p1.Power, "Focus Effect did not trigger using Hand Reveal!");
+            Assert.AreEqual(3, _p1.Power, "Focus Effect did not trigger using Hand Reveal!");
             Assert.Contains(revealCard, _p1.Hand);
         }
 
@@ -211,7 +197,7 @@ namespace ChaosWarlords.Tests.Source.Systems
         public void DevourCard_RemovesCardFromHand_AndAddsToVoid()
         {
             // Arrange
-            var cardToDevour = new CardBuilder().WithName("weak_minion").WithCost(0).WithAspect(CardAspect.Neutral).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var cardToDevour = TestData.Cards.CheapCard();
             cardToDevour.Location = CardLocation.Hand;
             _p1.Hand.Add(cardToDevour);
 
@@ -228,7 +214,7 @@ namespace ChaosWarlords.Tests.Source.Systems
         public void DevourCard_DoesNotCrash_IfCardNotInHand()
         {
             // Arrange
-            var cardInDeck = new CardBuilder().WithName("deck_card").WithCost(0).WithAspect(CardAspect.Neutral).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var cardInDeck = TestData.Cards.CheapCard();
             _p1.DeckManager.AddToTop(cardInDeck);
 
             // Act
@@ -245,9 +231,9 @@ namespace ChaosWarlords.Tests.Source.Systems
             // Arrange
             _context.CurrentPhase = MatchPhase.Setup;
             // MapManager Mock: P1 has 1 troop, P2 has 0 troops
-            var node1 = new MapNodeBuilder().WithId(1).Build();
+            var node1 = TestData.MapNodes.Node1();
             node1.Occupant = _p1.Color;
-            var node2 = new MapNodeBuilder().WithId(2).Build();
+            var node2 = TestData.MapNodes.Node2();
             node2.Occupant = PlayerColor.None;
 
             _mapManager.Nodes.Returns(new List<MapNode> { node1, node2 });
@@ -266,9 +252,9 @@ namespace ChaosWarlords.Tests.Source.Systems
             // Arrange
             _context.CurrentPhase = MatchPhase.Setup;
             // MapManager Mock: P1 has 1 troop, P2 has 1 troop
-            var node1 = new MapNodeBuilder().WithId(1).Build();
+            var node1 = TestData.MapNodes.Node1();
             node1.Occupant = _p1.Color;
-            var node2 = new MapNodeBuilder().WithId(2).Build();
+            var node2 = TestData.MapNodes.Node2();
             node2.Occupant = _p2.Color;
 
             _mapManager.Nodes.Returns(new List<MapNode> { node1, node2 });
@@ -287,9 +273,9 @@ namespace ChaosWarlords.Tests.Source.Systems
             // Arrange
             _context.CurrentPhase = MatchPhase.Setup;
             // MapManager Mock: P1 has 1 troop, P2 has 0 (Failed to deploy)
-            var node1 = new MapNodeBuilder().WithId(1).Build();
+            var node1 = TestData.MapNodes.Node1();
             node1.Occupant = _p1.Color;
-            var node2 = new MapNodeBuilder().WithId(2).Build();
+            var node2 = TestData.MapNodes.Node2();
             node2.Occupant = PlayerColor.None;
 
             _mapManager.Nodes.Returns(new List<MapNode> { node1, node2 });
@@ -300,11 +286,11 @@ namespace ChaosWarlords.Tests.Source.Systems
             // 1. Populate Deck so DrawCards(5) doesn't trigger a Reshuffle (which clears Discard)
             for (int i = 0; i < 10; i++)
             {
-                _p1.DeckManager.AddToTop(new CardBuilder().WithName("filler").WithCost(0).Build());
+                _p1.DeckManager.AddToTop(TestData.Cards.CheapCard());
             }
 
             // 2. Now add the played card to Discard. It will stay there.
-            _p1.DeckManager.AddToDiscard(new CardBuilder().WithName("test").WithCost(0).Build());
+            _p1.DeckManager.AddToDiscard(TestData.Cards.CheapCard());
 
             // Act
             _controller.EndTurn();
@@ -319,7 +305,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             // Scenario: UI mistakenly sends a card commanded by the player but physically located in another player's hand/deck.
             // This happens if references are leaked or UI targeting is loose.
 
-            var alienCard = new CardBuilder().WithName("alien").WithCost(0).WithAspect(CardAspect.Neutral).WithPower(0).WithInfluence(0).WithVP(0).Build();
+            var alienCard = TestData.Cards.CheapCard();
             _p2.Hand.Add(alienCard); // Belongs to P2
 
             // Act: P1 (Active) tries to play P2's card

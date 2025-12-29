@@ -296,7 +296,7 @@ public void MethodName_Scenario_ExpectedBehavior()
 Use `[DataRow]` for testing multiple scenarios:
 
 ```csharp
-[DataTestMethod]
+[TestMethod]
 [DataRow(0, 1, false)]  // No power - should fail
 [DataRow(1, 0, false)]  // No troops - should fail
 [DataRow(1, 1, true)]   // Valid - should succeed
@@ -311,7 +311,7 @@ public void TryDeploy_ValidatesRequirements(int power, int troops, bool shouldSu
 **Solution**: Create fresh instances for each test execution
 
 ```csharp
-[DataTestMethod]
+[TestMethod]
 [DataRow(10, 5)]
 [DataRow(20, 10)]
 public void TestMethod(int value1, int value2)

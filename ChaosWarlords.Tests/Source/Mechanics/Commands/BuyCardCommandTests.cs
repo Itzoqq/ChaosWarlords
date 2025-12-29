@@ -23,7 +23,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var mockState = Substitute.For<IGameplayState>();
             var mockMarketManager = Substitute.For<IMarketManager>();
             var mockTurnManager = Substitute.For<ITurnManager>();
-            var mockPlayer = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var mockPlayer = TestData.Players.RedPlayer();
 
             mockState.MarketManager.Returns(mockMarketManager);
             mockState.TurnManager.Returns(mockTurnManager);
@@ -50,7 +50,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
 
             mockState.MatchContext.Returns(context);
 
-            var card = new CardBuilder().WithName("test").WithCost(3).WithAspect(CardAspect.Warlord).WithPower(1).WithInfluence(1).Build();
+            var card = TestData.Cards.PowerCard();
             var command = new BuyCardCommand(card);
 
             // Act

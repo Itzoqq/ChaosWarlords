@@ -77,6 +77,41 @@ namespace ChaosWarlords.Tests
                 .WithAspect(CardAspect.Shadow)
                 .WithEffect(EffectType.Supplant, 1)
                 .Build();
+
+            public static Card DevourCard() => new CardBuilder()
+                .WithName("devourer")
+                .WithCost(3)
+                .WithAspect(CardAspect.Shadow)
+                .WithEffect(EffectType.Devour, 1)
+                .Build();
+
+            public static Card NobleCard() => new CardBuilder()
+                .WithName("noble")
+                .WithCost(3)
+                .WithAspect(CardAspect.Sorcery)
+                .WithEffect(EffectType.Promote, 1)
+                .Build();
+
+            public static Card FocusPowerCard() => new CardBuilder()
+                .WithName("focus_power")
+                .WithCost(2)
+                .WithAspect(CardAspect.Shadow)
+                .WithFocusEffect(EffectType.GainResource, 3, ResourceType.Power)
+                .Build();
+
+            public static Card ReturnUnitCard() => new CardBuilder()
+                .WithName("return_unit")
+                .WithCost(2)
+                .WithAspect(CardAspect.Sorcery)
+                .WithEffect(EffectType.ReturnUnit, 1)
+                .Build();
+
+            public static Card PlaceSpyCard() => new CardBuilder()
+                .WithName("place_spy")
+                .WithCost(3)
+                .WithAspect(CardAspect.Shadow)
+                .WithEffect(EffectType.PlaceSpy, 1)
+                .Build();
         }
 
         /// <summary>
@@ -95,6 +130,22 @@ namespace ChaosWarlords.Tests
 
             public static Player BluePlayer() => new PlayerBuilder()
                 .WithColor(PlayerColor.Blue)
+                .WithPower(10)
+                .WithInfluence(10)
+                .WithTroops(10)
+                .WithSpies(5)
+                .Build();
+
+            public static Player OrangePlayer() => new PlayerBuilder()
+                .WithColor(PlayerColor.Orange)
+                .WithPower(10)
+                .WithInfluence(10)
+                .WithTroops(10)
+                .WithSpies(5)
+                .Build();
+
+            public static Player BlackPlayer() => new PlayerBuilder()
+                .WithColor(PlayerColor.Black)
                 .WithPower(10)
                 .WithInfluence(10)
                 .WithTroops(10)
@@ -139,6 +190,16 @@ namespace ChaosWarlords.Tests
                 .At(30, 10)
                 .Build();
 
+            public static MapNode Node4() => new MapNodeBuilder()
+                .WithId(4)
+                .At(40, 10)
+                .Build();
+
+            public static MapNode Node5() => new MapNodeBuilder()
+                .WithId(5)
+                .At(50, 10)
+                .Build();
+
             public static MapNode RedNode() => new MapNodeBuilder()
                 .WithId(10)
                 .At(100, 100)
@@ -171,6 +232,14 @@ namespace ChaosWarlords.Tests
                 2
             );
 
+            public static CitySite CitySite() => new CitySite(
+                "Generic City",
+                ResourceType.Power,
+                1,
+                ResourceType.VictoryPoints,
+                1
+            );
+
             public static NonCitySite InfluenceSite() => new NonCitySite(
                 "Influence Site",
                 ResourceType.Influence,
@@ -184,6 +253,14 @@ namespace ChaosWarlords.Tests
                 ResourceType.Power,
                 1,
                 ResourceType.Power,
+                1
+            );
+
+            public static StartingSite StartingSite() => new StartingSite(
+                "Starting Site",
+                ResourceType.Power,
+                1,
+                ResourceType.VictoryPoints,
                 1
             );
         }
