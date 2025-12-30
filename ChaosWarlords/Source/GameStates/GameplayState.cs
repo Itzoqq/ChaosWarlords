@@ -33,9 +33,8 @@ namespace ChaosWarlords.Source.States
         private readonly int _viewportHeight;
 
         // Replay timing
-        private float _replayTimer;
-        private const float _replayDelay = 0.2f; // 200ms between commands for visibility
-        private bool _replayComplete; // Track if replay has finished
+        // Replay Controller
+        internal ReplayController _replayController = null!;
 
         internal IGameplayView? _view;
         internal IMatchManager _matchManager = null!;
@@ -204,6 +203,14 @@ namespace ChaosWarlords.Source.States
             _uiEventMediator.Initialize();
 
             _playerController = new PlayerController(this, _inputManagerBacking, _inputCoordinator, _interactionMapper);
+
+            // Initialize Replay Controller with callback to reload match
+            _replayController = new ReplayController(this, _replayManager, _inputManagerBacking, _logger, () =>
+            {
+                InitializeMatch();
+                // We MUST re-initialize systems that depend on MatchContext (like InputCoordinator)
+                InitializeSystems(); 
+            });
         }
 
         private void HandleSetupDeploymentComplete()
@@ -245,16 +252,11 @@ namespace ChaosWarlords.Source.States
                 return;
             }
 
-            // 4. Handle Lifecycle Input (Replay Save/Load)
-            HandleReplaySaveInput();
-            HandleReplayLoadInput();
+            // 4. Update Replay Controller (Handles F5/F6 and Playback Loop)
+            _replayController.Update(gameTime);
 
-            // 5. Game Loop (Replay vs Normal)
-            if (_replayManager.IsReplaying)
-            {
-                UpdateReplayPlayback(gameTime);
-            }
-            else
+            // 5. Normal Game Input (Only if not replaying)
+            if (!_replayManager.IsReplaying)
             {
                 _playerController.Update();
             }
@@ -263,80 +265,11 @@ namespace ChaosWarlords.Source.States
             _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
         }
 
-        private void HandleReplaySaveInput()
-        {
-            if (_inputManagerBacking.IsKeyJustPressed(Microsoft.Xna.Framework.Input.Keys.F5))
-            {
-                if (_matchContext.CurrentPhase == MatchPhase.Setup)
-                {
-                    _logger.Log("Cannot save replay during setup phase! Complete initial deployment first.", LogChannel.Warning);
-                }
-                else if (!_replayManager.IsReplaying)
-                {
-                    string json = _replayManager.GetRecordingJson();
-                    System.IO.File.WriteAllText("last_replay.json", json);
-                    _logger.Log("Replay saved to last_replay.json", LogChannel.Info);
-                }
-            }
-        }
 
-        private void HandleReplayLoadInput()
-        {
-            if (_inputManagerBacking.IsKeyJustPressed(Microsoft.Xna.Framework.Input.Keys.F6))
-            {
-                bool anyTroopsPlaced = _matchContext.MapManager.Nodes.Any(n => n.Occupant != PlayerColor.None && n.Occupant != PlayerColor.Neutral);
-                
-                if (anyTroopsPlaced)
-                {
-                    if (_replayManager.IsReplaying || _replayComplete)
-                        _logger.Log("Cannot restart replay mid-game! Exit to main menu and start a new game to replay again.", LogChannel.Warning);
-                    else
-                        _logger.Log("Cannot start replay after troops have been placed! Start a new game first.", LogChannel.Warning);
-                }
-                else if (System.IO.File.Exists("last_replay.json"))
-                {
-                    if (_replayManager.IsReplaying) _replayManager.StopReplay();
-                    
-                    _replayComplete = false;
-                    _replayTimer = 0f;
-                    
-                    string json = System.IO.File.ReadAllText("last_replay.json");
-                    _replayManager.StartReplay(json);
 
-                    InitializeMatch();
-                    InitializeSystems();
-                    
-                    _logger.Log($"Replay started (Seed: {_replayManager.Seed}). Watch your previous game unfold!", LogChannel.Info);
-                }
-                else
-                {
-                    _logger.Log("No replay file found. Play a game and press F5 to save a replay first.", LogChannel.Warning);
-                }
-            }
-        }
 
-        private void UpdateReplayPlayback(GameTime gameTime)
-        {
-            _replayTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
-            
-            if (_replayTimer >= _replayDelay)
-            {
-                _replayTimer = 0f;
-                
-                var cmd = _replayManager.GetNextCommand(this);
-                if (cmd != null)
-                {
-                    cmd.Execute(this);
-                    _logger.Log($"Replay Executed: {cmd.GetType().Name} (ActivePlayer: {_matchContext.ActivePlayer.Color})", LogChannel.Info);
-                    _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
-                }
-                else if (!_replayComplete)
-                {
-                    _replayComplete = true;
-                    _logger.Log("=== REPLAY COMPLETE === Press F6 to restart", LogChannel.Info);
-                }
-            }
-        }
+
+
 
         public void Draw(SpriteBatch spriteBatch)
         {

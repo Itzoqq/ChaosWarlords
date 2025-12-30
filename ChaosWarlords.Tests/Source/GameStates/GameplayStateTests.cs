@@ -257,6 +257,9 @@ namespace ChaosWarlords.Tests.States
                 // 5. PlayerController
                 _playerController = new PlayerController(this, _inputManagerBacking, _inputCoordinator, _interactionMapper);
 
+                // 6. ReplayController
+                _replayController = new ReplayController(this, base._replayManager, _inputManagerBacking, ChaosWarlords.Tests.Utilities.TestLogger.Instance, () => { });
+
                 SwitchToNormalMode();
             }
 
