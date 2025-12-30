@@ -8,6 +8,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Commands;
 using NSubstitute;
 
 namespace ChaosWarlords.Tests.Managers
@@ -217,7 +218,7 @@ namespace ChaosWarlords.Tests.Managers
             _mockUIManager.OnEndTurnRequest += Raise.Event();
 
             // Assert
-            _mockGameState.Received(1).EndTurn();
+            _mockGameState.Received(1).RecordAndExecuteCommand(Arg.Any<EndTurnCommand>());
             Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
         }
 
@@ -241,7 +242,7 @@ namespace ChaosWarlords.Tests.Managers
 
             // Assert
             Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
-            _mockGameState.Received(1).EndTurn();
+            _mockGameState.Received(1).RecordAndExecuteCommand(Arg.Any<EndTurnCommand>());
         }
 
         [TestMethod]

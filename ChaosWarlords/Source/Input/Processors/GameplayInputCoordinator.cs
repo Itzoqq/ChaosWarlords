@@ -34,7 +34,11 @@ namespace ChaosWarlords.Source.Input
                _context.ActivePlayer,
                _context.ActionSystem);
 
-            command?.Execute(_state);
+            if (command != null)
+            {
+                // Centralized command recording - ALL player commands flow through here
+                _state.RecordAndExecuteCommand(command);
+            }
         }
 
         public void SwitchToNormalMode()

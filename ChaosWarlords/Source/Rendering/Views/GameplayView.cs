@@ -50,6 +50,7 @@ namespace ChaosWarlords.Source.Rendering.Views
         public int PlayedY { get; private set; }
 
         private readonly IGameLogger _logger;
+        private Texture2D? _whitePixel; // For drawing backgrounds
 
         public GameplayView(GraphicsDevice graphicsDevice, IGameLogger logger)
         {
@@ -61,6 +62,10 @@ namespace ChaosWarlords.Source.Rendering.Views
         {
             _pixelTexture = new Texture2D(_graphicsDevice, 1, 1);
             _pixelTexture.SetData(new[] { Color.White });
+
+            // Initialize _whitePixel
+            _whitePixel = new Texture2D(_graphicsDevice, 1, 1);
+            _whitePixel.SetData(new[] { Color.White });
 
             try { _defaultFont = content.Load<SpriteFont>("fonts/DefaultFont"); } 
             catch (ContentLoadException ex) { _logger.Log($"Failed to load DefaultFont: {ex.Message}", LogChannel.Error); }
@@ -89,7 +94,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             if (isMarketOpen) UpdateVisualsHover(MarketViewModels, inputManager);
         }
 
-        public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen)
+        public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying = false)
         {
             // 1. Draw Map
             MapNode? hoveredNode = context.MapManager.GetNodeAt(inputManager.MousePosition);
@@ -133,12 +138,30 @@ namespace ChaosWarlords.Source.Rendering.Views
                 DrawSpySelectionUI(spriteBatch, context.ActionSystem.PendingSite, uiManager.ScreenWidth);
             }
 
-            // 7. Draw Confirmation Popup (Modal)
+            // 7. Draw REPLAY MODE Indicator
+            if (isReplaying)
+            {
+                string replayText = "=== REPLAY MODE ===";
+                Vector2 textSize = _defaultFont.MeasureString(replayText);
+                Vector2 position = new Vector2((uiManager.ScreenWidth - textSize.X) / 2, 10);
+                
+                // Draw semi-transparent background
+                Rectangle bgRect = new Rectangle((int)position.X - 10, (int)position.Y - 5, (int)textSize.X + 20, (int)textSize.Y + 10);
+                if (_whitePixel != null)
+                {
+                    spriteBatch.Draw(_whitePixel, bgRect, Color.Black * 0.7f);
+                }
+                
+                // Draw text
+                spriteBatch.DrawString(_defaultFont, replayText, position, Color.Yellow);
+            }
+
+            // 8. Draw Confirmation Popup (Modal)
             if (isPopupOpen)
             {
                 _uiRenderer.DrawConfirmationPopup(
                     spriteBatch,
-                    "You have unplayed cards!\nEnd Turn anyway?",
+                    "You have unplayed cards!\\nEnd Turn anyway?",
                     uiManager.PopupBackgroundRect,
                     uiManager.PopupConfirmButtonRect,
                     uiManager.PopupCancelButtonRect,
@@ -146,7 +169,7 @@ namespace ChaosWarlords.Source.Rendering.Views
                     uiManager.IsPopupCancelHovered);
             }
 
-            // 8. Draw Pause Menu (Top-most Modal)
+            // 9. Draw Pause Menu (Top-most Modal)
             if (isPauseMenuOpen)
             {
                 _uiRenderer.DrawPauseMenu(spriteBatch, uiManager);

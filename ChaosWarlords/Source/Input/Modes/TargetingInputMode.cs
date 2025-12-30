@@ -82,27 +82,25 @@ namespace ChaosWarlords.Source.States.Input
         {
             if (actionSystem.CurrentState == ActionState.SelectingSpyToReturn)
             {
-                HandleSpySelection(inputManager, mapManager, activePlayer, actionSystem);
-                // Return null; if action completed, the event handler in GameplayState 
-                // will switch the mode for the next frame.
-                return null;
+                // Return the command from spy selection (ResolveSpyCommand usually)
+                return HandleSpySelection(inputManager, mapManager, activePlayer, actionSystem);
             }
 
             Vector2 mousePos = inputManager.MousePosition;
             MapNode? targetNode = mapManager.GetNodeAt(mousePos);
             Site? targetSite = mapManager.GetSiteAt(mousePos);
-            HandleTargetingClick(actionSystem, targetNode, targetSite);
-            // Return null; if action completed, event handler handles state switch.
-            return null;
+            
+            // Return the command if the click resolved an action
+            return HandleTargetingClick(actionSystem, targetNode, targetSite);
         }
 
-        private void HandleSpySelection(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        private IGameCommand? HandleSpySelection(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             Site? site = actionSystem.PendingSite;
             if (site is null)
             {
                 actionSystem.CancelTargeting();
-                return;
+                return null;
             }
 
             var enemies = mapManager.GetEnemySpiesAtSite(site, activePlayer).Distinct().ToList();
@@ -113,26 +111,26 @@ namespace ChaosWarlords.Source.States.Input
                 Rectangle btnRect = new Rectangle((int)startPos.X + (i * 60), (int)startPos.Y, 50, 40);
                 if (inputManager.IsMouseOver(btnRect))
                 {
-                    // This will fire OnActionCompleted if successful
-                    actionSystem.FinalizeSpyReturn(enemies[i]);
-                    return;
+                    // This will return the ResolveSpyCommand
+                    return actionSystem.FinalizeSpyReturn(enemies[i]);
                 }
             }
 
             // If clicked outside buttons, maybe cancel?
             _state.Logger.Log("Cancelled spy selection.", LogChannel.General);
             actionSystem.CancelTargeting();
+            return new SwitchToNormalModeCommand();
         }
 
-        private static void HandleTargetingClick(IActionSystem actionSystem, MapNode? targetNode, Site? targetSite)
+        private static IGameCommand? HandleTargetingClick(IActionSystem actionSystem, MapNode? targetNode, Site? targetSite)
         {
             if (targetNode is null && targetSite is null)
             {
-                return;
+                return null;
             }
 
-            // This will fire OnActionCompleted if successful, or OnActionFailed if error
-            actionSystem.HandleTargetClick(targetNode, targetSite);
+            // This will return the command (Assassinate, Deploy, etc) if valid
+            return actionSystem.HandleTargetClick(targetNode, targetSite);
         }
     }
 }

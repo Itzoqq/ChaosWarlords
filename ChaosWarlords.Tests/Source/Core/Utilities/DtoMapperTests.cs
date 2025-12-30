@@ -50,9 +50,9 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             Assert.IsNotNull(dto);
             Assert.AreEqual(player.PlayerId, dto.PlayerId);
             Assert.AreEqual(10, dto.Power);
-            Assert.AreEqual(dto.Hand.Count == 1);
+            Assert.HasCount(1, dto.Hand);
             Assert.AreEqual("c1", dto.Hand[0].DefinitionId);
-            Assert.AreEqual(0, dto.Hand[0].ListIndex); 
+            Assert.AreEqual(0, dto.Hand[0].ListIndex);
         }
 
         [TestMethod]
@@ -61,8 +61,8 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             // Arrange
             var player = new Player(PlayerColor.Blue);
             var card = new Card("c_fireball", "Fireball", 3, CardAspect.Sorcery, 0, 0, 0);
-            player.Hand.Add(card); 
-            
+            player.Hand.Add(card);
+
             var command = new PlayCardCommand(card);
 
             // Act
@@ -70,11 +70,12 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
 
             // Assert
             Assert.IsNotNull(dto);
-            Assert.AreEqual("PlayCardCommand", dto.CommandType);
-            Assert.AreEqual(42, dto.SequenceNumber);
-            Assert.AreEqual(player.PlayerId, dto.PlayerId);
-            Assert.AreEqual("c_fireball", dto.CardDefinitionId);
-            Assert.AreEqual(0, dto.CardHandIndex);
+            Assert.IsInstanceOfType(dto, typeof(PlayCardCommandDto));
+            var playDto = (PlayCardCommandDto)dto;
+            Assert.AreEqual(42, playDto.Seq);
+            Assert.AreEqual(player.SeatIndex, playDto.Seat);
+            Assert.AreEqual("c_fireball", playDto.CardId);
+            Assert.AreEqual(0, playDto.HandIdx);
         }
 
         [TestMethod]
@@ -82,24 +83,24 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
         {
             // Arrange
             var player = new Player(PlayerColor.Red, Guid.NewGuid());
+            player.SeatIndex = 0;
             var card = new Card("c_bolt", "Bolt", 2, CardAspect.Sorcery, 0, 0, 0);
             player.Hand.Add(card);
 
-            var dto = new CommandDto
+            var dto = new PlayCardCommandDto
             {
-                CommandType = "PlayCardCommand",
-                PlayerId = player.PlayerId,
-                CardHandIndex = 0,
-                CardDefinitionId = "c_bolt"
+                Seat = 0,
+                HandIdx = 0,
+                CardId = "c_bolt"
             };
 
             var state = Substitute.For<IGameplayState>();
             var turnManager = Substitute.For<ITurnManager>();
-            
+
             // Setup mocking infrastructure
             turnManager.Players.Returns(new List<Player> { player });
             state.TurnManager.Returns(turnManager);
-            
+
             // Act
             var resultCommand = DtoMapper.HydrateCommand(dto, state);
 

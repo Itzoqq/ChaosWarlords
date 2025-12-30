@@ -19,6 +19,7 @@ namespace ChaosWarlords.Source.Factories
         public required MarketManager MarketManager { get; set; }
         public required MapManager MapManager { get; set; }
         public required ActionSystem ActionSystem { get; set; }
+        public int Seed { get; set; }
     }
 
     public class MatchFactory
@@ -37,7 +38,7 @@ namespace ChaosWarlords.Source.Factories
         /// </summary>
         /// <param name="seed">Optional seed for deterministic gameplay. If null, uses Environment.TickCount.</param>
         /// <returns>WorldData containing all initialized managers and systems.</returns>
-        public WorldData Build(int? seed = null)
+        public WorldData Build(IReplayManager replayManager, int? seed = null)
         {
             // 0. Initialize seeded RNG
             int matchSeed = seed ?? Environment.TickCount;
@@ -60,7 +61,8 @@ namespace ChaosWarlords.Source.Factories
                 TurnManager = turnManager,
                 MarketManager = marketManager,
                 MapManager = mapManager,
-                ActionSystem = actionSystem
+                ActionSystem = actionSystem,
+                Seed = matchSeed
             };
         }
 
@@ -69,21 +71,29 @@ namespace ChaosWarlords.Source.Factories
             var players = new List<Player>();
 
             // Player 1 (Red)
-            var playerRed = CreateDefaultPlayer(PlayerColor.Red, "Player Red", random);
+            var playerRed = CreateDefaultPlayer(PlayerColor.Red, "Player Red", 0, random);
             players.Add(playerRed);
 
             // Player 2 (Blue)
-            var playerBlue = CreateDefaultPlayer(PlayerColor.Blue, "Player Blue", random);
+            var playerBlue = CreateDefaultPlayer(PlayerColor.Blue, "Player Blue", 1, random);
             players.Add(playerBlue);
 
             return players;
         }
 
-        private static Player CreateDefaultPlayer(PlayerColor color, string name, IGameRandom random)
+        private static Player CreateDefaultPlayer(PlayerColor color, string name, int seatIndex, IGameRandom random)
         {
-            var player = new Player(color, displayName: name);
-            for (int i = 0; i < 3; i++) player.DeckManager.AddToTop(CardFactory.CreateSoldier());
-            for (int i = 0; i < 7; i++) player.DeckManager.AddToTop(CardFactory.CreateNoble());
+            // Deterministic ID generation for Replay compatibility
+            // We use a simple hash of the name/color to Create a GUID
+            byte[] fullHash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(name));
+            byte[] hash = new byte[16];
+            Array.Copy(fullHash, hash, 16);
+            var deterministicId = new Guid(hash);
+
+            var player = new Player(color, deterministicId, displayName: name);
+            player.SeatIndex = seatIndex;
+            for (int i = 0; i < 3; i++) player.DeckManager.AddToTop(CardFactory.CreateSoldier(random));
+            for (int i = 0; i < 7; i++) player.DeckManager.AddToTop(CardFactory.CreateNoble(random));
             player.DeckManager.Shuffle(random);
             return player;
         }

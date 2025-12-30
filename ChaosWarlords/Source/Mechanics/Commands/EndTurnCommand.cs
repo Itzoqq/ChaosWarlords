@@ -12,6 +12,8 @@ namespace ChaosWarlords.Source.Commands
             // Validation Check
             if (state.CanEndTurn(out string reason))
             {
+                // Use state.EndTurn() which handles cleanup (mode switch, cancel targeting)
+                // MatchManager.EndTurn() is part of state.EndTurn()
                 state.EndTurn();
             }
             else

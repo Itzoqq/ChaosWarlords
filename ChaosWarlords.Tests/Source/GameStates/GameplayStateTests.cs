@@ -40,6 +40,7 @@ namespace ChaosWarlords.Tests.States
             _marketManager = Substitute.For<IMarketManager>();
             _actionSystem = Substitute.For<IActionSystem>();
             _cardDatabase = Substitute.For<ICardDatabase>();
+            _cardDatabase.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
             _cardDatabase.GetAllMarketCards().Returns(new List<Card>());
         }
 
@@ -247,7 +248,7 @@ namespace ChaosWarlords.Tests.States
                 _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
 
                 // 3. CardPlaySystem
-                _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, () => SwitchToTargetingMode(), ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+                _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, _replayManager, () => SwitchToTargetingMode(), ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
                 // 4. UIEventMediator
                 _uiEventMediator = new UIEventMediator(this, _uiManagerBacking, action, ChaosWarlords.Tests.Utilities.TestLogger.Instance, null!);

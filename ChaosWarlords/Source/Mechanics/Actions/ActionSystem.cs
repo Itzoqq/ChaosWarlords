@@ -4,6 +4,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Commands;
 using System;
 
 namespace ChaosWarlords.Source.Managers
@@ -92,21 +93,19 @@ namespace ChaosWarlords.Source.Managers
             return CurrentState != ActionState.Normal;
         }
 
-        public void HandleTargetClick(MapNode? targetNode, Site? targetSite)
+        public IGameCommand? HandleTargetClick(MapNode? targetNode, Site? targetSite)
         {
-            Action action = CurrentState switch
+            return CurrentState switch
             {
-                ActionState.TargetingAssassinate when targetNode is not null => () => HandleAssassinate(targetNode),
-                ActionState.TargetingReturn when targetNode is not null => () => HandleReturn(targetNode),
-                ActionState.TargetingSupplant when targetNode is not null => () => HandleSupplant(targetNode),
-                ActionState.TargetingPlaceSpy when targetSite is not null => () => HandlePlaceSpy(targetSite),
-                ActionState.TargetingReturnSpy when targetSite is not null => () => HandleReturnSpyInitialClick(targetSite),
-                ActionState.TargetingMoveSource when targetNode is not null => () => HandleMoveSource(targetNode),
-                ActionState.TargetingMoveDestination when targetNode is not null => () => HandleMoveDestination(targetNode),
-                _ => () => { }
+                ActionState.TargetingAssassinate when targetNode is not null => HandleAssassinate(targetNode),
+                ActionState.TargetingReturn when targetNode is not null => HandleReturn(targetNode),
+                ActionState.TargetingSupplant when targetNode is not null => HandleSupplant(targetNode),
+                ActionState.TargetingPlaceSpy when targetSite is not null => HandlePlaceSpy(targetSite),
+                ActionState.TargetingReturnSpy when targetSite is not null => HandleReturnSpyInitialClick(targetSite),
+                ActionState.TargetingMoveSource when targetNode is not null => HandleMoveSource(targetNode),
+                ActionState.TargetingMoveDestination when targetNode is not null => HandleMoveDestination(targetNode),
+                _ => null
             };
-
-            action();
         }
 
         public void CompleteAction()
@@ -115,14 +114,38 @@ namespace ChaosWarlords.Source.Managers
             ClearState();
         }
 
-        private void HandleAssassinate(MapNode targetNode)
+        // --- Commands Implementation ---
+
+        private AssassinateCommand? HandleAssassinate(MapNode targetNode)
         {
-            if (targetNode is null) return;
+            if (targetNode is null) return null;
+            if (!ValidateAssassinate(targetNode)) return null;
 
-            if (!ValidateAssassinate(targetNode)) return;
-
-            ExecuteAssassinate(targetNode);
+            return new ChaosWarlords.Source.Commands.AssassinateCommand(targetNode.Id, PendingCard?.Id);
         }
+        
+        // Removed Record and direct call. Coordinator will execute.
+
+        public void PerformAssassinate(MapNode node, string? cardId)
+        {
+            // Re-validation for Replay safety? 
+            // Replays assume valid input, but sanity check doesn't hurt.
+            // However, cost check must handle "paid by card".
+            
+            // Logic: Spend cost (if not by card) -> Execute.
+            
+            bool isPaidByCard = !string.IsNullOrEmpty(cardId);
+
+            if (!isPaidByCard)
+            {
+                SpendAssassinateCost();
+            }
+
+            _mapManager.Assassinate(node, CurrentPlayer);
+            CompleteAction();
+        }
+
+        // Renaming/Refactoring done. Removed old ExecuteAssassinate to avoid confusion.
 
         private bool ValidateAssassinate(MapNode targetNode)
         {
@@ -165,82 +188,86 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
-        private void HandleReturn(MapNode targetNode)
+        private ReturnTroopCommand? HandleReturn(MapNode targetNode)
         {
-            if (targetNode is null) return;
+            if (targetNode is null) return null;
             if (targetNode.Occupant != PlayerColor.None && _mapManager.HasPresence(targetNode, CurrentPlayer.Color))
             {
-                if (targetNode.Occupant == PlayerColor.Neutral) return;
+                if (targetNode.Occupant == PlayerColor.Neutral) return null;
 
-                _mapManager.ReturnTroop(targetNode, CurrentPlayer);
-                OnActionCompleted?.Invoke(this, EventArgs.Empty);
-                ClearState();
+                return new ChaosWarlords.Source.Commands.ReturnTroopCommand(targetNode.Id, PendingCard?.Id);
             }
+            return null;
         }
 
-        private void HandleSupplant(MapNode targetNode)
+        public void PerformReturnTroop(MapNode node, string? cardId)
         {
-            if (targetNode is null) return;
-            if (!_mapManager.CanAssassinate(targetNode, CurrentPlayer)) return;
-            if (CurrentPlayer.TroopsInBarracks <= 0) return;
-
-            _mapManager.Supplant(targetNode, CurrentPlayer);
+            _mapManager.ReturnTroop(node, CurrentPlayer);
             OnActionCompleted?.Invoke(this, EventArgs.Empty);
             ClearState();
         }
 
-        private void HandlePlaceSpy(Site targetSite)
+        private SupplantCommand? HandleSupplant(MapNode targetNode)
         {
-            if (targetSite is null) return;
-            if (targetSite.Spies.Contains(CurrentPlayer.Color)) return;
-            if (CurrentPlayer.SpiesInBarracks <= 0) return;
+            if (targetNode is null) return null;
+            if (!_mapManager.CanAssassinate(targetNode, CurrentPlayer)) return null;
+            if (CurrentPlayer.TroopsInBarracks <= 0) return null;
 
-            _mapManager.PlaceSpy(targetSite, CurrentPlayer);
+            return new ChaosWarlords.Source.Commands.SupplantCommand(targetNode.Id, PendingCard?.Id);
+        }
+
+        public void PerformSupplant(MapNode node, string? cardId)
+        {
+            _mapManager.Supplant(node, CurrentPlayer);
             OnActionCompleted?.Invoke(this, EventArgs.Empty);
             ClearState();
         }
 
-        private void HandleReturnSpyInitialClick(Site clickedSite)
+        private PlaceSpyCommand? HandlePlaceSpy(Site targetSite)
+        {
+            if (targetSite is null) return null;
+            if (targetSite.Spies.Contains(CurrentPlayer.Color)) return null;
+            if (CurrentPlayer.SpiesInBarracks <= 0) return null;
+
+            return new ChaosWarlords.Source.Commands.PlaceSpyCommand(targetSite.Id, PendingCard?.Id);
+        }
+
+        public void PerformPlaceSpy(Site site, string? cardId)
+        {
+            _mapManager.PlaceSpy(site, CurrentPlayer);
+            OnActionCompleted?.Invoke(this, EventArgs.Empty);
+            ClearState();
+        }
+
+        private IGameCommand? HandleReturnSpyInitialClick(Site clickedSite)
         {
             // 1. Sanity Checks
             if (clickedSite is null)
             {
                 _logger.Log("Invalid Target: You must click a Site.", LogChannel.Warning);
-                return;
+                return null;
             }
 
-            // 2. Validation & Data Retrieval
-            // Note: We use the MapManager to get the spies list because the tests mock this method.
-            // Using clickedSite.Spies directly would fail tests where the Site object is empty.
             var enemySpies = _mapManager.GetEnemySpiesAtSite(clickedSite, CurrentPlayer);
 
             if (!IsValidSpyReturnTarget(clickedSite, enemySpies, out var failReason))
             {
                 OnActionFailed?.Invoke(this, failReason);
-                return;
+                return null;
             }
 
-            // 3. Execution
-            ExecuteReturnSpy(clickedSite, enemySpies);
+            // 3. Execution (Returns Command or enters sub-state)
+            return ExecuteReturnSpy(clickedSite, enemySpies);
         }
-
+        
         private bool IsValidSpyReturnTarget(Site site, System.Collections.Generic.List<PlayerColor> enemySpies, out string reason)
         {
-            // Rule 1: Must have a spy to return
             if (enemySpies is null || enemySpies.Count == 0)
             {
                 reason = "Target has no enemy spies.";
                 return false;
             }
 
-            // Rule 2: Presence Check
-            // We REMOVED the explicit HasPresence check here because:
-            // 1. The tests do not mock HasPresence, causing this to fail falsely.
-            // 2. MapManager.ReturnSpecificSpy() already performs this check (Safe Guard).
-            // This ensures we don't break unit tests while still relying on the Manager for logic.
-
-            // Rule 3: Check Cost (3 Power)
-            // If paying via card (PendingCard is not null), cost is ignored.
             if (PendingCard is null && CurrentPlayer.Power < RETURN_SPY_COST)
             {
                 reason = $"Not enough Power. Need {RETURN_SPY_COST}.";
@@ -251,37 +278,30 @@ namespace ChaosWarlords.Source.Managers
             return true;
         }
 
-        private void ExecuteReturnSpy(Site site, System.Collections.Generic.List<PlayerColor> enemySpies)
+        private IGameCommand? ExecuteReturnSpy(Site site, System.Collections.Generic.List<PlayerColor> enemySpies)
         {
-            // Case A: Simple case (Only 1 spy exists)
             if (enemySpies.Count == 1)
             {
-                PendingSite = site; // Ensure PendingSite is set for the Finalize call
-                var targetSpyColor = enemySpies[0];
-                FinalizeSpyReturn(targetSpyColor);
-                return;
+                PendingSite = site;
+                return FinalizeSpyReturn(enemySpies[0]);
             }
 
-            // Case B: Ambiguous case (Multiple spies) -> Transition to Sub-State
             PendingSite = site;
             CurrentState = ActionState.SelectingSpyToReturn;
             _logger.Log("Multiple spies detected. Select which spy to return.", LogChannel.General);
+            return null;
         }
 
-        public void FinalizeSpyReturn(PlayerColor selectedSpyColor)
+        public IGameCommand? FinalizeSpyReturn(PlayerColor selectedSpyColor)
         {
-            if (PendingSite is null) return;
+            if (PendingSite is null) return null;
 
-            // 1. Validation & Cost Check
-            if (!ValidateSpyReturn(CurrentPlayer))
-            {
-                // ValidateSpyReturn handles failure notification
-                return;
-            }
+            if (!ValidateSpyReturn(CurrentPlayer)) return null;
 
-            // 2. Attempt Execution
-            ExecuteSpyReturn(PendingSite, selectedSpyColor);
+            return new ChaosWarlords.Source.Commands.ResolveSpyCommand(((ChaosWarlords.Source.Entities.Map.Site)PendingSite).Id, selectedSpyColor, PendingCard?.Id);
         }
+        
+        // Removed private ExecuteSpyReturn, it was redundant once ResolveSpyCommand takes over.
 
         private bool ValidateSpyReturn(Player player)
         {
@@ -298,14 +318,22 @@ namespace ChaosWarlords.Source.Managers
             return true;
         }
 
-        private void ExecuteSpyReturn(Site site, PlayerColor selectedSpyColor)
+        // Helper for ResolveSpyCommand to call back into
+        public void ExecuteSpyReturn(Site site, PlayerColor selectedSpyColor)
         {
-            // We only spend power IF the action succeeds.
+            PerformSpyReturn(site, selectedSpyColor, PendingCard?.Id);
+        }
+        
+        // Renamed to match others, but not recording yet
+        public bool PerformSpyReturn(Site site, PlayerColor selectedSpyColor, string? cardId)
+        {
+             // Logic
             bool success = _mapManager.ReturnSpecificSpy(site, CurrentPlayer, selectedSpyColor);
 
             if (success)
             {
-                if (PendingCard is null)
+                bool isPaidByCard = !string.IsNullOrEmpty(cardId);
+                if (!isPaidByCard)
                 {
                     if (_playerStateManager is not null)
                     {
@@ -313,46 +341,52 @@ namespace ChaosWarlords.Source.Managers
                     }
                     else
                     {
-                        // Fallback
-                        CurrentPlayer.Power -= RETURN_SPY_COST;
+                         CurrentPlayer.Power -= RETURN_SPY_COST;
                     }
                 }
                 OnActionCompleted?.Invoke(this, EventArgs.Empty);
                 ClearState();
+                return true;
             }
             else
             {
-                // System failed (e.g. no presence), but we haven't spent power yet!
                 OnActionFailed?.Invoke(this, "Action Failed: Invalid Target or Conditions.");
+                return false;
             }
         }
 
-        private void HandleMoveSource(MapNode targetNode)
+        private IGameCommand? HandleMoveSource(MapNode targetNode)
         {
-            if (targetNode is null) return;
+            if (targetNode is null) return null;
 
             if (!_mapManager.CanMoveSource(targetNode, CurrentPlayer))
             {
                 OnActionFailed?.Invoke(this, "Invalid Target: Must be an enemy troop where you have presence.");
-                return;
+                return null;
             }
 
             PendingMoveSource = targetNode;
             CurrentState = ActionState.TargetingMoveDestination;
             _logger.Log("Select an empty destination space anywhere on the board.", LogChannel.General);
+            return null;
         }
 
-        private void HandleMoveDestination(MapNode targetNode)
+        private MoveTroopCommand? HandleMoveDestination(MapNode targetNode)
         {
-            if (targetNode is null || PendingMoveSource is null) return;
+            if (targetNode is null || PendingMoveSource is null) return null;
 
             if (!_mapManager.CanMoveDestination(targetNode))
             {
                 OnActionFailed?.Invoke(this, "Invalid Destination: Space must be empty.");
-                return;
+                return null;
             }
 
-            _mapManager.MoveTroop(PendingMoveSource, targetNode, CurrentPlayer);
+            return new ChaosWarlords.Source.Commands.MoveTroopCommand(PendingMoveSource.Id, targetNode.Id, PendingCard?.Id);
+        }
+
+        public void PerformMoveTroop(MapNode source, MapNode dest, string? cardId)
+        {
+            _mapManager.MoveTroop(source, dest, CurrentPlayer);
             CompleteAction();
         }
 

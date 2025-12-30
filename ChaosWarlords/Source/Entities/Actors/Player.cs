@@ -21,6 +21,12 @@ namespace ChaosWarlords.Source.Entities.Actors
         public Guid PlayerId { get; private set; }
 
         /// <summary>
+        /// The seat index of the player in the current match (0, 1, 2, ...).
+        /// Used for deterministic lookups and smaller network packets.
+        /// </summary>
+        public int SeatIndex { get; internal set; }
+
+        /// <summary>
         /// Display name for this player (for UI purposes).
         /// </summary>
         public string DisplayName { get; set; }

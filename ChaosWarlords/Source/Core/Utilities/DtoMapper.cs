@@ -56,149 +56,153 @@ namespace ChaosWarlords.Source.Core.Utilities
 
         // --- Command Mapping ---
 
-        public static CommandDto? ToDto(IGameCommand? command, int sequenceNumber, Player? actor)
+        public static GameCommandDto? ToDto(IGameCommand? command, int sequenceNumber, Player? actor)
         {
             if (command == null) return null;
 
-            var dto = new CommandDto
+            int seat = actor?.SeatIndex ?? -1;
+
+            GameCommandDto dto = command switch
             {
-                CommandType = command.GetType().Name, 
-                SequenceNumber = sequenceNumber,
-                PlayerId = actor?.PlayerId ?? Guid.Empty,
+                PlayCardCommand playCmd => new PlayCardCommandDto
+                {
+                    CardId = playCmd.Card.Id,
+                    HandIdx = actor?.Hand.IndexOf(playCmd.Card) ?? -1
+                },
+                BuyCardCommand buyCmd => new BuyCardCommandDto
+                {
+                    CardId = buyCmd.Card.Id
+                },
+                DevourCardCommand devourCmd => new DevourCardCommandDto
+                {
+                    CardId = devourCmd.CardToDevour.Id,
+                    HandIdx = actor?.Hand.IndexOf(devourCmd.CardToDevour) ?? -1
+                },
+                DeployTroopCommand deployCmd => new DeployTroopCommandDto
+                {
+                    NodeId = deployCmd.Node.Id
+                },
+                EndTurnCommand => new EndTurnCommandDto(),
+                CancelActionCommand => new CancelActionCommandDto(),
+                ToggleMarketCommand => new ToggleMarketCommandDto(),
+                SwitchToNormalModeCommand => new SwitchModeCommandDto(),
+                StartAssassinateCommand => new StartAssassinateCommandDto(),
+                StartReturnSpyCommand => new StartReturnSpyCommandDto(),
+                ResolveSpyCommand spyCmd => new ResolveSpyCommandDto
+                {
+                    SiteId = spyCmd.SiteId,
+                    Color = spyCmd.SpyColor.ToString(),
+                    CardId = spyCmd.CardId
+                },
+                AssassinateCommand ashCmd => new AssassinateCommandDto
+                {
+                    NodeId = ashCmd.TargetNodeId,
+                    CardId = ashCmd.CardId
+                },
+                ReturnTroopCommand retCmd => new ReturnTroopCommandDto
+                {
+                    NodeId = retCmd.TargetNodeId,
+                    CardId = retCmd.CardId
+                },
+                SupplantCommand supCmd => new SupplantCommandDto
+                {
+                    NodeId = supCmd.TargetNodeId,
+                    CardId = supCmd.CardId
+                },
+                PlaceSpyCommand spyCmd => new PlaceSpyCommandDto
+                {
+                    SiteId = spyCmd.TargetSiteId,
+                    CardId = spyCmd.CardId
+                },
+                MoveTroopCommand moveCmd => new MoveTroopCommandDto
+                {
+                    SrcId = moveCmd.SourceNodeId,
+                    DestId = moveCmd.DestinationNodeId,
+                    CardId = moveCmd.CardId
+                },
+                ActionCompletedCommand => new ActionCompletedCommandDto(),
+                _ => throw new NotSupportedException($"Command type {command.GetType().Name} not supported in DTO mapping.")
             };
 
-            switch (command)
-            {
-                case PlayCardCommand playCmd:
-                    dto.CardDefinitionId = playCmd.Card.Id;
-                    dto.CardHandIndex = FindCardIndex(actor?.Hand, playCmd.Card);
-                    break;
-
-                case BuyCardCommand buyCmd:
-                    dto.CardDefinitionId = buyCmd.Card.Id;
-                    break;
-                
-                case DevourCardCommand devourCmd:
-                    dto.CardDefinitionId = devourCmd.CardToDevour.Id;
-                    dto.CardHandIndex = FindCardIndex(actor?.Hand, devourCmd.CardToDevour);
-                    break;
-
-                case DeployTroopCommand deployCmd:
-                    dto.TargetNodeId = deployCmd.Node.Id;
-                    break;
-                
-                case ResolveSpyCommand spyCmd:
-                   dto.Context = spyCmd.SpyColor.ToString();
-                   break;
-
-                default:
-                    // Signal commands have no payload
-                    break;
-            }
-
+            dto.Seq = sequenceNumber;
+            dto.Seat = seat;
             return dto;
-        }
-
-        private static int? FindCardIndex(List<Card>? list, Card card)
-        {
-            if (list == null || card == null) return null;
-            int idx = list.IndexOf(card);
-            return idx >= 0 ? idx : null;
         }
 
         // --- Hydration (DTO -> Command) ---
 
-        /// <summary>
-        /// Reconstructs a GameCommand from a DTO.
-        /// Requires access to game state to resolve references (IDs to Objects).
-        /// </summary>
-        public static IGameCommand? HydrateCommand(CommandDto dto, IGameplayState state)
+        public static IGameCommand? HydrateCommand(GameCommandDto dto, IGameplayState state)
         {
             if (dto == null) return null;
 
-            // 1. Resolve Actor
-            // We use TurnManager to find the player by ID.
-            var player = state.TurnManager?.Players.FirstOrDefault(p => p.PlayerId == dto.PlayerId);
+            var player = state.TurnManager?.Players.FirstOrDefault(p => p.SeatIndex == dto.Seat);
             
-            // If player not found (and required), we might fail.
-            // Some commands (like EndTurn) might imply ActivePlayer if PlayerId is missing/empty, 
-            // but strict replay should use ID.
-
-            switch (dto.CommandType)
+            return dto switch
             {
-                case nameof(PlayCardCommand):
-                    if (player != null && dto.CardHandIndex.HasValue)
-                    {
-                        var card = player.Hand.ElementAtOrDefault(dto.CardHandIndex.Value);
-                        if (card != null) return new PlayCardCommand(card);
-                    }
-                    break;
+                PlayCardCommandDto playDto => HydratePlayCard(playDto, player),
+                BuyCardCommandDto buyDto => HydrateBuyCard(buyDto, state),
+                DeployTroopCommandDto deployDto => HydrateDeploy(deployDto, state, player),
+                DevourCardCommandDto devourDto => HydrateDevour(devourDto, player),
+                EndTurnCommandDto => new EndTurnCommand(),
+                CancelActionCommandDto => new CancelActionCommand(),
+                ToggleMarketCommandDto => new ToggleMarketCommand(),
+                SwitchModeCommandDto => new SwitchToNormalModeCommand(),
+                StartAssassinateCommandDto => new StartAssassinateCommand(),
+                StartReturnSpyCommandDto => new StartReturnSpyCommand(),
+                ResolveSpyCommandDto spyDto => Enum.TryParse<PlayerColor>(spyDto.Color, out var c) ? new ResolveSpyCommand(spyDto.SiteId, c, spyDto.CardId) : null,
+                AssassinateCommandDto ashDto => new AssassinateCommand(ashDto.NodeId, ashDto.CardId),
+                ReturnTroopCommandDto retDto => new ReturnTroopCommand(retDto.NodeId, retDto.CardId),
+                SupplantCommandDto supDto => new SupplantCommand(supDto.NodeId, supDto.CardId),
+                PlaceSpyCommandDto spyDto => new PlaceSpyCommand(spyDto.SiteId, spyDto.CardId),
+                MoveTroopCommandDto moveDto => new MoveTroopCommand(moveDto.SrcId, moveDto.DestId, moveDto.CardId),
+                ActionCompletedCommandDto => new ActionCompletedCommand(),
+                _ => null
+            };
+        }
 
-                case nameof(BuyCardCommand):
-                     // Requires Market lookup or Definition lookup if buying by ID
-                     // Market logic typically uses DefinitionID for "Buy from Market"
-                     // We need a way to find a card by DefinitionID in the Market or Factory.
-                     // IMPORTANT: BuyCard takes a SPECIFIC Card instance from the Market row.
-                     if (dto.CardDefinitionId != null)
-                     {
-                         // Simplified: Find first matching card in Market
-                         var matchingCard = state.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardDefinitionId);
-                         if (matchingCard != null) return new BuyCardCommand(matchingCard);
-                     }
-                     break;
-
-                case nameof(DeployTroopCommand):
-                    if (dto.TargetNodeId.HasValue)
-                    {
-                        var node = state.MapManager.Nodes.FirstOrDefault(n => n.Id == dto.TargetNodeId.Value);
-                        if (node != null) return new DeployTroopCommand(node);
-                    }
-                    break;
+        private static PlayCardCommand? HydratePlayCard(PlayCardCommandDto dto, Player? player)
+        {
+            if (player == null) return null;
+            
+            // Prefer CardId for robustness against hand order changes
+            Card? card = null;
+            if (dto.CardId != null)
+                card = player.Hand.FirstOrDefault(c => c.Id == dto.CardId);
                 
-                case nameof(DevourCardCommand):
-                    if (player != null && dto.CardHandIndex.HasValue)
-                    {
-                        var card = player.Hand.ElementAtOrDefault(dto.CardHandIndex.Value);
-                        if (card != null) return new DevourCardCommand(card);
-                    }
-                    else if (player != null && !string.IsNullOrEmpty(dto.CardDefinitionId))
-                    {
-                        // Fallback: search by ID if index invalid (less deterministic but robust)
-                        var card = player.Hand.FirstOrDefault(c => c.Id == dto.CardDefinitionId);
-                        if (card != null) return new DevourCardCommand(card);
-                    }
-                    break;
+            // Fallback to index if ID not found or not provided
+            if (card == null)
+                card = player.Hand.ElementAtOrDefault(dto.HandIdx);
+            
+            return card != null ? new PlayCardCommand(card) : null;
+        }
 
-                case nameof(EndTurnCommand):
-                    return new EndTurnCommand();
+        private static BuyCardCommand? HydrateBuyCard(BuyCardCommandDto dto, IGameplayState state)
+        {
+            var card = state.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardId);
+            return card != null ? new BuyCardCommand(card) : null;
+        }
 
-                case nameof(CancelActionCommand):
-                    return new CancelActionCommand();
+        private static DeployTroopCommand? HydrateDeploy(DeployTroopCommandDto dto, IGameplayState state, Player? player)
+        {
+            var node = state.MapManager.Nodes.FirstOrDefault(n => n.Id == dto.NodeId);
+            if (node != null && player != null)
+                return new DeployTroopCommand(node, player);
+            return null;
+        }
 
-                case nameof(ToggleMarketCommand):
-                    return new ToggleMarketCommand();
+        private static DevourCardCommand? HydrateDevour(DevourCardCommandDto dto, Player? player)
+        {
+            if (player == null) return null;
+            
+            // Prefer CardId for robustness
+            Card? card = null;
+            if (dto.CardId != null)
+                card = player.Hand.FirstOrDefault(c => c.Id == dto.CardId);
 
-                 case nameof(SwitchToNormalModeCommand):
-                    return new SwitchToNormalModeCommand();
-                
-                 case nameof(StartAssassinateCommand):
-                    return new StartAssassinateCommand();
-
-                 case nameof(StartReturnSpyCommand):
-                    return new StartReturnSpyCommand();
-                    
-                 case nameof(ResolveSpyCommand):
-                    if (Enum.TryParse<PlayerColor>(dto.Context, out var color))
-                    {
-                        return new ResolveSpyCommand(color);
-                    }
-                    break;
-
-                 case nameof(ActionCompletedCommand):
-                    return new ActionCompletedCommand();
-            }
-
-            return null; // Could not hydrate
+            if (card == null)
+                card = player.Hand.ElementAtOrDefault(dto.HandIdx);
+            
+            return card != null ? new DevourCardCommand(card) : null;
         }
     }
 }

@@ -112,6 +112,8 @@ namespace ChaosWarlords.Source.Entities.Map
         public bool HasSpy(PlayerColor color) => Spies.Contains(color);
         public void AddSpy(PlayerColor color) => Spies.Add(color);
         public bool RemoveSpy(PlayerColor color) => Spies.Remove(color);
+
+        public int Id { get; set; }
     }
 }
 

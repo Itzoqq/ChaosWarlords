@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Core.Interfaces.Services;
 
 namespace ChaosWarlords.Source.Core.Interfaces.Data
 {
@@ -8,12 +9,12 @@ namespace ChaosWarlords.Source.Core.Interfaces.Data
         /// <summary>
         /// Returns all cards available for the Market Deck.
         /// </summary>
-        List<Card> GetAllMarketCards();
+        List<Card> GetAllMarketCards(IGameRandom? random = null);
 
         /// <summary>
         /// Retrieves a specific card definition by its ID (useful for networking/modding).
         /// </summary>
-        Card? GetCardById(string id);
+        Card? GetCardById(string id, IGameRandom? random = null);
     }
 }
 

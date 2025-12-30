@@ -63,6 +63,12 @@ namespace ChaosWarlords.Source.Core.Interfaces.State
         /// </summary>
         IMatchManager MatchManager { get; }
 
+        // Command Execution
+        void RecordAndExecuteCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command);
+
+        // Lifecycle
+        new void LoadContent();
+
         // --- State Properties ---
 
         /// <summary>

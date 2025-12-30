@@ -80,13 +80,13 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// </summary>
         /// <param name="targetNode">The node clicked.</param>
         /// <param name="targetSite">The specific site within the node (unused if node-level action).</param>
-        void HandleTargetClick(MapNode? targetNode, Site? targetSite);
+        ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand? HandleTargetClick(MapNode? targetNode, Site? targetSite);
 
         /// <summary>
         /// Completes the Return Spy action for a specific selected spy color.
         /// </summary>
         /// <param name="selectedSpyColor">The faction color of the spy to return.</param>
-        void FinalizeSpyReturn(PlayerColor selectedSpyColor);
+        ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand? FinalizeSpyReturn(PlayerColor selectedSpyColor);
 
         /// <summary>
         /// Initiates the Devour Hand action flow (clearing hand/resources).
@@ -100,6 +100,17 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// </summary>
         /// <param name="stateManager">The manager instance.</param>
         void SetPlayerStateManager(IPlayerStateManager stateManager);
+
+        // --- Perform Methods (Exposed for Replay Commands) ---
+        void PerformAssassinate(MapNode node, string? cardId);
+        void PerformReturnTroop(MapNode node, string? cardId);
+        void PerformSupplant(MapNode node, string? cardId);
+        void PerformPlaceSpy(Site site, string? cardId);
+        bool PerformSpyReturn(Site site, PlayerColor selectedSpyColor, string? cardId);
+        void PerformMoveTroop(MapNode source, MapNode dest, string? cardId);
+
+        // Helper for ResolveSpyCommand to call back into
+        void ExecuteSpyReturn(Site site, PlayerColor selectedSpyColor);
     }
 }
 

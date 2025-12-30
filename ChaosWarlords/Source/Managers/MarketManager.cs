@@ -17,7 +17,7 @@ namespace ChaosWarlords.Source.Managers
         public MarketManager(ICardDatabase cardDatabase, IGameRandom random = null!)
         {
             _cardDatabase = cardDatabase;
-            _marketDeck = _cardDatabase.GetAllMarketCards();
+            _marketDeck = _cardDatabase.GetAllMarketCards(random);
             MarketRow = new List<Card>();
 
             if (random is not null)

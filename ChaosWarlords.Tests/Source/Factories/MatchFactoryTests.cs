@@ -4,6 +4,8 @@ using ChaosWarlords.Source.Factories;
 using NSubstitute;
 using ChaosWarlords.Source.Utilities;
 
+using ChaosWarlords.Source.Core.Interfaces.Services;
+
 namespace ChaosWarlords.Tests.Systems
 {
     [TestClass]
@@ -15,10 +17,12 @@ namespace ChaosWarlords.Tests.Systems
         public void Build_CreatesValidWorldState_Headless()
         {
             var mockDb = Substitute.For<ICardDatabase>();
+            mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
             mockDb.GetAllMarketCards().Returns(new List<Card>());
 
             var builder = new MatchFactory(mockDb, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            var result = builder.Build();
+            var replayManager = Substitute.For<IReplayManager>();
+            var result = builder.Build(replayManager);
 
             Assert.IsNotNull(result.TurnManager.ActivePlayer);
             Assert.IsNotNull(result.MapManager);

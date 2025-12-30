@@ -52,6 +52,10 @@ namespace ChaosWarlords.Tests.States.Input
             var p2 = TestData.Players.BluePlayer(); // Create another player for p2
             _turnManager = new TurnManager(new List<Player> { p1, p2 }, mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
+            _stateSub.MapManager.Returns(_mapSub);
+            _stateSub.TurnManager.Returns(_turnManager);
+            _stateSub.ActionSystem.Returns(_actionSub);
+
             _inputMode = new NormalPlayInputMode(
                 _stateSub,
                 _inputManager,
@@ -99,6 +103,7 @@ namespace ChaosWarlords.Tests.States.Input
             // Setup Map Mock to return a node at click location
             var targetNode = TestData.MapNodes.Node1();
             _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns(targetNode);
+            _mapSub.CanDeployAt(targetNode, _activePlayer.Color).Returns(true);
 
             // Simulate Click at 200,200
             InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 200, 200);
@@ -113,7 +118,11 @@ namespace ChaosWarlords.Tests.States.Input
             );
 
             // 3. Assert
-            Assert.IsNull(result, "Map interaction should not return a generic command.");
+            Assert.IsNotNull(result, "Map interaction should return a DeployTroopCommand.");
+            Assert.IsInstanceOfType(result, typeof(DeployTroopCommand));
+            
+            // Execute the command to verify it calls map manager
+            result.Execute(_stateSub);
             _mapSub.Received(1).TryDeploy(_activePlayer, targetNode);
         }
 

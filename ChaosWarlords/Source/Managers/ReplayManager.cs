@@ -11,10 +11,10 @@ namespace ChaosWarlords.Source.Managers
     /// </summary>
     public class ReplayManager : IReplayManager
     {
-        private List<CommandDto> _recording = new List<CommandDto>();
+        private List<GameCommandDto> _recording = new List<GameCommandDto>();
         private bool _isReplaying;
         private readonly IGameLogger _logger;
-        private int _sequenceCounter;
+        private int _seed;
 
         public ReplayManager(IGameLogger logger)
         {
@@ -22,23 +22,32 @@ namespace ChaosWarlords.Source.Managers
         }
 
         public bool IsReplaying => _isReplaying;
+        public int Seed => _seed;
+
+        public void InitializeRecording(int seed)
+        {
+            _seed = seed;
+            _recording.Clear();
+            _logger.Log($"Replay recording initialized with seed: {seed}", LogChannel.Info);
+        }
 
         public void StartReplay(string replayJson)
         {
             _logger.Log("Starting Replay...", LogChannel.Info);
             try 
             {
-                var actions = System.Text.Json.JsonSerializer.Deserialize<List<CommandDto>>(replayJson);
-                if (actions is not null)
+                var data = System.Text.Json.JsonSerializer.Deserialize<ReplayDataDto>(replayJson);
+                if (data is not null)
                 {
                     _isReplaying = true;
+                    _seed = data.Seed;
                     _recording.Clear();
-                    _recording.AddRange(actions);
+                    _recording.AddRange(data.Commands);
                     
                     // Initialize playback queue
-                    _playbackQueue = new Queue<CommandDto>(actions);
+                    _playbackQueue = new Queue<GameCommandDto>(data.Commands);
                     
-                    _logger.Log($"Replay loaded: {actions.Count} actions.", LogChannel.Info);
+                    _logger.Log($"Replay loaded: {data.Commands.Count} actions (Seed: {_seed}).", LogChannel.Info);
                 }
             }
             catch (System.Exception ex)
@@ -47,7 +56,7 @@ namespace ChaosWarlords.Source.Managers
             }
         }
         
-        private Queue<CommandDto> _playbackQueue = new Queue<CommandDto>();
+        private Queue<GameCommandDto> _playbackQueue = new Queue<GameCommandDto>();
 
         public ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand? GetNextCommand(ChaosWarlords.Source.Core.Interfaces.State.IGameplayState state)
         {
@@ -65,7 +74,12 @@ namespace ChaosWarlords.Source.Managers
 
         public string GetRecordingJson()
         {
-            return System.Text.Json.JsonSerializer.Serialize(_recording);
+            var data = new ReplayDataDto
+            {
+                Seed = _seed,
+                Commands = _recording
+            };
+            return System.Text.Json.JsonSerializer.Serialize(data);
         }
 
         public void StopReplay()
@@ -74,7 +88,7 @@ namespace ChaosWarlords.Source.Managers
             _logger.Log("Replay Stopped.", LogChannel.Info);
         }
 
-        public void RecordCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command, ChaosWarlords.Source.Entities.Actors.Player actor)
+        public void RecordCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command, ChaosWarlords.Source.Entities.Actors.Player actor, int sequenceNumber)
         {
             if (_isReplaying) return;
             if (command == null) return;
@@ -82,10 +96,15 @@ namespace ChaosWarlords.Source.Managers
             try
             {
                 // Use the Mapper to create the DTO
-                var dto = DtoMapper.ToDto(command, ++_sequenceCounter, actor);
+                var dto = DtoMapper.ToDto(command, sequenceNumber, actor);
                 if (dto != null)
                 {
                     _recording.Add(dto);
+                    _logger.Log($"[ReplayManager] Recorded {dto.GetType().Name} (Seq: {dto.Seq})", LogChannel.Info);
+                }
+                else
+                {
+                    _logger.Log($"[ReplayManager] DtoMapper returned null for {command.GetType().Name}.", LogChannel.Warning);
                 }
             }
             catch (System.Exception ex)

@@ -142,6 +142,7 @@ namespace ChaosWarlords.Source.Utilities
                     var node = nodes.FirstOrDefault(n => n.Id == nodeId);
                     if (node is not null) newSite.AddNode(node);
                 }
+                newSite.Id = sites.Count + 1; // 1-based ID or unique
                 sites.Add(newSite);
             }
             return sites;

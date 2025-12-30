@@ -24,7 +24,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             var command = new ChaosWarlords.Source.Commands.PlayCardCommand(card);
 
             // Act
-            manager.RecordCommand(command, player);
+            manager.RecordCommand(command, player, 1);
             string json = manager.GetRecordingJson();
             
             // Simulate new session

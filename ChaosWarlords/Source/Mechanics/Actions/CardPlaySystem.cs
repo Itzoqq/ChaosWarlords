@@ -14,11 +14,13 @@ namespace ChaosWarlords.Source.Mechanics.Actions
         private readonly IMatchManager _matchManager;
         private readonly Action _onTargetingStarted;
         private readonly IGameLogger _logger;
+        private readonly IReplayManager _replayManager; // Injected logic
 
-        public CardPlaySystem(MatchContext matchContext, IMatchManager MatchManager, Action onTargetingStarted, IGameLogger logger)
+        public CardPlaySystem(MatchContext matchContext, IMatchManager MatchManager, IReplayManager replayManager, Action onTargetingStarted, IGameLogger logger)
         {
             _matchContext = matchContext;
             _matchManager = MatchManager;
+            _replayManager = replayManager ?? throw new ArgumentNullException(nameof(replayManager));
             _onTargetingStarted = onTargetingStarted;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }

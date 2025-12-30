@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Core.Interfaces.Data;
+using ChaosWarlords.Source.Core.Interfaces.Services;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
@@ -27,7 +28,7 @@ namespace ChaosWarlords.Source.Utilities
     {
         public required string Type { get; set; }
         public int Amount { get; set; }
-        public required string TargetResource { get; set; }
+        public string? TargetResource { get; set; }
         public bool RequiresFocus { get; set; }
     }
 
@@ -50,22 +51,22 @@ namespace ChaosWarlords.Source.Utilities
             _cardDataCache = JsonSerializer.Deserialize<List<CardData>>(json, s_jsonOptions) ?? new List<CardData>();
         }
 
-        public List<Card> GetAllMarketCards()
+        public List<Card> GetAllMarketCards(IGameRandom? random = null)
         {
             var cards = new List<Card>();
             if (_cardDataCache is null) return cards;
 
             foreach (var data in _cardDataCache)
             {
-                cards.Add(CardFactory.CreateFromData(data));
+                cards.Add(CardFactory.CreateFromData(data, random));
             }
             return cards;
         }
 
-        public Card? GetCardById(string id)
+        public Card? GetCardById(string id, IGameRandom? random = null)
         {
             var data = _cardDataCache?.FirstOrDefault(c => c.Id == id);
-            return data is not null ? CardFactory.CreateFromData(data) : null;
+            return data is not null ? CardFactory.CreateFromData(data, random) : null;
         }
     }
 }

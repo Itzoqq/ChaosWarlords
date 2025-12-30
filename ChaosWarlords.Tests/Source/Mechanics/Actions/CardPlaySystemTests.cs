@@ -48,7 +48,8 @@ namespace ChaosWarlords.Tests.Systems
             turnManager.ActivePlayer.Returns(player);
 
             // System under test
-            _system = new CardPlaySystem(_matchContext, _matchManager, _targetingCallback, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var replayManager = Substitute.For<IReplayManager>();
+            _system = new CardPlaySystem(_matchContext, _matchManager, replayManager, _targetingCallback, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
         }
 
         [TestMethod]

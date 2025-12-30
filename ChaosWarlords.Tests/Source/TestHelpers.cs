@@ -289,6 +289,7 @@ namespace ChaosWarlords.Tests
     public class PlayerBuilder
     {
         private PlayerColor _color = PlayerColor.Red;
+        private int _seatIndex = 0;
         private string _displayName = "Test Player";
         private int _power = 0;
         private int _influence = 0;
@@ -303,6 +304,12 @@ namespace ChaosWarlords.Tests
         public PlayerBuilder WithColor(PlayerColor color)
         {
             _color = color;
+            return this;
+        }
+
+        public PlayerBuilder WithSeatIndex(int seatIndex)
+        {
+            _seatIndex = seatIndex;
             return this;
         }
 
@@ -370,6 +377,7 @@ namespace ChaosWarlords.Tests
         {
             var player = new Player(_color)
             {
+                SeatIndex = _seatIndex,
                 DisplayName = _displayName,
                 Power = _power,
                 Influence = _influence,

@@ -27,10 +27,15 @@ namespace ChaosWarlords.Source.States
         private readonly Game? _game;
 
         private readonly ICardDatabase _cardDatabase;
-        private readonly IReplayManager _replayManager;
+        internal readonly IReplayManager _replayManager;
         private readonly IGameLogger _logger;
         private readonly int _viewportWidth;
         private readonly int _viewportHeight;
+
+        // Replay timing
+        private float _replayTimer;
+        private const float _replayDelay = 0.2f; // 200ms between commands for visibility
+        private bool _replayComplete; // Track if replay has finished
 
         internal IGameplayView? _view;
         internal IMatchManager _matchManager = null!;
@@ -45,7 +50,9 @@ namespace ChaosWarlords.Source.States
         internal CardPlaySystem _cardPlaySystem = null!;
         internal PlayerController _playerController = null!;
         internal UIEventMediator _uiEventMediator = null!;
-
+        private int _localSequenceCounter;
+        
+        // 1. Viewport Settings
         public IInputManager InputManager => _inputManagerBacking;
         public IGameLogger Logger => _logger;
         public IUIManager UIManager => _uiManagerBacking;
@@ -147,8 +154,11 @@ namespace ChaosWarlords.Source.States
 
         private void InitializeMatch()
         {
+            // Use seed from replay if we are replaying, otherwise generate new one
+            int? seedToUse = _replayManager.IsReplaying ? _replayManager.Seed : (int?)null;
+            
             var builder = new MatchFactory(_cardDatabase, _logger);
-            var worldData = builder.Build();
+            var worldData = builder.Build(_replayManager, seedToUse);
 
             _matchContext = new MatchContext(
                 worldData.TurnManager,
@@ -157,8 +167,16 @@ namespace ChaosWarlords.Source.States
                 worldData.ActionSystem,
                 _cardDatabase,
                 worldData.PlayerStateManager,
-                _logger
+                _logger,
+                worldData.Seed
             );
+
+            // Initialize recording if we're NOT replaying
+            if (!_replayManager.IsReplaying)
+            {
+                _replayManager.InitializeRecording(_matchContext.Seed);
+                _localSequenceCounter = 0;
+            }
 
             _matchManager = new MatchManager(_matchContext, _logger);
 
@@ -180,7 +198,7 @@ namespace ChaosWarlords.Source.States
         private void InitializeSystems()
         {
             _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
-            _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, () => SwitchToTargetingMode(), _logger);
+            _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, _replayManager, () => SwitchToTargetingMode(), _logger);
 
             _uiEventMediator = new UIEventMediator(this, _uiManagerBacking, _matchContext.ActionSystem, _logger, _game as Game1);
             _uiEventMediator.Initialize();
@@ -192,7 +210,9 @@ namespace ChaosWarlords.Source.States
         {
             if (_matchContext.CurrentPhase == MatchPhase.Setup)
             {
-                _matchManager.EndTurn();
+                // Create and execute EndTurn command through centralized system
+                var cmd = new ChaosWarlords.Source.Commands.EndTurnCommand();
+                RecordAndExecuteCommand(cmd);
             }
         }
 
@@ -212,7 +232,11 @@ namespace ChaosWarlords.Source.States
             // 3. CRITICAL: Process UI clicks FIRST (highest priority)
             // This includes pause menu buttons, popups, and game UI buttons
             // UIManager will handle clicks and fire events (like OnMainMenuRequest)
-            _uiManagerBacking.Update(_inputManagerBacking);
+            // SKIP during replay mode - only allow ESC to pause
+            if (!_replayManager.IsReplaying)
+            {
+                _uiManagerBacking.Update(_inputManagerBacking);
+            }
 
             // 4. If modal UI is open (pause or popup), BLOCK all other input
             // This prevents game input from processing while UI is active
@@ -223,63 +247,98 @@ namespace ChaosWarlords.Source.States
                 return; // Exit early - no game input processing
             }
 
-            // 5. DEBUG: F5 to Load/Start Replay (For testing determinism)
+            // 5. DEBUG: F5 to Save Replay (Only after setup phase complete)
             if (_inputManagerBacking.IsKeyJustPressed(Microsoft.Xna.Framework.Input.Keys.F5))
             {
-                if (!_replayManager.IsReplaying)
+                if (_matchContext.CurrentPhase == MatchPhase.Setup)
                 {
-                    // For testing: Save current, Restart (not implemented trivially without reload), or Load predefined.
-                    // Let's assume there's a "replay.json" on disk or in memory we want to load.
-                    // Or for now, just log state. 
-                    // To truly test full replay, we need to Reset the match first.
-                    // Simplest test flow: Play -> F5 dumps replay to file -> User restarts game -> F6 loads replay.
-                    
-                    // Let's implement F5 = Dump Replay to Disk/Log
+                    _logger.Log("Cannot save replay during setup phase! Complete initial deployment first.", LogChannel.Warning);
+                }
+                else if (!_replayManager.IsReplaying)
+                {
                     string json = _replayManager.GetRecordingJson();
                     System.IO.File.WriteAllText("last_replay.json", json);
                     _logger.Log("Replay saved to last_replay.json", LogChannel.Info);
                 }
             }
-            // F6 to Load and Play
+            
+            // F6 to Load and Play Replay (Only at fresh game start, before any troops placed)
             if (_inputManagerBacking.IsKeyJustPressed(Microsoft.Xna.Framework.Input.Keys.F6))
             {
-                 if (System.IO.File.Exists("last_replay.json"))
-                 {
-                     string json = System.IO.File.ReadAllText("last_replay.json");
-                     
-                     // CRITICAL: We must RESET the match state before replaying!
-                     // But GameplayState doesn't have a Reset() method easily available without rebuilding everything.
-                     // IMPORTANT: The user must probably restart the state entirely.
-                     // Ideally we would trigger a state change to a NEW GameplayState with the replay data.
-                     // For now, let's just Try to start Replay and see chaos (or if it works on current state? No, needs fresh state).
-                     
-                     // Correct flow: The ReplayManager starts replaying. We need to handle the state reset.
-                     // Since we can't easily reset here, we'll assume the user is at the start of the game or accepts the risk.
-                     _replayManager.StartReplay(json);
-                 }
+                // Check if any troops have been placed on the map
+                bool anyTroopsPlaced = _matchContext.MapManager.Nodes.Any(n => n.Occupant != PlayerColor.None && n.Occupant != PlayerColor.Neutral);
+                
+                if (anyTroopsPlaced)
+                {
+                    // If troops are placed, we can't start/restart replay
+                    if (_replayManager.IsReplaying || _replayComplete)
+                    {
+                        _logger.Log("Cannot restart replay mid-game! Exit to main menu and start a new game to replay again.", LogChannel.Warning);
+                    }
+                    else
+                    {
+                        _logger.Log("Cannot start replay after troops have been placed! Start a new game first.", LogChannel.Warning);
+                    }
+                }
+                else if (System.IO.File.Exists("last_replay.json"))
+                {
+                    // Only allow starting replay if no troops placed (fresh game)
+                    // Stop current replay if running (shouldn't happen, but safety check)
+                    if (_replayManager.IsReplaying)
+                    {
+                        _replayManager.StopReplay();
+                    }
+                    
+                    // Reset replay state
+                    _replayComplete = false;
+                    _replayTimer = 0f;
+                    
+                    // Start replay
+                    string json = System.IO.File.ReadAllText("last_replay.json");
+                    _replayManager.StartReplay(json);
+
+                    // CRITICAL: Re-initialize the match with the seed from the replay!
+                    InitializeMatch();
+                    InitializeSystems();
+                    
+                    _logger.Log($"Replay started (Seed: {_replayManager.Seed}). Watch your previous game unfold!", LogChannel.Info);
+                }
+                else
+                {
+                    _logger.Log("No replay file found. Play a game and press F5 to save a replay first.", LogChannel.Warning);
+                }
             }
 
             // 6. Process Input (OR Replay)
             if (_replayManager.IsReplaying)
             {
-                // REPLAY MODE: Ignore player input, execute replay commands
-                var cmd = _replayManager.GetNextCommand(this);
-                if (cmd != null)
+                // REPLAY MODE: Execute commands with a small delay for visibility
+                _replayTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                
+                if (_replayTimer >= _replayDelay)
                 {
-                    // Execute the command directly
-                    // Helper to execute commands is inside PlayerController logic typically, 
-                    // or we execute directly on systems?
-                    // Most commands are "Context Commands" or direct IGameCommands.
-                    // We need a way to execute them.
+                    _replayTimer = 0f;
                     
-                    // Simple execution:
-                    cmd.Execute(this);
-                    _logger.Log($"Replay Executed: {cmd.GetType().Name}", LogChannel.Debug);
-                    
-                    // Visual Delay?
-                    // Typically replays need a delay (tick rate) or they run instantly.
-                    // For verification, instant is fine. For watching, we might want a timer.
+                    var cmd = _replayManager.GetNextCommand(this);
+                    if (cmd != null)
+                    {
+                        // Execute the command directly
+                        cmd.Execute(this);
+                        _logger.Log($"Replay Executed: {cmd.GetType().Name} (ActivePlayer: {_matchContext.ActivePlayer.Color})", LogChannel.Info);
+                        
+                        // Force view update to show the command's effects immediately
+                        _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
+                    }
+                    else if (!_replayComplete)
+                    {
+                        // Replay has finished
+                        _replayComplete = true;
+                        _logger.Log("=== REPLAY COMPLETE === Press F6 to restart", LogChannel.Info);
+                    }
                 }
+                
+                // During replay, BLOCK all game input except ESC to exit
+                // No player controller updates, no button clicks, no card interactions
             }
             else
             {
@@ -302,7 +361,7 @@ namespace ChaosWarlords.Source.States
                 targetingText = GetTargetingText(_matchContext.ActionSystem.CurrentState);
             }
 
-            _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, _uiManagerBacking, IsMarketOpen, targetingText, _uiEventMediator.IsConfirmationPopupOpen, _uiEventMediator.IsPauseMenuOpen);
+            _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, _uiManagerBacking, IsMarketOpen, targetingText, _uiEventMediator.IsConfirmationPopupOpen, _uiEventMediator.IsPauseMenuOpen, _replayManager.IsReplaying);
 
             // Phase 0 UI Overlay
             if (_matchContext.CurrentPhase == MatchPhase.Setup)
@@ -329,6 +388,24 @@ namespace ChaosWarlords.Source.States
 
         public bool CanEndTurn(out string reason) => _matchManager.CanEndTurn(out reason);
 
+        // ===== Command Execution =====
+
+        /// <summary>
+        /// Centralized command execution point - ALL player commands flow through here.
+        /// Automatically records commands for replay before executing them.
+        /// </summary>
+        public void RecordAndExecuteCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command)
+        {
+            // Record the command for replay (unless we're currently replaying)
+            if (!_replayManager.IsReplaying)
+            {
+                _replayManager.RecordCommand(command, _matchContext.ActivePlayer, ++_localSequenceCounter);
+            }
+
+            // Execute the command
+            command.Execute(this);
+        }
+
         public void EndTurn()
         {
             if (_matchContext.ActionSystem.IsTargeting()) _matchContext.ActionSystem.CancelTargeting();
@@ -339,7 +416,15 @@ namespace ChaosWarlords.Source.States
         public void ToggleMarket() { IsMarketOpen = !IsMarketOpen; }
         public void CloseMarket() { IsMarketOpen = false; }
 
-        public void SwitchToTargetingMode() => _inputCoordinator.SwitchToTargetingMode();
+        public void SwitchToTargetingMode()
+        {
+            // During replay, we do not want to activate targeting mode (UI/Input handling).
+            // The commands will execute directly.
+            if (_replayManager.IsReplaying) return;
+
+            _inputCoordinator.SwitchToTargetingMode();
+        }
+
         public void SwitchToNormalMode() => _inputCoordinator.SwitchToNormalMode();
 
         public void SwitchToPromoteMode(int amount)

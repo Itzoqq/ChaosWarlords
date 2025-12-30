@@ -2,6 +2,9 @@
 [Bb]in/
 [Oo]bj/
 
+# --- Last Replay ---
+last_replay.json
+
 # --- User-Specific Files ---
 *.user
 *.userosscache

@@ -267,12 +267,16 @@ namespace ChaosWarlords.Source.Managers
                 else
                 {
                     _logger.Log("No valid cards to promote. Promotion effects skipped.", LogChannel.Info);
-                    _gameState.EndTurn();
+                    // Create and execute EndTurn command through centralized system
+                    var cmd = new ChaosWarlords.Source.Commands.EndTurnCommand();
+                    _gameState.RecordAndExecuteCommand(cmd);
                 }
             }
             else
             {
-                _gameState.EndTurn();
+                // Create and execute EndTurn command through centralized system
+                var cmd = new ChaosWarlords.Source.Commands.EndTurnCommand();
+                _gameState.RecordAndExecuteCommand(cmd);
             }
         }
     }

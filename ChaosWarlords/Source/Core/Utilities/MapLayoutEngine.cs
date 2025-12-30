@@ -42,6 +42,7 @@ namespace ChaosWarlords.Source.Utilities
                     nodes.Add(node);
                 }
 
+                site.Id = sites.Count + 1;
                 sites.Add(site);
             }
         }

@@ -22,6 +22,7 @@ namespace ChaosWarlords.Source.Rendering.Views
 
         private ButtonRenderer? _buttonRenderer;
         private Texture2D _backgroundTexture = null!;
+        private bool _isBackgroundManual;
 
         public MainMenuView(GraphicsDevice graphicsDevice, ContentManager content, IButtonManager buttonManager, IGameLogger logger)
         {
@@ -52,6 +53,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             try
             {
                 _backgroundTexture = _content.Load<Texture2D>("Textures/Backgrounds/MainMenuBG");
+                _isBackgroundManual = false;
             }
             catch (Exception ex)
             {
@@ -59,6 +61,7 @@ namespace ChaosWarlords.Source.Rendering.Views
                 // Create a placeholder 1x1 texture
                 _backgroundTexture = new Texture2D(_graphicsDevice, 1, 1);
                 _backgroundTexture.SetData(new[] { Color.DarkSlateGray });
+                _isBackgroundManual = true;
             }
 
             if (font is not null)
@@ -75,7 +78,7 @@ namespace ChaosWarlords.Source.Rendering.Views
 
         public void Dispose()
         {
-             _backgroundTexture?.Dispose();
+             if (_isBackgroundManual) _backgroundTexture?.Dispose();
              _buttonRenderer?.Dispose();
              GC.SuppressFinalize(this);
         }

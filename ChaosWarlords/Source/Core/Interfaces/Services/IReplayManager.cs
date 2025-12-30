@@ -27,7 +27,18 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// </summary>
         void StopReplay();
 
-        void RecordCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command, ChaosWarlords.Source.Entities.Actors.Player actor);
+        void RecordCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command, ChaosWarlords.Source.Entities.Actors.Player actor, int sequenceNumber);
+        
+        /// <summary>
+        /// Gets the seed used for the recorded session.
+        /// Only valid after StartReplay or during recording.
+        /// </summary>
+        int Seed { get; }
+
+        /// <summary>
+        /// Initializes a new recording session with the specified seed.
+        /// </summary>
+        void InitializeRecording(int seed);
         
         /// <summary>
         /// Retrieves the next command from the replay queue, if available.

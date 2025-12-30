@@ -43,9 +43,9 @@ namespace ChaosWarlords.Source.States.Input
 
                 // 2. Check Map Click
                 var clickedNode = mapManager.GetNodeAt(inputManager.MousePosition);
-                if (clickedNode is not null)
+                if (clickedNode is not null && mapManager.CanDeployAt(clickedNode, activePlayer.Color))
                 {
-                    mapManager.TryDeploy(activePlayer, clickedNode);
+                    return new DeployTroopCommand(clickedNode);
                 }
             }
 
