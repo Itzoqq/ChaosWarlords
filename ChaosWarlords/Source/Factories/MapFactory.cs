@@ -114,28 +114,7 @@ namespace ChaosWarlords.Source.Utilities
 
             foreach (var s in siteDataList)
             {
-                if (!System.Enum.TryParse(s.ControlResource, out ResourceType cType))
-                    cType = ResourceType.Influence; // Default fallback
-                if (!System.Enum.TryParse(s.TotalControlResource, out ResourceType tType))
-                    tType = ResourceType.VictoryPoints; // Default fallback
-
-                Site newSite;
-                if (s.IsCity)
-                {
-                    newSite = new CitySite(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
-                }
-                else if (s.IsStartingSite)
-                {
-                    logger.Log($"Creating StartingSite: {s.Name}", LogChannel.General);
-                    newSite = new StartingSite(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
-                }
-                else
-                {
-                    logger.Log($"Creating NonCitySite: {s.Name}", LogChannel.General);
-                    newSite = new NonCitySite(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
-                }
-
-                newSite.IsCity = s.IsCity;
+                var newSite = CreateSiteFromData(s, logger);
 
                 foreach (int nodeId in s.NodeIds)
                 {
@@ -146,6 +125,32 @@ namespace ChaosWarlords.Source.Utilities
                 sites.Add(newSite);
             }
             return sites;
+        }
+
+        private static Site CreateSiteFromData(SiteData s, IGameLogger logger)
+        {
+            if (!System.Enum.TryParse(s.ControlResource, out ResourceType cType))
+                cType = ResourceType.Influence; // Default fallback
+            if (!System.Enum.TryParse(s.TotalControlResource, out ResourceType tType))
+                tType = ResourceType.VictoryPoints; // Default fallback
+
+            Site newSite;
+            if (s.IsCity)
+            {
+                newSite = new CitySite(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
+            }
+            else if (s.IsStartingSite)
+            {
+                logger.Log($"Creating StartingSite: {s.Name}", LogChannel.General);
+                newSite = new StartingSite(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
+            }
+            else
+            {
+                logger.Log($"Creating NonCitySite: {s.Name}", LogChannel.General);
+                newSite = new NonCitySite(s.Name, cType, s.ControlAmount, tType, s.TotalControlAmount);
+            }
+            newSite.IsCity = s.IsCity;
+            return newSite;
         }
 
         public static (List<MapNode>, List<Site>, List<Route>) CreateTestMap(IGameLogger logger)

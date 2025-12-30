@@ -56,8 +56,10 @@ namespace ChaosWarlords.Source.Utilities
             var cards = new List<Card>();
             if (_cardDataCache is null) return cards;
 
-            foreach (var data in _cardDataCache)
+            foreach (var data in _cardDataCache.OrderBy(c => c.Id))
             {
+                // Trace for Replay Desync Debugging
+                Console.WriteLine($"[CardDatabase] Processing Market Card: {data.Id}"); 
                 cards.Add(CardFactory.CreateFromData(data, random));
             }
             return cards;

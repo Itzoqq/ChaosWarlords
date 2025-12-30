@@ -8,6 +8,7 @@ using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Core.Interfaces.Services;
 using System.Linq;
 
 namespace ChaosWarlords.Source.Core.Utilities
@@ -18,6 +19,112 @@ namespace ChaosWarlords.Source.Core.Utilities
     /// </summary>
     public static class DtoMapper
     {
+        private static readonly Dictionary<Type, Func<IGameCommand, int, Player?, GameCommandDto>> _commandToDtoMap;
+        private static readonly Dictionary<Type, Func<GameCommandDto, IGameplayState, IGameCommand?>> _dtoToCommandMap;
+
+        static DtoMapper()
+        {
+            _commandToDtoMap = new Dictionary<Type, Func<IGameCommand, int, Player?, GameCommandDto>>
+            {
+                { typeof(PlayCardCommand), (cmd, seq, p) => 
+                    {
+                        var c = (PlayCardCommand)cmd;
+                        return new PlayCardCommandDto 
+                        { 
+                            CardId = c.Card.Id, 
+                            HandIdx = p?.Hand.IndexOf(c.Card) ?? -1 
+                        };
+                    } 
+                },
+                { typeof(BuyCardCommand), (cmd, seq, p) => new BuyCardCommandDto { CardId = ((BuyCardCommand)cmd).Card.Id } },
+                { typeof(DevourCardCommand), (cmd, seq, p) => 
+                    {
+                        var c = (DevourCardCommand)cmd;
+                        return new DevourCardCommandDto 
+                        { 
+                            CardId = c.CardToDevour.Id, 
+                            HandIdx = p?.Hand.IndexOf(c.CardToDevour) ?? -1 
+                        };
+                    } 
+                },
+                { typeof(DeployTroopCommand), (cmd, seq, p) => new DeployTroopCommandDto { NodeId = ((DeployTroopCommand)cmd).Node.Id } },
+                { typeof(EndTurnCommand), (cmd, seq, p) => new EndTurnCommandDto() },
+                { typeof(CancelActionCommand), (cmd, seq, p) => new CancelActionCommandDto() },
+                { typeof(ToggleMarketCommand), (cmd, seq, p) => new ToggleMarketCommandDto() },
+                { typeof(SwitchToNormalModeCommand), (cmd, seq, p) => new SwitchModeCommandDto() },
+                { typeof(StartAssassinateCommand), (cmd, seq, p) => new StartAssassinateCommandDto() },
+                { typeof(StartReturnSpyCommand), (cmd, seq, p) => new StartReturnSpyCommandDto() },
+                { typeof(ResolveSpyCommand), (cmd, seq, p) => 
+                    {
+                        var c = (ResolveSpyCommand)cmd;
+                        return new ResolveSpyCommandDto { SiteId = c.SiteId, Color = c.SpyColor.ToString(), CardId = c.CardId }; 
+                    } 
+                },
+                { typeof(AssassinateCommand), (cmd, seq, p) => 
+                    {
+                        var c = (AssassinateCommand)cmd;
+                        return new AssassinateCommandDto { NodeId = c.TargetNodeId, CardId = c.CardId };
+                    } 
+                },
+                { typeof(ReturnTroopCommand), (cmd, seq, p) => 
+                    {
+                        var c = (ReturnTroopCommand)cmd;
+                        return new ReturnTroopCommandDto { NodeId = c.TargetNodeId, CardId = c.CardId };
+                    } 
+                },
+                { typeof(SupplantCommand), (cmd, seq, p) => 
+                    {
+                        var c = (SupplantCommand)cmd;
+                        return new SupplantCommandDto { NodeId = c.TargetNodeId, CardId = c.CardId };
+                    } 
+                },
+                { typeof(PlaceSpyCommand), (cmd, seq, p) => 
+                    {
+                        var c = (PlaceSpyCommand)cmd;
+                        return new PlaceSpyCommandDto { SiteId = c.TargetSiteId, CardId = c.CardId }; 
+                    } 
+                },
+                { typeof(MoveTroopCommand), (cmd, seq, p) => 
+                    {
+                        var c = (MoveTroopCommand)cmd;
+                        return new MoveTroopCommandDto { SrcId = c.SourceNodeId, DestId = c.DestinationNodeId, CardId = c.CardId }; 
+                    } 
+                },
+                { typeof(ActionCompletedCommand), (cmd, seq, p) => new ActionCompletedCommandDto() }
+            };
+
+            _dtoToCommandMap = new Dictionary<Type, Func<GameCommandDto, IGameplayState, IGameCommand?>>
+            {
+                { typeof(PlayCardCommandDto), (d, s) => HydratePlayCard((PlayCardCommandDto)d, GetSeatPlayer(d, s), s.Logger) },
+                { typeof(BuyCardCommandDto), (d, s) => HydrateBuyCard((BuyCardCommandDto)d, s) },
+                { typeof(DeployTroopCommandDto), (d, s) => HydrateDeploy((DeployTroopCommandDto)d, s, GetSeatPlayer(d, s)) },
+                { typeof(DevourCardCommandDto), (d, s) => HydrateDevour((DevourCardCommandDto)d, GetSeatPlayer(d, s)) },
+                { typeof(EndTurnCommandDto), (d, s) => new EndTurnCommand() },
+                { typeof(CancelActionCommandDto), (d, s) => new CancelActionCommand() },
+                { typeof(ToggleMarketCommandDto), (d, s) => new ToggleMarketCommand() },
+                { typeof(SwitchModeCommandDto), (d, s) => new SwitchToNormalModeCommand() },
+                { typeof(StartAssassinateCommandDto), (d, s) => new StartAssassinateCommand() },
+                { typeof(StartReturnSpyCommandDto), (d, s) => new StartReturnSpyCommand() },
+                { typeof(ResolveSpyCommandDto), (d, s) => 
+                    {
+                        var dto = (ResolveSpyCommandDto)d;
+                        return Enum.TryParse<PlayerColor>(dto.Color, out var c) ? new ResolveSpyCommand(dto.SiteId, c, dto.CardId) : null;
+                    } 
+                },
+                { typeof(AssassinateCommandDto), (d, s) => new AssassinateCommand(((AssassinateCommandDto)d).NodeId, ((AssassinateCommandDto)d).CardId) },
+                { typeof(ReturnTroopCommandDto), (d, s) => new ReturnTroopCommand(((ReturnTroopCommandDto)d).NodeId, ((ReturnTroopCommandDto)d).CardId) },
+                { typeof(SupplantCommandDto), (d, s) => new SupplantCommand(((SupplantCommandDto)d).NodeId, ((SupplantCommandDto)d).CardId) },
+                { typeof(PlaceSpyCommandDto), (d, s) => new PlaceSpyCommand(((PlaceSpyCommandDto)d).SiteId, ((PlaceSpyCommandDto)d).CardId) },
+                { typeof(MoveTroopCommandDto), (d, s) => new MoveTroopCommand(((MoveTroopCommandDto)d).SrcId, ((MoveTroopCommandDto)d).DestId, ((MoveTroopCommandDto)d).CardId) },
+                { typeof(ActionCompletedCommandDto), (d, s) => new ActionCompletedCommand() }
+            };
+        }
+
+        private static Player? GetSeatPlayer(GameCommandDto dto, IGameplayState state)
+        {
+             return state.TurnManager?.Players.FirstOrDefault(p => p.SeatIndex == dto.Seat);
+        }
+
         // --- Card Mapping ---
 
         public static CardDto? ToDto(Card? card, int collectionIndex = -1)
@@ -59,74 +166,16 @@ namespace ChaosWarlords.Source.Core.Utilities
         public static GameCommandDto? ToDto(IGameCommand? command, int sequenceNumber, Player? actor)
         {
             if (command == null) return null;
-
-            int seat = actor?.SeatIndex ?? -1;
-
-            GameCommandDto dto = command switch
+            
+            if (_commandToDtoMap.TryGetValue(command.GetType(), out var factory))
             {
-                PlayCardCommand playCmd => new PlayCardCommandDto
-                {
-                    CardId = playCmd.Card.Id,
-                    HandIdx = actor?.Hand.IndexOf(playCmd.Card) ?? -1
-                },
-                BuyCardCommand buyCmd => new BuyCardCommandDto
-                {
-                    CardId = buyCmd.Card.Id
-                },
-                DevourCardCommand devourCmd => new DevourCardCommandDto
-                {
-                    CardId = devourCmd.CardToDevour.Id,
-                    HandIdx = actor?.Hand.IndexOf(devourCmd.CardToDevour) ?? -1
-                },
-                DeployTroopCommand deployCmd => new DeployTroopCommandDto
-                {
-                    NodeId = deployCmd.Node.Id
-                },
-                EndTurnCommand => new EndTurnCommandDto(),
-                CancelActionCommand => new CancelActionCommandDto(),
-                ToggleMarketCommand => new ToggleMarketCommandDto(),
-                SwitchToNormalModeCommand => new SwitchModeCommandDto(),
-                StartAssassinateCommand => new StartAssassinateCommandDto(),
-                StartReturnSpyCommand => new StartReturnSpyCommandDto(),
-                ResolveSpyCommand spyCmd => new ResolveSpyCommandDto
-                {
-                    SiteId = spyCmd.SiteId,
-                    Color = spyCmd.SpyColor.ToString(),
-                    CardId = spyCmd.CardId
-                },
-                AssassinateCommand ashCmd => new AssassinateCommandDto
-                {
-                    NodeId = ashCmd.TargetNodeId,
-                    CardId = ashCmd.CardId
-                },
-                ReturnTroopCommand retCmd => new ReturnTroopCommandDto
-                {
-                    NodeId = retCmd.TargetNodeId,
-                    CardId = retCmd.CardId
-                },
-                SupplantCommand supCmd => new SupplantCommandDto
-                {
-                    NodeId = supCmd.TargetNodeId,
-                    CardId = supCmd.CardId
-                },
-                PlaceSpyCommand spyCmd => new PlaceSpyCommandDto
-                {
-                    SiteId = spyCmd.TargetSiteId,
-                    CardId = spyCmd.CardId
-                },
-                MoveTroopCommand moveCmd => new MoveTroopCommandDto
-                {
-                    SrcId = moveCmd.SourceNodeId,
-                    DestId = moveCmd.DestinationNodeId,
-                    CardId = moveCmd.CardId
-                },
-                ActionCompletedCommand => new ActionCompletedCommandDto(),
-                _ => throw new NotSupportedException($"Command type {command.GetType().Name} not supported in DTO mapping.")
-            };
+                var dto = factory(command, sequenceNumber, actor);
+                dto.Seq = sequenceNumber;
+                dto.Seat = actor?.SeatIndex ?? -1;
+                return dto;
+            }
 
-            dto.Seq = sequenceNumber;
-            dto.Seat = seat;
-            return dto;
+            throw new NotSupportedException($"Command type {command.GetType().Name} not supported in DTO mapping.");
         }
 
         // --- Hydration (DTO -> Command) ---
@@ -134,44 +183,41 @@ namespace ChaosWarlords.Source.Core.Utilities
         public static IGameCommand? HydrateCommand(GameCommandDto dto, IGameplayState state)
         {
             if (dto == null) return null;
-
-            var player = state.TurnManager?.Players.FirstOrDefault(p => p.SeatIndex == dto.Seat);
             
-            return dto switch
+            if (_dtoToCommandMap.TryGetValue(dto.GetType(), out var factory))
             {
-                PlayCardCommandDto playDto => HydratePlayCard(playDto, player),
-                BuyCardCommandDto buyDto => HydrateBuyCard(buyDto, state),
-                DeployTroopCommandDto deployDto => HydrateDeploy(deployDto, state, player),
-                DevourCardCommandDto devourDto => HydrateDevour(devourDto, player),
-                EndTurnCommandDto => new EndTurnCommand(),
-                CancelActionCommandDto => new CancelActionCommand(),
-                ToggleMarketCommandDto => new ToggleMarketCommand(),
-                SwitchModeCommandDto => new SwitchToNormalModeCommand(),
-                StartAssassinateCommandDto => new StartAssassinateCommand(),
-                StartReturnSpyCommandDto => new StartReturnSpyCommand(),
-                ResolveSpyCommandDto spyDto => Enum.TryParse<PlayerColor>(spyDto.Color, out var c) ? new ResolveSpyCommand(spyDto.SiteId, c, spyDto.CardId) : null,
-                AssassinateCommandDto ashDto => new AssassinateCommand(ashDto.NodeId, ashDto.CardId),
-                ReturnTroopCommandDto retDto => new ReturnTroopCommand(retDto.NodeId, retDto.CardId),
-                SupplantCommandDto supDto => new SupplantCommand(supDto.NodeId, supDto.CardId),
-                PlaceSpyCommandDto spyDto => new PlaceSpyCommand(spyDto.SiteId, spyDto.CardId),
-                MoveTroopCommandDto moveDto => new MoveTroopCommand(moveDto.SrcId, moveDto.DestId, moveDto.CardId),
-                ActionCompletedCommandDto => new ActionCompletedCommand(),
-                _ => null
-            };
+                return factory(dto, state);
+            }
+            
+            return null;
         }
 
-        private static PlayCardCommand? HydratePlayCard(PlayCardCommandDto dto, Player? player)
+        private static PlayCardCommand? HydratePlayCard(PlayCardCommandDto dto, Player? player, IGameLogger? logger = null)
         {
             if (player == null) return null;
             
             // Prefer CardId for robustness against hand order changes
             Card? card = null;
             if (dto.CardId != null)
+            {
                 card = player.Hand.FirstOrDefault(c => c.Id == dto.CardId);
+                if (card == null)
+                {
+                     // Debug Log: Why failed?
+                     logger?.Log($"[Hydrate Error] Could not find CardId '{dto.CardId}' in Hand of {player.DisplayName}.", LogChannel.Error);
+                     logger?.Log($"Hand IDs: {string.Join(", ", player.Hand.Select(c => c.Id))}", LogChannel.Error);
+                }
+            }
                 
             // Fallback to index if ID not found or not provided
             if (card == null)
+            {
                 card = player.Hand.ElementAtOrDefault(dto.HandIdx);
+                 if (card != null)
+                 {
+                     logger?.Log($"[Hydrate Warning] Fell back to Index {dto.HandIdx} -> Found {card.Name} ({card.Id})", LogChannel.Warning);
+                 }
+            }
             
             return card != null ? new PlayCardCommand(card) : null;
         }

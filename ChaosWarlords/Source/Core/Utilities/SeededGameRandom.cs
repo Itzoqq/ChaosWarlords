@@ -27,15 +27,19 @@ namespace ChaosWarlords.Source.Core.Utilities
             logger?.Log($"Game RNG initialized with seed: {seed}", LogChannel.Info);
         }
 
+        public int CallCount { get; private set; }
+
         /// <inheritdoc/>
         public int NextInt(int maxValue)
         {
+            CallCount++;
             return _rng.Next(maxValue);
         }
 
         /// <inheritdoc/>
         public int NextInt(int minValue, int maxValue)
         {
+            CallCount++;
             return _rng.Next(minValue, maxValue);
         }
 
@@ -49,6 +53,7 @@ namespace ChaosWarlords.Source.Core.Utilities
             while (n > 1)
             {
                 n--;
+                CallCount++;
                 int k = _rng.Next(n + 1);
                 (list[k], list[n]) = (list[n], list[k]);
             }

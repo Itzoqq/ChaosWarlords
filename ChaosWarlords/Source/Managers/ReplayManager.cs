@@ -69,7 +69,12 @@ namespace ChaosWarlords.Source.Managers
             }
 
             var dto = _playbackQueue.Dequeue();
-            return DtoMapper.HydrateCommand(dto, state);
+            var cmd = DtoMapper.HydrateCommand(dto, state);
+            if (cmd == null)
+            {
+                _logger.Log($"[Replay Error] Failed to Hydrate Command (Type: {dto.GetType().Name}, Seq: {dto.Seq}). It will be SKIPPED.", LogChannel.Error);
+            }
+            return cmd;
         }
 
         public string GetRecordingJson()
@@ -100,7 +105,7 @@ namespace ChaosWarlords.Source.Managers
                 if (dto != null)
                 {
                     _recording.Add(dto);
-                    _logger.Log($"[ReplayManager] Recorded {dto.GetType().Name} (Seq: {dto.Seq})", LogChannel.Info);
+                    _logger.Log($"[ReplayManager] Recorded {dto.GetType().Name} (Seq: {dto.Seq}, Seat: {dto.Seat})", LogChannel.Info);
                 }
                 else
                 {

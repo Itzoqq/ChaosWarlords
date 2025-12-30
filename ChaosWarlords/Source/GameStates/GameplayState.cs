@@ -210,6 +210,11 @@ namespace ChaosWarlords.Source.States
         {
             if (_matchContext.CurrentPhase == MatchPhase.Setup)
             {
+                // Fix for Replay Desync:
+                // During Replay, the recorded command stream already contains the EndTurnCommand (Seq 2).
+                // If we auto-generate it here, we advance the turn twice (once here, once in replay stream).
+                if (_replayManager.IsReplaying) return;
+
                 // Create and execute EndTurn command through centralized system
                 var cmd = new ChaosWarlords.Source.Commands.EndTurnCommand();
                 RecordAndExecuteCommand(cmd);
@@ -223,31 +228,43 @@ namespace ChaosWarlords.Source.States
 
         public void Update(GameTime gameTime)
         {
-            // 1. Update input state (captures current frame's mouse/keyboard state)
+            // 1. Update systems
             _inputManagerBacking.Update();
-
-            // 2. Sync UI state (updates pause menu and popup flags)
             _uiEventMediator.Update();
 
-            // 3. CRITICAL: Process UI clicks FIRST (highest priority)
-            // This includes pause menu buttons, popups, and game UI buttons
-            // UIManager will handle clicks and fire events (like OnMainMenuRequest)
-            // SKIP during replay mode - only allow ESC to pause
+            // 2. Process UI Interaction (Highest Priority)
             if (!_replayManager.IsReplaying)
             {
                 _uiManagerBacking.Update(_inputManagerBacking);
             }
 
-            // 4. If modal UI is open (pause or popup), BLOCK all other input
-            // This prevents game input from processing while UI is active
+            // 3. Check for Blocking UI
             if (_uiEventMediator.IsPauseMenuOpen || _uiEventMediator.IsConfirmationPopupOpen)
             {
-                // Still update view for visual feedback (hovers, animations)
                 _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
-                return; // Exit early - no game input processing
+                return;
             }
 
-            // 5. DEBUG: F5 to Save Replay (Only after setup phase complete)
+            // 4. Handle Lifecycle Input (Replay Save/Load)
+            HandleReplaySaveInput();
+            HandleReplayLoadInput();
+
+            // 5. Game Loop (Replay vs Normal)
+            if (_replayManager.IsReplaying)
+            {
+                UpdateReplayPlayback(gameTime);
+            }
+            else
+            {
+                _playerController.Update();
+            }
+
+            // 6. Update View
+            _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
+        }
+
+        private void HandleReplaySaveInput()
+        {
             if (_inputManagerBacking.IsKeyJustPressed(Microsoft.Xna.Framework.Input.Keys.F5))
             {
                 if (_matchContext.CurrentPhase == MatchPhase.Setup)
@@ -261,43 +278,31 @@ namespace ChaosWarlords.Source.States
                     _logger.Log("Replay saved to last_replay.json", LogChannel.Info);
                 }
             }
-            
-            // F6 to Load and Play Replay (Only at fresh game start, before any troops placed)
+        }
+
+        private void HandleReplayLoadInput()
+        {
             if (_inputManagerBacking.IsKeyJustPressed(Microsoft.Xna.Framework.Input.Keys.F6))
             {
-                // Check if any troops have been placed on the map
                 bool anyTroopsPlaced = _matchContext.MapManager.Nodes.Any(n => n.Occupant != PlayerColor.None && n.Occupant != PlayerColor.Neutral);
                 
                 if (anyTroopsPlaced)
                 {
-                    // If troops are placed, we can't start/restart replay
                     if (_replayManager.IsReplaying || _replayComplete)
-                    {
                         _logger.Log("Cannot restart replay mid-game! Exit to main menu and start a new game to replay again.", LogChannel.Warning);
-                    }
                     else
-                    {
                         _logger.Log("Cannot start replay after troops have been placed! Start a new game first.", LogChannel.Warning);
-                    }
                 }
                 else if (System.IO.File.Exists("last_replay.json"))
                 {
-                    // Only allow starting replay if no troops placed (fresh game)
-                    // Stop current replay if running (shouldn't happen, but safety check)
-                    if (_replayManager.IsReplaying)
-                    {
-                        _replayManager.StopReplay();
-                    }
+                    if (_replayManager.IsReplaying) _replayManager.StopReplay();
                     
-                    // Reset replay state
                     _replayComplete = false;
                     _replayTimer = 0f;
                     
-                    // Start replay
                     string json = System.IO.File.ReadAllText("last_replay.json");
                     _replayManager.StartReplay(json);
 
-                    // CRITICAL: Re-initialize the match with the seed from the replay!
                     InitializeMatch();
                     InitializeSystems();
                     
@@ -308,47 +313,29 @@ namespace ChaosWarlords.Source.States
                     _logger.Log("No replay file found. Play a game and press F5 to save a replay first.", LogChannel.Warning);
                 }
             }
+        }
 
-            // 6. Process Input (OR Replay)
-            if (_replayManager.IsReplaying)
+        private void UpdateReplayPlayback(GameTime gameTime)
+        {
+            _replayTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+            
+            if (_replayTimer >= _replayDelay)
             {
-                // REPLAY MODE: Execute commands with a small delay for visibility
-                _replayTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                _replayTimer = 0f;
                 
-                if (_replayTimer >= _replayDelay)
+                var cmd = _replayManager.GetNextCommand(this);
+                if (cmd != null)
                 {
-                    _replayTimer = 0f;
-                    
-                    var cmd = _replayManager.GetNextCommand(this);
-                    if (cmd != null)
-                    {
-                        // Execute the command directly
-                        cmd.Execute(this);
-                        _logger.Log($"Replay Executed: {cmd.GetType().Name} (ActivePlayer: {_matchContext.ActivePlayer.Color})", LogChannel.Info);
-                        
-                        // Force view update to show the command's effects immediately
-                        _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
-                    }
-                    else if (!_replayComplete)
-                    {
-                        // Replay has finished
-                        _replayComplete = true;
-                        _logger.Log("=== REPLAY COMPLETE === Press F6 to restart", LogChannel.Info);
-                    }
+                    cmd.Execute(this);
+                    _logger.Log($"Replay Executed: {cmd.GetType().Name} (ActivePlayer: {_matchContext.ActivePlayer.Color})", LogChannel.Info);
+                    _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
                 }
-                
-                // During replay, BLOCK all game input except ESC to exit
-                // No player controller updates, no button clicks, no card interactions
+                else if (!_replayComplete)
+                {
+                    _replayComplete = true;
+                    _logger.Log("=== REPLAY COMPLETE === Press F6 to restart", LogChannel.Info);
+                }
             }
-            else
-            {
-                // NORMAL MODE: Process game input (map clicks, card clicks, etc.)
-                // Only reached if no modal UI is blocking
-                _playerController.Update();
-            }
-
-            // 6. Update view (card hovers, animations, etc.)
-            _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
         }
 
         public void Draw(SpriteBatch spriteBatch)
@@ -396,14 +383,24 @@ namespace ChaosWarlords.Source.States
         /// </summary>
         public void RecordAndExecuteCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command)
         {
-            // Record the command for replay (unless we're currently replaying)
-            if (!_replayManager.IsReplaying)
+            try
             {
-                _replayManager.RecordCommand(command, _matchContext.ActivePlayer, ++_localSequenceCounter);
-            }
+                // Record the command for replay (unless we're currently replaying)
+                if (!_replayManager.IsReplaying)
+                {
+                    _replayManager.RecordCommand(command, _matchContext.ActivePlayer, ++_localSequenceCounter);
+                }
 
-            // Execute the command
-            command.Execute(this);
+                // Execute the command
+                command.Execute(this);
+            }
+            catch (Exception ex)
+            {
+                _logger.Log($"Error executing/recording command {command.GetType().Name}: {ex}", LogChannel.Error);
+                // We rethrow to ensure the UI/Input knows something went wrong, 
+                // but at least we have a log now.
+                throw; 
+            }
         }
 
         public void EndTurn()

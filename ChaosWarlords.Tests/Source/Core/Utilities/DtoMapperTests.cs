@@ -177,8 +177,8 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var cmd = DtoMapper.HydrateCommand(dto, state) as DeployTroopCommand;
 
             Assert.IsNotNull(cmd);
-            Assert.AreEqual(50, cmd.Node.Id);
-            Assert.AreEqual(PlayerColor.Blue, cmd.Player.Color);
+            Assert.AreEqual(50, cmd!.Node.Id);
+            Assert.AreEqual(PlayerColor.Blue, cmd!.Player!.Color);
         }
 
         [TestMethod]

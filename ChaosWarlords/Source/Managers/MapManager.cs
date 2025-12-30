@@ -155,14 +155,14 @@ namespace ChaosWarlords.Source.Managers
             // Step 2: Resource Checks (Business Logic)
             if (currentPlayer.TroopsInBarracks <= 0)
             {
-                _logger.Log("Cannot Deploy: Barracks Empty!", LogChannel.Error);
+                _logger.Log($"Cannot Deploy at {targetNode.Id}: Barracks Empty! (Troops: {currentPlayer.TroopsInBarracks})", LogChannel.Error);
                 return false;
             }
 
             // Power Check skipped in Setup Phase
             if (CurrentPhase != MatchPhase.Setup && currentPlayer.Power < GameConstants.DeployPowerCost)
             {
-                _logger.Log("Cannot Deploy: Not enough Power!", LogChannel.Economy);
+                _logger.Log($"Cannot Deploy at {targetNode.Id}: Not enough Power! (Has: {currentPlayer.Power}, Need: {GameConstants.DeployPowerCost})", LogChannel.Economy);
                 return false;
             }
 

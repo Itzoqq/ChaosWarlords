@@ -37,6 +37,9 @@ namespace ChaosWarlords.Source.Managers
             _turnManager = turnManager;
             _mapManager = mapManager;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            
+            _actionHandlers = new Dictionary<ActionState, Func<MapNode?, Site?, IGameCommand?>>();
+            InitializeHandlers();
         }
 
         public void SetPlayerStateManager(IPlayerStateManager stateManager)
@@ -93,19 +96,26 @@ namespace ChaosWarlords.Source.Managers
             return CurrentState != ActionState.Normal;
         }
 
+        private readonly Dictionary<ActionState, Func<MapNode?, Site?, IGameCommand?>> _actionHandlers;
+
+        private void InitializeHandlers()
+        {
+            _actionHandlers.Add(ActionState.TargetingAssassinate, (n, s) => n != null ? HandleAssassinate(n) : null);
+            _actionHandlers.Add(ActionState.TargetingReturn, (n, s) => n != null ? HandleReturn(n) : null);
+            _actionHandlers.Add(ActionState.TargetingSupplant, (n, s) => n != null ? HandleSupplant(n) : null);
+            _actionHandlers.Add(ActionState.TargetingPlaceSpy, (n, s) => s != null ? HandlePlaceSpy(s) : null);
+            _actionHandlers.Add(ActionState.TargetingReturnSpy, (n, s) => s != null ? HandleReturnSpyInitialClick(s) : null);
+            _actionHandlers.Add(ActionState.TargetingMoveSource, (n, s) => n != null ? HandleMoveSource(n) : null);
+            _actionHandlers.Add(ActionState.TargetingMoveDestination, (n, s) => n != null ? HandleMoveDestination(n) : null);
+        }
+
         public IGameCommand? HandleTargetClick(MapNode? targetNode, Site? targetSite)
         {
-            return CurrentState switch
+            if (_actionHandlers.TryGetValue(CurrentState, out var handler))
             {
-                ActionState.TargetingAssassinate when targetNode is not null => HandleAssassinate(targetNode),
-                ActionState.TargetingReturn when targetNode is not null => HandleReturn(targetNode),
-                ActionState.TargetingSupplant when targetNode is not null => HandleSupplant(targetNode),
-                ActionState.TargetingPlaceSpy when targetSite is not null => HandlePlaceSpy(targetSite),
-                ActionState.TargetingReturnSpy when targetSite is not null => HandleReturnSpyInitialClick(targetSite),
-                ActionState.TargetingMoveSource when targetNode is not null => HandleMoveSource(targetNode),
-                ActionState.TargetingMoveDestination when targetNode is not null => HandleMoveDestination(targetNode),
-                _ => null
-            };
+                return handler(targetNode, targetSite);
+            }
+            return null;
         }
 
         public void CompleteAction()

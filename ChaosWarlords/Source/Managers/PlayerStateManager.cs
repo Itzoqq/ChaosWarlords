@@ -103,9 +103,33 @@ namespace ChaosWarlords.Source.Managers
         public void DrawCards(Player player, int count, IGameRandom random)
         {
             if (count <= 0) return;
+            
+            // Snapshot hand before draw to calculate diff (or just log what's added)
+            int preCount = player.Hand.Count;
+            
             // Delegate to Player implementation which handles deck/shuffle logic
             player.DrawCards(count, random);
-            _logger.Log($"[State] {player.DisplayName} drew {count} cards. Hand size: {player.Hand.Count}", LogChannel.Info);
+            
+            _logger.Log($"[State] {player.DisplayName} drew {count} cards.", LogChannel.Info);
+            
+            // Log specifically WHICH cards were added (the last 'count' cards)
+            // Note: Player.DrawCards adds to the END of the list.
+            for (int i = preCount; i < player.Hand.Count; i++)
+            {
+                 var card = player.Hand[i];
+                 _logger.Log($"   > Drawn: {card.Name} (ID: {card.Id})", LogChannel.Info);
+            }
+            
+            LogHandState(player);
+        }
+
+        public void LogHandState(Player player)
+        {
+             _logger.Log($"[Hand Dump] {player.DisplayName} Hand ({player.Hand.Count}):", LogChannel.Debug);
+             foreach(var card in player.Hand)
+             {
+                 _logger.Log($"   - {card.Name} [{card.Id}]", LogChannel.Debug);
+             }
         }
 
         public void PlayCard(Player player, Card card)
@@ -155,6 +179,9 @@ namespace ChaosWarlords.Source.Managers
 
         public void CleanUpTurn(Player player)
         {
+            _logger.Log($"[Cleanup] Clearning hand for {player.DisplayName}. Content was:", LogChannel.Debug);
+            LogHandState(player);
+            
             player.CleanUpTurn();
             _logger.Log($"[State] {player.DisplayName} ended turn. Hand and Played cards discarded.", LogChannel.Info);
         }
