@@ -111,5 +111,130 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             Assert.AreEqual(card.Id, playCmd.Card.Id);
             Assert.AreEqual(card.Name, playCmd.Card.Name);
         }
+        [TestMethod]
+        public void ToDto_BuyCardCommand_ReturnsCorrectDto()
+        {
+            var card = new Card("c_buy", "BuyMe", 5, CardAspect.Neutral, 1, 1, 1);
+            var command = new BuyCardCommand(card);
+            var dto = DtoMapper.ToDto(command, 10, new Player(PlayerColor.Red)); // Dummy player
+
+            Assert.IsInstanceOfType(dto, typeof(BuyCardCommandDto));
+            var buyDto = (BuyCardCommandDto)dto;
+            Assert.AreEqual("c_buy", buyDto.CardId);
+        }
+
+        [TestMethod]
+        public void ToDto_DeployTroopCommand_ReturnsCorrectDto()
+        {
+            var node = new MapNode(99, Microsoft.Xna.Framework.Vector2.Zero);
+            var player = new Player(PlayerColor.Red);
+            var command = new DeployTroopCommand(node, player);
+            var dto = DtoMapper.ToDto(command, 11, player);
+
+            Assert.IsInstanceOfType(dto, typeof(DeployTroopCommandDto));
+            var deployDto = (DeployTroopCommandDto)dto;
+            Assert.AreEqual(99, deployDto.NodeId);
+        }
+
+        [TestMethod]
+        public void ToDto_EmptyCommands_ReturnsCorrectDtos()
+        {
+            var player = new Player(PlayerColor.Red);
+            Assert.IsInstanceOfType(DtoMapper.ToDto(new EndTurnCommand(), 1, player), typeof(EndTurnCommandDto));
+            Assert.IsInstanceOfType(DtoMapper.ToDto(new CancelActionCommand(), 2, player), typeof(CancelActionCommandDto));
+            Assert.IsInstanceOfType(DtoMapper.ToDto(new ToggleMarketCommand(), 3, player), typeof(ToggleMarketCommandDto));
+            Assert.IsInstanceOfType(DtoMapper.ToDto(new SwitchToNormalModeCommand(), 4, player), typeof(SwitchModeCommandDto));
+            Assert.IsInstanceOfType(DtoMapper.ToDto(new ActionCompletedCommand(), 5, player), typeof(ActionCompletedCommandDto));
+        }
+
+        [TestMethod]
+        public void HydrateCommand_BuyCard_ReturnsCorrectCommand()
+        {
+            var dto = new BuyCardCommandDto { CardId = "market_c1" };
+            var state = Substitute.For<IGameplayState>();
+            var marketCard = new Card("market_c1", "Market Item", 2, CardAspect.Neutral, 0, 0, 0);
+            
+            state.MarketManager.MarketRow.Returns(new List<Card> { marketCard });
+            state.TurnManager.Returns(Substitute.For<ITurnManager>());
+            state.TurnManager.Players.Returns(new List<Player>()); // Fix for HydrateCommand accessing Players
+
+            var cmd = DtoMapper.HydrateCommand(dto, state) as BuyCardCommand;
+            
+            Assert.IsNotNull(cmd);
+            Assert.AreEqual("market_c1", cmd.Card.Id);
+        }
+
+        [TestMethod]
+        public void HydrateCommand_DeployTroop_ReturnsCorrectCommand()
+        {
+            var dto = new DeployTroopCommandDto { NodeId = 50, Seat = 1 };
+            var state = Substitute.For<IGameplayState>();
+            var player = new Player(PlayerColor.Blue) { SeatIndex = 1 };
+            
+            state.MapManager.Nodes.Returns(new List<MapNode> { new MapNode(50, Microsoft.Xna.Framework.Vector2.Zero) });
+            state.TurnManager.Players.Returns(new List<Player> { player });
+
+            var cmd = DtoMapper.HydrateCommand(dto, state) as DeployTroopCommand;
+
+            Assert.IsNotNull(cmd);
+            Assert.AreEqual(50, cmd.Node.Id);
+            Assert.AreEqual(PlayerColor.Blue, cmd.Player.Color);
+        }
+
+        [TestMethod]
+        public void ToDto_AssassinateCommand_ReturnsCorrectDto()
+        {
+             var command = new AssassinateCommand(101, "killer_card");
+             var dto = DtoMapper.ToDto(command, 1, new Player(PlayerColor.Red));
+             
+             Assert.IsInstanceOfType(dto, typeof(AssassinateCommandDto));
+             var ashDto = (AssassinateCommandDto)dto;
+             Assert.AreEqual(101, ashDto.NodeId);
+             Assert.AreEqual("killer_card", ashDto.CardId);
+        }
+
+        [TestMethod]
+        public void ToDto_ResolveSpyCommand_ReturnsCorrectDto()
+        {
+             var command = new ResolveSpyCommand(202, PlayerColor.Blue, "spy_card");
+             var dto = DtoMapper.ToDto(command, 1, new Player(PlayerColor.Red));
+             
+             Assert.IsInstanceOfType(dto, typeof(ResolveSpyCommandDto));
+             var spyDto = (ResolveSpyCommandDto)dto;
+             Assert.AreEqual(202, spyDto.SiteId);
+             Assert.AreEqual("Blue", spyDto.Color);
+             Assert.AreEqual("spy_card", spyDto.CardId);
+        }
+
+        [TestMethod]
+        public void HydrateCommand_Assassinate_ReturnsCorrectCommand()
+        {
+             var dto = new AssassinateCommandDto { NodeId = 303, CardId = "c_ash" };
+             
+             var state = Substitute.For<IGameplayState>();
+             state.TurnManager.Players.Returns(new List<Player>()); // Fix for HydrateCommand accessing Players
+             
+             var cmd = DtoMapper.HydrateCommand(dto, state) as AssassinateCommand;
+             
+             Assert.IsNotNull(cmd);
+             Assert.AreEqual(303, cmd.TargetNodeId);
+             Assert.AreEqual("c_ash", cmd.CardId);
+        }
+
+        [TestMethod]
+        public void HydrateCommand_ResolveSpy_ReturnsCorrectCommand()
+        {
+             var dto = new ResolveSpyCommandDto { SiteId = 404, Color = "Red", CardId = "c_spy" };
+             
+             var state = Substitute.For<IGameplayState>();
+             state.TurnManager.Players.Returns(new List<Player>()); // Fix for HydrateCommand accessing Players
+
+             var cmd = DtoMapper.HydrateCommand(dto, state) as ResolveSpyCommand;
+             
+             Assert.IsNotNull(cmd);
+             Assert.AreEqual(404, cmd.SiteId);
+             Assert.AreEqual(PlayerColor.Red, cmd.SpyColor);
+             Assert.AreEqual("c_spy", cmd.CardId);
+        }
     }
 }
