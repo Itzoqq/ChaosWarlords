@@ -7,6 +7,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System;
 
+using ChaosWarlords.Source.Utilities;
+
 namespace ChaosWarlords.Source.Views
 {
     [ExcludeFromCodeCoverage]
@@ -25,18 +27,29 @@ namespace ChaosWarlords.Source.Views
             _pixelTexture.SetData(new[] { Color.White });
         }
 
-        public void DrawTopBar(SpriteBatch spriteBatch, Player player, int screenWidth)
+        public void DrawHUD(SpriteBatch spriteBatch, Player player, int screenWidth, IMatchManager matchManager)
         {
             if (_defaultFont is null) return;
 
             // 1. Draw Background
-            spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, screenWidth, 40), Color.Black * 0.9f);
-            DrawBorder(spriteBatch, _pixelTexture, new Rectangle(0, 0, screenWidth, 40), 1, Color.DarkGray * 0.5f);
+            spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, screenWidth, 60), Color.Black * 0.9f);
+            DrawBorder(spriteBatch, _pixelTexture, new Rectangle(0, 0, screenWidth, 60), 1, Color.DarkGray * 0.5f);
+
+            // --- TOP LEFT: Turn Info ---
+            int yPos = 5;
+            // Draw Round / Turn Counters
+            string roundText = $"Round: {matchManager.RoundNumber} | Turn: {matchManager.TotalTurnCount}";
+            // Current Player Name below counters
+            string playerText = $"{player.DisplayName}'s Turn";
+
+            spriteBatch.DrawString(_smallFont ?? _defaultFont, roundText, new Vector2(10, yPos), Color.LightGray);
+            yPos += 20;
+            spriteBatch.DrawString(_defaultFont, playerText, new Vector2(10, yPos), player.Color == PlayerColor.Red ? Color.Red : Color.Cyan);
 
             // ====================================================
-            // SECTION 1: ECONOMY & SCORE (Left Aligned)
+            // SECTION 1: ECONOMY & SCORE (Left Aligned - Shifted Down/Right)
             // ====================================================
-            int leftX = 20;
+            int leftX = 220; // Shifted right to avoid overlap with Turn Info
             DrawStat(spriteBatch, "Influence", player.Influence.ToString(CultureInfo.InvariantCulture), Color.Cyan, ref leftX);
             DrawStat(spriteBatch, "Power", player.Power.ToString(CultureInfo.InvariantCulture), Color.Orange, ref leftX);
             DrawStat(spriteBatch, "VP", player.VictoryPoints.ToString(CultureInfo.InvariantCulture), Color.Gold, ref leftX);

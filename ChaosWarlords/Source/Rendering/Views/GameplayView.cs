@@ -94,7 +94,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             if (isMarketOpen) UpdateVisualsHover(MarketViewModels, inputManager);
         }
 
-        public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying, ChaosWarlords.Source.Core.Data.Dtos.VictoryDto? victoryResult)
+        public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying, ChaosWarlords.Source.Core.Data.Dtos.VictoryDto? victoryResult, IMatchManager matchManager)
         {
             // 1. Draw Map
             MapNode? hoveredNode = context.MapManager.GetNodeAt(inputManager.MousePosition);
@@ -123,7 +123,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             bool canEndTurn = true;
             _uiRenderer.DrawHorizontalButton(spriteBatch, uiManager.EndTurnButtonRect, "END TURN", uiManager.IsEndTurnHovered, canEndTurn, Color.Green);
 
-            _uiRenderer.DrawTopBar(spriteBatch, context.ActivePlayer, uiManager.ScreenWidth);
+            _uiRenderer.DrawHUD(spriteBatch, context.ActivePlayer, uiManager.ScreenWidth, matchManager);
 
             // 5. Draw Indicators
             DrawTurnIndicator(spriteBatch, context.ActivePlayer);

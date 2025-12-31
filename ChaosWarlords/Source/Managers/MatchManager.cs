@@ -89,6 +89,12 @@ namespace ChaosWarlords.Source.Managers
             return true;
         }
 
+        public int RoundNumber { get; private set; } = 1;
+        public int TotalTurnCount { get; private set; } = 1;
+
+        private bool _endGamePending;
+        private string _pendingVictoryReason = string.Empty;
+
         public void EndTurn()
         {
             // 1. Map Rewards - REMOVED (Now Start of Turn)
@@ -99,11 +105,19 @@ namespace ChaosWarlords.Source.Managers
             // 3. Draw New Hand
             _context.PlayerStateManager.DrawCards(_context.ActivePlayer, GameConstants.HandSize, _context.Random);
 
+            // --- Check Round / Turn Status BEFORE switching ---
+            // We need to know if the CURRENT active player is the last one in the cycle.
+            // TurnManager doesn't expose Index directly, but we know the list order.
+            var players = _context.TurnManager.Players;
+            int currentIndex = players.IndexOf(_context.ActivePlayer);
+            bool isLastPlayerInRound = currentIndex == players.Count - 1;
+
             // 4. Switch Player
             _context.TurnManager.EndTurn();
+            TotalTurnCount++;
 
             // 4b. Log Turn Start (New)
-            _logger.Log($"Turn Started for {_context.ActivePlayer.DisplayName}", LogChannel.Info);
+            _logger.Log($"Turn Started for {_context.ActivePlayer.DisplayName} (Round {RoundNumber}, Turn Total {TotalTurnCount})", LogChannel.Info);
 
             // 5. START OF TURN Actions for the NEW active player
 
@@ -129,10 +143,34 @@ namespace ChaosWarlords.Source.Managers
 
             _context.MapManager.DistributeStartOfTurnRewards(_context.ActivePlayer);
 
-            // Check victory conditions at end of turn
-            if (_victoryManager.CheckEndGameConditions(_context, out var reason))
+            // --- DEFERRED VICTORY CHECK ---
+            
+            // Check if end game conditions are met NOW (e.g. barracks empty)
+            // But do not trigger immediately if the round is not over.
+            if (!_endGamePending)
             {
-                TriggerGameOver();
+                if (_victoryManager.CheckEndGameConditions(_context, out var reason))
+                {
+                    _endGamePending = true;
+                    _pendingVictoryReason = reason;
+                    _logger.Log($"End-Game Condition Met: {_pendingVictoryReason}. Waiting for round to finish...", LogChannel.Info);
+                }
+            }
+
+            // If we just finished the turn of the last player in the round...
+            if (isLastPlayerInRound)
+            {
+                // If game ends is pending, trigger it now.
+                if (_endGamePending)
+                {
+                    TriggerGameOver();
+                }
+                else
+                {
+                    // Otherwise, proceed to next round
+                    RoundNumber++;
+                    _logger.Log($"Round {RoundNumber} Started.", LogChannel.Info);
+                }
             }
         }
 

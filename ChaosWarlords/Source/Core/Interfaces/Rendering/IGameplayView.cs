@@ -6,6 +6,8 @@ using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Entities.Actors;
 
+using ChaosWarlords.Source.Core.Interfaces.Services;
+
 namespace ChaosWarlords.Source.Core.Interfaces.Rendering
 {
     public interface IGameplayView
@@ -19,7 +21,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Rendering
 
         void LoadContent(ContentManager content);
         void Update(MatchContext context, InputManager inputManager, bool isMarketOpen);
-        void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying, ChaosWarlords.Source.Core.Data.Dtos.VictoryDto? victoryResult);
+        void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying, ChaosWarlords.Source.Core.Data.Dtos.VictoryDto? victoryResult, IMatchManager matchManager);
         void DrawSetupPhaseOverlay(SpriteBatch spriteBatch, Player activePlayer);
     }
 }

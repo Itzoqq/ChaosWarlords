@@ -8,6 +8,9 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
     /// </summary>
     public interface IMatchManager
     {
+        int RoundNumber { get; }
+        int TotalTurnCount { get; }
+
         /// <summary>
         /// Attempts to play a card, triggering its effects and consuming resources.
         /// </summary>
