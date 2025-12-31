@@ -273,7 +273,8 @@ namespace ChaosWarlords.Source.Views
             // 3. Draw Winner Score Breakdown (Large)
             if (victoryData.WinnerSeat.HasValue && victoryData.ScoreBreakdowns.TryGetValue(victoryData.WinnerSeat.Value, out var winnerBreakdown))
             {
-                DrawScoreBreakdown(sb, winnerBreakdown, new Vector2(centerX, topY + 100), true);
+                Color winnerColor = GetPlayerColor(victoryData.PlayerColors, victoryData.WinnerSeat.Value);
+                DrawScoreBreakdown(sb, winnerBreakdown, new Vector2(centerX, topY + 100), true, "", winnerColor);
             }
 
             // 4. Draw Other Players (Row beneath)
@@ -296,21 +297,51 @@ namespace ChaosWarlords.Source.Views
                 {
                     int seat = otherPlayers[i];
                     var breakdown = victoryData.ScoreBreakdowns[seat];
-                    // Name lookup needed? Ideally passed in DTO, but for now we might map Seat -> Name dynamically or add Names to DTO map.
-                    // For now, assume generic "Player N" if name missing, but DTO should have names.
-                    // Actually, VictoryDto only has WinnerName right now.
-                    // We should probably update DTO to map Names too, but let's stick to Seat for now.
-                    string name = $"Player {seat + 1}"; 
+                    Color pColor = GetPlayerColor(victoryData.PlayerColors, seat);
+                    string pColorName = "UNKNOWN";
+                    if (victoryData.PlayerColors != null && victoryData.PlayerColors.TryGetValue(seat, out var mappedName))
+                    {
+                        pColorName = mappedName.ToUpper(CultureInfo.InvariantCulture);
+                    }
+                    string name = $"PLAYER {pColorName}"; 
                     
-                    DrawScoreBreakdown(sb, breakdown, new Vector2(startX + (i * gap), otherPlayersY), false, name);
+                    DrawScoreBreakdown(sb, breakdown, new Vector2(startX + (i * gap), otherPlayersY), false, name, pColor);
                 }
             }
         }
 
-        private void DrawScoreBreakdown(SpriteBatch sb, ChaosWarlords.Source.Core.Data.Dtos.ScoreBreakdownDto breakdown, Vector2 centerPos, bool isWinner, string playerName = "")
+        private static Color GetPlayerColor(Dictionary<int, string>? colorMap, int seat)
+        {
+            if (colorMap != null && colorMap.TryGetValue(seat, out var colorName))
+            {
+                // Simple mapping for standard colors. 
+                // Ideally we'd have a shared utility, but UI rendering often does its own mapping for visual tweaks.
+                return colorName.ToUpperInvariant() switch
+                {
+                    "RED" => Color.Red,
+                    "BLUE" => Color.Cyan, // Cyan often looks better than deep Blue against dark background
+                    "GREEN" => Color.Green,
+                    "YELLOW" => Color.Yellow,
+                    _ => Color.White
+                };
+            }
+            return Color.White;
+        }
+
+        private void DrawScoreBreakdown(SpriteBatch sb, ChaosWarlords.Source.Core.Data.Dtos.ScoreBreakdownDto breakdown, Vector2 centerPos, bool isWinner, string playerName, Color playerColor)
         {
             float scale = isWinner ? 1.0f : 0.8f;
-            Color titleColor = isWinner ? Color.Gold : Color.White;
+            // Use player color for Winner title too, or keep Gold? User said: "other players ... match the victors in color". 
+            // The victor was Gold. The prompt implies using the Player's faction color.
+            // Let's use Gold for Winner Title to keep it special, BUT use player color for Name/Stats? 
+            // Or use Player Color instead of Gold? 
+            // "Victor: Player Blue" -> user used Gold.
+            // Let's stick to Gold for main "VICTOR" label, but use styled color for the Breakdown sections if requested.
+            // User: "can we maybe make the other players name and total vp match the victors in color?"
+            // This implies the other players currently DON'T match the victor (who is colored).
+            // So we should colorize the others.
+            
+            Color titleColor = isWinner ? Color.Gold : playerColor; 
             Color textColor = Color.LightGray;
 
             int yOffset = 0;
@@ -318,12 +349,12 @@ namespace ChaosWarlords.Source.Views
 
             if (!isWinner)
             {
-                // Draw Name and Total VP for others
+                // Draw Name and Total VP for others with their COLOR
                 Vector2 nameSize = _defaultFont.MeasureString(playerName);
                 sb.DrawString(_defaultFont, playerName, new Vector2(centerPos.X - (nameSize.X * scale) / 2, centerPos.Y + yOffset), titleColor, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
                 yOffset += lineHeight;
 
-                string totalText = $"Total: {breakdown.TotalScore}";
+                string totalText = $"TOTAL VP: {breakdown.TotalScore}";
                 Vector2 totalSize = _defaultFont.MeasureString(totalText);
                 sb.DrawString(_defaultFont, totalText, new Vector2(centerPos.X - (totalSize.X * scale) / 2, centerPos.Y + yOffset), titleColor, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
                 yOffset += lineHeight + 10;

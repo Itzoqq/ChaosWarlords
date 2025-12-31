@@ -23,6 +23,12 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         public Dictionary<int, ScoreBreakdownDto> ScoreBreakdowns { get; set; } = new Dictionary<int, ScoreBreakdownDto>();
 
         /// <summary>
+        /// Map of Player Seat Index -> Player Color (int representation or enum if serializable)
+        /// We will use string representation for simplicity in DTO.
+        /// </summary>
+        public Dictionary<int, string> PlayerColors { get; set; } = new Dictionary<int, string>();
+
+        /// <summary>
         /// The reason the game ended (e.g. "Market Empty", "Troops Depleted")
         /// </summary>
         public string VictoryReason { get; set; } = string.Empty;

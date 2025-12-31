@@ -89,7 +89,7 @@ namespace ChaosWarlords.Source.Managers
             {
                 if (site.Owner == player.Color)
                 {
-                    vp += 1; // 1 VP per site controlled
+                    vp += site.EndGameVictoryPoints; // Use the specific VP value of the site
 
                     // Check for total control (2 VP bonus)
                     // Total control = all troop spaces filled by this player, no enemy spies

@@ -105,6 +105,7 @@ namespace ChaosWarlords.Source.Factories
 
             var player = new Player(color, deterministicId, displayName: name);
             player.SeatIndex = seatIndex;
+            player.TroopsInBarracks = 5; // TEMPORARY: For testing victory conditions
             logger.Log($"Created {name} with SeatIndex: {seatIndex}", LogChannel.Info);
             for (int i = 0; i < 3; i++) player.DeckManager.AddToTop(CardFactory.CreateSoldier(random));
             for (int i = 0; i < 7; i++) player.DeckManager.AddToTop(CardFactory.CreateNoble(random));

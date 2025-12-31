@@ -176,7 +176,7 @@ namespace ChaosWarlords.Source.Utilities
                 ControlAmount = 0,
                 TotalControlResource = ResourceType.Power,
                 TotalControlAmount = 0,
-                EndGameVP = 2
+                EndGameVP = 1 // Starting Sites worth 1 VP per user request
             });
 
             // 2. Void Portal
@@ -205,7 +205,7 @@ namespace ChaosWarlords.Source.Utilities
                 ControlAmount = 0,
                 TotalControlResource = ResourceType.Power,
                 TotalControlAmount = 0,
-                EndGameVP = 2
+                EndGameVP = 1 // Starting Sites worth 1 VP per user request
             });
 
             // 4. City of Gold
@@ -219,7 +219,7 @@ namespace ChaosWarlords.Source.Utilities
                 ControlAmount = 1,
                 TotalControlResource = ResourceType.VictoryPoints,
                 TotalControlAmount = 1,
-                EndGameVP = 0
+                EndGameVP = 5 // User Request: 5 VP for control (+2 for Total Control)
             });
 
             // 5. Obsidian Fortress
@@ -233,7 +233,7 @@ namespace ChaosWarlords.Source.Utilities
                 ControlAmount = 1,
                 TotalControlResource = ResourceType.VictoryPoints,
                 TotalControlAmount = 2,
-                EndGameVP = 0
+                EndGameVP = 9 // User Request: 9 VP for control (+2 for Total Control)
             });
 
             // -- Define Routes --

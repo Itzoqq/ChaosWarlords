@@ -287,6 +287,7 @@ namespace ChaosWarlords.Source.Core.Utilities
                 var breakdown = victoryManager.GetScoreBreakdown(player, context);
                 dto.FinalScores[player.SeatIndex] = breakdown.TotalScore;
                 dto.ScoreBreakdowns[player.SeatIndex] = breakdown;
+                dto.PlayerColors[player.SeatIndex] = player.Color.ToString(); // Assuming PlayerColor is an enum or has valid ToString
             }
 
             if (dto.IsGameOver)

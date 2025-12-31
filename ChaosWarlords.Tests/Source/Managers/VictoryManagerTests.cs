@@ -110,11 +110,13 @@ namespace ChaosWarlords.Tests.Source.Managers
             // Setup Sites
             // Site 1: Controlled by P1 (1 VP)
             var site1 = new NonCitySite("Site 1", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            site1.EndGameVictoryPoints = 1;
             site1.Owner = _p1.Color;
             site1.HasTotalControl = false;
 
             // Site 2: Total Control by P1 (1 VP + 2 Bonus = 3 VP)
             var site2 = new NonCitySite("Site 2", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            site2.EndGameVictoryPoints = 1;
             site2.Owner = _p1.Color;
             site2.HasTotalControl = true;
 
@@ -198,6 +200,11 @@ namespace ChaosWarlords.Tests.Source.Managers
             Assert.IsTrue(dto.ScoreBreakdowns.ContainsKey(0));
             Assert.AreEqual(10, dto.ScoreBreakdowns[0].TotalScore);
             Assert.AreEqual(10, dto.ScoreBreakdowns[0].VPTokens);
+
+            // Verify Colors
+            Assert.IsTrue(dto.PlayerColors.ContainsKey(0));
+            Assert.AreEqual("Red", dto.PlayerColors[0]);
+            Assert.AreEqual("Blue", dto.PlayerColors[1]);
         }
 
         [TestMethod]
