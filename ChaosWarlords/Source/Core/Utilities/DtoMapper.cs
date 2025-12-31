@@ -196,31 +196,51 @@ namespace ChaosWarlords.Source.Core.Utilities
         {
             if (player == null) return null;
             
-            // Prefer CardId for robustness against hand order changes
-            Card? card = null;
-            if (dto.CardId != null)
-            {
-                card = player.Hand.FirstOrDefault(c => c.Id == dto.CardId);
-                if (card == null)
-                {
-                     // Debug Log: Why failed?
-                     logger?.Log($"[Hydrate Error] Could not find CardId '{dto.CardId}' in Hand of {player.DisplayName}.", LogChannel.Error);
-                     logger?.Log($"Hand IDs: {string.Join(", ", player.Hand.Select(c => c.Id))}", LogChannel.Error);
-                }
-            }
-                
-            // Fallback to index if ID not found or not provided
-            if (card == null)
-            {
-                card = player.Hand.ElementAtOrDefault(dto.HandIdx);
-                 if (card != null)
-                 {
-                     logger?.Log($"[Hydrate Warning] Fell back to Index {dto.HandIdx} -> Found {card.Name} ({card.Id})", LogChannel.Warning);
-                 }
-            }
-            
+            var card = FindCardForPlayCommand(dto, player, logger);
             return card != null ? new PlayCardCommand(card) : null;
         }
+
+        private static Card? FindCardForPlayCommand(PlayCardCommandDto dto, Player player, IGameLogger? logger)
+        {
+            // Try to find by CardId first
+            var card = TryFindCardById(dto.CardId, player, logger);
+            
+            // Fallback to index if ID lookup failed
+            if (card == null)
+            {
+                card = TryFindCardByIndex(dto.HandIdx, player, logger);
+            }
+            
+            return card;
+        }
+
+        private static Card? TryFindCardById(string? cardId, Player player, IGameLogger? logger)
+        {
+            if (cardId == null) return null;
+            
+            var card = player.Hand.FirstOrDefault(c => c.Id == cardId);
+            
+            if (card == null)
+            {
+                logger?.Log($"[Hydrate Error] Could not find CardId '{cardId}' in Hand of {player.DisplayName}.", LogChannel.Error);
+                logger?.Log($"Hand IDs: {string.Join(", ", player.Hand.Select(c => c.Id))}", LogChannel.Error);
+            }
+            
+            return card;
+        }
+
+        private static Card? TryFindCardByIndex(int handIdx, Player player, IGameLogger? logger)
+        {
+            var card = player.Hand.ElementAtOrDefault(handIdx);
+            
+            if (card != null)
+            {
+                logger?.Log($"[Hydrate Warning] Fell back to Index {handIdx} -> Found {card.Name} ({card.Id})", LogChannel.Warning);
+            }
+            
+            return card;
+        }
+
 
         private static BuyCardCommand? HydrateBuyCard(BuyCardCommandDto dto, IGameplayState state)
         {

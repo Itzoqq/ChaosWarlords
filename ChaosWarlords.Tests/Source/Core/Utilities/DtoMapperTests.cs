@@ -300,5 +300,85 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
                 // Verify warning logged
                 loggerMock.Received().Log(Arg.Is<string>(s => s.Contains("Fell back to Index")), LogChannel.Warning);
             }
+            
+            [TestMethod]
+            public void HydrateCommand_Devour_PreferCardIdOverIndex()
+            {
+                var p = new Player(PlayerColor.Red, Guid.NewGuid());
+                var card1 = new Card("devour_111", "Devour1", 0, CardAspect.Neutral, 1, 1, 1);
+                var card2 = new Card("devour_222", "Devour2", 0, CardAspect.Neutral, 1, 1, 0);
+                p.Hand.Add(card1);
+                p.Hand.Add(card2);
+                p.SeatIndex = 0;
+                
+                var stateMock = Substitute.For<IGameplayState>();
+                var tmMock = Substitute.For<ITurnManager>();
+                tmMock.Players.Returns(new List<Player> { p });
+                stateMock.TurnManager.Returns(tmMock);
+                
+                var dto = new DevourCardCommandDto
+                {
+                    CardId = "devour_111",
+                    HandIdx = 1, // Wrong index (card2 is here)
+                    Seat = 0
+                };
+                
+                var result = DtoMapper.HydrateCommand(dto, stateMock) as DevourCardCommand;
+                
+                Assert.IsNotNull(result);
+                Assert.AreEqual("devour_111", result.CardToDevour.Id, "Hydration should prefer ID over Index!");
+            }
+            
+            [TestMethod]
+            public void HydrateCommand_Devour_FallbackToIndexIfIdMissing()
+            {
+                var p = new Player(PlayerColor.Red, Guid.NewGuid());
+                var card1 = new Card("devour_111", "Devour1", 0, CardAspect.Neutral, 1, 1, 1);
+                p.Hand.Add(card1);
+                p.SeatIndex = 0;
+                
+                var stateMock = Substitute.For<IGameplayState>();
+                var tmMock = Substitute.For<ITurnManager>();
+                tmMock.Players.Returns(new List<Player> { p });
+                stateMock.TurnManager.Returns(tmMock);
+                
+                var dto = new DevourCardCommandDto
+                {
+                    CardId = "devour_old_XX", // ID not found
+                    HandIdx = 0, 
+                    Seat = 0
+                };
+                
+                var result = DtoMapper.HydrateCommand(dto, stateMock) as DevourCardCommand;
+                
+                Assert.IsNotNull(result);
+                Assert.AreEqual("devour_111", result.CardToDevour.Id, "Hydration should fallback to index if ID not found.");
+            }
+            
+            [TestMethod]
+            public void HydrateCommand_Devour_WithNullCardId_UsesIndex()
+            {
+                var p = new Player(PlayerColor.Red, Guid.NewGuid());
+                var card1 = new Card("devour_111", "Devour1", 0, CardAspect.Neutral, 1, 1, 1);
+                p.Hand.Add(card1);
+                p.SeatIndex = 0;
+                
+                var stateMock = Substitute.For<IGameplayState>();
+                var tmMock = Substitute.For<ITurnManager>();
+                tmMock.Players.Returns(new List<Player> { p });
+                stateMock.TurnManager.Returns(tmMock);
+                
+                var dto = new DevourCardCommandDto
+                {
+                    CardId = null, // Explicitly null
+                    HandIdx = 0, 
+                    Seat = 0
+                };
+                
+                var result = DtoMapper.HydrateCommand(dto, stateMock) as DevourCardCommand;
+                
+                Assert.IsNotNull(result);
+                Assert.AreEqual("devour_111", result.CardToDevour.Id);
+            }
     }
 }

@@ -813,10 +813,12 @@ public class UIEventMediator
 
 ## Testing Strategy
 
+**Total Test Suite: 516 tests** (367 Unit + 142 Integration + 7 Performance)
+
 ### Unit Tests
 **Target**: Individual classes in isolation  
 **Tools**: MSTest, NSubstitute  
-**Coverage**: 249 tests
+**Coverage**: 367 tests
 
 ```csharp
 [TestMethod]

@@ -256,7 +256,9 @@ ChaosWarlords.Tests/Source/
 
 ## Test Categories Breakdown
 
-### Unit Tests (249 tests)
+**Total Test Suite: 516 tests** (367 Unit + 142 Integration + 7 Performance)
+
+### Unit Tests (367 tests)
 **Purpose**: Test single classes in isolation  
 **Characteristics**: Fast, no external dependencies, use mocks  
 **Run Time**: ~0.8 seconds
@@ -264,7 +266,7 @@ ChaosWarlords.Tests/Source/
 **Categories**:
 - **Entities** (6 files): Domain models (Card, Deck, Player, MapNode, Site)
 - **Mechanics** (18 files): Game rules, commands, actions, effects
-- **Managers** (6 files): State managers (PlayerState, Market, Turn, UI, Replay)
+- **Managers** (9 files): State managers (PlayerState, Market, Turn, UI, Replay, Command Dispatcher)
 - **Core/Utilities** (7 files): Infrastructure (TurnContext, Dto, Random, Database)
 - **Map Components** (4 files): Map subsystems (Combat, Rewards, Topology, Spies)
 
