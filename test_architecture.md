@@ -133,6 +133,8 @@ ChaosWarlords.Tests/Source/
 │   │   ├── NormalPlayInputModeTests.cs [Integration] Tests standard play mode
 │   │   ├── PromoteInputModeTests.cs    [Integration] Tests card promotion mode
 │   │   └── TargetingInputModeTests.cs  [Integration] Tests targeting mode for effects
+│   ├── Controllers/
+│   │   └── ReplayControllerTests.cs     [Unit] Tests replay playback and save/load logic
 │   ├── Processors/
 │   │   ├── GameplayInputCoordinatorTests.cs [Integration] Tests input flow coordination
 │   │   └── InteractionMapperTests.cs   [Integration] Tests screen-to-entity mapping
@@ -140,6 +142,7 @@ ChaosWarlords.Tests/Source/
 │       └── InputManagerTests.cs        [Integration] Tests input state management
 │
 ├── Managers/
+│   ├── CommandDispatcherTests.cs        [Unit] Tests centralized command dispatch and recording
 │   ├── GameEventLoggerTests.cs          [Unit] Tests logging of game events and subscriptions
 │   ├── MapManagerTests.cs               [Integration] Tests map operations (deploy, spy, combat)
 │   │                                      - Deployment validation and execution

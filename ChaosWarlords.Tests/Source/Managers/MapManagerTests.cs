@@ -4,6 +4,11 @@ using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
+using NSubstitute;
+using ChaosWarlords.Source.Factories;
+using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Core.Interfaces.Data;
+using ChaosWarlords.Source.Entities.Cards;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -532,6 +537,63 @@ namespace ChaosWarlords.Tests.Systems
             // Assert
             Assert.AreEqual(0, _player1.VictoryPoints, "Should NOT gain Total Control reward due to spy.");
             Assert.AreEqual(1, _player1.Power, "Should still gain Control reward (Power).");
+        }
+        [TestMethod]
+        public void Verify_SetupPhase_DoesNotAutoAdvance_DuringReplay()
+        {
+            // Setup Environment
+            var loggerMock = Substitute.For<IGameLogger>();
+            var cardDbMock = Substitute.For<ICardDatabase>();
+            // Mock Card DB to return deterministic cards
+            cardDbMock.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
+            cardDbMock.GetAllMarketCards(null).Returns(new List<Card>());
+            
+            var factory = new MatchFactory(cardDbMock, loggerMock);
+            
+            // Allow ReplayManager logic to flow
+            var replayManagerMock = Substitute.For<IReplayManager>();
+            replayManagerMock.IsReplaying.Returns(true);
+            replayManagerMock.Seed.Returns(12345);
+
+            var worldData = factory.Build(replayManagerMock, 12345);
+
+            // Manually wire up the context
+            var matchContext = new MatchContext(
+                worldData.TurnManager,
+                worldData.MapManager,
+                worldData.MarketManager,
+                worldData.ActionSystem,
+                cardDbMock,
+                worldData.PlayerStateManager,
+                loggerMock,
+                12345
+            );
+
+            // Act: Verify MapManager event firing
+            bool eventFired = false;
+            worldData.MapManager.OnSetupDeploymentComplete += () => eventFired = true;
+            
+            worldData.MapManager.SetPhase(MatchPhase.Setup);
+            
+            var p1 = worldData.TurnManager.Players[0];
+            p1.TroopsInBarracks = 1; // Last troop
+            
+            // Find a valid starting node (must be StartingSite and Empty)
+            MapNode? deployNode = null;
+            foreach(var n in worldData.MapManager.NodesInternal)
+            {
+                var site = worldData.MapManager.GetSiteForNode(n);
+                if (site is StartingSite && n.Occupant == PlayerColor.None)
+                {
+                    deployNode = n;
+                    break;
+                }
+            }
+            Assert.IsNotNull(deployNode, "Could not find a valid StartingSite node for test.");
+
+            worldData.MapManager.TryDeploy(p1, deployNode);
+            
+            Assert.IsTrue(eventFired, "MapManager SHOULD fire the event when setup deployment occurs.");
         }
     }
 }

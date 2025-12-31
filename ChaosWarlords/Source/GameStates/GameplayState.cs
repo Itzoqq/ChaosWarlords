@@ -49,7 +49,7 @@ namespace ChaosWarlords.Source.States
         internal CardPlaySystem _cardPlaySystem = null!;
         internal PlayerController _playerController = null!;
         internal UIEventMediator _uiEventMediator = null!;
-        private int _localSequenceCounter;
+        internal ICommandDispatcher _commandDispatcher = null!;
         
         // 1. Viewport Settings
         public IInputManager InputManager => _inputManagerBacking;
@@ -174,7 +174,6 @@ namespace ChaosWarlords.Source.States
             if (!_replayManager.IsReplaying)
             {
                 _replayManager.InitializeRecording(_matchContext.Seed);
-                _localSequenceCounter = 0;
             }
 
             _matchManager = new MatchManager(_matchContext, _logger);
@@ -197,6 +196,7 @@ namespace ChaosWarlords.Source.States
         private void InitializeSystems()
         {
             _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
+            _commandDispatcher = new CommandDispatcher(_replayManager, _logger);
             _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, _replayManager, () => SwitchToTargetingMode(), _logger);
 
             _uiEventMediator = new UIEventMediator(this, _uiManagerBacking, _matchContext.ActionSystem, _logger, _game as Game1);
@@ -316,24 +316,7 @@ namespace ChaosWarlords.Source.States
         /// </summary>
         public void RecordAndExecuteCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command)
         {
-            try
-            {
-                // Record the command for replay (unless we're currently replaying)
-                if (!_replayManager.IsReplaying)
-                {
-                    _replayManager.RecordCommand(command, _matchContext.ActivePlayer, ++_localSequenceCounter);
-                }
-
-                // Execute the command
-                command.Execute(this);
-            }
-            catch (Exception ex)
-            {
-                _logger.Log($"Error executing/recording command {command.GetType().Name}: {ex}", LogChannel.Error);
-                // We rethrow to ensure the UI/Input knows something went wrong, 
-                // but at least we have a log now.
-                throw; 
-            }
+            _commandDispatcher.Dispatch(command, this);
         }
 
         public void EndTurn()

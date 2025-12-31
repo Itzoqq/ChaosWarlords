@@ -259,6 +259,7 @@ namespace ChaosWarlords.Tests.States
 
                 // 6. ReplayController
                 _replayController = new ReplayController(this, base._replayManager, _inputManagerBacking, ChaosWarlords.Tests.Utilities.TestLogger.Instance, () => { });
+                _commandDispatcher = new CommandDispatcher(base._replayManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
                 SwitchToNormalMode();
             }

@@ -236,5 +236,69 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
              Assert.AreEqual(PlayerColor.Red, cmd.SpyColor);
              Assert.AreEqual("c_spy", cmd.CardId);
         }
+    
+            [TestMethod]
+            public void HydrateCommand_PreferCardIdOverIndex()
+            {
+                var p = new Player(PlayerColor.Red, Guid.NewGuid());
+                // Card(string id, string name, int cost, CardAspect aspect, int deckVp, int innerCircleVp, int influence)
+                var card1 = new Card("noble_111", "Noble", 0, CardAspect.Neutral, 1, 1, 1);
+                var card2 = new Card("soldier_222", "Soldier", 0, CardAspect.Neutral, 1, 1, 0);
+                p.Hand.Add(card1);
+                p.Hand.Add(card2);
+                p.SeatIndex = 0;
+                
+                var loggerMock = Substitute.For<IGameLogger>();
+                var stateMock = Substitute.For<IGameplayState>();
+                stateMock.Logger.Returns(loggerMock);
+                
+                var tmMock = Substitute.For<ITurnManager>();
+                tmMock.Players.Returns(new List<Player> { p });
+                stateMock.TurnManager.Returns(tmMock);
+                
+                var dto = new PlayCardCommandDto
+                {
+                    CardId = "noble_111",
+                    HandIdx = 1, // Wrong index (Soldier is here)
+                    Seat = 0
+                };
+                
+                var result = ChaosWarlords.Source.Core.Utilities.DtoMapper.HydrateCommand(dto, stateMock) as PlayCardCommand;
+                
+                Assert.IsNotNull(result);
+                Assert.AreEqual("noble_111", result.Card.Id, "Hydration should prefer ID over Index!");
+            }
+            
+            [TestMethod]
+            public void HydrateCommand_FallbackToIndexIfIdMissing()
+            {
+                var p = new Player(PlayerColor.Red, Guid.NewGuid());
+                var card1 = new Card("noble_111", "Noble", 0, CardAspect.Neutral, 1, 1, 1);
+                p.Hand.Add(card1);
+                p.SeatIndex = 0;
+                
+                var loggerMock = Substitute.For<IGameLogger>();
+                var stateMock = Substitute.For<IGameplayState>();
+                stateMock.Logger.Returns(loggerMock);
+                
+                var tmMock = Substitute.For<ITurnManager>();
+                tmMock.Players.Returns(new List<Player> { p });
+                stateMock.TurnManager.Returns(tmMock);
+                
+                var dto = new PlayCardCommandDto
+                {
+                    CardId = "noble_old_XX",
+                    HandIdx = 0, 
+                    Seat = 0
+                };
+                
+                var result = ChaosWarlords.Source.Core.Utilities.DtoMapper.HydrateCommand(dto, stateMock) as PlayCardCommand;
+                
+                Assert.IsNotNull(result);
+                Assert.AreEqual("noble_111", result.Card.Id, "Hydration should fallback to index if ID not found.");
+                
+                // Verify warning logged
+                loggerMock.Received().Log(Arg.Is<string>(s => s.Contains("Fell back to Index")), LogChannel.Warning);
+            }
     }
 }

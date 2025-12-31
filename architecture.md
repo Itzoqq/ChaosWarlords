@@ -179,6 +179,8 @@ Source/
 │   │   │   ├── IMainMenuView.cs         # The contract for Main Menu visualization
 │   │   │   └── IUIManager.cs            # Contract for high-level UI management
 │   │   ├── Services/
+│   │   │   ├── ICommandDispatcher.cs    # Funnel for command execution & recording
+│   │   │   │                              - Dispatch(command, state)
 │   │   │   ├── IGameRandom.cs           # Contract for deterministic RNG
 │   │   │   │                              - NextInt(min, max)
 │   │   │   │                              - Shuffle<T>(IList<T>)
@@ -329,6 +331,9 @@ Source/
 │   │                                      - Translates raw input to game intent
 │   │                                      - "User clicked card" → "Play this card"
 │   │                                      - Delegates to InputCoordinator
+│   │   └── ReplayController.cs          # Replay Workflow Orchestrator
+│   │   │                                      - Loops playback logic
+│   │   │                                      - Handles Save/Load input (F5/F6)
 │   ├── Modes/                           # Input State Machine (Strategy Pattern)
 │   │   ├── DevourInputMode.cs           # Input mode for trashing a card
 │   │   │                                  - Click card → Devour it
@@ -359,6 +364,9 @@ Source/
 │                                          - Provides input snapshots
 │
 ├── Managers/                            # Business Logic Services
+│   ├── CommandDispatcher.cs             # Central Command Processor
+│   │                                      - Records command for replay
+│   │                                      - Executes via command.Execute(state)
 │   ├── MapManager.cs                    # Facade for Board Logic
 │   │                                      - TryDeploy(player, node): Deploy troops
 │   │                                      - PlaceSpy(site, player): Place spy
