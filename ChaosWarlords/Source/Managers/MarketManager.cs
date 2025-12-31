@@ -55,6 +55,11 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
+        public bool HasCardsInDeck()
+        {
+            return _marketDeck.Count > 0;
+        }
+
         // Removed ShuffleDeck private method as it's handled in constructor now
 
     }

@@ -176,7 +176,8 @@ namespace ChaosWarlords.Source.States
                 _replayManager.InitializeRecording(_matchContext.Seed);
             }
 
-            _matchManager = new MatchManager(_matchContext, _logger);
+            var victoryManager = new VictoryManager(_logger);
+            _matchManager = new MatchManager(_matchContext, _logger, victoryManager);
 
             // Don't draw cards during Setup phase
             if (_matchContext.CurrentPhase != MatchPhase.Setup && _matchContext.TurnManager.Players is not null)

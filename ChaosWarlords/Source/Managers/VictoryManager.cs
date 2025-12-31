@@ -1,0 +1,136 @@
+using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Utilities;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace ChaosWarlords.Source.Managers
+{
+    /// <summary>
+    /// Manages victory conditions and final scoring calculations.
+    /// Implements the complete end-game logic including all VP sources.
+    /// </summary>
+    public class VictoryManager : IVictoryManager
+    {
+        private readonly IGameLogger _logger;
+
+        public VictoryManager(IGameLogger logger)
+        {
+            _logger = logger;
+        }
+
+        public bool CheckEndGameConditions(MatchContext context)
+        {
+            // Check 1: Any player out of troops?
+            bool anyPlayerOutOfTroops = context.TurnManager.Players
+                .Any(p => p.TroopsInBarracks == 0);
+
+            // Check 2: Market deck empty?
+            bool marketDeckEmpty = context.MarketManager.MarketRow.Count == 0 && 
+                                   !context.MarketManager.HasCardsInDeck();
+
+            if (anyPlayerOutOfTroops)
+            {
+                var player = context.TurnManager.Players.First(p => p.TroopsInBarracks == 0);
+                _logger.Log($"End-game triggered: {player.DisplayName} has deployed their last troop!", LogChannel.Info);
+                return true;
+            }
+
+            if (marketDeckEmpty)
+            {
+                _logger.Log("End-game triggered: Market deck is empty!", LogChannel.Info);
+                return true;
+            }
+
+            return false;
+        }
+
+        public int CalculateFinalScore(Player player, MatchContext context)
+        {
+            int vpTokens = player.VictoryPoints;
+            int siteControl = CalculateSiteControlVP(player, context);
+            int trophyHall = player.TrophyHall;
+            int deckVP = CalculateDeckVP(player);
+            int innerCircleVP = CalculateInnerCircleVP(player);
+
+            int total = vpTokens + siteControl + trophyHall + deckVP + innerCircleVP;
+
+            _logger.Log($"{player.DisplayName} Final Score: {total} " +
+                       $"(VP:{vpTokens} Sites:{siteControl} Trophies:{trophyHall} " +
+                       $"Deck:{deckVP} InnerCircle:{innerCircleVP})",
+                       LogChannel.Info);
+
+            return total;
+        }
+
+        private static int CalculateSiteControlVP(Player player, MatchContext context)
+        {
+            int vp = 0;
+
+            foreach (var site in context.MapManager.Sites)
+            {
+                if (site.Owner == player.Color)
+                {
+                    vp += 1; // 1 VP per site controlled
+
+                    // Check for total control (2 VP bonus)
+                    // Total control = all troop spaces filled by this player, no enemy spies
+                    if (site.HasTotalControl)
+                    {
+                        vp += 2;
+                    }
+                }
+            }
+
+            return vp;
+        }
+
+        private static int CalculateDeckVP(Player player)
+        {
+            int vp = 0;
+
+            // Cards in deck
+            foreach (var card in player.Deck)
+                vp += card.DeckVP;
+
+            // Cards in hand
+            foreach (var card in player.Hand)
+                vp += card.DeckVP;
+
+            // Cards in discard
+            foreach (var card in player.DiscardPile)
+                vp += card.DeckVP;
+
+            // Cards in played area
+            foreach (var card in player.PlayedCards)
+                vp += card.DeckVP;
+
+            return vp;
+        }
+
+        private static int CalculateInnerCircleVP(Player player)
+        {
+            int vp = 0;
+
+            foreach (var card in player.InnerCircle)
+                vp += card.InnerCircleVP;
+
+            return vp;
+        }
+
+        public Player DetermineWinner(List<Player> players, MatchContext context)
+        {
+            var scores = players.ToDictionary(
+                p => p,
+                p => CalculateFinalScore(p, context)
+            );
+
+            var winner = scores.OrderByDescending(kvp => kvp.Value).First().Key;
+            
+            _logger.Log($"Winner: {winner.DisplayName} with {scores[winner]} VP!", LogChannel.General);
+            
+            return winner;
+        }
+    }
+}

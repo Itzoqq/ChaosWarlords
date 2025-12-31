@@ -35,6 +35,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _marketManager = Substitute.For<IMarketManager>();
             _actionSystem = Substitute.For<IActionSystem>();
             _cardDatabase = Substitute.For<ICardDatabase>();
+            var victoryManager = Substitute.For<IVictoryManager>();
 
             var mockRandom = Substitute.For<IGameRandom>();
             var playerState = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
@@ -50,7 +51,7 @@ namespace ChaosWarlords.Tests.Source.Systems
                 ChaosWarlords.Tests.Utilities.TestLogger.Instance
             );
 
-            _controller = new MatchManager(_context, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _controller = new MatchManager(_context, ChaosWarlords.Tests.Utilities.TestLogger.Instance, victoryManager);
 
             // Ensure _p1 always refers to the Active Player for test consistency.
             if (_context.ActivePlayer != _p1)

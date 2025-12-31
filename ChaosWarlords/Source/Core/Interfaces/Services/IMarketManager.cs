@@ -22,6 +22,13 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// Gets the current list of cards available for purchase in the market.
         /// </summary>
         List<Card> MarketRow { get; }
+
+        /// <summary>
+        /// Checks if there are any cards remaining in the market deck.
+        /// Used for victory condition checking.
+        /// </summary>
+        /// <returns>True if the market deck has cards; otherwise, false.</returns>
+        bool HasCardsInDeck();
     }
 }
 

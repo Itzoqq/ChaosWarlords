@@ -37,6 +37,17 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// Formally ends the current turn, performing cleanup and passing control.
         /// </summary>
         void EndTurn();
+
+        /// <summary>
+        /// Checks if the game has ended due to victory conditions.
+        /// </summary>
+        /// <returns>True if the game is over; otherwise, false.</returns>
+        bool IsGameOver();
+
+        /// <summary>
+        /// Triggers the game over state and final scoring.
+        /// </summary>
+        void TriggerGameOver();
     }
 }
 

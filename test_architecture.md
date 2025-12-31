@@ -158,7 +158,8 @@ ChaosWarlords.Tests/Source/
 │   ├── ReplayManagerTests.cs            [Unit] Tests replay recording and playback
 │   ├── TurnManagerTests.cs              [Unit] Tests turn rotation and phase management
 │   ├── UIEventMediatorTests.cs          [Unit] Tests event mediation between systems
-│   └── UIManagerTests.cs                [Unit] Tests UI state management
+│   ├── UIManagerTests.cs                [Unit] Tests UI state management
+│   └── VictoryManagerTests.cs           [Unit] Tests victory conditions and scoring logic
 │
 ├── Map/
 │   ├── CombatResolverTests.cs           [Unit] Tests combat logic (assassinate, supplant)

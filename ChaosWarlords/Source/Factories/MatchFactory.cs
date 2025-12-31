@@ -58,6 +58,9 @@ namespace ChaosWarlords.Source.Factories
             
             var turnManager = new TurnManager(players, random, _logger);
 
+            // Create VictoryManager
+            var victoryManager = new VictoryManager(_logger);
+
             var mapManager = SetupMap(playerStateManager, _logger);
             var actionSystem = SetupActionSystem(turnManager, mapManager, playerStateManager, _logger);
 

@@ -236,7 +236,9 @@ namespace ChaosWarlords.Tests.States
 
                 var ps = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
                 _matchContext = new MatchContext(tm, map, market, action, _testDb, ps, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-                _matchManager = new MatchManager(_matchContext, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+                
+                var victoryManager = Substitute.For<IVictoryManager>();
+                _matchManager = new MatchManager(_matchContext, ChaosWarlords.Tests.Utilities.TestLogger.Instance, victoryManager);
 
                 // --- DIRECT FIELD ACCESS (No Reflection) ---
                 // Thanks to [InternalsVisibleTo] and 'internal' modifier

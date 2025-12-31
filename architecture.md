@@ -193,9 +193,13 @@ Source/
 │   │   │   │                              - BuyCard(Player, Card)
 │   │   │   │                              - RefreshMarket()
 │   │   │   │                              - GetAvailableCards()
-│   │   │   ├── IMatchManager.cs         # API for match lifecycle (win/loss)
-│   │   │   │                              - CheckVictoryConditions()
-│   │   │   │                              - EndMatch(Player winner)
+│   │   │   ├── IMatchManager.cs         # API for match lifecycle
+│   │   │   │                              - PlayCard(), EndTurn()
+│   │   │   │                              - IsGameOver(), TriggerGameOver()
+│   │   │   ├── IVictoryManager.cs       # API for victory logic
+│   │   │   │                              - CheckEndGameConditions()
+│   │   │   │                              - DetermineWinner()
+│   │   │   │                              - CalculateFinalScore()
 │   │   │   ├── IPlayerStateManager.cs   # API for centralized player mutations
 │   │   │   │                              - AddPower(Player, int amount)
 │   │   │   │                              - AddInfluence(Player, int amount)
@@ -378,10 +382,14 @@ Source/
 │   │                                      - RefreshMarket(): Replenish cards
 │   │                                      - GetAvailableCards(): Query market state
 │   │                                      - Pricing and availability logic
-│   ├── MatchManager.cs                  # Manages Victory Conditions
-│   │                                      - CheckVictoryConditions(): Check for winner
-│   │                                      - EndMatch(winner): Cleanup and transition
+│   ├── MatchManager.cs                  # Manages Match Flow
+│   │                                      - EndTurn(): Advances game state
+│   │                                      - Delegates victory checks to VictoryManager
 │   │                                      - Tracks game state and progression
+│   ├── VictoryManager.cs                # Manages Victory Logic
+│   │                                      - CheckEndGameConditions(): Check triggers
+│   │                                      - DetermineWinner(): Calculate scores
+│   │                                      - Implement core scoring rules
 │   ├── PlayerStateManager.cs            # Centralized player mutations
 │   │                                      - AddPower/Influence/VictoryPoints()
 │   │                                      - AddTroops/Spies()

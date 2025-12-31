@@ -13,12 +13,16 @@ namespace ChaosWarlords.Source.Managers
         private readonly IGameLogger _logger;
         // 1. Add the Processor to handle the logic
         private readonly CardEffectProcessor _effectProcessor;
+        private readonly IVictoryManager _victoryManager;
+        private bool _gameOver;
 
-        public MatchManager(MatchContext context, IGameLogger logger)
+        public MatchManager(MatchContext context, IGameLogger logger, IVictoryManager victoryManager)
         {
             _context = context;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _victoryManager = victoryManager ?? throw new ArgumentNullException(nameof(victoryManager));
             _effectProcessor = new CardEffectProcessor();
+            _gameOver = false;
         }
 
         public void PlayCard(Card card)
@@ -125,6 +129,28 @@ namespace ChaosWarlords.Source.Managers
             }
 
             _context.MapManager.DistributeStartOfTurnRewards(_context.ActivePlayer);
+
+            // Check victory conditions at end of turn
+            if (_victoryManager.CheckEndGameConditions(_context))
+            {
+                _gameOver = true;
+                _logger.Log("Game Over conditions met!", LogChannel.General);
+            }
+        }
+
+        public bool IsGameOver()
+        {
+            return _gameOver;
+        }
+
+        public void TriggerGameOver()
+        {
+            _gameOver = true;
+            _logger.Log("Game Over triggered manually.", LogChannel.General);
+            
+            // Calculate and log final scores
+            var winner = _victoryManager.DetermineWinner(_context.TurnManager.Players, _context);
+            _logger.Log($"Game Over! Winner: {winner.DisplayName}", LogChannel.General);
         }
     }
 }
