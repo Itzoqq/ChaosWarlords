@@ -24,7 +24,7 @@ namespace ChaosWarlords.Source.States
         private readonly ICardDatabase _cardDatabase;
         private readonly IReplayManager _replayManager;
         private readonly IGameLogger _logger;
-        private readonly IMainMenuView _view; // Can be null for Headless Server
+        private IMainMenuView _view; // Can be null for Headless Server
         private IButtonManager _buttonManager;
 
         // Input state just for click detection
@@ -75,7 +75,14 @@ namespace ChaosWarlords.Source.States
 
             SetupButtons();
 
-            // View Setup (Only if View exists - Client Side)
+            // View Setup (Only if View exists - Client Side; or create it if missing)
+            if (_view is null && _game?.GraphicsDevice is not null)
+            {
+                 // Create default view if none injected (e.g. from transition)
+                 // We rely on _buttonManager being initialized above.
+                 _view = new MainMenuView(_game.GraphicsDevice, _game.Content, _buttonManager!, _logger);
+            }
+
             _view?.LoadContent();
 
             // Initialize mouse state

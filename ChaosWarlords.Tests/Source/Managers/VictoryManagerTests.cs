@@ -108,15 +108,15 @@ namespace ChaosWarlords.Tests.Source.Managers
             _p1.TrophyHall = 3; // 3 VP
 
             // Setup Sites
-            // Site 1: Controlled by P1 (1 VP)
-            var site1 = new NonCitySite("Site 1", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
-            site1.EndGameVictoryPoints = 1;
+            // Site 1: Controlled by P1 (5 VP - City of Gold)
+            var site1 = new NonCitySite("City of Gold", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            site1.EndGameVictoryPoints = 5;
             site1.Owner = _p1.Color;
             site1.HasTotalControl = false;
 
-            // Site 2: Total Control by P1 (1 VP + 2 Bonus = 3 VP)
-            var site2 = new NonCitySite("Site 2", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
-            site2.EndGameVictoryPoints = 1;
+            // Site 2: Total Control by P1 (9 VP + 2 Bonus = 11 VP - Obsidian Fortress)
+            var site2 = new NonCitySite("Obsidian Fortress", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
+            site2.EndGameVictoryPoints = 9;
             site2.Owner = _p1.Color;
             site2.HasTotalControl = true;
 
@@ -136,17 +136,17 @@ namespace ChaosWarlords.Tests.Source.Managers
             // Expected Score:
             // VP Tokens: 10
             // Trophy Hall: 3
-            // Site 1: 1
-            // Site 2: 3 (1+2)
+            // Site 1: 5
+            // Site 2: 11 (9+2)
             // Deck: 2
             // Inner Circle: 5
-            // Total: 24
+            // Total: 36 (10+3+5+11+2+5)
 
             // Act
             int score = _victoryManager.CalculateFinalScore(_p1, _context);
 
             // Assert
-            Assert.AreEqual(24, score);
+            Assert.AreEqual(36, score);
         }
 
         [TestMethod]

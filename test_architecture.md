@@ -122,6 +122,7 @@ ChaosWarlords.Tests/Source/
 ├── GameStates/
 │   ├── GameplayStateTests.cs            [Integration] Tests main game loop coordination
 │   ├── MainMenuStateTests.cs            [Integration] Tests menu state and navigation
+│   ├── VictoryStateTests.cs             [Integration] Tests victory screen logic and delegation
 │   └── StateManagerTests.cs             [Integration] Tests state stack management
 │
 ├── Input/

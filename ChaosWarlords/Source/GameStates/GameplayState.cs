@@ -264,6 +264,17 @@ namespace ChaosWarlords.Source.States
 
             // 6. Update View
             _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
+
+            // 7. Check Victory Condition
+            if (MatchManager.VictoryResult != null && !_replayManager.IsReplaying)
+            {
+                // Transition to Victory Screen
+                // We use ChangeState to replace GameplayState with VictoryState
+                if (_game is Game1 game1)
+                {
+                    game1.StateManager.ChangeState(new ChaosWarlords.Source.States.VictoryState(game1, MatchManager.VictoryResult));
+                }
+            }
         }
 
 
@@ -282,7 +293,7 @@ namespace ChaosWarlords.Source.States
                 targetingText = GetTargetingText(_matchContext.ActionSystem.CurrentState);
             }
 
-            _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, _uiManagerBacking, IsMarketOpen, targetingText, _uiEventMediator.IsConfirmationPopupOpen, _uiEventMediator.IsPauseMenuOpen, _replayManager.IsReplaying, MatchManager.VictoryResult, MatchManager);
+            _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, _uiManagerBacking, IsMarketOpen, targetingText, _uiEventMediator.IsConfirmationPopupOpen, _uiEventMediator.IsPauseMenuOpen, _replayManager.IsReplaying, MatchManager);
 
             // Phase 0 UI Overlay
             if (_matchContext.CurrentPhase == MatchPhase.Setup)

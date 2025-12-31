@@ -37,6 +37,15 @@ namespace ChaosWarlords.Tests.GameStates
             Assert.IsNotNull(state);
         }
 
+        /*
+        [TestMethod]
+        public void LoadContent_CreatesView_WhenNull_AndDeviceAvailable()
+        {
+             // Skipped: Cannot easily mock sealed GraphicsAdapter/GraphicsDevice with NSubstitute.
+             // Manual verification confirmed the fix.
+        }
+        */
+
         [TestMethod]
         public void Update_StartBoundsClick_TriggersGameStart()
         {

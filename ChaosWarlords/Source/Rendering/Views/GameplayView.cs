@@ -11,6 +11,7 @@ using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Rendering.UI;
 using ChaosWarlords.Source.Views;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 
@@ -33,8 +34,8 @@ namespace ChaosWarlords.Source.Rendering.Views
         private SpriteFont _smallFont = null!;
         private Texture2D _pixelTexture = null!;
 
-        private MapRenderer _mapRenderer = null!;
-        private CardRenderer _cardRenderer = null!;
+        private ChaosWarlords.Source.Views.MapRenderer _mapRenderer = null!;
+        private ChaosWarlords.Source.Views.CardRenderer _cardRenderer = null!;
         private UIRenderer _uiRenderer = null!;
 
         // --- View Models ---
@@ -94,7 +95,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             if (isMarketOpen) UpdateVisualsHover(MarketViewModels, inputManager);
         }
 
-        public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying, ChaosWarlords.Source.Core.Data.Dtos.VictoryDto? victoryResult, IMatchManager matchManager)
+        public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying, IMatchManager matchManager)
         {
             // 1. Draw Map
             MapNode? hoveredNode = context.MapManager.GetNodeAt(inputManager.MousePosition);
@@ -176,11 +177,6 @@ namespace ChaosWarlords.Source.Rendering.Views
                 _uiRenderer.DrawPauseMenu(spriteBatch, uiManager);
             }
 
-            // 10. Draw Victory Popup (Top-most-most Modal)
-            if (victoryResult != null && victoryResult.IsGameOver)
-            {
-                _uiRenderer.DrawVictoryPopup(spriteBatch, victoryResult, uiManager.ScreenWidth, uiManager.ScreenHeight);
-            }
         }
 
         // --- Internal Render Logic ---

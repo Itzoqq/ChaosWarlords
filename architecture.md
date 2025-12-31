@@ -177,7 +177,8 @@ Source/
 │   │   │   │                              - Update(GameTime)
 │   │   │   │                              - LoadContent()
 │   │   │   ├── IMainMenuView.cs         # The contract for Main Menu visualization
-│   │   │   └── IUIManager.cs            # Contract for high-level UI management
+│   │   │   ├── IUIManager.cs            # Contract for high-level UI management
+│   │   │   └── IVictoryView.cs          # The contract for Victory Screen visualization
 │   │   ├── Services/
 │   │   │   ├── ICommandDispatcher.cs    # Funnel for command execution & recording
 │   │   │   │                              - Dispatch(command, state)
@@ -325,6 +326,9 @@ Source/
 │   │                                      - Initializes game
 │   │                                      - Handles menu navigation
 │   │                                      - Creates new matches
+│   ├── VictoryState.cs                  # Victory Screen State
+│   │                                      - Displays winner and scores
+│   │                                      - Handles return to main menu
 │   └── StateManager.cs                  # Stack-based State Machine implementation
 │                                          - Manages state transitions
 │                                          - Supports state stacking (pause, etc.)
@@ -494,6 +498,9 @@ Source/
         ├── MainMenuView.cs              # Main Menu screen renderer
         │                                  - Draws menu options
         │                                  - Handles menu animations
+        ├── VictoryView.cs               # Victory screen renderer
+        │                                  - Draws winner text and score breakdown
+        │                                  - Renders "Return to Main Menu" button
         └── MapRenderer.cs               # Draws the hex map and units
                                            - DrawNode(node, position)
                                            - DrawRoute(route)

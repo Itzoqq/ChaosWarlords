@@ -82,7 +82,7 @@ namespace ChaosWarlords.Tests.States
             state.Draw(null!); // SpriteBatch null is fine as we mock the view
 
             // Assert
-            viewMock.ReceivedWithAnyArgs(1).Draw(null!, null!, null!, null!, false, "", false, false, false, null, null!);
+            viewMock.ReceivedWithAnyArgs(1).Draw(null!, null!, null!, null!, false, "", false, false, false, Arg.Any<IMatchManager>());
         }
 
         [TestMethod]

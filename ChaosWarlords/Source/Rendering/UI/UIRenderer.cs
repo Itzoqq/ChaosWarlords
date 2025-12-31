@@ -9,7 +9,7 @@ using System;
 
 using ChaosWarlords.Source.Utilities;
 
-namespace ChaosWarlords.Source.Views
+namespace ChaosWarlords.Source.Rendering.UI
 {
     [ExcludeFromCodeCoverage]
     public class UIRenderer : IDisposable
