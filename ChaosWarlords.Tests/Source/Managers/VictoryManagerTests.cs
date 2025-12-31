@@ -227,5 +227,36 @@ namespace ChaosWarlords.Tests.Source.Managers
             Assert.AreEqual(0, breakdown.DeckVP);
             Assert.AreEqual(0, breakdown.InnerCircleVP);
         }
+
+        [TestMethod]
+        public void DetermineWinner_BreaksTies_ByTroopsAndSeat()
+        {
+            // Scenario 1: Equal Score, Different Troops
+            // P1 and P2 have same VP
+            _p1.VictoryPoints = 10;
+            _p2.VictoryPoints = 10;
+
+            // P1 has 0 troops in barracks (More deployed)
+            // P2 has 5 troops in barracks (Less deployed)
+            _p1.TroopsInBarracks = 0;
+            _p2.TroopsInBarracks = 5;
+
+            _mapManager.Sites.Returns(new List<Site>());
+
+            var winner1 = _victoryManager.DetermineWinner(new List<Player> { _p1, _p2 }, _context);
+            Assert.AreEqual(_p1, winner1, "Winner should be P1 (More troops deployed)");
+
+            // Scenario 2: Equal Score, Equal Troops, Different Seat
+            // Both have 0 troops in barracks
+            _p2.TroopsInBarracks = 0;
+            
+            // P1 is Seat 0, P2 is Seat 1
+            _p1.SeatIndex = 0;
+            _p2.SeatIndex = 1;
+
+            var winner2 = _victoryManager.DetermineWinner(new List<Player> { _p1, _p2 }, _context);
+            Assert.AreEqual(_p1, winner2, "Winner should be P1 (Lower Seat Index)");
+        }
     }
 }
+

@@ -25,6 +25,8 @@ namespace ChaosWarlords.Tests.Source.Systems
         private Player _p1 = null!;
         private Player _p2 = null!;
 
+        private IVictoryManager _victoryManager = null!;
+
         [TestInitialize]
         public void Setup()
         {
@@ -35,7 +37,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _marketManager = Substitute.For<IMarketManager>();
             _actionSystem = Substitute.For<IActionSystem>();
             _cardDatabase = Substitute.For<ICardDatabase>();
-            var victoryManager = Substitute.For<IVictoryManager>();
+            _victoryManager = Substitute.For<IVictoryManager>();
 
             var mockRandom = Substitute.For<IGameRandom>();
             var playerState = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
@@ -51,7 +53,8 @@ namespace ChaosWarlords.Tests.Source.Systems
                 ChaosWarlords.Tests.Utilities.TestLogger.Instance
             );
 
-            _controller = new MatchManager(_context, ChaosWarlords.Tests.Utilities.TestLogger.Instance, victoryManager);
+            _controller = new MatchManager(_context, ChaosWarlords.Tests.Utilities.TestLogger.Instance, _victoryManager);
+
 
             // Ensure _p1 always refers to the Active Player for test consistency.
             if (_context.ActivePlayer != _p1)
@@ -317,7 +320,39 @@ namespace ChaosWarlords.Tests.Source.Systems
             Assert.DoesNotContain(alienCard, _p1.PlayedCards, "Should NOT add alien card to PlayedCards");
             Assert.Contains(alienCard, _p2.Hand, "Card should remain in P2's hand");
         }
+
+        [TestMethod]
+        public void EndTurn_DefersGameOver_UntilRoundComplete()
+        {
+            // Arrange
+            // Force P1 to be the active player and P2 to be next (and last).
+            // Logic: P1 Ends Turn -> P2 Starts -> P2 Ends Turn -> Round Over -> Game Over Triggered
+            
+            // Mock Victory Handler to ALWAYS say the game should end (e.g. troops depleted)
+            _victoryManager.CheckEndGameConditions(_context, out Arg.Any<string>())
+                  .Returns(x => { x[1] = "Mock End Game"; return true; });
+
+            // Setup DTO mapper for the final trigger
+            _victoryManager.CalculateFinalScore(Arg.Any<Player>(), _context).Returns(10);
+            _victoryManager.GetScoreBreakdown(Arg.Any<Player>(), _context).Returns(new ChaosWarlords.Source.Core.Data.Dtos.ScoreBreakdownDto { TotalScore = 10 });
+            _victoryManager.DetermineWinner(Arg.Any<List<Player>>(), _context).Returns(_p1);
+
+            // Act 1: P1 Ends Turn
+            _controller.EndTurn();
+
+            // Assert 1: Game should NOT be over yet, because P2 still needs to play.
+            Assert.IsFalse(_controller.IsGameOver(), "Game should continue until the round finishes.");
+            Assert.AreEqual(_p2, _context.ActivePlayer, "Turn should pass to P2.");
+
+            // Act 2: P2 Ends Turn (Last player in round)
+            _controller.EndTurn();
+
+            // Assert 2: Round finished, deferred trigger should fire now.
+            Assert.IsTrue(_controller.IsGameOver(), "Game should end after the last player in the round finishes.");
+        }
     }
 }
+
+
 
 

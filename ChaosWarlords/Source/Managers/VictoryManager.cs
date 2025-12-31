@@ -143,7 +143,15 @@ namespace ChaosWarlords.Source.Managers
                 p => CalculateFinalScore(p, context)
             );
 
-            var winner = scores.OrderByDescending(kvp => kvp.Value).First().Key;
+            // Tie-Breaker Logic:
+            // 1. Higher Score
+            // 2. More Troops Deployed (Lower TroopsInBarracks) -> Rewards military activity
+            // 3. Lower Seat Index (Stable Sort) -> Deterministic fallback
+            var winner = scores
+                .OrderByDescending(kvp => kvp.Value) // Primary: Score
+                .ThenBy(kvp => kvp.Key.TroopsInBarracks) // Secondary: More Deployed (Lower Barracks)
+                .ThenBy(kvp => kvp.Key.SeatIndex) // Tertiary: Seat Index
+                .First().Key;
             
             _logger.Log($"Winner: {winner.DisplayName} with {scores[winner]} VP!", LogChannel.General);
             
@@ -151,3 +159,4 @@ namespace ChaosWarlords.Source.Managers
         }
     }
 }
+
