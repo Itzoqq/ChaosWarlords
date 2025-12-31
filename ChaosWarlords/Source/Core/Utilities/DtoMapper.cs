@@ -284,8 +284,9 @@ namespace ChaosWarlords.Source.Core.Utilities
             // Calculate scores regardless of game over (for scoreboard)
             foreach (var player in context.TurnManager.Players)
             {
-                int score = victoryManager.CalculateFinalScore(player, context);
-                dto.FinalScores[player.SeatIndex] = score;
+                var breakdown = victoryManager.GetScoreBreakdown(player, context);
+                dto.FinalScores[player.SeatIndex] = breakdown.TotalScore;
+                dto.ScoreBreakdowns[player.SeatIndex] = breakdown;
             }
 
             if (dto.IsGameOver)

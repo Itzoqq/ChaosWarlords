@@ -94,7 +94,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             if (isMarketOpen) UpdateVisualsHover(MarketViewModels, inputManager);
         }
 
-        public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying = false)
+        public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying, ChaosWarlords.Source.Core.Data.Dtos.VictoryDto? victoryResult)
         {
             // 1. Draw Map
             MapNode? hoveredNode = context.MapManager.GetNodeAt(inputManager.MousePosition);
@@ -173,6 +173,12 @@ namespace ChaosWarlords.Source.Rendering.Views
             if (isPauseMenuOpen)
             {
                 _uiRenderer.DrawPauseMenu(spriteBatch, uiManager);
+            }
+
+            // 10. Draw Victory Popup (Top-most-most Modal)
+            if (victoryResult != null && victoryResult.IsGameOver)
+            {
+                _uiRenderer.DrawVictoryPopup(spriteBatch, victoryResult, uiManager.ScreenWidth, uiManager.ScreenHeight);
             }
         }
 

@@ -282,7 +282,7 @@ namespace ChaosWarlords.Source.States
                 targetingText = GetTargetingText(_matchContext.ActionSystem.CurrentState);
             }
 
-            _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, _uiManagerBacking, IsMarketOpen, targetingText, _uiEventMediator.IsConfirmationPopupOpen, _uiEventMediator.IsPauseMenuOpen, _replayManager.IsReplaying);
+            _view?.Draw(spriteBatch, _matchContext, _inputManagerBacking, _uiManagerBacking, IsMarketOpen, targetingText, _uiEventMediator.IsConfirmationPopupOpen, _uiEventMediator.IsPauseMenuOpen, _replayManager.IsReplaying, MatchManager.VictoryResult);
 
             // Phase 0 UI Overlay
             if (_matchContext.CurrentPhase == MatchPhase.Setup)

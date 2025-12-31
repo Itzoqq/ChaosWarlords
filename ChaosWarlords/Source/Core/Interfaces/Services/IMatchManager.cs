@@ -48,6 +48,11 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// Triggers the game over state and final scoring.
         /// </summary>
         void TriggerGameOver();
+
+        /// <summary>
+        /// The final victory data if the game is over.
+        /// </summary>
+        ChaosWarlords.Source.Core.Data.Dtos.VictoryDto? VictoryResult { get; }
     }
 }
 

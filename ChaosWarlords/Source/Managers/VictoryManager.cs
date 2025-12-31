@@ -52,20 +52,33 @@ namespace ChaosWarlords.Source.Managers
 
         public int CalculateFinalScore(Player player, MatchContext context)
         {
+            var breakdown = GetScoreBreakdown(player, context);
+            
+            _logger.Log($"{player.DisplayName} Final Score: {breakdown.TotalScore} " +
+                       $"(VP:{breakdown.VPTokens} Sites:{breakdown.SiteControlVP} Trophies:{breakdown.TrophyHallVP} " +
+                       $"Deck:{breakdown.DeckVP} InnerCircle:{breakdown.InnerCircleVP})",
+                       LogChannel.Info);
+
+            return breakdown.TotalScore;
+        }
+
+        public ChaosWarlords.Source.Core.Data.Dtos.ScoreBreakdownDto GetScoreBreakdown(Player player, MatchContext context)
+        {
             int vpTokens = player.VictoryPoints;
             int siteControl = CalculateSiteControlVP(player, context);
             int trophyHall = player.TrophyHall;
             int deckVP = CalculateDeckVP(player);
             int innerCircleVP = CalculateInnerCircleVP(player);
 
-            int total = vpTokens + siteControl + trophyHall + deckVP + innerCircleVP;
-
-            _logger.Log($"{player.DisplayName} Final Score: {total} " +
-                       $"(VP:{vpTokens} Sites:{siteControl} Trophies:{trophyHall} " +
-                       $"Deck:{deckVP} InnerCircle:{innerCircleVP})",
-                       LogChannel.Info);
-
-            return total;
+            return new ChaosWarlords.Source.Core.Data.Dtos.ScoreBreakdownDto
+            {
+                VPTokens = vpTokens,
+                SiteControlVP = siteControl,
+                TrophyHallVP = trophyHall,
+                DeckVP = deckVP,
+                InnerCircleVP = innerCircleVP,
+                TotalScore = vpTokens + siteControl + trophyHall + deckVP + innerCircleVP
+            };
         }
 
         private static int CalculateSiteControlVP(Player player, MatchContext context)

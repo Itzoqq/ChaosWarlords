@@ -193,6 +193,32 @@ namespace ChaosWarlords.Tests.Source.Managers
             Assert.AreEqual("Player 1", dto.WinnerName);
             Assert.AreEqual(10, dto.FinalScores[0]);
             Assert.AreEqual(5, dto.FinalScores[1]);
+
+            // Verify Breakdown
+            Assert.IsTrue(dto.ScoreBreakdowns.ContainsKey(0));
+            Assert.AreEqual(10, dto.ScoreBreakdowns[0].TotalScore);
+            Assert.AreEqual(10, dto.ScoreBreakdowns[0].VPTokens);
+        }
+
+        [TestMethod]
+        public void GetScoreBreakdown_ReturnsCorrectComponents()
+        {
+            // Arrange
+            _p1.VictoryPoints = 10;
+            _p1.TrophyHall = 3;
+            // Mock other sources as 0 for simplicity
+            _mapManager.Sites.Returns(new List<Site>());
+
+            // Act
+            var breakdown = _victoryManager.GetScoreBreakdown(_p1, _context);
+
+            // Assert
+            Assert.AreEqual(13, breakdown.TotalScore);
+            Assert.AreEqual(10, breakdown.VPTokens);
+            Assert.AreEqual(3, breakdown.TrophyHallVP);
+            Assert.AreEqual(0, breakdown.SiteControlVP);
+            Assert.AreEqual(0, breakdown.DeckVP);
+            Assert.AreEqual(0, breakdown.InnerCircleVP);
         }
     }
 }

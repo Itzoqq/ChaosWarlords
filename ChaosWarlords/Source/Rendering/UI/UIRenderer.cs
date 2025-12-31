@@ -248,6 +248,103 @@ namespace ChaosWarlords.Source.Views
             DrawHorizontalButton(sb, ui.ExitButtonRect, "EXIT", ui.IsExitHovered, true, Color.Red);
         }
 
+        public void DrawVictoryPopup(SpriteBatch sb, ChaosWarlords.Source.Core.Data.Dtos.VictoryDto victoryData, int screenWidth, int screenHeight)
+        {
+            if (victoryData == null || !victoryData.IsGameOver) return;
+
+            // 1. Dark Overlay covering entire screen
+            sb.Draw(_pixelTexture, new Rectangle(0, 0, screenWidth, screenHeight), Color.Black * 0.9f);
+
+            // 2. Victory Header
+            string headerText = $"VICTOR: {victoryData.WinnerName?.ToUpper(CultureInfo.InvariantCulture) ?? "UNKNOWN"}";
+            string totalVPText = "TOTAL VP: " + (victoryData.WinnerSeat.HasValue ? victoryData.FinalScores[victoryData.WinnerSeat.Value] : 0);
+
+            // Calculate positions to center header
+            Vector2 headerSize = _defaultFont.MeasureString(headerText);
+            Vector2 totalSize = _defaultFont.MeasureString(totalVPText);
+
+            float centerX = screenWidth / 2f;
+            float topY = 100f;
+
+            // Draw Header
+            sb.DrawString(_defaultFont, headerText, new Vector2(centerX - headerSize.X / 2, topY), Color.Gold);
+            sb.DrawString(_defaultFont, totalVPText, new Vector2(centerX - totalSize.X / 2, topY + 40), Color.Gold);
+
+            // 3. Draw Winner Score Breakdown (Large)
+            if (victoryData.WinnerSeat.HasValue && victoryData.ScoreBreakdowns.TryGetValue(victoryData.WinnerSeat.Value, out var winnerBreakdown))
+            {
+                DrawScoreBreakdown(sb, winnerBreakdown, new Vector2(centerX, topY + 100), true);
+            }
+
+            // 4. Draw Other Players (Row beneath)
+            float otherPlayersY = topY + 300f;
+            float gap = 250f;
+            
+            // Filter out winner
+            var otherPlayers = victoryData.ScoreBreakdowns.Keys
+                .Where(seat => seat != victoryData.WinnerSeat)
+                .OrderBy(seat => seat) // Just stable order
+                .ToList();
+
+            if (otherPlayers.Count > 0)
+            {
+                // Calculate total width of the row to center it
+                float totalRowWidth = (otherPlayers.Count * 200f) + ((otherPlayers.Count - 1) * 50f);
+                float startX = centerX - (totalRowWidth / 2) + 100f; // Adjusted for center origin
+
+                for (int i = 0; i < otherPlayers.Count; i++)
+                {
+                    int seat = otherPlayers[i];
+                    var breakdown = victoryData.ScoreBreakdowns[seat];
+                    // Name lookup needed? Ideally passed in DTO, but for now we might map Seat -> Name dynamically or add Names to DTO map.
+                    // For now, assume generic "Player N" if name missing, but DTO should have names.
+                    // Actually, VictoryDto only has WinnerName right now.
+                    // We should probably update DTO to map Names too, but let's stick to Seat for now.
+                    string name = $"Player {seat + 1}"; 
+                    
+                    DrawScoreBreakdown(sb, breakdown, new Vector2(startX + (i * gap), otherPlayersY), false, name);
+                }
+            }
+        }
+
+        private void DrawScoreBreakdown(SpriteBatch sb, ChaosWarlords.Source.Core.Data.Dtos.ScoreBreakdownDto breakdown, Vector2 centerPos, bool isWinner, string playerName = "")
+        {
+            float scale = isWinner ? 1.0f : 0.8f;
+            Color titleColor = isWinner ? Color.Gold : Color.White;
+            Color textColor = Color.LightGray;
+
+            int yOffset = 0;
+            int lineHeight = (int)(30 * scale);
+
+            if (!isWinner)
+            {
+                // Draw Name and Total VP for others
+                Vector2 nameSize = _defaultFont.MeasureString(playerName);
+                sb.DrawString(_defaultFont, playerName, new Vector2(centerPos.X - (nameSize.X * scale) / 2, centerPos.Y + yOffset), titleColor, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
+                yOffset += lineHeight;
+
+                string totalText = $"Total: {breakdown.TotalScore}";
+                Vector2 totalSize = _defaultFont.MeasureString(totalText);
+                sb.DrawString(_defaultFont, totalText, new Vector2(centerPos.X - (totalSize.X * scale) / 2, centerPos.Y + yOffset), titleColor, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
+                yOffset += lineHeight + 10;
+            }
+
+            // Draw Segments
+            DrawSegmentLine(sb, "VP Tokens", breakdown.VPTokens, centerPos, ref yOffset, scale, textColor);
+            DrawSegmentLine(sb, "Sites", breakdown.SiteControlVP, centerPos, ref yOffset, scale, textColor);
+            DrawSegmentLine(sb, "Trophies", breakdown.TrophyHallVP, centerPos, ref yOffset, scale, textColor);
+            DrawSegmentLine(sb, "Deck", breakdown.DeckVP, centerPos, ref yOffset, scale, textColor);
+            DrawSegmentLine(sb, "Inner Circle", breakdown.InnerCircleVP, centerPos, ref yOffset, scale, textColor);
+        }
+
+        private void DrawSegmentLine(SpriteBatch sb, string label, int value, Vector2 centerPos, ref int yOffset, float scale, Color color)
+        {
+            string text = $"{label}: {value}";
+            Vector2 size = _defaultFont.MeasureString(text);
+            sb.DrawString(_defaultFont, text, new Vector2(centerPos.X - (size.X * scale) / 2, centerPos.Y + yOffset), color, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
+            yOffset += (int)(30 * scale);
+        }
+
         public void Dispose()
         {
             _pixelTexture?.Dispose();

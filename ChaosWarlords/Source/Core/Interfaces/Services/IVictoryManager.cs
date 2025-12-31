@@ -28,6 +28,11 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         int CalculateFinalScore(Player player, MatchContext context);
 
         /// <summary>
+        /// Gets a detailed breakdown of the player's score.
+        /// </summary>
+        ChaosWarlords.Source.Core.Data.Dtos.ScoreBreakdownDto GetScoreBreakdown(Player player, MatchContext context);
+
+        /// <summary>
         /// Determines the winner based on final scores.
         /// </summary>
         /// <param name="players">All players in the match.</param>

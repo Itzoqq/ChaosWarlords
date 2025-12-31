@@ -18,6 +18,11 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         public Dictionary<int, int> FinalScores { get; set; } = new Dictionary<int, int>();
 
         /// <summary>
+        /// Detailed score breakdown by player seat.
+        /// </summary>
+        public Dictionary<int, ScoreBreakdownDto> ScoreBreakdowns { get; set; } = new Dictionary<int, ScoreBreakdownDto>();
+
+        /// <summary>
         /// The reason the game ended (e.g. "Market Empty", "Troops Depleted")
         /// </summary>
         public string VictoryReason { get; set; } = string.Empty;

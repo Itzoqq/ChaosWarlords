@@ -108,7 +108,6 @@ namespace ChaosWarlords.Source.Managers
             // 5. START OF TURN Actions for the NEW active player
 
             // Phase Check: Transition from Setup to Playing?
-            // Phase Check: Transition from Setup to Playing?
             if (_context.CurrentPhase == MatchPhase.Setup)
             {
                 // Check if ALL players have placed their initial troop
@@ -133,8 +132,7 @@ namespace ChaosWarlords.Source.Managers
             // Check victory conditions at end of turn
             if (_victoryManager.CheckEndGameConditions(_context, out var reason))
             {
-                _gameOver = true;
-                _logger.Log("Game Over conditions met!", LogChannel.General);
+                TriggerGameOver();
             }
         }
 
@@ -143,14 +141,22 @@ namespace ChaosWarlords.Source.Managers
             return _gameOver;
         }
 
+        public ChaosWarlords.Source.Core.Data.Dtos.VictoryDto? VictoryResult { get; private set; }
+
         public void TriggerGameOver()
         {
+            if (_gameOver) return; // Already triggered
+
             _gameOver = true;
-            _logger.Log("Game Over triggered manually.", LogChannel.General);
             
-            // Calculate and log final scores
-            var winner = _victoryManager.DetermineWinner(_context.TurnManager.Players, _context);
-            _logger.Log($"Game Over! Winner: {winner.DisplayName}", LogChannel.General);
+            // Calculate and cache victory result using Mapper logic (or direct use if mapper logic was in VictoryManager)
+            // Since our VictoryManager calculates scores and DtoMapper organizes them, we should use DtoMapper here to utilize the method we just wrote.
+            VictoryResult = ChaosWarlords.Source.Core.Utilities.DtoMapper.ToVictoryDto(_context, _victoryManager);
+
+            if (VictoryResult != null)
+            {
+                _logger.Log($"Game Over triggered! Winner: {VictoryResult.WinnerName ?? "None"} - Reason: {VictoryResult.VictoryReason}", LogChannel.General);
+            }
         }
     }
 }
