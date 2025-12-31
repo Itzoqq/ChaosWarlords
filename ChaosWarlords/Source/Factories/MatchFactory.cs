@@ -64,7 +64,7 @@ namespace ChaosWarlords.Source.Factories
             var mapManager = SetupMap(playerStateManager, _logger);
             var actionSystem = SetupActionSystem(turnManager, mapManager, playerStateManager, _logger);
 
-            ApplyScenarioRules(mapManager);
+            //ApplyScenarioRules(mapManager); This is for testing purposes only
 
             return new WorldData
             {
@@ -105,7 +105,7 @@ namespace ChaosWarlords.Source.Factories
 
             var player = new Player(color, deterministicId, displayName: name);
             player.SeatIndex = seatIndex;
-            player.TroopsInBarracks = 5; // Reverted temporary change
+            //player.TroopsInBarracks = 5; // Reverted temporary change
             logger.Log($"Created {name} with SeatIndex: {seatIndex}", LogChannel.Info);
             for (int i = 0; i < 3; i++) player.DeckManager.AddToTop(CardFactory.CreateSoldier(random));
             for (int i = 0; i < 7; i++) player.DeckManager.AddToTop(CardFactory.CreateNoble(random));

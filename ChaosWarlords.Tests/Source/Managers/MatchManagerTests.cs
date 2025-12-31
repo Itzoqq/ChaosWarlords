@@ -350,8 +350,41 @@ namespace ChaosWarlords.Tests.Source.Systems
             // Assert 2: Round finished, deferred trigger should fire now.
             Assert.IsTrue(_controller.IsGameOver(), "Game should end after the last player in the round finishes.");
         }
+        [TestMethod]
+        public void BuyCard_TriggersEndGame_WhenMarketDeckEmpty()
+        {
+            // Integration Test: MatchManager + Real VictoryManager logic
+            
+            // 1. Setup Real VictoryManager to verify the CONDITION logic actually works within the loop
+            var realVictoryManager = new VictoryManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _controller = new MatchManager(_context, ChaosWarlords.Tests.Utilities.TestLogger.Instance, realVictoryManager);
+
+            // 2. Setup Market State: Empty Row and Empty Deck
+            _marketManager.MarketRow.Returns(new List<Card>());
+            _marketManager.HasCardsInDeck().Returns(false);
+
+            // 3. Ensure P2 is the last player, so EndTurn triggers game over immediately
+            // Active Player is P1. P2 is next.
+            // Setup TurnManager to treat P2 as last. 
+            // In Setup(), P1 is seat 0, P2 is seat 1.
+            
+            // Act: P1 Ends Turn -> Checks Victory
+            _controller.EndTurn();
+
+            // Assert 1: Victory Condition MET ("Market Empty"), but deferred (End of Round)
+            // P1 is NOT last player (P2 is). So Game NOT Over yet.
+            Assert.IsFalse(_controller.IsGameOver(), "Should defer victory until round completes.");
+            
+            // Act 2: P2 Ends Turn
+            _controller.EndTurn();
+
+            // Assert 2: Round Finished -> Game Over
+            Assert.IsTrue(_controller.IsGameOver(), "Should trigger Game Over after round finishes with empty market.");
+            Assert.AreEqual("Market deck is empty!", _controller.VictoryResult?.VictoryReason);
+        }
     }
 }
+
 
 
 
