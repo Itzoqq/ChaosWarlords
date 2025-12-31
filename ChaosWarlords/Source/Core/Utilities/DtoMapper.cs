@@ -270,5 +270,32 @@ namespace ChaosWarlords.Source.Core.Utilities
             
             return card != null ? new DevourCardCommand(card) : null;
         }
+
+        // --- Victory Mapping ---
+
+        public static VictoryDto ToVictoryDto(ChaosWarlords.Source.Contexts.MatchContext context, IVictoryManager victoryManager)
+        {
+            var dto = new VictoryDto();
+            
+            // Check current status
+            dto.IsGameOver = victoryManager.CheckEndGameConditions(context, out var reason);
+            dto.VictoryReason = reason;
+
+            // Calculate scores regardless of game over (for scoreboard)
+            foreach (var player in context.TurnManager.Players)
+            {
+                int score = victoryManager.CalculateFinalScore(player, context);
+                dto.FinalScores[player.SeatIndex] = score;
+            }
+
+            if (dto.IsGameOver)
+            {
+                var winner = victoryManager.DetermineWinner(context.TurnManager.Players, context);
+                dto.WinnerSeat = winner.SeatIndex;
+                dto.WinnerName = winner.DisplayName;
+            }
+
+            return dto;
+        }
     }
 }

@@ -62,7 +62,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             _marketManager.HasCardsInDeck().Returns(true);
 
             // Act
-            bool result = _victoryManager.CheckEndGameConditions(_context);
+            bool result = _victoryManager.CheckEndGameConditions(_context, out _);
 
             // Assert
             Assert.IsFalse(result);
@@ -78,7 +78,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             _marketManager.HasCardsInDeck().Returns(true);
 
             // Act
-            bool result = _victoryManager.CheckEndGameConditions(_context);
+            bool result = _victoryManager.CheckEndGameConditions(_context, out var reason);
 
             // Assert
             Assert.IsTrue(result);
@@ -94,7 +94,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             _marketManager.HasCardsInDeck().Returns(false);
 
             // Act
-            bool result = _victoryManager.CheckEndGameConditions(_context);
+            bool result = _victoryManager.CheckEndGameConditions(_context, out var reason);
 
             // Assert
             Assert.IsTrue(result);
@@ -164,6 +164,35 @@ namespace ChaosWarlords.Tests.Source.Managers
 
             // Assert
             Assert.AreEqual(_p1, winner);
+        }
+
+        [TestMethod]
+        public void ToVictoryDto_MapsCorrectly()
+        {
+            // Arrange
+            _p1.VictoryPoints = 10;
+            _p2.VictoryPoints = 5;
+            _p1.SeatIndex = 0;
+            _p2.SeatIndex = 1;
+
+            // Mock end game to true
+            // We can't mock VictoryManager since it's the class under test, 
+            // but we are testing DTO Mapper + VictoryManager integration here essentially.
+            // Let's force a condition that makes CheckEndGameConditions true.
+            _marketManager.MarketRow.Returns(new List<Card>());
+            _marketManager.HasCardsInDeck().Returns(false);
+
+            // Act
+            // We use the real VictoryManager here
+            var dto = ChaosWarlords.Source.Core.Utilities.DtoMapper.ToVictoryDto(_context, _victoryManager);
+
+            // Assert
+            Assert.IsTrue(dto.IsGameOver);
+            Assert.AreEqual("Market deck is empty!", dto.VictoryReason);
+            Assert.AreEqual(0, dto.WinnerSeat);
+            Assert.AreEqual("Player 1", dto.WinnerName);
+            Assert.AreEqual(10, dto.FinalScores[0]);
+            Assert.AreEqual(5, dto.FinalScores[1]);
         }
     }
 }

@@ -20,8 +20,10 @@ namespace ChaosWarlords.Source.Managers
             _logger = logger;
         }
 
-        public bool CheckEndGameConditions(MatchContext context)
+        public bool CheckEndGameConditions(MatchContext context, out string reason)
         {
+            reason = string.Empty;
+
             // Check 1: Any player out of troops?
             bool anyPlayerOutOfTroops = context.TurnManager.Players
                 .Any(p => p.TroopsInBarracks == 0);
@@ -33,13 +35,15 @@ namespace ChaosWarlords.Source.Managers
             if (anyPlayerOutOfTroops)
             {
                 var player = context.TurnManager.Players.First(p => p.TroopsInBarracks == 0);
-                _logger.Log($"End-game triggered: {player.DisplayName} has deployed their last troop!", LogChannel.Info);
+                reason = $"{player.DisplayName} has deployed their last troop!";
+                _logger.Log($"End-game triggered: {reason}", LogChannel.Info);
                 return true;
             }
 
             if (marketDeckEmpty)
             {
-                _logger.Log("End-game triggered: Market deck is empty!", LogChannel.Info);
+                reason = "Market deck is empty!";
+                _logger.Log($"End-game triggered: {reason}", LogChannel.Info);
                 return true;
             }
 

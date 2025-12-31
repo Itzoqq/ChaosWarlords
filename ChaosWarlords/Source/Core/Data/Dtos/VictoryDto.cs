@@ -1,0 +1,25 @@
+using System.Collections.Generic;
+
+namespace ChaosWarlords.Source.Core.Data.Dtos
+{
+    /// <summary>
+    /// Represents the final results of a match.
+    /// Used for checking replay outcomes and reporting multiplayer results.
+    /// </summary>
+    public class VictoryDto
+    {
+        public bool IsGameOver { get; set; }
+        public int? WinnerSeat { get; set; }
+        public string? WinnerName { get; set; }
+        
+        /// <summary>
+        /// Map of Player Seat Index -> Final Score
+        /// </summary>
+        public Dictionary<int, int> FinalScores { get; set; } = new Dictionary<int, int>();
+
+        /// <summary>
+        /// The reason the game ended (e.g. "Market Empty", "Troops Depleted")
+        /// </summary>
+        public string VictoryReason { get; set; } = string.Empty;
+    }
+}

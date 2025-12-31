@@ -15,8 +15,9 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// End-game triggers: Player out of troops OR market deck empty.
         /// </summary>
         /// <param name="context">The current match context.</param>
+        /// <param name="reason">The reason the game ended, if applicable.</param>
         /// <returns>True if the game should end; otherwise, false.</returns>
-        bool CheckEndGameConditions(MatchContext context);
+        bool CheckEndGameConditions(MatchContext context, out string reason);
 
         /// <summary>
         /// Calculates the final score for a player including all VP sources.

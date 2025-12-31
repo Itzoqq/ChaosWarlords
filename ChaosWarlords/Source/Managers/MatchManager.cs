@@ -131,7 +131,7 @@ namespace ChaosWarlords.Source.Managers
             _context.MapManager.DistributeStartOfTurnRewards(_context.ActivePlayer);
 
             // Check victory conditions at end of turn
-            if (_victoryManager.CheckEndGameConditions(_context))
+            if (_victoryManager.CheckEndGameConditions(_context, out var reason))
             {
                 _gameOver = true;
                 _logger.Log("Game Over conditions met!", LogChannel.General);
