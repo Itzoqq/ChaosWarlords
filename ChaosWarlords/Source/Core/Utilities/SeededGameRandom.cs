@@ -9,6 +9,9 @@ namespace ChaosWarlords.Source.Core.Utilities
     /// Deterministic random number generator using a seed.
     /// This ensures that the same seed always produces the same sequence of random numbers,
     /// which is critical for multiplayer synchronization and replay functionality.
+    /// 
+    /// For multiplayer games: The server generates a seed at match start and sends it to all clients.
+    /// All clients initialize their SeededGameRandom with this same seed, ensuring identical RNG sequences.
     /// </summary>
     public class SeededGameRandom : IGameRandom
     {

@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Data;
+using ChaosWarlords.Source.Core.Utilities;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
@@ -14,16 +15,14 @@ namespace ChaosWarlords.Source.Managers
 
         public List<Card> MarketRow { get; private set; }
 
-        public MarketManager(ICardDatabase cardDatabase, IGameRandom random = null!)
+        public MarketManager(ICardDatabase cardDatabase, IGameRandom random)
         {
             _cardDatabase = cardDatabase;
             _marketDeck = _cardDatabase.GetAllMarketCards(random);
             MarketRow = new List<Card>();
 
-            if (random is not null)
-                random.Shuffle(_marketDeck);
-            else
-                _marketDeck.Shuffle(); // Fallback to System.Random logic if no seed provided (legacy/test support)
+            // Shuffle market deck using deterministic RNG
+            random.Shuffle(_marketDeck);
 
             RefillMarket();
         }

@@ -34,13 +34,14 @@ namespace ChaosWarlords.Tests.Systems
 
             // 2. Configure the Mock behavior
             var deck = new List<Card> { _cheapCard, _expensiveCard };
-            _mockDb.GetAllMarketCards().Returns(deck);
+            _mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(deck);
 
             // 4. Use Real StateManager (or Mock if strictly isolating, but Real is better for logic verification)
             _stateManager = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            // 3. Inject the Mock
-            _market = new MarketManager(_mockDb);
+            // 3. Inject the Mock with a mock IGameRandom for deterministic shuffling
+            var mockRandom = Substitute.For<IGameRandom>();
+            _market = new MarketManager(_mockDb, mockRandom);
         }
 
         [TestMethod]

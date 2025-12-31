@@ -903,7 +903,229 @@ public void DeckShuffle_CompletesWithin50ms_For1000Cards()
 
 ---
 
+## Coding Guidelines
+
+These are **established patterns** that all contributors must follow. Violations of these patterns will cause multiplayer desyncs, test failures, or architectural degradation.
+
+### 1. Deterministic RNG (CRITICAL)
+
+**Rule**: NEVER use `System.Random` directly. Always use `IGameRandom`.
+
+**Why**: Multiplayer synchronization requires identical random sequences on all clients. Using unseeded `Random` will cause desyncs.
+
+```csharp
+// ❌ WRONG: Will cause multiplayer desync
+public void ShuffleDeck()
+{
+    var random = new Random();
+    _cards.Shuffle(random);
+}
+
+// ✅ CORRECT: Deterministic and replayable
+public void ShuffleDeck(IGameRandom random)
+{
+    random.Shuffle(_cards);
+}
+```
+
+**Pattern**: All methods requiring randomness must accept `IGameRandom` as a parameter:
+- Deck shuffling: `Deck.Shuffle(IGameRandom random)`
+- Card drawing: `Deck.Draw(int count, IGameRandom random)`
+- Turn order: `TurnManager(List<Player> players, IGameRandom random, ...)`
+- Market setup: `MarketManager(ICardDatabase db, IGameRandom random)`
+
+**Testing**: Use `SeededGameRandom` for reproducible tests or `Substitute.For<IGameRandom>()` for mocks.
+
+### 2. Centralized Resource Management
+
+**Rule**: All player resource changes MUST go through `IPlayerStateManager`.
+
+**Why**: Centralized mutation enables logging, validation, event emission, and multiplayer sync.
+
+```csharp
+// ❌ WRONG: Direct mutation bypasses logging and events
+player.Power += 5;
+player.Influence -= 3;
+
+// ✅ CORRECT: Centralized, logged, and validated
+_playerStateManager.AddPower(player, 5);
+_playerStateManager.SpendInfluence(player, 3);
+```
+
+**Covered Resources**:
+- Power, Influence, Victory Points
+- Troops, Spies (barracks counts)
+- Card operations (Draw, Discard, Promote)
+
+### 3. Interface-Based Dependencies
+
+**Rule**: Components must depend on `IInterface`, not concrete classes.
+
+**Why**: Enables mocking for tests and supports headless server deployment.
+
+```csharp
+// ❌ WRONG: Depends on concrete class
+public class GameplayState
+{
+    private readonly MapManager _mapManager;
+    
+    public GameplayState(MapManager mapManager)
+    {
+        _mapManager = mapManager;
+    }
+}
+
+// ✅ CORRECT: Depends on interface
+public class GameplayState
+{
+    private readonly IMapManager _mapManager;
+    
+    public GameplayState(IMapManager mapManager)
+    {
+        _mapManager = mapManager;
+    }
+}
+```
+
+**Testing Benefit**:
+```csharp
+// Easy to mock in tests
+var mockMapManager = Substitute.For<IMapManager>();
+mockMapManager.TryDeploy(Arg.Any<Player>(), Arg.Any<MapNode>())
+              .Returns(true);
+```
+
+### 4. Separation of Logic and Rendering
+
+**Rule**: Game logic classes MUST NOT reference `Microsoft.Xna.Framework.Graphics` types.
+
+**Why**: Enables headless server deployment and unit testing without GPU.
+
+```csharp
+// ❌ WRONG: Logic depends on rendering
+public class MapManager
+{
+    private SpriteBatch _spriteBatch;
+    
+    public void TryDeploy(Player player, MapNode node)
+    {
+        node.Occupant = player.Color;
+        _spriteBatch.Draw(...);  // Logic shouldn't render!
+    }
+}
+
+// ✅ CORRECT: Logic emits events, view handles rendering
+public class MapManager : IMapManager
+{
+    public event Action<MapNode> NodeUpdated;
+    
+    public void TryDeploy(Player player, MapNode node)
+    {
+        node.Occupant = player.Color;
+        NodeUpdated?.Invoke(node);  // View subscribes to this
+    }
+}
+```
+
+**Allowed in Logic**: Interfaces (`IGameplayView`, `IUIManager`), DTOs, domain models  
+**NOT Allowed in Logic**: `SpriteBatch`, `Texture2D`, `GraphicsDevice`, `SpriteFont`
+
+### 5. Command Pattern for Actions
+
+**Rule**: All significant game actions must be encapsulated as `IGameCommand`.
+
+**Why**: Enables replay, undo, logging, and multiplayer command transmission.
+
+```csharp
+// ✅ CORRECT: Action as command
+public class PlayCardCommand : IGameCommand
+{
+    private readonly Player _player;
+    private readonly Card _card;
+    
+    public PlayCardCommand(Player player, Card card)
+    {
+        _player = player;
+        _card = card;
+    }
+    
+    public void Execute(IGameplayState state)
+    {
+        state.CardPlaySystem.PlayCard(_player, _card);
+        state.TurnContext.RecordAction(ActionType.PlayCard, _card);
+    }
+}
+```
+
+**Commands must**:
+- Implement `IGameCommand`
+- Be serializable (use IDs, not object references)
+- Record execution in `TurnContext` or `ReplayManager`
+
+### 6. No Global State
+
+**Rule**: Avoid `static` classes and singletons for game state.
+
+**Why**: Prevents testing, breaks multiplayer, and creates hidden dependencies.
+
+```csharp
+// ❌ WRONG: Global static state
+public static class GameState
+{
+    public static Player CurrentPlayer { get; set; }
+    public static List<Card> MarketRow { get; set; }
+}
+
+// ✅ CORRECT: Injected dependencies
+public class TurnManager : ITurnManager
+{
+    private readonly List<Player> _players;
+    private int _currentPlayerIndex;
+    
+    public Player CurrentPlayer => _players[_currentPlayerIndex];
+}
+```
+
+**Exceptions**: Constants (`GameConstants`), pure utility functions, logging
+
+### 7. Constructor Injection
+
+**Rule**: All dependencies must be passed via constructor, not properties or methods.
+
+**Why**: Makes dependencies explicit and ensures objects are fully initialized.
+
+```csharp
+// ❌ WRONG: Property injection
+public class MapManager
+{
+    public IPlayerStateManager StateManager { get; set; }
+    
+    public void Initialize()
+    {
+        // Object not usable until Initialize() called
+    }
+}
+
+// ✅ CORRECT: Constructor injection
+public class MapManager : IMapManager
+{
+    private readonly IPlayerStateManager _stateManager;
+    
+    public MapManager(
+        List<MapNode> nodes,
+        List<Site> sites,
+        IPlayerStateManager stateManager)
+    {
+        _stateManager = stateManager;
+        // Object fully initialized and ready to use
+    }
+}
+```
+
+---
+
 ## Future Guidelines for Contributors
+
 
 ### 1. Keep it Testable
 If you add a new Manager, add an `IManager` interface.
@@ -964,17 +1186,48 @@ var state = new GameplayState(game.View, managers);
 ```
 
 ### 4. Keep it Deterministic
-Always use `IGameRandom` for randomness, never `System.Random` directly.
+**CRITICAL**: Always use `IGameRandom` for randomness, never `System.Random` directly.
 
 ```csharp
-// ❌ Bad
+// ❌ Bad: Non-deterministic
 var random = new Random();
-deck.Shuffle(random);  // Non-deterministic!
+deck.Shuffle(random);  // Will desync in multiplayer!
 
-// ✅ Good
-var random = new SeededGameRandom(seed);
-deck.Shuffle(random);  // Deterministic, replayable
+// ✅ Good: Deterministic, replayable
+var random = new SeededGameRandom(seed, logger);
+deck.Shuffle(random);  // Same seed = same results
 ```
+
+**Why this matters**:
+- **Multiplayer**: Both clients must produce identical game states
+- **Replay**: Recorded games must replay exactly
+- **Testing**: Tests must be reproducible
+
+**Pattern**: All methods that need randomness must accept `IGameRandom` as a parameter:
+
+```csharp
+// ✅ Correct pattern
+public List<Card> Draw(int count, IGameRandom random)
+{
+    if (_drawPile.Count == 0)
+    {
+        ReshuffleDiscard(random);  // Uses injected RNG
+    }
+    // ...
+}
+
+// ❌ Wrong pattern
+public List<Card> Draw(int count)
+{
+    var random = new Random();  // NEVER do this!
+    // ...
+}
+```
+
+**Enforcement**:
+- `CollectionHelpers.Shuffle()` was removed - use `IGameRandom.Shuffle()` instead
+- All managers require `IGameRandom` in constructor (no default/nullable)
+- Tests must provide `IGameRandom` mock or `SeededGameRandom` instance
 
 ### 5. Keep it Logged
 Use `GameLogger` for important events, especially state changes.

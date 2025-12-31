@@ -4,8 +4,11 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
 {
     /// <summary>
     /// Interface for deterministic random number generation.
-    /// All random events in the game must use this interface to ensure
-    /// reproducible gameplay for multiplayer and replay functionality.
+    /// All random events in the game MUST use this interface to ensure
+    /// reproducible gameplay for multiplayer synchronization and replay functionality.
+    /// 
+    /// CRITICAL: Never use System.Random directly in game logic. Always inject and use IGameRandom.
+    /// For multiplayer games, both clients must use the same seed to maintain synchronized game state.
     /// </summary>
     public interface IGameRandom
     {

@@ -381,6 +381,102 @@ public void PlayCard_CallsEffectProcessor()
 }
 ```
 
+### 6. Testing with Deterministic RNG (CRITICAL)
+
+**Rule**: All tests involving randomness MUST use `IGameRandom`, never `System.Random`.
+
+**Why**: Tests must be reproducible. Non-deterministic tests are unreliable and can cause intermittent failures.
+
+#### Pattern 1: Use SeededGameRandom for Reproducible Tests
+
+```csharp
+[TestMethod]
+public void Shuffle_WithSameSeed_ProducesSameOrder()
+{
+    // Arrange
+    int seed = 42;
+    var list1 = Enumerable.Range(0, 50).ToList();
+    var list2 = Enumerable.Range(0, 50).ToList();
+    
+    var rng1 = new SeededGameRandom(seed, TestLogger.Instance);
+    var rng2 = new SeededGameRandom(seed, TestLogger.Instance);
+    
+    // Act
+    rng1.Shuffle(list1);
+    rng2.Shuffle(list2);
+    
+    // Assert
+    CollectionAssert.AreEqual(list1, list2);
+}
+```
+
+#### Pattern 2: Mock IGameRandom for Unit Tests
+
+```csharp
+[TestMethod]
+public void Draw_CallsShuffleWhenDeckEmpty()
+{
+    // Arrange
+    var mockRandom = Substitute.For<IGameRandom>();
+    var deck = new Deck();
+    deck.AddToDiscard(TestData.Cards.PowerCard());
+    
+    // Act
+    deck.Draw(1, mockRandom);
+    
+    // Assert
+    mockRandom.Received(1).Shuffle(Arg.Any<IList<Card>>());
+}
+```
+
+#### Pattern 3: Configure Mocks to Accept IGameRandom
+
+When mocking interfaces that accept `IGameRandom`, use `Arg.Any<IGameRandom>()`:
+
+```csharp
+[TestInitialize]
+public void Setup()
+{
+    _mockDb = Substitute.For<ICardDatabase>();
+    var deck = new List<Card> { _cheapCard, _expensiveCard };
+    
+    // ✅ CORRECT: Accept any IGameRandom
+    _mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(deck);
+    
+    // ❌ WRONG: No parameter - will return null
+    // _mockDb.GetAllMarketCards().Returns(deck);
+}
+```
+
+#### Common Mistakes
+
+```csharp
+// ❌ WRONG: Non-deterministic test
+[TestMethod]
+public void Shuffle_ChangesOrder()
+{
+    var deck = new Deck();
+    var random = new Random();  // Non-deterministic!
+    deck.Shuffle(random);
+    // Test may pass or fail randomly
+}
+
+// ✅ CORRECT: Deterministic test
+[TestMethod]
+public void Shuffle_ChangesOrder()
+{
+    var deck = new Deck();
+    var random = new SeededGameRandom(12345, TestLogger.Instance);
+    deck.Shuffle(random);
+    // Test always produces same result
+}
+```
+
+**Enforcement**:
+- All tests using RNG must use `SeededGameRandom` or mocked `IGameRandom`
+- Never instantiate `new Random()` in test code
+- Use `Arg.Any<IGameRandom>()` when configuring mocks
+
 ---
 
 ## Test Data Reference
