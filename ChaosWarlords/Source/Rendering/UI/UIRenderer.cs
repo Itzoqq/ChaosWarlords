@@ -32,24 +32,24 @@ namespace ChaosWarlords.Source.Views
             if (_defaultFont is null) return;
 
             // 1. Draw Background
-            spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, screenWidth, 60), Color.Black * 0.9f);
-            DrawBorder(spriteBatch, _pixelTexture, new Rectangle(0, 0, screenWidth, 60), 1, Color.DarkGray * 0.5f);
+            spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, screenWidth, 40), Color.Black * 0.9f);
+            DrawBorder(spriteBatch, _pixelTexture, new Rectangle(0, 0, screenWidth, 40), 1, Color.DarkGray * 0.5f);
 
-            // --- TOP LEFT: Turn Info ---
-            int yPos = 5;
+            // --- TOP LEFT: Turn Info (BELOW BAR) ---
+            int yPos = 45;
             // Draw Round / Turn Counters
             string roundText = $"Round: {matchManager.RoundNumber} | Turn: {matchManager.TotalTurnCount}";
             // Current Player Name below counters
             string playerText = $"{player.DisplayName}'s Turn";
 
             spriteBatch.DrawString(_smallFont ?? _defaultFont, roundText, new Vector2(10, yPos), Color.LightGray);
-            yPos += 20;
+            yPos += 25; // Increased spacing to standard font height + padding
             spriteBatch.DrawString(_defaultFont, playerText, new Vector2(10, yPos), player.Color == PlayerColor.Red ? Color.Red : Color.Cyan);
 
             // ====================================================
-            // SECTION 1: ECONOMY & SCORE (Left Aligned - Shifted Down/Right)
+            // SECTION 1: ECONOMY & SCORE (Left Aligned - inside Top Bar)
             // ====================================================
-            int leftX = 220; // Shifted right to avoid overlap with Turn Info
+            int leftX = 20; // Reset to original position
             DrawStat(spriteBatch, "Influence", player.Influence.ToString(CultureInfo.InvariantCulture), Color.Cyan, ref leftX);
             DrawStat(spriteBatch, "Power", player.Power.ToString(CultureInfo.InvariantCulture), Color.Orange, ref leftX);
             DrawStat(spriteBatch, "VP", player.VictoryPoints.ToString(CultureInfo.InvariantCulture), Color.Gold, ref leftX);

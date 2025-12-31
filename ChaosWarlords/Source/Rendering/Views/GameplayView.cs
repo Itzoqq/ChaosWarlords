@@ -126,7 +126,8 @@ namespace ChaosWarlords.Source.Rendering.Views
             _uiRenderer.DrawHUD(spriteBatch, context.ActivePlayer, uiManager.ScreenWidth, matchManager);
 
             // 5. Draw Indicators
-            DrawTurnIndicator(spriteBatch, context.ActivePlayer);
+            // 5. Draw Indicators
+            // DrawTurnIndicator(spriteBatch, context.ActivePlayer); // Removed as it is now in HUD
             if (!string.IsNullOrEmpty(targetingText))
             {
                 spriteBatch.DrawString(_defaultFont, targetingText, inputManager.MousePosition + new Vector2(20, 20), Color.Red);
@@ -278,12 +279,8 @@ namespace ChaosWarlords.Source.Rendering.Views
             }
         }
 
-        private void DrawTurnIndicator(SpriteBatch sb, Player activePlayer)
-        {
-            Color c = activePlayer.Color == PlayerColor.Red ? Color.Red : Color.Blue;
-            string text = $"-- {activePlayer.Color}'s Turn --";
-            sb.DrawString(_defaultFont, text, new Vector2(20, 50), c);
-        }
+        // private void DrawTurnIndicator(SpriteBatch sb, Player activePlayer)
+        // { ... } // Removed
 
         private void DrawSpySelectionUI(SpriteBatch sb, Site? site, int screenWidth)
         {
