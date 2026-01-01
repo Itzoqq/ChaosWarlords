@@ -62,7 +62,7 @@ namespace ChaosWarlords.Source.Utilities
         DrawCard,
         Devour,
         PlaceSpy,
-        MoveUnit
+        MoveUnit,
     }
 
     public enum PlayerColor

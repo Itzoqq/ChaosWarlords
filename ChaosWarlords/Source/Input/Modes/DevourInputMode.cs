@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Managers;
 
 namespace ChaosWarlords.Source.States.Input
 {
@@ -37,6 +38,20 @@ namespace ChaosWarlords.Source.States.Input
                 return null;
             }
 
+            // 1.5 Skip Optional Cost (Spacebar)
+            if (inputManager.IsKeyJustPressed(Keys.Space))
+            {
+                 if (_sourceCard != null && _sourceCard.Location == CardLocation.Hand)
+                 {
+                     actionSystem.SetPreTarget(_sourceCard, ActionSystem.SkippedTarget);
+                     actionSystem.CompleteAction(); // Exit Targeting Mode
+                     _gameplayState.SwitchToNormalMode(); // Explicitly return to Normal Input
+                     // Bypass checks because we handled targeting manually (Pre-Commit)
+                     return new ChaosWarlords.Source.Commands.PlayCardCommand(_sourceCard, true);
+                 }
+                 // Standard Flow Skip? (Not supported yet for played cards, but optional cost usually implies Pre-Commit)
+            }
+
             // 2. Select Card
             if (inputManager.IsLeftMouseJustClicked())
             {
@@ -52,13 +67,20 @@ namespace ChaosWarlords.Source.States.Input
                         return null;
                     }
 
-                    // Execute logic directly or return a Command
-                    // Using direct execution for simplicity as per your pattern:
-                    _gameplayState.MatchManager.DevourCard(targetCard);
+                    // Pre-Commit Check:
+                    // If Source Card is in Hand, we are choosing targets BEFORE playing.
+                    if (_sourceCard != null && _sourceCard.Location == CardLocation.Hand)
+                    {
+                        actionSystem.SetPreTarget(_sourceCard, targetCard);
+                        actionSystem.CompleteAction(); // Exit Targeting Mode
+                        _gameplayState.SwitchToNormalMode(); // Explicitly return to Normal Input
+                        // Return PlayCommand to Commit the play with BYPASS
+                        return new ChaosWarlords.Source.Commands.PlayCardCommand(_sourceCard, true);
+                    }
 
-                    // Complete Action
+                    // Standard Flow (Card already played/in limbo)
+                    _gameplayState.MatchManager.DevourCard(targetCard);
                     actionSystem.CompleteAction();
-                    // The ActionCompleted event in GameplayState will handle switching back to NormalMode
                 }
             }
 

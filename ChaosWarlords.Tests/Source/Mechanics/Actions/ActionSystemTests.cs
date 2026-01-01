@@ -631,6 +631,24 @@ namespace ChaosWarlords.Tests.Systems
             Assert.IsTrue(completed, "Should fire OnActionCompleted immediately if there is nothing to devour.");
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "State should remain Normal.");
         }
+        [TestMethod]
+        public void TryStartDevourHand_WithSkippedTarget_DoesNotInvokeCallback()
+        {
+            // Arrange
+            var sourceCard = TestData.Cards.DevourCard();
+            bool callbackInvoked = false;
+            Action callback = () => callbackInvoked = true;
+
+            // Set Pre-Target to Skipped
+            _actionSystem.SetPreTarget(sourceCard, ActionSystem.SkippedTarget);
+
+            // Act
+            _actionSystem.TryStartDevourHand(sourceCard, callback);
+
+            // Assert
+            Assert.IsFalse(callbackInvoked, "Callback should NOT be invoked when action is skipped.");
+            Assert.IsNull(_actionSystem.GetAndClearPreTarget(sourceCard), "PreTarget should be cleared.");
+        }
     }
 }
 

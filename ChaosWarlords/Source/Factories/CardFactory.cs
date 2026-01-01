@@ -44,23 +44,38 @@ namespace ChaosWarlords.Source.Utilities
             {
                 foreach (var effectData in data.Effects)
                 {
-                    if (Enum.TryParse(effectData.Type, true, out EffectType type))
+                    var effect = CreateEffect(effectData);
+                    if (effect != null)
                     {
-                        ResourceType resType = ResourceType.None;
-                        if (!string.IsNullOrEmpty(effectData.TargetResource))
-                        {
-                            Enum.TryParse(effectData.TargetResource, true, out resType);
-                        }
-
-                        // --- CHANGED: Explicitly set RequiresFocus ---
-                        var newEffect = new CardEffect(type, effectData.Amount, resType);
-                        newEffect.RequiresFocus = effectData.RequiresFocus;
-
-                        card.AddEffect(newEffect);
+                        card.AddEffect(effect);
                     }
                 }
             }
             return card;
+        }
+
+        private static CardEffect? CreateEffect(CardEffectData data)
+        {
+            if (Enum.TryParse(data.Type, true, out EffectType type))
+            {
+                ResourceType resType = ResourceType.None;
+                if (!string.IsNullOrEmpty(data.TargetResource))
+                {
+                    Enum.TryParse(data.TargetResource, true, out resType);
+                }
+
+                var effect = new CardEffect(type, data.Amount, resType);
+                effect.RequiresFocus = data.RequiresFocus;
+
+                // Recursive creation
+                if (data.OnSuccess != null)
+                {
+                    effect.OnSuccess = CreateEffect(data.OnSuccess);
+                }
+
+                return effect;
+            }
+            return null;
         }
     }
 }

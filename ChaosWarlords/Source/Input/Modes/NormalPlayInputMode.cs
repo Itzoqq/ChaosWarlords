@@ -38,6 +38,15 @@ namespace ChaosWarlords.Source.States.Input
                 Card? clickedCard = _state.GetHoveredHandCard();
                 if (clickedCard is not null)
                 {
+                    // Pre-Commit Check for Devour cards
+                    var devourEffect = clickedCard.Effects.FirstOrDefault(e => e.Type == ChaosWarlords.Source.Utilities.EffectType.Devour);
+                    if (devourEffect != null)
+                    {
+                         _actionSystem.TryStartDevourHand(clickedCard);
+                         _state.SwitchToTargetingMode();
+                         return null; // Enters Targeting Mode instead of playing
+                    }
+
                     return new PlayCardCommand(clickedCard);
                 }
 

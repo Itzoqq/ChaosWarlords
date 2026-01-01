@@ -178,6 +178,9 @@ namespace ChaosWarlords.Source.States
 
             var victoryManager = new VictoryManager(_logger);
             _matchManager = new MatchManager(_matchContext, _logger, victoryManager);
+            
+            // Connect ActionSystem to MatchManager
+            _matchContext.ActionSystem.SetMatchManager(_matchManager);
 
             // Don't draw cards during Setup phase
             if (_matchContext.CurrentPhase != MatchPhase.Setup && _matchContext.TurnManager.Players is not null)

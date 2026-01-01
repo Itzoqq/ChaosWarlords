@@ -2,6 +2,7 @@ using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Utilities;
+using System;
 
 namespace ChaosWarlords.Source.Mechanics.Rules
 {
@@ -25,7 +26,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         {
             Action action = effect.Type switch
             {
-                EffectType.GainResource => () => ApplyGainResource(effect, context),
+                EffectType.GainResource => () => ApplyGainResource(effect, sourceCard, context, logger),
                 EffectType.DrawCard => () => ApplyDrawCard(effect, context),
                 EffectType.Promote => () => ApplyPromote(effect, sourceCard, context, logger),
                 EffectType.MoveUnit => () => ApplyMoveUnit(sourceCard, context, logger),
@@ -33,20 +34,37 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 EffectType.Supplant => () => ApplySupplant(sourceCard, context, logger),
                 EffectType.PlaceSpy => () => ApplyPlaceSpy(sourceCard, context, logger),
                 EffectType.ReturnUnit => () => ApplyReturnUnit(sourceCard, context, logger),
-                EffectType.Devour => () => ApplyDevour(sourceCard, context, logger),
+                EffectType.Devour => () => ApplyDevour(sourceCard, context, logger, effect.OnSuccess != null ? () => ApplyEffect(effect.OnSuccess, sourceCard, context, logger) : null),
                 _ => () => { }
             };
 
             action();
         }
 
-        private static void ApplyGainResource(CardEffect effect, MatchContext context)
+        private static void ApplyGainResource(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
         {
             if (effect.TargetResource == ResourceType.Power)
                 context.PlayerStateManager.AddPower(context.ActivePlayer, effect.Amount);
             else if (effect.TargetResource == ResourceType.Influence)
                 context.PlayerStateManager.AddInfluence(context.ActivePlayer, effect.Amount);
+            
+            // Auto-trigger recursive effects for instant actions
+            if (effect.OnSuccess != null)
+            {
+                // Instant effects (GainResource, DrawCard) complete immediately, so we can chain immediately.
+                ApplyEffect(effect.OnSuccess, sourceCard, context, logger); 
+            }
         }
+        
+        // REFACTOR: ApplyEffect needs to handle the recursion for Instant effects too? 
+        // Or should each ApplyX method handle it? 
+        // Better: ApplyEffect handles it via "OnActionCompleted" event? No, avoiding event spaghetti.
+        // Simple synchronous chaining for instant effects. Callback chaining for async (Targeting) effects.
+        
+        // Let's stick to the user request: Devour -> Supplant. Devour is async.
+        // Valid handling for ApplyDevour above. 
+        // For simple effects, we might need a general handling.
+        
 
         private static void ApplyDrawCard(CardEffect effect, MatchContext context)
         {
@@ -129,11 +147,11 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
         }
 
-        private static void ApplyDevour(Card sourceCard, MatchContext context, IGameLogger logger)
+        private static void ApplyDevour(Card sourceCard, MatchContext context, IGameLogger logger, Action? onComplete)
         {
             if (context.ActivePlayer.Hand.Count > 0)
             {
-                context.ActionSystem.TryStartDevourHand(sourceCard);
+                context.ActionSystem.TryStartDevourHand(sourceCard, onComplete);
             }
             else
             {

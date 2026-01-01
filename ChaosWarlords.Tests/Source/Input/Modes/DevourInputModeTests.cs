@@ -7,6 +7,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework.Input;
 using NSubstitute;
+using ChaosWarlords.Source.Managers;
 
 namespace ChaosWarlords.Tests.Input.Modes
 {
@@ -115,6 +116,74 @@ namespace ChaosWarlords.Tests.Input.Modes
             // Assert
             _mockMatchManager.DidNotReceive().DevourCard(Arg.Any<Card>());
             _mockActionSystem.DidNotReceive().CompleteAction();
+        }
+        [TestMethod]
+        public void HandleInput_Spacebar_SkippedTarget_AndCommits()
+        {
+            // Arrange
+            var sourceCard = TestData.Cards.DevourCard();
+            // IMPORTANT: Set location to Hand for Pre-Commit flow
+            sourceCard.Location = CardLocation.Hand;
+
+            _mockActionSystem.PendingCard.Returns(sourceCard);
+            _mockInputManager.IsKeyJustPressed(Keys.Space).Returns(true);
+
+            // Re-create mode to capture PendingCard
+            var mode = new DevourInputMode(_mockGameState, _mockInputManager, _mockActionSystem);
+
+            // Act
+            var result = mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
+
+            // Assert
+            // 1. Check SkippedTarget was set
+            _mockActionSystem.Received(1).SetPreTarget(sourceCard, ActionSystem.SkippedTarget);
+            
+            // 2. Check Action Completed (Exit Targeting)
+            _mockActionSystem.Received(1).CompleteAction();
+
+            // 3. Check Mode Switch
+            _mockGameState.Received(1).SwitchToNormalMode();
+
+            // 4. Check Play Command returned
+            Assert.IsNotNull(result);
+            Assert.IsInstanceOfType(result, typeof(ChaosWarlords.Source.Commands.PlayCardCommand));
+            var cmd = (ChaosWarlords.Source.Commands.PlayCardCommand)result;
+            Assert.IsTrue(cmd.BypassChecks, "Command should have BypassChecks set to true for Spacebar skip.");
+        }
+
+        [TestMethod]
+        public void HandleInput_SelectTarget_PreCommits_AndCommits()
+        {
+            // Arrange
+            var sourceCard = TestData.Cards.DevourCard();
+            sourceCard.Location = CardLocation.Hand;
+            var targetCard = TestData.Cards.CheapCard();
+
+            _mockActionSystem.PendingCard.Returns(sourceCard);
+            _mockInputManager.IsLeftMouseJustClicked().Returns(true);
+            _mockGameState.GetHoveredHandCard().Returns(targetCard);
+
+            // Re-create mode
+            var mode = new DevourInputMode(_mockGameState, _mockInputManager, _mockActionSystem);
+
+            // Act
+            var result = mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
+
+            // Assert
+            // 1. Check Target was set
+            _mockActionSystem.Received(1).SetPreTarget(sourceCard, targetCard);
+
+            // 2. Check Action Completed
+            _mockActionSystem.Received(1).CompleteAction();
+
+            // 3. Check Mode Switch
+            _mockGameState.Received(1).SwitchToNormalMode();
+
+            // 4. Check Play Command returned
+            Assert.IsNotNull(result);
+            Assert.IsInstanceOfType(result, typeof(ChaosWarlords.Source.Commands.PlayCardCommand));
+            var cmd = (ChaosWarlords.Source.Commands.PlayCardCommand)result;
+            Assert.IsTrue(cmd.BypassChecks, "Command should have BypassChecks set to true for Target Selection.");
         }
     }
 }

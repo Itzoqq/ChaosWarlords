@@ -7,15 +7,28 @@ namespace ChaosWarlords.Source.Commands
     public class PlayCardCommand : IGameCommand
     {
         public Card Card { get; }
-        public PlayCardCommand(Card card) { Card = card; }
+        public bool BypassChecks { get; }
+
+        public PlayCardCommand(Card card, bool bypassChecks = false) 
+        { 
+            Card = card;
+            BypassChecks = bypassChecks;
+        }
 
         public void Execute(IGameplayState state)
         {
-            state.MatchContext?.RecordAction("PlayCard", $"Played {Card.Name}");
-            // We can now call the PlayCard logic directly on the state interface
-            // The logic inside PlayCard handles all the checks, targeting switches,
-            // and final resolution.
-            state.PlayCard(Card);
+            state.MatchContext?.RecordAction("PlayCard", $"Played {Card.Name} (Bypass: {BypassChecks})");
+            
+            if (BypassChecks)
+            {
+                // Directly execute play logic, bypassing CardPlaySystem's targeting checks
+                // This is used for Pre-Commit flows where targeting is already handled
+                state.MatchManager.PlayCard(Card);
+            }
+            else
+            {
+                state.PlayCard(Card);
+            }
         }
     }
 }

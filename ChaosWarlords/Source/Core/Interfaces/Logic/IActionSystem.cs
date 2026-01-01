@@ -92,7 +92,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// Initiates the Devour Hand action flow (clearing hand/resources).
         /// </summary>
         /// <param name="sourceCard">The card triggering the devour effect.</param>
-        void TryStartDevourHand(Card sourceCard);
+        void TryStartDevourHand(Entities.Cards.Card sourceCard, Action? onComplete = null);
 
         /// <summary>
         /// Injects the PlayerStateManager dependency.
@@ -100,6 +100,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// </summary>
         /// <param name="stateManager">The manager instance.</param>
         void SetPlayerStateManager(IPlayerStateManager stateManager);
+        void SetMatchManager(IMatchManager matchManager);
 
         // --- Perform Methods (Exposed for Replay Commands) ---
         void PerformAssassinate(MapNode node, string? cardId);
@@ -111,6 +112,15 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
 
         // Helper for ResolveSpyCommand to call back into
         void ExecuteSpyReturn(Site site, PlayerColor selectedSpyColor);
+        /// <summary>
+        /// Stores a pre-selected target for a card to prevent re-entering targeting mode during resolution.
+        /// </summary>
+        void SetPreTarget(Entities.Cards.Card source, object target);
+
+        /// <summary>
+        /// Retrieves and consumes the pre-selected target for a card.
+        /// </summary>
+        object? GetAndClearPreTarget(Entities.Cards.Card source);
     }
 }
 

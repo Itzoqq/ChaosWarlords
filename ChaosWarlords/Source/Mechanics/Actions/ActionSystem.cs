@@ -20,7 +20,27 @@ namespace ChaosWarlords.Source.Managers
         public event EventHandler<string>? OnActionFailed;
 
         public ActionState CurrentState { get; internal set; } = ActionState.Normal;
-        public Card? PendingCard { get; internal set; }
+        public Card? PendingCard { get; private set; }
+
+        private readonly Dictionary<Card, object> _preSelectedTargets = new();
+
+        public void SetPreTarget(Card source, object target)
+        {
+            _logger.Log($"ActionSystem: SetPreTarget for {source.Name} ({source.GetHashCode()}). Target: {target}", LogChannel.Debug);
+            _preSelectedTargets[source] = target;
+        }
+
+        public object? GetAndClearPreTarget(Card source)
+        {
+            if (_preSelectedTargets.TryGetValue(source, out var target))
+            {
+                _logger.Log($"ActionSystem: GetAndClear Found target for {source.Name} ({source.GetHashCode()})", LogChannel.Debug);
+                _preSelectedTargets.Remove(source);
+                return target;
+            }
+            _logger.Log($"ActionSystem: GetAndClear FAILED for {source.Name} ({source.GetHashCode()}) - Count: {_preSelectedTargets.Count}", LogChannel.Debug);
+            return null;
+        }
         public Site? PendingSite { get; private set; }
 
         private readonly ITurnManager _turnManager;
@@ -45,6 +65,13 @@ namespace ChaosWarlords.Source.Managers
         public void SetPlayerStateManager(IPlayerStateManager stateManager)
         {
             _playerStateManager = stateManager;
+        }
+
+        private IMatchManager _matchManager = null!;
+
+        public void SetMatchManager(IMatchManager matchManager)
+        {
+            _matchManager = matchManager;
         }
 
         public void TryStartAssassinate()
@@ -118,11 +145,6 @@ namespace ChaosWarlords.Source.Managers
             return null;
         }
 
-        public void CompleteAction()
-        {
-            OnActionCompleted?.Invoke(this, EventArgs.Empty);
-            ClearState();
-        }
 
         // --- Commands Implementation ---
 
@@ -400,17 +422,52 @@ namespace ChaosWarlords.Source.Managers
             CompleteAction();
         }
 
-        public void TryStartDevourHand(Card sourceCard)
+        public static readonly object SkippedTarget = new object();
+
+        public void TryStartDevourHand(Card sourceCard, Action? onComplete = null)
         {
+            // 1. Check for Pre-Selected Target (Pre-Commit Flow)
+            var preTarget = GetAndClearPreTarget(sourceCard);
+            
+            if (preTarget == SkippedTarget)
+            {
+                _logger.Log("Devour action skipped.", LogChannel.General);
+                // Do NOT invoke onComplete (Effect chain breaks).
+                return;
+            }
+
+            if (preTarget is Card targetCard)
+            {
+                // Execute immediately!
+                _matchManager.DevourCard(targetCard);
+                onComplete?.Invoke();
+                return;
+            }
+
             if (CurrentPlayer.Hand.Count == 0)
             {
                 _logger.Log("No cards in hand to Devour.", LogChannel.Warning);
                 OnActionCompleted?.Invoke(this, EventArgs.Empty);
+                // onComplete?.Invoke(); // Do not chain if optional cost not paid
                 return;
             }
 
             StartTargeting(ActionState.TargetingDevourHand, sourceCard);
+            _pendingCallback = onComplete;
             _logger.Log("Select a card from your HAND to Devour (Remove from game).", LogChannel.General);
+        }
+
+        private Action? _pendingCallback;
+
+        public void CompleteAction()
+        {
+            OnActionCompleted?.Invoke(this, EventArgs.Empty);
+            
+            var callback = _pendingCallback;
+            _pendingCallback = null; // Clear before invoking to avoid loops
+            callback?.Invoke();
+            
+            ClearState();
         }
     }
 }

@@ -118,6 +118,49 @@ namespace ChaosWarlords.Tests.Source.Utilities
       Assert.IsNotNull(card);
       Assert.AreEqual("Noble", card.Name);
     }
+    [TestMethod]
+    public void LoadFromJson_ParsesRecursiveEffects()
+    {
+        // Arrange
+        string recursiveJson = @"
+        [
+          {
+            ""id"": ""wight"",
+            ""name"": ""Wight"",
+            ""description"": ""Recursive Test"",
+            ""cost"": 3,
+            ""aspect"": ""Malice"",
+            ""deckVP"": 1,
+            ""innerCircleVP"": 3,
+            ""effects"": [
+              {
+                ""type"": ""Devour"",
+                ""amount"": 1,
+                ""onSuccess"": {
+                    ""type"": ""Supplant"",
+                    ""amount"": 1
+                }
+              }
+            ]
+          }
+        ]";
+
+        var db = new CardDatabase();
+        db.LoadFromJson(recursiveJson);
+
+        // Act
+        var card = db.GetCardById("wight");
+
+        // Assert
+        Assert.IsNotNull(card);
+        Assert.HasCount(1, card.Effects);
+        
+        var devourEffect = card.Effects[0];
+        Assert.AreEqual(ChaosWarlords.Source.Utilities.EffectType.Devour, devourEffect.Type);
+        
+        Assert.IsNotNull(devourEffect.OnSuccess, "Recursive effect should be parsed.");
+        Assert.AreEqual(ChaosWarlords.Source.Utilities.EffectType.Supplant, devourEffect.OnSuccess.Type);
+    }
   }
 }
 

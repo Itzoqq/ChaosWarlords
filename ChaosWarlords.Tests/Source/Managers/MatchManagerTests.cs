@@ -382,6 +382,120 @@ namespace ChaosWarlords.Tests.Source.Systems
             Assert.IsTrue(_controller.IsGameOver(), "Should trigger Game Over after round finishes with empty market.");
             Assert.AreEqual("Market deck is empty!", _controller.VictoryResult?.VictoryReason);
         }
+
+        // --- Devour Integration Tests (Using Real ActionSystem) ---
+
+        private (MatchManager manager, ActionSystem actionSystem, MatchContext context, Player p1) SetupRealDevourSystem()
+        {
+            var p1 = TestData.Players.RedPlayer();
+            var p2 = TestData.Players.BluePlayer();
+            var logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance;
+
+            // Mocks
+            var mapManager = Substitute.For<IMapManager>();
+            var marketManager = Substitute.For<IMarketManager>();
+            var cardDatabase = Substitute.For<ICardDatabase>();
+            var victoryManager = Substitute.For<IVictoryManager>();
+            var turnManager = Substitute.For<ITurnManager>();
+            turnManager.ActivePlayer.Returns(p1);
+
+            // TurnContext Fix for PlayCard
+            var turnContext = new TurnContext(p1, logger);
+            turnManager.CurrentTurnContext.Returns(turnContext);
+
+            // Real Systems
+            var actionSystem = new ActionSystem(turnManager, mapManager, logger);
+            var playerState = new PlayerStateManager(logger);
+            
+            // Wiring
+            actionSystem.SetPlayerStateManager(playerState);
+
+            var context = new MatchContext(
+                turnManager,
+                mapManager,
+                marketManager,
+                actionSystem,
+                cardDatabase,
+                playerState,
+                logger
+            );
+
+            var manager = new MatchManager(context, logger, victoryManager);
+            actionSystem.SetMatchManager(manager);
+
+            return (manager, actionSystem, context, p1);
+        }
+
+        [TestMethod]
+        public void PlayDevourCard_WithSkippedTarget_HandDecreasesByOne_AndNoDevourOccurs()
+        {
+            // Arrange
+            var (manager, actionSystem, context, p1) = SetupRealDevourSystem();
+            var devourCard = TestData.Cards.DevourCard();
+            var otherCard = TestData.Cards.CheapCard();
+            
+            p1.Hand.Add(devourCard);
+            p1.Hand.Add(otherCard);
+            int startHandCount = p1.Hand.Count; 
+
+            // Set Pre-Target to SKIP
+            actionSystem.SetPreTarget(devourCard, ActionSystem.SkippedTarget);
+
+            // Act
+            manager.PlayCard(devourCard);
+
+            // Assert
+            Assert.HasCount(startHandCount - 1, p1.Hand, "Hand count should decrease by 1 when skipping Devour.");
+            Assert.Contains(devourCard, p1.PlayedCards, "Devour card should be played.");
+            Assert.Contains(otherCard, p1.Hand, "Other card should remain in hand.");
+            Assert.IsEmpty(context.VoidPile, "Void pile should be empty.");
+        }
+
+        [TestMethod]
+        public void PlayDevourCard_WithValidTarget_HandDecreasesByTwo_AndDevourOccurs()
+        {
+            // Arrange
+            var (manager, actionSystem, context, p1) = SetupRealDevourSystem();
+            var devourCard = TestData.Cards.DevourCard();
+            var targetCard = TestData.Cards.CheapCard();
+            var otherCard = TestData.Cards.CheapCard();
+
+            p1.Hand.Add(devourCard);
+            p1.Hand.Add(targetCard);
+            p1.Hand.Add(otherCard);
+            int startHandCount = p1.Hand.Count;
+
+            // Set Pre-Target to TARGET
+            actionSystem.SetPreTarget(devourCard, targetCard);
+
+            // Act
+            manager.PlayCard(devourCard);
+
+            // Assert
+            Assert.HasCount(startHandCount - 2, p1.Hand, "Hand count should decrease by 2 when devouring.");
+            Assert.Contains(devourCard, p1.PlayedCards, "Devour card should be played.");
+            Assert.Contains(targetCard, context.VoidPile, "Target card should be in Void.");
+            Assert.DoesNotContain(targetCard, p1.Hand, "Target card should be removed from hand.");
+            Assert.Contains(otherCard, p1.Hand, "Other card should remain in hand.");
+        }
+
+        [TestMethod]
+        public void PlayDevourCard_AsLastHandCard_SkipsTargeting_AndPlaysNormally()
+        {
+            // Arrange
+            var (manager, actionSystem, context, p1) = SetupRealDevourSystem();
+            var devourCard = TestData.Cards.DevourCard();
+            p1.Hand.Clear();
+            p1.Hand.Add(devourCard);
+
+            // Act
+            manager.PlayCard(devourCard);
+
+            // Assert
+            Assert.IsEmpty(p1.Hand, "Hand should be empty after playing last card.");
+            Assert.Contains(devourCard, p1.PlayedCards, "Card should be in played pile.");
+            Assert.IsEmpty(context.VoidPile, "Void pile should be empty (Devour skipped).");
+        }
     }
 }
 

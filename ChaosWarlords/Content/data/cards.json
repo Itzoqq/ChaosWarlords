@@ -143,17 +143,26 @@
     ]
   },
   {
-    "Id": "test_devourer",
-    "Name": "Void Eater",
-    "Description": "Devour a card from your hand.",
-    "Cost": 0,
-    "Aspect": "Sorcery",
-    "DeckVP": 0,
-    "InnerCircleVP": 0,
+    "Id": "wight",
+    "Name": "Wight",
+    "Description": "Gain 2 Power OR Devour a card in your hand -> Supplant a troop.",
+    "Cost": 3,
+    "Aspect": "Malice",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
     "Effects": [
       {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Power"
+      },
+      {
         "Type": "Devour",
-        "Amount": 1
+        "Amount": 1,
+        "OnSuccess": {
+          "Type": "Supplant",
+          "Amount": 1
+        }
       }
     ]
   }
