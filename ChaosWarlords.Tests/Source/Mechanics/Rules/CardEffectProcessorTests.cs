@@ -178,42 +178,17 @@ namespace ChaosWarlords.Tests.Source.Systems
         }
 
         [TestMethod]
-        public void ResolveEffects_Supplant_WithValidTargetsAndTroops_StartsTargeting()
+        public void ResolveEffects_Supplant_DelegatesToActionSystem()
         {
             var card = TestData.Cards.SupplantCard();
 
+            // Conditions don't matter to the Processor anymore, it just calls TryStartSupplant
             _context.MapManager.HasValidAssassinationTarget(_player).Returns(true);
             _player.TroopsInBarracks = 1;
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            _context.ActionSystem.Received(1).StartTargeting(ActionState.TargetingSupplant, card);
-        }
-
-        [TestMethod]
-        public void ResolveEffects_Supplant_NoTroops_DoesNotStartTargeting()
-        {
-            var card = TestData.Cards.SupplantCard();
-
-            _context.MapManager.HasValidAssassinationTarget(_player).Returns(true);
-            _player.TroopsInBarracks = 0;
-
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-
-            _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
-        }
-
-        [TestMethod]
-        public void ResolveEffects_Supplant_NoValidTargets_DoesNotStartTargeting()
-        {
-            var card = TestData.Cards.SupplantCard();
-
-            _context.MapManager.HasValidAssassinationTarget(_player).Returns(false);
-            _player.TroopsInBarracks = 1;
-
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-
-            _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
+            _context.ActionSystem.Received(1).TryStartSupplant(card);
         }
 
         [TestMethod]

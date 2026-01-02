@@ -78,6 +78,8 @@ namespace ChaosWarlords.Tests.Systems
             _eventFailedFired = false;
             _actionSystem.OnActionCompleted += (s, e) => _eventCompletedFired = true;
             _actionSystem.OnActionFailed += (s, msg) => _eventFailedFired = true;
+            // CRITICAL: Ensure auto-executed commands are actually run in the test environment
+            _actionSystem.OnAutoExecuteCommand += (cmd) => ExecuteIfNotNull(cmd);
 
             // Reset player defaults
             _player1.Power = 10;
@@ -640,14 +642,44 @@ namespace ChaosWarlords.Tests.Systems
             Action callback = () => callbackInvoked = true;
 
             // Set Pre-Target to Skipped
-            _actionSystem.SetPreTarget(sourceCard, ActionSystem.SkippedTarget);
+            _actionSystem.SetPreTarget(sourceCard, ActionState.TargetingDevourHand, ActionSystem.SkippedTarget);
 
             // Act
             _actionSystem.TryStartDevourHand(sourceCard, callback);
 
             // Assert
-            Assert.IsFalse(callbackInvoked, "Callback should NOT be invoked when action is skipped.");
-            Assert.IsNull(_actionSystem.GetAndClearPreTarget(sourceCard), "PreTarget should be cleared.");
+            Assert.IsFalse(callbackInvoked, "Callback should NOT be invoked when action is skipped (Cost not paid -> Reward not given).");
+            Assert.IsNull(_actionSystem.GetAndClearPreTarget(sourceCard, ActionState.TargetingDevourHand), "PreTarget should be cleared.");
+        }
+
+        [TestMethod]
+        public void StartTargeting_ConsumesPreTarget_Regression_PreventZombieTargets()
+        {
+            // Arrange
+            var card = TestData.Cards.AssassinCard();
+            _actionSystem.SetPreTarget(card, ActionState.TargetingAssassinate, _node2);
+            _mapManager.CanAssassinate(_node2, _player1).Returns(true);
+            
+            // Act 1: First Play (Should Auto-Execute)
+            _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card);
+            
+            // Assert 1: Should have executed
+            _mapManager.Received(1).Assassinate(_node2, _player1);
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "State should be Normal after auto-execution");
+
+            // Reset mocks/events for second run
+            _mapManager.ClearReceivedCalls();
+            bool completed = false;
+            _actionSystem.OnActionCompleted += (s, e) => completed = true;
+
+            // Act 2: Second Play (Should NOT Auto-Execute)
+            // If the zombie target bug exists, this would fire immediately.
+            _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card);
+
+            // Assert 2: Should be waiting for input
+            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState, "Should be waiting for input on second play");
+            _mapManager.DidNotReceive().Assassinate(Arg.Any<MapNode>(), Arg.Any<Player>());
+            Assert.IsFalse(completed, "Action should not have completed automatically");
         }
     }
 }

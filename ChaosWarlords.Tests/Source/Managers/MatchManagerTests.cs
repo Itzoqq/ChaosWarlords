@@ -439,7 +439,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             int startHandCount = p1.Hand.Count; 
 
             // Set Pre-Target to SKIP
-            actionSystem.SetPreTarget(devourCard, ActionSystem.SkippedTarget);
+            actionSystem.SetPreTarget(devourCard, ActionState.TargetingDevourHand, ActionSystem.SkippedTarget);
 
             // Act
             manager.PlayCard(devourCard);
@@ -466,7 +466,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             int startHandCount = p1.Hand.Count;
 
             // Set Pre-Target to TARGET
-            actionSystem.SetPreTarget(devourCard, targetCard);
+            actionSystem.SetPreTarget(devourCard, ActionState.TargetingDevourHand, targetCard);
 
             // Act
             manager.PlayCard(devourCard);

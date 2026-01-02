@@ -9,15 +9,28 @@ namespace ChaosWarlords.Source.Commands
     {
         public int TargetNodeId { get; }
         public string? CardId { get; }
+        public string? DevourCardId { get; }
 
-        public AssassinateCommand(int targetNodeId, string? cardId = null)
+        public AssassinateCommand(int targetNodeId, string? cardId = null, string? devourCardId = null)
         {
             TargetNodeId = targetNodeId;
             CardId = cardId;
+            DevourCardId = devourCardId;
         }
 
         public void Execute(IGameplayState state)
         {
+            // Transactional Devour Handling
+            if (!string.IsNullOrEmpty(DevourCardId))
+            {
+                var player = state.TurnManager.ActivePlayer;
+                var instance = player.Hand.FirstOrDefault(c => c.Id == DevourCardId);
+                if (instance != null)
+                {
+                    state.MatchManager.DevourCard(instance);
+                }
+            }
+
             var node = state.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
             if (node != null)
             {

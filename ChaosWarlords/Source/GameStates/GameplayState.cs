@@ -181,6 +181,9 @@ namespace ChaosWarlords.Source.States
             
             // Connect ActionSystem to MatchManager
             _matchContext.ActionSystem.SetMatchManager(_matchManager);
+            
+            // Subscribe to Logic-Initiated Commands (Auto-Execute)
+            _matchContext.ActionSystem.OnAutoExecuteCommand += RecordAndExecuteCommand;
 
             // Don't draw cards during Setup phase
             if (_matchContext.CurrentPhase != MatchPhase.Setup && _matchContext.TurnManager.Players is not null)
@@ -234,6 +237,9 @@ namespace ChaosWarlords.Source.States
 
         public void UnloadContent()
         {
+            if (_matchContext?.ActionSystem != null)
+                _matchContext.ActionSystem.OnAutoExecuteCommand -= RecordAndExecuteCommand;
+
             _uiEventMediator?.Cleanup();
         }
 

@@ -80,8 +80,33 @@ namespace ChaosWarlords.Tests.Input.Modes
             var result = _mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
 
             // Assert
-            _mockMatchManager.Received(1).DevourCard(targetCard);
-            _mockActionSystem.Received(1).CompleteAction();
+            _mockActionSystem.Received(1).HandleDevourSelection(targetCard);
+            // Default mock behavior for IsTargeting is false
+            _mockGameState.Received(1).SwitchToNormalMode();
+        }
+
+        [TestMethod]
+        public void HandleInput_SwitchesToTargeting_WhenActionChains()
+        {
+            // Arrange
+            var sourceCard = TestData.Cards.DevourCard();
+            var targetCard = TestData.Cards.CheapCard();
+
+            _mockActionSystem.PendingCard.Returns(sourceCard);
+            _mockInputManager.IsLeftMouseJustClicked().Returns(true);
+            _mockGameState.GetHoveredHandCard().Returns(targetCard);
+            
+            // SIMULATE CHAIN: ActionSystem is now targeting (e.g. Supplant)
+            _mockActionSystem.IsTargeting().Returns(true);
+
+            // Act
+            _mode.HandleInput(_mockInputManager, null!, null!, activePlayer: null!, _mockActionSystem);
+
+            // Assert
+            _mockActionSystem.Received(1).HandleDevourSelection(targetCard);
+            // Standard Flow: InputMode detects chaining and switches directly
+            _mockGameState.Received(1).SwitchToTargetingMode();
+            _mockGameState.DidNotReceive().SwitchToNormalMode();
         }
 
         [TestMethod]
@@ -99,8 +124,9 @@ namespace ChaosWarlords.Tests.Input.Modes
 
             // Assert - The implementation logs a warning but doesn't prevent the action
             // It still calls DevourCard and CompleteAction
-            _mockMatchManager.Received(1).DevourCard(sourceCard);
-            _mockActionSystem.Received(1).CompleteAction();
+            // Assert - The implementation logs a warning. 
+            // In the new implementation, we call HandleDevourSelection, which does the checks.
+            _mockActionSystem.Received(1).HandleDevourSelection(sourceCard);
         }
 
         [TestMethod]
@@ -136,7 +162,7 @@ namespace ChaosWarlords.Tests.Input.Modes
 
             // Assert
             // 1. Check SkippedTarget was set
-            _mockActionSystem.Received(1).SetPreTarget(sourceCard, ActionSystem.SkippedTarget);
+            _mockActionSystem.Received(1).SetPreTarget(sourceCard, ActionState.TargetingDevourHand, ActionSystem.SkippedTarget);
             
             // 2. Check Action Completed (Exit Targeting)
             _mockActionSystem.Received(1).CompleteAction();
@@ -171,7 +197,7 @@ namespace ChaosWarlords.Tests.Input.Modes
 
             // Assert
             // 1. Check Target was set
-            _mockActionSystem.Received(1).SetPreTarget(sourceCard, targetCard);
+            _mockActionSystem.Received(1).SetPreTarget(sourceCard, ActionState.TargetingDevourHand, targetCard);
 
             // 2. Check Action Completed
             _mockActionSystem.Received(1).CompleteAction();

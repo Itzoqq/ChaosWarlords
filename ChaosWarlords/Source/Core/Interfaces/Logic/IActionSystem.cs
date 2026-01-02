@@ -21,11 +21,17 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// Fired when an action fails validation or execution, providing a reason string.
         /// </summary>
         event EventHandler<string> OnActionFailed;
+        
+        /// <summary>
+        /// Fired when the system auto-generates a command (e.g. from Pre-Targeting) that needs execution.
+        /// </summary>
+        event Action<IGameCommand> OnAutoExecuteCommand;
 
         /// <summary>
         /// Gets the current state of the action state machine (e.g. Normal, SelectingTarget).
         /// </summary>
         ActionState CurrentState { get; }
+        event EventHandler<ActionState> OnStateChanged;
 
         /// <summary>
         /// Gets the card involved in the current pending action, if any.
@@ -88,11 +94,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// <param name="selectedSpyColor">The faction color of the spy to return.</param>
         ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand? FinalizeSpyReturn(PlayerColor selectedSpyColor);
 
-        /// <summary>
-        /// Initiates the Devour Hand action flow (clearing hand/resources).
-        /// </summary>
-        /// <param name="sourceCard">The card triggering the devour effect.</param>
-        void TryStartDevourHand(Entities.Cards.Card sourceCard, Action? onComplete = null);
+
 
         /// <summary>
         /// Injects the PlayerStateManager dependency.
@@ -102,25 +104,53 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         void SetPlayerStateManager(IPlayerStateManager stateManager);
         void SetMatchManager(IMatchManager matchManager);
 
+        /// <summary>
+        /// The card selected for Devouring, pending final execution of the chain.
+        /// </summary>
+        Card? PendingDevourCard { get; }
+
+        /// <summary>
+        /// Handles the selection of a card to devour.
+        /// If deferExecution is true, the card is stored in PendingDevourCard and the success callback is invoked.
+        /// </summary>
+        void HandleDevourSelection(Card? targetCard);
+
+        /// <summary>
+        /// Initiates the Devour Hand action flow (clearing hand/resources).
+        /// </summary>
+        /// <param name="sourceCard">The card triggering the devour effect.</param>
+        /// <param name="deferExecution">If true, the devour action is not executed immediately but stored.</param>
+        void TryStartDevourHand(Entities.Cards.Card sourceCard, Action? onComplete = null, bool deferExecution = false);
+
         // --- Perform Methods (Exposed for Replay Commands) ---
-        void PerformAssassinate(MapNode node, string? cardId);
+        void PerformAssassinate(MapNode node, string? cardId, string? devourCardId = null);
         void PerformReturnTroop(MapNode node, string? cardId);
-        void PerformSupplant(MapNode node, string? cardId);
+        void PerformSupplant(MapNode node, string? cardId, string? devourCardId = null);
         void PerformPlaceSpy(Site site, string? cardId);
         bool PerformSpyReturn(Site site, PlayerColor selectedSpyColor, string? cardId);
         void PerformMoveTroop(MapNode source, MapNode dest, string? cardId);
 
-        // Helper for ResolveSpyCommand to call back into
-        void ExecuteSpyReturn(Site site, PlayerColor selectedSpyColor);
+
+        /// <summary>
+        /// Initiates the Supplant action flow, checking for pre-targets.
+        /// </summary>
+        void TryStartSupplant(Card sourceCard);
+
+        /// <summary>
+        /// Advances the targeting state to the next necessary effect for a Pre-Commit card play.
+        /// </summary>
+        /// <returns>True if advanced to a new state; False if no more targeting is needed.</returns>
+        bool AdvancePreCommitTargeting(Card sourceCard);
+
         /// <summary>
         /// Stores a pre-selected target for a card to prevent re-entering targeting mode during resolution.
         /// </summary>
-        void SetPreTarget(Entities.Cards.Card source, object target);
+        void SetPreTarget(Entities.Cards.Card source, ActionState forState, object target);
 
         /// <summary>
         /// Retrieves and consumes the pre-selected target for a card.
         /// </summary>
-        object? GetAndClearPreTarget(Entities.Cards.Card source);
+        object? GetAndClearPreTarget(Entities.Cards.Card source, ActionState forState);
     }
 }
 

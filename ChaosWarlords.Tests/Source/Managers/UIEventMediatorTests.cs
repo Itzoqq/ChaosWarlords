@@ -277,7 +277,7 @@ namespace ChaosWarlords.Tests.Managers
 
             // Assert
             _mockGameState.MatchManager.Received(1).PlayCard(card);
-            _mockActionSystem.Received(1).CancelTargeting();
+            _mockActionSystem.DidNotReceive().CancelTargeting();
             _mockGameState.Received(1).SwitchToNormalMode();
         }
     }

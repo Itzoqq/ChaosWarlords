@@ -43,8 +43,15 @@ namespace ChaosWarlords.Source.States.Input
                     if (devourEffect != null)
                     {
                          _actionSystem.TryStartDevourHand(clickedCard);
-                         _state.SwitchToTargetingMode();
-                         return null; // Enters Targeting Mode instead of playing
+                         
+                         // Fix: Only switch mode if we successfully entered targeting (Cards existed to devour)
+                         // If failed (no targets), fall through to PlayCardCommand to execute base effects.
+                         if (_actionSystem.IsTargeting())
+                         {
+                             _state.SwitchToTargetingMode();
+                             return null; 
+                         }
+                         // Fall through...
                     }
 
                     return new PlayCardCommand(clickedCard);

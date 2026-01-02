@@ -34,7 +34,8 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 EffectType.Supplant => () => ApplySupplant(sourceCard, context, logger),
                 EffectType.PlaceSpy => () => ApplyPlaceSpy(sourceCard, context, logger),
                 EffectType.ReturnUnit => () => ApplyReturnUnit(sourceCard, context, logger),
-                EffectType.Devour => () => ApplyDevour(sourceCard, context, logger, effect.OnSuccess != null ? () => ApplyEffect(effect.OnSuccess, sourceCard, context, logger) : null),
+                EffectType.Devour => () => ApplyDevour(sourceCard, context, logger, effect.OnSuccess != null ? () => ApplyEffect(effect.OnSuccess, sourceCard, context, logger) : null, 
+                                            effect.OnSuccess != null && ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.OnSuccess.Type)),
                 _ => () => { }
             };
 
@@ -105,19 +106,8 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         private static void ApplySupplant(Card sourceCard, MatchContext context, IGameLogger logger)
         {
-            bool canAssassinate = context.MapManager.HasValidAssassinationTarget(context.ActivePlayer);
-            bool hasTroops = context.ActivePlayer.TroopsInBarracks > 0;
-
-            if (canAssassinate && hasTroops)
-            {
-                context.ActionSystem.StartTargeting(ActionState.TargetingSupplant, sourceCard);
-                logger.Log($"{sourceCard.Name}: Select a valid target to Supplant.", LogChannel.Input);
-            }
-            else
-            {
-                if (!hasTroops) logger.Log($"{sourceCard.Name}: Cannot Supplant (No Troops in Barracks).", LogChannel.Warning);
-                else logger.Log($"{sourceCard.Name}: No valid targets to Supplant.", LogChannel.Warning);
-            }
+            // Delegate to ActionSystem which now handles Pre-Targets and Validation
+            context.ActionSystem.TryStartSupplant(sourceCard);
         }
 
         private static void ApplyPlaceSpy(Card sourceCard, MatchContext context, IGameLogger logger)
@@ -147,11 +137,11 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
         }
 
-        private static void ApplyDevour(Card sourceCard, MatchContext context, IGameLogger logger, Action? onComplete)
+        private static void ApplyDevour(Card sourceCard, MatchContext context, IGameLogger logger, Action? onComplete, bool defer)
         {
             if (context.ActivePlayer.Hand.Count > 0)
             {
-                context.ActionSystem.TryStartDevourHand(sourceCard, onComplete);
+                context.ActionSystem.TryStartDevourHand(sourceCard, onComplete, defer);
             }
             else
             {

@@ -246,7 +246,11 @@ namespace ChaosWarlords.Source.Managers
             {
                 _gameState.MatchManager.PlayCard(_actionSystem.PendingCard);
             }
-            _actionSystem.CancelTargeting();
+            // FIX: Do NOT call CancelTargeting here. 
+            // 1. It wipes PendingDevourCard, breaking chained transactions.
+            // 2. ActionSystem.CompleteAction() already calls ClearState(), which is safer.
+            // _actionSystem.CancelTargeting();
+            
             _gameState.SwitchToNormalMode();
         }
 

@@ -51,6 +51,10 @@ namespace ChaosWarlords.Source.Managers
             // Use PlayerStateManager for centralized mutation
             _context.PlayerStateManager.PlayCard(_context.ActivePlayer, card);
 
+            // Diagnostic Logging: Log hand contents after play
+            var remainingCards = string.Join(", ", _context.ActivePlayer.Hand.Select(c => $"{c.Name}({c.Id})"));
+            _logger.Log($"[Hand State] After playing {card.Name}, Hand ({_context.ActivePlayer.Hand.Count}): [{remainingCards}]", LogChannel.Info);
+
             // --- 3. RESOLVE EFFECTS (The Missing Link) ---
             // Now that the card is "played", we trigger its game logic.
             // We pass the 'hasFocus' snapshot we calculated earlier.
@@ -63,6 +67,19 @@ namespace ChaosWarlords.Source.Managers
 
         public void DevourCard(Card card)
         {
+            // Robustness: Ensure we possess the card instance or find equivalent
+            var player = _context.ActivePlayer;
+            if (!player.Hand.Contains(card))
+            {
+                var instance = player.Hand.FirstOrDefault(c => c.Id == card.Id);
+                if (instance != null) card = instance;
+                else
+                {
+                    _logger.Log($"DevourCard Failed: Card {card.Name} ({card.Id}) not found in hand.", LogChannel.Warning);
+                    return;
+                }
+            }
+
             _context.PlayerStateManager.DevourCard(_context.ActivePlayer, card);
 
             // If the card was successfully moved to Void location by the state manager,

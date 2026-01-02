@@ -22,7 +22,24 @@ namespace ChaosWarlords.Source.Input
             _state = state;
             _inputManager = inputManager;
             _context = context;
+
+            // Subscribe to state changes to auto-switch input modes
+            _context.ActionSystem.OnStateChanged += HandleActionStateChanged;
+
             SwitchToNormalMode();
+        }
+
+        private void HandleActionStateChanged(object? sender, Utilities.ActionState newState)
+        {
+            _state.Logger.Log($"Coordinator: State Changed to {newState}. Switching Input Mode.", Utilities.LogChannel.Input);
+            if (newState == Utilities.ActionState.Normal)
+            {
+                SwitchToNormalMode();
+            }
+            else
+            {
+                SwitchToTargetingMode();
+            }
         }
 
         public void HandleInput()
@@ -63,14 +80,17 @@ namespace ChaosWarlords.Source.Input
                 if (amount == 0 && _context.ActionSystem.PendingCard is not null)
                     amount = 1; // Simplify for now
 
+                _state.Logger.Log($"Coordinator: Switching to PromoteInputMode (Amount: {amount})", Utilities.LogChannel.Input);
                 _currentMode = new PromoteInputMode(_state, _inputManager, _context.ActionSystem, amount);
             }
             else if (_context.ActionSystem.CurrentState == Utilities.ActionState.TargetingDevourHand)
             {
+                _state.Logger.Log("Coordinator: Switching to DevourInputMode", Utilities.LogChannel.Input);
                 _currentMode = new DevourInputMode(_state, _inputManager, _context.ActionSystem);
             }
             else
             {
+                _state.Logger.Log($"Coordinator: Switching to TargetingInputMode (State: {_context.ActionSystem.CurrentState})", Utilities.LogChannel.Input);
                 _currentMode = new TargetingInputMode(
                     _state,
                     _inputManager,

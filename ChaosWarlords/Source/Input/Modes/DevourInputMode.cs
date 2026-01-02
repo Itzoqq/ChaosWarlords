@@ -43,10 +43,18 @@ namespace ChaosWarlords.Source.States.Input
             {
                  if (_sourceCard != null && _sourceCard.Location == CardLocation.Hand)
                  {
-                     actionSystem.SetPreTarget(_sourceCard, ActionSystem.SkippedTarget);
-                     actionSystem.CompleteAction(); // Exit Targeting Mode
-                     _gameplayState.SwitchToNormalMode(); // Explicitly return to Normal Input
-                     // Bypass checks because we handled targeting manually (Pre-Commit)
+                     actionSystem.SetPreTarget(_sourceCard, ActionState.TargetingDevourHand, ActionSystem.SkippedTarget);
+                     
+                     // Try to Advance to next targeting step (e.g. Supplant)
+                     if (actionSystem.AdvancePreCommitTargeting(_sourceCard))
+                     {
+                         // Advanced to next targeting state (State Change event handles Input Mode switch)
+                         return null;
+                     }
+
+                     // No more targeting needed, commit the play.
+                     actionSystem.CompleteAction(); 
+                     _gameplayState.SwitchToNormalMode();
                      return new ChaosWarlords.Source.Commands.PlayCardCommand(_sourceCard, true);
                  }
                  // Standard Flow Skip? (Not supported yet for played cards, but optional cost usually implies Pre-Commit)
@@ -71,16 +79,35 @@ namespace ChaosWarlords.Source.States.Input
                     // If Source Card is in Hand, we are choosing targets BEFORE playing.
                     if (_sourceCard != null && _sourceCard.Location == CardLocation.Hand)
                     {
-                        actionSystem.SetPreTarget(_sourceCard, targetCard);
-                        actionSystem.CompleteAction(); // Exit Targeting Mode
-                        _gameplayState.SwitchToNormalMode(); // Explicitly return to Normal Input
+                        actionSystem.SetPreTarget(_sourceCard, ActionState.TargetingDevourHand, targetCard);
+                        
+                        // Try to Advance to next targeting step (e.g. Supplant)
+                        if (actionSystem.AdvancePreCommitTargeting(_sourceCard))
+                        {
+                            // Advanced to next targeting state.
+                            return null;
+                        }
+
+                        actionSystem.CompleteAction(); 
+                        _gameplayState.SwitchToNormalMode(); 
                         // Return PlayCommand to Commit the play with BYPASS
                         return new ChaosWarlords.Source.Commands.PlayCardCommand(_sourceCard, true);
                     }
 
                     // Standard Flow (Card already played/in limbo)
-                    _gameplayState.MatchManager.DevourCard(targetCard);
-                    actionSystem.CompleteAction();
+                    // Usage of HandleDevourSelection handles both immediate and deferred execution
+                    _actionSystem.HandleDevourSelection(targetCard);
+                    
+                    // If we entered a chained targeting state (e.g. Supplant), switch mode.
+                    // If we completed the action, switch to Normal.
+                    if (_actionSystem.IsTargeting())
+                    {
+                         _gameplayState.SwitchToTargetingMode();
+                    }
+                    else
+                    {
+                         _gameplayState.SwitchToNormalMode();
+                    }
                 }
             }
 
