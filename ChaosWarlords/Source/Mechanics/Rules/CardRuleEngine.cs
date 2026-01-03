@@ -38,7 +38,14 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         public bool IsConditionMet(Player player, CardEffect effect)
         {
             if (effect.Condition == null) return true;
-            return effect.Condition.Evaluate(_context, player);
+            bool isMet = effect.Condition.Evaluate(_context, player);
+
+            if (!isMet)
+            {
+                _logger.Log($"[RuleEngine] Condition Failed: {effect.Condition.Type} (Threshold: {effect.Condition.Threshold}, Resource: {effect.Condition.Resource})", LogChannel.Debug);
+            }
+
+            return isMet;
         }
 
         /// <summary>
@@ -47,7 +54,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// </summary>
         public bool HasValidTargets(Player player, EffectType effectType)
         {
-            return effectType switch
+            bool isValid = effectType switch
             {
                 EffectType.PlaceSpy => _context.MapManager.HasValidPlaceSpyTarget(player),
                 EffectType.ReturnUnit => _context.MapManager.HasValidReturnTroopTarget(player),
@@ -57,6 +64,13 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 EffectType.Devour => player.Hand.Count > 0,
                 _ => true // Most effects (GainResource, DrawCard) don't need external targets
             };
+
+            if (!isValid)
+            {
+                _logger.Log($"[RuleEngine] Validation Failed for {effectType}. No valid targets found for player {player.DisplayName}.", LogChannel.Debug);
+            }
+
+            return isValid;
         }
 
         // ----------------------------------------------------------------------------------------

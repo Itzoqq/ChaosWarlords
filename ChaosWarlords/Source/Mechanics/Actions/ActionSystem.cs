@@ -366,7 +366,7 @@ namespace ChaosWarlords.Source.Managers
             if (canAssassinate && hasTroops)
             {
                 StartTargeting(ActionState.TargetingSupplant, sourceCard);
-                _logger.Log($"{sourceCard.Name}: Select a valid target to Supplant.", LogChannel.Input);
+                _logger.Log($"{sourceCard.Name}: Initiating Supplant targeting. Select a valid target.", LogChannel.Input);
             }
             else
             {
@@ -685,7 +685,7 @@ namespace ChaosWarlords.Source.Managers
             
             if (preTarget == SkippedTarget)
             {
-                _logger.Log("Devour action skipped (Pre-Target).", LogChannel.General);
+                _logger.Log($"Devour optional cost skipped by user for {sourceCard.Name}. Chain halted (Supplant will not trigger).", LogChannel.Info);
                 // Fix: Do NOT invoke onComplete. 
                 // onComplete represents the "OnSuccess" branch (e.g. Supplant).
                 // If we skip the Cost (Devour), we do not get the Reward (Supplant).
@@ -729,7 +729,7 @@ namespace ChaosWarlords.Source.Managers
             StartTargeting(ActionState.TargetingDevourHand, sourceCard);
             _pendingCallback = onComplete;
             _deferDevourExecution = deferExecution; // Store the flag
-            _logger.Log($"Select a card from your HAND to Devour (Remove from game). [Defer: {deferExecution}]", LogChannel.General);
+            _logger.Log($"Triggering Devour for {sourceCard.Name}. Select a card from HAND to remove. (Optional: You may skip)", LogChannel.General);
         }
 
         public void HandleDevourSelection(Card? targetCard)

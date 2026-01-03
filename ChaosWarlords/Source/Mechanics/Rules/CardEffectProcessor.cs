@@ -24,6 +24,9 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         private static void ApplyEffect(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
         {
+            // Trace log for debugging chains
+            logger.Log($"Applying effect {effect.Type} for {sourceCard.Name}...", LogChannel.Debug);
+
             // 1. Check Condition
             if (!context.CardRuleEngine.IsConditionMet(context.ActivePlayer, effect))
             {

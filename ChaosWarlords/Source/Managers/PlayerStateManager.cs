@@ -160,6 +160,10 @@ namespace ChaosWarlords.Source.Managers
             {
                 _logger.Log($"[State] {player.DisplayName} promoted '{card.Name}'", LogChannel.Info);
             }
+            else
+            {
+                _logger.Log($"[State] Promotion failed for '{card.Name}': {errorMessage}", LogChannel.Warning);
+            }
             return success;
         }
 

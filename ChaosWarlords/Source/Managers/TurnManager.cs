@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Managers
 {
@@ -46,6 +47,7 @@ namespace ChaosWarlords.Source.Managers
         private void StartTurn()
         {
             Player nextPlayer = Players[_currentPlayerIndex];
+            _logger.Log($"=== Turn Start: {nextPlayer.DisplayName} ===", LogChannel.General);
 
             // Create a fresh context for the new turn
             CurrentTurnContext = new TurnContext(nextPlayer, _logger);
