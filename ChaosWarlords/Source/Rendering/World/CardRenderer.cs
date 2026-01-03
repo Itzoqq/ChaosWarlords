@@ -5,7 +5,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
 using System.Diagnostics.CodeAnalysis;
 
-namespace ChaosWarlords.Source.Views
+namespace ChaosWarlords.Source.Rendering.World
 {
     [ExcludeFromCodeCoverage]
     public class CardRenderer
@@ -23,7 +23,7 @@ namespace ChaosWarlords.Source.Views
         {
             // 1. Determine Color based on Aspect
             Color bgColor = GetAspectColor(vm.Model.Aspect);
-            if (vm.IsHovered) bgColor = Color.Lerp(bgColor, Color.White, 0.3f);
+            if (vm.IsHovered) bgColor = Color.Lerp(bgColor, Color.White, GameConstants.CardRendering.HoverBrighten);
 
             // 2. Draw Background
             sb.Draw(_pixelTexture, vm.Bounds, bgColor);
@@ -31,10 +31,9 @@ namespace ChaosWarlords.Source.Views
             // 3. Draw Border
             Color borderColor = Color.Black;
             if (vm.IsHovered) borderColor = Color.Yellow;
-            DrawBorder(sb, vm.Bounds, borderColor, 2);
+            DrawBorder(sb, vm.Bounds, borderColor, GameConstants.CardRendering.BorderThickness);
 
-            // 4. Draw Name (Top-Left)
-            Vector2 pos = new Vector2(vm.Bounds.X + 5, vm.Bounds.Y + 5);
+            Vector2 pos = new Vector2(vm.Bounds.X + GameConstants.CardRendering.TextPadding, vm.Bounds.Y + GameConstants.CardRendering.TextPadding);
             sb.DrawString(_font, vm.Model.Name, pos, Color.Black);
 
             // 5. Draw Cost (Restored to Bottom-Right)
@@ -42,22 +41,22 @@ namespace ChaosWarlords.Source.Views
             {
                 string costText = $"Cost: {vm.Model.Cost}";
                 Vector2 costSize = _font.MeasureString(costText);
-                Vector2 costPos = new Vector2(vm.Bounds.Right - costSize.X - 5, vm.Bounds.Bottom - costSize.Y - 5);
+                Vector2 costPos = new Vector2(vm.Bounds.Right - costSize.X - GameConstants.CardRendering.TextPadding, vm.Bounds.Bottom - costSize.Y - GameConstants.CardRendering.TextPadding);
                 sb.DrawString(_font, costText, costPos, Color.Black);
             }
 
             // 6. Draw Effects
-            int yOffset = 40;
+            int yOffset = GameConstants.CardRendering.EffectTextStartY;
             foreach (var effect in vm.Model.Effects)
             {
                 string text = GetEffectText(effect);
-                sb.DrawString(_font, text, new Vector2(vm.Bounds.X + 5, vm.Bounds.Y + yOffset), Color.Black);
-                yOffset += 20;
+                sb.DrawString(_font, text, new Vector2(vm.Bounds.X + GameConstants.CardRendering.TextPadding, vm.Bounds.Y + yOffset), Color.Black);
+                yOffset += GameConstants.CardRendering.EffectTextSpacing;
             }
 
             // 7. Draw VPs (Bottom-Left)
             string vpText = $"D:{vm.Model.DeckVP} I:{vm.Model.InnerCircleVP}";
-            sb.DrawString(_font, vpText, new Vector2(vm.Bounds.X + 5, vm.Bounds.Bottom - 20), Color.DarkSlateGray);
+            sb.DrawString(_font, vpText, new Vector2(vm.Bounds.X + GameConstants.CardRendering.TextPadding, vm.Bounds.Bottom - GameConstants.CardRendering.VictoryPointsOffsetY), Color.DarkSlateGray);
         }
 
         private void DrawBorder(SpriteBatch sb, Rectangle rect, Color color, int thickness)

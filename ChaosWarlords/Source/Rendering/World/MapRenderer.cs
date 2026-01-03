@@ -1,15 +1,16 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System.Collections.Generic;
-using System.Text;
 using ChaosWarlords.Source.Entities.Map;
+using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using ChaosWarlords.Source.Contexts;
 using System.Globalization;
 
-namespace ChaosWarlords.Source.Views
+namespace ChaosWarlords.Source.Rendering.World
 {
     [ExcludeFromCodeCoverage]
     public class MapRenderer
@@ -102,7 +103,7 @@ namespace ChaosWarlords.Source.Views
             }
 
             // 3. Draw using StringBuilder
-            Vector2 textPos = new Vector2(site.Bounds.X + 10, site.Bounds.Y + 10);
+            Vector2 textPos = new Vector2(site.Bounds.X + GameConstants.UILayout.MediumPadding, site.Bounds.Y + GameConstants.UILayout.MediumPadding);
 
             // Draw Shadow
             spriteBatch.DrawString(_font, cache.Text, textPos + new Vector2(1, 1), Color.Black);

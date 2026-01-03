@@ -61,10 +61,9 @@ namespace ChaosWarlords.Source.Entities.Cards
         /// </summary>
         public CardLocation Location { get; set; }
 
-        // Constants can remain here if they define the "physical standard" of a card in your world,
-        // otherwise move them to LayoutConsts.cs
-        public const int Width = 150;
-        public const int Height = 200;
+        // Constants moved to GameConstants.CardRendering for centralization
+        public static int Width => Utilities.GameConstants.CardRendering.CardWidth;
+        public static int Height => Utilities.GameConstants.CardRendering.CardHeight;
 
         public Card(string id, string name, int cost, CardAspect aspect, int deckVp, int innerCircleVp, int influence)
         {

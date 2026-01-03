@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
@@ -12,7 +13,7 @@ using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Rendering.UI;
-using ChaosWarlords.Source.Views;
+using ChaosWarlords.Source.Rendering.World; // Changed from ChaosWarlords.Source.Views
 using ChaosWarlords.Source.Core.Interfaces.Services;
 
 using System.Diagnostics.CodeAnalysis;
@@ -34,8 +35,8 @@ namespace ChaosWarlords.Source.Rendering.Views
         private SpriteFont _smallFont = null!;
         private Texture2D _pixelTexture = null!;
 
-        private ChaosWarlords.Source.Views.MapRenderer _mapRenderer = null!;
-        private ChaosWarlords.Source.Views.CardRenderer _cardRenderer = null!;
+        private MapRenderer _mapRenderer = null!;
+        private CardRenderer _cardRenderer = null!;
         private UIRenderer _uiRenderer = null!;
 
         // --- View Models ---
@@ -85,8 +86,8 @@ namespace ChaosWarlords.Source.Rendering.Views
             _optionalEffectPopup = new OptionalEffectPopup();
 
             int screenH = _graphicsDevice.Viewport.Height;
-            HandY = screenH - Card.Height - 20;
-            PlayedY = HandY - Card.Height - 10;
+            HandY = screenH - Card.Height - GameConstants.CardRendering.HandBottomMargin;
+            PlayedY = HandY - Card.Height - GameConstants.CardRendering.PlayedAreaGap;
         }
 
         public void SubscribeToOptionalEffectEvent(Managers.UIEventMediator uiEventMediator)
@@ -146,7 +147,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             // DrawTurnIndicator(spriteBatch, context.ActivePlayer); // Removed as it is now in HUD
             if (!string.IsNullOrEmpty(targetingText))
             {
-                spriteBatch.DrawString(_defaultFont, targetingText, inputManager.MousePosition + new Vector2(20, 20), Color.Red);
+                spriteBatch.DrawString(_defaultFont, targetingText, inputManager.MousePosition + new Vector2(GameConstants.UILayout.TooltipOffsetX, GameConstants.UILayout.TooltipOffsetY), Color.Red);
             }
 
             // 6. Draw Spy Selection (if active)
@@ -160,10 +161,10 @@ namespace ChaosWarlords.Source.Rendering.Views
             {
                 string replayText = "=== REPLAY MODE ===";
                 Vector2 textSize = _defaultFont.MeasureString(replayText);
-                Vector2 position = new Vector2((uiManager.ScreenWidth - textSize.X) / 2, 10);
+                Vector2 position = new Vector2((uiManager.ScreenWidth - textSize.X) / 2, GameConstants.UILayout.MediumPadding);
                 
                 // Draw semi-transparent background
-                Rectangle bgRect = new Rectangle((int)position.X - 10, (int)position.Y - 5, (int)textSize.X + 20, (int)textSize.Y + 10);
+                Rectangle bgRect = new Rectangle((int)position.X - GameConstants.UILayout.MediumPadding, (int)position.Y - GameConstants.UILayout.SmallPadding, (int)textSize.X + GameConstants.UILayout.LargePadding, (int)textSize.Y + GameConstants.UILayout.MediumPadding);
                 if (_whitePixel != null)
                 {
                     spriteBatch.Draw(_whitePixel, bgRect, Color.Black * 0.7f);
@@ -217,7 +218,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             }
 
             int cardWidth = Card.Width;
-            int gap = 10;
+            int gap = GameConstants.CardRendering.HandCardGap;
             int totalWidth = (hand.Count * cardWidth) + ((hand.Count - 1) * gap);
             int viewportWidth = _graphicsDevice.Viewport.Width;
             int startX = (viewportWidth - totalWidth) / 2;
@@ -244,9 +245,9 @@ namespace ChaosWarlords.Source.Rendering.Views
                     MarketViewModels.Add(new CardViewModel(card));
             }
 
-            int startX = 100;
-            int startY = 100;
-            int gap = 10;
+            int startX = GameConstants.CardRendering.MarketStartX;
+            int startY = GameConstants.CardRendering.MarketStartY;
+            int gap = GameConstants.CardRendering.MarketCardGap;
             for (int i = 0; i < marketRow.Count; i++)
             {
                 var vm = MarketViewModels.FirstOrDefault(v => v.Model == marketRow[i]);
@@ -267,7 +268,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             }
 
             int cardWidth = Card.Width;
-            int gap = 10;
+            int gap = GameConstants.CardRendering.PlayedAreaGap;
             int totalWidth = (played.Count * cardWidth) + ((played.Count - 1) * gap);
             int viewportWidth = _graphicsDevice.Viewport.Width;
             int startX = (viewportWidth - totalWidth) / 2;
@@ -310,20 +311,20 @@ namespace ChaosWarlords.Source.Rendering.Views
 
             string header = "Select Spy to Return:";
             Vector2 size = _defaultFont.MeasureString(header);
-            Vector2 startPos = new Vector2((screenWidth - size.X) / 2, 200);
+            Vector2 startPos = new Vector2((screenWidth - size.X) / 2, GameConstants.UILayout.DefaultButtonWidth);
 
             sb.DrawString(_defaultFont, header, startPos, Color.White);
 
-            int yOffset = 40;
+            int yOffset = GameConstants.UILayout.DefaultYOffset;
             foreach (var spy in site.Spies)
             {
                 string btnText = spy.ToString();
-                Rectangle rect = new Rectangle((int)startPos.X, (int)startPos.Y + yOffset, 200, 30);
+                Rectangle rect = new Rectangle((int)startPos.X, (int)startPos.Y + yOffset, GameConstants.UILayout.DefaultButtonWidth, GameConstants.UILayout.DefaultButtonHeight);
 
                 sb.Draw(_pixelTexture, rect, Color.Gray);
-                sb.DrawString(_defaultFont, btnText, new Vector2(rect.X + 10, rect.Y + 5), Color.Black);
+                sb.DrawString(_defaultFont, btnText, new Vector2(rect.X + GameConstants.UILayout.MediumPadding, rect.Y + GameConstants.UILayout.SmallPadding), Color.Black);
 
-                yOffset += 40;
+                yOffset += GameConstants.UILayout.DefaultYOffset;
             }
         }
         public void DrawSetupPhaseOverlay(SpriteBatch spriteBatch, Player activePlayer)
@@ -340,7 +341,7 @@ namespace ChaosWarlords.Source.Rendering.Views
 
             // Position: Center middle of X axis, right below top bar (approx Y=60)
             // Top bar is usually small, assuming 40-50px.
-            Vector2 pos1 = new Vector2((screenW - size1.X) / 2, 60);
+            Vector2 pos1 = new Vector2((screenW - size1.X) / 2, GameConstants.UILayout.SetupOverlayY);
             Vector2 pos2 = new Vector2((screenW - size2.X) / 2, 85);
 
             Color color = activePlayer.Color == PlayerColor.Red ? Color.Red : Color.Blue;

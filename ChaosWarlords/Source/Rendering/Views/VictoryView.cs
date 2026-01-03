@@ -2,6 +2,7 @@ using ChaosWarlords.Source.Core.Data.Dtos;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Rendering.UI;
 using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -55,10 +56,10 @@ namespace ChaosWarlords.Source.Rendering.Views
             // Layout
             int width = graphicsDevice.Viewport.Width;
             int height = graphicsDevice.Viewport.Height;
-            int btnWidth = 200;
-            int btnHeight = 50;
+            int btnWidth = GameConstants.UILayout.DefaultButtonWidth;
+            int btnHeight = GameConstants.UILayout.LargeButtonHeight;
 
-            MainMenuButtonRect = new Rectangle(width - btnWidth - 20, height - btnHeight - 20, btnWidth, btnHeight);
+            MainMenuButtonRect = new Rectangle(width - btnWidth - GameConstants.UILayout.LargePadding, height - btnHeight - GameConstants.UILayout.LargePadding, btnWidth, btnHeight);
         }
 
         public void Draw(SpriteBatch spriteBatch)
