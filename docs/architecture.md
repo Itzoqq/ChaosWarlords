@@ -130,9 +130,12 @@ Source/
 │   │
 │   ├── Data/                            # Data Transfer Objects
 │   │   ├── CardDto.cs                   # Serializable card data
+│   │   ├── CommandDto.cs                # Serializable command data
 │   │   ├── GameStateDto.cs              # Serializable game state snapshot
 │   │   ├── MapDto.cs                    # Serializable map data
-│   │   └── PlayerDto.cs                 # Serializable player data
+│   │   ├── PlayerDto.cs                 # Serializable player data
+│   │   ├── ReplayDataDto.cs             # Serializable replay container
+│   │   └── VictoryDto.cs                # Serializable victory state data
 │   │
 │   ├── Events/                          # Event System
 │   │   ├── GameEvent.cs                 # Base record for all game events
@@ -177,7 +180,8 @@ Source/
 │   │   │   │                              - Update(GameTime)
 │   │   │   │                              - LoadContent()
 │   │   │   ├── IMainMenuView.cs         # The contract for Main Menu visualization
-│   │   │   └── IUIManager.cs            # Contract for high-level UI management
+│   │   │   ├── IUIManager.cs            # Contract for high-level UI management
+│   │   │   └── IVictoryView.cs          # The contract for Victory screen visualization
 │   │   ├── Services/
 │   │   │   ├── ICommandDispatcher.cs    # Funnel for command execution & recording
 │   │   │   │                              - Dispatch(command, state)
@@ -202,7 +206,8 @@ Source/
 │   │   │   │                              - AddVictoryPoints(Player, int amount)
 │   │   │   │                              - All resource changes go through here
 │   │   │   ├── IReplayManager.cs        # API for replay recording/playback
-│   │   │   └── ITurnManager.cs          # API for turn rotation and player state
+│   │   │   ├── ITurnManager.cs          # API for turn rotation and player state
+│   │   │   ├── IVictoryManager.cs       # API for victory condition checking
 │   │   │                                  - EndTurn()
 │   │   │                                  - GetCurrentPlayer()
 │   │   │                                  - AdvanceToNextPlayer()
@@ -227,6 +232,7 @@ Source/
 │       ├── CollectionHelpers.cs         # Extension methods for generic collections
 │       │                                  - Shuffle<T>()
 │       │                                  - RemoveWhere<T>()
+│       ├── DtoMapper.cs                 # Mapping logic between Entities and DTOs
 │       ├── GameConstants.cs             # Global configuration values
 │       │                                  - DeployPowerCost = 1
 │       │                                  - MaxHandSize = 5
@@ -269,7 +275,10 @@ Source/
 │   │   │                                  - VP values: DeckVP, InnerCircleVP
 │   │   ├── CardEffects.cs               # Definitions for card effects and mechanics
 │   │   │                                  - CardEffect record (Type, Amount, Target)
-│   │   │                                  - EffectType enum (GainResource, DrawCard, etc.)
+│   │   │                                  - Type: GainResource, DrawCard, etc.
+│   │   ├── EffectCondition.cs           # NEW: Condition requirements for effects
+│   │   │                                  - Type: ControlsSite, HasUnitInHand, etc.
+│   │   │                                  - Value: Threshold or target specifier
 │   │   └── Deck.cs                      # Manages a collection of cards
 │   │                                      - Draw(count, random)
 │   │                                      - Shuffle(random)
@@ -448,9 +457,12 @@ Source/
 │   │
 │   └── Rules/                           # Pure Logic Engines
 │       ├── CardEffectProcessor.cs       # Applies the effects of played cards
-│       │                                  - ProcessEffects(card, player, context)
+│       │                                  - PROCESSOR: Executes effects
 │       │                                  - Handles all effect types (GainResource, etc.)
 │       │                                  - Delegates to appropriate managers
+│       ├── CardRuleEngine.cs            # NEW: Validates card playing conditions
+│       │                                  - VALIDATOR: Checks IsConditionMet()
+│       │                                  - Separates validation from execution
 │       ├── MapRuleEngine.cs             # Validates movement and placement rules
 │       │                                  - CanDeploy(player, node): Check adjacency
 │       │                                  - CanMove(from, to): Check path validity
@@ -624,7 +636,58 @@ public class PlayCardCommand : IGameCommand
 - **Undo**: Can implement undo by storing command state
 - **Testing**: Easy to test individual commands in isolation
 
-### 4. Multiplayer Readiness & Determinism
+#### Transactional Command Execution (Complex Actions)
+
+**Problem**: Some card effects require multiple user interactions in sequence. For example, the Wight card: *"Devour a card from hand -> Supplant an enemy troop"*. These multi-step actions must behave atomically - if the player cancels partway through, all state must roll back.
+
+**Solution**: The `ActionSystem` implements **deferred execution** with **state buffering** for complex action chains.
+
+**Key Mechanisms**:
+1. **Deferred Execution**: User selects all targets, but action doesn't execute until the entire chain is confirmed
+2. **State Buffering**: Selected targets are held in `PendingDevourCard` until transaction completes
+3. **Cancellation**: `CancelTargeting()` clears all buffered state and returns to Normal
+4. **Pre-Targeting**: Targets can be selected before card plays for atomic execution
+5. **Skip Markers**: Optional effects support `ActionSystem.SkippedTarget` marker
+
+**Example - Wight Card Flow**:
+```csharp
+// User chooses Devour path
+ActionSystem.TryStartDevourHand(wightCard, 
+    onComplete: () => ActionSystem.StartTargeting(ActionState.TargetingSupplant, wightCard),
+    deferExecution: true);  // Don't execute yet!
+
+// User selects card -> Buffered in PendingDevourCard (not removed from hand)
+ActionSystem.HandleDevourSelection(targetCard);
+
+// User selects node for Supplant -> SupplantCommand executes
+// ONLY NOW does the entire transaction execute atomically
+```
+
+**Cancellation** (ESC key): `ActionSystem.CancelTargeting()` -> Clears `PendingDevourCard`, card stays in hand (rollback)
+
+**Implementation**: `IActionSystem.cs`, `ActionSystem.cs`, `DevourCardCommand.cs`, `SupplantCommand.cs`
+
+### 4. Card Rule Engine (Hybrid Strategy)
+
+**Problem**: Cards have complex conditional logic ("If you control a site...", "Gain 2 Power OR Devour...").
+
+**Solution**: A centralized **CardRuleEngine** that validates conditions using a Chain of Responsibility pattern mixed with Strategy for edge cases.
+
+**Structure**:
+1. **CardRuleEngine**: Evaluates `EffectCondition` objects against the game state (`MatchContext`).
+2. **EffectCondition**: Data-driven definition of requirements (e.g., `ConditionType.ControlsSite`).
+3. **CardEffectProcessor**: Queries the engine before applying effects.
+
+**Example**:
+```csharp
+// "If you control a Site, +2 Power"
+if (cardRuleEngine.IsConditionMet(player, effectWithCondition))
+{
+    ApplyEffect(effect);
+}
+```
+
+### 5. Multiplayer Readiness & Determinism
 The architecture is specifically designed for multiplayer synchronization without a shared memory model.
 
 **Key Features**:
@@ -635,6 +698,8 @@ The architecture is specifically designed for multiplayer synchronization withou
 // ❌ Bad: Direct mutation
 player.Power += 5;
 
+// ✅ Good: Centralized mutation
+_playerStateManager.AddPower(player, 5);
 // ✅ Good: Centralized mutation
 _playerStateManager.AddPower(player, 5);
 // Logged, validated, and broadcast to all clients
