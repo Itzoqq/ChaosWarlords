@@ -15,7 +15,7 @@ namespace ChaosWarlords.Source.Managers
     /// Manages popup dialogs and pause menu state.
     /// Industry precedent: MVC Controller, MVVM ViewModel mediator pattern
     /// </summary>
-    public class UIEventMediator
+    public class UIEventMediator : IUIEventMediator
     {
         private readonly IGameplayState _gameState;
         private readonly IUIManager _uiManager;
@@ -42,6 +42,14 @@ namespace ChaosWarlords.Source.Managers
             _actionSystem = actionSystem ?? throw new ArgumentNullException(nameof(actionSystem));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _game = game; // Can be null for testing
+        }
+
+        // Optional Effect Event
+        public event Action<Entities.Cards.Card, Entities.Cards.CardEffect, Action, Action>? OnOptionalEffectRequested;
+
+        public void RequestOptionalEffect(Entities.Cards.Card card, Entities.Cards.CardEffect effect, Action onAccept, Action onDecline)
+        {
+            OnOptionalEffectRequested?.Invoke(card, effect, onAccept, onDecline);
         }
 
         /// <summary>

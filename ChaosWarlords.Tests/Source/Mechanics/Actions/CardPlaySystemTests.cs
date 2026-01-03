@@ -41,7 +41,7 @@ namespace ChaosWarlords.Tests.Systems
 
             // Create context with our mocked MapManager and ActionSystem
             var ps = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            _matchContext = new MatchContext(turnManager, _mapManager, marketManager, _actionSystem, cardDb, ps, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _matchContext = new MatchContext(turnManager, _mapManager, marketManager, _actionSystem, cardDb, ps, null, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             // Set Active Player manually if needed
             var player = TestData.Players.RedPlayer();

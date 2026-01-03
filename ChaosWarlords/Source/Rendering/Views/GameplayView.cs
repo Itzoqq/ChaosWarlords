@@ -52,6 +52,7 @@ namespace ChaosWarlords.Source.Rendering.Views
 
         private readonly IGameLogger _logger;
         private Texture2D? _whitePixel; // For drawing backgrounds
+        private OptionalEffectPopup? _optionalEffectPopup;
 
         public GameplayView(GraphicsDevice graphicsDevice, IGameLogger logger)
         {
@@ -80,9 +81,20 @@ namespace ChaosWarlords.Source.Rendering.Views
             _mapRenderer = new MapRenderer(_pixelTexture, _pixelTexture, _defaultFont);
             _cardRenderer = new CardRenderer(_pixelTexture, _defaultFont);
 
+            // Initialize optional effect popup
+            _optionalEffectPopup = new OptionalEffectPopup();
+
             int screenH = _graphicsDevice.Viewport.Height;
             HandY = screenH - Card.Height - 20;
             PlayedY = HandY - Card.Height - 10;
+        }
+
+        public void SubscribeToOptionalEffectEvent(Managers.UIEventMediator uiEventMediator)
+        {
+            if (uiEventMediator != null && _optionalEffectPopup != null)
+            {
+                uiEventMediator.OnOptionalEffectRequested += _optionalEffectPopup.Show;
+            }
         }
 
         public void Update(MatchContext context, InputManager inputManager, bool isMarketOpen)
@@ -93,6 +105,9 @@ namespace ChaosWarlords.Source.Rendering.Views
 
             UpdateVisualsHover(HandViewModels, inputManager);
             if (isMarketOpen) UpdateVisualsHover(MarketViewModels, inputManager);
+
+            // Update optional effect popup mouse position
+            _optionalEffectPopup?.UpdateMousePosition(inputManager.MousePosition.ToPoint());
         }
 
         public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying, IMatchManager matchManager)
@@ -171,12 +186,23 @@ namespace ChaosWarlords.Source.Rendering.Views
                     uiManager.IsPopupCancelHovered);
             }
 
-            // 9. Draw Pause Menu (Top-most Modal)
+            // 9. Draw Optional Effect Popup (before pause menu)
+            if (_optionalEffectPopup?.IsVisible == true && _whitePixel != null)
+            {
+                _optionalEffectPopup.Draw(spriteBatch, _defaultFont, _whitePixel, uiManager.ScreenWidth, uiManager.ScreenHeight);
+            }
+
+            // 10. Draw Pause Menu (Top-most Modal)
             if (isPauseMenuOpen)
             {
                 _uiRenderer.DrawPauseMenu(spriteBatch, uiManager);
             }
 
+        }
+
+        public void HandleOptionalEffectClick(int mouseX, int mouseY)
+        {
+            _optionalEffectPopup?.HandleClick(mouseX, mouseY);
         }
 
         // --- Internal Render Logic ---

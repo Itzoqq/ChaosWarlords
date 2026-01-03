@@ -37,7 +37,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             var playerState = Substitute.For<IPlayerStateManager>();
 
             // Setup real MatchContext which initializes CardRuleEngine internally
-            _context = new MatchContext(turn, map, market, action, cardDb, playerState, _logger);
+            _context = new MatchContext(turn, map, market, action, cardDb, playerState, null, _logger);
             
             _player = new Player(PlayerColor.Red);
             turn.ActivePlayer.Returns(_player);

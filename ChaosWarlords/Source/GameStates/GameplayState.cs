@@ -159,6 +159,10 @@ namespace ChaosWarlords.Source.GameStates
             var builder = new MatchFactory(_cardDatabase, _logger);
             var worldData = builder.Build(_replayManager, seedToUse);
 
+            // Create UIEventMediator BEFORE MatchContext (needed for card effect processing)
+            // Note: We create it with null gameState initially, then initialize it later
+            _uiEventMediator = new UIEventMediator(this, _uiManagerBacking, worldData.ActionSystem, _logger, _game as Game1);
+
             _matchContext = new MatchContext(
                 worldData.TurnManager,
                 worldData.MapManager,
@@ -166,6 +170,7 @@ namespace ChaosWarlords.Source.GameStates
                 worldData.ActionSystem,
                 _cardDatabase,
                 worldData.PlayerStateManager,
+                _uiEventMediator,
                 _logger,
                 worldData.Seed
             );
@@ -206,8 +211,14 @@ namespace ChaosWarlords.Source.GameStates
             _commandDispatcher = new CommandDispatcher(_replayManager, _logger);
             _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, _replayManager, () => SwitchToTargetingMode(), _logger);
 
-            _uiEventMediator = new UIEventMediator(this, _uiManagerBacking, _matchContext.ActionSystem, _logger, _game as Game1);
+            // UIEventMediator already created in InitializeMatch, just initialize it here
             _uiEventMediator.Initialize();
+
+            // Subscribe view to optional effect events
+            if (_view is Rendering.Views.GameplayView gameplayView)
+            {
+                gameplayView.SubscribeToOptionalEffectEvent(_uiEventMediator);
+            }
 
             _playerController = new PlayerController(this, _inputManagerBacking, _inputCoordinator, _interactionMapper);
 

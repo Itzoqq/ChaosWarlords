@@ -66,8 +66,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
                 _actionSub,
                 _cardDbSub,
                 new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance),
-                ChaosWarlords.Tests.Utilities.TestLogger.Instance
-            );
+                null, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             // 4. Instantiate MarketInputMode with the new signature
             // (State, Input, Context)

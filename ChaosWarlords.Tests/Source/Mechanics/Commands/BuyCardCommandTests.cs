@@ -46,6 +46,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
                 Substitute.For<IActionSystem>(),
                 Substitute.For<ICardDatabase>(),
                 mockStateManager,
+                null,
                 ChaosWarlords.Tests.Utilities.TestLogger.Instance
             );
 

@@ -30,7 +30,7 @@ namespace ChaosWarlords.Tests.Source.Entities.Cards
             var playerState = Substitute.For<IPlayerStateManager>();
             var logger = Substitute.For<IGameLogger>();
 
-            _context = new MatchContext(turn, _mapManager, market, action, cardDb, playerState, logger);
+            _context = new MatchContext(turn, _mapManager, market, action, cardDb, playerState, null, logger);
             _player = new Player(PlayerColor.Red);
 
             // Default empty map state

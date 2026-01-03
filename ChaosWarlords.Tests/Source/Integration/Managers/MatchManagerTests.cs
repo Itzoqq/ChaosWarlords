@@ -50,8 +50,8 @@ namespace ChaosWarlords.Tests.Integration.Managers
                 _actionSystem,
                 _cardDatabase,
                 playerState,
-                ChaosWarlords.Tests.Utilities.TestLogger.Instance
-            );
+
+                null, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             _controller = new MatchManager(_context, ChaosWarlords.Tests.Utilities.TestLogger.Instance, _victoryManager);
 
@@ -417,8 +417,8 @@ namespace ChaosWarlords.Tests.Integration.Managers
                 actionSystem,
                 cardDatabase,
                 playerState,
-                logger
-            );
+
+                null, logger);
 
             var manager = new MatchManager(context, logger, victoryManager);
             actionSystem.SetMatchManager(manager);

@@ -235,7 +235,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
                 var tm = new TurnManager(new List<Player> { p1, p2 }, mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
                 var ps = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-                _matchContext = new MatchContext(tm, map, market, action, _testDb, ps, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+                _matchContext = new MatchContext(tm, map, market, action, _testDb, ps, null, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
                 
                 var victoryManager = Substitute.For<IVictoryManager>();
                 _matchManager = new MatchManager(_matchContext, ChaosWarlords.Tests.Utilities.TestLogger.Instance, victoryManager);

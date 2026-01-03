@@ -159,6 +159,7 @@
       {
         "Type": "Devour",
         "Amount": 1,
+        "IsOptional": true,
         "OnSuccess": {
           "Type": "Supplant",
           "Amount": 1

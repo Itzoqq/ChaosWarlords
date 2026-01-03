@@ -46,6 +46,12 @@ namespace ChaosWarlords.Source.Contexts
         public IPlayerStateManager PlayerStateManager { get; private set; }
 
         /// <summary>
+        /// UI event mediator for requesting player choices (e.g., optional effects).
+        /// Nullable for test scenarios where UI interactions aren't needed.
+        /// </summary>
+        public IUIEventMediator? UIEventMediator { get; private set; }
+
+        /// <summary>
         /// The seed used to initialize the random number generator.
         /// Can be used to reproduce the exact same match.
         /// </summary>
@@ -78,6 +84,7 @@ namespace ChaosWarlords.Source.Contexts
             IActionSystem action,
             ICardDatabase cardDb,
             IPlayerStateManager playerState,
+            IUIEventMediator? uiMediator,
             IGameLogger logger,
             int? seed = null)
         {
@@ -87,6 +94,7 @@ namespace ChaosWarlords.Source.Contexts
             ActionSystem = action ?? throw new ArgumentNullException(nameof(action));
             CardDatabase = cardDb ?? throw new ArgumentNullException(nameof(cardDb));
             PlayerStateManager = playerState ?? throw new ArgumentNullException(nameof(playerState));
+            UIEventMediator = uiMediator; // Nullable for tests
 
             // Initialize seeded RNG
             Seed = seed ?? Environment.TickCount;

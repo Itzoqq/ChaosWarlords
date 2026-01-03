@@ -29,6 +29,16 @@ namespace ChaosWarlords.Source.Mechanics.Actions
         {
             bool enteredTargeting = false;
 
+            // CRITICAL: If this card has ANY optional targeting effects, skip pre-commit targeting entirely
+            // The popup will handle the player's choice, and targeting will start only if they accept
+            bool hasOptionalTargeting = card.Effects.Any(e => e.IsOptional && IsTargetingEffect(e.Type));
+            if (hasOptionalTargeting)
+            {
+                _logger.Log($"Card {card.Name} has optional targeting effects. Skipping pre-commit targeting - popup will handle it.", LogChannel.Debug);
+                _matchManager.PlayCard(card);
+                return;
+            }
+
             // 1. Check for Targeting Effects
             foreach (var effect in card.Effects)
             {

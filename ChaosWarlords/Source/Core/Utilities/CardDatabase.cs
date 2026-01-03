@@ -37,7 +37,6 @@ namespace ChaosWarlords.Source.Utilities
         public string? ConditionResource { get; set; }
 
         public bool IsOptional { get; set; }
-        public CardEffectData? AlternativeEffect { get; set; }
     }
 
     public class CardDatabase : ICardDatabase

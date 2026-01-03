@@ -39,6 +39,9 @@ namespace ChaosWarlords.Source.Input.Controllers
             if (HandleGlobalInput()) return true;
             if (HandleSpySelectionInput()) return true;
 
+            // Handle optional effect popup clicks
+            if (HandleOptionalEffectPopup()) return true;
+
             // CRITICAL: Block all game input when pause menu or popup is open
             // This prevents clicks from passing through UI to the game world
             if (_gameState.IsPauseMenuOpen || _gameState.IsConfirmationPopupOpen)
@@ -130,6 +133,27 @@ namespace ChaosWarlords.Source.Input.Controllers
             }
 
             return true;
+        }
+
+        private bool HandleOptionalEffectPopup()
+        {
+            // Check if optional effect popup is visible and handle clicks
+            if (_gameState is GameStates.GameplayState gameplayState && 
+                gameplayState._view is Rendering.Views.GameplayView view)
+            {
+                // If popup is visible, handle clicks and block other input
+                if (view.HandViewModels != null) // Just checking if view is initialized
+                {
+                    if (_inputManager.IsLeftMouseJustClicked())
+                    {
+                        var mousePos = _inputManager.MousePosition.ToPoint();
+                        view.HandleOptionalEffectClick(mousePos.X, mousePos.Y);
+                        // Return true to block input if popup was visible
+                        // The popup will handle its own visibility state
+                    }
+                }
+            }
+            return false;
         }
     }
 }

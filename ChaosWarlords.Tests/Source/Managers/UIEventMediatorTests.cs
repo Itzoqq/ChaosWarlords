@@ -50,8 +50,7 @@ namespace ChaosWarlords.Tests.Managers
                 _mockActionSystem,
                 mockDb,
                 new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance),
-                ChaosWarlords.Tests.Utilities.TestLogger.Instance
-            );
+                null, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             _mockGameState.MatchContext.Returns(matchContext);
 

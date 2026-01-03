@@ -42,6 +42,14 @@ namespace ChaosWarlords.Source.Input.Modes
                     var devourEffect = clickedCard.Effects.FirstOrDefault(e => e.Type == ChaosWarlords.Source.Utilities.EffectType.Devour);
                     if (devourEffect != null)
                     {
+                        // CRITICAL: Skip pre-commit targeting for optional devour effects
+                        // The popup will handle the player's choice
+                        if (devourEffect.IsOptional)
+                        {
+                            // Just play the card - popup will appear during effect resolution
+                            return new PlayCardCommand(clickedCard);
+                        }
+
                          _actionSystem.TryStartDevourHand(clickedCard);
                          
                          // Fix: Only switch mode if we successfully entered targeting (Cards existed to devour)

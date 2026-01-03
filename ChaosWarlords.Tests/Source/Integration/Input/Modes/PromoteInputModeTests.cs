@@ -57,8 +57,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
                 _actionSub,
                 Substitute.For<ICardDatabase>(),
                 new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance),
-                ChaosWarlords.Tests.Utilities.TestLogger.Instance
-            );
+                null, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             // Link MatchContext to State
             _stateSub.MatchContext.Returns(matchContext);

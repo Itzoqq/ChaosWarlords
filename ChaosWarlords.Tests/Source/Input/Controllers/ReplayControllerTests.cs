@@ -51,6 +51,7 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
                 Substitute.For<IActionSystem>(),
                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Data.ICardDatabase>(),
                 Substitute.For<IPlayerStateManager>(),
+                null, // Inserted null as per instruction
                 _loggerMock,
                 123
             );

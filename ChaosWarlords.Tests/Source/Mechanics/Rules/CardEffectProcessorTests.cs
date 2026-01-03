@@ -39,6 +39,7 @@ namespace ChaosWarlords.Tests.Source.Systems
                 Substitute.For<IActionSystem>(),
                 Substitute.For<ICardDatabase>(),
                 new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance), // <--- Use real StateManager for logic testing
+                null,
                 ChaosWarlords.Tests.Utilities.TestLogger.Instance
             );
         }

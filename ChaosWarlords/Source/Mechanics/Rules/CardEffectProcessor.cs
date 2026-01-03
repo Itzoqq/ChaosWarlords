@@ -13,12 +13,55 @@ namespace ChaosWarlords.Source.Mechanics.Rules
     {
         public static void ResolveEffects(Card card, MatchContext context, bool hasFocus, IGameLogger logger)
         {
+            // Filter effects based on focus requirement
+            var effectQueue = new System.Collections.Generic.List<CardEffect>();
             foreach (var effect in card.Effects)
             {
-                // Logic to Gate Effects based on Focus
-                if (effect.RequiresFocus && !hasFocus) continue;
+                if (!effect.RequiresFocus || hasFocus)
+                {
+                    effectQueue.Add(effect);
+                }
+            }
+            
+            // Process effects sequentially (important for optional effects)
+            ProcessNextEffect(effectQueue, 0, card, context, logger);
+        }
 
+        private static void ProcessNextEffect(System.Collections.Generic.List<CardEffect> effects, int index, Card card, MatchContext context, IGameLogger logger)
+        {
+            if (index >= effects.Count) return; // All effects processed
+
+            var effect = effects[index];
+            
+            // Check if effect is optional - if so, ask player
+            if (effect.IsOptional)
+            {
+                // If UIEventMediator is null (test scenario), skip the optional effect
+                if (context.UIEventMediator == null)
+                {
+                    logger.Log($"Skipped optional {effect.Type} (no UI mediator)", LogChannel.Info);
+                    ProcessNextEffect(effects, index + 1, card, context, logger);
+                    return;
+                }
+
+                context.UIEventMediator.RequestOptionalEffect(
+                    card,
+                    effect,
+                    onAccept: () => {
+                        ApplyEffect(effect, card, context, logger);
+                        ProcessNextEffect(effects, index + 1, card, context, logger);
+                    },
+                    onDecline: () => {
+                        logger.Log($"Skipped optional {effect.Type}", LogChannel.Info);
+                        ProcessNextEffect(effects, index + 1, card, context, logger);
+                    }
+                );
+            }
+            else
+            {
+                // Mandatory effect - execute immediately
                 ApplyEffect(effect, card, context, logger);
+                ProcessNextEffect(effects, index + 1, card, context, logger);
             }
         }
 

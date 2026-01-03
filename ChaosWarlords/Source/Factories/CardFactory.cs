@@ -86,11 +86,6 @@ namespace ChaosWarlords.Source.Utilities
 
                 effect.IsOptional = data.IsOptional;
 
-                if (data.AlternativeEffect != null)
-                {
-                    effect.AlternativeEffect = CreateEffect(data.AlternativeEffect);
-                }
-
                 return effect;
             }
             return null;

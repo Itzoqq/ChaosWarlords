@@ -40,7 +40,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Processors
             var cardDb = Substitute.For<ICardDatabase>();
 
             var ps = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            _context = new MatchContext(tm, mapManager, marketManager, _actionSub, cardDb, ps, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _context = new MatchContext(tm, mapManager, marketManager, _actionSub, cardDb, ps, null, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             // 2. Setup Testable State
             // We pass null for Game/InputProvider because our subclass doesn't use them in this specific test scope

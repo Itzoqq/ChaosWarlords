@@ -48,8 +48,7 @@ namespace ChaosWarlords.Tests.Source.Managers
                 actionSystem,
                 cardDatabase,
                 playerState,
-                logger
-            );
+                null, logger);
         }
 
         [TestMethod]
