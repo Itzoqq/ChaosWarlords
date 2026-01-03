@@ -21,6 +21,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     [JsonDerivedType(typeof(PlaceSpyCommandDto), typeDiscriminator: "spy")]
     [JsonDerivedType(typeof(MoveTroopCommandDto), typeDiscriminator: "move")]
     [JsonDerivedType(typeof(ActionCompletedCommandDto), typeDiscriminator: "done")]
+    [JsonDerivedType(typeof(PromoteCommandDto), typeDiscriminator: "promote")]
     public abstract class GameCommandDto
     {
         public int Seq { get; set; }
@@ -72,6 +73,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     {
         public int NodeId { get; set; }
         public string? CardId { get; set; }
+        public string? DevourCardId { get; set; }
     }
 
     public class ReturnTroopCommandDto : GameCommandDto
@@ -84,6 +86,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     {
         public int NodeId { get; set; }
         public string? CardId { get; set; }
+        public string? DevourCardId { get; set; }
     }
 
     public class PlaceSpyCommandDto : GameCommandDto
@@ -100,4 +103,9 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     }
 
     public class ActionCompletedCommandDto : GameCommandDto { }
+
+    public class PromoteCommandDto : GameCommandDto
+    {
+        public string? CardId { get; set; }
+    }
 }

@@ -63,7 +63,7 @@ namespace ChaosWarlords.Source.Core.Utilities
                 { typeof(AssassinateCommand), (cmd, seq, p) => 
                     {
                         var c = (AssassinateCommand)cmd;
-                        return new AssassinateCommandDto { NodeId = c.TargetNodeId, CardId = c.CardId };
+                        return new AssassinateCommandDto { NodeId = c.TargetNodeId, CardId = c.CardId, DevourCardId = c.DevourCardId };
                     } 
                 },
                 { typeof(ReturnTroopCommand), (cmd, seq, p) => 
@@ -75,7 +75,7 @@ namespace ChaosWarlords.Source.Core.Utilities
                 { typeof(SupplantCommand), (cmd, seq, p) => 
                     {
                         var c = (SupplantCommand)cmd;
-                        return new SupplantCommandDto { NodeId = c.TargetNodeId, CardId = c.CardId };
+                        return new SupplantCommandDto { NodeId = c.TargetNodeId, CardId = c.CardId, DevourCardId = c.DevourCardId };
                     } 
                 },
                 { typeof(PlaceSpyCommand), (cmd, seq, p) => 
@@ -90,7 +90,8 @@ namespace ChaosWarlords.Source.Core.Utilities
                         return new MoveTroopCommandDto { SrcId = c.SourceNodeId, DestId = c.DestinationNodeId, CardId = c.CardId }; 
                     } 
                 },
-                { typeof(ActionCompletedCommand), (cmd, seq, p) => new ActionCompletedCommandDto() }
+                { typeof(ActionCompletedCommand), (cmd, seq, p) => new ActionCompletedCommandDto() },
+                { typeof(PromoteCommand), (cmd, seq, p) => new PromoteCommandDto { CardId = ((PromoteCommand)cmd).CardId } }
             };
 
             _dtoToCommandMap = new Dictionary<Type, Func<GameCommandDto, IGameplayState, IGameCommand?>>
@@ -111,12 +112,13 @@ namespace ChaosWarlords.Source.Core.Utilities
                         return Enum.TryParse<PlayerColor>(dto.Color, out var c) ? new ResolveSpyCommand(dto.SiteId, c, dto.CardId) : null;
                     } 
                 },
-                { typeof(AssassinateCommandDto), (d, s) => new AssassinateCommand(((AssassinateCommandDto)d).NodeId, ((AssassinateCommandDto)d).CardId) },
+                { typeof(AssassinateCommandDto), (d, s) => new AssassinateCommand(((AssassinateCommandDto)d).NodeId, ((AssassinateCommandDto)d).CardId, ((AssassinateCommandDto)d).DevourCardId) },
                 { typeof(ReturnTroopCommandDto), (d, s) => new ReturnTroopCommand(((ReturnTroopCommandDto)d).NodeId, ((ReturnTroopCommandDto)d).CardId) },
-                { typeof(SupplantCommandDto), (d, s) => new SupplantCommand(((SupplantCommandDto)d).NodeId, ((SupplantCommandDto)d).CardId) },
+                { typeof(SupplantCommandDto), (d, s) => new SupplantCommand(((SupplantCommandDto)d).NodeId, ((SupplantCommandDto)d).CardId, ((SupplantCommandDto)d).DevourCardId) },
                 { typeof(PlaceSpyCommandDto), (d, s) => new PlaceSpyCommand(((PlaceSpyCommandDto)d).SiteId, ((PlaceSpyCommandDto)d).CardId) },
                 { typeof(MoveTroopCommandDto), (d, s) => new MoveTroopCommand(((MoveTroopCommandDto)d).SrcId, ((MoveTroopCommandDto)d).DestId, ((MoveTroopCommandDto)d).CardId) },
-                { typeof(ActionCompletedCommandDto), (d, s) => new ActionCompletedCommand() }
+                { typeof(ActionCompletedCommandDto), (d, s) => new ActionCompletedCommand() },
+                { typeof(PromoteCommandDto), (d, s) => new PromoteCommand(((PromoteCommandDto)d).CardId) }
             };
         }
 

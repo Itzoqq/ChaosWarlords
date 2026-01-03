@@ -51,22 +51,26 @@ namespace ChaosWarlords.Source.Input.Modes
                         return null;
                     }
 
-                    if (activePlayer.PlayedCards.Remove(targetCard))
+                    _cardsLeftToPromote--;
+                    _gameplayState.Logger.Log($"Promoted {targetCard.Name} to Inner Circle!", LogChannel.Economy);
+
+                    context.ConsumeCreditFor(targetCard);
+
+                    // 1. Manually execute the promote command immediately
+                    var promoteCmd = new ChaosWarlords.Source.Commands.PromoteCommand(targetCard.Id);
+                    _gameplayState.RecordAndExecuteCommand(promoteCmd);
+
+                    // 2. Check if we are done
+                    if (_cardsLeftToPromote <= 0)
                     {
-                        activePlayer.InnerCircle.Add(targetCard);
-
-                        // --- CHANGED: Consume specific credit ---
-                        context.ConsumeCreditFor(targetCard);
-
-                        _cardsLeftToPromote--;
-                        _gameplayState.Logger.Log($"Promoted {targetCard.Name} to Inner Circle!", LogChannel.Economy);
-
-                        if (_cardsLeftToPromote <= 0)
-                        {
-                            actionSystem.CancelTargeting();
-                            _gameplayState.EndTurn();
-                        }
+                        actionSystem.CancelTargeting();
+                        
+                        // 3. Return EndTurn command to be executed by Coordinator immediately after
+                        return new ChaosWarlords.Source.Commands.EndTurnCommand();
                     }
+
+                    // 4. If not done, return null (Command already executed above)
+                    return null;
                 }
             }
 
@@ -74,7 +78,3 @@ namespace ChaosWarlords.Source.Input.Modes
         }
     }
 }
-
-
-
-
