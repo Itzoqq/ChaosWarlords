@@ -9,7 +9,7 @@ using System.Linq;
 using ChaosWarlords.Source.Entities.Actors;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace ChaosWarlords.Tests.Systems
+namespace ChaosWarlords.Tests.Integration.Factories
 {
     [TestClass]
 

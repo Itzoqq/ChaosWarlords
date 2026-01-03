@@ -10,7 +10,7 @@ using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Entities.Cards;
 
-namespace ChaosWarlords.Tests.Systems
+namespace ChaosWarlords.Tests.Integration.Managers
 {
     [TestClass]
 

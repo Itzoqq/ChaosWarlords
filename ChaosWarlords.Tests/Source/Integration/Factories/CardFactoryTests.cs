@@ -1,6 +1,6 @@
 using ChaosWarlords.Source.Utilities;
 
-namespace ChaosWarlords.Tests.Source.Utilities
+namespace ChaosWarlords.Tests.Integration.Factories
 {
     [TestClass]
 

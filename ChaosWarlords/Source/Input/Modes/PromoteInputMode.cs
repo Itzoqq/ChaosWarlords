@@ -7,7 +7,7 @@ using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 
-namespace ChaosWarlords.Source.States.Input
+namespace ChaosWarlords.Source.Input.Modes
 {
     public class PromoteInputMode : IInputMode
     {

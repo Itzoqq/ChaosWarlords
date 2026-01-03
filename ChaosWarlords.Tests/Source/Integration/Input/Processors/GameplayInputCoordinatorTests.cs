@@ -6,15 +6,15 @@ using ChaosWarlords.Source.Core.Interfaces.Logic;
 using NSubstitute;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Input;
-using ChaosWarlords.Source.States;
+using ChaosWarlords.Source.GameStates;
 using ChaosWarlords.Source.Contexts;
-using ChaosWarlords.Source.States.Input;
+using ChaosWarlords.Source.Input.Modes;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Core.Composition;
 using Microsoft.Xna.Framework;
 
-namespace ChaosWarlords.Tests.Source.Systems
+namespace ChaosWarlords.Tests.Integration.Input.Processors
 {
     [TestClass]
 

@@ -3,7 +3,7 @@ using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using ChaosWarlords.Source.States;
+using ChaosWarlords.Source.GameStates;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Input;
 using ChaosWarlords.Source.Managers;

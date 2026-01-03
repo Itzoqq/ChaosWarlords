@@ -1,7 +1,7 @@
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.States;
+using ChaosWarlords.Source.GameStates;
 
 namespace ChaosWarlords.Source.Commands
 {
@@ -27,12 +27,6 @@ namespace ChaosWarlords.Source.Commands
             state.ActionSystem.CompleteAction();
         }
 
-        // You can remove the concrete overload entirely if IGameCommand defines Execute(IGameplayState).
-        // If your architecture requires this specific signature for some reason, just delegate it:
-        public void Execute(GameplayState state)
-        {
-            Execute((IGameplayState)state);
-        }
     }
 }
 

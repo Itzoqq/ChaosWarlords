@@ -1,6 +1,6 @@
 using ChaosWarlords.Source.Core.Interfaces.State;
 
-using ChaosWarlords.Source.States;
+using ChaosWarlords.Source.GameStates;
 
 namespace ChaosWarlords.Source.Core.Interfaces.Logic
 {

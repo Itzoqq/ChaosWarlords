@@ -77,6 +77,44 @@ The test project mirrors the main project structure. Each test file corresponds 
 
 ```text
 ChaosWarlords.Tests/Source/
+├── Integration/                         # End-to-End Integration Tests
+│   ├── Core/
+│   │   └── Events/
+│   │       └── EventManagerTests.cs     [Integration] Tests event publishing and subscriptions
+│   ├── Factories/
+│   │   ├── CardFactoryTests.cs          [Integration] Tests card creation from data
+│   │   ├── MapFactoryTests.cs           [Integration] Tests map generation with all components
+│   │   └── MatchFactoryTests.cs         [Integration] Tests full match setup and DI
+│   ├── GameStates/
+│   │   ├── GameplayStateTests.cs        [Integration] Tests main game loop coordination
+│   │   ├── MainMenuStateTests.cs        [Integration] Tests menu state and navigation
+│   │   ├── VictoryStateTests.cs         [Integration] Tests victory screen logic and delegation
+│   │   └── StateManagerTests.cs         [Integration] Tests state stack management
+│   ├── Input/
+│   │   ├── Controllers/
+│   │   │   └── PlayerControllerTests.cs [Integration] Tests input handling and delegation
+│   │   ├── Modes/
+│   │   │   ├── DevourInputModeTests.cs  [Integration] Tests devour card input mode
+│   │   │   ├── MarketInputModeTests.cs  [Integration] Tests market interaction mode
+│   │   │   ├── NormalPlayInputModeTests.cs [Integration] Tests standard play mode
+│   │   │   ├── PromoteInputModeTests.cs [Integration] Tests card promotion mode
+│   │   │   └── TargetingInputModeTests.cs [Integration] Tests targeting mode for effects
+│   │   ├── Processors/
+│   │   │   ├── GameplayInputCoordinatorTests.cs [Integration] Tests input flow coordination
+│   │   │   └── InteractionMapperTests.cs [Integration] Tests screen-to-entity mapping
+│   │   └── Services/
+│   │       └── InputManagerTests.cs     [Integration] Tests input state management
+│   ├── Managers/
+│   │   ├── MapManagerTests.cs           [Integration] Tests map operations (deploy, spy, combat)
+│   │   └── MatchManagerTests.cs         [Integration] Tests match lifecycle and win conditions
+│   └── Mechanics/
+│       └── TransactionalCommandTests.cs [Integration] Tests Devour→Supplant command chains
+│           - Deferred devour execution and buffering
+│           - Full Devour→Supplant transaction flow
+│           - Cancellation and rollback scenarios
+│           - Pre-targeting across multiple states
+│           - Skipped target marker functionality
+│
 ├── Core/
 │   ├── Contexts/
 │   │   └── TurnContextTests.cs          [Unit] Tests TurnContext action history tracking
@@ -87,7 +125,6 @@ ChaosWarlords.Tests/Source/
 │   │   ├── MapNodeDtoTests.cs           [Unit] Tests node DTO properties and defaults
 │   │   └── PlayerDtoTests.cs            [Unit] Tests PlayerDto serialization
 │   ├── Events/
-│   │   ├── EventManagerTests.cs         [Integration] Tests event publishing and subscriptions
 │   │   └── StateChangeEventTests.cs     [Unit] Tests state change record creation and strings
 │   ├── Logic/
 │   │   └── CommandValidatorTests.cs     [Unit] Tests command validation logic
@@ -114,44 +151,14 @@ ChaosWarlords.Tests/Source/
 │   ├── SiteTests.cs                     [Unit] Tests Site mechanics (spies, control)
 │   └── StartingSiteTests.cs             [Unit] Tests starting site special rules
 │
-├── Factories/
-│   ├── CardFactoryTests.cs              [Integration] Tests card creation from data
-│   ├── MapFactoryTests.cs               [Integration] Tests map generation with all components
-│   └── MatchFactoryTests.cs             [Integration] Tests full match setup and DI
-│
-├── GameStates/
-│   ├── GameplayStateTests.cs            [Integration] Tests main game loop coordination
-│   ├── MainMenuStateTests.cs            [Integration] Tests menu state and navigation
-│   ├── VictoryStateTests.cs             [Integration] Tests victory screen logic and delegation
-│   └── StateManagerTests.cs             [Integration] Tests state stack management
-│
-├── Input/
-│   ├── Controllers/
-│   │   └── PlayerControllerTests.cs    [Integration] Tests input handling and delegation
-│   ├── Modes/
-│   │   ├── DevourInputModeTests.cs     [Integration] Tests devour card input mode
-│   │   ├── MarketInputModeTests.cs     [Integration] Tests market interaction mode
-│   │   ├── NormalPlayInputModeTests.cs [Integration] Tests standard play mode
-│   │   ├── PromoteInputModeTests.cs    [Integration] Tests card promotion mode
-│   │   └── TargetingInputModeTests.cs  [Integration] Tests targeting mode for effects
+├── Input/                               # Unit Tests for Input Components
 │   ├── Controllers/
 │   │   └── ReplayControllerTests.cs     [Unit] Tests replay playback and save/load logic
-│   ├── Processors/
-│   │   ├── GameplayInputCoordinatorTests.cs [Integration] Tests input flow coordination
-│   │   └── InteractionMapperTests.cs   [Integration] Tests screen-to-entity mapping
-│   └── Services/
-│       └── InputManagerTests.cs        [Integration] Tests input state management
 │
-├── Managers/
+├── Managers/                            # Unit Tests for Manager Components
 │   ├── CommandDispatcherTests.cs        [Unit] Tests centralized command dispatch and recording
 │   ├── GameEventLoggerTests.cs          [Unit] Tests logging of game events and subscriptions
-│   ├── MapManagerTests.cs               [Integration] Tests map operations (deploy, spy, combat)
-│   │                                      - Deployment validation and execution
-│   │                                      - Spy placement and removal
-│   │                                      - Combat resolution
-│   │                                      - Site control updates
 │   ├── MarketManagerTests.cs            [Unit] Tests market economy (buy, refresh, pricing)
-│   ├── MatchManagerTests.cs             [Integration] Tests match lifecycle and win conditions
 │   ├── PlayerStateManagerTests.cs       [Unit] Tests centralized player mutations
 │   │                                      - Resource management (Power, Influence, VP)
 │   │                                      - Troop/spy allocation
@@ -258,12 +265,12 @@ ChaosWarlords.Tests/Source/
 
 ## Test Categories Breakdown
 
-**Total Test Suite: 516 tests** (367 Unit + 142 Integration + 7 Performance)
+**Total Test Suite: 548 tests** (395 Unit + 146 Integration + 7 Performance)
 
-### Unit Tests (367 tests)
+### Unit Tests (395 tests)
 **Purpose**: Test single classes in isolation  
 **Characteristics**: Fast, no external dependencies, use mocks  
-**Run Time**: ~0.8 seconds
+**Run Time**: ~0.9 seconds
 
 **Categories**:
 - **Entities** (6 files): Domain models (Card, Deck, Player, MapNode, Site)
@@ -272,16 +279,20 @@ ChaosWarlords.Tests/Source/
 - **Core/Utilities** (7 files): Infrastructure (TurnContext, Dto, Random, Database)
 - **Map Components** (4 files): Map subsystems (Combat, Rewards, Topology, Spies)
 
-### Integration Tests (142 tests)
+### Integration Tests (146 tests)
 **Purpose**: Test component interactions  
 **Characteristics**: Slower, use real implementations, test coordination  
-**Run Time**: ~0.9 seconds
+**Run Time**: ~1.2 seconds
+
+**Organization**: All integration tests now in dedicated `Integration/` folder
 
 **Categories**:
-- **Managers** (3 files): Complex managers (Map, Match, EventManager)
+- **Mechanics** (1 file): Transactional command execution (Devour→Supplant chains)
+- **Managers** (2 files): Complex managers (Map, Match)
 - **Factories** (3 files): Object creation with dependencies (Card, Map, Match)
-- **Game States** (3 files): State machine and coordination (Gameplay, Menu, StateManager)
-- **Input** (9 files): Input handling pipeline (Controllers, Modes, Processors)
+- **Game States** (4 files): State machine and coordination (Gameplay, Menu, Victory, StateManager)
+- **Input** (9 files): Input handling pipeline (Controllers, Modes, Processors, Services)
+- **Core/Events** (1 file): Event publishing and subscriptions
 
 ### Performance Tests (7 tests)
 **Purpose**: Benchmark critical operations  
@@ -555,16 +566,16 @@ dotnet test --filter "Name=AddPower_WithPositiveAmount_IncreasesPlayerPower"
 
 ## Test Metrics
 
-**Total Tests**: 446
-**Unit Tests**: 297 (est)
-**Integration Tests**: 142 (est)
+**Total Tests**: 548
+**Unit Tests**: 395
+**Integration Tests**: 146
 **Performance Tests**: 7
 
 **Execution Time**:
-- Unit: ~0.8s
-- Integration: ~0.9s
+- Unit: ~0.9s
+- Integration: ~1.2s
 - Performance: ~0.7s
-- **Total**: ~2.6s
+- **Total**: ~6.3s
 
 ---
 

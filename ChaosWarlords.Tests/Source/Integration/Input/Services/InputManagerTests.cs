@@ -5,7 +5,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using NSubstitute;
 
-namespace ChaosWarlords.Tests.Input.Services
+namespace ChaosWarlords.Tests.Integration.Input.Services
 {
     [TestClass]
 

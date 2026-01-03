@@ -11,7 +11,7 @@ using ChaosWarlords.Source.Rendering.UI;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Rendering.Views;
 
-namespace ChaosWarlords.Source.States
+namespace ChaosWarlords.Source.GameStates
 {
     public class MainMenuState : IState, IDrawableState
     {

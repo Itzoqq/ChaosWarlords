@@ -9,7 +9,7 @@ using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 
-namespace ChaosWarlords.Tests.Source.Systems
+namespace ChaosWarlords.Tests.Integration.Managers
 {
     [TestClass]
 

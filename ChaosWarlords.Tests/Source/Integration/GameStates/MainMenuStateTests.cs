@@ -1,5 +1,5 @@
 using NSubstitute;
-using ChaosWarlords.Source.States;
+using ChaosWarlords.Source.GameStates;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Core.Interfaces.Input;
@@ -10,7 +10,7 @@ using ChaosWarlords.Source.Core.Interfaces.State;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Rendering.UI;
 
-namespace ChaosWarlords.Tests.GameStates
+namespace ChaosWarlords.Tests.Integration.GameStates
 {
     [TestClass]
 

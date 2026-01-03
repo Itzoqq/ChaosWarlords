@@ -1,11 +1,11 @@
 using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.States;
+using ChaosWarlords.Source.GameStates;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using NSubstitute;
 
 
-namespace ChaosWarlords.Tests.States
+namespace ChaosWarlords.Tests.Integration.GameStates
 {
     [TestClass]
 

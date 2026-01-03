@@ -10,7 +10,7 @@ using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Managers;
 
 
-namespace ChaosWarlords.Source.States.Input
+namespace ChaosWarlords.Source.Input.Modes
 {
     public class MarketInputMode : IInputMode
     {

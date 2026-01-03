@@ -1,6 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Core.Data.Dtos;
-using ChaosWarlords.Source.States;
+using ChaosWarlords.Source.GameStates;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Factories;

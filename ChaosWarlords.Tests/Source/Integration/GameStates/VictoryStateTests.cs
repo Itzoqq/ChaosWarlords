@@ -1,6 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
-using ChaosWarlords.Source.States;
+using ChaosWarlords.Source.GameStates;
 using ChaosWarlords.Source.Core.Data.Dtos;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.State;
@@ -11,7 +11,7 @@ using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Utilities;
 using System;
 
-namespace ChaosWarlords.Tests.GameStates
+namespace ChaosWarlords.Tests.Integration.GameStates
 {
     [TestClass]
     [TestCategory("Integration")]

@@ -4,7 +4,7 @@ using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using System;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.States;
+using ChaosWarlords.Source.GameStates;
 using System.Linq;
 
 namespace ChaosWarlords.Source.Managers

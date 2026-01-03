@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 
 
-namespace ChaosWarlords.Source.States
+namespace ChaosWarlords.Source.GameStates
 {
     public class StateManager : IStateManager
     {

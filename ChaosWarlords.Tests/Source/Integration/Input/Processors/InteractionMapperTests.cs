@@ -8,7 +8,7 @@ using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 using NSubstitute;
 
-namespace ChaosWarlords.Tests.Source.Input.Processors
+namespace ChaosWarlords.Tests.Integration.Input.Processors
 {
     [TestClass]
 

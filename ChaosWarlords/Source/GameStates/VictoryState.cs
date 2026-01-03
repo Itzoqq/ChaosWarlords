@@ -9,7 +9,7 @@ using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace ChaosWarlords.Source.States
+namespace ChaosWarlords.Source.GameStates
 {
     public class VictoryState : IState, IDrawableState, System.IDisposable
     {

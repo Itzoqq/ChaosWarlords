@@ -1,6 +1,7 @@
 using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.States;
-using ChaosWarlords.Source.States.Input;
+using ChaosWarlords.Source.Core.Interfaces.State;
+using ChaosWarlords.Source.GameStates;
+using ChaosWarlords.Source.Input.Modes;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
@@ -10,14 +11,14 @@ namespace ChaosWarlords.Source.Input
 {
     public class GameplayInputCoordinator : IGameplayInputCoordinator
     {
-        private IInputMode _currentMode = null!;
-        private readonly GameplayState _state; // Reference back to main state for context
+    private IInputMode _currentMode = null!;
+        private readonly IGameplayState _state; // Reference back to main state for context
         private readonly InputManager _inputManager;
         private readonly MatchContext _context;
 
         public IInputMode CurrentMode => _currentMode;
 
-        public GameplayInputCoordinator(GameplayState state, InputManager inputManager, MatchContext context)
+        public GameplayInputCoordinator(IGameplayState state, InputManager inputManager, MatchContext context)
         {
             _state = state;
             _inputManager = inputManager;

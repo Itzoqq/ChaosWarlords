@@ -4,7 +4,7 @@ using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using Microsoft.Xna.Framework;
-using ChaosWarlords.Source.States.Input;
+using ChaosWarlords.Source.Input.Modes;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
@@ -13,7 +13,7 @@ using ChaosWarlords.Source.Utilities;
 
 using NSubstitute;
 
-namespace ChaosWarlords.Tests.States.Input
+namespace ChaosWarlords.Tests.Integration.Input.Modes
 {
     [TestClass]
 

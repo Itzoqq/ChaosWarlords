@@ -1,7 +1,7 @@
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 
-namespace ChaosWarlords.Tests.Source.Utilities
+namespace ChaosWarlords.Tests.Integration.Factories
 {
   [TestClass]
 

@@ -639,6 +639,38 @@ public class PlayCardCommand : IGameCommand
 - **Undo**: Can implement undo by storing command state
 - **Testing**: Easy to test individual commands in isolation
 
+#### Transactional Command Execution (Complex Actions)
+
+**Problem**: Some card effects require multiple user interactions in sequence. For example, the Wight card: *"Devour a card from hand → Supplant an enemy troop"*. These multi-step actions must behave atomically - if the player cancels partway through, all state must roll back.
+
+**Solution**: The `ActionSystem` implements **deferred execution** with **state buffering** for complex action chains.
+
+**Key Mechanisms**:
+1. **Deferred Execution**: User selects all targets, but action doesn't execute until the entire chain is confirmed
+2. **State Buffering**: Selected targets are held in `PendingDevourCard` until transaction completes
+3. **Cancellation**: `CancelTargeting()` clears all buffered state and returns to Normal
+4. **Pre-Targeting**: Targets can be selected before card plays for atomic execution
+5. **Skip Markers**: Optional effects support `ActionSystem.SkippedTarget` marker
+
+**Example - Wight Card Flow**:
+```csharp
+// User chooses Devour path
+ActionSystem.TryStartDevourHand(wightCard, 
+    onComplete: () => ActionSystem.StartTargeting(ActionState.TargetingSupplant, wightCard),
+    deferExecution: true);  // Don't execute yet!
+
+// User selects card → Buffered in PendingDevourCard (not removed from hand)
+ActionSystem.HandleDevourSelection(targetCard);
+
+// User selects node for Supplant → SupplantCommand executes
+// ONLY NOW does the entire transaction execute atomically
+```
+
+**Cancellation** (ESC key): `ActionSystem.CancelTargeting()` → Clears `PendingDevourCard`, card stays in hand (rollback)
+
+**Implementation**: `IActionSystem.cs`, `ActionSystem.cs`, `DevourCardCommand.cs`, `SupplantCommand.cs`  
+**Tests**: `ActionSystemTransactionTests.cs`, `TransactionalCommandTests.cs` (Integration/)
+
 ### 4. Multiplayer Readiness & Determinism
 The architecture is specifically designed for multiplayer synchronization without a shared memory model.
 

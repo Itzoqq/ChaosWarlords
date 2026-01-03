@@ -5,9 +5,11 @@ using ChaosWarlords.Source.Core.Interfaces.Services;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Rendering.Views
 {
+    [ExcludeFromCodeCoverage]
     public class VictoryView : IVictoryView
     {
         private readonly UIRenderer _uiRenderer;

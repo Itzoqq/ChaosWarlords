@@ -1,7 +1,7 @@
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Core.Events;
 
-namespace ChaosWarlords.Tests.Source.Core.Events
+namespace ChaosWarlords.Tests.Integration.Core.Events
 {
     [TestClass]
 

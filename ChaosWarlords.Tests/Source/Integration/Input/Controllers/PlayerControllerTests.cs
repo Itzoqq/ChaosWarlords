@@ -8,7 +8,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using NSubstitute;
 
-namespace ChaosWarlords.Tests.Input.Controllers
+namespace ChaosWarlords.Tests.Integration.Input.Controllers
 {
     [TestClass]
 

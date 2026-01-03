@@ -11,7 +11,7 @@ using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 using System.Linq;
 
-namespace ChaosWarlords.Source.States.Input
+namespace ChaosWarlords.Source.Input.Modes
 {
     public class TargetingInputMode : IInputMode
     {

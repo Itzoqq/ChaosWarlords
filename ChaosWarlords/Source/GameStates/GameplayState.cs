@@ -20,7 +20,7 @@ using ChaosWarlords.Source.Core.Interfaces.Composition;
 using ChaosWarlords.Source.Core.Composition;
 using System;
 
-namespace ChaosWarlords.Source.States
+namespace ChaosWarlords.Source.GameStates
 {
     public class GameplayState : IGameplayState, IDrawableState
     {
@@ -281,7 +281,7 @@ namespace ChaosWarlords.Source.States
                 // We use ChangeState to replace GameplayState with VictoryState
                 if (_game is Game1 game1)
                 {
-                    game1.StateManager.ChangeState(new ChaosWarlords.Source.States.VictoryState(game1, MatchManager.VictoryResult));
+                    game1.StateManager.ChangeState(new VictoryState(game1, MatchManager.VictoryResult));
                 }
             }
         }
