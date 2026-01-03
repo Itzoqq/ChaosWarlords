@@ -61,6 +61,12 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             // Link MatchContext to State
             _stateSub.MatchContext.Returns(matchContext);
+            _stateSub.TurnManager.Returns(turnManagerSub);
+            _stateSub.Logger.Returns(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+
+            // CRITICAL FIX: Configure mock to actually execute commands!
+            _stateSub.When(x => x.RecordAndExecuteCommand(Arg.Any<IGameCommand>()))
+                     .Do(x => x.Arg<IGameCommand>().Execute(_stateSub));
 
             // Initialize Mode (Promote 1 card)
             _inputMode = new PromoteInputMode(_stateSub, _inputManager, _actionSub, 1);
@@ -98,6 +104,12 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             var sourceCard = TestData.Cards.CheapCard();
             var targetCard = TestData.Cards.CheapCard();
 
+            // Force unique IDs to prevent collision
+            try { 
+                typeof(Card).GetProperty("Id")?.SetValue(sourceCard, "ID_SOURCE");
+                typeof(Card).GetProperty("Id")?.SetValue(targetCard, "ID_TARGET");
+            } catch {}
+
             _activePlayer.PlayedCards.Add(sourceCard);
             _activePlayer.PlayedCards.Add(targetCard);
 
@@ -111,15 +123,21 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 100, 100);
 
             // Act
-            _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+            var resultCmd = _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
 
             // Assert
+            // 1. Verify Command Execution
+            _stateSub.Received(1).RecordAndExecuteCommand(Arg.Is<IGameCommand>(cmd => 
+                (cmd as ChaosWarlords.Source.Commands.PromoteCommand) != null && 
+                ((ChaosWarlords.Source.Commands.PromoteCommand)cmd).CardId == targetCard.Id));
+
+            // Verify State
             Assert.DoesNotContain(targetCard, _activePlayer.PlayedCards, "Target should be removed from Played.");
             Assert.Contains(targetCard, _activePlayer.InnerCircle, "Target should be in Inner Circle.");
             Assert.AreEqual(0, _realTurnContext.PendingPromotionsCount, "Credit should be consumed.");
 
-            // Verify EndTurn was called since we promoted the 1 required card
-            _stateSub.Received().EndTurn();
+            // Verify EndTurn Command is returned
+            Assert.IsInstanceOfType(resultCmd, typeof(ChaosWarlords.Source.Commands.EndTurnCommand), "Should return EndTurnCommand");
             _actionSub.Received().CancelTargeting();
         }
 
