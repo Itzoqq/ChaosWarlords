@@ -34,7 +34,8 @@ namespace ChaosWarlords.Source.Mechanics.Actions
             {
                 if (IsTargetingEffect(effect.Type))
                 {
-                    if (HasValidTargets(effect.Type))
+                    // Use CardRuleEngine for validation
+                    if (_matchContext.CardRuleEngine.HasValidTargets(_matchContext.ActivePlayer, effect.Type))
                     {
                         var state = GetTargetingState(effect.Type);
                         _matchContext.ActionSystem.StartTargeting(state, card);
@@ -70,27 +71,10 @@ namespace ChaosWarlords.Source.Mechanics.Actions
             {
                 if (IsTargetingEffect(effect.Type))
                 {
-                    if (HasValidTargets(effect.Type)) return true;
+                    if (_matchContext.CardRuleEngine.HasValidTargets(_matchContext.ActivePlayer, effect.Type)) return true;
                 }
             }
             return false;
-        }
-
-        private bool HasValidTargets(EffectType type)
-        {
-            var p = _matchContext.ActivePlayer;
-            var map = _matchContext.MapManager;
-
-            return type switch
-            {
-                EffectType.Assassinate => map.HasValidAssassinationTarget(p),
-                EffectType.Supplant => map.HasValidAssassinationTarget(p),
-                EffectType.ReturnUnit => map.HasValidReturnSpyTarget(p) || map.HasValidReturnTroopTarget(p),
-                EffectType.PlaceSpy => map.HasValidPlaceSpyTarget(p),
-                EffectType.MoveUnit => map.HasValidMoveSource(p),
-                EffectType.Devour => p.Hand.Count > 0,
-                _ => true
-            };
         }
 
         public static bool IsTargetingEffect(EffectType type)

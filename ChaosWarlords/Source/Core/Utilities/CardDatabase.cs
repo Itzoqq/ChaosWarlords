@@ -31,6 +31,13 @@ namespace ChaosWarlords.Source.Utilities
         public string? TargetResource { get; set; }
         public bool RequiresFocus { get; set; }
         public CardEffectData? OnSuccess { get; set; }
+
+        public string? ConditionType { get; set; }
+        public int ConditionThreshold { get; set; }
+        public string? ConditionResource { get; set; }
+
+        public bool IsOptional { get; set; }
+        public CardEffectData? AlternativeEffect { get; set; }
     }
 
     public class CardDatabase : ICardDatabase

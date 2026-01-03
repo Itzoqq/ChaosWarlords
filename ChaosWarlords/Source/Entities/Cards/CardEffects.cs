@@ -12,6 +12,11 @@ namespace ChaosWarlords.Source.Entities.Cards
         public bool RequiresFocus { get; internal set; }
         public CardEffect? OnSuccess { get; internal set; }
 
+        // Conditional Logic Support
+        public EffectCondition? Condition { get; internal set; }          // "If you control a Site"
+        public bool IsOptional { get; internal set; }                     // "You may..."
+        public CardEffect? AlternativeEffect { get; internal set; }       // "OR Devour"
+
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {
             Type = type;

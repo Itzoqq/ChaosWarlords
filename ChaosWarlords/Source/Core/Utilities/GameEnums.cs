@@ -65,6 +65,20 @@ namespace ChaosWarlords.Source.Utilities
         MoveUnit,
     }
 
+    /// <summary>
+    /// Types of conditions that gate card effect execution.
+    /// Used by EffectCondition to evaluate "If you control a Site" type logic.
+    /// </summary>
+    public enum ConditionType
+    {
+        None,                   // No condition - always executes
+        ControlsSite,          // Player controls at least one Site
+        HasTroopsDeployed,     // Player has troops on the map
+        HasResourceAmount,     // Player has X or more of a resource
+        InnerCircleCount,      // Player has X or more cards in Inner Circle
+        HandSize               // Player has X or more cards in hand
+    }
+
     public enum PlayerColor
     {
         None = 0,       // Empty space

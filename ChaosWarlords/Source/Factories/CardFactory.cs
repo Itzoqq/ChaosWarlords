@@ -73,6 +73,24 @@ namespace ChaosWarlords.Source.Utilities
                     effect.OnSuccess = CreateEffect(data.OnSuccess);
                 }
 
+                // Conditional Logic
+                if (!string.IsNullOrEmpty(data.ConditionType) && Enum.TryParse(data.ConditionType, true, out ConditionType condType))
+                {
+                    ResourceType condRes = ResourceType.None;
+                    if (!string.IsNullOrEmpty(data.ConditionResource))
+                    {
+                        Enum.TryParse(data.ConditionResource, true, out condRes);
+                    }
+                    effect.Condition = new EffectCondition(condType, data.ConditionThreshold, condRes);
+                }
+
+                effect.IsOptional = data.IsOptional;
+
+                if (data.AlternativeEffect != null)
+                {
+                    effect.AlternativeEffect = CreateEffect(data.AlternativeEffect);
+                }
+
                 return effect;
             }
             return null;

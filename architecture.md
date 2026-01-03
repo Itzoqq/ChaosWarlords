@@ -671,7 +671,27 @@ ActionSystem.HandleDevourSelection(targetCard);
 **Implementation**: `IActionSystem.cs`, `ActionSystem.cs`, `DevourCardCommand.cs`, `SupplantCommand.cs`  
 **Tests**: `ActionSystemTransactionTests.cs`, `TransactionalCommandTests.cs` (Integration/)
 
-### 4. Multiplayer Readiness & Determinism
+### 4. Card Rule Engine (Hybrid Strategy)
+
+**Problem**: Cards have complex conditional logic ("If you control a site...", "Gain 2 Power OR Devour...").
+
+**Solution**: A centralized **CardRuleEngine** that validates conditions using a Chain of Responsibility pattern mixed with Strategy for edge cases.
+
+**Structure**:
+1. **CardRuleEngine**: Evaluates `EffectCondition` objects against the game state (`MatchContext`).
+2. **EffectCondition**: Data-driven definition of requirements (e.g., `ConditionType.ControlsSite`).
+3. **CardEffectProcessor**: Queries the engine before applying effects.
+
+**Example**:
+```csharp
+// "If you control a Site, +2 Power"
+if (cardRuleEngine.IsConditionMet(player, effectWithCondition))
+{
+    ApplyEffect(effect);
+}
+```
+
+### 5. Multiplayer Readiness & Determinism
 The architecture is specifically designed for multiplayer synchronization without a shared memory model.
 
 **Key Features**:

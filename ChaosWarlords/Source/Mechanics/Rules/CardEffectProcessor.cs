@@ -24,6 +24,14 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         private static void ApplyEffect(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
         {
+            // 1. Check Condition
+            if (!context.CardRuleEngine.IsConditionMet(context.ActivePlayer, effect))
+            {
+                logger.Log($"{sourceCard.Name}: Condition not met, skipping effect.", LogChannel.Info);
+                return;
+            }
+
+            // 2. Execute Effect logic
             Action action = effect.Type switch
             {
                 EffectType.GainResource => () => ApplyGainResource(effect, sourceCard, context, logger),

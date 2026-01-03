@@ -291,3 +291,39 @@ Before submitting a PR, verify:
 - [Architecture Guide](architecture.md) - System design and structure
 - [Testing Guide](testing.md) - Test patterns and organization
 - [Contributing Guide](../CONTRIBUTING.md) - PR process and workflow
+
+---
+
+## 8. Card Rule Engine (New Standard)
+
+**Rule**: Use `CardRuleEngine` for all card validation and conditional logic.
+
+**Why**: Centralizing validation (Chain of Responsibility) prevents duplicated logic and allows data-driven card definition.
+
+```csharp
+// ❌ WRONG: Hardcoding logic in EffectProcessor
+if (effect.Type == EffectType.GainResource && player.ControlsSite)
+{
+    // Apply bonus
+}
+
+// ✅ CORRECT: Use CardRuleEngine
+if (context.CardRuleEngine.IsConditionMet(player, effect))
+{
+    // Processor only executes, Engine validates
+    ApplyEffect(effect);
+}
+```
+
+**Key Components**:
+- **CardRuleEngine**: The service (injected via `MatchContext`) that evaluates rules.
+- **EffectCondition**: The data object (from JSON) defining requirements (e.g., `ControlsSite`).
+- **HasValidTargets**: Checks if an effect can even initiate (e.g., prevents playing "Devour" with empty hand).
+
+**Pattern**:
+1. Check `HasValidTargets` early (in `CardPlaySystem` or UI).
+2. Check `IsConditionMet` before applying specific sub-effects.
+3. Keep `CardEffectProcessor` dumb (execution only).
+
+---
+

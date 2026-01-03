@@ -1,6 +1,7 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
+using ChaosWarlords.Source.Mechanics.Rules;
 using System;
 using System.Collections.Generic;
 using ChaosWarlords.Source.Entities.Cards;
@@ -31,6 +32,7 @@ namespace ChaosWarlords.Source.Contexts
         public IMarketManager MarketManager { get; private set; }
         public IActionSystem ActionSystem { get; private set; }
         public ICardDatabase CardDatabase { get; private set; }
+        public CardRuleEngine CardRuleEngine { get; private set; }
 
         /// <summary>
         /// Deterministic random number generator for this match.
@@ -89,6 +91,9 @@ namespace ChaosWarlords.Source.Contexts
             // Initialize seeded RNG
             Seed = seed ?? Environment.TickCount;
             Random = new SeededGameRandom(Seed, logger);
+
+            // Initialize Rules Engine
+            CardRuleEngine = new CardRuleEngine(this, logger);
         }
 
         public void RecordAction(string actionType, string summary)
