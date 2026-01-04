@@ -2,6 +2,7 @@ using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Rendering.Views;
 using System;
 
 namespace ChaosWarlords.Source.Input.Controllers
@@ -78,6 +79,35 @@ namespace ChaosWarlords.Source.Input.Controllers
 
             // Block if pause menu is open
             if (_gameState.IsPauseMenuOpen) return true;
+
+            // Priority 1: Check Optional Effect Popup via View
+            if (_gameState is GameStates.GameplayState gps && 
+                gps._view is Rendering.Views.GameplayView view)
+            {
+                if (view.HandleOptionalEffectAccept()) return true;
+            }
+            
+            // Priority 2: Check Confirmation Popup
+            if (_gameState.IsConfirmationPopupOpen)
+            {
+                // UIEventMediator handles this via specific key binding or we should trigger 'Confirm' logic
+                // UIEventMediator currently doesn't have a public 'ConfirmPopup' method, 
+                // but it listens to events.
+                // Reusing EndTurn logic below might be redundant or conflicting.
+                // The popup is just a visual overlay in `GameplayView`, state is in `UIEventMediator` via `_gameState`.
+                // If popup is open, 'Enter' should probably confirm it.
+                // Currently `HandleEndTurnKeyPress` handles logic, but `IsConfirmationPopupOpen` is handled by `HandlePopupConfirm`.
+                // We need to trigger `OnPopupConfirm` in `UIManager`?
+                // Or call `_gameState.UIManager.TriggerPopupConfirm()`?
+                
+                // For now, let's assume `HandleEndTurnKeyPress` is NOT the confirmation of the popup itself,
+                // but the popup asks "End Turn?". Confirming means executing the action.
+                
+                // Better approach: Invoke the confirm action directly if possible.
+                // `UIManager` has `TriggerPopupConfirm()`.
+                _gameState.UIManager.TriggerPopupConfirm();
+                return true;
+            }
 
             if (_gameState.CanEndTurn(out string reason))
             {

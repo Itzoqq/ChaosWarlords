@@ -115,15 +115,33 @@ namespace ChaosWarlords.Source.Managers
             if (_isPauseMenuOpen)
             {
                 _isPauseMenuOpen = false;
+                return;
             }
-            else
+
+            // Priority 1: Cancel Targeting
+            if (_actionSystem.IsTargeting())
             {
-                _isPauseMenuOpen = true;
-                if (_gameState.IsMarketOpen) _gameState.CloseMarket();
                 _actionSystem.CancelTargeting();
                 _gameState.SwitchToNormalMode();
-                if (_isConfirmationPopupOpen) _isConfirmationPopupOpen = false;
+                return; // Do NOT open pause menu
             }
+
+            // Priority 2: Close Market
+            if (_gameState.IsMarketOpen)
+            {
+                _gameState.CloseMarket();
+                return; // Do NOT open pause menu
+            }
+
+            // Priority 3: Close Confirmation Popup
+            if (_isConfirmationPopupOpen)
+            {
+                _isConfirmationPopupOpen = false;
+                return; // Do NOT open pause menu
+            }
+
+            // If nothing else to cancel, Open Pause Menu
+            _isPauseMenuOpen = true;
         }
 
         public void HandleEndTurnKeyPress()

@@ -169,14 +169,26 @@ namespace ChaosWarlords.Source.Rendering.UI
 
             if (_yesButtonRect.Contains(clickPos))
             {
-                _onAccept?.Invoke();
-                Close();
+                InvokeAccept();
             }
             else if (_noButtonRect.Contains(clickPos))
             {
-                _onDecline?.Invoke();
-                Close();
+                InvokeDecline();
             }
+        }
+
+        public void InvokeAccept()
+        {
+            if (!_isVisible) return;
+            _onAccept?.Invoke();
+            Close();
+        }
+
+        public void InvokeDecline()
+        {
+            if (!_isVisible) return;
+            _onDecline?.Invoke();
+            Close();
         }
 
         private void Close()

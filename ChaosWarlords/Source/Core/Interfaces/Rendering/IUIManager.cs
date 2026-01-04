@@ -63,6 +63,9 @@ namespace ChaosWarlords.Source.Core.Interfaces.Rendering
         bool IsResumeHovered { get; }
         bool IsMainMenuHovered { get; }
         bool IsExitHovered { get; }
+        
+        // Triggers
+        void TriggerPopupConfirm();
     }
 }
 

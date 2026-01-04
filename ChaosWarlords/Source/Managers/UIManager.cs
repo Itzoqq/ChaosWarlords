@@ -277,5 +277,10 @@ namespace ChaosWarlords.Source.Managers
             var clickedElement = _elements.FirstOrDefault(e => e.IsActive() && input.IsMouseOver(e.GetBounds()));
             clickedElement?.OnClick?.Invoke();
         }
+
+        public void TriggerPopupConfirm()
+        {
+            OnPopupConfirm?.Invoke(this, EventArgs.Empty);
+        }
     }
 }

@@ -206,6 +206,16 @@ namespace ChaosWarlords.Source.Rendering.Views
             _optionalEffectPopup?.HandleClick(mouseX, mouseY);
         }
 
+        public bool HandleOptionalEffectAccept()
+        {
+            if (_optionalEffectPopup?.IsVisible == true)
+            {
+                _optionalEffectPopup.InvokeAccept();
+                return true;
+            }
+            return false;
+        }
+
         // --- Internal Render Logic ---
 
         private void SyncHandVisuals(List<Card> hand)
