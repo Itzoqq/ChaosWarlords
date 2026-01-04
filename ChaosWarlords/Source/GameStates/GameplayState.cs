@@ -361,6 +361,16 @@ namespace ChaosWarlords.Source.GameStates
         public void ToggleMarket() { IsMarketOpen = !IsMarketOpen; }
         public void CloseMarket() { IsMarketOpen = false; }
 
+        /// <summary>
+        /// Forces the market to open without triggering input mode changes.
+        /// Used when the input mode is already set up (e.g., devour targeting).
+        /// </summary>
+        public void ForceMarketOpen()
+        {
+            _isMarketOpenBacking = true;
+            _logger.Log("ForceMarketOpen: Market visual state set to open (bypassing SetMarketMode)", LogChannel.Info);
+        }
+
         public void SwitchToTargetingMode()
         {
             // During replay, we do not want to activate targeting mode (UI/Input handling).

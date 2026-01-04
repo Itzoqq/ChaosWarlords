@@ -67,6 +67,15 @@ namespace ChaosWarlords.Source.Utilities
                 var effect = new CardEffect(type, data.Amount, resType);
                 effect.RequiresFocus = data.RequiresFocus;
 
+                // Parse TargetLocation (Market, Deck, Hand, etc.)
+                if (!string.IsNullOrEmpty(data.TargetLocation))
+                {
+                    if (Enum.TryParse(data.TargetLocation, true, out CardLocation targetLoc))
+                    {
+                        effect.TargetLocation = targetLoc;
+                    }
+                }
+
                 // Recursive creation
                 if (data.OnSuccess != null)
                 {

@@ -108,7 +108,14 @@ namespace ChaosWarlords.Tests.Integration.Managers
             Assert.AreEqual(expectedTroopsAfter, testPlayer.TroopsInBarracks);
 
             if (shouldSucceed)
-                Assert.AreEqual(0, testPlayer.Power); // Power spent
+            {
+                // New logic: PendingFreeTroops (0 in this test) -> Barracks (costs Power in Playing phase)
+                // Since PendingFreeTroops = 0, barracks troops are used and Power IS spent
+                if (playerTroops > 0)
+                    Assert.AreEqual(0, testPlayer.Power, "Power should be spent when using barracks troops");
+                else
+                    Assert.AreEqual(0, testPlayer.Power, "Power should be spent when no troops available");
+            }
         }
 
 

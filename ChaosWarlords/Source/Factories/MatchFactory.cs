@@ -62,7 +62,7 @@ namespace ChaosWarlords.Source.Factories
             var victoryManager = new VictoryManager(_logger);
 
             var mapManager = SetupMap(playerStateManager, _logger);
-            var actionSystem = SetupActionSystem(turnManager, mapManager, playerStateManager, _logger);
+            var actionSystem = SetupActionSystem(turnManager, mapManager, marketManager, playerStateManager, _logger);
 
             //ApplyScenarioRules(mapManager); This is for testing purposes only
 
@@ -121,10 +121,11 @@ namespace ChaosWarlords.Source.Factories
             return new MapManager(nodes, sites, logger, playerStateManager);
         }
 
-        private static ActionSystem SetupActionSystem(ITurnManager turnManager, IMapManager mapManager, IPlayerStateManager playerStateManager, IGameLogger logger)
+        private static ActionSystem SetupActionSystem(ITurnManager turnManager, IMapManager mapManager, IMarketManager marketManager, IPlayerStateManager playerStateManager, IGameLogger logger)
         {
             var actionSystem = new ActionSystem(turnManager, mapManager, logger);
             actionSystem.SetPlayerStateManager(playerStateManager);
+            actionSystem.SetMarketManager(marketManager);
             return actionSystem;
         }
 

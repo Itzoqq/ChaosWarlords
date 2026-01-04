@@ -46,16 +46,24 @@ namespace ChaosWarlords.Source.Map
             ArgumentNullException.ThrowIfNull(node);
             ArgumentNullException.ThrowIfNull(player);
 
-            // FREE in Setup Phase
-            if (_getCurrentPhase() != MatchPhase.Setup)
+            // Priority 1: Use PendingFreeTroops (from cards this turn) - always free
+            if (player.PendingFreeTroops > 0)
             {
-                _stateManager.TrySpendPower(player, GameConstants.DeployPowerCost);
+                player.PendingFreeTroops--;
+                _logger.Log($"Deployed FREE troop from card effect. Remaining free: {player.PendingFreeTroops}", LogChannel.Combat);
+            }
+            // Priority 2: Use barracks troops (free in Setup, costs Power otherwise)
+            else
+            {
+                if (_getCurrentPhase() != MatchPhase.Setup && player.TroopsInBarracks > 0)
+                {
+                    _stateManager.TrySpendPower(player, GameConstants.DeployPowerCost);
+                }
+                _stateManager.RemoveTroops(player, 1);
+                _logger.Log($"Deployed troop from barracks. Supply: {player.TroopsInBarracks}", LogChannel.Combat);
             }
 
-            _stateManager.RemoveTroops(player, 1);
             node.Occupant = player.Color;
-
-            _logger.Log($"Deployed Troop at Node {node.Id}. Supply: {player.TroopsInBarracks}", LogChannel.Combat);
             _recalculateSiteState(_getSiteForNode(node), player);
         }
 
@@ -129,11 +137,22 @@ namespace ChaosWarlords.Source.Map
             node.Occupant = PlayerColor.None;
             _stateManager.AddTrophy(attacker);
 
-            if (_getCurrentPhase() != MatchPhase.Setup)
+            // Priority 1: Use PendingFreeTroops (from cards this turn) - always free
+            if (attacker.PendingFreeTroops > 0)
             {
-                _stateManager.TrySpendPower(attacker, GameConstants.DeployPowerCost);
+                attacker.PendingFreeTroops--;
+                _logger.Log($"Supplanted with FREE troop from card effect. Remaining free: {attacker.PendingFreeTroops}", LogChannel.Combat);
             }
-            _stateManager.RemoveTroops(attacker, 1);
+            // Priority 2: Use barracks troops (free in Setup, costs Power otherwise)
+            else
+            {
+                if (_getCurrentPhase() != MatchPhase.Setup && attacker.TroopsInBarracks > 0)
+                {
+                    _stateManager.TrySpendPower(attacker, GameConstants.DeployPowerCost);
+                }
+                _stateManager.RemoveTroops(attacker, 1);
+            }
+
             node.Occupant = attacker.Color;
 
             _logger.Log($"Supplanted enemy at Node {node.Id} (Added to Trophy Hall) and Deployed.", LogChannel.Combat);

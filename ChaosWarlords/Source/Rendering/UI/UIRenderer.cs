@@ -97,6 +97,27 @@ namespace ChaosWarlords.Source.Rendering.UI
 
             // Inner Circle (Purple)
             DrawRightAlignedStat(spriteBatch, "Inner Circle", player.InnerCircle.Count.ToString(CultureInfo.InvariantCulture), Color.MediumPurple, ref rightX);
+
+            // ====================================================
+            // TROOP DEPLOYMENT INDICATOR (Right side, below bar)
+            // ====================================================
+            // Only show when player has FREE troops from card effects this turn
+            if (player.PendingFreeTroops > 0)
+            {
+                int rightYPos = GameConstants.UILayout.TopBarHeight + GameConstants.UILayout.SmallPadding;
+                string troopDeployText = $"[!] {player.PendingFreeTroops} Free Troops";
+                Vector2 textSize = _defaultFont.MeasureString(troopDeployText);
+                Vector2 position = new Vector2(
+                    screenWidth - GameConstants.UILayout.TopBarPadding - textSize.X,
+                    rightYPos
+                );
+                
+                // Draw with pulsing effect to draw attention
+                float pulse = (float)Math.Sin(DateTime.Now.Millisecond / 200.0) * 0.3f + 0.7f;
+                Color troopColor = Color.LimeGreen * pulse;
+                
+                spriteBatch.DrawString(_defaultFont, troopDeployText, position, troopColor);
+            }
         }
 
         public void DrawActionButtons(SpriteBatch spriteBatch, IUIManager ui, Player player)

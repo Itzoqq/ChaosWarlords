@@ -108,5 +108,37 @@ namespace ChaosWarlords.Tests.Source.Systems
             // Assert
             _matchManager.DidNotReceive().DevourCard(handCard);
         }
+        [TestMethod]
+        public void TryStartDevourDeck_WithCards_DevoursTopCard()
+        {
+            // Arrange
+            var sourceCard = new Card("src", "Source", 0, CardAspect.Neutral, 0, 0, 0);
+            var deckCard = new Card("d1", "DeckCard", 0, CardAspect.Neutral, 0, 0, 0) { Location = CardLocation.Deck };
+            
+            _player.DeckManager.AddToTop(deckCard);
+            
+            // Act
+            _actionSystem.TryStartDevourDeck(sourceCard);
+
+            // Assert
+#pragma warning disable MSTEST0037
+            Assert.AreEqual(0, _player.Deck.Count, "Deck should be empty.");
+#pragma warning restore MSTEST0037
+            _matchManager.Received(1).DevourCard(deckCard);
+        }
+
+        [TestMethod]
+        public void TryStartDevourDeck_EmptyDeck_DoesNothing()
+        {
+            // Arrange
+            var sourceCard = new Card("src", "Source", 0, CardAspect.Neutral, 0, 0, 0);
+            // Deck is empty by default on new Player
+            
+            // Act
+            _actionSystem.TryStartDevourDeck(sourceCard);
+
+            // Assert
+            _matchManager.DidNotReceive().DevourCard(Arg.Any<Card>());
+        }
     }
 }

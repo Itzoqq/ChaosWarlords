@@ -78,6 +78,12 @@ namespace ChaosWarlords.Source.Entities.Actors
         public int SpiesInBarracks { get; internal set; } = GameConstants.StartingSpies;
 
         /// <summary>
+        /// Troops granted by card effects this turn that can be deployed for free.
+        /// Resets at end of turn if not used.
+        /// </summary>
+        public int PendingFreeTroops { get; internal set; } = 0;
+
+        /// <summary>
         /// Count of trophies collected (e.g. from assassinations).
         /// </summary>
         public int TrophyHall { get; internal set; }

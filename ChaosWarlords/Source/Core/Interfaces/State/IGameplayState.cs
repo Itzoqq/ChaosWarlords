@@ -123,9 +123,15 @@ namespace ChaosWarlords.Source.Core.Interfaces.State
         void ToggleMarket();
 
         /// <summary>
-        /// Closes the market overlay.
+        /// Closes the market UI.
         /// </summary>
         void CloseMarket();
+
+        /// <summary>
+        /// Forces the market to open without triggering input mode changes.
+        /// Used when the input mode is already set up (e.g., devour targeting).
+        /// </summary>
+        void ForceMarketOpen();
 
         /// <summary>
         /// Switches input context to Targeting mode (usually for card effects).

@@ -114,6 +114,12 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 context.PlayerStateManager.AddPower(context.ActivePlayer, effect.Amount);
             else if (effect.TargetResource == ResourceType.Influence)
                 context.PlayerStateManager.AddInfluence(context.ActivePlayer, effect.Amount);
+            else if (effect.TargetResource == ResourceType.Troops)
+            {
+                // Troops from cards go to PendingFreeTroops (free deployments this turn)
+                context.ActivePlayer.PendingFreeTroops += effect.Amount;
+                logger.Log($"{sourceCard.Name}: Gained {effect.Amount} free troop deployment(s) this turn.", LogChannel.Info);
+            }
             
             // Auto-trigger recursive effects for instant actions
             if (effect.OnSuccess != null)
@@ -209,9 +215,22 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             {
                 context.ActionSystem.TryStartDevourMarket(sourceCard, onComplete, defer);
             }
+            else if (effect.TargetLocation == CardLocation.Hand)
+            {
+                // Explicit Hand targeting
+                if (context.ActivePlayer.Hand.Count > 0)
+                {
+                    context.ActionSystem.TryStartDevourHand(sourceCard, onComplete, defer);
+                }
+                else
+                {
+                    logger.Log($"{sourceCard.Name}: Hand empty, cannot Devour.", LogChannel.Warning);
+                }
+            }
             else
             {
-                // Default to Hand
+                // Default/fallback for None or unspecified
+                logger.Log($"{sourceCard.Name}: Invalid or unspecified TargetLocation for Devour. Defaulting to Hand.", LogChannel.Warning);
                 if (context.ActivePlayer.Hand.Count > 0)
                 {
                     context.ActionSystem.TryStartDevourHand(sourceCard, onComplete, defer);

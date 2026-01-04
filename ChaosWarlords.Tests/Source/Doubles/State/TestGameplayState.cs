@@ -69,6 +69,7 @@ namespace ChaosWarlords.Tests.Source.Doubles.State
         public void EndTurn() { EndTurnCalled = true; }
         public void ToggleMarket() { IsMarketOpen = !IsMarketOpen; }
         public void CloseMarket() { IsMarketOpen = false; }
+        public void ForceMarketOpen() { IsMarketOpen = true; }
         public string ActiveModeName { get; set; } = "None"; // For testing mode switches
         public void SwitchToTargetingMode() { ActiveModeName = "Targeting"; }
         public void SwitchToNormalMode() { ActiveModeName = "Normal"; }

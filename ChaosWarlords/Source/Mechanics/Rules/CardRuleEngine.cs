@@ -107,6 +107,18 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                              return false;
                          }
                     }
+                    else if (devourEffect.TargetLocation == CardLocation.Deck)
+                    {
+                         if (player.Deck.Count > 0)
+                         {
+                             return true;
+                         }
+                         else
+                         {
+                             _logger.Log("[RuleEngine] Deck Devour failed: Deck is empty.", LogChannel.Warning);
+                             return false;
+                         }
+                    }
                 }
             }
 

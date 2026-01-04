@@ -49,6 +49,9 @@ namespace ChaosWarlords.Source.Managers
             Player nextPlayer = Players[_currentPlayerIndex];
             _logger.Log($"=== Turn Start: {nextPlayer.DisplayName} ===", LogChannel.General);
 
+            // Reset turn-specific resources
+            nextPlayer.PendingFreeTroops = 0; // Card-granted troops expire each turn
+
             // Create a fresh context for the new turn
             CurrentTurnContext = new TurnContext(nextPlayer, _logger);
 

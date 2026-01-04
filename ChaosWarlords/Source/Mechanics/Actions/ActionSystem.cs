@@ -757,6 +757,13 @@ namespace ChaosWarlords.Source.Managers
             }
 
             // 2. Validate Market Availability
+            if (_marketManager == null)
+            {
+                _logger.Log("Market Manager not initialized. Cannot devour from market.", LogChannel.Error);
+                OnActionCompleted?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+
             if (_marketManager.MarketRow.All(c => c == null))
             {
                 _logger.Log("No cards in Market to Devour.", LogChannel.Warning);
@@ -770,6 +777,32 @@ namespace ChaosWarlords.Source.Managers
             _pendingCallback = onComplete; // Store callback for succession (e.g. Supplant)
             _deferDevourExecution = deferExecution; 
             _logger.Log($"Triggering Devour for {sourceCard.Name}. Select a card from MARKET to remove.", LogChannel.General);
+        }
+
+        public void TryStartDevourDeck(Card sourceCard, Action? onComplete = null, bool deferExecution = false)
+        {
+            var player = _turnManager.ActivePlayer;
+            if (player.Deck.Count > 0)
+            {
+                // Deck.Draw removes the card from the pile.
+                // We pass null for random because we checked Count > 0, so no reshuffle will occur.
+                var drawnCards = player.DeckManager.Draw(1, null!); 
+                var cardToDevour = drawnCards[0];
+                
+                _logger.Log($"{sourceCard.Name} devoured {cardToDevour.Name} from deck.", LogChannel.Info);
+                
+                // Perform the Devour (Move to Void)
+                _matchManager.DevourCard(cardToDevour);
+
+                // Invoke completion (which usually triggers OnSuccess)
+                onComplete?.Invoke();
+            }
+            else
+            {
+                _logger.Log($"{sourceCard.Name}: Deck is empty, cannot devour.", LogChannel.Warning);
+                // Even if failed, we should probably continue or fizzle
+                onComplete?.Invoke(); 
+            }
         }
 
         public void HandleDevourMarketSelection(Card? targetCard)

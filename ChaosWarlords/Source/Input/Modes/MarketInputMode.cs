@@ -37,8 +37,6 @@ namespace ChaosWarlords.Source.Input.Modes
         {
             if (!inputManager.IsLeftMouseJustClicked()) return null;
 
-            if (_uiManager.IsMarketHovered) return null;
-
             // Get hovered card from View Model (via State)
             Card? hoveredCard = _state.GetHoveredMarketCard();
 
@@ -48,10 +46,9 @@ namespace ChaosWarlords.Source.Input.Modes
                 {
                     // Custom action (Devour)
                     _onCardSelected(hoveredCard);
-                    // Return null or NoOp because the action is handled via callback? 
-                    // Usually input modes return commands or modify state. 
-                    // If we use callback, we might need to signal "Task Done".
-                    // For now, returning null is fine if the callback handles the state transition (e.g. ActionSystem.CompleteTargeting).
+                    // Close market and switch back to normal mode after devour
+                    _state.CloseMarket();
+                    _state.SwitchToNormalMode();
                     return null; 
                 }
                 else
@@ -61,7 +58,13 @@ namespace ChaosWarlords.Source.Input.Modes
                 }
             }
 
-            // Clicked empty space? Close market.
+            // If market button is hovered, do nothing (keep market open)
+            if (_uiManager.IsMarketHovered)
+            {
+                return null;
+            }
+
+            // Clicked empty space - close market
             _state.CloseMarket();
 
             return null;

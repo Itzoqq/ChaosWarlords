@@ -133,6 +133,11 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// </summary>
         void HandleDevourMarketSelection(Card? targetCard);
 
+        /// <summary>
+        /// Initiates the Devour Deck action flow.
+        /// </summary>
+        void TryStartDevourDeck(Card sourceCard, Action? onComplete = null, bool deferExecution = false);
+
         // --- Perform Methods (Exposed for Replay Commands) ---
         void PerformAssassinate(MapNode node, string? cardId, string? devourCardId = null);
         void PerformReturnTroop(MapNode node, string? cardId);

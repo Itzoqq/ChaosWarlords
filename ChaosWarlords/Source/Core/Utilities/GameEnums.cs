@@ -27,7 +27,8 @@ namespace ChaosWarlords.Source.Utilities
         Sorcery,        // Magic/Control (Malice) - Best at assassination 
         Shadow,         // Spies/Assassination (Guile) - Best at spying 
         Order,          // Defense/Movement (Obedience) - Day-to-day tasks 
-        Blasphemy        // Recruitment/Inner Circle (Ambition) - Best at recruiting & promoting 
+        Blasphemy,       // Recruitment/Inner Circle (Ambition) - Best at recruiting & promoting
+        Oblivion        // Void/Devour themed
     }
 
     public enum ResourceType
@@ -35,7 +36,8 @@ namespace ChaosWarlords.Source.Utilities
         None = 0,
         Influence,  // Used to buy cards (Spider/Web resource)
         Power,      // Used to deploy units/assassinate (Military resource)
-        VictoryPoints
+        VictoryPoints,
+        Troops      // Direct troop gain to barracks
     }
 
     public enum CardLocation

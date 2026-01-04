@@ -93,8 +93,8 @@ namespace ChaosWarlords.Source.Input
             {
                 _state.Logger.Log("Coordinator: Switching to MarketInputMode (Devour Target)", Utilities.LogChannel.Input);
                 
-                // Open the market UI visual state first
-                _state.IsMarketOpen = true;
+                // Open the market UI visual state first (bypass SetMarketMode to avoid overwriting the input mode)
+                _state.ForceMarketOpen();
 
                 // Create MarketInputMode with a callback for "Devour Selection"
                 _currentMode = new MarketInputMode(_state, _inputManager, _context, (selectedCard) => 
@@ -119,6 +119,14 @@ namespace ChaosWarlords.Source.Input
 
         public void SetMarketMode(bool isOpen)
         {
+            // Don't overwrite the input mode if we're already in a special targeting mode (e.g., devour from market)
+            // The state change handler already set up the correct mode with callbacks
+            if (_context.ActionSystem.CurrentState == Utilities.ActionState.TargetingDevourMarket)
+            {
+                _state.Logger.Log("SetMarketMode: Skipping mode switch - already in TargetingDevourMarket with callback", Utilities.LogChannel.Info);
+                return;
+            }
+
             if (isOpen)
                 _currentMode = new MarketInputMode(_state, _inputManager, _context);
             else
