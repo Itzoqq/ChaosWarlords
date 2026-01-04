@@ -19,6 +19,7 @@ namespace ChaosWarlords.Tests.Source.Systems
         private CardEffectProcessor _processor = null!;
         private MatchContext _context = null!;
         private Player _player = null!;
+        private IUIEventMediator _uiMediator = null!;
 
         [TestInitialize]
         public void Setup()
@@ -26,6 +27,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
             _processor = new CardEffectProcessor();
             _player = TestData.Players.PoorPlayer();
+            _uiMediator = Substitute.For<IUIEventMediator>();
 
             var turnSub = Substitute.For<ITurnManager>();
             turnSub.ActivePlayer.Returns(_player);
@@ -39,7 +41,7 @@ namespace ChaosWarlords.Tests.Source.Systems
                 Substitute.For<IActionSystem>(),
                 Substitute.For<ICardDatabase>(),
                 new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance), // <--- Use real StateManager for logic testing
-                null,
+                _uiMediator,
                 ChaosWarlords.Tests.Utilities.TestLogger.Instance
             );
         }
@@ -269,6 +271,59 @@ namespace ChaosWarlords.Tests.Source.Systems
             Assert.AreEqual(2, _player.Power);
             Assert.AreEqual(3, _player.Influence);
             Assert.AreEqual(1, _context.TurnManager.CurrentTurnContext.PendingPromotionsCount);
+        }
+        [TestMethod]
+        public void ResolveEffects_SkipsOptionalPopup_WhenNoValidTargets()
+        {
+            // Arrange
+            // Create a card with an optional Devour effect
+            var card = TestData.Cards.DevourCard();
+            var devourEffect = card.Effects.Find(e => e.Type == EffectType.Devour);
+            Assert.IsNotNull(devourEffect);
+            devourEffect!.IsOptional = true; // Ensure it's optional for this test
+
+            // Ensure Hand is empty (source card is explicitly excluded by definition in HasValidTargets)
+            _player.Hand.Clear();
+            // Note: CardEffectProcessor does not add the source card to hand automatically, the caller logic does. 
+            // We just need to ensure Player.Hand count excluding source is 0.
+            
+            // Act
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+
+            // Assert
+            // UI Mediator should NOT receive RequestOptionalEffect call
+            _uiMediator.DidNotReceive().RequestOptionalEffect(
+                Arg.Any<Card>(), 
+                Arg.Any<CardEffect>(), 
+                Arg.Any<Action>(), 
+                Arg.Any<Action>()
+            );
+        }
+
+        [TestMethod]
+        public void ResolveEffects_ShowsOptionalPopup_WhenValidTargetsExist()
+        {
+            // Arrange
+            var card = TestData.Cards.DevourCard();
+            var devourEffect = card.Effects.Find(e => e.Type == EffectType.Devour);
+            Assert.IsNotNull(devourEffect);
+            devourEffect!.IsOptional = true;
+
+            // Add another card to make targets valid
+            _player.Hand.Clear();
+            _player.Hand.Add(new Card("dummy", "Dummy", 0, CardAspect.Neutral, 0, 0, 0) { Location = CardLocation.Hand });
+
+            // Act
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+
+            // Assert
+            // UI Mediator SHOULD receive RequestOptionalEffect call
+            _uiMediator.Received(1).RequestOptionalEffect(
+                card, 
+                devourEffect, 
+                Arg.Any<Action>(), 
+                Arg.Any<Action>()
+            );
         }
     }
 }

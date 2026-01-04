@@ -52,7 +52,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// Checks if the player has valid targets for the specific effect type.
         /// Used to prevent playing cards that would fizzle completely if targets are mandatory.
         /// </summary>
-        public bool HasValidTargets(Player player, EffectType effectType)
+        public bool HasValidTargets(Player player, EffectType effectType, Card? sourceCard = null)
         {
             bool isValid = effectType switch
             {
@@ -61,7 +61,9 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 EffectType.Assassinate => _context.MapManager.HasValidAssassinationTarget(player),
                 EffectType.MoveUnit => _context.MapManager.HasValidMoveSource(player),
                 EffectType.Supplant => _context.MapManager.HasValidAssassinationTarget(player), // Supplant requires Assassinate target + placing troop
-                EffectType.Devour => player.Hand.Count > 0,
+                
+                EffectType.Devour => CheckDevourTargets(player, sourceCard),
+                
                 _ => true // Most effects (GainResource, DrawCard) don't need external targets
             };
 
@@ -71,6 +73,45 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
 
             return isValid;
+        }
+
+        private bool CheckDevourTargets(Player player, Card? sourceCard)
+        {
+            // Default: Devour from Hand
+            // NOTE: We'll need to pass the specific Effect to checking function to know TargetLocation
+            // But HasValidTargets signature currently only takes EffectType. 
+            // We should overload or update HasValidTargets to take CardEffect if we can.
+            // For now, let's assume if it's "Devour" type, we might check both or look for the context?
+            
+            // REFACTOR: To support Devour from Market, we need to know WHICH effect we are validating.
+            // The current signature `HasValidTargets(Player, EffectType, Card?)` is insufficient if the context depends on properties of the CardEffect (like TargetLocation).
+            
+            // Temporary Logic until signature update:
+            // Check if ANY effect on the sourceCard is Devour from Market?
+            if (sourceCard != null)
+            {
+                var devourEffect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.Devour);
+                if (devourEffect != null)
+                {
+                    if (devourEffect.TargetLocation == CardLocation.Market)
+                    {
+                         // Use MarketManager to check if any cards are available
+                         // MarketRow is a List<Card>, so checking count is enough (or Any)
+                         if (_context.MarketManager.MarketRow.Count > 0)
+                         {
+                             return true;
+                         }
+                         else
+                         {
+                             _logger.Log("[RuleEngine] Market Devour failed: Market is empty.", LogChannel.Warning);
+                             return false;
+                         }
+                    }
+                }
+            }
+
+            // Fallback to Hand Devour
+            return player.Hand.Any(c => c != sourceCard);
         }
 
         // ----------------------------------------------------------------------------------------

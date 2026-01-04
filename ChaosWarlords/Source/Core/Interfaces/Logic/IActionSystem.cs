@@ -103,6 +103,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// <param name="stateManager">The manager instance.</param>
         void SetPlayerStateManager(IPlayerStateManager stateManager);
         void SetMatchManager(IMatchManager matchManager);
+        void SetMarketManager(IMarketManager marketManager);
 
         /// <summary>
         /// The card selected for Devouring, pending final execution of the chain.
@@ -121,6 +122,16 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// <param name="sourceCard">The card triggering the devour effect.</param>
         /// <param name="deferExecution">If true, the devour action is not executed immediately but stored.</param>
         void TryStartDevourHand(Entities.Cards.Card sourceCard, Action? onComplete = null, bool deferExecution = false);
+
+        /// <summary>
+        /// Initiates the Devour Market action flow.
+        /// </summary>
+        void TryStartDevourMarket(Entities.Cards.Card sourceCard, Action? onComplete = null, bool deferExecution = false);
+
+        /// <summary>
+        /// Handles the selection of a market card to devour.
+        /// </summary>
+        void HandleDevourMarketSelection(Card? targetCard);
 
         // --- Perform Methods (Exposed for Replay Commands) ---
         void PerformAssassinate(MapNode node, string? cardId, string? devourCardId = null);

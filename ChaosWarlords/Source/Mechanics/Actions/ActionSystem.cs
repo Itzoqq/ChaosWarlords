@@ -94,10 +94,16 @@ namespace ChaosWarlords.Source.Managers
         }
 
         private IMatchManager _matchManager = null!;
+        private IMarketManager _marketManager = null!;
 
         public void SetMatchManager(IMatchManager matchManager)
         {
             _matchManager = matchManager;
+        }
+
+        public void SetMarketManager(IMarketManager marketManager)
+        {
+            _marketManager = marketManager;
         }
 
         public void TryStartAssassinate()
@@ -400,7 +406,7 @@ namespace ChaosWarlords.Source.Managers
 
             foreach (var effect in effects)
             {
-                var effectState = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.GetTargetingState(effect.Type);
+                var effectState = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.GetTargetingState(effect);
                 
                 // 1. Have we found the current state yet?
                 if (!foundCurrent)
@@ -494,7 +500,7 @@ namespace ChaosWarlords.Source.Managers
 
             if (ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.Type))
             {
-                return ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.GetTargetingState(effect.Type);
+                return ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.GetTargetingState(effect);
             }
 
             if (effect.OnSuccess != null)
@@ -730,6 +736,75 @@ namespace ChaosWarlords.Source.Managers
             _pendingCallback = onComplete;
             _deferDevourExecution = deferExecution; // Store the flag
             _logger.Log($"Triggering Devour for {sourceCard.Name}. Select a card from HAND to remove. (Optional: You may skip)", LogChannel.General);
+        }
+
+        public void TryStartDevourMarket(Card sourceCard, Action? onComplete = null, bool deferExecution = false)
+        {
+            // 1. Check for Pre-Selected Target
+            var preTarget = GetAndClearPreTarget(sourceCard, ActionState.TargetingDevourMarket);
+            if (preTarget == SkippedTarget)
+            {
+                _logger.Log($"Devour (Market) skipped by user. Chain halted.", LogChannel.Info);
+                return;
+            }
+
+            if (preTarget is Card targetCard)
+            {
+                 // Handle Pre-Selection (Transactional)
+                 HandleDevourMarketSelection(targetCard);
+                 // Note: handleDevourMarketSelection invokes onComplete if successful
+                 return;
+            }
+
+            // 2. Validate Market Availability
+            if (_marketManager.MarketRow.All(c => c == null))
+            {
+                _logger.Log("No cards in Market to Devour.", LogChannel.Warning);
+                // Fail silently or notify?
+                OnActionCompleted?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+
+            // 3. Start Targeting
+            StartTargeting(ActionState.TargetingDevourMarket, sourceCard);
+            _pendingCallback = onComplete; // Store callback for succession (e.g. Supplant)
+            _deferDevourExecution = deferExecution; 
+            _logger.Log($"Triggering Devour for {sourceCard.Name}. Select a card from MARKET to remove.", LogChannel.General);
+        }
+
+        public void HandleDevourMarketSelection(Card? targetCard)
+        {
+            if (targetCard is null) return;
+
+            // Verify it's in Market (Logic check)
+            if (targetCard.Location != CardLocation.Market)
+            {
+                _logger.Log("Selected card is not in Market!", LogChannel.Warning);
+                return;
+            }
+
+            _logger.Log($"Devouring Market Card: {targetCard.Name}", LogChannel.Info);
+
+            if (_deferDevourExecution)
+            {
+                // Buffer it
+                PendingDevourCard = targetCard;
+                CompleteAction(); // Fires pending callback
+            }
+            else
+            {
+                // Execute Immediately
+                // Assuming MatchManager has DevourCard or we use a specialized method.
+                // DevourCard usually moves to Void. 
+                // MarketManager needs to be notified to refill? 
+                // MatchManager.DevourCard handles "Move to Void", but we need to ensure it's removed from Market correctly.
+                
+                // Let's use MatchManager.DevourCard(card).
+                // It should handle removing from current location (Market).
+                _matchManager.DevourCard(targetCard);
+                
+                CompleteAction();
+            }
         }
 
         public void HandleDevourSelection(Card? targetCard)

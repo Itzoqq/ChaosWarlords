@@ -183,7 +183,7 @@ namespace ChaosWarlords.Tests.Managers
             _mockUIManager.OnEndTurnRequest += Raise.Event();
 
             // State-Based Assertion: Check if EndTurnCommand was executed
-            Assert.IsTrue(_state.ExecutedCommands.Count > 0);
+            Assert.IsNotEmpty(_state.ExecutedCommands);
             Assert.IsInstanceOfType(_state.ExecutedCommands[0], typeof(EndTurnCommand));
             
             Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
@@ -221,7 +221,7 @@ namespace ChaosWarlords.Tests.Managers
             Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
             // State-Based Assertion
             Assert.IsFalse(_state.EndTurnCalled); // Fake has this property
-            Assert.AreEqual(0, _state.ExecutedCommands.Count);
+            Assert.IsEmpty(_state.ExecutedCommands);
         }
 
         [TestMethod]

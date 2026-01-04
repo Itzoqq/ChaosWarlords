@@ -86,8 +86,22 @@ namespace ChaosWarlords.Source.Input
             }
             else if (_context.ActionSystem.CurrentState == Utilities.ActionState.TargetingDevourHand)
             {
-                _state.Logger.Log("Coordinator: Switching to DevourInputMode", Utilities.LogChannel.Input);
+                _state.Logger.Log("Coordinator: Switching to DevourInputMode (Hand)", Utilities.LogChannel.Input);
                 _currentMode = new DevourInputMode(_state, _inputManager, _context.ActionSystem);
+            }
+            else if (_context.ActionSystem.CurrentState == Utilities.ActionState.TargetingDevourMarket)
+            {
+                _state.Logger.Log("Coordinator: Switching to MarketInputMode (Devour Target)", Utilities.LogChannel.Input);
+                
+                // Open the market UI visual state first
+                _state.IsMarketOpen = true;
+
+                // Create MarketInputMode with a callback for "Devour Selection"
+                _currentMode = new MarketInputMode(_state, _inputManager, _context, (selectedCard) => 
+                {
+                    _state.Logger.Log($"Devouring from Market: {selectedCard.Name}", Utilities.LogChannel.Input);
+                    _context.ActionSystem.HandleDevourMarketSelection(selectedCard);
+                });
             }
             else
             {

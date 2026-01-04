@@ -96,12 +96,13 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
 
             // Assert
-            Assert.Contains(card, _activePlayer.PlayedCards, "Card should remain in played pile (invalid target).");
+            // Assert
+            CollectionAssert.Contains(_activePlayer.PlayedCards, card, "Card should remain in played pile (invalid target).");
             Assert.AreEqual(1, _realTurnContext.PendingPromotionsCount, "Credit should not be consumed.");
             // Verify EndTurn WAS NOT called (ExecutedCommands should be empty or not imply end turn)
             // Note: Since EndTurn is now a RETURNED command, we check HandleInput return value if we captured it.
             // But here we rely on side-effects being absent.
-            Assert.AreEqual(0, _stateFake.ExecutedCommands.Count, "No commands should be executed.");
+            Assert.IsEmpty(_stateFake.ExecutedCommands, "No commands should be executed.");
         }
 
         [TestMethod]
@@ -139,8 +140,8 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             Assert.AreEqual(targetCard.Id, promoteCmd.CardId, "PromoteCommand should target the correct card.");
 
             // Verify State
-            Assert.DoesNotContain(targetCard, _activePlayer.PlayedCards, "Target should be removed from Played.");
-            Assert.Contains(targetCard, _activePlayer.InnerCircle, "Target should be in Inner Circle.");
+            CollectionAssert.DoesNotContain(_activePlayer.PlayedCards, targetCard, "Target should be removed from Played.");
+            CollectionAssert.Contains(_activePlayer.InnerCircle, targetCard, "Target should be in Inner Circle.");
             Assert.AreEqual(0, _realTurnContext.PendingPromotionsCount, "Credit should be consumed.");
 
             // Verify EndTurn Command is returned

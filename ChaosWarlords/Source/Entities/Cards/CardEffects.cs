@@ -15,6 +15,7 @@ namespace ChaosWarlords.Source.Entities.Cards
         // Conditional Logic Support
         public EffectCondition? Condition { get; internal set; }          // "If you control a Site"
         public bool IsOptional { get; internal set; }                     // "You may..."
+        public CardLocation TargetLocation { get; internal set; } = CardLocation.None; // Where the target is from (Market, Deck, etc.)
 
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {

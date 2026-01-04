@@ -45,9 +45,9 @@ namespace ChaosWarlords.Source.Mechanics.Actions
                 if (IsTargetingEffect(effect.Type))
                 {
                     // Use CardRuleEngine for validation
-                    if (_matchContext.CardRuleEngine.HasValidTargets(_matchContext.ActivePlayer, effect.Type))
+                    if (_matchContext.CardRuleEngine.HasValidTargets(_matchContext.ActivePlayer, effect.Type, card))
                     {
-                        var state = GetTargetingState(effect.Type);
+                        var state = GetTargetingState(effect);
                         _matchContext.ActionSystem.StartTargeting(state, card);
                         _onTargetingStarted?.Invoke();
                         enteredTargeting = true;
@@ -81,7 +81,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions
             {
                 if (IsTargetingEffect(effect.Type))
                 {
-                    if (_matchContext.CardRuleEngine.HasValidTargets(_matchContext.ActivePlayer, effect.Type)) return true;
+                    if (_matchContext.CardRuleEngine.HasValidTargets(_matchContext.ActivePlayer, effect.Type, card)) return true;
                 }
             }
             return false;
@@ -97,16 +97,16 @@ namespace ChaosWarlords.Source.Mechanics.Actions
                    type == EffectType.Devour;
         }
 
-        public static ActionState GetTargetingState(EffectType type)
+        public static ActionState GetTargetingState(CardEffect effect)
         {
-            return type switch
+            return effect.Type switch
             {
                 EffectType.Assassinate => ActionState.TargetingAssassinate,
                 EffectType.ReturnUnit => ActionState.TargetingReturn,
                 EffectType.Supplant => ActionState.TargetingSupplant,
                 EffectType.PlaceSpy => ActionState.TargetingPlaceSpy,
                 EffectType.MoveUnit => ActionState.TargetingMoveSource,
-                EffectType.Devour => ActionState.TargetingDevourHand,
+                EffectType.Devour => (effect.TargetLocation == CardLocation.Market) ? ActionState.TargetingDevourMarket : ActionState.TargetingDevourHand,
                 _ => ActionState.Normal
             };
         }

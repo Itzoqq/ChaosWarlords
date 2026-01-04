@@ -44,6 +44,18 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                     return;
                 }
 
+                // FIX: Check if we even have valid targets before asking the user.
+                // If it's a targeting effect and we have no targets, skip asking.
+                if (ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.Type))
+                {
+                     if (!context.CardRuleEngine.HasValidTargets(context.ActivePlayer, effect.Type, card))
+                     {
+                         logger.Log($"Skipped optional {effect.Type}: No valid targets (auto-declined).", LogChannel.Info);
+                         ProcessNextEffect(effects, index + 1, card, context, logger);
+                         return;
+                     }
+                }
+
                 context.UIEventMediator.RequestOptionalEffect(
                     card,
                     effect,
@@ -88,7 +100,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 EffectType.Supplant => () => ApplySupplant(sourceCard, context, logger),
                 EffectType.PlaceSpy => () => ApplyPlaceSpy(sourceCard, context, logger),
                 EffectType.ReturnUnit => () => ApplyReturnUnit(sourceCard, context, logger),
-                EffectType.Devour => () => ApplyDevour(sourceCard, context, logger, effect.OnSuccess != null ? () => ApplyEffect(effect.OnSuccess, sourceCard, context, logger) : null, 
+                EffectType.Devour => () => ApplyDevour(effect, sourceCard, context, logger, effect.OnSuccess != null ? () => ApplyEffect(effect.OnSuccess, sourceCard, context, logger) : null,  
                                             effect.OnSuccess != null && ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.OnSuccess.Type)),
                 _ => () => { }
             };
@@ -191,15 +203,23 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
         }
 
-        private static void ApplyDevour(Card sourceCard, MatchContext context, IGameLogger logger, Action? onComplete, bool defer)
+        private static void ApplyDevour(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger, Action? onComplete, bool defer)
         {
-            if (context.ActivePlayer.Hand.Count > 0)
+            if (effect.TargetLocation == CardLocation.Market)
             {
-                context.ActionSystem.TryStartDevourHand(sourceCard, onComplete, defer);
+                context.ActionSystem.TryStartDevourMarket(sourceCard, onComplete, defer);
             }
             else
             {
-                logger.Log($"{sourceCard.Name}: Hand empty, cannot Devour.", LogChannel.Warning);
+                // Default to Hand
+                if (context.ActivePlayer.Hand.Count > 0)
+                {
+                    context.ActionSystem.TryStartDevourHand(sourceCard, onComplete, defer);
+                }
+                else
+                {
+                    logger.Log($"{sourceCard.Name}: Hand empty, cannot Devour.", LogChannel.Warning);
+                }
             }
         }
     }

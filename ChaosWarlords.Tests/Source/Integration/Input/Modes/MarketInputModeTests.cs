@@ -127,5 +127,29 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             Assert.IsNull(result);
             Assert.IsTrue(_stateFake.IsMarketOpen, "Market should remain open if UI button is clicked.");
         }
+        
+        [TestMethod]
+        public void HandleInput_WithCallback_InvokesCallback_WhenCardClicked()
+        {
+            // 1. Arrange
+            Card? callbackInvokedCard = null;
+            Action<Card> onCardSelected = (c) => callbackInvokedCard = c;
+
+            // Re-initialize with callback
+            _inputMode = new MarketInputMode(_stateFake, _inputManager, _stateFake.MatchContext, onCardSelected);
+
+            var card = TestData.Cards.PowerCard();
+            _stateFake.HoveredMarketCard = card;
+
+            // Simulate Click
+            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 110, 110);
+
+            // 2. Act
+            var result = _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+
+            // 3. Assert
+            Assert.IsNull(result, "Should return null command when callback is handled.");
+            Assert.AreEqual(card, callbackInvokedCard, "The callback should be invoked with the clicked card.");
+        }
     }
 }

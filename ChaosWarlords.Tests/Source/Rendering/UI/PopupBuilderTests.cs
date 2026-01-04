@@ -16,7 +16,9 @@ namespace ChaosWarlords.Tests.Source.Rendering.UI
 
             Assert.AreEqual("Popup", popup.Title);
             Assert.AreEqual("", popup.Message);
+#pragma warning disable MSTEST0037 // Use Assert.HasCount
             Assert.AreEqual(1, popup.Buttons.Count);
+#pragma warning restore MSTEST0037
             Assert.AreEqual("OK", popup.Buttons[0].Text);
             Assert.IsTrue(popup.Buttons[0].IsDefault);
         }
@@ -33,7 +35,9 @@ namespace ChaosWarlords.Tests.Source.Rendering.UI
 
             Assert.AreEqual("Test Title", popup.Title);
             Assert.AreEqual("Test Message", popup.Message);
+#pragma warning disable MSTEST0037 // Use Assert.HasCount
             Assert.AreEqual(2, popup.Buttons.Count);
+#pragma warning restore MSTEST0037
             Assert.AreEqual("Yes", popup.Buttons[0].Text);
             Assert.IsTrue(popup.Buttons[0].IsDefault);
             Assert.AreEqual("No", popup.Buttons[1].Text);
