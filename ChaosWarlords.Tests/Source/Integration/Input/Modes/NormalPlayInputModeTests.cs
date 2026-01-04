@@ -3,6 +3,8 @@ using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
+using ChaosWarlords.Source.Core.Interfaces.Data;
+using ChaosWarlords.Source.Contexts;
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Input.Modes;
 using ChaosWarlords.Source.Managers;
@@ -12,11 +14,11 @@ using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Utilities;
 using NSubstitute;
+using ChaosWarlords.Tests.Source.Doubles.State;
 
 namespace ChaosWarlords.Tests.Integration.Input.Modes
 {
     [TestClass]
-
     [TestCategory("Integration")]
     public class NormalPlayInputModeTests
     {
@@ -24,10 +26,12 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         private MockInputProvider _mockInput = null!;
         private IInputManager _inputManager = null!;
 
-        // Substitutes
+        // Concrete Fake
+        private TestGameplayState _stateFake = null!;
+
+        // Substitutes (Dependencies of State)
         private IMapManager _mapSub = null!;
         private IActionSystem _actionSub = null!;
-        private IGameplayState _stateSub = null!;
         private IMarketManager _marketSub = null!;
         private IUIManager _mockUI = null!;
         private TurnManager _turnManager = null!;
@@ -42,22 +46,36 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // Substitutes
             _mapSub = Substitute.For<IMapManager>();
             _actionSub = Substitute.For<IActionSystem>();
-            _stateSub = Substitute.For<IGameplayState>();
             _marketSub = Substitute.For<IMarketManager>();
             _mockUI = Substitute.For<IUIManager>();
             _activePlayer = TestData.Players.RedPlayer();
             var mockRandom = Substitute.For<IGameRandom>();
-            // Define p1 and p2 for the TurnManager instantiation as per the instruction
-            var p1 = _activePlayer; // Use _activePlayer as p1
-            var p2 = TestData.Players.BluePlayer(); // Create another player for p2
+            
+            // Define p1 and p2 for the TurnManager instantiation
+            var p1 = _activePlayer; 
+            var p2 = TestData.Players.BluePlayer(); 
             _turnManager = new TurnManager(new List<Player> { p1, p2 }, mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            _stateSub.MapManager.Returns(_mapSub);
-            _stateSub.TurnManager.Returns(_turnManager);
-            _stateSub.ActionSystem.Returns(_actionSub);
+            // Initialize Fake State
+            _stateFake = new TestGameplayState
+            {
+                MapManager = _mapSub,
+                TurnManager = _turnManager,
+                ActionSystem = _actionSub,
+                MarketManager = _marketSub, // Assuming IMarketManager property exists in state
+                MatchContext = new MatchContext(
+                     Substitute.For<ITurnManager>(), // Dummy for now, or match _turnManager
+                     _mapSub,
+                     _marketSub,
+                     _actionSub,
+                     Substitute.For<ICardDatabase>(),
+                     new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance),
+                     null, ChaosWarlords.Tests.Utilities.TestLogger.Instance
+                )
+            };
 
             _inputMode = new NormalPlayInputMode(
-                _stateSub,
+                _stateFake,
                 _inputManager,
                 _mockUI,
                 _mapSub,
@@ -73,7 +91,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             var card = TestData.Cards.CheapCard();
 
             // Mock State to return this card as hovered
-            _stateSub.GetHoveredHandCard().Returns(card);
+            _stateFake.HoveredHandCard = card;
 
             // Simulate Click
             InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 110, 110);
@@ -98,7 +116,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         {
             // 1. Arrange
             // Ensure no card is hovered
-            _stateSub.GetHoveredHandCard().Returns((Card?)null);
+            _stateFake.HoveredHandCard = null;
 
             // Setup Map Mock to return a node at click location
             var targetNode = TestData.MapNodes.Node1();
@@ -122,7 +140,8 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             Assert.IsInstanceOfType(result, typeof(DeployTroopCommand));
             
             // Execute the command to verify it calls map manager
-            result.Execute(_stateSub);
+            // Note: Since _stateFake holds the mock _mapSub, executing the command should trigger the Call.
+            result.Execute(_stateFake);
             _mapSub.Received(1).TryDeploy(_activePlayer, targetNode);
         }
 
@@ -133,7 +152,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             var card = TestData.Cards.CheapCard();
 
             // Both Card and Map Node are "active" under the mouse
-            _stateSub.GetHoveredHandCard().Returns(card);
+            _stateFake.HoveredHandCard = card;
 
             var node = TestData.MapNodes.Node1();
             _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns(node);
@@ -161,7 +180,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         public void HandleInput_ClickEmptySpace_ReturnsNull()
         {
             // 1. Arrange
-            _stateSub.GetHoveredHandCard().Returns((Card?)null);
+            _stateFake.HoveredHandCard = null;
             _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns((MapNode?)null);
 
             InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 500, 500);
@@ -179,9 +198,5 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             Assert.IsNull(result, "Clicking empty space should return null.");
             _mapSub.DidNotReceive().TryDeploy(Arg.Any<Player>(), Arg.Any<MapNode>());
         }
-
-
     }
 }
-
-

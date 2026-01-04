@@ -20,10 +20,12 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
 {
     [TestClass]
     [TestCategory("Unit")]
+
     public class ReplayControllerTests
     {
         private ReplayController _controller = null!;
-        private IGameplayState _stateMock = null!;
+        // private IGameplayState _stateMock = null!; // Removed
+        private ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState _stateFake = null!; // Use Fake
         private IReplayManager _replayManagerMock = null!;
         private IInputManager _inputManagerMock = null!;
         private IGameLogger _loggerMock = null!;
@@ -35,10 +37,13 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
         [TestInitialize]
         public void Setup()
         {
-            _stateMock = Substitute.For<IGameplayState>();
+            _stateFake = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+            
             _replayManagerMock = Substitute.For<IReplayManager>();
             _inputManagerMock = Substitute.For<IInputManager>();
             _loggerMock = Substitute.For<IGameLogger>();
+            // Use Fake Logger if possible? No, controller takes logger separate from state.
+            
             _onRestartMock = Substitute.For<Action>();
             _mapManagerMock = Substitute.For<IMapManager>();
             _turnManagerMock = Substitute.For<ITurnManager>();
@@ -51,25 +56,25 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
                 Substitute.For<IActionSystem>(),
                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Data.ICardDatabase>(),
                 Substitute.For<IPlayerStateManager>(),
-                null, // Inserted null as per instruction
+                null,
                 _loggerMock,
                 123
             );
             _matchContext.CurrentPhase = MatchPhase.Playing;
 
-            // Setup default state mocks
-            _stateMock.MatchContext.Returns(_matchContext);
-            _stateMock.MapManager.Returns(_mapManagerMock);
-            _stateMock.TurnManager.Returns(_turnManagerMock);
+            // Setup fake state properties
+            _stateFake.MatchContext = _matchContext;
+            _stateFake.MapManager = _mapManagerMock;
+            _stateFake.TurnManager = _turnManagerMock;
             _mapManagerMock.Nodes.Returns(new List<MapNode>());
 
-            _controller = new ReplayController(_stateMock, _replayManagerMock, _inputManagerMock, _loggerMock, _onRestartMock);
+            // Inject fake into controller
+            _controller = new ReplayController(_stateFake, _replayManagerMock, _inputManagerMock, _loggerMock, _onRestartMock);
         }
 
         [TestCleanup]
         public void Cleanup()
         {
-            // Clean up test file if created
             if (File.Exists("last_replay.json"))
                 File.Delete("last_replay.json");
         }
@@ -187,7 +192,7 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
             // Arrange
             _replayManagerMock.IsReplaying.Returns(true);
             var mockCommand = Substitute.For<IGameCommand>();
-            _replayManagerMock.GetNextCommand(_stateMock).Returns(mockCommand);
+            _replayManagerMock.GetNextCommand(_stateFake).Returns(mockCommand); // Passed fake state
             var activePlayer = new Player(PlayerColor.Red);
             _turnManagerMock.ActivePlayer.Returns(activePlayer);
 
@@ -201,7 +206,7 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
             _controller.Update(new GameTime(TimeSpan.Zero, TimeSpan.FromSeconds(0.15)));
 
             // Assert - Command executed
-            mockCommand.Received(1).Execute(_stateMock);
+            mockCommand.Received(1).Execute(_stateFake); // Passed fake state
             _loggerMock.Received(1).Log(Arg.Is<string>(s => s.Contains("Replay Executed")), LogChannel.Info);
         }
 
@@ -210,7 +215,7 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
         {
             // Arrange
             _replayManagerMock.IsReplaying.Returns(true);
-            _replayManagerMock.GetNextCommand(_stateMock).Returns((IGameCommand?)null);
+            _replayManagerMock.GetNextCommand(_stateFake).Returns((IGameCommand?)null);
 
             // Act - First completion
             _controller.Update(new GameTime(TimeSpan.Zero, TimeSpan.FromSeconds(0.3)));
@@ -249,7 +254,7 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
         {
             try
             {
-                new ReplayController(_stateMock, null!, _inputManagerMock, _loggerMock, _onRestartMock);
+                new ReplayController(_stateFake, null!, _inputManagerMock, _loggerMock, _onRestartMock);
                 Assert.Fail("Expected ArgumentNullException");
             }
             catch (ArgumentNullException)

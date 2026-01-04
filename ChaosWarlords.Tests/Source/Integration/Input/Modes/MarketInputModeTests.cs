@@ -12,25 +12,27 @@ using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Tests.Source.Doubles.State;
 
 namespace ChaosWarlords.Tests.Integration.Input.Modes
 {
     [TestClass]
-
     [TestCategory("Integration")]
     public class MarketInputModeTests
     {
         private MarketInputMode _inputMode = null!;
         private MockInputProvider _mockInput = null!;
         private IInputManager _inputManager = null!;
+
+        // Concrete Fake
+        private TestGameplayState _stateFake = null!;
+
+        // Substitutes
         private IMarketManager _marketSub = null!;
         private IUIManager _mockUI = null!;
         private Player _activePlayer = null!;
-        private IGameplayState _stateSub = null!;
         private IMapManager _mapSub = null!;
         private IActionSystem _actionSub = null!;
-
-        // We need to mock the CardDatabase to satisfy the MatchContext constructor
         private ICardDatabase _cardDbSub = null!;
 
         [TestInitialize]
@@ -39,41 +41,37 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             _mockInput = new MockInputProvider();
             _inputManager = new InputManager(_mockInput);
 
-            // 1. Create the mocks
             _marketSub = Substitute.For<IMarketManager>();
-            _stateSub = Substitute.For<IGameplayState>();
             _mapSub = Substitute.For<IMapManager>();
             _actionSub = Substitute.For<IActionSystem>();
-            _cardDbSub = Substitute.For<ICardDatabase>(); // Create the new mock
-
-            // Mock the TurnManager (since it's cast to TurnManager in some places, 
-            // ideally we use the Interface, but let's stick to your existing pattern)
-            // If your test uses ITurnManager, keep using Substitute.For<ITurnManager>()
-            var turnSub = Substitute.For<ITurnManager>();
-
+            _cardDbSub = Substitute.For<ICardDatabase>();
             _mockUI = Substitute.For<IUIManager>();
 
-            // 2. Setup the State to return our Mock UI 
-            // (This is crucial if you used Fix #1: accessing UI via state.UIManager)
-            _stateSub.UIManager.Returns(_mockUI);
-
-            // 3. Create the MatchContext using our Mocks
-            // Note: We use the real concrete MatchContext, but inject mocked systems into it.
-            var context = new MatchContext(
-                turnSub,
-                _mapSub,
-                _marketSub,
-                _actionSub,
-                _cardDbSub,
-                new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance),
-                null, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-
-            // 4. Instantiate MarketInputMode with the new signature
-            // (State, Input, Context)
-            _inputMode = new MarketInputMode(_stateSub, _inputManager, context);
-
-            // Setup active player dummy
+            var turnSub = Substitute.For<ITurnManager>();
             _activePlayer = TestData.Players.RedPlayer();
+
+            // Initialize Fake State
+            _stateFake = new TestGameplayState
+            {
+                MapManager = _mapSub,
+                TurnManager = turnSub,
+                ActionSystem = _actionSub,
+                MarketManager = _marketSub,
+                UIManager = _mockUI,
+                MatchContext = new MatchContext(
+                    turnSub,
+                    _mapSub,
+                    _marketSub,
+                    _actionSub,
+                    _cardDbSub,
+                    new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance),
+                    null, ChaosWarlords.Tests.Utilities.TestLogger.Instance)
+            };
+            
+            // Ensure IsMarketOpen starts true for market tests if needed, or default false
+            _stateFake.IsMarketOpen = true; 
+
+            _inputMode = new MarketInputMode(_stateFake, _inputManager, _stateFake.MatchContext);
         }
 
         [TestMethod]
@@ -83,7 +81,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             var card = TestData.Cards.PowerCard();
 
             // Mock the State to say "Yes, the mouse is hovering this card"
-            _stateSub.GetHoveredMarketCard().Returns(card);
+            _stateFake.HoveredMarketCard = card;
 
             // Simulate Click
             InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 110, 110);
@@ -101,7 +99,8 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         {
             // 1. Arrange
             // Mock State to say "Nothing is hovered"
-            _stateSub.GetHoveredMarketCard().Returns((Card?)null);
+            _stateFake.HoveredMarketCard = null;
+            _stateFake.IsMarketOpen = true; // Ensure it's open initially
 
             // Simulate Click
             InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 10, 10);
@@ -111,13 +110,14 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             // 3. Assert
             Assert.IsNull(result);
-            _stateSub.Received(1).CloseMarket();
+            Assert.IsFalse(_stateFake.IsMarketOpen, "Market should be closed after clicking empty space.");
         }
 
         [TestMethod]
         public void HandleInput_ClickingMarketButton_DoesNotCloseMarket()
         {
             _mockUI.IsMarketHovered.Returns(true);
+            _stateFake.IsMarketOpen = true;
 
             // Simulate Click
             InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 10, 10);
@@ -125,9 +125,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             var result = _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
 
             Assert.IsNull(result);
-            _stateSub.DidNotReceive().CloseMarket();
+            Assert.IsTrue(_stateFake.IsMarketOpen, "Market should remain open if UI button is clicked.");
         }
     }
 }
-
-

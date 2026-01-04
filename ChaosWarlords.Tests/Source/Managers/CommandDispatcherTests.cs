@@ -26,7 +26,16 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             _replayManager = Substitute.For<IReplayManager>();
             _logger = Substitute.For<IGameLogger>();
-            _state = Substitute.For<IGameplayState>();
+            // Use Fake State
+            // _state = Substitute.For<IGameplayState>();
+            // We'll init the fake in each test or setup if possible, but the fake is lightweight.
+            // Let's create a field for it but we need to reset it for each test if we shared it.
+            // Better to instantiate in logic, but test fields are fine if re-init in setup.
+            
+            // Actually, let's keep the field type as IGameplayState interface for the dispatcher signature,
+            // but assign the concrete fake.
+             _state = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+
             _command = Substitute.For<IGameCommand>();
 
             _dispatcher = new CommandDispatcher(_replayManager, _logger);
@@ -51,7 +60,9 @@ namespace ChaosWarlords.Tests.Source.Managers
                 null,
                 _logger,
                 123);
-            _state.MatchContext.Returns(matchContext);
+            
+            // Assign context to fake state
+            ((ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState)_state).MatchContext = matchContext;
 
             // Act
             _dispatcher.Dispatch(_command, _state);
@@ -83,7 +94,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         [TestCategory("Unit")]
         public void Dispatch_IncrementsSequenceCounter()
         {
-            // Arrange
+             // Arrange
             _replayManager.IsReplaying.Returns(false);
             var player = new Player(PlayerColor.Red);
             var turnManager = Substitute.For<ITurnManager>();
@@ -98,7 +109,8 @@ namespace ChaosWarlords.Tests.Source.Managers
                 null,
                 _logger,
                 123);
-            _state.MatchContext.Returns(matchContext);
+            
+             ((ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState)_state).MatchContext = matchContext;
 
             // Act
             _dispatcher.Dispatch(_command, _state); // seq 1

@@ -1,18 +1,16 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Commands;
-using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
 using NSubstitute;
+using ChaosWarlords.Tests.Source.Doubles.State;
+using ChaosWarlords.Source.Core.Interfaces.Input;
 
 namespace ChaosWarlords.Tests.Mechanics.Commands
 {
     [TestClass]
-
     [TestCategory("Unit")]
     public class BuyCardCommandTests
     {
@@ -20,25 +18,23 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         public void Execute_CallsTryBuyCardOnMarketManager()
         {
             // Arrange
-            var mockState = Substitute.For<IGameplayState>();
+            // 1. Setup TestGameplayState with basic mocks
+            var stateFake = new TestGameplayState();
+            
             var mockMarketManager = Substitute.For<IMarketManager>();
             var mockTurnManager = Substitute.For<ITurnManager>();
+            var mockInputManager = Substitute.For<IInputManager>();
             var mockPlayer = TestData.Players.RedPlayer();
-
-            mockState.MarketManager.Returns(mockMarketManager);
-            mockState.TurnManager.Returns(mockTurnManager);
-            mockTurnManager.ActivePlayer.Returns(mockPlayer);
-
             var mockStateManager = Substitute.For<IPlayerStateManager>();
 
-            // Mock MatchContext returning the StateManager
-            // Since MatchContext is not an interface, we can mock it by putting it in the state.
-            // But IGameplayState.MatchContext returns the Concrete class MatchContext.
-            // We need to construct a real MatchContext context with Mocks, or Mock the StateManager property getter if it's virtual (it's not).
-            // Actually, we are using NSubstitute on the INTERFACE IGameplayState. 
-            // The interface IGameplayState has 'MatchContext MatchContext { get; }' -> returning the class.
+            // Setup Dependencies
+            stateFake.MarketManager = mockMarketManager;
+            stateFake.TurnManager = mockTurnManager;
+            stateFake.InputManager = mockInputManager;
+            
+            mockTurnManager.ActivePlayer.Returns(mockPlayer);
 
-            // We can just create a dummy context with our mock state manager.
+            // 2. Setup MatchContext (because BuyCardCommand might access state.MatchContext.MarketManager)
             var context = new MatchContext(
                 mockTurnManager,
                 Substitute.For<IMapManager>(),
@@ -49,20 +45,17 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
                 null,
                 ChaosWarlords.Tests.Utilities.TestLogger.Instance
             );
-
-            mockState.MatchContext.Returns(context);
+            stateFake.MatchContext = context;
 
             var card = TestData.Cards.PowerCard();
             var command = new BuyCardCommand(card);
 
             // Act
-            command.Execute(mockState);
+            command.Execute(stateFake);
 
             // Assert
+            // Verify the command delegation to the underlying manager
             mockMarketManager.Received(1).TryBuyCard(mockPlayer, card, mockStateManager);
         }
     }
 }
-
-
-

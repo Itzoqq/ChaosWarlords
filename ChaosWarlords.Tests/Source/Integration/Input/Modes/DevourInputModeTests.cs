@@ -8,15 +8,17 @@ using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework.Input;
 using NSubstitute;
 using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Tests.Source.Doubles.State;
+using ChaosWarlords.Source.Core.Interfaces.Data;
+using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Tests.Integration.Input.Modes
 {
     [TestClass]
-
     [TestCategory("Integration")]
     public class DevourInputModeTests
     {
-        private IGameplayState _mockGameState = null!;
+        private TestGameplayState _stateFake = null!;
         private IInputManager _mockInputManager = null!;
         private IActionSystem _mockActionSystem = null!;
         private IMatchManager _mockMatchManager = null!;
@@ -25,14 +27,28 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         [TestInitialize]
         public void Setup()
         {
-            _mockGameState = Substitute.For<IGameplayState>();
             _mockInputManager = Substitute.For<IInputManager>();
             _mockActionSystem = Substitute.For<IActionSystem>();
             _mockMatchManager = Substitute.For<IMatchManager>();
 
-            _mockGameState.MatchManager.Returns(_mockMatchManager);
+            _stateFake = new TestGameplayState
+            {
+                MatchManager = _mockMatchManager,
+                ActionSystem = _mockActionSystem,
+                // MatchContext with dummies if needed, though DevourInputMode might not use it directly
+                // based on original test, it only used ActionSystem and State methods.
+                // We'll provide a dummy context just in case state internals need it.
+                MatchContext = new MatchContext(
+                    Substitute.For<ITurnManager>(),
+                    Substitute.For<IMapManager>(),
+                    Substitute.For<IMarketManager>(),
+                    _mockActionSystem,
+                    Substitute.For<ICardDatabase>(),
+                    new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance),
+                    null, ChaosWarlords.Tests.Utilities.TestLogger.Instance)
+            };
 
-            _mode = new DevourInputMode(_mockGameState, _mockInputManager, _mockActionSystem);
+            _mode = new DevourInputMode(_stateFake, _mockInputManager, _mockActionSystem);
         }
 
         [TestMethod]
@@ -46,7 +62,9 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             // Assert
             _mockActionSystem.Received(1).CancelTargeting();
-            _mockGameState.Received(1).SwitchToNormalMode();
+            
+            // State-based assertion
+            Assert.AreEqual("Normal", _stateFake.ActiveModeName, "Should switch to Normal mode on cancel.");
             Assert.IsNull(result);
         }
 
@@ -61,7 +79,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             // Assert
             _mockActionSystem.Received(1).CancelTargeting();
-            _mockGameState.Received(1).SwitchToNormalMode();
+            Assert.AreEqual("Normal", _stateFake.ActiveModeName);
             Assert.IsNull(result);
         }
 
@@ -74,15 +92,15 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             _mockActionSystem.PendingCard.Returns(sourceCard);
             _mockInputManager.IsLeftMouseJustClicked().Returns(true);
-            _mockGameState.GetHoveredHandCard().Returns(targetCard);
+            _stateFake.HoveredHandCard = targetCard;
 
             // Act
             var result = _mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
 
             // Assert
             _mockActionSystem.Received(1).HandleDevourSelection(targetCard);
-            // Default mock behavior for IsTargeting is false
-            _mockGameState.Received(1).SwitchToNormalMode();
+            // Default mock behavior for IsTargeting is false, so it goes to Normal
+            Assert.AreEqual("Normal", _stateFake.ActiveModeName);
         }
 
         [TestMethod]
@@ -94,7 +112,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             _mockActionSystem.PendingCard.Returns(sourceCard);
             _mockInputManager.IsLeftMouseJustClicked().Returns(true);
-            _mockGameState.GetHoveredHandCard().Returns(targetCard);
+            _stateFake.HoveredHandCard = targetCard;
             
             // SIMULATE CHAIN: ActionSystem is now targeting (e.g. Supplant)
             _mockActionSystem.IsTargeting().Returns(true);
@@ -105,8 +123,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // Assert
             _mockActionSystem.Received(1).HandleDevourSelection(targetCard);
             // Standard Flow: InputMode detects chaining and switches directly
-            _mockGameState.Received(1).SwitchToTargetingMode();
-            _mockGameState.DidNotReceive().SwitchToNormalMode();
+            Assert.AreEqual("Targeting", _stateFake.ActiveModeName);
         }
 
         [TestMethod]
@@ -117,15 +134,12 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             _mockActionSystem.PendingCard.Returns(sourceCard);
             _mockInputManager.IsLeftMouseJustClicked().Returns(true);
-            _mockGameState.GetHoveredHandCard().Returns(sourceCard); // Same card
+            _stateFake.HoveredHandCard = sourceCard; // Same card
 
             // Act
             var result = _mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
 
-            // Assert - The implementation logs a warning but doesn't prevent the action
-            // It still calls DevourCard and CompleteAction
-            // Assert - The implementation logs a warning. 
-            // In the new implementation, we call HandleDevourSelection, which does the checks.
+            // Assert
             _mockActionSystem.Received(1).HandleDevourSelection(sourceCard);
         }
 
@@ -134,7 +148,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         {
             // Arrange
             _mockInputManager.IsLeftMouseJustClicked().Returns(true);
-            _mockGameState.GetHoveredHandCard().Returns((Card)null!);
+            _stateFake.HoveredHandCard = null;
 
             // Act
             var result = _mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
@@ -143,6 +157,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             _mockMatchManager.DidNotReceive().DevourCard(Arg.Any<Card>());
             _mockActionSystem.DidNotReceive().CompleteAction();
         }
+
         [TestMethod]
         public void HandleInput_Spacebar_SkippedTarget_AndCommits()
         {
@@ -155,7 +170,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             _mockInputManager.IsKeyJustPressed(Keys.Space).Returns(true);
 
             // Re-create mode to capture PendingCard
-            var mode = new DevourInputMode(_mockGameState, _mockInputManager, _mockActionSystem);
+            var mode = new DevourInputMode(_stateFake, _mockInputManager, _mockActionSystem);
 
             // Act
             var result = mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
@@ -168,7 +183,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             _mockActionSystem.Received(1).CompleteAction();
 
             // 3. Check Mode Switch
-            _mockGameState.Received(1).SwitchToNormalMode();
+            Assert.AreEqual("Normal", _stateFake.ActiveModeName);
 
             // 4. Check Play Command returned
             Assert.IsNotNull(result);
@@ -187,10 +202,10 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             _mockActionSystem.PendingCard.Returns(sourceCard);
             _mockInputManager.IsLeftMouseJustClicked().Returns(true);
-            _mockGameState.GetHoveredHandCard().Returns(targetCard);
+            _stateFake.HoveredHandCard = targetCard;
 
             // Re-create mode
-            var mode = new DevourInputMode(_mockGameState, _mockInputManager, _mockActionSystem);
+            var mode = new DevourInputMode(_stateFake, _mockInputManager, _mockActionSystem);
 
             // Act
             var result = mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
@@ -203,7 +218,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             _mockActionSystem.Received(1).CompleteAction();
 
             // 3. Check Mode Switch
-            _mockGameState.Received(1).SwitchToNormalMode();
+            Assert.AreEqual("Normal", _stateFake.ActiveModeName);
 
             // 4. Check Play Command returned
             Assert.IsNotNull(result);
@@ -213,6 +228,3 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         }
     }
 }
-
-
-

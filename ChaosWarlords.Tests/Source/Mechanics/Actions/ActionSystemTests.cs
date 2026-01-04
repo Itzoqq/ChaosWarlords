@@ -89,11 +89,12 @@ namespace ChaosWarlords.Tests.Systems
 
         private void ExecuteIfNotNull(IGameCommand? cmd)
         {
-            var state = Substitute.For<IGameplayState>();
-            state.MapManager.Returns(_mapManager);
-            state.ActionSystem.Returns(_actionSystem);
-            state.TurnManager.Returns(_turnManager);
-            cmd?.Execute(state);
+            var stateFake = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+            stateFake.MapManager = _mapManager;
+            stateFake.ActionSystem = _actionSystem;
+            stateFake.TurnManager = _turnManager;
+            
+            cmd?.Execute(stateFake);
         }
 
         #region 1. Initiation Tests

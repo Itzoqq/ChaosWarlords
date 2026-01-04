@@ -1,13 +1,13 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Commands;
 using NSubstitute;
+using ChaosWarlords.Tests.Source.Doubles.State;
 
 namespace ChaosWarlords.Tests.Mechanics.Commands
 {
     [TestClass]
-
     [TestCategory("Unit")]
     public class StartReturnSpyCommandTests
     {
@@ -15,20 +15,23 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         public void Execute_StartsReturnSpyAndSwitchesToTargetingMode()
         {
             // Arrange
-            var mockState = Substitute.For<IGameplayState>();
+            var stateFake = new TestGameplayState();
+            
             var mockActionSystem = Substitute.For<IActionSystem>();
             mockActionSystem.CurrentState.Returns(ActionState.TargetingReturnSpy);
-            mockState.ActionSystem.Returns(mockActionSystem);
+            stateFake.ActionSystem = mockActionSystem;
+            
             var command = new StartReturnSpyCommand();
 
             // Act
-            command.Execute(mockState);
+            command.Execute(stateFake);
 
             // Assert
+            // 1. Verify Action delegation
             mockActionSystem.Received(1).TryStartReturnSpy();
-            mockState.Received(1).SwitchToTargetingMode();
+
+            // 2. Verify State Transition
+            Assert.AreEqual("Targeting", stateFake.ActiveModeName, "Should switch to Targeting mode.");
         }
     }
 }
-
-

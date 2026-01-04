@@ -1,44 +1,46 @@
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Commands;
 using NSubstitute;
+using ChaosWarlords.Tests.Source.Doubles.State;
 
 namespace ChaosWarlords.Tests.Mechanics.Commands
 {
     [TestClass]
-
     [TestCategory("Unit")]
     public class ToggleMarketCommandTests
     {
         [TestMethod]
-        public void Execute_WhenMarketClosed_OpensMarket()
+        public void Execute_WhenMarketClosed_OpenMarket()
         {
             // Arrange
-            var mockState = Substitute.For<IGameplayState>();
-            mockState.IsMarketOpen.Returns(false);
+            var stateFake = new TestGameplayState();
+            stateFake.IsMarketOpen = false;
+            
             var command = new ToggleMarketCommand();
 
             // Act
-            command.Execute(mockState);
+            command.Execute(stateFake);
 
             // Assert
-            mockState.Received(1).ToggleMarket();
+            // ToggleMarket() sets IsMarketOpen = !IsMarketOpen
+            Assert.IsTrue(stateFake.IsMarketOpen, "Market should be open.");
         }
 
         [TestMethod]
         public void Execute_WhenMarketOpen_ClosesMarket()
         {
             // Arrange
-            var mockState = Substitute.For<IGameplayState>();
-            mockState.IsMarketOpen.Returns(true);
+            var stateFake = new TestGameplayState();
+            stateFake.IsMarketOpen = true;
+            
             var command = new ToggleMarketCommand();
 
             // Act
-            command.Execute(mockState);
+            command.Execute(stateFake);
 
             // Assert
-            mockState.Received(1).CloseMarket();
+            // CloseMarket() sets IsMarketOpen = false
+            Assert.IsFalse(stateFake.IsMarketOpen, "Market should be closed.");
         }
     }
 }
-
-

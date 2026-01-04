@@ -5,39 +5,24 @@ using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
 using NSubstitute;
+using ChaosWarlords.Tests.Source.Doubles.State;
 
 namespace ChaosWarlords.Tests.Mechanics.Commands
 {
     [TestClass]
-
     [TestCategory("Unit")]
     public class DevourCardCommandTests
     {
-        private IGameplayState _mockState = null!;
-        private IMatchManager _mockMatchManager = null!;
-        private IActionSystem _mockActionSystem = null!;
-        private Card _testCard = null!;
-
-        [TestInitialize]
-        public void Setup()
-        {
-            _mockState = Substitute.For<IGameplayState>();
-            _mockMatchManager = Substitute.For<IMatchManager>();
-            _mockActionSystem = Substitute.For<IActionSystem>();
-
-            _mockState.MatchManager.Returns(_mockMatchManager);
-            _mockState.ActionSystem.Returns(_mockActionSystem);
-
-            _testCard = TestData.Cards.CheapCard();
-        }
-
         [TestMethod]
         public void Constructor_StoresCard()
         {
+            // Arrange
+            var card = TestData.Cards.CheapCard();
+            
             // Act
-            var command = new DevourCardCommand(_testCard);
+            var command = new DevourCardCommand(card);
 
-            // Assert - If constructor doesn't throw, card was stored
+            // Assert
             Assert.IsNotNull(command);
         }
 
@@ -45,42 +30,70 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         public void Execute_CallsMatchManagerDevour()
         {
             // Arrange
-            var command = new DevourCardCommand(_testCard);
+            var stateFake = new TestGameplayState();
+            
+            var mockMatchManager = Substitute.For<IMatchManager>();
+            var mockActionSystem = Substitute.For<IActionSystem>();
+            
+            stateFake.MatchManager = mockMatchManager;
+            stateFake.ActionSystem = mockActionSystem;
+
+            var card = TestData.Cards.CheapCard();
+            var command = new DevourCardCommand(card);
 
             // Act
-            command.Execute(_mockState);
+            command.Execute(stateFake);
 
             // Assert
-            _mockMatchManager.Received(1).DevourCard(_testCard);
+            mockMatchManager.Received(1).DevourCard(card);
         }
 
         [TestMethod]
         public void Execute_CallsActionSystemCompleteAction()
         {
             // Arrange
-            var command = new DevourCardCommand(_testCard);
+            var stateFake = new TestGameplayState();
+            
+            var mockMatchManager = Substitute.For<IMatchManager>();
+            var mockActionSystem = Substitute.For<IActionSystem>();
+
+            stateFake.MatchManager = mockMatchManager;
+            stateFake.ActionSystem = mockActionSystem;
+            
+            var card = TestData.Cards.CheapCard();
+            var command = new DevourCardCommand(card);
 
             // Act
-            command.Execute(_mockState);
+            command.Execute(stateFake);
 
             // Assert
-            _mockActionSystem.Received(1).CompleteAction();
+            mockActionSystem.Received(1).CompleteAction();
         }
 
         [TestMethod]
         public void Execute_CallsMethodsInCorrectOrder()
         {
             // Arrange
-            var command = new DevourCardCommand(_testCard);
+            var stateFake = new TestGameplayState();
+            
+            var mockMatchManager = Substitute.For<IMatchManager>();
+            var mockActionSystem = Substitute.For<IActionSystem>();
+            
+            stateFake.MatchManager = mockMatchManager;
+            stateFake.ActionSystem = mockActionSystem;
+
+            var card = TestData.Cards.CheapCard();
+            var command = new DevourCardCommand(card);
+            
             var callOrder = new System.Collections.Generic.List<string>();
 
-            _mockMatchManager.When(x => x.DevourCard(Arg.Any<Card>()))
+            mockMatchManager.When(x => x.DevourCard(Arg.Any<Card>()))
                 .Do(_ => callOrder.Add("DevourCard"));
-            _mockActionSystem.When(x => x.CompleteAction())
+            mockActionSystem.When(x => x.CompleteAction())
                 .Do(_ => callOrder.Add("CompleteAction"));
 
             // Act
-            command.Execute(_mockState);
+            command.Execute(stateFake);
 
             // Assert
             Assert.HasCount(2, callOrder);
@@ -89,6 +102,3 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         }
     }
 }
-
-
-

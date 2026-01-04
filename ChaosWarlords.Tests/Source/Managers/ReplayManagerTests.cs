@@ -144,10 +144,10 @@ namespace ChaosWarlords.Tests.Source.Managers
         public void GetNextCommand_WhenNotReplaying_ReturnsNull()
         {
             // Arrange
-            var stateMock = Substitute.For<IGameplayState>();
+            var stateFake = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
 
             // Act
-            var result = _manager.GetNextCommand(stateMock);
+            var result = _manager.GetNextCommand(stateFake);
 
             // Assert
             Assert.IsNull(result);
@@ -159,10 +159,10 @@ namespace ChaosWarlords.Tests.Source.Managers
             // Arrange
             var replayJson = "{\"Seed\":123,\"Commands\":[]}";
             _manager.StartReplay(replayJson);
-            var stateMock = Substitute.For<IGameplayState>();
+            var stateFake = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
 
             // Act
-            var result = _manager.GetNextCommand(stateMock);
+            var result = _manager.GetNextCommand(stateFake);
 
             // Assert
             Assert.IsNull(result);
@@ -184,14 +184,14 @@ namespace ChaosWarlords.Tests.Source.Managers
             var newManager = new ReplayManager(_loggerMock);
             newManager.StartReplay(json);
 
-            var stateMock = Substitute.For<IGameplayState>();
+            var stateFake = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
             var turnManagerMock = Substitute.For<ITurnManager>();
             turnManagerMock.Players.Returns(new System.Collections.Generic.List<Player> { player });
-            stateMock.TurnManager.Returns(turnManagerMock);
-            stateMock.Logger.Returns(_loggerMock);
+            stateFake.TurnManager = turnManagerMock;
+            stateFake.Logger = _loggerMock; // Fake allows setter
 
             // Act
-            var result = newManager.GetNextCommand(stateMock);
+            var result = newManager.GetNextCommand(stateFake);
 
             // Assert
             Assert.IsNotNull(result);

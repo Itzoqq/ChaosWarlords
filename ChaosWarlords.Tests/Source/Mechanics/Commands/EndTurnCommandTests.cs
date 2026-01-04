@@ -1,11 +1,11 @@
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Commands;
 using NSubstitute;
+using ChaosWarlords.Tests.Source.Doubles.State;
 
 namespace ChaosWarlords.Tests.Mechanics.Commands
 {
     [TestClass]
-
     [TestCategory("Unit")]
     public class EndTurnCommandTests
     {
@@ -13,32 +13,32 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         public void Execute_WhenCanEndTurn_CallsEndTurn()
         {
             // Arrange
-            var mockState = Substitute.For<IGameplayState>();
-            mockState.CanEndTurn(out Arg.Any<string>()).Returns(true);
+            var stateFake = new TestGameplayState();
+            stateFake.TestCanEndTurnResult = true;
+            
             var command = new EndTurnCommand();
 
             // Act
-            command.Execute(mockState);
+            command.Execute(stateFake);
 
             // Assert
-            mockState.Received(1).EndTurn();
+            Assert.IsTrue(stateFake.EndTurnCalled, "EndTurn should be called when allowed.");
         }
 
         [TestMethod]
         public void Execute_WhenCannotEndTurn_DoesNotCallEndTurn()
         {
             // Arrange
-            var mockState = Substitute.For<IGameplayState>();
-            mockState.CanEndTurn(out Arg.Any<string>()).Returns(false);
+            var stateFake = new TestGameplayState();
+            stateFake.TestCanEndTurnResult = false;
+            
             var command = new EndTurnCommand();
 
             // Act
-            command.Execute(mockState);
+            command.Execute(stateFake);
 
             // Assert
-            mockState.DidNotReceive().EndTurn();
+            Assert.IsFalse(stateFake.EndTurnCalled, "EndTurn should NOT be called when prohibited.");
         }
     }
 }
-
-

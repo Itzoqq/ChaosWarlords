@@ -3,6 +3,8 @@ using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
+using ChaosWarlords.Source.Core.Interfaces.Data;
+using ChaosWarlords.Source.Contexts;
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Input.Modes;
 using ChaosWarlords.Source.Managers;
@@ -10,13 +12,12 @@ using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Utilities;
-
 using NSubstitute;
+using ChaosWarlords.Tests.Source.Doubles.State;
 
 namespace ChaosWarlords.Tests.Integration.Input.Modes
 {
     [TestClass]
-
     [TestCategory("Integration")]
     public class TargetingInputModeTests
     {
@@ -24,9 +25,12 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         private MockInputProvider _mockInput = null!;
         private IInputManager _inputManager = null!;
 
+        // Concrete Fake
+        private TestGameplayState _stateFake = null!;
+
+        // Substitutes (Dependencies of State)
         private IMapManager _mapSub = null!;
         private IActionSystem _actionSub = null!;
-        private IGameplayState _stateSub = null!;
         private IMarketManager _marketSub = null!;
         private IUIManager _mockUI = null!;
         private TurnManager _turnManager = null!;
@@ -40,19 +44,36 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             _mapSub = Substitute.For<IMapManager>();
             _actionSub = Substitute.For<IActionSystem>();
-            _stateSub = Substitute.For<IGameplayState>();
             _marketSub = Substitute.For<IMarketManager>();
             _mockUI = Substitute.For<IUIManager>();
             _activePlayer = TestData.Players.RedPlayer();
             var mockRandom = Substitute.For<IGameRandom>();
-            // Assuming p1 and p2 are intended to be defined here for the new TurnManager instantiation
-            var p1 = TestData.Players.RedPlayer();
+            
+            // Define p1 and p2 for the TurnManager instantiation
+            var p1 = _activePlayer;
             var p2 = TestData.Players.BluePlayer();
-            var tm = new TurnManager(new List<Player> { p1, p2 }, mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            _turnManager = tm; // Assign to _turnManager for consistency with existing tests
+            _turnManager = new TurnManager(new List<Player> { p1, p2 }, mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+
+            // Initialize Fake State
+            _stateFake = new TestGameplayState
+            {
+                MapManager = _mapSub,
+                TurnManager = _turnManager,
+                ActionSystem = _actionSub,
+                MarketManager = _marketSub,
+                MatchContext = new MatchContext(
+                     Substitute.For<ITurnManager>(),
+                     _mapSub,
+                     _marketSub,
+                     _actionSub,
+                     Substitute.For<ICardDatabase>(),
+                     new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance),
+                     null, ChaosWarlords.Tests.Utilities.TestLogger.Instance
+                )
+            };
 
             _inputMode = new TargetingInputMode(
-                _stateSub,
+                _stateFake,
                 _inputManager,
                 _mockUI,
                 _mapSub,
@@ -156,5 +177,3 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         }
     }
 }
-
-

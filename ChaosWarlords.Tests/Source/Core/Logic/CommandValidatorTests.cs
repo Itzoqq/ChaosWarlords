@@ -38,7 +38,7 @@ namespace ChaosWarlords.Tests.Source.Core.Logic
             // Arrange
             var validator = new TestCommandValidator { ShouldFail = false };
             var command = new TestCommand();
-            var state = Substitute.For<IGameplayState>();
+            var state = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
 
             // Act
             var result = validator.Validate(command, state);
@@ -54,7 +54,7 @@ namespace ChaosWarlords.Tests.Source.Core.Logic
             // Arrange
             var validator = new TestCommandValidator { ShouldFail = true };
             var command = new TestCommand();
-            var state = Substitute.For<IGameplayState>();
+            var state = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
 
             // Act
             var result = validator.Validate(command, state);

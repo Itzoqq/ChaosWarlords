@@ -7,15 +7,17 @@ using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using NSubstitute;
+using ChaosWarlords.Tests.Source.Doubles.State;
+using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Entities.Map;
 
 namespace ChaosWarlords.Tests.Integration.Input.Controllers
 {
     [TestClass]
-
     [TestCategory("Integration")]
     public class PlayerControllerTests
     {
-        private IGameplayState _mockGameState = null!;
+        private TestGameplayState _stateFake = null!;
         private IInputManager _mockInputManager = null!;
         private IGameplayInputCoordinator _mockCoordinator = null!;
         private IInteractionMapper _mockMapper = null!;
@@ -24,13 +26,19 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
         [TestInitialize]
         public void Setup()
         {
-            _mockGameState = Substitute.For<IGameplayState>();
             _mockInputManager = Substitute.For<IInputManager>();
             _mockCoordinator = Substitute.For<IGameplayInputCoordinator>();
             _mockMapper = Substitute.For<IInteractionMapper>();
+            
+            // Setup Fake State
+            _stateFake = new TestGameplayState
+            {
+                InputManager = _mockInputManager,
+                ActionSystem = Substitute.For<IActionSystem>() 
+            };
 
             _controller = new PlayerController(
-                _mockGameState,
+                _stateFake,
                 _mockInputManager,
                 _mockCoordinator,
                 _mockMapper);
@@ -60,7 +68,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
             var result = _controller.Update();
 
             // Assert
-            _mockGameState.Received(1).HandleEscapeKeyPress();
+            Assert.IsTrue(_stateFake.EscapeHandled, "State should acknowledge Escape key press.");
             Assert.IsTrue(result, "Should return true when escape is handled");
         }
 
@@ -69,18 +77,14 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
         {
             // Arrange
             _mockInputManager.IsKeyJustPressed(Keys.Enter).Returns(true);
-            _mockGameState.IsPauseMenuOpen.Returns(false);
-            _mockGameState.CanEndTurn(out Arg.Any<string>()).Returns(x =>
-            {
-                x[0] = "";
-                return true;
-            });
+            _stateFake.IsPauseMenuOpen = false;
+            // TestGameplayState.CanEndTurn defaults to true
 
             // Act
             var result = _controller.Update();
 
             // Assert
-            _mockGameState.Received(1).HandleEndTurnKeyPress();
+            Assert.IsTrue(_stateFake.EndTurnRequested, "State should have received EndTurn request.");
             Assert.IsTrue(result);
         }
 
@@ -89,13 +93,13 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
         {
             // Arrange
             _mockInputManager.IsKeyJustPressed(Keys.Enter).Returns(true);
-            _mockGameState.IsPauseMenuOpen.Returns(true);
+            _stateFake.IsPauseMenuOpen = true;
 
             // Act
             var result = _controller.Update();
 
             // Assert
-            _mockGameState.DidNotReceive().HandleEndTurnKeyPress();
+            Assert.IsFalse(_stateFake.EndTurnRequested, "Should NOT request EndTurn when Pause Menu is not handled by PlayerController here.");
             Assert.IsTrue(result);
         }
 
@@ -104,13 +108,13 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
         {
             // Arrange
             _mockInputManager.IsRightMouseJustClicked().Returns(true);
-            _mockGameState.IsMarketOpen.Returns(true);
+            _stateFake.IsMarketOpen = true;
 
             // Act
             var result = _controller.Update();
 
             // Assert
-            _mockGameState.Received(1).CloseMarket();
+            Assert.IsFalse(_stateFake.IsMarketOpen, "Market should be closed by right click.");
             Assert.IsTrue(result);
         }
 
@@ -119,17 +123,21 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
         {
             // Arrange
             _mockInputManager.IsRightMouseJustClicked().Returns(true);
-            _mockGameState.IsMarketOpen.Returns(false);
+            _stateFake.IsMarketOpen = false;
+            
             var mockActionSystem = Substitute.For<IActionSystem>();
             mockActionSystem.IsTargeting().Returns(true);
-            _mockGameState.ActionSystem.Returns(mockActionSystem);
+            _stateFake.ActionSystem = mockActionSystem; // Inject mock into fake
 
             // Act
             var result = _controller.Update();
 
             // Assert
             mockActionSystem.Received(1).CancelTargeting();
-            _mockGameState.Received(1).SwitchToNormalMode();
+            
+            // Verify state logic (PlayerController calls SwitchToNormalMode on state)
+            Assert.AreEqual("Normal", _stateFake.ActiveModeName, "Should switch to Normal mode.");
+            
             Assert.IsTrue(result);
         }
 
@@ -141,14 +149,15 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
             mockActionSystem.CurrentState.Returns(ActionState.SelectingSpyToReturn);
             var mockSite = TestData.Sites.CitySite();
             mockActionSystem.PendingSite.Returns(mockSite);
-            _mockGameState.ActionSystem.Returns(mockActionSystem);
+            
+            _stateFake.ActionSystem = mockActionSystem;
 
             _mockInputManager.IsLeftMouseJustClicked().Returns(true);
             _mockInputManager.MousePosition.Returns(new Vector2(100, 100));
 
             var mockUIManager = Substitute.For<IUIManager>();
             mockUIManager.ScreenWidth.Returns(800);
-            _mockGameState.UIManager.Returns(mockUIManager);
+            _stateFake.UIManager = mockUIManager;
 
             _mockMapper.GetClickedSpyReturnButton(Arg.Any<Point>(), mockSite, 800)
                 .Returns(PlayerColor.Blue);
@@ -162,5 +171,3 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
         }
     }
 }
-
-

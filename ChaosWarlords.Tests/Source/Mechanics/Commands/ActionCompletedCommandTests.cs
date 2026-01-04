@@ -5,74 +5,74 @@ using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
 using NSubstitute;
+using ChaosWarlords.Tests.Source.Doubles.State;
 
 namespace ChaosWarlords.Tests.Source.Commands
 {
     [TestClass]
-
     [TestCategory("Unit")]
     public class ActionCompletedCommandTests
     {
-        private IGameplayState _stateSub = null!;
-        private IActionSystem _actionSub = null!;
-        private IMatchManager _matchManagerSub = null!; // New Mock
-
-        [TestInitialize]
-        public void Setup()
-        {
-            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
-
-            // 1. Create Mocks
-            _stateSub = Substitute.For<IGameplayState>();
-            _actionSub = Substitute.For<IActionSystem>();
-            _matchManagerSub = Substitute.For<IMatchManager>();
-
-            // 2. Wire Mocks together
-            _stateSub.ActionSystem.Returns(_actionSub);
-            _stateSub.MatchManager.Returns(_matchManagerSub); // Important: Hook up the controller
-        }
-
         [TestMethod]
         public void Execute_WithPendingCard_DelegatesToMatchManager()
         {
             // Arrange
+            var stateFake = new TestGameplayState();
+            
+            var mockActionSystem = Substitute.For<IActionSystem>();
+            var mockMatchManager = Substitute.For<IMatchManager>();
+
+            stateFake.ActionSystem = mockActionSystem;
+            stateFake.MatchManager = mockMatchManager;
+
             var card = TestData.Cards.CheapCard();
-            _actionSub.PendingCard.Returns(card);
+            mockActionSystem.PendingCard.Returns(card);
 
             var command = new ActionCompletedCommand();
 
             // Act
-            command.Execute(_stateSub);
+            command.Execute(stateFake);
 
             // Assert
-            // 1. Verify logic was delegated to the Controller (which handles effects + movement)
-            _matchManagerSub.Received(1).PlayCard(card);
+            // 1. Verify logic was delegated to the Controller
+            mockMatchManager.Received(1).PlayCard(card);
 
             // 2. Verify cleanup
-            _actionSub.Received(1).CancelTargeting();
-            _stateSub.Received(1).SwitchToNormalMode();
+            mockActionSystem.Received(1).CancelTargeting();
+            
+            // 3. Verify Mode Switch via State Property
+            Assert.AreEqual("Normal", stateFake.ActiveModeName);
         }
 
         [TestMethod]
         public void Execute_NoPendingCard_SkipsControllerCall_ButResetsState()
         {
             // Arrange
-            _actionSub.PendingCard.Returns((Card)null!);
+            var stateFake = new TestGameplayState();
+            
+            var mockActionSystem = Substitute.For<IActionSystem>();
+            var mockMatchManager = Substitute.For<IMatchManager>();
+
+            stateFake.ActionSystem = mockActionSystem;
+            stateFake.MatchManager = mockMatchManager;
+
+            mockActionSystem.PendingCard.Returns((Card)null!);
 
             var command = new ActionCompletedCommand();
 
             // Act
-            command.Execute(_stateSub);
+            command.Execute(stateFake);
 
             // Assert
             // 1. Verify Controller was NOT called
-            _matchManagerSub.DidNotReceive().PlayCard(Arg.Any<Card>());
+            mockMatchManager.DidNotReceive().PlayCard(Arg.Any<Card>());
 
             // 2. Verify cleanup still happens
-            _actionSub.Received(1).CancelTargeting();
-            _stateSub.Received(1).SwitchToNormalMode();
+            mockActionSystem.Received(1).CancelTargeting();
+            
+            // 3. Verify Mode Switch via State Property
+            // Note: Command calls SwitchToNormalMode()
+            Assert.AreEqual("Normal", stateFake.ActiveModeName);
         }
     }
 }
-
-

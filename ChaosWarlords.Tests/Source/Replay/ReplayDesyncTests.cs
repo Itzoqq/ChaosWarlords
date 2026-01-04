@@ -105,15 +105,16 @@ namespace ChaosWarlords.Tests.Source.Replay
             
             var countReplayInitAfterDraw = seededRandomReplay.CallCount;
 
-            var mockState = Substitute.For<IGameplayState>();
-            mockState.TurnManager.Returns(worldReplay.TurnManager);
-            mockState.MapManager.Returns(worldReplay.MapManager);
+            // Use Fake State instead of Mock
+            var fakeState = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+            fakeState.TurnManager = worldReplay.TurnManager;
+            fakeState.MapManager = worldReplay.MapManager;
             try
             {
                 var ctx = new MatchContext(
                     worldReplay.TurnManager, worldReplay.MapManager, worldReplay.MarketManager, 
                     worldReplay.ActionSystem, cardDb, worldReplay.PlayerStateManager, null, logger, seed);
-                mockState.MatchContext.Returns(ctx);
+                fakeState.MatchContext = ctx;
             }
             catch(System.Exception ex)
             {
@@ -121,15 +122,11 @@ namespace ChaosWarlords.Tests.Source.Replay
             }
 
             // Exec 1 (RED PlayCard)
-            var fetchedCmd1 = replayManager.GetNextCommand(mockState);
+            var fetchedCmd1 = replayManager.GetNextCommand(fakeState);
             Assert.IsNotNull(fetchedCmd1, "Failed to switch PlayCard Command");
             if (fetchedCmd1 is PlayCardCommand playCmdReplay)
             {
-                 // Simulate Execution of PlayCard (Manually, since PlayCardCommand.Execute is complex and mocked state might need more args)
-                 // But wait! PlayCardCommand.Execute needs PlayerStateManager.
-                 // mockState.MatchContext.PlayerStateManager... implementation?
-                 // Let's do manual logic for robustness of test setup OR check if Hydrated command has Card.
-                 
+                 // Simulate Execution of PlayCard
                  var card = playCmdReplay.Card;
                  Assert.IsNotNull(card, "PlayCardCommand Card is null!");
                  
@@ -140,7 +137,7 @@ namespace ChaosWarlords.Tests.Source.Replay
             }
 
             // Exec 2 (RED Deploy)
-            var fetchedCmd2 = replayManager.GetNextCommand(mockState);
+            var fetchedCmd2 = replayManager.GetNextCommand(fakeState);
             Assert.IsNotNull(fetchedCmd2, "Failed to switch Deploy Command (Red)");
             if (fetchedCmd2 is DeployTroopCommand deployCmd1)
             {
@@ -155,7 +152,8 @@ namespace ChaosWarlords.Tests.Source.Replay
             worldReplay.TurnManager.EndTurn();
             
             // Exec 3 (BLUE)
-            var fetchedCmd3 = replayManager.GetNextCommand(mockState);
+            // Exec 3 (BLUE)
+            var fetchedCmd3 = replayManager.GetNextCommand(fakeState);
             Assert.IsNotNull(fetchedCmd3, "Failed to switch Deploy Command (Blue)");
              
             if (fetchedCmd3 is DeployTroopCommand deployCmd2)
