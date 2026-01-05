@@ -359,7 +359,7 @@ flowchart LR
 
     Mapper[DtoMapper]
 
-    subgraph Serialized Data (DTOs)
+    subgraph "Serialized Data (DTOs)"
         D1[CardDto]
         D2[CommandDto]
         D3[PlayerDto]
