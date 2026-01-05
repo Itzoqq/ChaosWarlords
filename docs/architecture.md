@@ -16,8 +16,17 @@ This document outlines the architecture of the `ChaosWarlords` codebase, a digit
 The project uses a semantic folder structure. Below is a detailed listing of all files and their responsibilities.
 
 ```text
-Source/
-├── Core/
+Solution Root
+├── ChaosWarlords.sln            # Visual Studio Solution
+├── README.md                    # Project Documentation
+├── docs/                        # Architecture & Testing Specs
+└── ChaosWarlords/               # Project Directory
+    ├── ChaosWarlords.csproj     # Project File
+    ├── app.manifest             # Windows Application Manifest
+    ├── Program.cs               # Application Entry Point
+    ├── Game1.cs                 # MonoGame Main Loop
+    └── Source/
+        ├── Core/
 │   ├── Composition/                     # Dependency Injection composition roots
 │   │   └── GameDependencies.cs          # Concrete dependency container
 │   ├── Contexts/                        # Data Holders (The "Glue")
@@ -35,10 +44,7 @@ Source/
 │   │       ├── ScoreBreakdownDto.cs     # Serializable victory score details
 │   │       └── VictoryDto.cs            # Serializable victory state data
 │   ├── Events/                          # Event System
-│   │   ├── EventManager.cs              # Event bus implementation
 │   │   ├── GameEvent.cs                 # Base record for all game events
-│   │   ├── GameEventLogger.cs           # Logs events for debugging/replay
-│   │   ├── IEventManager.cs             # Event publishing/subscription contract
 │   │   └── StateChangeEvent.cs          # Event for state mutations
 │   ├── Interfaces/                      # Contracts (API Definitions)
 │   │   ├── Composition/
@@ -84,16 +90,15 @@ Source/
 │   └── Utilities/                       # Infrastructure & Constants
 │       ├── BufferedAsyncLogger.cs       # Async-optimized logging
 │       ├── CardDatabase.cs              # Implementation of the card library
-│       ├── CollectionHelpers.cs         # Extension methods for generic collections
 │       ├── DtoMapper.cs                 # Mapping logic between Entities and DTOs
 │       ├── GameConstants.cs             # Global configuration values
 │       ├── GameEnums.cs                 # Enums (PlayerColor, ResourceType, etc.)
 │       ├── MapGenerationConfig.cs       # Parameters for procedural map generation
 │       ├── MapGeometry.cs               # Helper for hexagonal grid math
 │       ├── MapLayoutEngine.cs           # Procedural map generation logic
-│       ├── MapTopology.cs               # Pathfinding and distance calculations
 │       ├── SeededGameRandom.cs          # Deterministic RNG implementation
-│       └── TextCache.cs                 # Caches string measurements
+│       ├── TextCache.cs                 # Caches string measurements
+│       └── ValidationResult.cs          # Standardized validation response
 │
 ├── Entities/                            # Domain Models (Pure Data + Behavior)
 │   ├── Actors/
@@ -200,10 +205,12 @@ Source/
     │   └── UIRenderer.cs                # General UI rendering
     ├── ViewModels/                      # MVVM State
     │   └── CardViewModel.cs             # View-Logic wrapper for Card
-    └── Views/                           # Concrete Views
+    ├── Views/                           # Concrete Views
+    │   ├── GameplayView.cs              # Main gameplay renderer
+    │   ├── MainMenuView.cs              # Main Menu screen renderer
+    │   └── VictoryView.cs               # Victory screen renderer
+    └── World/                           # In-Game Object Renderers
         ├── CardRenderer.cs              # Draws individual cards to screen
-        ├── GameplayView.cs              # Main gameplay renderer
-        ├── MainMenuView.cs              # Main Menu screen renderer
         └── MapRenderer.cs               # Draws the hex map and units
 ```
 
