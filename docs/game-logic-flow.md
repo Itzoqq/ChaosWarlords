@@ -365,8 +365,8 @@ flowchart LR
         D3[PlayerDto]
     end
     
-    E1 & E2 & E3 -->|ToDto()| Mapper
-    Mapper -->|Hydrate()| E1
+    E1 & E2 & E3 -->|"ToDto()"| Mapper
+    Mapper -->|"Hydrate()"| E1
     
     Mapper --> D1 & D2 & D3
     D1 & D2 & D3 -->|JSON| Storage[Disk / Network]
