@@ -839,26 +839,36 @@ namespace ChaosWarlords.Source.Managers
             }
             else
             {
-                // Execute Immediately
-                // 1. Remove from Market (Handling refill)
-                _marketManager.RemoveCard(targetCard);
-                
-                // 2. Move to Void
-                targetCard.Location = CardLocation.Void;
-                
-                // 3. Track in VoidPile (Match History)
-                // Note: MatchContext is not directly available via _matchManager usually, but ActionSystem holds dependency?
-                // ActionSystem doesn't have _context reference.
-                // However, MatchManager.DevourCard does VoidPile.Add.
-                // We can't use MatchManager.DevourCard because it expects Hand card.
-                // We should expose VoidPile via MatchManager or similar?
-                // Or just trust Location=Void is enough for now (State is mutated).
-                // Actually, MatchManager interface might not expose VoidPile. Use _matchManager.Context if available?
-                // _matchManager is IMatchManager.
-                // Assuming setting Location is sufficient for core logic, monitoring system might miss it if relying on VoidPile List.
-                
-                // If MatchManager had a generalized DevourCard(Card, Location source), it would be better.
-                // But for now, just setting Location to Void marks it as "Gone".
+                // Check if the Source Card (PendingCard) has a Devour action asking for Replacement
+                // We must identify the 'Devour Market' effect on the pending card.
+                // Handle case where PendingCard is null (e.g. legacy tests or manual trigger) - default to false
+                var devourEffect = PendingCard?.Effects.FirstOrDefault(e => e.Type == EffectType.Devour && e.TargetLocation == CardLocation.Market);
+                bool shouldReplace = devourEffect?.ReplaceWithSource ?? false;
+
+                if (shouldReplace && _playerStateManager != null && PendingCard != null)
+                {
+                    _logger.Log($"Replacing Market Card {targetCard.Name} with {PendingCard.Name}", LogChannel.Info);
+
+                     // 1. Move Source to Market (via State Manager)
+                    _playerStateManager.MoveCardToMarket(CurrentPlayer, PendingCard);
+
+                    // 2. Replace in Market Row
+                    _marketManager.ReplaceCard(targetCard, PendingCard);
+
+                    // 3. Void the Target
+                    targetCard.Location = CardLocation.Void;
+                    // Optional: Add to VoidPile if match context accessible, otherwise CardLocation.Void is sufficient logic mark.
+                }
+                else
+                {
+                    // Standard Devour
+                    // Execute Immediately
+                    // 1. Remove from Market (Handling refill)
+                    _marketManager.RemoveCard(targetCard);
+                    
+                    // 2. Move to Void
+                    targetCard.Location = CardLocation.Void;
+                }
                 
                 CompleteAction();
             }

@@ -38,6 +38,8 @@ namespace ChaosWarlords.Source.Utilities
         public string? ConditionResource { get; set; }
 
         public bool IsOptional { get; set; }
+        
+        public bool ReplaceWithSource { get; set; }
     }
 
     public class CardDatabase : ICardDatabase

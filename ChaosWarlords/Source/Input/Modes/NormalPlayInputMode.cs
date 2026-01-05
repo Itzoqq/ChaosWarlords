@@ -7,6 +7,7 @@ using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Utilities;
 
 
 namespace ChaosWarlords.Source.Input.Modes
@@ -48,6 +49,12 @@ namespace ChaosWarlords.Source.Input.Modes
                         {
                             // Just play the card - popup will appear during effect resolution
                             return new PlayCardCommand(clickedCard);
+                        }
+
+                        // NEW FIX: Also skip pre-commit for Market Devour (which happens post-play)
+                        if (devourEffect.TargetLocation == CardLocation.Market)
+                        {
+                             return new PlayCardCommand(clickedCard);
                         }
 
                          _actionSystem.TryStartDevourHand(clickedCard);

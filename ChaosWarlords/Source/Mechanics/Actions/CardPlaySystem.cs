@@ -48,6 +48,16 @@ namespace ChaosWarlords.Source.Mechanics.Actions
                     if (_matchContext.CardRuleEngine.HasValidTargets(_matchContext.ActivePlayer, effect.Type, card))
                     {
                         var state = GetTargetingState(effect);
+                        _logger.Log($"[CardPlaySystem] Effect {effect.Type} (Loc: {effect.TargetLocation}) -> State: {state}", LogChannel.Debug);
+                        
+                        // Special Case: Market Targeting should happen Post-Play (Sequential)
+                        // Pre-Commit is for map Board state or Hand costs. Market is a separate UI mode better handled by ResolveEffects.
+                        if (state == ActionState.TargetingDevourMarket) 
+                        {
+                            _logger.Log($"[CardPlaySystem] Skipping Pre-Commit for Market Devour.", LogChannel.Debug);
+                            continue;
+                        }
+
                         _matchContext.ActionSystem.StartTargeting(state, card);
                         _onTargetingStarted?.Invoke();
                         enteredTargeting = true;

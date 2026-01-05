@@ -73,6 +73,12 @@ namespace ChaosWarlords.Source.Utilities
                     if (Enum.TryParse(data.TargetLocation, true, out CardLocation targetLoc))
                     {
                         effect.TargetLocation = targetLoc;
+                        // Debug Log (Console as we are in static context, or just rely on debugger if attached, but console is safer for user feedback)
+                        // System.Console.WriteLine($"[CardFactory] Parsed TargetLocation for effect: {data.TargetLocation} -> {targetLoc}");
+                    }
+                    else
+                    {
+                         System.Console.WriteLine($"[CardFactory] FAILED to parse TargetLocation: {data.TargetLocation}");
                     }
                 }
 
@@ -94,6 +100,7 @@ namespace ChaosWarlords.Source.Utilities
                 }
 
                 effect.IsOptional = data.IsOptional;
+                effect.ReplaceWithSource = data.ReplaceWithSource;
 
                 return effect;
             }

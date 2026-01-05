@@ -127,6 +127,13 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         // --- Turn Management ---
 
         /// <summary>
+        /// Moves a card from the player's Hand or Played pile to the Market (removing it from player ownership).
+        /// </summary>
+        /// <param name="player">The owner of the card.</param>
+        /// <param name="card">The card to move.</param>
+        void MoveCardToMarket(Player player, Card card);
+
+        /// <summary>
         /// Performs end-of-turn cleanup for the player, discarding hand and played cards.
         /// </summary>
         /// <param name="player">The player ending their turn.</param>

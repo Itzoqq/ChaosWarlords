@@ -44,16 +44,14 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                     return;
                 }
 
-                // FIX: Check if we even have valid targets before asking the user.
-                // If it's a targeting effect and we have no targets, skip asking.
-                if (ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.Type))
+                // Refactored: Use CardRuleEngine.IsEffectChainValid for deep validation
+                // This checks if the current effect AND all subsequent effects in the chain are viable.
+                // If not, we skip the optional popup to prevent bad UX.
+                if (!context.CardRuleEngine.IsEffectChainValid(context.ActivePlayer, effect, card))
                 {
-                     if (!context.CardRuleEngine.HasValidTargets(context.ActivePlayer, effect.Type, card))
-                     {
-                         logger.Log($"Skipped optional {effect.Type}: No valid targets (auto-declined).", LogChannel.Info);
-                         ProcessNextEffect(effects, index + 1, card, context, logger);
-                         return;
-                     }
+                     logger.Log($"Skipped optional {effect.Type}: Effect chain is invalid (targets missing).", LogChannel.Info);
+                     ProcessNextEffect(effects, index + 1, card, context, logger);
+                     return;
                 }
 
                 context.UIEventMediator.RequestOptionalEffect(
@@ -211,6 +209,17 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         private static void ApplyDevour(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger, Action? onComplete, bool defer)
         {
+            if (defer && effect.OnSuccess != null && ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.OnSuccess.Type))
+            {
+                // Lookahead: If the dependent effect has no valid targets, abort the chain early.
+                // This prevents asking the user to pay a cost (Devour) for an impossible action.
+                if (!context.CardRuleEngine.HasValidTargets(context.ActivePlayer, effect.OnSuccess.Type, sourceCard))
+                {
+                     logger.Log($"{sourceCard.Name}: Cannot start Devour chain - dependent effect {effect.OnSuccess.Type} has no valid targets.", LogChannel.Warning);
+                     return;
+                }
+            }
+
             if (effect.TargetLocation == CardLocation.Market)
             {
                 context.ActionSystem.TryStartDevourMarket(sourceCard, onComplete, defer);

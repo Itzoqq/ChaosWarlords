@@ -35,6 +35,13 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// </summary>
         /// <returns>True if the market deck has cards; otherwise, false.</returns>
         bool HasCardsInDeck();
+
+        /// <summary>
+        /// Replaces a target card in the market with a replacement card.
+        /// </summary>
+        /// <param name="target">The existing card in the market row to be replaced.</param>
+        /// <param name="replacement">The new card to place in that slot.</param>
+        void ReplaceCard(Card target, Card replacement);
     }
 }
 

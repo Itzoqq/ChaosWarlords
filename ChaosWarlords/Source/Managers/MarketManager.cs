@@ -68,6 +68,18 @@ namespace ChaosWarlords.Source.Managers
             return _marketDeck.Count > 0;
         }
 
+        public void ReplaceCard(Card target, Card replacement)
+        {
+            int index = MarketRow.IndexOf(target);
+            if (index != -1)
+            {
+                MarketRow[index] = replacement;
+                replacement.Location = CardLocation.Market;
+                // Target is removed from the row, but its extensive cleanup (location=void) 
+                // is handled by the caller (MarketManager handles the Collection, Caller handles Logic/State).
+            }
+        }
+
         // Removed ShuffleDeck private method as it's handled in constructor now
 
     }

@@ -92,7 +92,32 @@ namespace ChaosWarlords.Source.Entities.Cards
 
             foreach (var effect in Effects)
             {
-                newCard.Effects.Add(new CardEffect(effect.Type, effect.Amount, effect.TargetResource));
+                var newEffect = new CardEffect(effect.Type, effect.Amount, effect.TargetResource)
+                {
+                    RequiresFocus = effect.RequiresFocus,
+                    IsOptional = effect.IsOptional,
+                    TargetLocation = effect.TargetLocation,
+                    ReplaceWithSource = effect.ReplaceWithSource,
+                    Condition = effect.Condition, // Reference copy for condition (usually shared/immutable)
+                    // Deep copy OnSuccess recursively if needed, or check if CardEffect has a Clone
+                };
+                
+                if (effect.OnSuccess != null)
+                {
+                     // Simplified recursive copy for OnSuccess chain
+                     // Note: We should strictly implement a Clone on CardEffect, but inline here for now.
+                     // Assuming depth is shallow usually. Be careful of stack overflow if circular (unlikely).
+                     newEffect.OnSuccess = new CardEffect(effect.OnSuccess.Type, effect.OnSuccess.Amount, effect.OnSuccess.TargetResource)
+                     {
+                        RequiresFocus = effect.OnSuccess.RequiresFocus,
+                        IsOptional = effect.OnSuccess.IsOptional,
+                        TargetLocation = effect.OnSuccess.TargetLocation,
+                        ReplaceWithSource = effect.OnSuccess.ReplaceWithSource,
+                        Condition = effect.OnSuccess.Condition
+                     };
+                }
+
+                newCard.Effects.Add(newEffect);
             }
 
             return newCard;

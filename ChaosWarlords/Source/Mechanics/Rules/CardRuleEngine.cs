@@ -75,6 +75,30 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             return isValid;
         }
 
+        /// <summary>
+        /// Recursively validates an entire chain of effects.
+        /// Useful for optional effects (costs) to ensure the resulting reward/action is actually possible.
+        /// </summary>
+        public bool IsEffectChainValid(Player player, CardEffect effect, Card? sourceCard)
+        {
+            // 1. Validate the current effect (if it requires targets)
+            if (ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.Type))
+            {
+                if (!HasValidTargets(player, effect.Type, sourceCard))
+                {
+                    return false;
+                }
+            }
+            
+            // 2. Recursively validate success chain
+            if (effect.OnSuccess != null)
+            {
+                return IsEffectChainValid(player, effect.OnSuccess, sourceCard);
+            }
+
+            return true;
+        }
+
         private bool CheckDevourTargets(Player player, Card? sourceCard)
         {
             // Default: Devour from Hand

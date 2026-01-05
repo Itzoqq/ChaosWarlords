@@ -6,9 +6,10 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities; // For MarketMode, LogChannel
 using System;
 
-namespace ChaosWarlords.Tests.Source.Unit.Managers
+namespace ChaosWarlords.Tests.Managers
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class MarketStateManagerTests
     {
         private MarketStateManager _manager = null!;

@@ -181,6 +181,23 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
+        public void MoveCardToMarket(Player player, Card card)
+        {
+            // Logic to remove card from player ownership
+            bool removed = player.Hand.Remove(card);
+            if (!removed) removed = player.PlayedCards.Remove(card);
+            
+            if (removed)
+            {
+                card.Location = CardLocation.Market;
+                _logger.Log($"[State] {player.DisplayName} moved '{card.Name}' to Market.", LogChannel.Info);
+            }
+            else
+            {
+                 _logger.Log($"[State] Failed to move '{card.Name}' to Market: Not found in Hand or PlayedCards.", LogChannel.Warning);
+            }
+        }
+
         public void CleanUpTurn(Player player)
         {
             _logger.Log($"[Cleanup] Clearning hand for {player.DisplayName}. Content was:", LogChannel.Debug);

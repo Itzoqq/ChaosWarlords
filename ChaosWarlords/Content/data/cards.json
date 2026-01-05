@@ -189,5 +189,22 @@
         }
       }
     ]
+  },
+  {
+    "Id": "carrion_crawler",
+    "Name": "Carrion Crawler",
+    "Description": "Devour a card in the market and replace it with this card.",
+    "Cost": 4,
+    "Aspect": "Oblivion",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "Effects": [
+      {
+        "Type": "Devour",
+        "Amount": 1,
+        "TargetLocation": "Market",
+        "ReplaceWithSource": true
+      }
+    ]
   }
 ]
