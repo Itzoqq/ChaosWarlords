@@ -327,3 +327,191 @@ if (context.CardRuleEngine.IsConditionMet(player, effect))
 
 ---
 
+
+---
+
+## 9. Input Coordination System
+
+**Rule**: Application of input must follow the tiered orchestration flow: `InputManager` -> `Controller` -> `Coordinator` -> `InputMode`.
+
+**Why**: Separates raw input detection from intent and execution, allowing context-aware flexibility (e.g., clicking a card in Normal mode plays it, but in Targeting mode selects it).
+
+```csharp
+// 1. InputManager - Raw input
+var mouseState = _inputManager.GetMouseState();
+bool clicked = mouseState.LeftButton == ButtonState.Pressed;
+
+// 2. PlayerController - Intent detection
+if (clicked)
+{
+    var intent = _controller.DetectIntent(mouseState);
+    // intent = "PlayCard" or "DeployTroop" or "EndTurn"
+}
+
+// 3. InputCoordinator - Orchestration
+_coordinator.HandleIntent(intent);
+// Checks current mode, validates action, delegates to manager
+
+// 4. InputMode - Contextual handling
+if (_currentMode is TargetingInputMode)
+{
+    // Clicks select targets, not cards
+    var target = _mapper.GetNodeAtPosition(x, y);
+    _actionSystem.SelectTarget(target);
+}
+```
+
+---
+
+## 10. Transactional Command Execution
+
+**Rule**: Complex multi-step actions (e.g., "Devour card then Supplant unit") must use `ActionSystem` deferred execution.
+
+**Why**: Ensures atomic execution. If the player cancels partway through (e.g., after picking a card to devour but before picking a unit to supplant), the game state must roll back completely.
+
+**Pattern**:
+1.  **Deferred Execution**: User selects targets, but action holds off until chain is complete.
+2.  **State Buffering**: Selections are held in temporary state (e.g., `PendingDevourCard`).
+3.  **Atomic Commit**: The command executes only when all steps are valid and confirmed.
+
+```csharp
+// Example: Wight Card (Devour -> Supplant)
+
+// 1. User chooses Devour path
+ActionSystem.TryStartDevourHand(wightCard, 
+    onComplete: () => ActionSystem.StartTargeting(ActionState.TargetingSupplant, wightCard),
+    deferExecution: true);  // Don't execute yet!
+
+// 2. User selects card -> Buffered in PendingDevourCard (not removed from hand yet)
+ActionSystem.HandleDevourSelection(targetCard);
+
+// 3. User selects node for Supplant -> SupplantCommand executes
+// ONLY NOW does the entire transaction execute atomically
+```
+
+**Cancellation**: `ActionSystem.CancelTargeting()` clears the buffer, restoring the hand state as if nothing happened.
+
+---
+
+## 11. Lookahead Validation Engine
+
+**Rule**: Before allowing a card play or action initiation, the ENTIRE chain of required effects and targets must be validated recursively.
+
+**Why**: Prevents "Action Fizzling" where a player pays a cost (e.g., plays a card) but cannot complete the main effect (e.g., no valid targets for the result). Also prevents UI deadlock where a player enters a targeting mode with no valid targets.
+
+**Pattern**: `CardRuleEngine.IsEffectChainValid(player, effect, sourceCard)`
+
+1.  **Recursive Validation**: Checks the current effect's requirements (e.g., `HasValidTargets`).
+2.  **Breadth & Depth**: If the current effect succeeds, it recursively checks `effect.OnSuccess`.
+3.  **Atomic Validity**: Returns `true` only if the *entire* path is actionable.
+
+```csharp
+// Example: Validate entire chain before showing "Play" button
+if (_cardRuleEngine.IsEffectChainValid(player, card.Effects.First(), card))
+{
+    // Enable Play interaction
+}
+```
+
+**Deadlock Prevention Helpers**:
+
+---
+
+## 12. Replay System & Determinism
+
+**Rule**: All Game Logic must be deterministic and serializable to support the Replay Manager.
+
+**Why**: To support "Save/Load Replay" and multiplayer sync, the game must be able to reconstruct the exact state from a sequence of commands and a seed.
+
+**Requirements**:
+1.  **Seeded RNG**: As per Rule #1, never use system time or unseeded randoms.
+2.  **Command Pattern**: All mutations must happen via `IGameCommand` (Rule #5).
+3.  **DTO Mapping**: Every `IGameCommand` must have a corresponding `GameCommandDto` in `DtoMapper`.
+4.  **No Logic in Views**: Views are not recorded, so logic cannot depend on them (Rule #4).
+
+**Pattern**: `ReplayManager.RecordCommand()`
+- Automatically hooks into `CommandDispatcher`.
+- Serializes commands to JSON DTOs.
+- `DtoMapper` acts as the translator between runtime objects (Entities) and storage objects (DTOs).
+
+---
+
+## 13. UI Event Mediator Pattern
+
+**Rule**: The `UIEventMediator` is the **ONLY** bridge between UI events (popups, pause menu) and Game Logic.
+
+**Why**: Prevents circular dependencies between Logic and UI. The UI Manager shouldn't know about `GameplayState`, and `GameplayState` shouldn't manage UI popups directly.
+
+**Pattern**:
+1.  **UI Request**: UI Manager fires an event (e.g., `OnAssassinateRequest`).
+2.  **Mediator Intercepts**: `UIEventMediator` handles the event (e.g., calls `_actionSystem.TryStartAssassinate()`).
+3.  **Logic executes**: The logic systems do their work.
+4.  **Feedback**: Logic emits events (`OnActionCompleted`) which the Mediator listens to, to reset UI state (switching modes).
+
+```csharp
+// Example: Mediator handling an external request
+private void HandleAssassinateRequest(object sender, EventArgs e)
+{
+    // 1. Call Logic
+    _actionSystem.TryStartAssassinate();
+    
+    // 2. Adjust UI State based on Logic result
+    if (_actionSystem.IsTargeting())
+    {
+        _gameState.SwitchToTargetingMode();
+    }
+}
+```
+
+---
+
+## 14. Testing Patterns
+
+**Rule**: Tests must be readable, isolated, and deterministic.
+
+### 14.1 Naming Convention
+Use `MethodName_Scenario_ExpectedBehavior` to clearly describe the test intent.
+
+```csharp
+[TestMethod]
+public void AddPower_WithPositiveAmount_IncreasesPlayerPower()
+{
+    // ...
+}
+```
+
+### 14.2 Parameterized Tests
+Use `[DataRow]` to test multiple scenarios without code duplication. **CRITICAL**: Always create fresh instances (Arrange) inside the test method, never reuse shared state between DataRows.
+
+```csharp
+[TestMethod]
+[DataRow(0, 1, false)]  // Scenario 1
+[DataRow(1, 1, true)]   // Scenario 2
+public void CanDeploy_ValidatesCapabilities(int power, int troops, bool expected)
+{
+    // Arrange: Create FRESH builder for each run
+    var player = new PlayerBuilder().WithPower(power).WithTroops(troops).Build();
+    
+    // Act & Assert...
+}
+```
+
+### 14.3 Test Data Usage
+*   **Use `TestData` helper**: For common, standard scenarios (e.g., `TestData.Players.RedPlayer()`).
+*   **Use Builders**: For specific edge cases or unique configurations (e.g., `new PlayerBuilder().WithPower(0).Build()`).
+*   **Avoid**: Raw constructors in tests, as they are brittle to change.
+
+### 14.4 Mocking with NSubstitute
+Always substitute interfaces, not concrete classes.
+
+```csharp
+// Accept ANY IGameRandom to robustly handle method signature changes
+_mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(deck);
+```
+
+### 14.5 Deterministic RNG in Tests
+**Rule**: NEVER use `new Random()` in tests.
+*   **Unit Tests**: Mock `IGameRandom`.
+*   **Integration/Logic Tests**: Use `SeededGameRandom(seed)` to ensure reproducibility.
+
+

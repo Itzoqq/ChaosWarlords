@@ -77,137 +77,125 @@ The test project mirrors the main project structure. Each test file corresponds 
 
 ```text
 ChaosWarlords.Tests/Source/
-├── Integration/                         # End-to-End Integration Tests
+├── Core/                        # Unit Tests for Core Infrastructure
+│   ├── Events/
+│   │   └── EventManagerTests.cs
+│   └── Utilities/               # Unit Tests for Utilities
+│       ├── BufferedAsyncLoggerTests.cs
+│       ├── CachedIntTextTests.cs
+│       ├── CardDatabaseIntegrationTests.cs
+│       ├── CardDatabaseTests.cs
+│       ├── DtoMapperTests.cs
+│       ├── MapGeometryTest.cs
+│       ├── MapLayoutEngineTests.cs
+│       └── SeededGameRandomTests.cs
+│
+├── Doubles/                     # Test Doubles & Mocks
+│   └── State/
+│       └── TestGameplayState.cs
+│
+├── Entities/                    # Unit Tests for Domain Entities
+│   ├── Cards/
+│   │   └── EffectConditionTests.cs
+│   ├── CardTests.cs
+│   ├── DeckTests.cs
+│   ├── MapNodeTests.cs
+│   ├── PlayerTests.cs
+│   ├── SiteTests.cs
+│   └── StartingSiteTests.cs
+│
+├── Input/                       # Unit Tests for Input Logic
+│   └── Controllers/
+│       └── ReplayControllerTests.cs
+│
+├── Integration/                 # Integration Tests (Component Interaction)
 │   ├── Core/
 │   │   └── Events/
-│   │       └── EventManagerTests.cs     [Integration] Tests event publishing and subscriptions
+│   │       └── EventManagerTests.cs
 │   ├── Factories/
-│   │   ├── CardFactoryTests.cs          [Integration] Tests card creation from data
-│   │   ├── MapFactoryTests.cs           [Integration] Tests map generation with all components
-│   │   └── MatchFactoryTests.cs         [Integration] Tests full match setup and DI
+│   │   ├── CardFactoryTests.cs
+│   │   ├── MapFactoryTests.cs
+│   │   └── MatchFactoryTests.cs
 │   ├── GameStates/
-│   │   ├── GameplayStateTests.cs        [Integration] Tests main game loop coordination
-│   │   ├── MainMenuStateTests.cs        [Integration] Tests menu state and navigation
-│   │   ├── VictoryStateTests.cs         [Integration] Tests victory screen logic and delegation
-│   │   └── StateManagerTests.cs         [Integration] Tests state stack management
+│   │   ├── GameplayStateTests.cs
+│   │   ├── MainMenuStateTests.cs
+│   │   ├── StateManagerTests.cs
+│   │   └── VictoryStateTests.cs
 │   ├── Input/
 │   │   ├── Controllers/
-│   │   │   └── PlayerControllerTests.cs [Integration] Tests input handling and delegation
+│   │   │   └── PlayerControllerTests.cs
 │   │   ├── Modes/
-│   │   │   ├── DevourInputModeTests.cs  [Integration] Tests devour card input mode
-│   │   │   ├── MarketInputModeTests.cs  [Integration] Tests market interaction mode
-│   │   │   ├── NormalPlayInputModeTests.cs [Integration] Tests standard play mode
-│   │   │   ├── PromoteInputModeTests.cs [Integration] Tests card promotion mode
-│   │   │   └── TargetingInputModeTests.cs [Integration] Tests targeting mode for effects
+│   │   │   ├── DevourInputModeTests.cs
+│   │   │   ├── MarketInputModeTests.cs
+│   │   │   ├── NormalPlayInputModeTests.cs
+│   │   │   ├── PromoteInputModeTests.cs
+│   │   │   └── TargetingInputModeTests.cs
 │   │   ├── Processors/
-│   │   │   ├── GameplayInputCoordinatorTests.cs [Integration] Tests input flow coordination
-│   │   │   └── InteractionMapperTests.cs [Integration] Tests screen-to-entity mapping
+│   │   │   ├── GameplayInputCoordinatorTests.cs
+│   │   │   └── InteractionMapperTests.cs
 │   │   └── Services/
-│   │       └── InputManagerTests.cs     [Integration] Tests input state management
+│   │       └── InputManagerTests.cs
 │   ├── Managers/
-│   │   ├── MapManagerTests.cs           [Integration] Tests map operations (deploy, spy, combat)
-│   │   └── MatchManagerTests.cs         [Integration] Tests match lifecycle and win conditions
+│   │   ├── MapManagerTests.cs
+│   │   └── MatchManagerTests.cs
 │   └── Mechanics/
-│       └── TransactionalCommandTests.cs [Integration] Tests Devour→Supplant command chains
-│           - Deferred devour execution and buffering
-│           - Full Devour→Supplant transaction flow
-│           - Cancellation and rollback scenarios
-│           - Pre-targeting across multiple states
-│           - Skipped target marker functionality
+│       ├── ConditionalEffectTests.cs
+│       ├── DevourMechanicsTests.cs
+│       └── TransactionalCommandTests.cs
 │
-├── Core/
-│   ├── Contexts/
-│   │   └── TurnContextTests.cs          [Unit] Tests TurnContext action history tracking
-│   ├── Data/
-│   │   ├── CardDtoTests.cs              [Unit] Tests CardDto validation and hydration
-│   │   ├── GameStateDtoTests.cs         [Unit] Tests full game state DTO composition
-│   │   ├── MapDtoTests.cs               [Unit] Tests map DTO collection handling
-│   │   ├── MapNodeDtoTests.cs           [Unit] Tests node DTO properties and defaults
-│   │   └── PlayerDtoTests.cs            [Unit] Tests PlayerDto serialization
-│   ├── Events/
-│   │   └── StateChangeEventTests.cs     [Unit] Tests state change record creation and strings
-│   ├── Logic/
-│   │   └── CommandValidatorTests.cs     [Unit] Tests command validation logic
-│   ├── Performance/
-│   │   └── PerformanceTests.cs          [Performance] Benchmarks for critical systems:
-│   │                                      - Deck shuffling (1000 cards < 50ms)
-│   │                                      - Card drawing (100 draws < 10ms)
-│   │                                      - Resource updates (1000 updates < 250ms)
-│   │                                      - Effect resolution (100 cards < 30ms)
-│   │                                      - Map neighbor lookup (1000 lookups < 10ms)
-│   │                                      - Random generation (10000 calls < 20ms)
-│   │                                      - Hand manipulation (1000 ops < 15ms)
-│   └── Utilities/
-│       ├── CachedIntTextTests.cs        [Unit] Tests text caching for performance
-│       ├── CardDatabaseTests.cs         [Unit] Tests card data loading and queries
-│       ├── MapLayoutEngineTests.cs      [Unit] Tests procedural map generation
-│       └── SeededGameRandomTests.cs     [Unit] Tests deterministic RNG
+├── Managers/                    # Unit Tests for Business Logic Managers
+│   ├── CommandDispatcherTests.cs
+│   ├── GameEventLoggerTests.cs
+│   ├── MarketManagerTests.cs
+│   ├── MarketStateManagerTests.cs
+│   ├── PlayerStateManagerTests.cs
+│   ├── ReplayManagerTests.cs
+│   ├── TurnManagerTests.cs
+│   ├── UIEventMediatorTests.cs
+│   ├── UIManagerTests.cs
+│   └── VictoryManagerTests.cs
 │
-├── Entities/
-│   ├── CardTests.cs                     [Unit] Tests Card entity (properties, effects)
-│   ├── DeckTests.cs                     [Unit] Tests Deck operations (shuffle, draw, discard)
-│   ├── MapNodeTests.cs                  [Unit] Tests MapNode (neighbors, occupancy)
-│   ├── PlayerTests.cs                   [Unit] Tests Player entity (resources, hand, deck)
-│   ├── SiteTests.cs                     [Unit] Tests Site mechanics (spies, control)
-│   └── StartingSiteTests.cs             [Unit] Tests starting site special rules
+├── Map/                         # Unit Tests for Map Subsystems
+│   ├── CombatResolverTests.cs
+│   ├── MapRewardSystemTests.cs
+│   ├── MapTopologyTests.cs
+│   └── SpyOperationsTests.cs
 │
-├── Input/                               # Unit Tests for Input Components
-│   ├── Controllers/
-│   │   └── ReplayControllerTests.cs     [Unit] Tests replay playback and save/load logic
-│
-├── Managers/                            # Unit Tests for Manager Components
-│   ├── CommandDispatcherTests.cs        [Unit] Tests centralized command dispatch and recording
-│   ├── GameEventLoggerTests.cs          [Unit] Tests logging of game events and subscriptions
-│   ├── MarketManagerTests.cs            [Unit] Tests market economy (buy, refresh, pricing)
-│   ├── PlayerStateManagerTests.cs       [Unit] Tests centralized player mutations
-│   │                                      - Resource management (Power, Influence, VP)
-│   │                                      - Troop/spy allocation
-│   │                                      - State validation
-│   ├── ReplayManagerTests.cs            [Unit] Tests replay recording and playback
-│   ├── TurnManagerTests.cs              [Unit] Tests turn rotation and phase management
-│   ├── UIEventMediatorTests.cs          [Unit] Tests event mediation between systems
-│   ├── UIManagerTests.cs                [Unit] Tests UI state management
-│   └── VictoryManagerTests.cs           [Unit] Tests victory conditions and scoring logic
-│
-├── Map/
-│   ├── CombatResolverTests.cs           [Unit] Tests combat logic (assassinate, supplant)
-│   ├── MapRewardSystemTests.cs          [Unit] Tests reward distribution for map control
-│   ├── MapTopologyTests.cs              [Unit] Tests distance calculation and pathfinding
-│   └── SpyOperationsTests.cs            [Unit] Tests spy placement and removal logic
-│
-├── Mechanics/
+├── Mechanics/                   # Unit Tests for Game Mechanics
 │   ├── Actions/
-│   │   ├── ActionSystemTests.cs         [Unit] Tests action validation and execution
-│   │   │                                  - Power requirements
-│   │   │                                  - Action state management
-│   │   │                                  - Cancellation logic
-│   │   └── CardPlaySystemTests.cs       [Unit] Tests card play mechanics
-│   │                                      - Play validation
-│   │                                      - Effect triggering
-│   │                                      - Location updates
+│   │   ├── ActionSystemTests.cs
+│   │   ├── ActionSystemTransactionTests.cs
+│   │   └── CardPlaySystemTests.cs
 │   ├── Commands/
-│   │   ├── ActionCompletedCommandTests.cs [Unit] Tests action completion handling
-│   │   ├── BuyCardCommandTests.cs       [Unit] Tests market purchase logic
-│   │   ├── CancelActionCommandTests.cs  [Unit] Tests action cancellation
-│   │   ├── DeployTroopCommandTests.cs   [Unit] Tests troop deployment command
-│   │   ├── DevourCardCommandTests.cs    [Unit] Tests card devour mechanic
-│   │   ├── EndTurnCommandTests.cs       [Unit] Tests turn end processing
-│   │   ├── PlayCardCommandTests.cs      [Unit] Tests card play command
-│   │   ├── ResolveSpyCommandTests.cs    [Unit] Tests spy resolution
-│   │   ├── StartAssassinateCommandTests.cs [Unit] Tests assassinate initiation
-│   │   ├── StartReturnSpyCommandTests.cs [Unit] Tests spy return command
-│   │   ├── SwitchToNormalModeCommandTests.cs [Unit] Tests mode switching
-│   │   └── ToggleMarketCommandTests.cs  [Unit] Tests market toggle
+│   │   ├── ActionCompletedCommandTests.cs
+│   │   ├── BuyCardCommandTests.cs
+│   │   ├── CancelActionCommandTests.cs
+│   │   ├── DeployTroopCommandTests.cs
+│   │   ├── DevourCardCommandTests.cs
+│   │   ├── EndTurnCommandTests.cs
+│   │   ├── PlayCardCommandTests.cs
+│   │   ├── ResolveSpyCommandTests.cs
+│   │   ├── StartAssassinateCommandTests.cs
+│   │   ├── StartReturnSpyCommandTests.cs
+│   │   ├── SwitchToNormalModeCommandTests.cs
+│   │   └── ToggleMarketCommandTests.cs
 │   └── Rules/
-│       ├── CardEffectProcessorTests.cs  [Unit] Tests effect processing logic
-│       │                                  - Resource gain effects
-│       │                                  - Targeting effects (MoveUnit, Assassinate)
-│       │                                  - Card draw effects
-│       │                                  - Devour effects
-│       ├── CardEffectTests.cs           [Unit] Tests card effect definitions
-│       ├── MapRuleEngineTests.cs        [Unit] Tests map rule enforcement
-│       └── SiteControlSystemTests.cs    [Unit] Tests site control calculations
+│       ├── CardEffectProcessorTests.cs
+│       ├── CardEffectTests.cs
+│       ├── CardRuleEngineLookaheadTests.cs
+│       ├── CardRuleEngineTests.cs
+│       ├── MapRuleEngineTests.cs
+│       └── SiteControlSystemTests.cs
 │
+├── Rendering/                   # Unit Tests for Rendering Components
+│   └── UI/
+│       └── PopupBuilderTests.cs
+│
+├── Replay/                      # Unit Tests for Replay System
+│   └── ReplayManagerTests.cs
+│
+└── Utilities/                   # Unit Tests for Utilities
+    └── TestLogger.cs
 ├── TestData.cs                          # Centralized test data factory
 │   ├── TestData.Cards                   # Pre-configured card instances
 │   │   ├── CheapCard()                  # Low-cost card (2 cost)
@@ -310,187 +298,15 @@ ChaosWarlords.Tests/Source/
 ---
 
 ## Test Patterns & Best Practices
+For detailed code examples, naming conventions, and mocking patterns, please refer to:
+**[Coding Guidelines: Testing Patterns](coding-guidelines.md#14-testing-patterns)**
 
-### 1. Naming Convention
-```csharp
-[TestMethod]
-public void MethodName_Scenario_ExpectedBehavior()
-{
-    // Example: AddPower_WithPositiveAmount_IncreasesPlayerPower
-}
-```
-
-### 2. Parameterized Tests
-Use `[DataRow]` for testing multiple scenarios:
-
-```csharp
-[TestMethod]
-[DataRow(0, 1, false)]  // No power - should fail
-[DataRow(1, 0, false)]  // No troops - should fail
-[DataRow(1, 1, true)]   // Valid - should succeed
-public void TryDeploy_ValidatesRequirements(int power, int troops, bool shouldSucceed)
-{
-    // Test implementation
-}
-```
-
-### 3. Test Isolation
-**Problem**: Parameterized tests share state between DataRows  
-**Solution**: Create fresh instances for each test execution
-
-```csharp
-[TestMethod]
-[DataRow(10, 5)]
-[DataRow(20, 10)]
-public void TestMethod(int value1, int value2)
-{
-    // ✅ Create fresh instances for each DataRow
-    var player = new PlayerBuilder().WithPower(value1).Build();
-    var manager = new PlayerStateManager();
-    
-    // Test logic...
-}
-```
-
-### 4. Using TestData
-**When to use TestData**:
-- Common scenarios repeated across tests
-- Standard player/card/node configurations
-- Performance tests needing consistent data
-
-**When to use Builders**:
-- Test-specific configurations
-- Edge cases or unusual states
-- When you need fine-grained control
-
-```csharp
-// ✅ Good: Use TestData for common scenarios
-var player = TestData.Players.RedPlayer();
-
-// ✅ Good: Use Builder for specific configurations
-var player = new PlayerBuilder()
-    .WithPower(0)  // Edge case: no power
-    .WithTroops(100)  // Edge case: many troops
-    .Build();
-```
-
-### 5. Mocking Dependencies
-Use `NSubstitute` for interface mocking:
-
-```csharp
-[TestMethod]
-public void PlayCard_CallsEffectProcessor()
-{
-    // Arrange
-    var mockProcessor = Substitute.For<ICardEffectProcessor>();
-    var system = new CardPlaySystem(mockProcessor);
-    var card = TestData.Cards.PowerCard();
-    
-    // Act
-    system.PlayCard(card);
-    
-    // Assert
-    mockProcessor.Received(1).ProcessEffects(card);
-}
-```
-
-### 6. Testing with Deterministic RNG (CRITICAL)
-
-**Rule**: All tests involving randomness MUST use `IGameRandom`, never `System.Random`.
-
-**Why**: Tests must be reproducible. Non-deterministic tests are unreliable and can cause intermittent failures.
-
-#### Pattern 1: Use SeededGameRandom for Reproducible Tests
-
-```csharp
-[TestMethod]
-public void Shuffle_WithSameSeed_ProducesSameOrder()
-{
-    // Arrange
-    int seed = 42;
-    var list1 = Enumerable.Range(0, 50).ToList();
-    var list2 = Enumerable.Range(0, 50).ToList();
-    
-    var rng1 = new SeededGameRandom(seed, TestLogger.Instance);
-    var rng2 = new SeededGameRandom(seed, TestLogger.Instance);
-    
-    // Act
-    rng1.Shuffle(list1);
-    rng2.Shuffle(list2);
-    
-    // Assert
-    CollectionAssert.AreEqual(list1, list2);
-}
-```
-
-#### Pattern 2: Mock IGameRandom for Unit Tests
-
-```csharp
-[TestMethod]
-public void Draw_CallsShuffleWhenDeckEmpty()
-{
-    // Arrange
-    var mockRandom = Substitute.For<IGameRandom>();
-    var deck = new Deck();
-    deck.AddToDiscard(TestData.Cards.PowerCard());
-    
-    // Act
-    deck.Draw(1, mockRandom);
-    
-    // Assert
-    mockRandom.Received(1).Shuffle(Arg.Any<IList<Card>>());
-}
-```
-
-#### Pattern 3: Configure Mocks to Accept IGameRandom
-
-When mocking interfaces that accept `IGameRandom`, use `Arg.Any<IGameRandom>()`:
-
-```csharp
-[TestInitialize]
-public void Setup()
-{
-    _mockDb = Substitute.For<ICardDatabase>();
-    var deck = new List<Card> { _cheapCard, _expensiveCard };
-    
-    // ✅ CORRECT: Accept any IGameRandom
-    _mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(deck);
-    
-    // ❌ WRONG: No parameter - will return null
-    // _mockDb.GetAllMarketCards().Returns(deck);
-}
-```
-
-#### Common Mistakes
-
-```csharp
-// ❌ WRONG: Non-deterministic test
-[TestMethod]
-public void Shuffle_ChangesOrder()
-{
-    var deck = new Deck();
-    var random = new Random();  // Non-deterministic!
-    deck.Shuffle(random);
-    // Test may pass or fail randomly
-}
-
-// ✅ CORRECT: Deterministic test
-[TestMethod]
-public void Shuffle_ChangesOrder()
-{
-    var deck = new Deck();
-    var random = new SeededGameRandom(12345, TestLogger.Instance);
-    deck.Shuffle(random);
-    // Test always produces same result
-}
-```
-
-**Enforcement**:
-- All tests using RNG must use `SeededGameRandom` or mocked `IGameRandom`
-- Never instantiate `new Random()` in test code
-- Use `Arg.Any<IGameRandom>()` when configuring mocks
-
----
+This section in the guidelines covers:
+*   **Naming Conventions** (`MethodName_Scenario_ExpectedBehavior`)
+*   **Parameterized Tests** (Using `[DataRow]` correctly)
+*   **Test Isolation** (Fresh instances per test)
+*   **Mocking** (Using NSubstitute)
+*   **Deterministic RNG** (Using `SeededGameRandom`)
 
 ## Test Data Reference
 
@@ -533,56 +349,4 @@ All methods return **new instances** with unique IDs.
 
 ---
 
-## Running Tests
 
-### By Category
-```bash
-# Fast unit tests only
-dotnet test --filter "TestCategory=Unit"
-
-# Integration tests only
-dotnet test --filter "TestCategory=Integration"
-
-# Performance benchmarks only
-dotnet test --filter "TestCategory=Performance"
-
-# Exclude performance tests (for CI)
-dotnet test --filter "TestCategory!=Performance"
-```
-
-### By Name Pattern
-```bash
-# Run all Player-related tests
-dotnet test --filter "FullyQualifiedName~Player"
-
-# Run specific test class
-dotnet test --filter "FullyQualifiedName~CardEffectProcessorTests"
-
-# Run specific test method
-dotnet test --filter "Name=AddPower_WithPositiveAmount_IncreasesPlayerPower"
-```
-
----
-
-## Test Metrics
-
-**Total Tests**: 556
-**Unit Tests**: 401
-**Integration Tests**: 148
-**Performance Tests**: 7
-
-**Execution Time**:
-- Unit: ~0.9s
-- Integration: ~1.3s
-- Performance: ~0.7s
-- **Total**: ~6.3s
-
----
-
-## Future Improvements
-
-1. **Increase TestData Usage**: Refactor existing tests to use TestData for common scenarios
-2. **Add More Performance Tests**: Benchmark AI decision-making, pathfinding algorithms
-3. **Integration Test Scenarios**: Add end-to-end game flow tests
-4. **Mutation Testing**: Use Stryker.NET to verify test effectiveness
-5. **Snapshot Testing**: For complex object comparisons (DTOs, game state)

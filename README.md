@@ -102,17 +102,36 @@ var state = new GameplayState(mockManager);  // Easy to test
 ```
 
 ## Running Tests
-
-```bash
-# Run all tests
-dotnet test
-
-# Run only unit tests (fast)
-dotnet test --filter "TestCategory=Unit"
-
-# Run with coverage
-dotnet test /p:CollectCoverage=true
-```
+ 
+ ### 1. Basic Execution
+ ```bash
+ # Run all tests
+ dotnet test
+ 
+ # Run with coverage
+ dotnet test /p:CollectCoverage=true
+ ```
+ 
+ ### 2. Filter by Category
+ ```bash
+ # Fast unit tests only
+ dotnet test --filter "TestCategory=Unit"
+ 
+ # Integration tests only
+ dotnet test --filter "TestCategory=Integration"
+ 
+ # Performance benchmarks only
+ dotnet test --filter "TestCategory=Performance"
+ ```
+ 
+ ### 3. Filter by Name name
+ ```bash
+ # Run all Player-related tests
+ dotnet test --filter "FullyQualifiedName~Player"
+ 
+ # Run specific test method
+ dotnet test --filter "Name=AddPower_WithPositiveAmount"
+ ```
 
 ## Contributing
 

@@ -11,98 +11,6 @@ This document outlines the architecture of the `ChaosWarlords` codebase, a digit
 
 ---
 
-## Organization Principles (Industry Standards)
-
-### 1. Separation of Concerns (SRP)
-**Logic != Rendering**: Game Logic (`GameplayState`) must never depend on `Microsoft.Xna.Framework.Graphics`. It delegates all visualization to an injected `IGameplayView`.
-
-```csharp
-// ❌ Bad: Logic depends on rendering
-public class GameplayState
-{
-    private SpriteBatch _spriteBatch;  // Tight coupling!
-    
-    public void Update()
-    {
-        // Game logic mixed with rendering
-        _spriteBatch.Draw(...);
-    }
-}
-
-// ✅ Good: Logic delegates to interface
-public class GameplayState
-{
-    private readonly IGameplayView _view;
-    
-    public GameplayState(IGameplayView view)
-    {
-        _view = view;  // Dependency injection
-    }
-    
-    public void Update()
-    {
-        // Pure logic
-        ProcessTurn();
-        
-        // Delegate rendering
-        _view.UpdateDisplay();
-    }
-}
-```
-
-**Input != Action**: Input handling (`PlayerController`) detects *intent*, then delegates execution to the `InputCoordinator` or specific Managers.
-
-### 2. Dependency Injection
-**No Global Statics**: We avoid `static` managers to enable testing and multiplayer.
-
-```csharp
-// ❌ Bad: Global static state
-public static class GameManager
-{
-    public static Player CurrentPlayer { get; set; }
-}
-
-// ✅ Good: Injected dependencies
-public class TurnManager
-{
-    private readonly IPlayerStateManager _playerState;
-    
-    public TurnManager(IPlayerStateManager playerState)
-    {
-        _playerState = playerState;
-    }
-}
-```
-
-**Constructor Injection**: All dependencies are passed in the constructor.
-**Composition Root**: `Game1.cs` and `MainMenuState.cs` act as Composition Roots, wiring dependencies (`IGameDependencies`) before injecting them into `GameplayState`.
-
-**Parameter Object Pattern**: We use `IGameDependencies` to group core dependencies (Input, UI, Data) into a single object, simplifying constructors and preventing "parameter explosion".
-
-**MatchContext**: Acts as the scoped container for a single match lifecycle, holding references to `IMapManager`, `ITurnManager`, etc.
-
-### 3. Interface-Based Design
-**Testability**: Components depend on `IInterface`, not concrete classes. This allows `NSubstitute` to mock dependencies during Unit Testing.
-
-```csharp
-// Production: Real implementation
-var mapManager = new MapManager(nodes, sites, stateManager);
-
-// Testing: Mock implementation
-var mockMapManager = Substitute.For<IMapManager>();
-mockMapManager.TryDeploy(Arg.Any<Player>(), Arg.Any<MapNode>())
-              .Returns(true);
-```
-
-**Headless Support**: The Server can inject "Null" or "Headless" implementations of View interfaces (e.g., `IGameplayView`), allowing the exact same Game Logic to run without a GPU.
-
-**Structure**: Interfaces are grouped by layer (Services, Input, Rendering, Logic, State, Data) in `Source/Core/Interfaces`.
-
-### 4. Namespace Convention
-Namespaces strictly follow the directory structure (e.g., `ChaosWarlords.Source.Core.Interfaces.Services`).
-
----
-
 ## Directory Structure & File Listing
 
 The project uses a semantic folder structure. Below is a detailed listing of all files and their responsibilities.
@@ -111,397 +19,192 @@ The project uses a semantic folder structure. Below is a detailed listing of all
 Source/
 ├── Core/
 │   ├── Composition/                     # Dependency Injection composition roots
-│   │   ├── GameDependencies.cs          # Concrete dependency container
-│   │   └── IGameDependencies.cs         # Dependency contract for GameplayState
+│   │   └── GameDependencies.cs          # Concrete dependency container
 │   ├── Contexts/                        # Data Holders (The "Glue")
 │   │   ├── ExecutedAction.cs            # Record capturing a single game event
-│   │   │                                  - Sequence number for ordering
-│   │   │                                  - Action type (PlayCard, Deploy, etc.)
-│   │   │                                  - Player who executed the action
-│   │   │                                  - Used for replay and multiplayer sync
 │   │   ├── MatchContext.cs              # Scoped DI container for a single match
-│   │   │                                  - Holds IMapManager, IMarketManager, etc.
-│   │   │                                  - Created by MatchFactory
-│   │   │                                  - Disposed when match ends
 │   │   └── TurnContext.cs               # Transient state for current turn
-│   │                                      - Action history (for undo/replay)
-│   │                                      - Turn-specific flags and counters
-│   │                                      - Cleared at end of turn
-│   │
-│   ├── Data/                            # Data Transfer Objects
-│   │   ├── CardDto.cs                   # Serializable card data
-│   │   ├── CommandDto.cs                # Serializable command data
-│   │   ├── GameStateDto.cs              # Serializable game state snapshot
-│   │   ├── MapDto.cs                    # Serializable map data
-│   │   ├── PlayerDto.cs                 # Serializable player data
-│   │   ├── ReplayDataDto.cs             # Serializable replay container
-│   │   └── VictoryDto.cs                # Serializable victory state data
-│   │
+│   ├── Data/
+│   │   └── Dtos/                        # Data Transfer Objects
+│   │       ├── CardDto.cs               # Serializable card data
+│   │       ├── CommandDto.cs            # Serializable command data
+│   │       ├── GameStateDto.cs          # Serializable game state snapshot
+│   │       ├── MapDto.cs                # Serializable map data
+│   │       ├── PlayerDto.cs             # Serializable player data
+│   │       ├── ReplayDataDto.cs         # Serializable replay container
+│   │       ├── ScoreBreakdownDto.cs     # Serializable victory score details
+│   │       └── VictoryDto.cs            # Serializable victory state data
 │   ├── Events/                          # Event System
-│   │   ├── GameEvent.cs                 # Base record for all game events
-│   │   ├── IEventManager.cs             # Event publishing/subscription contract
 │   │   ├── EventManager.cs              # Event bus implementation
+│   │   ├── GameEvent.cs                 # Base record for all game events
 │   │   ├── GameEventLogger.cs           # Logs events for debugging/replay
+│   │   ├── IEventManager.cs             # Event publishing/subscription contract
 │   │   └── StateChangeEvent.cs          # Event for state mutations
-│   │
 │   ├── Interfaces/                      # Contracts (API Definitions)
+│   │   ├── Composition/
+│   │   │   └── IGameDependencies.cs     # Service container interface
 │   │   ├── Data/
-│   │   │   └── ICardDatabase.cs         # Contract for retrieving card definitions
-│   │   │                                  - GetCardById(string id)
-│   │   │                                  - GetAllCards()
-│   │   │                                  - Implemented by CardDatabase
+│   │   │   ├── ICardDatabase.cs         # Contract for retrieving card definitions
+│   │   │   └── IDto.cs                  # Marker interface for DTOs
 │   │   ├── Input/
-│   │   │   ├── IGameplayInputCoordinator.cs # Manages input flow during gameplay
-│   │   │   │                              - Coordinates between Controller and Modes
-│   │   │   │                              - Handles mode transitions
-│   │   │   ├── IInputManager.cs         # Abstraction for raw input (keyboard/mouse)
-│   │   │   │                              - GetKeyboardState()
-│   │   │   │                              - GetMouseState()
-│   │   │   ├── IInputMode.cs            # Strategy pattern for input handling modes
-│   │   │   │                              - HandleInput(InputState)
-│   │   │   │                              - Implementations: Normal, Targeting, Market, etc.
-│   │   │   ├── IInputProvider.cs        # Provider for input state snapshots
-│   │   │   └── IInteractionMapper.cs    # Maps screen coordinates to game entities
-│   │   │                                  - GetCardAtPosition(x, y)
-│   │   │                                  - GetNodeAtPosition(x, y)
+│   │   │   ├── IGameplayInputCoordinator.cs
+│   │   │   ├── IInputManager.cs
+│   │   │   ├── IInputMode.cs
+│   │   │   ├── IInputProvider.cs
+│   │   │   └── IInteractionMapper.cs
 │   │   ├── Logic/
-│   │   │   ├── IActionSystem.cs         # Manages complex multi-step actions
-│   │   │   │                              - StartAction(ActionType)
-│   │   │   │                              - CompleteAction()
-│   │   │   │                              - CancelAction()
-│   │   │   ├── ICommandValidator.cs     # Validates commands before execution
-│   │   │   └── IGameCommand.cs          # Command pattern interface for game actions
-│   │   │                                  - Execute(IGameplayState)
-│   │   │                                  - All commands implement this
+│   │   │   ├── IActionSystem.cs
+│   │   │   ├── ICommandValidator.cs
+│   │   │   └── IGameCommand.cs
 │   │   ├── Rendering/
-│   │   │   ├── IButtonManager.cs        # Manages UI buttons and interactions
-│   │   │   ├── IGameplayView.cs         # The contract for Gameplay visualization
-│   │   │   │                              - Draw()
-│   │   │   │                              - Update(GameTime)
-│   │   │   │                              - LoadContent()
-│   │   │   ├── IMainMenuView.cs         # The contract for Main Menu visualization
-│   │   │   ├── IUIManager.cs            # Contract for high-level UI management
-│   │   │   └── IVictoryView.cs          # The contract for Victory screen visualization
+│   │   │   ├── IButtonManager.cs
+│   │   │   ├── IGameplayView.cs
+│   │   │   ├── IMainMenuView.cs
+│   │   │   ├── IUIManager.cs
+│   │   │   └── IVictoryView.cs
 │   │   ├── Services/
-│   │   │   ├── ICommandDispatcher.cs    # Funnel for command execution & recording
-│   │   │   │                              - Dispatch(command, state)
-│   │   │   ├── IGameRandom.cs           # Contract for deterministic RNG
-│   │   │   │                              - NextInt(min, max)
-│   │   │   │                              - Shuffle<T>(IList<T>)
-│   │   │   │                              - Seed property for replay
-│   │   │   ├── IMapManager.cs           # API for map logic and queries
-│   │   │   │                              - TryDeploy(Player, MapNode)
-│   │   │   │                              - PlaceSpy(Site, Player)
-│   │   │   │                              - Assassinate(MapNode, Player)
-│   │   │   ├── IMarketManager.cs        # API for market economy and card rows
-│   │   │   │                              - BuyCard(Player, Card)
-│   │   │   │                              - RefreshMarket()
-│   │   │   │                              - GetAvailableCards()
-│   │   │   ├── IMatchManager.cs         # API for match lifecycle (win/loss)
-│   │   │   │                              - CheckVictoryConditions()
-│   │   │   │                              - EndMatch(Player winner)
-│   │   │   ├── IPlayerStateManager.cs   # API for centralized player mutations
-│   │   │   │                              - AddPower(Player, int amount)
-│   │   │   │                              - AddInfluence(Player, int amount)
-│   │   │   │                              - AddVictoryPoints(Player, int amount)
-│   │   │   │                              - All resource changes go through here
-│   │   │   ├── IReplayManager.cs        # API for replay recording/playback
-│   │   │   ├── ITurnManager.cs          # API for turn rotation and player state
-│   │   │   ├── IVictoryManager.cs       # API for victory condition checking
-│   │   │                                  - EndTurn()
-│   │   │                                  - GetCurrentPlayer()
-│   │   │                                  - AdvanceToNextPlayer()
+│   │   │   ├── ICommandDispatcher.cs
+│   │   │   ├── IEventManager.cs
+│   │   │   ├── IGameLogger.cs
+│   │   │   ├── IGameRandom.cs
+│   │   │   ├── IMapManager.cs
+│   │   │   ├── IMarketManager.cs
+│   │   │   ├── IMarketStateManager.cs
+│   │   │   ├── IMatchManager.cs
+│   │   │   ├── IPlayerStateManager.cs
+│   │   │   ├── IReplayManager.cs
+│   │   │   ├── ITurnManager.cs
+│   │   │   ├── IUIEventMediator.cs
+│   │   │   └── IVictoryManager.cs
 │   │   └── State/
-│   │       ├── IGameplayState.cs        # Contract for the main game loop state
-│   │       ├── IState.cs                # Generic state interface (Update/Draw/Load)
-│   │       └── IStateManager.cs         # Service for managing the state stack
-│   │                                      - PushState(IState)
-│   │                                      - PopState()
-│   │                                      - ChangeState(IState)
-│   │
-│   ├── Logic/                           # Core Game Logic
-│   │   └── CommandValidator.cs         # Validates commands before execution
-│   │                                      - Checks preconditions
-│   │                                      - Prevents invalid moves
-│   │
+│   │       ├── IDrawableState.cs
+│   │       ├── IGameplayState.cs
+│   │       ├── IState.cs
+│   │       └── IStateManager.cs
 │   └── Utilities/                       # Infrastructure & Constants
-│       ├── CachedIntText.cs             # Caches integer-to-string conversions
+│       ├── BufferedAsyncLogger.cs       # Async-optimized logging
 │       ├── CardDatabase.cs              # Implementation of the card library
-│       │                                  - Loads card definitions from data
-│       │                                  - Provides card lookup by ID
 │       ├── CollectionHelpers.cs         # Extension methods for generic collections
-│       │                                  - Shuffle<T>()
-│       │                                  - RemoveWhere<T>()
 │       ├── DtoMapper.cs                 # Mapping logic between Entities and DTOs
 │       ├── GameConstants.cs             # Global configuration values
-│       │                                  - DeployPowerCost = 1
-│       │                                  - MaxHandSize = 5
-│       │                                  - StartingDeckSize = 10
 │       ├── GameEnums.cs                 # Enums (PlayerColor, ResourceType, etc.)
-│       │                                  - PlayerColor: Red, Blue, Green, Yellow
-│       │                                  - ResourceType: Power, Influence, VictoryPoints
-│       │                                  - CardAspect: Warlord, Shadow, Sorcery, Neutral
-│       ├── BufferedAsyncLogger.cs       # Async-optimized logging implementation
-│       │                                  - Writes logs to file in background thread
-│       │                                  - Non-blocking IGameLogger implementation
-│       │              
 │       ├── MapGenerationConfig.cs       # Parameters for procedural map generation
 │       ├── MapGeometry.cs               # Helper for hexagonal grid math
-│       │                                  - CalculateDistance(hex1, hex2)
-│       │                                  - GetNeighbors(hex)
 │       ├── MapLayoutEngine.cs           # Procedural map generation logic
-│       │                                  - GenerateMap(config)
-│       │                                  - Creates nodes, sites, and connections
-│       ├── MapTopology.cs               # Calculates distances and recursive paths
-│       │                                  - FindPath(start, end)
-│       │                                  - GetNodesWithinDistance(node, distance)
+│       ├── MapTopology.cs               # Pathfinding and distance calculations
 │       ├── SeededGameRandom.cs          # Deterministic RNG implementation
-│       │                                  - Uses System.Random with fixed seed
-│       │                                  - Ensures same results across clients
-│       └── TextCache.cs                 # Caches string measurements for performance
-│                                          - Avoids repeated MeasureString calls
+│       └── TextCache.cs                 # Caches string measurements
 │
 ├── Entities/                            # Domain Models (Pure Data + Behavior)
 │   ├── Actors/
 │   │   └── Player.cs                    # Represents a human or AI player
-│   │                                      - Properties: Hand, Deck, DiscardPile
-│   │                                      - Resources: Power, Influence, VictoryPoints
-│   │                                      - Units: TroopsInBarracks, SpiesInBarracks
-│   │                                      - Methods: DrawCard(), DiscardCard(), etc.
 │   ├── Cards/
 │   │   ├── Card.cs                      # Data model for a playable card
-│   │   │                                  - Properties: Name, Cost, Aspect, Effects
-│   │   │                                  - Location: Hand, Deck, DiscardPile, etc.
-│   │   │                                  - VP values: DeckVP, InnerCircleVP
-│   │   ├── CardEffects.cs               # Definitions for card effects and mechanics
-│   │   │                                  - CardEffect record (Type, Amount, Target)
-│   │   │                                  - Type: GainResource, DrawCard, etc.
-│   │   ├── EffectCondition.cs           # NEW: Condition requirements for effects
-│   │   │                                  - Type: ControlsSite, HasUnitInHand, etc.
-│   │   │                                  - Value: Threshold or target specifier
-│   │   └── Deck.cs                      # Manages a collection of cards
-│   │                                      - Draw(count, random)
-│   │                                      - Shuffle(random)
-│   │                                      - AddToTop/Bottom(card)
-│   │                                      - ReshuffleDiscard(random)
+│   │   ├── CardEffects.cs               # Definitions for card effects
+│   │   ├── Deck.cs                      # Manages a collection of cards
+│   │   └── EffectCondition.cs           # Condition requirements for effects
 │   └── Map/
 │       ├── CitySite.cs                  # Represents a Capturable City
-│       │                                  - Generates resources when controlled
-│       │                                  - Higher VP value than non-cities
 │       ├── MapNode.cs                   # A graph node representing a location
-│       │                                  - Properties: Id, Position, Occupant
-│       │                                  - Neighbors: List<MapNode>
-│       │                                  - Site: Optional Site at this location
-│       │                                  - Methods: AddNeighbor(), RemoveNeighbor()
 │       ├── NonCitySite.cs               # Represents a neutral/resource site
-│       │                                  - Generates resources when controlled
-│       │                                  - Can have spies placed on them
 │       ├── Route.cs                     # A path connection between two MapNodes
-│       │                                  - Used for visualization
 │       ├── Site.cs                      # Abstract base class for all sites
-│       │                                  - Properties: Name, ResourceType, Amount
-│       │                                  - Spies: List<PlayerColor>
-│       │                                  - Control tracking
 │       └── StartingSite.cs              # Special site where players spawn
-│                                          - Cannot be captured
-│                                          - Provides starting resources
 │
-├── Factories/                           # Object Creation Logic (Composition Root)
+├── Factories/                           # Object Creation Logic
 │   ├── CardFactory.cs                   # Creates Card instances from data
-│   │                                      - CreateCard(CardDto)
-│   │                                      - Builds cards with effects
 │   ├── MapFactory.cs                    # Generates the map graph and nodes
-│   │                                      - CreateMap(config, random)
-│   │                                      - Uses MapLayoutEngine
-│   │                                      - Creates nodes, sites, connections
 │   └── MatchFactory.cs                  # Assembles all dependencies for a new match
-│                                          - CreateMatch(players, seed)
-│                                          - Wires up all managers and systems
-│                                          - Returns MatchContext
 │
 ├── GameStates/                          # Application State Machine
 │   ├── GameplayState.cs                 # The Core Game Loop (Logic Only)
-│   │                                      - Constructor accepts `IGameDependencies`
-│   │                                      - Update(): Processes game logic
-│   │                                      - Delegates rendering to `IGameplayView`
-│   │                                      - Coordinates managers and systems
-│   │                                      - Handles turn flow and win conditions
 │   ├── MainMenuState.cs                 # Entry Point / Composition Root
-│   │                                      - Initializes game
-│   │                                      - Handles menu navigation
-│   │                                      - Creates new matches
-│   └── StateManager.cs                  # Stack-based State Machine implementation
-│                                          - Manages state transitions
-│                                          - Supports state stacking (pause, etc.)
+│   ├── StateManager.cs                  # Stack-based State Machine implementation
+│   └── VictoryState.cs                  # Post-game summary state
 │
 ├── Input/                               # Human Interface Layer
 │   ├── Controllers/
-│   │   └── PlayerController.cs          # High-Level Intent Parser
-│   │                                      - Translates raw input to game intent
-│   │                                      - "User clicked card" → "Play this card"
-│   │                                      - Delegates to InputCoordinator
+│   │   ├── PlayerController.cs          # High-Level Intent Parser
 │   │   └── ReplayController.cs          # Replay Workflow Orchestrator
-│   │   │                                      - Loops playback logic
-│   │   │                                      - Handles Save/Load input (F5/F6)
-│   ├── Modes/                           # Input State Machine (Strategy Pattern)
+│   ├── Modes/                           # Input State Machine
 │   │   ├── DevourInputMode.cs           # Input mode for trashing a card
-│   │   │                                  - Click card → Devour it
 │   │   ├── MarketInputMode.cs           # Input mode for interacting with market
-│   │   │                                  - Click card → Buy it
-│   │   │                                  - Click outside → Close market
 │   │   ├── NormalPlayInputMode.cs       # Default input mode for standard play
-│   │   │                                  - Click card → Play it
-│   │   │                                  - Click node → Deploy troop
-│   │   │                                  - Right-click → Context menu
 │   │   ├── PromoteInputMode.cs          # Input mode for upgrading units/sites
-│   │   │                                  - Click card → Promote to inner circle
 │   │   └── TargetingInputMode.cs        # Input mode for selecting targets
-│   │                                      - Click node → Target for effect
-│   │                                      - ESC → Cancel targeting
 │   ├── Processors/
 │   │   ├── GameplayInputCoordinator.cs  # Orchestrates input flow
-│   │   │                                  - Manages mode transitions
-│   │   │                                  - Routes input to current mode
-│   │   │                                  - Validates actions before execution
 │   │   └── InteractionMapper.cs         # Translates Screen(X,Y) → Entity
-│   │                                      - Hit-testing for cards, nodes, buttons
-│   │                                      - Uses view bounds for accuracy
 │   └── Services/
-│       └── InputManager.cs              # Raw MonoGame Input Wrapper
-│                                          - Wraps Keyboard.GetState()
-│                                          - Wraps Mouse.GetState()
-│                                          - Provides input snapshots
+│       ├── InputManager.cs              # Raw MonoGame Input Wrapper
+│       └── MonoGameInputProvider.cs     # Concrete provider for MonoGame input
 │
 ├── Managers/                            # Business Logic Services
 │   ├── CommandDispatcher.cs             # Central Command Processor
-│   │                                      - Records command for replay
-│   │                                      - Executes via command.Execute(state)
+│   ├── EventManager.cs                  # Pub/Sub event system backend
+│   ├── GameEventLogger.cs               # Logs events for debugging/replay
 │   ├── MapManager.cs                    # Facade for Board Logic
-│   │                                      - TryDeploy(player, node): Deploy troops
-│   │                                      - PlaceSpy(site, player): Place spy
-│   │                                      - Assassinate(node, player): Remove unit
-│   │                                      - Supplant(node, player): Replace unit
-│   │                                      - Delegates to subsystems (Combat, Spy, etc.)
 │   ├── MarketManager.cs                 # Manages the Card Market
-│   │                                      - BuyCard(player, card): Purchase logic
-│   │                                      - RefreshMarket(): Replenish cards
-│   │                                      - GetAvailableCards(): Query market state
-│   │                                      - Pricing and availability logic
-│   ├── MatchManager.cs                  # Manages Victory Conditions
-│   │                                      - CheckVictoryConditions(): Check for winner
-│   │                                      - EndMatch(winner): Cleanup and transition
-│   │                                      - Tracks game state and progression
+│   ├── MarketStateManager.cs            # Manages logic for market interactions
+│   ├── MatchManager.cs                  # Manages Match & Victory
 │   ├── PlayerStateManager.cs            # Centralized player mutations
-│   │                                      - AddPower/Influence/VictoryPoints()
-│   │                                      - AddTroops/Spies()
-│   │                                      - All resource changes logged here
-│   │                                      - Emits events for UI updates
 │   ├── ReplayManager.cs                 # Replay recording and playback
-│   │                                      - RecordAction(ExecutedAction)
-│   │                                      - PlaybackActions(List<ExecutedAction>)
-│   │                                      - Save/Load replay files
 │   ├── TurnManager.cs                   # Manages Turn Order and Phase Transitions
-│   │                                      - EndTurn(): Advance to next player
-│   │                                      - GetCurrentPlayer(): Query active player
-│   │                                      - Phase management (Setup, Playing, End)
 │   ├── UIEventMediator.cs               # Decouples Game Logic from UI Events
-│   │                                      - Emits events for popups, notifications
-│   │                                      - View subscribes to these events
-│   │                                      - Prevents logic from depending on UI
-│   └── UIManager.cs                     # Manages layout and state of UI widgets
-│                                          - Button positions and states
-│                                          - Panel visibility
-│                                          - UI element coordination
+│   ├── UIManager.cs                     # Manages layout and state of UI widgets
+│   └── VictoryManager.cs                # Manages victory conditions
 │
 ├── Map/                                 # Map-Specific Subsystems
 │   ├── CombatResolver.cs                # Determines outcomes of battles
-│   │                                      - ExecuteAssassinate(node, player)
-│   │                                      - ExecuteSupplant(node, player)
-│   │                                      - Combat logic and trophy awards
-│   ├── MapRewardSystem.cs               # Calculates resource generation from sites
-│   │                                      - CalculateRewards(player): Sum site bonuses
-│   │                                      - Applies at end of turn
-│   ├── MapTopology.cs                   # Pathfinding and distance calculations
-│   │                                      - FindPath(start, end): A* pathfinding
-│   │                                      - GetDistance(node1, node2): Hex distance
-│   │                                      - GetNodesWithinRange(node, range)
+│   ├── MapRewardSystem.cs               # Calculates resource generation
+│   ├── MapTopology.cs                   # Pathfinding logic
 │   └── SpyOperations.cs                 # Handles spy placement and removal
-│                                          - ExecutePlaceSpy(site, player)
-│                                          - ExecuteReturnSpy(site, player)
-│                                          - Spy validation and state updates
 │
 ├── Mechanics/                           # The "Rules" of the Game
 │   ├── Actions/
-│   │   ├── ActionSystem.cs              # Handles targeting logic for multi-step actions
-│   │   │                                  - StartAction(type, card): Begin targeting
-│   │   │                                  - SelectTarget(node): Record target
-│   │   │                                  - CompleteAction(): Execute with target
-│   │   │                                  - CancelAction(): Abort targeting
-│   │   └── CardPlaySystem.cs            # Validates conditions for playing cards
-│   │                                      - CanPlayCard(player, card): Check resources
-│   │                                      - PlayCard(player, card): Execute play
-│   │                                      - Triggers effect processing
-│   ├── Commands/                        # Command Pattern (Undo/Replay Support)
-│   │   ├── ActionCompletedCommand.cs    # Signals an action was successfully finished
-│   │   ├── BuyCardCommand.cs            # Command to purchase a card from market
-│   │   ├── CancelActionCommand.cs       # Command to cancel current targeting
-│   │   ├── DeployTroopCommand.cs        # Command to place a unit on the board
-│   │   ├── DevourCardCommand.cs         # Command to trash a card for resources
-│   │   ├── EndTurnCommand.cs            # Command to pass turn to next player
-│   │   ├── PlayCardCommand.cs           # Command to play a card from hand
-│   │   ├── ResolveSpyCommand.cs         # Command to execute spy mechanics
-│   │   ├── StartAssassinateCommand.cs   # Command to initiate assassination targeting
-│   │   ├── StartReturnSpyCommand.cs     # Command to initiate spy return targeting
-│   │   ├── SwitchToNormalModeCommand.cs # Command to reset input mode
-│   │   └── ToggleMarketCommand.cs       # Command to open/close market view
-│   │
+│   │   ├── ActionSystem.cs              # Handles targeting logic
+│   │   └── CardPlaySystem.cs            # Validates and conducts card plays
+│   ├── Commands/                        # Command Pattern Implementations
+│   │   ├── ActionCompletedCommand.cs    # Signals action completion
+│   │   ├── AssassinateCommand.cs        # Execute assassination
+│   │   ├── BuyCardCommand.cs            # Purchase card
+│   │   ├── CancelActionCommand.cs       # Cancel targeting
+│   │   ├── DeployTroopCommand.cs        # Place unit
+│   │   ├── DevourCardCommand.cs         # Trash card
+│   │   ├── EndTurnCommand.cs            # End turn
+│   │   ├── MoveTroopCommand.cs          # Move unit between nodes
+│   │   ├── PlaceSpyCommand.cs           # Place spy on site
+│   │   ├── PlayCardCommand.cs           # Play card
+│   │   ├── PromoteCommand.cs            # Upgrade unit/site
+│   │   ├── ResolveSpyCommand.cs         # Execute spy action
+│   │   ├── ReturnTroopCommand.cs        # Return unit to hand
+│   │   ├── StartAssassinateCommand.cs   # Initiate assassination
+│   │   ├── StartReturnSpyCommand.cs     # Initiate spy return
+│   │   ├── SupplantCommand.cs           # Replace enemy unit
+│   │   ├── SwitchToNormalModeCommand.cs # Reset input mode
+│   │   └── ToggleMarketCommand.cs       # Open/Close market
 │   └── Rules/                           # Pure Logic Engines
-│       ├── CardEffectProcessor.cs       # Applies the effects of played cards
-│       │                                  - PROCESSOR: Executes effects
-│       │                                  - Handles all effect types (GainResource, etc.)
-│       │                                  - Delegates to appropriate managers
-│       ├── CardRuleEngine.cs            # NEW: Validates card playing conditions
-│       │                                  - VALIDATOR: Checks IsConditionMet()
-│       │                                  - Separates validation from execution
-│       ├── MapRuleEngine.cs             # Validates movement and placement rules
-│       │                                  - CanDeploy(player, node): Check adjacency
-│       │                                  - CanMove(from, to): Check path validity
-│       └── SiteControlSystem.cs         # Manages ownership changes of sites
-│                                          - UpdateControl(site): Recalculate owner
-│                                          - Based on spy count and occupancy
+│       ├── CardEffectProcessor.cs       # Applies card effects
+│       ├── CardRuleEngine.cs            # Validates card conditions
+│       ├── MapRuleEngine.cs             # Validates map rules
+│       └── SiteControlSystem.cs         # Manages site ownership
 │
 └── Rendering/                           # Presentation Layer (The "View")
-    ├── UI/
-    │   ├── ButtonManager.cs             # Handles button registration and hit-testing
-    │   │                                  - RegisterButton(id, bounds, action)
-    │   │                                  - HandleClick(x, y): Find and invoke button
+    ├── UI/                              # UI Components
+    │   ├── ButtonManager.cs             # Handles button registration
+    │   ├── ButtonRenderer.cs            # Renders buttons
+    │   ├── OptionalEffectPopup.cs       # Popup for optional choices
+    │   ├── Popup.cs                     # Base popup class
+    │   ├── PopupBuilder.cs              # Fluent builder for popups
     │   ├── SimpleButton.cs              # Basic UI button implementation
-    │   │                                  - Properties: Bounds, Text, IsEnabled
-    │   │                                  - OnClick event
-    │   └── UIRenderer.cs                # Renders UI elements
-    │                                      - DrawBar(resource, value, max)
-    │                                      - DrawButton(button)
-    │                                      - DrawPanel(bounds, title)
+    │   └── UIRenderer.cs                # General UI rendering
     ├── ViewModels/                      # MVVM State
     │   └── CardViewModel.cs             # View-Logic wrapper for Card
-    │                                      - Animation state (position, rotation)
-    │                                      - Visual effects (glow, highlight)
-    │                                      - Separates view state from domain model
-    └── Views/
+    └── Views/                           # Concrete Views
         ├── CardRenderer.cs              # Draws individual cards to screen
-        │                                  - DrawCard(card, position, scale)
-        │                                  - Handles card art, text, effects
-        ├── GameplayView.cs              # Concrete Implementation of IGameplayView
-        │                                  - Implements all rendering for gameplay
-        │                                  - Coordinates renderers (Map, Card, UI)
-        │                                  - No game logic, only visualization
+        ├── GameplayView.cs              # Main gameplay renderer
         ├── MainMenuView.cs              # Main Menu screen renderer
-        │                                  - Draws menu options
-        │                                  - Handles menu animations
         └── MapRenderer.cs               # Draws the hex map and units
-                                           - DrawNode(node, position)
-                                           - DrawRoute(route)
-                                           - DrawUnit(node, color)
 ```
 
 ---
@@ -509,613 +212,42 @@ Source/
 ## Key Systems Breakdown
 
 ### 1. Decoupled Rendering System
-This architecture supports multiplayer by strictly separating Logic from Views.
-
-**How it works**:
-- **`IGameplayView`**: The contract. Defines methods like `Draw`, `Update`, `LoadContent`.
-- **`GameplayState`**: Takes `IGameplayView` in its constructor. It calculates *what* happens, then tells the View *what* to update.
-- **`InteractionMapper`**: Translates Mouse interactions using the `IGameplayView` interface to find screen elements, ensuring hit-testing matches rendering.
-
-**Example**:
-```csharp
-// GameplayState (Logic)
-public class GameplayState
-{
-    private readonly IGameplayView _view;
-    private readonly IMapManager _mapManager;
-    
-    public void ProcessPlayerAction(MapNode targetNode)
-    {
-        // Pure logic - no rendering
-        bool success = _mapManager.TryDeploy(currentPlayer, targetNode);
-        
-        // Tell view to update (but don't specify HOW)
-        if (success)
-        {
-            _view.UpdateNodeDisplay(targetNode);
-        }
-    }
-}
-
-// GameplayView (Rendering)
-public class GameplayView : IGameplayView
-{
-    public void UpdateNodeDisplay(MapNode node)
-    {
-        // Rendering logic - no game rules
-        _mapRenderer.DrawNode(node, GetNodePosition(node));
-    }
-}
-```
-
-**Benefits**:
-- **Testable**: Can test `GameplayState` without `GraphicsDevice`
-- **Multiplayer**: Server uses `NullGameplayView`, clients use `GameplayView`
-- **Flexible**: Can swap rendering implementations (2D, 3D, ASCII)
+The architecture supports multiplayer by strictly separating Game Logic from Rendering. `GameplayState` (Logic) delegates all visualization to the `IGameplayView` interface, ensuring it never depends on `GraphicsDevice` or MonoGame types directly. This allows the server to run with a `NullGameplayView` while clients use full rendering.
 
 ### 2. Input Coordination System
-We use a layered approach to handle complex inputs (Targeting, Market, etc.):
-
-**Input Flow**:
-1. **`InputManager`**: "Key A was pressed." (Raw Data)
-2. **`PlayerController`**: "User wants to End Turn." (Intent)
-3. **`GameplayInputCoordinator`**: "Can we End Turn? Yes → Delegate to Manager." (Orchestration)
-4. **`IInputMode`**: "We are in Targeting Mode, so clicks select Nodes, not Cards." (Contextual Interpretation)
-
-**Example**:
-```csharp
-// 1. InputManager - Raw input
-var mouseState = _inputManager.GetMouseState();
-bool clicked = mouseState.LeftButton == ButtonState.Pressed;
-
-// 2. PlayerController - Intent detection
-if (clicked)
-{
-    var intent = _controller.DetectIntent(mouseState);
-    // intent = "PlayCard" or "DeployTroop" or "EndTurn"
-}
-
-// 3. InputCoordinator - Orchestration
-_coordinator.HandleIntent(intent);
-// Checks current mode, validates action, delegates to manager
-
-// 4. InputMode - Contextual handling
-if (_currentMode is TargetingInputMode)
-{
-    // Clicks select targets, not cards
-    var target = _mapper.GetNodeAtPosition(x, y);
-    _actionSystem.SelectTarget(target);
-}
-```
-
-**Benefits**:
-- **Separation**: Input detection separate from action execution
-- **Flexibility**: Easy to add new input modes
-- **Testability**: Can test each layer independently
+Input is handled via a tiered approach:
+1. **InputManager** detects raw key/mouse states.
+2. **PlayerController** translates raw input into high-level intent (e.g., "Player wants to Play Card").
+3. **GameplayInputCoordinator** orchestrates the intent, checking validity and delegating execution.
+4. **IInputMode Strategy** (Normal, Targeting, Market) interprets the specific context of the input (e.g., clicks select targets vs playing cards).
 
 ### 3. Command Pattern (Mechanics/Commands/)
-All significant game actions (Move, Attack, Buy) are encapsulated in `IGameCommand` objects.
+All significant game actions (Move, Attack, Buy) are encapsulated in `IGameCommand` objects. This ensures traceability, enables replay systems by re-executing commands, and supports multiplayer synchronization.
 
-**Structure**:
-```csharp
-public interface IGameCommand
-{
-    void Execute(IGameplayState state);
-}
+### 4. Transactional Command Execution
+Complex multi-step actions (like Devour mechanics) utilize the `ActionSystem` and **Deferred Execution** to support atomic transactions. Targets are buffered until the entire chain is valid, preventing partial state changes. If a user cancels partway through, the transaction is aborted with no state change.
 
-public class PlayCardCommand : IGameCommand
-{
-    private readonly Player _player;
-    private readonly Card _card;
-    
-    public PlayCardCommand(Player player, Card card)
-    {
-        _player = player;
-        _card = card;
-    }
-    
-    public void Execute(IGameplayState state)
-    {
-        // Validate
-        if (!state.CardPlaySystem.CanPlayCard(_player, _card))
-            return;
-            
-        // Execute
-        state.CardPlaySystem.PlayCard(_player, _card);
-        
-        // Record
-        state.TurnContext.RecordAction(ActionType.PlayCard, _card);
-    }
-}
-```
+### 5. Card Rule Engine
+Card logic is validated by a centralized `CardRuleEngine` using a Chain of Responsibility pattern. `EffectCondition` definitions allow data-driven rules (defined in JSON), separating validation logic from effect execution.
 
-**Benefits**:
-- **Execution**: `Command.Execute(IGameplayState)`
-- **Traceability**: Every command execution is recorded in the `TurnContext.ActionHistory`
-- **Replay**: Can replay match by re-executing commands
-- **Undo**: Can implement undo by storing command state
-- **Testing**: Easy to test individual commands in isolation
-
-#### Transactional Command Execution (Complex Actions)
-
-**Problem**: Some card effects require multiple user interactions in sequence. For example, the Wight card: *"Devour a card from hand -> Supplant an enemy troop"*. These multi-step actions must behave atomically - if the player cancels partway through, all state must roll back.
-
-**Solution**: The `ActionSystem` implements **deferred execution** with **state buffering** for complex action chains.
-
-**Key Mechanisms**:
-1. **Deferred Execution**: User selects all targets, but action doesn't execute until the entire chain is confirmed
-2. **State Buffering**: Selected targets are held in `PendingDevourCard` until transaction completes
-3. **Cancellation**: `CancelTargeting()` clears all buffered state and returns to Normal
-4. **Pre-Targeting**: Targets can be selected before card plays for atomic execution
-5. **Skip Markers**: Optional effects support `ActionSystem.SkippedTarget` marker
-
-**Example - Wight Card Flow**:
-```csharp
-// User chooses Devour path
-ActionSystem.TryStartDevourHand(wightCard, 
-    onComplete: () => ActionSystem.StartTargeting(ActionState.TargetingSupplant, wightCard),
-    deferExecution: true);  // Don't execute yet!
-
-// User selects card -> Buffered in PendingDevourCard (not removed from hand)
-ActionSystem.HandleDevourSelection(targetCard);
-
-// User selects node for Supplant -> SupplantCommand executes
-// ONLY NOW does the entire transaction execute atomically
-```
-
-**Cancellation** (ESC key): `ActionSystem.CancelTargeting()` -> Clears `PendingDevourCard`, card stays in hand (rollback)
-
-**Implementation**: `IActionSystem.cs`, `ActionSystem.cs`, `DevourCardCommand.cs`, `SupplantCommand.cs`
-
-### 4. Card Rule Engine (Hybrid Strategy)
-
-**Problem**: Cards have complex conditional logic ("If you control a site...", "Gain 2 Power OR Devour...").
-
-**Solution**: A centralized **CardRuleEngine** that validates conditions using a Chain of Responsibility pattern mixed with Strategy for edge cases.
-
-**Structure**:
-1. **CardRuleEngine**: Evaluates `EffectCondition` objects against the game state (`MatchContext`).
-2. **EffectCondition**: Data-driven definition of requirements (e.g., `ConditionType.ControlsSite`).
-3. **CardEffectProcessor**: Queries the engine before applying effects.
-
-**Example**:
-```csharp
-// "If you control a Site, +2 Power"
-if (cardRuleEngine.IsConditionMet(player, effectWithCondition))
-{
-    ApplyEffect(effect);
-}
-```
-
-### 5. Multiplayer Readiness & Determinism
-The architecture is specifically designed for multiplayer synchronization without a shared memory model.
-
-**Key Features**:
-
-**Centralized Mutation (`PlayerStateManager`)**: All resource changes (Power, Influence, Troops) flow through this single point.
-
-```csharp
-// ❌ Bad: Direct mutation
-player.Power += 5;
-
-// ✅ Good: Centralized mutation
-_playerStateManager.AddPower(player, 5);
-// ✅ Good: Centralized mutation
-_playerStateManager.AddPower(player, 5);
-// Logged, validated, and broadcast to all clients
-```
-
-**Action Sequencing**: Every player move is assigned a unique sequence number.
-
-```csharp
-public record ExecutedAction(
-    int Sequence,           // 1, 2, 3, ...
-    ActionType Type,        // PlayCard, Deploy, etc.
-    PlayerColor Player,     // Who did it
-    object? Data            // Action-specific data
-);
-```
-
-**Seeded RNG**: Match-wide deterministic randomness ensures same results on all clients.
-
-```csharp
-// Create match with seed
-var random = new SeededGameRandom(12345);
-
-// All clients use same seed
-// Same shuffle order, same combat outcomes
-deck.Shuffle(random);
-```
-
-**Headless Portability**: The strict separation of Logic from MonoGame types (via interfaces) allows the Core engine to run on a server without a display.
-
-```csharp
-// Client: Full rendering
-var view = new GameplayView(graphicsDevice, content);
-var state = new GameplayState(view, managers);
-
-// Server: No rendering
-var view = new NullGameplayView();  // Does nothing
-var state = new GameplayState(view, managers);
-// Same logic, no GPU required
-```
+### 6. Multiplayer Readiness
+To ensure synchronization without shared memory:
+- **Centralized Mutation**: All resource changes flow through `IPlayerStateManager`.
+- **Action Sequencing**: Actions are assigned sequence numbers.
+- **Seeded RNG**: `IGameRandom` ensures identical random number sequences across all clients.
 
 ---
 
 ## Design Patterns Used
 
 ### 1. Dependency Injection
-**Where**: Throughout the codebase  
-**Why**: Testability, flexibility, decoupling
-
-```csharp
-public class MapManager : IMapManager
-{
-    private readonly IPlayerStateManager _stateManager;
-    private readonly CombatResolver _combat;
-    private readonly SpyOperations _spyOps;
-    
-    public MapManager(
-        List<MapNode> nodes,
-        List<Site> sites,
-        IPlayerStateManager stateManager)
-    {
-        _stateManager = stateManager;
-        _combat = new CombatResolver(stateManager);
-        _spyOps = new SpyOperations(stateManager);
-    }
-}
-```
+Used throughout the codebase to ensure testability and decoupling. Dependencies are strictly constructor-injected.
 
 ### 2. Strategy Pattern
-**Where**: Input modes (`IInputMode`)  
-**Why**: Different input behaviors based on game state
-
-```csharp
-public interface IInputMode
-{
-    void HandleInput(InputState input);
-}
-
-// Different strategies for different contexts
-public class NormalPlayInputMode : IInputMode { }
-public class TargetingInputMode : IInputMode { }
-public class MarketInputMode : IInputMode { }
-```
+Used in Input Modes (`IInputMode`) to handle different interaction contexts (Normal vs Targeting) effectively.
 
 ### 3. Command Pattern
-**Where**: All game actions (`IGameCommand`)  
-**Why**: Encapsulation, undo/replay, logging
+Used for all game actions (`IGameCommand`) to support replay capabilities, undo functionality, and network serialization.
 
-```csharp
-public interface IGameCommand
-{
-    void Execute(IGameplayState state);
-}
-
-// Each action is a command
-public class BuyCardCommand : IGameCommand { }
-public class PlayCardCommand : IGameCommand { }
-public class EndTurnCommand : IGameCommand { }
-```
-
-### 4. Facade Pattern
-**Where**: Managers (e.g., `MapManager`)  
-**Why**: Simplify complex subsystems
-
-```csharp
-public class MapManager : IMapManager
-{
-    // Facade hides complexity of subsystems
-    private readonly CombatResolver _combat;
-    private readonly SpyOperations _spyOps;
-    private readonly MapRuleEngine _rules;
-    
-    public bool TryDeploy(Player player, MapNode node)
-    {
-        // Coordinates multiple subsystems
-        if (!_rules.CanDeploy(player, node)) return false;
-        _combat.ExecuteDeploy(node, player);
-        return true;
-    }
-}
-```
-
-### 5. Factory Pattern
-**Where**: Factories (e.g., `MatchFactory`)  
-**Why**: Complex object creation, dependency wiring
-
-```csharp
-public class MatchFactory
-{
-    public MatchContext CreateMatch(List<Player> players, int seed)
-    {
-        // Complex creation logic
-        var random = new SeededGameRandom(seed);
-        var map = _mapFactory.CreateMap(config, random);
-        var stateManager = new PlayerStateManager();
-        var mapManager = new MapManager(map.Nodes, map.Sites, stateManager);
-        // ... wire up all dependencies
-        
-        return new MatchContext(mapManager, marketManager, ...);
-    }
-}
-```
-
-### 6. Observer Pattern (Event-Driven)
-**Where**: Event system, UI updates  
-**Why**: Decoupling, reactive updates
-
-```csharp
-// Publisher
-public class PlayerStateManager
-{
-    public event Action<Player, int> PowerChanged;
-    
-    public void AddPower(Player player, int amount)
-    {
-        player.Power += amount;
-        PowerChanged?.Invoke(player, amount);
-    }
-}
-
-// Subscriber
-public class UIEventMediator
-{
-    public void Subscribe(IPlayerStateManager stateManager)
-    {
-        stateManager.PowerChanged += OnPowerChanged;
-    }
-    
-    private void OnPowerChanged(Player player, int amount)
-    {
-        // Update UI
-    }
-}
-```
-
----
-
-## Testing Strategy
-
-**Total Test Suite: 516 tests** (367 Unit + 142 Integration + 7 Performance)
-
-### Unit Tests
-**Target**: Individual classes in isolation  
-**Tools**: MSTest, NSubstitute  
-**Coverage**: 367 tests
-
-```csharp
-[TestMethod]
-public void AddPower_WithPositiveAmount_IncreasesPlayerPower()
-{
-    // Arrange
-    var player = new Player(PlayerColor.Red);
-    var stateManager = new PlayerStateManager();
-    
-    // Act
-    stateManager.AddPower(player, 5);
-    
-    // Assert
-    Assert.AreEqual(5, player.Power);
-}
-```
-
-### Integration Tests
-**Target**: Multiple components working together  
-**Tools**: MSTest, Real implementations  
-**Coverage**: 142 tests
-
-```csharp
-[TestMethod]
-public void TryDeploy_WithValidConditions_DeploysUnitAndUpdatesState()
-{
-    // Arrange
-    var stateManager = new PlayerStateManager();
-    var mapManager = new MapManager(nodes, sites, stateManager);
-    var player = new Player(PlayerColor.Red) { Power = 10, TroopsInBarracks = 5 };
-    
-    // Act
-    bool result = mapManager.TryDeploy(player, targetNode);
-    
-    // Assert
-    Assert.IsTrue(result);
-    Assert.AreEqual(PlayerColor.Red, targetNode.Occupant);
-    Assert.AreEqual(4, player.TroopsInBarracks);
-}
-```
-
-### Performance Tests
-**Target**: Critical operations  
-**Tools**: MSTest, Stopwatch  
-**Coverage**: 7 benchmarks
-
-```csharp
-[TestMethod]
-public void DeckShuffle_CompletesWithin50ms_For1000Cards()
-{
-    // Arrange
-    var deck = CreateDeckWith1000Cards();
-    var random = new SeededGameRandom(12345);
-    var stopwatch = Stopwatch.StartNew();
-    
-    // Act
-    deck.Shuffle(random);
-    
-    // Assert
-    stopwatch.Stop();
-    Assert.IsTrue(stopwatch.ElapsedMilliseconds < 50);
-}
-```
-
-**See `test_architecture.md` for complete testing documentation.**
-
----
-
-## Code Quality Metrics
-
-**Total Files**: ~120  
-**Total Lines**: ~15,000  
-**Test Coverage**: Available via `run-coverage.ps1`  
-**Test Count**: 398 (249 Unit, 142 Integration, 7 Performance)
-
-**Architectural Compliance**:
-- ✅ All managers have interfaces
-- ✅ No rendering code in logic layer
-- ✅ All dependencies injected
-- ✅ Deterministic RNG used throughout
-- ✅ Command pattern for all actions
-
----
-
-## Coding Guidelines
-
-**See [coding-guidelines.md](coding-guidelines.md) for detailed coding standards.**
-
-This project follows 7 established patterns that all contributors must follow:
-
-1. **Deterministic RNG** - Always use `IGameRandom`, never `System.Random`
-2. **Centralized Resource Management** - All changes through `IPlayerStateManager`
-3. **Interface-Based Dependencies** - Depend on `IInterface`, not concrete classes
-4. **Logic/Rendering Separation** - No MonoGame types in game logic
-5. **Command Pattern** - All actions as `IGameCommand`
-6. **No Global State** - Avoid static classes/singletons
-7. **Constructor Injection** - All dependencies via constructor
-
-For complete details, examples, and enforcement rules, see [coding-guidelines.md](coding-guidelines.md).
-
----
-
-## Future Guidelines for Contributors
-
-
-### 1. Keep it Testable
-If you add a new Manager, add an `IManager` interface.
-
-```csharp
-// ✅ Good
-public interface INewManager { }
-public class NewManager : INewManager { }
-
-// ❌ Bad
-public class NewManager { }  // No interface
-```
-
-### 2. Keep it Clean
-Do not put drawing code in `Managers/` or `Mechanics/`. Use `Rendering/` or emit an event that the View subscribes to.
-
-```csharp
-// ❌ Bad
-public class MapManager
-{
-    public void TryDeploy(...)
-    {
-        // Logic
-        node.Occupant = player.Color;
-        
-        // Rendering - DON'T DO THIS!
-        _spriteBatch.Draw(...);
-    }
-}
-
-// ✅ Good
-public class MapManager
-{
-    public event Action<MapNode> NodeUpdated;
-    
-    public void TryDeploy(...)
-    {
-        // Logic only
-        node.Occupant = player.Color;
-        
-        // Notify view
-        NodeUpdated?.Invoke(node);
-    }
-}
-```
-
-### 3. Keep it Safe
-Use `NSubstitute` for all unit tests. Avoid using real `Game` or `GraphicsDevice` in tests.
-
-```csharp
-// ✅ Good
-var mockView = Substitute.For<IGameplayView>();
-var state = new GameplayState(mockView, managers);
-
-// ❌ Bad
-var game = new Game();  // Requires GPU!
-var state = new GameplayState(game.View, managers);
-```
-
-### 4. Keep it Deterministic
-**CRITICAL**: Always use `IGameRandom` for randomness, never `System.Random` directly.
-
-```csharp
-// ❌ Bad: Non-deterministic
-var random = new Random();
-deck.Shuffle(random);  // Will desync in multiplayer!
-
-// ✅ Good: Deterministic, replayable
-var random = new SeededGameRandom(seed, logger);
-deck.Shuffle(random);  // Same seed = same results
-```
-
-**Why this matters**:
-- **Multiplayer**: Both clients must produce identical game states
-- **Replay**: Recorded games must replay exactly
-- **Testing**: Tests must be reproducible
-
-**Pattern**: All methods that need randomness must accept `IGameRandom` as a parameter:
-
-```csharp
-// ✅ Correct pattern
-public List<Card> Draw(int count, IGameRandom random)
-{
-    if (_drawPile.Count == 0)
-    {
-        ReshuffleDiscard(random);  // Uses injected RNG
-    }
-    // ...
-}
-
-// ❌ Wrong pattern
-public List<Card> Draw(int count)
-{
-    var random = new Random();  // NEVER do this!
-    // ...
-}
-```
-
-**Enforcement**:
-- `CollectionHelpers.Shuffle()` was removed - use `IGameRandom.Shuffle()` instead
-- All managers require `IGameRandom` in constructor (no default/nullable)
-- Tests must provide `IGameRandom` mock or `SeededGameRandom` instance
-
-### 5. Keep it Logged
-Use `GameLogger` for important events, especially state changes.
-
-```csharp
-public void AddPower(Player player, int amount)
-{
-    player.Power += amount;
-    GameLogger.Log($"{player.Color} gained {amount} Power", LogChannel.Economy);
-}
-```
-
----
-
-## Related Documentation
-
-- **[Coding Guidelines](coding-guidelines.md)** - Established patterns and best practices (MUST READ)
-- **[Testing Guide](testing.md)** - Test patterns, organization, and data builders
-- **[Setup Guide](setup.md)** - Development environment configuration
-- **[Contributing Guide](../CONTRIBUTING.md)** - PR process and workflow
-- **[README](../README.md)** - Project overview and quick start
-
----
-
-## Revision History
-
-- **v1.0** (Initial): Basic architecture documentation
-- **v2.0**: Enhanced with detailed descriptions, examples, and patterns
-- **v3.0** (Current): Reorganized into modular documentation structure
+### 4. Parameter Object
+The `IGameDependencies` object groups core services to simplify composition roots and prevent constructor explosion.
