@@ -25,13 +25,5 @@ namespace ChaosWarlords.Source.Core.Interfaces.Input
         /// Switches to targeting input mode (assassinate, return spy, etc.).
         /// </summary>
         void SwitchToTargetingMode();
-
-        /// <summary>
-        /// Sets the market input mode.
-        /// </summary>
-        void SetMarketMode(bool isOpen);
     }
 }
-
-
-

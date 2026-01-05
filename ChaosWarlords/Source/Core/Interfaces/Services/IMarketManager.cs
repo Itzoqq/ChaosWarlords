@@ -24,6 +24,12 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         List<Card> MarketRow { get; }
 
         /// <summary>
+        /// Removes a specific card from the market row and triggers a refill.
+        /// </summary>
+        /// <param name="card">The card to remove.</param>
+        void RemoveCard(Card card);
+
+        /// <summary>
         /// Checks if there are any cards remaining in the market deck.
         /// Used for victory condition checking.
         /// </summary>

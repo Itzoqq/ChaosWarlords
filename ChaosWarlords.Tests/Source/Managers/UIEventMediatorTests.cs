@@ -127,7 +127,7 @@ namespace ChaosWarlords.Tests.Managers
         public void HandleMarketToggle_DelegatesToGameState()
         {
             _mediator.Initialize();
-            _state.IsMarketOpen = false;
+            _state.MarketStateManager.Close();
 
             _mockUIManager.OnMarketToggleRequest += Raise.Event();
 

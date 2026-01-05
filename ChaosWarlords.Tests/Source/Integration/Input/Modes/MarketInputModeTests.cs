@@ -69,9 +69,15 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             };
             
             // Ensure IsMarketOpen starts true for market tests if needed, or default false
-            _stateFake.IsMarketOpen = true; 
+            _stateFake.MarketStateManager.OpenForBrowsing(); 
 
             _inputMode = new MarketInputMode(_stateFake, _inputManager, _stateFake.MatchContext);
+
+            // Pump update loop to clear startup cooldown (COOLDOWN_FRAMES)
+            for (int i = 0; i < 10; i++)
+            {
+                _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+            }
         }
 
         [TestMethod]
@@ -100,7 +106,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // 1. Arrange
             // Mock State to say "Nothing is hovered"
             _stateFake.HoveredMarketCard = null;
-            _stateFake.IsMarketOpen = true; // Ensure it's open initially
+            _stateFake.MarketStateManager.OpenForBrowsing(); // Ensure it's open initially
 
             // Simulate Click
             InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 10, 10);
@@ -117,7 +123,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         public void HandleInput_ClickingMarketButton_DoesNotCloseMarket()
         {
             _mockUI.IsMarketHovered.Returns(true);
-            _stateFake.IsMarketOpen = true;
+            _stateFake.MarketStateManager.OpenForBrowsing();
 
             // Simulate Click
             InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 10, 10);
@@ -135,8 +141,13 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             Card? callbackInvokedCard = null;
             Action<Card> onCardSelected = (c) => callbackInvokedCard = c;
 
-            // Re-initialize with callback
-            _inputMode = new MarketInputMode(_stateFake, _inputManager, _stateFake.MatchContext, onCardSelected);
+            // Set up state with callback
+            _stateFake.MarketStateManager.OpenForDevour(onCardSelected);
+
+            // Re-initialize (parameterless)
+            // Re-initialize (parameterless)
+            _inputMode = new MarketInputMode(_stateFake, _inputManager, _stateFake.MatchContext);
+            for(int i=0; i<10; i++) _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
 
             var card = TestData.Cards.PowerCard();
             _stateFake.HoveredMarketCard = card;

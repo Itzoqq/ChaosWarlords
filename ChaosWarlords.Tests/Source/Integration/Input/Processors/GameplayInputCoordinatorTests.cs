@@ -83,21 +83,22 @@ namespace ChaosWarlords.Tests.Integration.Input.Processors
         }
 
         [TestMethod]
-        public void SetMarketMode_True_SwitchesToMarket()
+        public void SetMarketMode_SwitchesToMarketInputMode()
         {
-            _coordinator.SetMarketMode(true);
+            _state.MarketStateManager.OpenForBrowsing();
             Assert.IsInstanceOfType(_coordinator.CurrentMode, typeof(MarketInputMode));
         }
 
         [TestMethod]
-        public void SetMarketMode_False_SwitchesToNormal()
+        public void SetMarketMode_CanToggleBetweenModes()
         {
-            _coordinator.SetMarketMode(true); // First open market
-            _coordinator.SetMarketMode(false); // Then close it
+            _state.MarketStateManager.OpenForBrowsing();
+            Assert.IsInstanceOfType(_coordinator.CurrentMode, typeof(MarketInputMode));
+            
+            _state.MarketStateManager.Close();
             Assert.IsInstanceOfType(_coordinator.CurrentMode, typeof(NormalPlayInputMode));
         }
 
-        // --- Helper Subclass to Expose Internals ---
         internal class TestableGameplayState : GameplayState
         {
             public TestableGameplayState(Game game, IInputProvider input, ICardDatabase db, IGameLogger logger)
@@ -114,6 +115,8 @@ namespace ChaosWarlords.Tests.Integration.Input.Processors
                     ViewportHeight = 1080
                 })
             {
+                // Initialize MarketStateManager for tests
+                _marketStateManager = new MarketStateManager(logger);
             }
 
             public void SetUIManager(IUIManager ui)

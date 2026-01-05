@@ -49,6 +49,12 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             };
 
             _mode = new DevourInputMode(_stateFake, _mockInputManager, _mockActionSystem);
+            
+            // Warmup because of cooldown
+            for (int i = 0; i < 15; i++)
+            {
+                _mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
+            }
         }
 
         [TestMethod]
@@ -171,6 +177,9 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             // Re-create mode to capture PendingCard
             var mode = new DevourInputMode(_stateFake, _mockInputManager, _mockActionSystem);
+            for(int i=0; i<15; i++) mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
+            
+            _mockActionSystem.ClearReceivedCalls();
 
             // Act
             var result = mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
@@ -206,6 +215,9 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             // Re-create mode
             var mode = new DevourInputMode(_stateFake, _mockInputManager, _mockActionSystem);
+            for(int i=0; i<15; i++) mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
+            
+            _mockActionSystem.ClearReceivedCalls();
 
             // Act
             var result = mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);

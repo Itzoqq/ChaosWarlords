@@ -129,7 +129,7 @@ namespace ChaosWarlords.Source.Managers
             // Priority 2: Close Market
             if (_gameState.IsMarketOpen)
             {
-                _gameState.CloseMarket();
+                _gameState.MarketStateManager.Close();
                 return; // Do NOT open pause menu
             }
 
@@ -164,7 +164,11 @@ namespace ChaosWarlords.Source.Managers
 
         private void HandleMarketToggle(object? sender, EventArgs e)
         {
-            _gameState.ToggleMarket();
+            // Toggle between closed and browse mode
+            if (_gameState.MarketStateManager.IsOpen)
+                _gameState.MarketStateManager.Close();
+            else
+                _gameState.MarketStateManager.OpenForBrowsing();
         }
 
         private void HandleAssassinateRequest(object? sender, EventArgs e)
@@ -277,7 +281,12 @@ namespace ChaosWarlords.Source.Managers
             // 2. ActionSystem.CompleteAction() already calls ClearState(), which is safer.
             // _actionSystem.CancelTargeting();
             
-            _gameState.SwitchToNormalMode();
+            // Only switch to Normal Mode if Market is NOT open.
+            // If Market is open (e.g. after Devour), we want to stay in MarketInputMode.
+            if (!_gameState.IsMarketOpen)
+            {
+                _gameState.SwitchToNormalMode();
+            }
         }
 
         private void HandleEndTurnWithPromotionCheck()

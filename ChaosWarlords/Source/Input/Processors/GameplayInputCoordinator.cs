@@ -1,9 +1,9 @@
-using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.GameStates;
+using ChaosWarlords.Source.Core.Interfaces.Input;
+using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Input.Modes;
 using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 
 
@@ -26,6 +26,9 @@ namespace ChaosWarlords.Source.Input
 
             // Subscribe to state changes to auto-switch input modes
             _context.ActionSystem.OnStateChanged += HandleActionStateChanged;
+            
+            // Subscribe to market mode changes
+            _state.MarketStateManager.ModeChanged += HandleMarketModeChanged;
 
             SwitchToNormalMode();
         }
@@ -35,7 +38,26 @@ namespace ChaosWarlords.Source.Input
             _state.Logger.Log($"Coordinator: State Changed to {newState}. Switching Input Mode.", Utilities.LogChannel.Input);
             if (newState == Utilities.ActionState.Normal)
             {
-                SwitchToNormalMode();
+                // If Market is Open (e.g. Browse), stay in/switch to MarketInputMode
+                bool isMarketOpen = _state.MarketStateManager.IsOpen;
+                _state.Logger.Log($"[Coordinator] HandleActionStateChanged: Normal. MarketOpen: {isMarketOpen}, CurrentMode: {_currentMode?.GetType().Name}", Utilities.LogChannel.Input);
+
+                if (isMarketOpen)
+                {
+                    if (!(_currentMode is MarketInputMode))
+                    {
+                        _state.Logger.Log("[Coordinator] Enforcing MarketInputMode because Market is Open.", Utilities.LogChannel.Input);
+                        _currentMode = new MarketInputMode(_state, _inputManager, _context);
+                    }
+                    else
+                    {
+                         _state.Logger.Log("[Coordinator] Already in MarketInputMode. Preserving.", Utilities.LogChannel.Input);
+                    }
+                }
+                else
+                {
+                    SwitchToNormalMode();
+                }
             }
             else
             {
@@ -45,7 +67,14 @@ namespace ChaosWarlords.Source.Input
 
         public void HandleInput()
         {
-            IGameCommand? command = _currentMode.HandleInput(
+             if (_inputManager.IsLeftMouseJustClicked())
+             {
+                _state.Logger.Log($"[Coordinator] HandleInput Dispatching. Mode: {_currentMode?.GetType().Name}", Utilities.LogChannel.Input);
+             }
+
+             if (_currentMode == null) return;
+
+             IGameCommand? command = _currentMode.HandleInput(
                _inputManager,
                _context.MarketManager,
                _context.MapManager,
@@ -89,20 +118,7 @@ namespace ChaosWarlords.Source.Input
                 _state.Logger.Log("Coordinator: Switching to DevourInputMode (Hand)", Utilities.LogChannel.Input);
                 _currentMode = new DevourInputMode(_state, _inputManager, _context.ActionSystem);
             }
-            else if (_context.ActionSystem.CurrentState == Utilities.ActionState.TargetingDevourMarket)
-            {
-                _state.Logger.Log("Coordinator: Switching to MarketInputMode (Devour Target)", Utilities.LogChannel.Input);
-                
-                // Open the market UI visual state first (bypass SetMarketMode to avoid overwriting the input mode)
-                _state.ForceMarketOpen();
-
-                // Create MarketInputMode with a callback for "Devour Selection"
-                _currentMode = new MarketInputMode(_state, _inputManager, _context, (selectedCard) => 
-                {
-                    _state.Logger.Log($"Devouring from Market: {selectedCard.Name}", Utilities.LogChannel.Input);
-                    _context.ActionSystem.HandleDevourMarketSelection(selectedCard);
-                });
-            }
+            // Note: TargetingDevourMarket is handled by MarketStateManager.ModeChanged event.
             else
             {
                 _state.Logger.Log($"Coordinator: Switching to TargetingInputMode (State: {_context.ActionSystem.CurrentState})", Utilities.LogChannel.Input);
@@ -117,21 +133,27 @@ namespace ChaosWarlords.Source.Input
             }
         }
 
-        public void SetMarketMode(bool isOpen)
+        private void HandleMarketModeChanged(object? sender, MarketMode newMode)
         {
-            // Don't overwrite the input mode if we're already in a special targeting mode (e.g., devour from market)
-            // The state change handler already set up the correct mode with callbacks
-            if (_context.ActionSystem.CurrentState == Utilities.ActionState.TargetingDevourMarket)
-            {
-                _state.Logger.Log("SetMarketMode: Skipping mode switch - already in TargetingDevourMarket with callback", Utilities.LogChannel.Info);
-                return;
-            }
+            _state.Logger.Log($"Coordinator: Market mode changed to {newMode}. Switching Input Mode.", Utilities.LogChannel.Input);
 
-            if (isOpen)
-                _currentMode = new MarketInputMode(_state, _inputManager, _context);
-            else
-                SwitchToNormalMode();
+            switch (newMode)
+            {
+                case MarketMode.Closed:
+                    // Market closed - switch to normal mode
+                    SwitchToNormalMode();
+                    break;
+
+                case MarketMode.Browse:
+                    // Normal browsing/buying mode - create MarketInputMode without callback
+                    _currentMode = new MarketInputMode(_state, _inputManager, _context);
+                    break;
+
+                case MarketMode.DevourTarget:
+                    // Devour targeting mode - MarketInputMode will retrieve callback from MarketStateManager
+                    _currentMode = new MarketInputMode(_state, _inputManager, _context);
+                    break;
+            }
         }
     }
 }
-

@@ -103,5 +103,20 @@ namespace ChaosWarlords.Source.Utilities
         Info,
         Debug
     }
+
+    /// <summary>
+    /// Represents the current mode of market interaction.
+    /// </summary>
+    public enum MarketMode
+    {
+        /// <summary>Market is not visible</summary>
+        Closed,
+        
+        /// <summary>Normal browsing/buying mode</summary>
+        Browse,
+        
+        /// <summary>Devour targeting mode (selecting card to remove from game)</summary>
+        DevourTarget
+    }
 }
 

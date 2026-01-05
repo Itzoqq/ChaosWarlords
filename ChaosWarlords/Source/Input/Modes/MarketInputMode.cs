@@ -18,60 +18,59 @@ namespace ChaosWarlords.Source.Input.Modes
         private readonly IInputManager _inputManager;
         private readonly IUIManager _uiManager;
         private readonly IMarketManager _marketManager;
-        private readonly Action<Card>? _onCardSelected; // Callback for custom actions (like Devour)
 
         private MatchContext _context;
 
-        public MarketInputMode(IGameplayState state, IInputManager input, MatchContext context, Action<Card>? onCardSelected = null)
+        public MarketInputMode(IGameplayState state, IInputManager input, MatchContext context)
         {
             _context = context;
             _state = state;
             _inputManager = input;
-            _onCardSelected = onCardSelected;
 
             _uiManager = state.UIManager;
-            _marketManager = context.MarketManager;
+            _marketManager = context.MarketManager; // Keep this as it's used in the original class
         }
+
+        // Removed constructor with callback - logic moved to HandleInput via MarketStateManager
+
+        private int _updateFrames;
+        private const int COOLDOWN_FRAMES = 5;
 
         public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
-            if (!inputManager.IsLeftMouseJustClicked()) return null;
+            _updateFrames++;
+            if (_updateFrames < COOLDOWN_FRAMES) return null;
 
-            // Get hovered card from View Model (via State)
-            Card? hoveredCard = _state.GetHoveredMarketCard();
+            var mouseState = _inputManager.GetMouseState();
+            var card = _state.GetHoveredMarketCard();
 
-            if (hoveredCard is not null)
+            // Left Click Handling
+            if (mouseState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed && _inputManager.IsLeftMouseJustClicked())
             {
-                if (_onCardSelected != null)
-                {
-                    // Custom action (Devour)
-                    _onCardSelected(hoveredCard);
-                    // Close market and switch back to normal mode after devour
-                    _state.CloseMarket();
-                    _state.SwitchToNormalMode();
-                    return null; 
-                }
-                else
-                {
-                    // Default action (Buy)
-                    return new BuyCardCommand(hoveredCard);
-                }
-            }
+                // If market button is hovered, do nothing (keep market open)
+                if (_uiManager.IsMarketHovered) return null;
 
-            // If market button is hovered, do nothing (keep market open)
-            if (_uiManager.IsMarketHovered)
-            {
-                return null;
-            }
+                if (card != null)
+                {
+                    // Check if we are in Devour Mode (Callback exists in Manager)
+                    var devourCallback = _state.MarketStateManager.DevourCallback;
+                    if (devourCallback != null)
+                    {
+                        devourCallback.Invoke(card);
+                        // Market logic is handled by the callback (e.g., closing market or updating state)
+                    }
+                    else
+                    {
+                        return new BuyCardCommand(card);
+                    }
+                    return null;
+                }
 
-            // Clicked empty space - close market
-            _state.CloseMarket();
+                // Clicked empty space - close market
+                _state.MarketStateManager.Close();
+            }
 
             return null;
         }
     }
 }
-
-
-
-

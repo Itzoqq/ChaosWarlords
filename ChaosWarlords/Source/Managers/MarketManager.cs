@@ -55,6 +55,14 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
+        public void RemoveCard(Card card)
+        {
+            if (MarketRow.Remove(card))
+            {
+                RefillMarket();
+            }
+        }
+
         public bool HasCardsInDeck()
         {
             return _marketDeck.Count > 0;

@@ -14,7 +14,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         {
             // Arrange
             var stateFake = new TestGameplayState();
-            stateFake.IsMarketOpen = false;
+            stateFake.MarketStateManager.Close();
             
             var command = new ToggleMarketCommand();
 
@@ -22,7 +22,6 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             command.Execute(stateFake);
 
             // Assert
-            // ToggleMarket() sets IsMarketOpen = !IsMarketOpen
             Assert.IsTrue(stateFake.IsMarketOpen, "Market should be open.");
         }
 
@@ -31,7 +30,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         {
             // Arrange
             var stateFake = new TestGameplayState();
-            stateFake.IsMarketOpen = true;
+            stateFake.MarketStateManager.OpenForBrowsing();
             
             var command = new ToggleMarketCommand();
 
@@ -39,7 +38,6 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             command.Execute(stateFake);
 
             // Assert
-            // CloseMarket() sets IsMarketOpen = false
             Assert.IsFalse(stateFake.IsMarketOpen, "Market should be closed.");
         }
     }

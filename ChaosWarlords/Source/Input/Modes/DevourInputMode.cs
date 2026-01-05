@@ -27,8 +27,15 @@ namespace ChaosWarlords.Source.Input.Modes
             _gameplayState.Logger.Log("Select a card from your HAND to Devour (Remove from game).", LogChannel.General);
         }
 
+        private int _updateFrames;
+        private const int COOLDOWN_FRAMES = 10; // Slightly longer to ensure popup click is fully cleared
+
         public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
+            _updateFrames++;
+            
+            if (_updateFrames < COOLDOWN_FRAMES) return null;
+
             // 1. Cancel / Back out
             if (inputManager.IsRightMouseJustClicked() || inputManager.IsKeyJustPressed(Keys.Escape))
             {

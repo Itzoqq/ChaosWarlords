@@ -51,7 +51,10 @@ namespace ChaosWarlords.Source.Input.Controllers
             }
 
             // Delegate to input coordinator for mode-specific input
-            _inputCoordinator.HandleInput();
+            if (_inputCoordinator != null)
+            {
+                _inputCoordinator.HandleInput();
+            }
             return false;
         }
 
@@ -126,7 +129,7 @@ namespace ChaosWarlords.Source.Input.Controllers
 
             if (_gameState.IsMarketOpen)
             {
-                _gameState.CloseMarket();
+                _gameState.MarketStateManager.Close();
                 return true;
             }
 

@@ -26,6 +26,7 @@ namespace ChaosWarlords.Tests.Source.Systems
         private IMapManager _mapManager = null!;
         private IMarketManager _marketManager = null!;
         private IMatchManager _matchManager = null!; // Need this for DevourCard? Or use Mock behavior.
+        private IMarketStateManager _marketStateManager = null!;
         
         [TestInitialize]
         public void Setup()
@@ -41,12 +42,14 @@ namespace ChaosWarlords.Tests.Source.Systems
             
             // We need to mock MatchManager because ActionSystem calls it for execution
             _matchManager = Substitute.For<IMatchManager>();
+            _marketStateManager = Substitute.For<IMarketStateManager>();
 
             var logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance;
             
             _actionSystem = new ActionSystem(turnSub, _mapManager, logger);
             _actionSystem.SetMatchManager(_matchManager); // Inject dependency
             _actionSystem.SetMarketManager(_marketManager); // Inject dependency
+            _actionSystem.SetMarketStateManager(_marketStateManager); // Inject dependency
 
             _context = new MatchContext(
                 turnSub, 
@@ -80,6 +83,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             // Assert
             Assert.AreEqual(ActionState.TargetingDevourMarket, _actionSystem.CurrentState);
+            _marketStateManager.Received(1).OpenForDevour(Arg.Any<Action<Card>>());
         }
 
         [TestMethod]
@@ -88,11 +92,18 @@ namespace ChaosWarlords.Tests.Source.Systems
             // Arrange
             var marketCard = new Card("m1", "MarketCard", 0, CardAspect.Neutral, 0, 0, 0) { Location = CardLocation.Market };
             
+            // Ensure we are in the correct state (TargetingDevourMarket)
+            // Otherwise ActionSystem might ignore the selection or consider it invalid
+            _actionSystem.StartTargeting(ActionState.TargetingDevourMarket);
+
             // Act
             _actionSystem.HandleDevourMarketSelection(marketCard);
 
             // Assert
-            _matchManager.Received(1).DevourCard(marketCard);
+            // The system handles market removal manually because MatchManager.DevourCard typically assumes Hand cards
+            _marketManager.Received(1).RemoveCard(marketCard);
+            Assert.AreEqual(CardLocation.Void, marketCard.Location);
+            
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState); // Should clear state after complete
         }
 

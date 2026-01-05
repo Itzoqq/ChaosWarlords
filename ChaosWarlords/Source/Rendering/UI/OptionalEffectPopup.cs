@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Rendering.UI
 {
@@ -10,6 +11,7 @@ namespace ChaosWarlords.Source.Rendering.UI
     /// UI popup for optional card effects.
     /// Displays "Do you want to [effect]?" with Yes/No buttons.
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public class OptionalEffectPopup
     {
         private Card? _sourceCard;

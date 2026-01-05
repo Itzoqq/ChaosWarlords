@@ -41,7 +41,7 @@ namespace ChaosWarlords.Source.GameStates
         internal MatchContext _matchContext = null!;
         internal InputManager _inputManagerBacking = null!;
         internal IUIManager _uiManagerBacking = null!;
-        internal bool _isMarketOpenBacking;
+        internal IMarketStateManager _marketStateManager = null!;
 
         // New Coordinators
         internal GameplayInputCoordinator _inputCoordinator = null!;
@@ -68,15 +68,9 @@ namespace ChaosWarlords.Source.GameStates
         public int HandY => _view?.HandY ?? 0;
         public int PlayedY => _view?.PlayedY ?? 0;
 
-        public bool IsMarketOpen
-        {
-            get => _isMarketOpenBacking;
-            set
-            {
-                _isMarketOpenBacking = value;
-                _inputCoordinator.SetMarketMode(value);
-            }
-        }
+        public IMarketStateManager MarketStateManager => _marketStateManager;
+        
+        public bool IsMarketOpen => _marketStateManager.IsOpen;
 
         // Expose UIEventMediator state for tests and views
         public bool IsConfirmationPopupOpen => _uiEventMediator?.IsConfirmationPopupOpen ?? false;
@@ -207,6 +201,13 @@ namespace ChaosWarlords.Source.GameStates
 
         private void InitializeSystems()
         {
+            // Initialize MarketStateManager
+            _marketStateManager = new MarketStateManager(_logger);
+            
+            // Inject MarketStateManager into ActionSystem
+            // Note: MatchContext holds the ActionSystem instance created by MatchFactory
+            _matchContext.ActionSystem.SetMarketStateManager(_marketStateManager);
+            
             _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
             _commandDispatcher = new CommandDispatcher(_replayManager, _logger);
             _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, _replayManager, () => SwitchToTargetingMode(), _logger);
@@ -356,19 +357,6 @@ namespace ChaosWarlords.Source.GameStates
             if (_matchContext.ActionSystem.IsTargeting()) _matchContext.ActionSystem.CancelTargeting();
             _matchManager.EndTurn();
             SwitchToNormalMode();
-        }
-
-        public void ToggleMarket() { IsMarketOpen = !IsMarketOpen; }
-        public void CloseMarket() { IsMarketOpen = false; }
-
-        /// <summary>
-        /// Forces the market to open without triggering input mode changes.
-        /// Used when the input mode is already set up (e.g., devour targeting).
-        /// </summary>
-        public void ForceMarketOpen()
-        {
-            _isMarketOpenBacking = true;
-            _logger.Log("ForceMarketOpen: Market visual state set to open (bypassing SetMarketMode)", LogChannel.Info);
         }
 
         public void SwitchToTargetingMode()

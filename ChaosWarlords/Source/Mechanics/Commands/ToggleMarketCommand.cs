@@ -9,18 +9,14 @@ namespace ChaosWarlords.Source.Commands
         {
             state.MatchContext?.RecordAction("ToggleMarket", state.IsMarketOpen ? "Closed Market" : "Opened Market");
             // Don't just flip the boolean. 
-            // Call the methods that handle the State Transition logic.
-
-            if (state.IsMarketOpen)
+            if (state.MarketStateManager.IsOpen)
             {
-                state.CloseMarket(); // This sets IsMarketOpen=false AND switches to NormalPlayInputMode
+                state.MarketStateManager.Close();
             }
             else
             {
-                state.ToggleMarket(); // This sets IsMarketOpen=true AND switches to MarketInputMode
+                state.MarketStateManager.OpenForBrowsing();
             }
         }
     }
 }
-
-

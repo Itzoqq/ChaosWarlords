@@ -108,7 +108,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
         {
             // Arrange
             _mockInputManager.IsRightMouseJustClicked().Returns(true);
-            _stateFake.IsMarketOpen = true;
+            _stateFake.MarketStateManager.OpenForBrowsing();
 
             // Act
             var result = _controller.Update();
@@ -119,11 +119,26 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
         }
 
         [TestMethod]
+        public void HandleRightClick_ReturnsFalse_WhenIdle()
+        {
+            // Arrange
+            _mockInputManager.IsRightMouseJustClicked().Returns(true);
+            _stateFake.MarketStateManager.Close();
+            _stateFake.ActionSystem.IsTargeting().Returns(false); // Ensure not targeting
+
+            // Act
+            var result = _controller.Update();
+
+            // Assert
+            Assert.IsFalse(result, "Right click should not be handled when idle (no market, no targeting).");
+        }
+
+        [TestMethod]
         public void HandleRightClick_CancelsTargeting_WhenTargeting()
         {
             // Arrange
             _mockInputManager.IsRightMouseJustClicked().Returns(true);
-            _stateFake.IsMarketOpen = false;
+            _stateFake.MarketStateManager.Close();
             
             var mockActionSystem = Substitute.For<IActionSystem>();
             mockActionSystem.IsTargeting().Returns(true);

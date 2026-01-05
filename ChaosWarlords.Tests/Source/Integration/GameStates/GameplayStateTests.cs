@@ -114,11 +114,11 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
-            state.ToggleMarket();
+            state.MarketStateManager.OpenForBrowsing();
             Assert.IsTrue(state.IsMarketOpen);
             Assert.IsInstanceOfType(state.InputMode, typeof(MarketInputMode));
 
-            state.ToggleMarket();
+            state.MarketStateManager.Close();
             Assert.IsFalse(state.IsMarketOpen);
             Assert.IsInstanceOfType(state.InputMode, typeof(NormalPlayInputMode));
         }
@@ -245,6 +245,9 @@ namespace ChaosWarlords.Tests.Integration.GameStates
 
                 // 1. Interaction Mapper
                 _interactionMapper = new InteractionMapper(_view!);
+
+                // 1.5. MarketStateManager
+                _marketStateManager = new MarketStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
                 // 2. Input Coordinator
                 _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);

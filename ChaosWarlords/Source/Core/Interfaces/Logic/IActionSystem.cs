@@ -104,6 +104,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         void SetPlayerStateManager(IPlayerStateManager stateManager);
         void SetMatchManager(IMatchManager matchManager);
         void SetMarketManager(IMarketManager marketManager);
+        void SetMarketStateManager(IMarketStateManager manager);
 
         /// <summary>
         /// The card selected for Devouring, pending final execution of the chain.

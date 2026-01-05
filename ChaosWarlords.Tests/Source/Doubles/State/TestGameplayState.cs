@@ -8,6 +8,7 @@ using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Managers;
 using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Tests.Source.Doubles.State
@@ -27,7 +28,7 @@ namespace ChaosWarlords.Tests.Source.Doubles.State
         public IMatchManager MatchManager { get; set; } = NSubstitute.Substitute.For<IMatchManager>();
 
         public IInputMode InputMode { get; set; } = null!;
-        public bool IsMarketOpen { get; set; }
+        public bool IsMarketOpen => MarketStateManager.IsOpen;
         public bool IsConfirmationPopupOpen { get; set; }
         public bool IsPauseMenuOpen { get; set; }
         public int HandY { get; set; }
@@ -67,9 +68,9 @@ namespace ChaosWarlords.Tests.Source.Doubles.State
         }
 
         public void EndTurn() { EndTurnCalled = true; }
-        public void ToggleMarket() { IsMarketOpen = !IsMarketOpen; }
-        public void CloseMarket() { IsMarketOpen = false; }
-        public void ForceMarketOpen() { IsMarketOpen = true; }
+        
+        public IMarketStateManager MarketStateManager { get; set; } = new MarketStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+        
         public string ActiveModeName { get; set; } = "None"; // For testing mode switches
         public void SwitchToTargetingMode() { ActiveModeName = "Targeting"; }
         public void SwitchToNormalMode() { ActiveModeName = "Normal"; }

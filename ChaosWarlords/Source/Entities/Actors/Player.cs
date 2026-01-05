@@ -81,7 +81,7 @@ namespace ChaosWarlords.Source.Entities.Actors
         /// Troops granted by card effects this turn that can be deployed for free.
         /// Resets at end of turn if not used.
         /// </summary>
-        public int PendingFreeTroops { get; internal set; } = 0;
+        public int PendingFreeTroops { get; internal set; }
 
         /// <summary>
         /// Count of trophies collected (e.g. from assassinations).

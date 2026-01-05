@@ -77,9 +77,9 @@ namespace ChaosWarlords.Source.Core.Interfaces.State
         IInputMode InputMode { get; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the market overlay is open.
+        /// Gets whether the market is currently open.
         /// </summary>
-        bool IsMarketOpen { get; set; }
+        bool IsMarketOpen { get; }
 
         /// <summary>
         /// Gets a value indicating whether a confirmation popup is currently blocking input.
@@ -112,26 +112,12 @@ namespace ChaosWarlords.Source.Core.Interfaces.State
         /// <returns>True if allowed.</returns>
         bool CanEndTurn(out string reason);
 
-        /// <summary>
-        /// Ends the current turn.
-        /// </summary>
         void EndTurn();
 
         /// <summary>
-        /// Toggles the visibility of the market overlay.
+        /// Gets the market state manager for controlling market interactions.
         /// </summary>
-        void ToggleMarket();
-
-        /// <summary>
-        /// Closes the market UI.
-        /// </summary>
-        void CloseMarket();
-
-        /// <summary>
-        /// Forces the market to open without triggering input mode changes.
-        /// Used when the input mode is already set up (e.g., devour targeting).
-        /// </summary>
-        void ForceMarketOpen();
+        IMarketStateManager MarketStateManager { get; }
 
         /// <summary>
         /// Switches input context to Targeting mode (usually for card effects).
