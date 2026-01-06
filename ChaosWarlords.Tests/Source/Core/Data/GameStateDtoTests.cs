@@ -92,6 +92,28 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         }
 
         [TestMethod]
+        public void MarkedForTurnEndDevourCardIds_InitializeAndStore_BehavesCorrectly()
+        {
+            // Arrange
+            var dto = new GameStateDto();
+            var cardId1 = "card_1";
+            var cardId2 = "card_2";
+
+            // Assert Initial State
+            Assert.IsNotNull(dto.MarkedForTurnEndDevourCardIds);
+            Assert.IsEmpty(dto.MarkedForTurnEndDevourCardIds);
+
+            // Act
+            dto.MarkedForTurnEndDevourCardIds.Add(cardId1);
+            dto.MarkedForTurnEndDevourCardIds.Add(cardId2);
+
+            // Assert Modified State
+            Assert.HasCount(2, dto.MarkedForTurnEndDevourCardIds);
+            Assert.AreEqual("card_1", dto.MarkedForTurnEndDevourCardIds[0]);
+            Assert.AreEqual("card_2", dto.MarkedForTurnEndDevourCardIds[1]);
+        }
+
+        [TestMethod]
         public void SetMap_PreservesMapReference()
         {
             // Arrange

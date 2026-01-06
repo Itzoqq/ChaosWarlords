@@ -24,6 +24,9 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         // Void (Removed cards)
         public List<CardDto> VoidPile { get; set; } = [];
 
+        // Transient State (Cards pending destruction at end of turn)
+        public List<string> MarkedForTurnEndDevourCardIds { get; set; } = [];
+
         public GameStateDto() { }
     }
 }
