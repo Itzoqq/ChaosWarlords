@@ -1,13 +1,15 @@
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Commands;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ChaosWarlords.Source.Core.Interfaces.Logic;
+using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Entities.Map;
+using ChaosWarlords.Source.Mechanics.Rules;
+using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Mechanics.Actions.Subsystems; // Implementations remain here
+using ChaosWarlords.Source.Commands; // Retained from original
 
 namespace ChaosWarlords.Source.Managers
 {
@@ -66,8 +68,10 @@ namespace ChaosWarlords.Source.Managers
         }
         public Site? PendingSite { get; private set; }
         
-        public Card? PendingDevourCard { get; private set; }
-        private bool _deferDevourExecution;
+
+        
+        public Card? PendingDevourCard => _devourSubsystem.PendingDevourCard;
+        // _deferDevourExecution moved to Subsystem
 
         private readonly ITurnManager _turnManager;
         private readonly IMapManager _mapManager;
@@ -77,12 +81,20 @@ namespace ChaosWarlords.Source.Managers
         private Player CurrentPlayer => _turnManager.ActivePlayer;
 
         public MapNode? PendingMoveSource { get; private set; }
+        
+        // Subsystems
+        private readonly DevourSubsystem _devourSubsystem;
+        private readonly SpySubsystem _spySubsystem;
 
         public ActionSystem(ITurnManager turnManager, IMapManager mapManager, IGameLogger logger)
         {
             _turnManager = turnManager;
             _mapManager = mapManager;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            
+            // Initialize Subsystems
+            _devourSubsystem = new ChaosWarlords.Source.Mechanics.Actions.Subsystems.DevourSubsystem(_turnManager, this, _logger);
+            _spySubsystem = new ChaosWarlords.Source.Mechanics.Actions.Subsystems.SpySubsystem(_mapManager, _turnManager, this, _logger);
             
             _actionHandlers = new Dictionary<ActionState, Func<MapNode?, Site?, IGameCommand?>>();
             InitializeHandlers();
@@ -91,6 +103,11 @@ namespace ChaosWarlords.Source.Managers
         public void SetPlayerStateManager(IPlayerStateManager stateManager)
         {
             _playerStateManager = stateManager;
+            _devourSubsystem.SetPlayerStateManager(stateManager);
+            // SpySubsystem uses PlayerStateManager via ActionSystem? No, it has its own logic that might need it?
+            // Checking SpySubsystem: It has SetPlayerStateManager.
+            if (_spySubsystem is ChaosWarlords.Source.Mechanics.Actions.Subsystems.SpySubsystem concreteSpy)
+                concreteSpy.SetPlayerStateManager(stateManager);
         }
 
         private IMatchManager _matchManager = null!;
@@ -99,17 +116,20 @@ namespace ChaosWarlords.Source.Managers
         public void SetMatchManager(IMatchManager matchManager)
         {
             _matchManager = matchManager;
+            _devourSubsystem.SetMatchManager(matchManager);
         }
 
         public void SetMarketManager(IMarketManager marketManager)
         {
             _marketManager = marketManager;
+            _devourSubsystem.SetMarketManager(marketManager);
         }
 
         private IMarketStateManager _marketStateManager = null!;
         public void SetMarketStateManager(IMarketStateManager manager)
         {
             _marketStateManager = manager;
+            _devourSubsystem.SetMarketStateManager(manager);
         }
 
         public void TryStartAssassinate()
@@ -193,6 +213,16 @@ namespace ChaosWarlords.Source.Managers
             // Note: PendingDevourCard is NOT cleared here to allow transactional persistence across chained actions.
         }
 
+        public void NotifyFailure(string reason)
+        {
+             _logger.Log($"Action Failed: {reason}", LogChannel.Warning);
+             // Verify if we should CancelTargeting here or just notify?
+             // Usually failure implies resetting state or at least notifying UI.
+             // CancelTargeting() clears state.
+             CancelTargeting(); 
+             OnActionFailed?.Invoke(this, reason);
+        }
+
         public void CancelTargeting()
         {
             // Clear Pre-Selected targets to prevent "Zombie" executions if we restart
@@ -203,8 +233,7 @@ namespace ChaosWarlords.Source.Managers
             }
 
             ClearState();
-            PendingDevourCard = null;
-            _deferDevourExecution = false;
+            _devourSubsystem.ClearState();
             _logger.Log("ActionSystem: Targeting Cancelled. State cleared.", LogChannel.Info);
         }
 
@@ -220,8 +249,8 @@ namespace ChaosWarlords.Source.Managers
             _actionHandlers.Add(ActionState.TargetingAssassinate, (n, s) => n != null ? HandleAssassinate(n) : null);
             _actionHandlers.Add(ActionState.TargetingReturn, (n, s) => n != null ? HandleReturn(n) : null);
             _actionHandlers.Add(ActionState.TargetingSupplant, (n, s) => n != null ? HandleSupplant(n) : null);
-            _actionHandlers.Add(ActionState.TargetingPlaceSpy, (n, s) => s != null ? HandlePlaceSpy(s) : null);
-            _actionHandlers.Add(ActionState.TargetingReturnSpy, (n, s) => s != null ? HandleReturnSpyInitialClick(s) : null);
+            _actionHandlers.Add(ActionState.TargetingPlaceSpy, (n, s) => s != null ? _spySubsystem.HandlePlaceSpy(s, PendingCard?.Id) : null);
+            _actionHandlers.Add(ActionState.TargetingReturnSpy, (n, s) => s != null ? _spySubsystem.HandleReturnSpyInitialClick(s, PendingCard?.Id) : null);
             _actionHandlers.Add(ActionState.TargetingMoveSource, (n, s) => n != null ? HandleMoveSource(n) : null);
             _actionHandlers.Add(ActionState.TargetingMoveDestination, (n, s) => n != null ? HandleMoveDestination(n) : null);
         }
@@ -389,7 +418,10 @@ namespace ChaosWarlords.Source.Managers
 
         public bool AdvancePreCommitTargeting(Card sourceCard)
         {
-            var nextState = FindNextTargetingState(sourceCard.Effects, CurrentState, sourceCard, out bool foundCurrent);
+            // Determine if the *current* step was skipped by the user, so the Engine knows to skip its children.
+            bool isCurrentSkipped = IsPreTargetSkipped(sourceCard, CurrentState);
+
+            var nextState = ChaosWarlords.Source.Mechanics.Rules.TargetingStateEngine.DetermineNextState(sourceCard.Effects, CurrentState, isCurrentSkipped);
             
             if (nextState != ActionState.Normal)
             {
@@ -404,118 +436,6 @@ namespace ChaosWarlords.Source.Managers
             return false; 
         }
 
-        private ActionState FindNextTargetingState(IEnumerable<CardEffect> effects, ActionState currentState, Card sourceCard, out bool foundCurrent)
-        {
-            foundCurrent = false;
-
-            if (effects == null) return ActionState.Normal;
-
-            foreach (var effect in effects)
-            {
-                var effectState = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.GetTargetingState(effect);
-                
-                // 1. Have we found the current state yet?
-                if (!foundCurrent)
-                {
-                    if (effectState == currentState)
-                    {
-                        foundCurrent = true;
-                        
-                        // We found the current effect. Now determine path based on PreTarget.
-                        // Check if we have a Pre-Target recorded
-                        // Note: We check Dictionary directly to avoid clearing it
-                        
-                        // BUT, for now let's assume if "SkippedTarget" is set, we skip children.
-                        bool isSkipped = IsPreTargetSkipped(sourceCard, currentState);
-                        
-                        if (isSkipped)
-                        {
-                            // Skip children (OnSuccess), continue to next sibling
-                            continue;
-                        }
-                        else
-                        {
-                            // Targeted (or not set yet? assume set if we are here).
-                            // Descend into OnSuccess (Depedency)
-                            if (effect.OnSuccess != null)
-                            {
-                                bool foundInChild;
-                                var childResult = FindNextTargetingState(new[] { effect.OnSuccess }, currentState, sourceCard, out foundInChild);
-                                // If we just found current in parent, foundInChild is false (we passed currentState down? No)
-                                // Wait, recursion logic is tricky. 
-                                // Reset logic: We found 'current' HERE. So for the child call, 'foundCurrent' matches 'true'.
-                                // effectively we are looking for the *Next* state inside the child.
-                                
-                                // Actually, simpler:
-                                // If we found current, we immediately look for NEXT.
-                                // Next candidates: 
-                                // 1. OnSuccess (if not skipped)
-                                // 2. Next Sibling
-                                
-                                // Look in Child
-                                var nextInChild = FindTargetingStateRecursive(effect.OnSuccess);
-                                if (nextInChild != ActionState.Normal) return nextInChild;
-                                
-                                continue; // Look at next sibling
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // Not current. Search Children.
-                        if (effect.OnSuccess != null)
-                        {
-                            var childState = FindNextTargetingState(new[] { effect.OnSuccess }, currentState, sourceCard, out foundCurrent);
-                            if (foundCurrent)
-                            {
-                                // Current was found in child. The function returned the Next state if found.
-                                if (childState != ActionState.Normal) return childState;
-                                // If child finished, we continue to siblings
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    // 2. We have passed the current state (foundCurrent is true).
-                    // This effect is a candidate for "Next".
-                    if (ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.Type))
-                    {
-                        return effectState;
-                    }
-                    
-                    // Not a targeting effect? Check its children.
-                    if (effect.OnSuccess != null)
-                    {
-                        var childState = FindNextTargetingState(new[] { effect.OnSuccess }, currentState, sourceCard, out bool dummy);
-                        // We already found current, so we treat child search as "Find ANY targeting state"
-                        // Actually, reusing the method is complex.
-                        // Let's use a simpler "FindFirstTargeting" for this branch.
-                        var nextInChild = FindTargetingStateRecursive(effect.OnSuccess);
-                        if (nextInChild != ActionState.Normal) return nextInChild;
-                    }
-                }
-            }
-            
-            return ActionState.Normal;
-        }
-
-        private static ActionState FindTargetingStateRecursive(CardEffect? effect)
-        {
-            if (effect == null) return ActionState.Normal;
-
-            if (ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.Type))
-            {
-                return ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.GetTargetingState(effect);
-            }
-
-            if (effect.OnSuccess != null)
-            {
-                return FindTargetingStateRecursive(effect.OnSuccess);
-            }
-            return ActionState.Normal;
-        }
-
         private bool IsPreTargetSkipped(Card source, ActionState state)
         {
              if (_preSelectedTargets.TryGetValue(source, out var stateTargets))
@@ -528,129 +448,29 @@ namespace ChaosWarlords.Source.Managers
              return false;
         }
 
-        private PlaceSpyCommand? HandlePlaceSpy(Site targetSite)
-        {
-            if (targetSite is null) return null;
-            if (targetSite.Spies.Contains(CurrentPlayer.Color)) return null;
-            if (CurrentPlayer.SpiesInBarracks <= 0) return null;
-
-            return new ChaosWarlords.Source.Commands.PlaceSpyCommand(targetSite.Id, PendingCard?.Id);
-        }
-
         public void PerformPlaceSpy(Site site, string? cardId)
         {
-            _mapManager.PlaceSpy(site, CurrentPlayer);
-            OnActionCompleted?.Invoke(this, EventArgs.Empty);
-            ClearState();
-        }
-
-        private IGameCommand? HandleReturnSpyInitialClick(Site clickedSite)
-        {
-            // 1. Sanity Checks
-            if (clickedSite is null)
-            {
-                _logger.Log("Invalid Target: You must click a Site.", LogChannel.Warning);
-                return null;
-            }
-
-            var enemySpies = _mapManager.GetEnemySpiesAtSite(clickedSite, CurrentPlayer);
-
-            if (!IsValidSpyReturnTarget(clickedSite, enemySpies, out var failReason))
-            {
-                OnActionFailed?.Invoke(this, failReason);
-                return null;
-            }
-
-            // 3. Execution (Returns Command or enters sub-state)
-            return ExecuteReturnSpy(clickedSite, enemySpies);
-        }
-        
-        private bool IsValidSpyReturnTarget(Site site, System.Collections.Generic.List<PlayerColor> enemySpies, out string reason)
-        {
-            if (enemySpies is null || enemySpies.Count == 0)
-            {
-                reason = "Target has no enemy spies.";
-                return false;
-            }
-
-            if (PendingCard is null && CurrentPlayer.Power < RETURN_SPY_COST)
-            {
-                reason = $"Not enough Power. Need {RETURN_SPY_COST}.";
-                return false;
-            }
-
-            reason = string.Empty;
-            return true;
-        }
-
-        private IGameCommand? ExecuteReturnSpy(Site site, System.Collections.Generic.List<PlayerColor> enemySpies)
-        {
-            if (enemySpies.Count == 1)
-            {
-                PendingSite = site;
-                return FinalizeSpyReturn(enemySpies[0]);
-            }
-
-            PendingSite = site;
-            CurrentState = ActionState.SelectingSpyToReturn;
-            _logger.Log("Multiple spies detected. Select which spy to return.", LogChannel.General);
-            return null;
+            _spySubsystem.PerformPlaceSpy(site, cardId); // Completes Action internally
         }
 
         public IGameCommand? FinalizeSpyReturn(PlayerColor selectedSpyColor)
         {
-            if (PendingSite is null) return null;
-
-            if (!ValidateSpyReturn(CurrentPlayer)) return null;
-
-            return new ChaosWarlords.Source.Commands.ResolveSpyCommand(((ChaosWarlords.Source.Entities.Map.Site)PendingSite).Id, selectedSpyColor, PendingCard?.Id);
-        }
-        
-
-
-        private bool ValidateSpyReturn(Player player)
-        {
-            // Cost Check
-            if (PendingCard is null)
-            {
-                if (player.Power < RETURN_SPY_COST)
-                {
-                    CancelTargeting();
-                    OnActionFailed?.Invoke(this, "Not enough Power!");
-                    return false;
-                }
-            }
-            return true;
+             if (PendingSite is null) return null;
+             // We need to pass PendingSite to subsystem or let subsystem manage it?
+             // Subsystem stateless methods are better.
+             return _spySubsystem.FinalizeSpyReturn(selectedSpyColor, PendingSite, PendingCard?.Id);
         }
 
         public bool PerformSpyReturn(Site site, PlayerColor selectedSpyColor, string? cardId)
         {
-             // Logic
-            bool success = _mapManager.ReturnSpecificSpy(site, CurrentPlayer, selectedSpyColor);
+             return _spySubsystem.PerformSpyReturn(site, selectedSpyColor, cardId);
+        }
 
-            if (success)
-            {
-                bool isPaidByCard = !string.IsNullOrEmpty(cardId);
-                if (!isPaidByCard)
-                {
-                    if (_playerStateManager is not null)
-                    {
-                        _playerStateManager.TrySpendPower(CurrentPlayer, RETURN_SPY_COST);
-                    }
-                    else
-                    {
-                         CurrentPlayer.Power -= RETURN_SPY_COST;
-                    }
-                }
-                OnActionCompleted?.Invoke(this, EventArgs.Empty);
-                ClearState();
-                return true;
-            }
-            else
-            {
-                OnActionFailed?.Invoke(this, "Action Failed: Invalid Target or Conditions.");
-                return false;
-            }
+        // Support for SpySubsystem State Transition
+        public void TransitionToSpySelection(Site site)
+        {
+            PendingSite = site;
+            CurrentState = ActionState.SelectingSpyToReturn;
         }
 
         private IGameCommand? HandleMoveSource(MapNode targetNode)
@@ -692,251 +512,28 @@ namespace ChaosWarlords.Source.Managers
 
         public void TryStartDevourHand(Card sourceCard, Action? onComplete = null, bool deferExecution = false)
         {
-            // 1. Check for Pre-Selected Target (Pre-Commit Flow)
-            var preTarget = GetAndClearPreTarget(sourceCard, ActionState.TargetingDevourHand);
-            
-            if (preTarget == SkippedTarget)
-            {
-                _logger.Log($"Devour optional cost skipped by user for {sourceCard.Name}. Chain halted (Supplant will not trigger).", LogChannel.Info);
-                // Fix: Do NOT invoke onComplete. 
-                // onComplete represents the "OnSuccess" branch (e.g. Supplant).
-                // If we skip the Cost (Devour), we do not get the Reward (Supplant).
-                return;
-            }
-
-            if (preTarget is Card targetCard)
-            {
-                if (deferExecution)
-                {
-                    // BUFFER the choice (Pre-Target)
-                    PendingDevourCard = targetCard;
-                    _logger.Log($"Devour Buffered (Pre-Target): {targetCard.Name}. Proceeding to next step...", LogChannel.Info);
-                    
-                    // Proceed to next step without executing
-                    onComplete?.Invoke();
-                    return;
-                }
-                else
-                {
-                    // Execute immediately!
-                    _matchManager.DevourCard(targetCard);
-                    onComplete?.Invoke();
-                    return;
-                }
-            }
-
-            // Dynamic Threshold:
-            // If the source card is in Hand, we need at least one OTHER card (Count > 1).
-            // If the source card is Played (e.g. during resolution), we just need any card in Hand (Count > 0).
-            int requiredCount = (sourceCard.Location == CardLocation.Hand) ? 1 : 0;
-
-            if (CurrentPlayer.Hand.Count <= requiredCount)
-            {
-                _logger.Log("No other cards in hand to Devour.", LogChannel.Warning);
-                OnActionCompleted?.Invoke(this, EventArgs.Empty);
-                // onComplete?.Invoke(); // Do not chain if optional cost not paid
-                return;
-            }
-
-            StartTargeting(ActionState.TargetingDevourHand, sourceCard);
-            _pendingCallback = onComplete;
-            _deferDevourExecution = deferExecution; // Store the flag
-            _logger.Log($"Triggering Devour for {sourceCard.Name}. Select a card from HAND to remove. (Optional: You may skip)", LogChannel.General);
+            _devourSubsystem.TryStartDevourHand(sourceCard, onComplete, deferExecution);
         }
 
         public void TryStartDevourMarket(Card sourceCard, Action? onComplete = null, bool deferExecution = false)
         {
-            // 1. Check for Pre-Selected Target
-            var preTarget = GetAndClearPreTarget(sourceCard, ActionState.TargetingDevourMarket);
-            if (preTarget == SkippedTarget)
-            {
-                _logger.Log($"Devour (Market) skipped by user. Chain halted.", LogChannel.Info);
-                return;
-            }
-
-            if (preTarget is Card targetCard)
-            {
-                 // Handle Pre-Selection (Transactional)
-                 HandleDevourMarketSelection(targetCard);
-                 // Note: handleDevourMarketSelection invokes onComplete if successful
-                 return;
-            }
-
-            // 2. Validate Market Availability
-            if (_marketManager == null)
-            {
-                _logger.Log("Market Manager not initialized. Cannot devour from market.", LogChannel.Error);
-                OnActionCompleted?.Invoke(this, EventArgs.Empty);
-                return;
-            }
-
-            if (_marketManager.MarketRow.All(c => c == null))
-            {
-                _logger.Log("No cards in Market to Devour.", LogChannel.Warning);
-                // Fail silently or notify?
-                OnActionCompleted?.Invoke(this, EventArgs.Empty);
-                return;
-            }
-
-            // 3. Start Targeting
-            StartTargeting(ActionState.TargetingDevourMarket, sourceCard);
-            _pendingCallback = onComplete; // Store callback for succession (e.g. Supplant)
-            _deferDevourExecution = deferExecution; 
-            
-            // 4. Open Market UI via Manager
-            _marketStateManager?.OpenForDevour(HandleDevourMarketSelection);
-            
-            _logger.Log($"Triggering Devour for {sourceCard.Name}. Select a card from MARKET to remove.", LogChannel.General);
+            _devourSubsystem.TryStartDevourMarket(sourceCard, onComplete, deferExecution);
         }
 
         public void TryStartDevourDeck(Card sourceCard, Action? onComplete = null, bool deferExecution = false)
         {
-            var player = _turnManager.ActivePlayer;
-            if (player.Deck.Count > 0)
-            {
-                // Deck.Draw removes the card from the pile.
-                // We pass null for random because we checked Count > 0, so no reshuffle will occur.
-                var drawnCards = player.DeckManager.Draw(1, null!); 
-                var cardToDevour = drawnCards[0];
-                
-                _logger.Log($"{sourceCard.Name} devoured {cardToDevour.Name} from deck.", LogChannel.Info);
-                
-                // Perform the Devour (Move to Void)
-                _matchManager.DevourCard(cardToDevour);
-
-                // Invoke completion (which usually triggers OnSuccess)
-                onComplete?.Invoke();
-            }
-            else
-            {
-                _logger.Log($"{sourceCard.Name}: Deck is empty, cannot devour.", LogChannel.Warning);
-                // Even if failed, we should probably continue or fizzle
-                onComplete?.Invoke(); 
-            }
+            _devourSubsystem.TryStartDevourDeck(sourceCard, onComplete, deferExecution);
         }
 
         public void HandleDevourMarketSelection(Card? targetCard)
         {
-            if (targetCard is null) return;
-            
-            // Switch to Browse mode instead of closing (User requested to keep market open)
-            _marketStateManager?.OpenForBrowsing();
-
-            // Verify it's in Market (Logic check)
-            if (targetCard.Location != CardLocation.Market)
-            {
-                _logger.Log("Selected card is not in Market!", LogChannel.Warning);
-                return;
-            }
-
-            _logger.Log($"Devouring Market Card: {targetCard.Name}", LogChannel.Info);
-
-            if (_deferDevourExecution)
-            {
-                // Buffer it
-                PendingDevourCard = targetCard;
-                CompleteAction(); // Fires pending callback
-            }
-            else
-            {
-                // Check if the Source Card (PendingCard) has a Devour action asking for Replacement
-                // We must identify the 'Devour Market' effect on the pending card.
-                // Handle case where PendingCard is null (e.g. legacy tests or manual trigger) - default to false
-                var devourEffect = PendingCard?.Effects.FirstOrDefault(e => e.Type == EffectType.Devour && e.TargetLocation == CardLocation.Market);
-                bool shouldReplace = devourEffect?.ReplaceWithSource ?? false;
-
-                if (shouldReplace && _playerStateManager != null && PendingCard != null)
-                {
-                    _logger.Log($"Replacing Market Card {targetCard.Name} with {PendingCard.Name}", LogChannel.Info);
-
-                     // 1. Move Source to Market (via State Manager)
-                    _playerStateManager.MoveCardToMarket(CurrentPlayer, PendingCard);
-
-                    // 2. Replace in Market Row
-                    _marketManager.ReplaceCard(targetCard, PendingCard);
-
-                    // 3. Void the Target
-                    targetCard.Location = CardLocation.Void;
-                    // Optional: Add to VoidPile if match context accessible, otherwise CardLocation.Void is sufficient logic mark.
-                }
-                else
-                {
-                    // Standard Devour
-                    // Execute Immediately
-                    // 1. Remove from Market (Handling refill)
-                    _marketManager.RemoveCard(targetCard);
-                    
-                    // 2. Move to Void
-                    targetCard.Location = CardLocation.Void;
-                }
-                
-                CompleteAction();
-            }
+            _devourSubsystem.HandleDevourMarketSelection(targetCard);
         }
 
         public void HandleDevourSelection(Card? targetCard)
         {
-            if (targetCard is null)
-            {
-                 // Cancelled? This method assumes valid selection from InputMode.
-                 return;
-            }
-            
-            if (targetCard == PendingCard) 
-            {
-                 // Should have been filtered by InputMode, but safety check.
-                 _logger.Log("Cannot devour the played card itself.", LogChannel.Warning);
-                 return;
-            }
-
-            if (_deferDevourExecution)
-            {
-                // BUFFER the choice
-                PendingDevourCard = targetCard;
-                _logger.Log($"Devour Buffered: {targetCard.Name}. Proceeding to next step...", LogChannel.Info);
-                
-                // We do NOT call actionSystem.CompleteAction() yet because we want to maintain the chain?
-                // Wait, CompleteAction clears state and calls callback.
-                // We DO want to fire callback to start the NEXT effect (Supplant Targeting),
-                // but we don't want to clear PendingDevourCard.
-                
-                // So CompleteAction needs to be careful about what it clears.
-                // Actually, CompleteAction clears EVERYTHING.
-                // We need to persist PendingDevourCard across CompleteAction if it acts as a transition.
-                
-                // However, PendingDevourCard belongs to the specific card execution context.
-                // If we ClearState(), PendingDevourCard is lost.
-                // We must modify ClearState to optionally preserve it, OR
-                // we treat this transition differently.
-                
-                // Implementation Plan said: "Add Card? PendingDevourCard"
-                // "Update CancelTargeting to clear pending states."
-                
-                // If we use CompleteAction(), it invokes _pendingCallback.
-                // _pendingCallback starts next StartTargeting(Supplant).
-                // If ClearState() wipes PendingDevourCard, we lose it.
-                
-                // Fix: Modify ClearState to NOT clear PendingDevourCard automatically?
-                // Or make PendingDevourCard part of a transient "Transaction Context"?
-                // For simplicity: PendingDevourCard is cleared ONLY when we explicitly want to (End of Command).
-                
-                // Let's modify CompleteAction/ClearState behavior locally or generally.
-                // Safest: Don't clear PendingDevourCard in ClearState, but clear it in "FinalizeAction" or manual cleanups.
-                // But CancelTargeting MUST clear it.
-                
-                CompleteAction(); 
-                // Note: ClearState() will be called inside CompleteAction. We must update ClearState first.
-            }
-            else
-            {
-                // Immediate Execution (Old behavior)
-                _matchManager.DevourCard(targetCard);
-                CompleteAction();
-            }
+            _devourSubsystem.HandleDevourSelection(targetCard);
         }
-
-        private Action? _pendingCallback;
-
         public void CompleteAction()
         {
             // Fix: Clear state FIRST. 
@@ -944,13 +541,9 @@ namespace ChaosWarlords.Source.Managers
             // to be immediately wiped by ClearState.
             ClearState();
 
-            var callback = _pendingCallback;
-            _pendingCallback = null; // Clear before invoking to avoid loops
-
             _logger.Log("ActionSystem: CompleteAction - State cleared. Invoking events/callbacks.", LogChannel.Debug);
 
             OnActionCompleted?.Invoke(this, EventArgs.Empty);
-            callback?.Invoke();
         }
     }
 }

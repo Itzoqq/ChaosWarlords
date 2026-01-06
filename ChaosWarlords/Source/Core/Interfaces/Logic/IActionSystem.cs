@@ -66,6 +66,16 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         void StartTargeting(ActionState state, Card? card = null);
 
         /// <summary>
+        /// Transititions the system to the Spy Selection state for the given site.
+        /// </summary>
+        void TransitionToSpySelection(Site site);
+
+        /// <summary>
+        /// Notifies the system that an action has failed validation or execution.
+        /// </summary>
+        void NotifyFailure(string reason);
+
+        /// <summary>
         /// Cancels the current targeting sequence and returns to Normal state.
         /// </summary>
         void CancelTargeting();

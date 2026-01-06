@@ -315,31 +315,61 @@ sequenceDiagram
 
 ---
 
-## 6. Transactional Action Flow
-**Concept**: Advanced Topic. How complex, multi-step actions (like Devour) affect the game state attomically using "Lookahead".
+### 5.4 Action Delegation (Subsystems)
+The `ActionSystem` acts as a coordinator, delegating specific complex mechanics to dedicated subsystems.
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Idle
-    
-    Idle --> Targeting: StartAction(Devour)
-    Targeting --> Validating: SelectTarget(Card)
-    
-    state Validating {
-        [*] --> CheckConditions
-        CheckConditions --> SimulateEffect: Valid
-        SimulateEffect --> CheckResult: Apply Temporary State
-        CheckResult --> Rollback: Invalid for Next Step
-        CheckResult --> Success: Valid Chain
+classDiagram
+    class ActionSystem {
+        +StartTargeting()
+        +HandleTargetClick()
+    }
+    class DevourSubsystem {
+        +TryStartDevour()
+        +HandleDevourSelection()
+    }
+    class SpySubsystem {
+        +HandlePlaceSpy()
+        +PerformSpyReturn()
     }
 
-    Validating --> Targeting: Invalid\n(User Notification)
-    Validating --> Execution: Success
-    
-    Execution --> [*]: Dispatch CommandChain
+    ActionSystem --> DevourSubsystem : Delegates Devour Logic
+    ActionSystem --> SpySubsystem : Delegates Spy Logic
 ```
 
-> **Key Takeaway**: For multi-step actions (like Devour), we don't commit until the end. We stick the game in a **Validating** state, apply the changes completely in memory, see if the result is valid, and if so, commit. If not, we **Rollback** as if nothing happened.
+> **Key Takeaway**: To keep the logic clean, `ActionSystem` doesn't know *how* to devour a card or validate a spy placement. It just knows *who* to ask.
+
+---
+
+## 6. Transactional Action Flow (ActionSystem)
+**Concept**: Advanced Topic. How complex, multi-step actions (like Devour) are orchestrated between the Coordinator and Subsystems.
+
+```mermaid
+sequenceDiagram
+    participant UI as User Interface
+    participant AS as ActionSystem
+    participant SUB as DevourSubsystem
+    participant MM as MatchManager
+
+    UI->>AS: HandleTargetClick(Card A)
+    AS->>SUB: HandleDevourSelection(Card A)
+    
+    rect rgb(30, 30, 30)
+        Note over SUB: Validation Logic
+        SUB->>SUB: Validate(Card A)
+    end
+    
+    alt Defer Execution (Buffered)
+        SUB->>SUB: Store PendingDevourCard
+        Note right of SUB: State Saved
+        SUB->>AS: CompleteAction()
+    else Immediate Execution
+        SUB->>MM: DevourCard(Card A)
+        SUB->>AS: CompleteAction()
+    end
+```
+
+> **Key Takeaway**: For multi-step actions, the **ActionSystem** receives the input but passes it to the **Subsystem**. The Subsystem decides whether to execute immediately (commit) or buffer the data (validating state) for the next step in the transaction.
 
 ---
 

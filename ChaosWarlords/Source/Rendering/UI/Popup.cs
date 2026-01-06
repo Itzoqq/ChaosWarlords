@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Rendering.UI
 {
@@ -9,6 +10,7 @@ namespace ChaosWarlords.Source.Rendering.UI
     /// A generic modal popup with text and buttons.
     /// Created via PopupBuilder.
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public class Popup
     {
         public string Title { get; }

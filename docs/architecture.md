@@ -167,6 +167,9 @@ Solution Root
 │
 ├── Mechanics/                           # The "Rules" of the Game
 │   ├── Actions/
+│   │   ├── Subsystems/                  # Logic Sub-modules
+│   │   │   ├── DevourSubsystem.cs       # Devour mechanics
+│   │   │   └── SpySubsystem.cs          # Spy mechanics
 │   │   ├── ActionSystem.cs              # Handles targeting logic
 │   │   └── CardPlaySystem.cs            # Validates and conducts card plays
 │   ├── Commands/                        # Command Pattern Implementations
@@ -232,7 +235,7 @@ Input is handled via a tiered approach:
 All significant game actions (Move, Attack, Buy) are encapsulated in `IGameCommand` objects. This ensures traceability, enables replay systems by re-executing commands, and supports multiplayer synchronization.
 
 ### 4. Transactional Command Execution
-Complex multi-step actions (like Devour mechanics) utilize the `ActionSystem` and **Deferred Execution** to support atomic transactions. Targets are buffered until the entire chain is valid, preventing partial state changes. If a user cancels partway through, the transaction is aborted with no state change.
+Complex multi-step actions (like Devour mechanics) utilize the `ActionSystem` (and its **Subsystems**) with **Deferred Execution** to support atomic transactions. Targets are buffered until the entire chain is valid, preventing partial state changes. If a user cancels partway through, the transaction is aborted with no state change.
 
 ### 5. Card Rule Engine
 Card logic is validated by a centralized `CardRuleEngine` using a Chain of Responsibility pattern. `EffectCondition` definitions allow data-driven rules (defined in JSON), separating validation logic from effect execution.

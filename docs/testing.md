@@ -163,6 +163,9 @@ ChaosWarlords.Tests/Source/
 │
 ├── Mechanics/                   # Unit Tests for Game Mechanics
 │   ├── Actions/
+│   │   ├── Subsystems/
+│   │   │   ├── DevourSubsystemTests.cs
+│   │   │   └── SpySubsystemTests.cs
 │   │   ├── ActionSystemTests.cs
 │   │   ├── ActionSystemTransactionTests.cs
 │   │   └── CardPlaySystemTests.cs
@@ -185,7 +188,8 @@ ChaosWarlords.Tests/Source/
 │       ├── CardRuleEngineLookaheadTests.cs
 │       ├── CardRuleEngineTests.cs
 │       ├── MapRuleEngineTests.cs
-│       └── SiteControlSystemTests.cs
+│       ├── SiteControlSystemTests.cs
+│       └── TargetingStateEngineTests.cs
 │
 ├── Rendering/                   # Unit Tests for Rendering Components
 │   └── UI/
