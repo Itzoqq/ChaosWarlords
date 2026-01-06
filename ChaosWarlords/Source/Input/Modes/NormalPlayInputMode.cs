@@ -49,7 +49,7 @@ namespace ChaosWarlords.Source.Input.Modes
             return HandleMapClick(inputManager, mapManager, activePlayer);
         }
 
-        private IGameCommand? HandleCardClick(Card clickedCard, IActionSystem actionSystem)
+        private ChaosWarlords.Source.Commands.PlayCardCommand? HandleCardClick(Card clickedCard, IActionSystem actionSystem)
         {
             // Check if this card has a devour effect that needs pre-commit handling
             var devourEffect = clickedCard.Effects.FirstOrDefault(e => e.Type == EffectType.Devour);
@@ -63,7 +63,7 @@ namespace ChaosWarlords.Source.Input.Modes
             return new PlayCardCommand(clickedCard);
         }
 
-        private bool ShouldHandleDevourPreCommit(CardEffect devourEffect)
+        private static bool ShouldHandleDevourPreCommit(CardEffect devourEffect)
         {
             // Skip pre-commit for optional devour (popup will handle it)
             if (devourEffect.IsOptional)
@@ -81,7 +81,7 @@ namespace ChaosWarlords.Source.Input.Modes
             return true;
         }
 
-        private IGameCommand? HandleDevourCardClick(Card clickedCard, IActionSystem actionSystem)
+        private ChaosWarlords.Source.Commands.PlayCardCommand? HandleDevourCardClick(Card clickedCard, IActionSystem actionSystem)
         {
             actionSystem.TryStartDevourHand(clickedCard);
 
@@ -96,7 +96,7 @@ namespace ChaosWarlords.Source.Input.Modes
             return new PlayCardCommand(clickedCard);
         }
 
-        private IGameCommand? HandleMapClick(IInputManager inputManager, IMapManager mapManager, Player activePlayer)
+        private static ChaosWarlords.Source.Commands.DeployTroopCommand? HandleMapClick(IInputManager inputManager, IMapManager mapManager, Player activePlayer)
         {
             var clickedNode = mapManager.GetNodeAt(inputManager.MousePosition);
             

@@ -48,7 +48,7 @@ namespace ChaosWarlords.Source.Input.Modes
             return null;
         }
 
-        private bool ShouldCancel(IInputManager inputManager)
+        private static bool ShouldCancel(IInputManager inputManager)
         {
             return inputManager.IsRightMouseJustClicked() || inputManager.IsKeyJustPressed(Keys.Escape);
         }
@@ -61,12 +61,12 @@ namespace ChaosWarlords.Source.Input.Modes
             return null;
         }
 
-        private bool ShouldSkipOptionalCost(IInputManager inputManager)
+        private static bool ShouldSkipOptionalCost(IInputManager inputManager)
         {
             return inputManager.IsKeyJustPressed(Keys.Space);
         }
 
-        private IGameCommand? HandleSkipOptionalCost(IActionSystem actionSystem)
+        private ChaosWarlords.Source.Commands.PlayCardCommand? HandleSkipOptionalCost(IActionSystem actionSystem)
         {
             if (!IsPreCommitFlow())
             {
@@ -121,7 +121,7 @@ namespace ChaosWarlords.Source.Input.Modes
             return true;
         }
 
-        private IGameCommand? HandlePreCommitSelection(Card targetCard, IActionSystem actionSystem)
+        private ChaosWarlords.Source.Commands.PlayCardCommand? HandlePreCommitSelection(Card targetCard, IActionSystem actionSystem)
         {
             actionSystem.SetPreTarget(_sourceCard!, ActionState.TargetingDevourHand, targetCard);
             

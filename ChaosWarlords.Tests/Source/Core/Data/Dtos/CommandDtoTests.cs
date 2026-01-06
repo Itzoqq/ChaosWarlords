@@ -114,6 +114,15 @@ namespace ChaosWarlords.Tests.Source.Core.Data.Dtos
         }
 
         [TestMethod]
+        public void PromoteCommandDto_Properties_AreSetCorrectly()
+        {
+            var dto = new PromoteCommandDto { CardId = "promoted_card", Seq = 10, Seat = 1 };
+            Assert.AreEqual("promoted_card", dto.CardId);
+            Assert.AreEqual(10, dto.Seq);
+            Assert.AreEqual(1, dto.Seat);
+        }
+
+        [TestMethod]
         public void OtherCommands_Properties_AreSetCorrectly()
         {
             Assert.IsNotNull(new CancelActionCommandDto());

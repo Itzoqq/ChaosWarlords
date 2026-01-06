@@ -146,7 +146,7 @@ namespace ChaosWarlords.Source.Input.Modes
             return actionSystem.PendingCard != null && actionSystem.PendingCard.Location == CardLocation.Hand;
         }
 
-        private static IGameCommand? HandlePreCommitTargeting(IActionSystem actionSystem, MapNode? targetNode, Site? targetSite)
+        private static ChaosWarlords.Source.Commands.PlayCardCommand? HandlePreCommitTargeting(IActionSystem actionSystem, MapNode? targetNode, Site? targetSite)
         {
             var pendingCard = actionSystem.PendingCard!;
             object target = (object?)targetNode ?? targetSite!;
