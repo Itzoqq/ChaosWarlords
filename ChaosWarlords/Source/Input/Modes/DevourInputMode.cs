@@ -36,86 +36,118 @@ namespace ChaosWarlords.Source.Input.Modes
             
             if (_updateFrames < COOLDOWN_FRAMES) return null;
 
-            // 1. Cancel / Back out
-            if (inputManager.IsRightMouseJustClicked() || inputManager.IsKeyJustPressed(Keys.Escape))
+            if (ShouldCancel(inputManager))
+                return HandleCancellation(actionSystem);
+
+            if (ShouldSkipOptionalCost(inputManager))
+                return HandleSkipOptionalCost(actionSystem);
+
+            if (inputManager.IsLeftMouseJustClicked())
+                return HandleCardClick(actionSystem);
+
+            return null;
+        }
+
+        private bool ShouldCancel(IInputManager inputManager)
+        {
+            return inputManager.IsRightMouseJustClicked() || inputManager.IsKeyJustPressed(Keys.Escape);
+        }
+
+        private IGameCommand? HandleCancellation(IActionSystem actionSystem)
+        {
+            actionSystem.CancelTargeting();
+            _gameplayState.SwitchToNormalMode();
+            _gameplayState.Logger.Log("Cancelled Devour action.", LogChannel.General);
+            return null;
+        }
+
+        private bool ShouldSkipOptionalCost(IInputManager inputManager)
+        {
+            return inputManager.IsKeyJustPressed(Keys.Space);
+        }
+
+        private IGameCommand? HandleSkipOptionalCost(IActionSystem actionSystem)
+        {
+            if (!IsPreCommitFlow())
             {
-                actionSystem.CancelTargeting();
-                _gameplayState.SwitchToNormalMode();
-                _gameplayState.Logger.Log("Cancelled Devour action.", LogChannel.General);
+                return null; // Skip only supported for pre-commit flow
+            }
+
+            actionSystem.SetPreTarget(_sourceCard!, ActionState.TargetingDevourHand, ActionSystem.SkippedTarget);
+            
+            if (actionSystem.AdvancePreCommitTargeting(_sourceCard!))
+            {
+                // Advanced to next targeting state
                 return null;
             }
 
-            // 1.5 Skip Optional Cost (Spacebar)
-            if (inputManager.IsKeyJustPressed(Keys.Space))
-            {
-                 if (_sourceCard != null && _sourceCard.Location == CardLocation.Hand)
-                 {
-                     actionSystem.SetPreTarget(_sourceCard, ActionState.TargetingDevourHand, ActionSystem.SkippedTarget);
-                     
-                     // Try to Advance to next targeting step (e.g. Supplant)
-                     if (actionSystem.AdvancePreCommitTargeting(_sourceCard))
-                     {
-                         // Advanced to next targeting state (State Change event handles Input Mode switch)
-                         return null;
-                     }
+            // No more targeting needed, commit the play
+            actionSystem.CompleteAction();
+            _gameplayState.SwitchToNormalMode();
+            return new ChaosWarlords.Source.Commands.PlayCardCommand(_sourceCard!, true);
+        }
 
-                     // No more targeting needed, commit the play.
-                     actionSystem.CompleteAction(); 
-                     _gameplayState.SwitchToNormalMode();
-                     return new ChaosWarlords.Source.Commands.PlayCardCommand(_sourceCard, true);
-                 }
-                 // Standard Flow Skip? (Not supported yet for played cards, but optional cost usually implies Pre-Commit)
+        private IGameCommand? HandleCardClick(IActionSystem actionSystem)
+        {
+            Card? targetCard = _gameplayState.GetHoveredHandCard();
+
+            if (targetCard is null)
+            {
+                return null;
             }
 
-            // 2. Select Card
-            if (inputManager.IsLeftMouseJustClicked())
+            if (!IsValidDevourTarget(targetCard))
             {
-                // We specifically look at the HAND, not Played cards
-                Card? targetCard = _gameplayState.GetHoveredHandCard();
+                return null;
+            }
 
-                if (targetCard is not null)
-                {
-                    // Validation: Cannot devour the card itself while it's being played
-                    if (targetCard == _sourceCard)
-                    {
-                        _gameplayState.Logger.Log("Invalid Target: Cannot devour the card currently being played!", LogChannel.Warning);
-                        return null;
-                    }
+            return IsPreCommitFlow() 
+                ? HandlePreCommitSelection(targetCard, actionSystem)
+                : HandleStandardFlowSelection(targetCard);
+        }
 
-                    // Pre-Commit Check:
-                    // If Source Card is in Hand, we are choosing targets BEFORE playing.
-                    if (_sourceCard != null && _sourceCard.Location == CardLocation.Hand)
-                    {
-                        actionSystem.SetPreTarget(_sourceCard, ActionState.TargetingDevourHand, targetCard);
-                        
-                        // Try to Advance to next targeting step (e.g. Supplant)
-                        if (actionSystem.AdvancePreCommitTargeting(_sourceCard))
-                        {
-                            // Advanced to next targeting state.
-                            return null;
-                        }
+        private bool IsPreCommitFlow()
+        {
+            return _sourceCard != null && _sourceCard.Location == CardLocation.Hand;
+        }
 
-                        actionSystem.CompleteAction(); 
-                        _gameplayState.SwitchToNormalMode(); 
-                        // Return PlayCommand to Commit the play with BYPASS
-                        return new ChaosWarlords.Source.Commands.PlayCardCommand(_sourceCard, true);
-                    }
+        private bool IsValidDevourTarget(Card targetCard)
+        {
+            if (targetCard == _sourceCard)
+            {
+                _gameplayState.Logger.Log("Invalid Target: Cannot devour the card currently being played!", LogChannel.Warning);
+                return false;
+            }
+            return true;
+        }
 
-                    // Standard Flow (Card already played/in limbo)
-                    // Usage of HandleDevourSelection handles both immediate and deferred execution
-                    _actionSystem.HandleDevourSelection(targetCard);
-                    
-                    // If we entered a chained targeting state (e.g. Supplant), switch mode.
-                    // If we completed the action, switch to Normal.
-                    if (_actionSystem.IsTargeting())
-                    {
-                         _gameplayState.SwitchToTargetingMode();
-                    }
-                    else
-                    {
-                         _gameplayState.SwitchToNormalMode();
-                    }
-                }
+        private IGameCommand? HandlePreCommitSelection(Card targetCard, IActionSystem actionSystem)
+        {
+            actionSystem.SetPreTarget(_sourceCard!, ActionState.TargetingDevourHand, targetCard);
+            
+            if (actionSystem.AdvancePreCommitTargeting(_sourceCard!))
+            {
+                // Advanced to next targeting state
+                return null;
+            }
+
+            // Chain complete, commit the play
+            actionSystem.CompleteAction();
+            _gameplayState.SwitchToNormalMode();
+            return new ChaosWarlords.Source.Commands.PlayCardCommand(_sourceCard!, true);
+        }
+
+        private IGameCommand? HandleStandardFlowSelection(Card targetCard)
+        {
+            _actionSystem.HandleDevourSelection(targetCard);
+            
+            if (_actionSystem.IsTargeting())
+            {
+                _gameplayState.SwitchToTargetingMode();
+            }
+            else
+            {
+                _gameplayState.SwitchToNormalMode();
             }
 
             return null;

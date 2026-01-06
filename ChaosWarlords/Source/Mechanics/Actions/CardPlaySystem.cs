@@ -27,57 +27,69 @@ namespace ChaosWarlords.Source.Mechanics.Actions
 
         public void PlayCard(Card card)
         {
-            bool enteredTargeting = false;
-
-            // CRITICAL: If this card has ANY optional targeting effects, skip pre-commit targeting entirely
-            // The popup will handle the player's choice, and targeting will start only if they accept
-            bool hasOptionalTargeting = card.Effects.Any(e => e.IsOptional && IsTargetingEffect(e.Type));
-            if (hasOptionalTargeting)
+            if (ShouldSkipPreCommitTargeting(card))
             {
-                _logger.Log($"Card {card.Name} has optional targeting effects. Skipping pre-commit targeting - popup will handle it.", LogChannel.Debug);
                 _matchManager.PlayCard(card);
                 return;
             }
 
-            // 1. Check for Targeting Effects
-            foreach (var effect in card.Effects)
-            {
-                if (IsTargetingEffect(effect.Type))
-                {
-                    // Use CardRuleEngine for validation
-                    if (_matchContext.CardRuleEngine.HasValidTargets(_matchContext.ActivePlayer, effect.Type, card))
-                    {
-                        var state = GetTargetingState(effect);
-                        _logger.Log($"[CardPlaySystem] Effect {effect.Type} (Loc: {effect.TargetLocation}) -> State: {state}", LogChannel.Debug);
-                        
-                        // Special Case: Market Targeting should happen Post-Play (Sequential)
-                        // Pre-Commit is for map Board state or Hand costs. Market is a separate UI mode better handled by ResolveEffects.
-                        if (state == ActionState.TargetingDevourMarket) 
-                        {
-                            _logger.Log($"[CardPlaySystem] Skipping Pre-Commit for Market Devour.", LogChannel.Debug);
-                            continue;
-                        }
-
-                        _matchContext.ActionSystem.StartTargeting(state, card);
-                        _onTargetingStarted?.Invoke();
-                        enteredTargeting = true;
-                        break; // Stop checking other effects once we enter targeting
-                    }
-                    else
-                    {
-                        // SKIPPING TARGETING:
-                        // If no targets exist, we define this as "Targeting phase complete/skipped"
-                        // and proceed to play the card data.
-                        _logger.Log($"Skipping targeting for {card.Name}: No valid targets for {effect.Type}.", LogChannel.Info);
-                    }
-                }
-            }
-
-            // 2. Play immediately if no targeting was started
-            if (!enteredTargeting)
+            if (!TryStartPreCommitTargeting(card))
             {
                 _matchManager.PlayCard(card);
             }
+        }
+
+        private bool ShouldSkipPreCommitTargeting(Card card)
+        {
+            bool hasOptionalTargeting = card.Effects.Any(e => e.IsOptional && IsTargetingEffect(e.Type));
+            
+            if (hasOptionalTargeting)
+            {
+                _logger.Log($"Card {card.Name} has optional targeting effects. Skipping pre-commit targeting - popup will handle it.", LogChannel.Debug);
+                return true;
+            }
+            
+            return false;
+        }
+
+        private bool TryStartPreCommitTargeting(Card card)
+        {
+            foreach (var effect in card.Effects)
+            {
+                if (!IsTargetingEffect(effect.Type))
+                    continue;
+
+                if (ShouldStartTargetingForEffect(card, effect))
+                {
+                    var state = GetTargetingState(effect);
+                    _matchContext.ActionSystem.StartTargeting(state, card);
+                    _onTargetingStarted?.Invoke();
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool ShouldStartTargetingForEffect(Card card, CardEffect effect)
+        {
+            var state = GetTargetingState(effect);
+            _logger.Log($"[CardPlaySystem] Effect {effect.Type} (Loc: {effect.TargetLocation}) -> State: {state}", LogChannel.Debug);
+
+            // Market targeting happens post-play (sequential)
+            if (state == ActionState.TargetingDevourMarket)
+            {
+                _logger.Log($"[CardPlaySystem] Skipping Pre-Commit for Market Devour.", LogChannel.Debug);
+                return false;
+            }
+
+            if (!_matchContext.CardRuleEngine.HasValidTargets(_matchContext.ActivePlayer, effect.Type, card))
+            {
+                _logger.Log($"Skipping targeting for {card.Name}: No valid targets for {effect.Type}.", LogChannel.Info);
+                return false;
+            }
+
+            return true;
         }
 
         public bool HasViableTargets(Card card)

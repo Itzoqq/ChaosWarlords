@@ -21,10 +21,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// </summary>
         void TryStartDevourMarket(Card sourceCard, Action? onComplete = null, bool deferExecution = false);
 
-        /// <summary>
-        /// Initiates the Devour Deck action flow.
-        /// </summary>
-        void TryStartDevourDeck(Card sourceCard, Action? onComplete = null, bool deferExecution = false);
+
 
         /// <summary>
         /// Handles the selection of a card to devour from Hand.

@@ -257,44 +257,60 @@ namespace ChaosWarlords.Source.GameStates
 
         public void Update(GameTime gameTime)
         {
-            // 1. Update systems
-            _inputManagerBacking.Update();
-            _uiEventMediator.Update();
-
-            // 2. Process UI Interaction (Highest Priority)
-            if (!_replayManager.IsReplaying)
-            {
-                _uiManagerBacking.Update(_inputManagerBacking);
-            }
-
-            // 3. Check for Blocking UI
-            if (_uiEventMediator.IsPauseMenuOpen || _uiEventMediator.IsConfirmationPopupOpen)
+            UpdateCoreSystems();
+            
+            if (ShouldSkipGameplayUpdate())
             {
                 _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
                 return;
             }
 
-            // 4. Update Replay Controller (Handles F5/F6 and Playback Loop)
+            UpdateGameplayLogic(gameTime);
+            _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
+            CheckAndHandleVictory();
+        }
+
+        private void UpdateCoreSystems()
+        {
+            _inputManagerBacking.Update();
+            _uiEventMediator.Update();
+
+            // Process UI Interaction (only when not replaying)
+            if (!_replayManager.IsReplaying)
+            {
+                _uiManagerBacking.Update(_inputManagerBacking);
+            }
+        }
+
+        private bool ShouldSkipGameplayUpdate()
+        {
+            // Skip gameplay updates if blocking UI is open
+            return _uiEventMediator.IsPauseMenuOpen || _uiEventMediator.IsConfirmationPopupOpen;
+        }
+
+        private void UpdateGameplayLogic(GameTime gameTime)
+        {
+            // Update Replay Controller (handles F5/F6 and playback loop)
             _replayController.Update(gameTime);
 
-            // 5. Normal Game Input (Only if not replaying)
+            // Normal game input (only if not replaying)
             if (!_replayManager.IsReplaying)
             {
                 _playerController.Update();
             }
+        }
 
-            // 6. Update View
-            _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
-
-            // 7. Check Victory Condition
-            if (MatchManager.VictoryResult != null && !_replayManager.IsReplaying)
+        private void CheckAndHandleVictory()
+        {
+            if (MatchManager.VictoryResult == null || _replayManager.IsReplaying)
             {
-                // Transition to Victory Screen
-                // We use ChangeState to replace GameplayState with VictoryState
-                if (_game is Game1 game1)
-                {
-                    game1.StateManager.ChangeState(new VictoryState(game1, MatchManager.VictoryResult));
-                }
+                return;
+            }
+
+            // Transition to Victory Screen
+            if (_game is Game1 game1)
+            {
+                game1.StateManager.ChangeState(new VictoryState(game1, MatchManager.VictoryResult));
             }
         }
 

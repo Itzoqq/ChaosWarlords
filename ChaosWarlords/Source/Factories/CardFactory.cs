@@ -56,55 +56,75 @@ namespace ChaosWarlords.Source.Utilities
 
         private static CardEffect? CreateEffect(CardEffectData data)
         {
-            if (Enum.TryParse(data.Type, true, out EffectType type))
+            if (!Enum.TryParse(data.Type, true, out EffectType type))
+                return null;
+
+            var effect = CreateBaseEffect(data, type);
+            ParseTargetLocation(data, effect);
+            ParseRecursiveEffect(data, effect);
+            ParseCondition(data, effect);
+            ParseOptionalFlags(data, effect);
+
+            return effect;
+        }
+
+        private static CardEffect CreateBaseEffect(CardEffectData data, EffectType type)
+        {
+            ResourceType resType = ResourceType.None;
+            if (!string.IsNullOrEmpty(data.TargetResource))
             {
-                ResourceType resType = ResourceType.None;
-                if (!string.IsNullOrEmpty(data.TargetResource))
-                {
-                    Enum.TryParse(data.TargetResource, true, out resType);
-                }
-
-                var effect = new CardEffect(type, data.Amount, resType);
-                effect.RequiresFocus = data.RequiresFocus;
-
-                // Parse TargetLocation (Market, Deck, Hand, etc.)
-                if (!string.IsNullOrEmpty(data.TargetLocation))
-                {
-                    if (Enum.TryParse(data.TargetLocation, true, out CardLocation targetLoc))
-                    {
-                        effect.TargetLocation = targetLoc;
-                        // Debug Log (Console as we are in static context, or just rely on debugger if attached, but console is safer for user feedback)
-                        // System.Console.WriteLine($"[CardFactory] Parsed TargetLocation for effect: {data.TargetLocation} -> {targetLoc}");
-                    }
-                    else
-                    {
-                         System.Console.WriteLine($"[CardFactory] FAILED to parse TargetLocation: {data.TargetLocation}");
-                    }
-                }
-
-                // Recursive creation
-                if (data.OnSuccess != null)
-                {
-                    effect.OnSuccess = CreateEffect(data.OnSuccess);
-                }
-
-                // Conditional Logic
-                if (!string.IsNullOrEmpty(data.ConditionType) && Enum.TryParse(data.ConditionType, true, out ConditionType condType))
-                {
-                    ResourceType condRes = ResourceType.None;
-                    if (!string.IsNullOrEmpty(data.ConditionResource))
-                    {
-                        Enum.TryParse(data.ConditionResource, true, out condRes);
-                    }
-                    effect.Condition = new EffectCondition(condType, data.ConditionThreshold, condRes);
-                }
-
-                effect.IsOptional = data.IsOptional;
-                effect.ReplaceWithSource = data.ReplaceWithSource;
-
-                return effect;
+                Enum.TryParse(data.TargetResource, true, out resType);
             }
-            return null;
+
+            var effect = new CardEffect(type, data.Amount, resType);
+            effect.RequiresFocus = data.RequiresFocus;
+            return effect;
+        }
+
+        private static void ParseTargetLocation(CardEffectData data, CardEffect effect)
+        {
+            if (string.IsNullOrEmpty(data.TargetLocation))
+                return;
+
+            if (Enum.TryParse(data.TargetLocation, true, out CardLocation targetLoc))
+            {
+                effect.TargetLocation = targetLoc;
+            }
+            else
+            {
+                System.Console.WriteLine($"[CardFactory] FAILED to parse TargetLocation: {data.TargetLocation}");
+            }
+        }
+
+        private static void ParseRecursiveEffect(CardEffectData data, CardEffect effect)
+        {
+            if (data.OnSuccess != null)
+            {
+                effect.OnSuccess = CreateEffect(data.OnSuccess);
+            }
+        }
+
+        private static void ParseCondition(CardEffectData data, CardEffect effect)
+        {
+            if (string.IsNullOrEmpty(data.ConditionType))
+                return;
+
+            if (!Enum.TryParse(data.ConditionType, true, out ConditionType condType))
+                return;
+
+            ResourceType condRes = ResourceType.None;
+            if (!string.IsNullOrEmpty(data.ConditionResource))
+            {
+                Enum.TryParse(data.ConditionResource, true, out condRes);
+            }
+
+            effect.Condition = new EffectCondition(condType, data.ConditionThreshold, condRes);
+        }
+
+        private static void ParseOptionalFlags(CardEffectData data, CardEffect effect)
+        {
+            effect.IsOptional = data.IsOptional;
+            effect.ReplaceWithSource = data.ReplaceWithSource;
         }
     }
 }

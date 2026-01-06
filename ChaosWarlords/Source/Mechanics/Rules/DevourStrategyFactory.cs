@@ -44,24 +44,12 @@ namespace ChaosWarlords.Source.Mechanics.Rules
     }
 
     /// <summary>
-    /// Strategy for devouring cards from the deck.
-    /// </summary>
-    internal class DevourFromDeckStrategy : IDevourStrategy
-    {
-        public void Execute(Card sourceCard, MatchContext context, IGameLogger logger, Action? onComplete, bool defer)
-        {
-            context.ActionSystem.TryStartDevourDeck(sourceCard, onComplete, defer);
-        }
-    }
-
-    /// <summary>
     /// Factory for creating appropriate devour strategy based on card location.
     /// </summary>
     internal static class DevourStrategyFactory
     {
         private static readonly DevourFromHandStrategy _handStrategy = new();
         private static readonly DevourFromMarketStrategy _marketStrategy = new();
-        private static readonly DevourFromDeckStrategy _deckStrategy = new();
 
         public static IDevourStrategy GetStrategy(CardLocation location)
         {
@@ -69,8 +57,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             {
                 CardLocation.Market => _marketStrategy,
                 CardLocation.Hand => _handStrategy,
-                CardLocation.Deck => _deckStrategy,
-                _ => _handStrategy // Default fallback
+                _ => _handStrategy // Default fallback to Hand
             };
         }
     }

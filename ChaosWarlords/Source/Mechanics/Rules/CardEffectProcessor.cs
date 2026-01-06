@@ -94,35 +94,45 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             ProcessNextEffect(effects, index + 1, card, context, logger);
         }
 
+        private static readonly Dictionary<EffectType, Action<CardEffect, Card, MatchContext, IGameLogger>> _effectHandlers = new()
+        {
+            [EffectType.GainResource] = (effect, card, ctx, log) => ApplyGainResource(effect, card, ctx, log),
+            [EffectType.DrawCard] = (effect, card, ctx, log) => ApplyDrawCard(effect, ctx),
+            [EffectType.Promote] = (effect, card, ctx, log) => ApplyPromote(effect, card, ctx, log),
+            [EffectType.MoveUnit] = (effect, card, ctx, log) => ApplyMoveUnit(card, ctx, log),
+            [EffectType.Assassinate] = (effect, card, ctx, log) => ApplyAssassinate(card, ctx, log),
+            [EffectType.Supplant] = (effect, card, ctx, log) => ApplySupplant(card, ctx, log),
+            [EffectType.PlaceSpy] = (effect, card, ctx, log) => ApplyPlaceSpy(card, ctx, log),
+            [EffectType.ReturnUnit] = (effect, card, ctx, log) => ApplyReturnUnit(card, ctx, log),
+            [EffectType.Devour] = (effect, card, ctx, log) => ApplyDevourWithChain(effect, card, ctx, log)
+        };
+
         private static void ApplyEffect(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
         {
-            // Trace log for debugging chains
             logger.Log($"Applying effect {effect.Type} for {sourceCard.Name}...", LogChannel.Debug);
 
-            // 1. Check Condition
             if (!context.CardRuleEngine.IsConditionMet(context.ActivePlayer, effect))
             {
                 logger.Log($"{sourceCard.Name}: Condition not met, skipping effect.", LogChannel.Info);
                 return;
             }
 
-            // 2. Execute Effect logic
-            Action action = effect.Type switch
+            if (_effectHandlers.TryGetValue(effect.Type, out var handler))
             {
-                EffectType.GainResource => () => ApplyGainResource(effect, sourceCard, context, logger),
-                EffectType.DrawCard => () => ApplyDrawCard(effect, context),
-                EffectType.Promote => () => ApplyPromote(effect, sourceCard, context, logger),
-                EffectType.MoveUnit => () => ApplyMoveUnit(sourceCard, context, logger),
-                EffectType.Assassinate => () => ApplyAssassinate(sourceCard, context, logger),
-                EffectType.Supplant => () => ApplySupplant(sourceCard, context, logger),
-                EffectType.PlaceSpy => () => ApplyPlaceSpy(sourceCard, context, logger),
-                EffectType.ReturnUnit => () => ApplyReturnUnit(sourceCard, context, logger),
-                EffectType.Devour => () => ApplyDevour(effect, sourceCard, context, logger, effect.OnSuccess != null ? () => ApplyEffect(effect.OnSuccess, sourceCard, context, logger) : null,  
-                                            effect.OnSuccess != null && ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.OnSuccess.Type)),
-                _ => () => { }
-            };
+                handler(effect, sourceCard, context, logger);
+            }
+        }
 
-            action();
+        private static void ApplyDevourWithChain(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
+        {
+            Action? onSuccess = effect.OnSuccess != null 
+                ? () => ApplyEffect(effect.OnSuccess, sourceCard, context, logger) 
+                : null;
+
+            bool deferExecution = effect.OnSuccess != null 
+                && ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.OnSuccess.Type);
+
+            ApplyDevour(effect, sourceCard, context, logger, onSuccess, deferExecution);
         }
 
         private static void ApplyGainResource(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)

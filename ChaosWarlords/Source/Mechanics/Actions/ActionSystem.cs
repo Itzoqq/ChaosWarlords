@@ -521,10 +521,7 @@ namespace ChaosWarlords.Source.Managers
             _devourSubsystem.TryStartDevourMarket(sourceCard, onComplete, deferExecution);
         }
 
-        public void TryStartDevourDeck(Card sourceCard, Action? onComplete = null, bool deferExecution = false)
-        {
-            _devourSubsystem.TryStartDevourDeck(sourceCard, onComplete, deferExecution);
-        }
+
 
         public void HandleDevourMarketSelection(Card? targetCard)
         {

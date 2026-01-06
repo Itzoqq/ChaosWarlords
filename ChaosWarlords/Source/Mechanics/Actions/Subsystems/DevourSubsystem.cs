@@ -63,121 +63,98 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
 
         public void TryStartDevourHand(Card sourceCard, Action? onComplete = null, bool deferExecution = false)
         {
-            // 1. Check for Pre-Selected Target (Pre-Commit Flow)
             var preTarget = _actionSystem.GetAndClearPreTarget(sourceCard, ActionState.TargetingDevourHand);
             
-            // Note: ActionSystem.SkippedTarget is generic object, so we might need to verify reference or similar logic
-            // Since we can't access ActionSystem.SkippedTarget static field via Interface if it's not in interface?
-            // Actually it's public static on ActionSystem class. We can access it via Type.
-            
-            // Check if SkippedTarget match involves reflection or we just assume logic:
-            // "if preTarget is object o && o.ToString() == "ChaosWarlords.Source.Managers.ActionSystem+SkippedTarget" -- NO.
-            // Better: We see if preTarget is NOT null and NOT Card.
-            // Or access ActionSystem.SkippedTarget if we add namespace.
-
-            if (preTarget != null && !(preTarget is Card))
-            {
-               // Assume it is the SkippedTarget marker object
-                _logger.Log($"Devour optional cost skipped by user for {sourceCard.Name}. Chain halted (Supplant will not trigger).", LogChannel.Info);
+            if (HandlePreTargetSkipped(preTarget, sourceCard))
                 return;
-            }
 
-            if (preTarget is Card targetCard)
-            {
-                if (deferExecution)
-                {
-                    // BUFFER the choice (Pre-Target)
-                    PendingDevourCard = targetCard;
-                    _logger.Log($"Devour Buffered (Pre-Target): {targetCard.Name}. Proceeding to next step...", LogChannel.Info);
-                    
-                    // Proceed to next step without executing
-                    onComplete?.Invoke();
-                    return;
-                }
-                else
-                {
-                    // Execute immediately!
-                    _matchManager?.DevourCard(targetCard);
-                    onComplete?.Invoke();
-                    return;
-                }
-            }
+            if (HandlePreTargetCard(preTarget, onComplete, deferExecution))
+                return;
 
-            // Dynamic Threshold:
-            // If the source card is in Hand, we need at least one OTHER card (Count > 1).
-            // If the source card is Played (e.g. during resolution), we just need any card in Hand (Count > 0).
-            int requiredCount = (sourceCard.Location == CardLocation.Hand) ? 1 : 0;
-            var currentPlayer = _turnManager.ActivePlayer;
-
-            if (currentPlayer.Hand.Count <= requiredCount)
+            if (!HasValidHandTargets(sourceCard))
             {
                 _logger.Log("No other cards in hand to Devour.", LogChannel.Warning);
-                _actionSystem.CompleteAction(); // This might trigger generic completion
+                _actionSystem.CompleteAction();
                 return;
             }
 
-            _actionSystem.StartTargeting(ActionState.TargetingDevourHand, sourceCard);
-            _pendingCallback = onComplete;
-            _deferDevourExecution = deferExecution; 
+            StartDevourTargeting(ActionState.TargetingDevourHand, sourceCard, onComplete, deferExecution);
             _logger.Log($"Triggering Devour for {sourceCard.Name}. Select a card from HAND to remove. (Optional: You may skip)", LogChannel.General);
         }
 
         public void TryStartDevourMarket(Card sourceCard, Action? onComplete = null, bool deferExecution = false)
         {
-            // 1. Check for Pre-Selected Target
             var preTarget = _actionSystem.GetAndClearPreTarget(sourceCard, ActionState.TargetingDevourMarket);
             
-            if (preTarget != null && !(preTarget is Card))
-            {
-                _logger.Log($"Devour (Market) skipped by user. Chain halted.", LogChannel.Info);
+            if (HandlePreTargetSkipped(preTarget, sourceCard))
                 return;
-            }
 
             if (preTarget is Card targetCard)
             {
-                 // Handle Pre-Selection (Transactional)
-                 HandleDevourMarketSelection(targetCard);
-                 return;
+                HandleDevourMarketSelection(targetCard);
+                return;
             }
 
-            // 2. Validate Market Availability
-            if (_marketManager == null || _marketManager.MarketRow.All(c => c == null))
+            if (!HasValidMarketTargets())
             {
                 _logger.Log("No cards in Market to Devour (or Manager missing).", LogChannel.Warning);
                 _actionSystem.CompleteAction();
                 return;
             }
 
-            // 3. Start Targeting
-            _actionSystem.StartTargeting(ActionState.TargetingDevourMarket, sourceCard);
-            _pendingCallback = onComplete;
-            _deferDevourExecution = deferExecution; 
-            
-            // 4. Open Market UI via Manager
+            StartDevourTargeting(ActionState.TargetingDevourMarket, sourceCard, onComplete, deferExecution);
             _marketStateManager?.OpenForDevour(HandleDevourMarketSelection);
-            
             _logger.Log($"Triggering Devour for {sourceCard.Name}. Select a card from MARKET to remove.", LogChannel.General);
         }
 
-        public void TryStartDevourDeck(Card sourceCard, Action? onComplete = null, bool deferExecution = false)
+        private bool HandlePreTargetSkipped(object? preTarget, Card sourceCard)
         {
-            var player = _turnManager.ActivePlayer;
-            if (player.Deck.Count > 0)
+            if (preTarget != null && !(preTarget is Card))
             {
-                var drawnCards = player.DeckManager.Draw(1, null!); 
-                var cardToDevour = drawnCards[0];
-                
-                _logger.Log($"{sourceCard.Name} devoured {cardToDevour.Name} from deck.", LogChannel.Info);
-                
-                _matchManager?.DevourCard(cardToDevour);
+                _logger.Log($"Devour skipped by user for {sourceCard.Name}. Chain halted.", LogChannel.Info);
+                return true;
+            }
+            return false;
+        }
+
+        private bool HandlePreTargetCard(object? preTarget, Action? onComplete, bool deferExecution)
+        {
+            if (preTarget is not Card targetCard)
+                return false;
+
+            if (deferExecution)
+            {
+                PendingDevourCard = targetCard;
+                _logger.Log($"Devour Buffered (Pre-Target): {targetCard.Name}. Proceeding to next step...", LogChannel.Info);
                 onComplete?.Invoke();
             }
             else
             {
-                _logger.Log($"{sourceCard.Name}: Deck is empty, cannot devour.", LogChannel.Warning);
-                onComplete?.Invoke(); 
+                _matchManager?.DevourCard(targetCard);
+                onComplete?.Invoke();
             }
+            return true;
         }
+
+        private bool HasValidHandTargets(Card sourceCard)
+        {
+            int requiredCount = (sourceCard.Location == CardLocation.Hand) ? 1 : 0;
+            return _turnManager.ActivePlayer.Hand.Count > requiredCount;
+        }
+
+        private bool HasValidMarketTargets()
+        {
+            return _marketManager != null && _marketManager.MarketRow.Any(c => c != null);
+        }
+
+        private void StartDevourTargeting(ActionState state, Card sourceCard, Action? onComplete, bool deferExecution)
+        {
+            _actionSystem.StartTargeting(state, sourceCard);
+            _pendingCallback = onComplete;
+            _deferDevourExecution = deferExecution;
+        }
+
+
 
         public void HandleDevourSelection(Card? targetCard)
         {
@@ -216,9 +193,8 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             
             _marketStateManager?.OpenForBrowsing();
 
-            if (targetCard.Location != CardLocation.Market)
+            if (!IsValidMarketCard(targetCard))
             {
-                _logger.Log("Selected card is not in Market!", LogChannel.Warning);
                 return;
             }
 
@@ -231,35 +207,58 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             }
             else
             {
-                var pendingCard = _actionSystem.PendingCard;
-                var currentPlayer = _turnManager.ActivePlayer;
-                
-                var devourEffect = pendingCard?.Effects.FirstOrDefault(e => e.Type == EffectType.Devour && e.TargetLocation == CardLocation.Market);
-                bool shouldReplace = devourEffect?.ReplaceWithSource ?? false;
-
-                // Ensure Managers are available
-                if (_marketManager == null)
-                {
-                     _logger.Log("MarketManager is missing!", LogChannel.Error);
-                     return;
-                }
-
-                if (shouldReplace && _playerStateManager != null && pendingCard != null)
-                {
-                    _logger.Log($"Replacing Market Card {targetCard.Name} with {pendingCard.Name}", LogChannel.Info);
-
-                    _playerStateManager.MoveCardToMarket(currentPlayer, pendingCard);
-                    _marketManager.ReplaceCard(targetCard, pendingCard);
-                    targetCard.Location = CardLocation.Void;
-                }
-                else
-                {
-                    _marketManager.RemoveCard(targetCard);
-                    targetCard.Location = CardLocation.Void;
-                }
-                
+                ExecuteImmediateMarketDevour(targetCard);
                 TriggerCompletion();
             }
+        }
+
+        private bool IsValidMarketCard(Card targetCard)
+        {
+            if (targetCard.Location != CardLocation.Market)
+            {
+                _logger.Log("Selected card is not in Market!", LogChannel.Warning);
+                return false;
+            }
+            return true;
+        }
+
+        private void ExecuteImmediateMarketDevour(Card targetCard)
+        {
+            var pendingCard = _actionSystem.PendingCard;
+            var currentPlayer = _turnManager.ActivePlayer;
+            
+            var devourEffect = pendingCard?.Effects.FirstOrDefault(e => e.Type == EffectType.Devour && e.TargetLocation == CardLocation.Market);
+            bool shouldReplace = devourEffect?.ReplaceWithSource ?? false;
+
+            if (_marketManager == null)
+            {
+                _logger.Log("MarketManager is missing!", LogChannel.Error);
+                return;
+            }
+
+            if (shouldReplace && _playerStateManager != null && pendingCard != null)
+            {
+                ReplaceMarketCard(targetCard, pendingCard, currentPlayer);
+            }
+            else
+            {
+                RemoveMarketCard(targetCard);
+            }
+        }
+
+        private void ReplaceMarketCard(Card targetCard, Card pendingCard, ChaosWarlords.Source.Entities.Actors.Player currentPlayer)
+        {
+            _logger.Log($"Replacing Market Card {targetCard.Name} with {pendingCard.Name}", LogChannel.Info);
+
+            _playerStateManager!.MoveCardToMarket(currentPlayer, pendingCard);
+            _marketManager!.ReplaceCard(targetCard, pendingCard);
+            targetCard.Location = CardLocation.Void;
+        }
+
+        private void RemoveMarketCard(Card targetCard)
+        {
+            _marketManager!.RemoveCard(targetCard);
+            targetCard.Location = CardLocation.Void;
         }
 
         private void TriggerCompletion()

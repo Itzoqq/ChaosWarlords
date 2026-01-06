@@ -33,51 +33,76 @@ namespace ChaosWarlords.Source.Input.Modes
 
         public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
-            if (inputManager.IsLeftMouseJustClicked())
+            if (!inputManager.IsLeftMouseJustClicked())
             {
-                // 1. Check Card Click
-                Card? clickedCard = _state.GetHoveredHandCard();
-                if (clickedCard is not null)
-                {
-                    // Pre-Commit Check for Devour cards
-                    var devourEffect = clickedCard.Effects.FirstOrDefault(e => e.Type == ChaosWarlords.Source.Utilities.EffectType.Devour);
-                    if (devourEffect != null)
-                    {
-                        // CRITICAL: Skip pre-commit targeting for optional devour effects
-                        // The popup will handle the player's choice
-                        if (devourEffect.IsOptional)
-                        {
-                            // Just play the card - popup will appear during effect resolution
-                            return new PlayCardCommand(clickedCard);
-                        }
+                return null;
+            }
 
-                        // NEW FIX: Also skip pre-commit for Market Devour (which happens post-play)
-                        if (devourEffect.TargetLocation == CardLocation.Market)
-                        {
-                             return new PlayCardCommand(clickedCard);
-                        }
+            // 1. Check Card Click
+            Card? clickedCard = _state.GetHoveredHandCard();
+            if (clickedCard is not null)
+            {
+                return HandleCardClick(clickedCard, actionSystem);
+            }
 
-                         _actionSystem.TryStartDevourHand(clickedCard);
-                         
-                         // Fix: Only switch mode if we successfully entered targeting (Cards existed to devour)
-                         // If failed (no targets), fall through to PlayCardCommand to execute base effects.
-                         if (_actionSystem.IsTargeting())
-                         {
-                             _state.SwitchToTargetingMode();
-                             return null; 
-                         }
-                         // Fall through...
-                    }
+            // 2. Check Map Click
+            return HandleMapClick(inputManager, mapManager, activePlayer);
+        }
 
-                    return new PlayCardCommand(clickedCard);
-                }
+        private IGameCommand? HandleCardClick(Card clickedCard, IActionSystem actionSystem)
+        {
+            // Check if this card has a devour effect that needs pre-commit handling
+            var devourEffect = clickedCard.Effects.FirstOrDefault(e => e.Type == EffectType.Devour);
+            
+            if (devourEffect != null && ShouldHandleDevourPreCommit(devourEffect))
+            {
+                return HandleDevourCardClick(clickedCard, actionSystem);
+            }
 
-                // 2. Check Map Click
-                var clickedNode = mapManager.GetNodeAt(inputManager.MousePosition);
-                if (clickedNode is not null && mapManager.CanDeployAt(clickedNode, activePlayer.Color))
-                {
-                    return new DeployTroopCommand(clickedNode);
-                }
+            // Normal card play
+            return new PlayCardCommand(clickedCard);
+        }
+
+        private bool ShouldHandleDevourPreCommit(CardEffect devourEffect)
+        {
+            // Skip pre-commit for optional devour (popup will handle it)
+            if (devourEffect.IsOptional)
+            {
+                return false;
+            }
+
+            // Skip pre-commit for Market devour (happens post-play)
+            if (devourEffect.TargetLocation == CardLocation.Market)
+            {
+                return false;
+            }
+
+            // Handle pre-commit for mandatory Hand devour
+            return true;
+        }
+
+        private IGameCommand? HandleDevourCardClick(Card clickedCard, IActionSystem actionSystem)
+        {
+            actionSystem.TryStartDevourHand(clickedCard);
+
+            // Only switch mode if we successfully entered targeting
+            if (actionSystem.IsTargeting())
+            {
+                _state.SwitchToTargetingMode();
+                return null;
+            }
+
+            // No valid devour targets - fall through to normal play
+            return new PlayCardCommand(clickedCard);
+        }
+
+        private IGameCommand? HandleMapClick(IInputManager inputManager, IMapManager mapManager, Player activePlayer)
+        {
+            var clickedNode = mapManager.GetNodeAt(inputManager.MousePosition);
+            
+            if (clickedNode is not null && mapManager.CanDeployAt(clickedNode, activePlayer.Color))
+            {
+                return new DeployTroopCommand(clickedNode);
             }
 
             return null;

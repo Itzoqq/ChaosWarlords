@@ -129,41 +129,38 @@ namespace ChaosWarlords.Source.Input.Modes
                 return null;
             }
 
-            // 1. Validation Run (Get the command to see if it's valid)
             var command = actionSystem.HandleTargetClick(targetNode, targetSite);
 
-            if (command != null)
+            if (command == null)
             {
-                // 2. Pre-Commit Interception
-                // If the card is still in hand, we are just collecting targets, not executing yet.
-                if (actionSystem.PendingCard != null && actionSystem.PendingCard.Location == CardLocation.Hand)
-                {
-                    // CAPTURE PendingCard before state might be cleared by AdvancePreCommitTargeting
-                    var pendingCard = actionSystem.PendingCard;
-                    
-                    // Store the target mapped to the CURRENT State (e.g. TargetingSupplant)
-                    // Note: We use the object itself (Node or Site)
-                    object target = (object?)targetNode ?? targetSite!;
-                    
-                    actionSystem.SetPreTarget(pendingCard, actionSystem.CurrentState, target);
-
-                    // Try to Advance
-                    if (actionSystem.AdvancePreCommitTargeting(pendingCard))
-                    {
-                        // Advanced to next state.
-                        return null; 
-                    }
-
-                    // Chain Complete! Commit the Play.
-                    // The PlayCardCommand will execute MatchManager.PlayCard, which triggers effects.
-                    // The effects (ApplySupplant etc) will find the PreTargets we just set and execute immediately.
-                    return new ChaosWarlords.Source.Commands.PlayCardCommand(pendingCard, true);
-                }
-
-                return command;
+                return null;
             }
 
-            return null;
+            return IsPreCommitFlow(actionSystem) 
+                ? HandlePreCommitTargeting(actionSystem, targetNode, targetSite)
+                : command;
+        }
+
+        private static bool IsPreCommitFlow(IActionSystem actionSystem)
+        {
+            return actionSystem.PendingCard != null && actionSystem.PendingCard.Location == CardLocation.Hand;
+        }
+
+        private static IGameCommand? HandlePreCommitTargeting(IActionSystem actionSystem, MapNode? targetNode, Site? targetSite)
+        {
+            var pendingCard = actionSystem.PendingCard!;
+            object target = (object?)targetNode ?? targetSite!;
+            
+            actionSystem.SetPreTarget(pendingCard, actionSystem.CurrentState, target);
+
+            if (actionSystem.AdvancePreCommitTargeting(pendingCard))
+            {
+                // Advanced to next targeting state
+                return null;
+            }
+
+            // Chain complete - commit the play
+            return new ChaosWarlords.Source.Commands.PlayCardCommand(pendingCard, true);
         }
     }
 }
