@@ -159,8 +159,10 @@ namespace ChaosWarlords.Source.Managers
                 return false;
             }
 
-            // Power Check skipped in Setup Phase
-            if (CurrentPhase != MatchPhase.Setup && currentPlayer.Power < GameConstants.DeployPowerCost)
+            // Power Check skipped in Setup Phase OR if we have free (pending) troops from cards
+            bool costBypassed = CurrentPhase == MatchPhase.Setup || currentPlayer.PendingFreeTroops > 0;
+
+            if (!costBypassed && currentPlayer.Power < GameConstants.DeployPowerCost)
             {
                 _logger.Log($"Cannot Deploy at {targetNode.Id}: Not enough Power! (Has: {currentPlayer.Power}, Need: {GameConstants.DeployPowerCost})", LogChannel.Economy);
                 return false;

@@ -167,6 +167,21 @@ namespace ChaosWarlords.Source.Managers
         {
             // 1. Map Rewards - REMOVED (Now Start of Turn)
 
+            // 1b. Process Turn End Devour (Self-Devour effects)
+            foreach (var card in _context.CardsMarkedForTurnEndDevour.ToList())
+            {
+                _logger.Log($"Processing Turn End Devour: {card.Name} -> Void", LogChannel.Info);
+                
+                // Remove from wherever it is (likely Played or Hand)
+                _context.ActivePlayer.PlayedCards.Remove(card);
+                _context.ActivePlayer.Hand.Remove(card);
+                
+                // Move to Void
+                card.Location = CardLocation.Void;
+                _context.VoidPile.Add(card);
+            }
+            _context.CardsMarkedForTurnEndDevour.Clear();
+
             // 2. Cleanup: Move Hand + Played -> Discard
             _context.PlayerStateManager.CleanUpTurn(_context.ActivePlayer);
 

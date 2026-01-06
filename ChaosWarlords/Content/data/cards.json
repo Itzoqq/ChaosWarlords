@@ -206,5 +206,31 @@
         "ReplaceWithSource": true
       }
     ]
+  },
+  {
+    "Id": "skeletal_horde",
+    "Name": "Skeletal Horde",
+    "Description": "Deploy 2 troops. Optional: Devour this card -> Deploy 3 additional troops.",
+    "Cost": 3,
+    "Aspect": "Oblivion",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Troops"
+      },
+      {
+        "Type": "Devour",
+        "TargetLocation": "Self",
+        "IsOptional": true,
+        "OnSuccess": {
+          "Type": "GainResource",
+          "Amount": 3,
+          "TargetResource": "Troops"
+        }
+      }
+    ]
   }
 ]

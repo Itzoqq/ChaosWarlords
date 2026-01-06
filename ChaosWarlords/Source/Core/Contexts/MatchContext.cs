@@ -62,6 +62,11 @@ namespace ChaosWarlords.Source.Contexts
         /// </summary>
         public List<Card> VoidPile { get; private set; } = new List<Card>();
 
+        /// <summary>
+        /// Cards marked for destruction at the end of the turn (Self-Devour).
+        /// </summary>
+        public List<Card> CardsMarkedForTurnEndDevour { get; private set; } = new List<Card>();
+
         // 2. Convenience Properties (Shortcuts)
         public Player ActivePlayer => TurnManager.ActivePlayer;
 

@@ -121,6 +121,40 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
         #endregion
 
+        [TestMethod]
+        public void TryDeploy_WithPendingFreeTroops_ShouldBypassPowerCost()
+        {
+            // Scenario: Player has NO power, but has PendingFreeTroops.
+            // Expected: Deployment Succeeds, Free Troop consumed, Power untouched.
+
+            // Arrange
+            var testPlayer = TestData.Players.PoorPlayer();
+            testPlayer.Power = 0; // Insufficient for normal deploy
+            testPlayer.TroopsInBarracks = 5;
+            testPlayer.PendingFreeTroops = 1;
+
+            var testNode1 = TestData.MapNodes.Node1();
+            var testNode2 = TestData.MapNodes.Node2();
+            testNode1.Occupant = testPlayer.Color; // Establish presence
+
+            var testNodes = new List<MapNode> { testNode1, testNode2 };
+            testNode1.AddNeighbor(testNode2);
+            testNode2.AddNeighbor(testNode1);
+
+            var testManager = new MapManager(testNodes, new List<Site>(), ChaosWarlords.Tests.Utilities.TestLogger.Instance, _stateManager);
+            testManager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
+
+            // Act
+            bool result = testManager.TryDeploy(testPlayer, testNode2);
+
+            // Assert
+            Assert.IsTrue(result, "Deployment should succeed with Free Troops even with 0 Power.");
+            Assert.AreEqual(testPlayer.Color, testNode2.Occupant, "Node should be occupied.");
+            Assert.AreEqual(0, testPlayer.PendingFreeTroops, "Free troop should be consumed.");
+            Assert.AreEqual(0, testPlayer.Power, "Power should remain 0.");
+            Assert.AreEqual(5, testPlayer.TroopsInBarracks, "Barracks troops should NOT be consumed.");
+        }
+
         #region 2. Assassination Actions (State Mutation)
 
         [TestMethod]

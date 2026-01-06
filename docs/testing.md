@@ -141,6 +141,7 @@ ChaosWarlords.Tests/Source/
 │   └── Mechanics/
 │       ├── ConditionalEffectTests.cs
 │       ├── DevourMechanicsTests.cs
+│       ├── SelfDevourIntegrationTests.cs
 │       └── TransactionalCommandTests.cs
 │
 ├── Managers/                    # Unit Tests for Business Logic Managers
@@ -167,6 +168,7 @@ ChaosWarlords.Tests/Source/
 │   │   │   ├── DevourSubsystemTests.cs
 │   │   │   └── SpySubsystemTests.cs
 │   │   ├── ActionSystemTests.cs
+│   │   ├── ActionSystemDevourChainTests.cs
 │   │   ├── ActionSystemTransactionTests.cs
 │   │   └── CardPlaySystemTests.cs
 │   ├── Commands/

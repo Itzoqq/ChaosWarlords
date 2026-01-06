@@ -117,7 +117,11 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 var devourEffect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.Devour);
                 if (devourEffect != null)
                 {
-                    if (devourEffect.TargetLocation == CardLocation.Market)
+                    if (devourEffect.TargetLocation == CardLocation.Self)
+                    {
+                        return true;
+                    }
+                    else if (devourEffect.TargetLocation == CardLocation.Market)
                     {
                          // Use MarketManager to check if any cards are available
                          // MarketRow is a List<Card>, so checking count is enough (or Any)
