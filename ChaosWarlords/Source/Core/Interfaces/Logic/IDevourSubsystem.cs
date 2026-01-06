@@ -21,17 +21,22 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// </summary>
         void TryStartDevourMarket(Card sourceCard, Action? onComplete = null, bool deferExecution = false);
 
+        /// <summary>
+        /// Explicitly sets the pending devour card (deferral).
+        /// </summary>
+        void DeferDevour(Card card);
+
 
 
         /// <summary>
         /// Handles the selection of a card to devour from Hand.
         /// </summary>
-        void HandleDevourSelection(Card? targetCard);
+        ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourSelection(Card? targetCard);
 
         /// <summary>
         /// Handles the selection of a card to devour from Market.
         /// </summary>
-        void HandleDevourMarketSelection(Card? targetCard);
+        ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourMarketSelection(Card? targetCard);
 
         /// <summary>
         /// Clears the pending devour state (if any).

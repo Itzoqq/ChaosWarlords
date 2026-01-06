@@ -121,11 +121,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// </summary>
         Card? PendingDevourCard { get; }
 
-        /// <summary>
-        /// Handles the selection of a card to devour.
-        /// If deferExecution is true, the card is stored in PendingDevourCard and the success callback is invoked.
-        /// </summary>
-        void HandleDevourSelection(Card? targetCard);
+
 
         /// <summary>
         /// Initiates the Devour Hand action flow (clearing hand/resources).
@@ -140,9 +136,19 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         void TryStartDevourMarket(Entities.Cards.Card sourceCard, Action? onComplete = null, bool deferExecution = false);
 
         /// <summary>
+        /// Handles the selection of a hand card to devour.
+        /// </summary>
+        ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourSelection(Card? targetCard);
+
+        /// <summary>
         /// Handles the selection of a market card to devour.
         /// </summary>
-        void HandleDevourMarketSelection(Card? targetCard);
+        ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourMarketSelection(Card? targetCard);
+
+        /// <summary>
+        /// Explicitly sets the pending devour card (deferral).
+        /// </summary>
+        void DeferDevour(Card card);
 
 
 
@@ -175,6 +181,11 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// Retrieves and consumes the pre-selected target for a card.
         /// </summary>
         object? GetAndClearPreTarget(Entities.Cards.Card source, ActionState forState);
+
+        /// <summary>
+        /// Advances the Devour chain to the next targeting state or finalizes the card play.
+        /// </summary>
+        void AdvanceDevourChain(Card sourceCard);
     }
 }
 

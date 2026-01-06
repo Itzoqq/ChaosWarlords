@@ -103,7 +103,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             }
 
             StartDevourTargeting(ActionState.TargetingDevourMarket, sourceCard, onComplete, deferExecution);
-            _marketStateManager?.OpenForDevour(HandleDevourMarketSelection);
+            _marketStateManager?.OpenForDevour((card) => HandleDevourMarketSelection(card));
             _logger.Log($"Triggering Devour for {sourceCard.Name}. Select a card from MARKET to remove.", LogChannel.General);
         }
 
@@ -130,7 +130,20 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             }
             else
             {
-                _matchManager?.DevourCard(targetCard);
+                if (targetCard.Location == CardLocation.Market)
+                {
+                    // Use Market-specific method (assumes IMatchManager has this method now)
+                    _matchManager?.DevourMarketCard(targetCard, null); // Source unknown in this context?
+                    // Actually sourceCard is passed to TryStartDevour, but not to HandlePreTargetCard.
+                    // If we want SourceCard, we need to pass it.
+                    // But `Matches.DevourMarketCard` signature is (target, source).
+                    // If source is null, it just devours without replace.
+                    // This is acceptable fallback for PreTarget if we can't get source easily.
+                }
+                else
+                {
+                    _matchManager?.DevourCard(targetCard);
+                }
                 onComplete?.Invoke();
             }
             return true;
@@ -156,60 +169,53 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
 
 
 
-        public void HandleDevourSelection(Card? targetCard)
+        public void DeferDevour(Card card)
         {
-            if (targetCard is null) return;
+             PendingDevourCard = card;
+             _logger.Log($"Devour Buffered (Command): {card.Name}. Proceeding to next step...", LogChannel.Info);
+             TriggerCompletion();
+        }
+
+        public ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourSelection(Card? targetCard)
+        {
+            if (targetCard is null) return null;
             
             if (targetCard == _actionSystem.PendingCard) 
             {
                  _logger.Log("Cannot devour the played card itself.", LogChannel.Warning);
-                 return;
+                 return null;
             }
 
-            if (_deferDevourExecution)
+            // Create the Command
+            var cmd = new ChaosWarlords.Source.Commands.DevourCardCommand(targetCard)
             {
-                // BUFFER the choice
-                PendingDevourCard = targetCard;
-                _logger.Log($"Devour Buffered: {targetCard.Name}. Proceeding to next step...", LogChannel.Info);
-                
-                // We use CompleteAction here but we need to ensure it triggers the callback we stored
-                // The ActionSystem has its own CompleteAction but that one triggers ActionSystem's pending callback.
-                // We stored our callback locally in _pendingCallback.
-                
-                // CRITIAL: We must chain execution.
-                TriggerCompletion();
-            }
-            else
-            {
-                // Immediate Execution
-                _matchManager?.DevourCard(targetCard);
-                TriggerCompletion();
-            }
+                SourceCard = _actionSystem.PendingCard, // Associate with source
+                IsDeferred = _deferDevourExecution
+            };
+
+            return cmd;
         }
 
-        public void HandleDevourMarketSelection(Card? targetCard)
+        public ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourMarketSelection(Card? targetCard)
         {
-            if (targetCard is null) return;
+            if (targetCard is null) return null;
             
             _marketStateManager?.OpenForBrowsing();
 
             if (!IsValidMarketCard(targetCard))
             {
-                return;
+                return null;
             }
 
             _logger.Log($"Devouring Market Card: {targetCard.Name}", LogChannel.Info);
 
-            if (_deferDevourExecution)
+            // Create command
+            var cmd = new ChaosWarlords.Source.Commands.DevourCardCommand(targetCard)
             {
-                PendingDevourCard = targetCard;
-                TriggerCompletion();
-            }
-            else
-            {
-                ExecuteImmediateMarketDevour(targetCard);
-                TriggerCompletion();
-            }
+                SourceCard = _actionSystem.PendingCard
+            };
+
+            return cmd;
         }
 
         private bool IsValidMarketCard(Card targetCard)

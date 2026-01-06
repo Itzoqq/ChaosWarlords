@@ -87,17 +87,20 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
         }
 
         [TestMethod]
-        public void HandleDevourSelection_ExecutesAndTriggersCompletion()
+        public void HandleDevourSelection_ReturnsCommand()
         {
             // Arrange
             var target = CreateTestCard("Target");
             
             // Act
-            _subsystem.HandleDevourSelection(target);
+            var cmd = _subsystem.HandleDevourSelection(target);
 
             // Assert
-            _matchManager.Received(1).DevourCard(target);
-            _actionSystem.Received(1).CompleteAction();
+            Assert.IsNotNull(cmd);
+            Assert.AreEqual(target.Id, cmd.CardToDevour.Id);
+            // We no longer trigger execution or completion directly in the subsystem for manual selection
+            // _matchManager.Received(1).DevourCard(target); 
+            // _actionSystem.Received(1).CompleteAction();
         }
 
         [TestMethod]

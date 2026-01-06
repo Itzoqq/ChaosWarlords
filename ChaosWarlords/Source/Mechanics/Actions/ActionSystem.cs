@@ -521,16 +521,21 @@ namespace ChaosWarlords.Source.Managers
             _devourSubsystem.TryStartDevourMarket(sourceCard, onComplete, deferExecution);
         }
 
-
-
-        public void HandleDevourMarketSelection(Card? targetCard)
+        public void DeferDevour(Card card)
         {
-            _devourSubsystem.HandleDevourMarketSelection(targetCard);
+            _devourSubsystem.DeferDevour(card);
         }
 
-        public void HandleDevourSelection(Card? targetCard)
+
+
+        public ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourMarketSelection(Card? targetCard)
         {
-            _devourSubsystem.HandleDevourSelection(targetCard);
+            return _devourSubsystem.HandleDevourMarketSelection(targetCard);
+        }
+
+        public ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourSelection(Card? targetCard)
+        {
+            return _devourSubsystem.HandleDevourSelection(targetCard);
         }
         public void CompleteAction()
         {
@@ -542,6 +547,31 @@ namespace ChaosWarlords.Source.Managers
             _logger.Log("ActionSystem: CompleteAction - State cleared. Invoking events/callbacks.", LogChannel.Debug);
 
             OnActionCompleted?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void AdvanceDevourChain(Card sourceCard)
+        {
+            // Determine next state
+            var nextState = TargetingStateEngine.DetermineNextState(sourceCard.Effects, CurrentState, false);
+
+            if (nextState != ActionState.Normal)
+            {
+                // Continue chain (e.g. Supplant)
+                StartTargeting(nextState, sourceCard);
+                _logger.Log($"Advancing Devour Chain for {sourceCard.Name} -> {nextState}", LogChannel.Info);
+            }
+            else
+            {
+                // Chain Complete. Finish the Play (Immediate effects).
+                 _logger.Log($"Devour Chain Complete for {sourceCard.Name}. Resuming chain logic.", LogChannel.Info);
+                 
+                 // Clear Devour Targeting State
+                 ClearState();
+                 
+                 // Resume the chain directly via MatchManager to avoid re-playing the card (which is already played).
+                 // This ensures immediate effects (like GainResource) nested in OnSuccess are executed.
+                 _matchManager.ResumeDevourChain(sourceCard);
+            }
         }
     }
 }

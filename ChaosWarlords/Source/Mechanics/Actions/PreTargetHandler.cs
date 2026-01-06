@@ -29,11 +29,15 @@ namespace ChaosWarlords.Source.Managers
         /// Attempts to execute a pre-selected target if one exists for the given card and state.
         /// Returns true if a pre-target was found and executed, false otherwise.
         /// </summary>
+        /// <summary>
+        /// Attempts to execute a pre-selected target if one exists for the given card and state.
+        /// Returns true if a pre-target was found and executed, false otherwise.
+        /// </summary>
         public bool TryExecutePreTarget(
             Card card, 
             ActionState state, 
             Func<MapNode?, Site?, IGameCommand?> handleTargetClick,
-            Action<Card?> handleDevourSelection,
+            Func<Card?, IGameCommand?> handleDevourSelection,
             Action<IGameCommand> onAutoExecuteCommand)
         {
             if (!_preSelectedTargets.TryGetValue(card, out var stateTargets))
@@ -70,13 +74,13 @@ namespace ChaosWarlords.Source.Managers
             object target,
             ActionState state,
             Func<MapNode?, Site?, IGameCommand?> handleTargetClick,
-            Action<Card?> handleDevourSelection,
+            Func<Card?, IGameCommand?> handleDevourSelection,
             Action<IGameCommand> onAutoExecuteCommand)
         {
             // Special case: Devour targeting
             if (state == ActionState.TargetingDevourHand)
             {
-                ExecuteDevourPreTarget(target, handleDevourSelection);
+                ExecuteDevourPreTarget(target, handleDevourSelection, onAutoExecuteCommand);
                 return;
             }
 
@@ -97,19 +101,29 @@ namespace ChaosWarlords.Source.Managers
             _logger.Log($"PreTargetHandler: Unknown target type {target.GetType().Name}", LogChannel.Warning);
         }
 
-        private void ExecuteDevourPreTarget(object target, Action<Card?> handleDevourSelection)
+        private void ExecuteDevourPreTarget(
+            object target, 
+            Func<Card?, IGameCommand?> handleDevourSelection,
+            Action<IGameCommand> onAutoExecuteCommand)
         {
+            IGameCommand? cmd = null;
+
             if (target is Card card)
             {
-                handleDevourSelection(card);
+                cmd = handleDevourSelection(card);
             }
             else if (target == ActionSystem.SkippedTarget)
             {
-                handleDevourSelection(null);
+                cmd = handleDevourSelection(null);
             }
             else
             {
                 _logger.Log($"PreTargetHandler: Invalid devour target type", LogChannel.Warning);
+            }
+
+            if (cmd != null)
+            {
+                onAutoExecuteCommand(cmd);
             }
         }
 

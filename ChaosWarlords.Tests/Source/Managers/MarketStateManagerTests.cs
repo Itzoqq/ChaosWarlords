@@ -3,6 +3,7 @@ using NSubstitute;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Core.Interfaces.Logic; // Added for IGameCommand
 using ChaosWarlords.Source.Utilities; // For MarketMode, LogChannel
 using System;
 
@@ -26,7 +27,7 @@ namespace ChaosWarlords.Tests.Managers
         public void OpenForBrowsing_SetsModeAndClearsCallback()
         {
             // Arrange
-            _manager.OpenForDevour((c) => { }); // Put in dirty state first
+            _manager.OpenForDevour((c) => null); // Put in dirty state first
 
             // Act
             _manager.OpenForBrowsing();
@@ -42,7 +43,7 @@ namespace ChaosWarlords.Tests.Managers
         public void OpenForDevour_SetsModeAndCallback()
         {
             // Arrange
-            Action<Card> callback = (c) => { };
+            Func<Card, IGameCommand?> callback = (c) => null;
 
             // Act
             _manager.OpenForDevour(callback);
@@ -50,7 +51,7 @@ namespace ChaosWarlords.Tests.Managers
             // Assert
             Assert.AreEqual(MarketMode.DevourTarget, _manager.CurrentMode);
             Assert.IsTrue(_manager.IsOpen);
-            Assert.AreEqual(callback, _manager.DevourCallback);
+            Assert.AreSame(callback, _manager.DevourCallback);
             _mockLogger.Received().Log(Arg.Is<string>(s => s.Contains("devour targeting")), LogChannel.Info);
         }
 
@@ -72,7 +73,7 @@ namespace ChaosWarlords.Tests.Managers
         public void Close_SetsModeClosedAndClearsCallback()
         {
             // Arrange
-            _manager.OpenForDevour((c) => { }); 
+            _manager.OpenForDevour((c) => null); 
 
             // Act
             _manager.Close();

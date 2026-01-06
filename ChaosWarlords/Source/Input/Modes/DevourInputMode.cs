@@ -137,9 +137,9 @@ namespace ChaosWarlords.Source.Input.Modes
             return new ChaosWarlords.Source.Commands.PlayCardCommand(_sourceCard!, true);
         }
 
-        private IGameCommand? HandleStandardFlowSelection(Card targetCard)
+        private ChaosWarlords.Source.Commands.DevourCardCommand? HandleStandardFlowSelection(Card targetCard)
         {
-            _actionSystem.HandleDevourSelection(targetCard);
+            var cmd = _actionSystem.HandleDevourSelection(targetCard);
             
             if (_actionSystem.IsTargeting())
             {
@@ -150,7 +150,7 @@ namespace ChaosWarlords.Source.Input.Modes
                 _gameplayState.SwitchToNormalMode();
             }
 
-            return null;
+            return cmd;
         }
     }
 }

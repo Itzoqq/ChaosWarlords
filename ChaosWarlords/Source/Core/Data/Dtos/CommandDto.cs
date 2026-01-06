@@ -48,6 +48,8 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     {
         public string? CardId { get; set; }
         public int HandIdx { get; set; }
+        public string? Location { get; set; } // "Hand", "Market"
+        public string? SourceCardId { get; set; }
     }
 
     public class EndTurnCommandDto : GameCommandDto { }

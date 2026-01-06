@@ -139,7 +139,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         {
             // 1. Arrange
             Card? callbackInvokedCard = null;
-            Action<Card> onCardSelected = (c) => callbackInvokedCard = c;
+            Func<Card, IGameCommand?> onCardSelected = (c) => { callbackInvokedCard = c; return null; };
 
             // Set up state with callback
             _stateFake.MarketStateManager.OpenForDevour(onCardSelected);

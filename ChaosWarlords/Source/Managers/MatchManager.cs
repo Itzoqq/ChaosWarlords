@@ -90,6 +90,57 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
+         public void DevourMarketCard(Card targetCard, Card? sourceCard)
+         {
+              if (targetCard.Location != CardLocation.Market)
+              {
+                  _logger.Log("DevourMarketCard Failed: Selected card is not in Market!", LogChannel.Warning);
+                  return;
+              }
+
+              var currentPlayer = _context.ActivePlayer;
+              bool shouldReplace = false;
+
+              if (sourceCard != null)
+              {
+                  var devourEffect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.Devour && e.TargetLocation == CardLocation.Market);
+                  shouldReplace = devourEffect?.ReplaceWithSource ?? false;
+              }
+              
+              if (shouldReplace && sourceCard != null)
+              {
+                  _logger.Log($"Replacing Market Card {targetCard.Name} with {sourceCard.Name}", LogChannel.Info);
+                  _context.PlayerStateManager.MoveCardToMarket(currentPlayer, sourceCard);
+                  _context.MarketManager.ReplaceCard(targetCard, sourceCard);
+                  targetCard.Location = CardLocation.Void; // Manual voiding as ReplaceCard might just remove it from list
+                  _context.VoidPile.Add(targetCard);
+              }
+              else
+              {
+                  _context.MarketManager.RemoveCard(targetCard);
+                  targetCard.Location = CardLocation.Void;
+                  _context.VoidPile.Add(targetCard);
+              }
+         }
+
+         public void ResumeDevourChain(Card sourceCard)
+         {
+             // Find the Devour effect that likely initiated this chain.
+             // Prioritize Market devour if we were in Market context, but generic lookup is usually fine 
+             // as cards rarely have multiple Devour effects.
+             var devourEffect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.Devour);
+             
+             if (devourEffect != null && devourEffect.OnSuccess != null)
+             {
+                 _logger.Log($"Resuming Devour Chain for {sourceCard.Name} -> {devourEffect.OnSuccess.Type}", LogChannel.Info);
+                 CardEffectProcessor.ApplySuccessorEffect(devourEffect, sourceCard, _context, _logger);
+             }
+             else
+             {
+                 _logger.Log($"ResumeDevourChain: No successor effect found for {sourceCard.Name}.", LogChannel.Info);
+             }
+         }
+
         public void MoveCardToPlayed(Card card)
         {
             _context.PlayerStateManager.PlayCard(_context.ActivePlayer, card);

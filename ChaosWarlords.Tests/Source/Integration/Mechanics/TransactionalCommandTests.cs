@@ -6,6 +6,7 @@ using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Mechanics.Actions;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Core.Interfaces.State;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using System.Collections.Generic;
@@ -59,7 +60,14 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
 
             // Act: Start deferred devour and selecttarget
             _actionSystem.TryStartDevourHand(sourceCard, null, deferExecution: true);
-            _actionSystem.HandleDevourSelection(targetCard);
+            var cmd = _actionSystem.HandleDevourSelection(targetCard);
+            
+            // Execute command to trigger deferral
+            var state = Substitute.For<IGameplayState>();
+            state.ActionSystem.Returns(_actionSystem);
+            state.MatchManager.Returns(_matchManager);
+            Assert.IsNotNull(cmd);
+            cmd.Execute(state);
 
             // Assert: Card should be buffered, NOT executed
             _matchManager.DidNotReceive().DevourCard(Arg.Any<Card>());
@@ -83,7 +91,13 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             }, deferExecution: true);
 
             // Act 2: Select card to devour
-            _actionSystem.HandleDevourSelection(targetCard);
+            // Act 2: Select card to devour & execute deferral
+            var cmd = _actionSystem.HandleDevourSelection(targetCard);
+            var state = Substitute.For<IGameplayState>();
+            state.ActionSystem.Returns(_actionSystem);
+            state.MatchManager.Returns(_matchManager);
+            Assert.IsNotNull(cmd);
+            cmd.Execute(state);
 
             // Assert: Should be in Supplant targeting with buffered devour
             Assert.AreEqual(targetCard, _actionSystem.PendingDevourCard);
@@ -109,7 +123,13 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             _player.Hand.Add(targetCard);
 
             _actionSystem.TryStartDevourHand(sourceCard, null, deferExecution: true);
-            _actionSystem.HandleDevourSelection(targetCard);
+            var cmd = _actionSystem.HandleDevourSelection(targetCard);
+            
+            var state = Substitute.For<IGameplayState>();
+            state.ActionSystem.Returns(_actionSystem);
+            state.MatchManager.Returns(_matchManager);
+            Assert.IsNotNull(cmd);
+            cmd.Execute(state);
             Assert.AreEqual(targetCard, _actionSystem.PendingDevourCard);
 
             // Act: Cancel

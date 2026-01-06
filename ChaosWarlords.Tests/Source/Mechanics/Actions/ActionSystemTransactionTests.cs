@@ -63,8 +63,16 @@ namespace ChaosWarlords.Tests.Systems
             // Act
             _actionSystem.TryStartDevourHand(sourceCard, null, deferExecution: true);
 
-            // Handle Selection
-            _actionSystem.HandleDevourSelection(fodderCard);
+            // Handle Selection and Execute Command
+            var cmd = _actionSystem.HandleDevourSelection(fodderCard);
+            
+            // Execute the command to trigger deferral logic
+            var state = Substitute.For<IGameplayState>();
+            state.ActionSystem.Returns(_actionSystem);
+            state.MatchManager.Returns(_matchManager);
+            
+            Assert.IsNotNull(cmd);
+            cmd.Execute(state);
 
             // Assert
             // 1. Devour should NOT have happened on MatchManager
@@ -95,8 +103,13 @@ namespace ChaosWarlords.Tests.Systems
                  _actionSystem.StartTargeting(ActionState.TargetingSupplant, sourceCard);
             }, deferExecution: true);
 
-            // Step 2: Select Fodder
-            _actionSystem.HandleDevourSelection(fodderCard);
+            // Step 2: Select Fodder & Execute Deferral
+            var cmd = _actionSystem.HandleDevourSelection(fodderCard);
+            var state = Substitute.For<IGameplayState>();
+            state.ActionSystem.Returns(_actionSystem);
+            state.MatchManager.Returns(_matchManager);
+            Assert.IsNotNull(cmd);
+            cmd.Execute(state);
 
             // Assert Intermediate
             Assert.AreEqual(fodderCard, _actionSystem.PendingDevourCard);
@@ -126,7 +139,12 @@ namespace ChaosWarlords.Tests.Systems
             _player1.Hand.Add(fodderCard);
 
             _actionSystem.TryStartDevourHand(sourceCard, null, deferExecution: true);
-            _actionSystem.HandleDevourSelection(fodderCard);
+            var cmd = _actionSystem.HandleDevourSelection(fodderCard);
+            var state = Substitute.For<IGameplayState>();
+            state.ActionSystem.Returns(_actionSystem);
+            state.MatchManager.Returns(_matchManager);
+            Assert.IsNotNull(cmd);
+            cmd.Execute(state);
             
             // Verify buffering
             Assert.AreEqual(fodderCard, _actionSystem.PendingDevourCard);

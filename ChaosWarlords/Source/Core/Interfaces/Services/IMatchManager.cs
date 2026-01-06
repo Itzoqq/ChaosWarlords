@@ -21,7 +21,16 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// Permanently removes a card from the game (devour mechanic).
         /// </summary>
         /// <param name="card">The card to devour.</param>
+        /// <summary>
+        /// Permanently removes a card from the game (devour mechanic).
+        /// </summary>
+        /// <param name="card">The card to devour.</param>
         void DevourCard(Card card);
+
+        /// <summary>
+        /// Devours a card specifically from the Market, potentially replacing it with a source card.
+        /// </summary>
+        void DevourMarketCard(Card targetCard, Card? sourceCard);
 
         /// <summary>
         /// Moves a card from the active area (Hand) to the Played area.
@@ -56,6 +65,10 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// The final victory data if the game is over.
         /// </summary>
         ChaosWarlords.Source.Core.Data.Dtos.VictoryDto? VictoryResult { get; }
+        /// <summary>
+        /// Resumes the execution of a card's effect chain (e.g. OnSuccess after targeting).
+        /// </summary>
+        void ResumeDevourChain(Card sourceCard);
     }
 }
 

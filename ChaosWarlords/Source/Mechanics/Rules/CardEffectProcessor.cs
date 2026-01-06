@@ -27,6 +27,18 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             ProcessNextEffect(effectQueue, 0, card, context, logger);
         }
 
+        /// <summary>
+        /// Explicitly executes the successor (OnSuccess) of a specific effect.
+        /// Used for resuming chains (e.g. after async Devour).
+        /// </summary>
+        public static void ApplySuccessorEffect(CardEffect parentEffect, Card sourceCard, MatchContext context, IGameLogger logger)
+        {
+            if (parentEffect.OnSuccess != null)
+            {
+                ApplyEffect(parentEffect.OnSuccess, sourceCard, context, logger);
+            }
+        }
+
         private static void ProcessNextEffect(System.Collections.Generic.List<CardEffect> effects, int index, Card card, MatchContext context, IGameLogger logger)
         {
             if (index >= effects.Count) return; // All effects processed

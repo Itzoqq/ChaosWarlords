@@ -8,6 +8,10 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Core.Interfaces.Input;
+using ChaosWarlords.Source.Core.Interfaces.Rendering;
+using ChaosWarlords.Source.Core.Interfaces.State;
+using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Tests.Integration.Managers
 {
@@ -385,6 +389,8 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
         // --- Devour Integration Tests (Using Real ActionSystem) ---
 
+
+
         private (MatchManager manager, ActionSystem actionSystem, MatchContext context, Player p1) SetupRealDevourSystem()
         {
             var p1 = TestData.Players.RedPlayer();
@@ -422,6 +428,13 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
             var manager = new MatchManager(context, logger, victoryManager);
             actionSystem.SetMatchManager(manager);
+
+            var testState = new IntegrationTestGameplayState(context, manager, logger);
+
+            actionSystem.OnAutoExecuteCommand += (cmd) => 
+            {
+               cmd.Execute(testState); 
+            };
 
             return (manager, actionSystem, context, p1);
         }
@@ -496,6 +509,137 @@ namespace ChaosWarlords.Tests.Integration.Managers
             Assert.Contains(devourCard, p1.PlayedCards, "Card should be in played pile.");
             Assert.IsEmpty(context.VoidPile, "Void pile should be empty (Devour skipped).");
         }
+
+        [TestMethod]
+        public void ResumeDevourChain_AppliesSuccessorEffects_WhenCardIsAlreadyPlayed()
+        {
+            // This test validates the fix for the Market Corruptor regression.
+            // Scenario: Card is played (moved to PlayedCards), then Devour happens (async).
+            // Upon completion, we must Resume the chain to trigger the *next* effect (GainResource)
+            // WITHOUT trying to Play the card again (which would fail validation).
+
+            // Arrange
+            var (manager, actionSystem, context, p1) = SetupRealDevourSystem();
+            
+            // Construct Market Corruptor Manually
+            var corruptor = new Card("market_corruptor_test", "Market Corruptor", 3, CardAspect.Sorcery, 1, 2, 0);
+            
+            var gainInfluence = new CardEffect(EffectType.GainResource, 3, ResourceType.Influence);
+            var devour = new CardEffect(EffectType.Devour, 0) 
+            { 
+                TargetLocation = CardLocation.Market, 
+                OnSuccess = gainInfluence 
+            };
+            corruptor.AddEffect(devour);
+
+            // Simulate the "After Play" state:
+            // 1. Card is in PlayedCards
+            p1.PlayedCards.Add(corruptor);
+            p1.Influence = 0;
+
+            // Act
+            // Call the resume logic directly (as ActionSystem would)
+            manager.ResumeDevourChain(corruptor);
+
+            // Assert
+            Assert.AreEqual(3, p1.Influence, "Should gain 3 Influence from the resumed chain.");
+            Assert.Contains(corruptor, p1.PlayedCards, "Card should remain in PlayedCards.");
+        }
+
+        [TestMethod]
+        public void PlayWight_DevourChain_TransitionsToSupplant_WhenConditionsMet()
+        {
+            // Scenario: Player plays Wight -> Devour (Hand) -> Chain Advances -> TargetingSupplant
+            // Requires: Troops in Barracks + Valid Assassination Target (for Supplant validation)
+
+            // Arrange
+            var (manager, actionSystem, context, p1) = SetupRealDevourSystem();
+            
+            // 1. Construct Wight
+            var wight = new Card("wight_test", "Wight", 4, CardAspect.Sorcery, 1, 0, 0);
+            var supplantEffect = new CardEffect(EffectType.Supplant, 0); // Logic handled by rules
+            var devour = new CardEffect(EffectType.Devour, 0)
+            {
+                TargetLocation = CardLocation.Hand,
+                OnSuccess = supplantEffect
+            };
+            wight.AddEffect(devour);
+
+            // 2. Setup Conditions for Supplant
+            // Need troops in barracks
+            p1.TroopsInBarracks = 5;
+            // Need a valid target for Assassinate (which Supplant checks). 
+            // Mock MapManager to return true for CanAssassinate check.
+            context.MapManager.HasValidAssassinationTarget(p1).Returns(true);
+
+            // 3. Setup Hand
+            var fodder = TestData.Cards.CheapCard();
+            fodder.Location = CardLocation.Hand; // Critical: Ensure validation passes
+            p1.Hand.Add(wight);
+            p1.Hand.Add(fodder);
+
+            // 4. Set Pre-Target for Devour to Ensure Flow
+            actionSystem.SetPreTarget(wight, ActionState.TargetingDevourHand, fodder);
+
+            // Act
+            manager.PlayCard(wight); 
+
+            // Assert
+            Assert.AreEqual(ActionState.TargetingSupplant, actionSystem.CurrentState, "Should transition to TargetingSupplant after Devour.");
+            Assert.AreEqual(wight, actionSystem.PendingCard, "Pending card should be Wight.");
+            // Deferred Devour Check:
+            Assert.AreEqual(fodder, actionSystem.PendingDevourCard, "Fodder should be pending devour.");
+            Assert.DoesNotContain(fodder, context.VoidPile, "Fodder should NOT be in void yet (deferred).");
+        }
+
+    }
+
+    public class IntegrationTestGameplayState : IGameplayState
+    {
+        public ChaosWarlords.Source.Contexts.MatchContext MatchContext { get; }
+        public IMapManager MapManager => MatchContext.MapManager;
+        public IMarketManager MarketManager => MatchContext.MarketManager;
+        public IActionSystem ActionSystem => MatchContext.ActionSystem;
+        public ITurnManager TurnManager => MatchContext.TurnManager;
+        public IMatchManager MatchManager { get; }
+        public IGameLogger Logger { get; }
+
+        public IntegrationTestGameplayState(object contextObj, IMatchManager matchManager, IGameLogger logger)
+        {
+            MatchContext = (ChaosWarlords.Source.Contexts.MatchContext)contextObj;
+            MatchManager = matchManager;
+            Logger = logger;
+        }
+
+        // Implement remainder as stubs/throws since not needed for this test
+        public IInputManager InputManager => throw new NotImplementedException();
+        // Logger already defined above
+        public IUIManager UIManager => throw new NotImplementedException();
+        public void RecordAndExecuteCommand(IGameCommand command) => throw new NotImplementedException();
+        public void LoadContent() => throw new NotImplementedException();
+        public void UnloadContent() { }
+        public void Update(GameTime gameTime) { }
+        public IInputMode InputMode => throw new NotImplementedException();
+        public bool IsMarketOpen => false;
+        public bool IsConfirmationPopupOpen => false;
+        public bool IsPauseMenuOpen => false;
+        public int HandY => 0;
+        public int PlayedY => 0;
+        public bool CanEndTurn(out string reason) => throw new NotImplementedException();
+        public void EndTurn() => throw new NotImplementedException();
+        public IMarketStateManager MarketStateManager => throw new NotImplementedException();
+        public void SwitchToTargetingMode() { }
+        public void SwitchToNormalMode() { }
+        public void SwitchToPromoteMode(int amount) { }
+        public void HandleEscapeKeyPress() { }
+        public void HandleEndTurnKeyPress() { }
+        public void PlayCard(Card card) => MatchManager.PlayCard(card);
+        public void MoveCardToPlayed(Card card) => MatchManager.MoveCardToPlayed(card);
+        public bool HasViableTargets(Card card) => true;
+        public string GetTargetingText(ActionState state) => "";
+        public Card? GetHoveredHandCard() => null;
+        public Card? GetHoveredPlayedCard() => null;
+        public Card? GetHoveredMarketCard() => null;
     }
 }
 

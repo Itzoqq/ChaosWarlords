@@ -23,7 +23,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// <summary>
         /// Gets the callback for devour targeting mode, if active.
         /// </summary>
-        Action<Card>? DevourCallback { get; }
+        Func<Card, ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand?>? DevourCallback { get; }
         
         /// <summary>
         /// Opens the market in browsing/buying mode.
@@ -34,7 +34,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// Opens the market in devour targeting mode with the specified callback.
         /// </summary>
         /// <param name="onDevourCallback">Callback to invoke when a card is selected for devouring</param>
-        void OpenForDevour(Action<Card> onDevourCallback);
+        void OpenForDevour(Func<Card, ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand?> onDevourCallback);
         
         /// <summary>
         /// Closes the market.

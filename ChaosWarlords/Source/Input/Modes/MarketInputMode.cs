@@ -56,14 +56,14 @@ namespace ChaosWarlords.Source.Input.Modes
                     var devourCallback = _state.MarketStateManager.DevourCallback;
                     if (devourCallback != null)
                     {
-                        devourCallback.Invoke(card);
-                        // Market logic is handled by the callback (e.g., closing market or updating state)
+                        return devourCallback.Invoke(card);
+                        // Market logic is handled by the command execution via ActionSystem/MatchManager
                     }
                     else
                     {
                         return new BuyCardCommand(card);
                     }
-                    return null;
+
                 }
 
                 // Clicked empty space - close market

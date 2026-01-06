@@ -48,7 +48,8 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             _marketManager = Substitute.For<IMarketManager>();
             _matchManager = Substitute.For<IMatchManager>();
             _marketStateManager = Substitute.For<IMarketStateManager>();
-            _playerStateManager = Substitute.For<IPlayerStateManager>();
+            _marketStateManager = Substitute.For<IMarketStateManager>();
+            _playerStateManager = new PlayerStateManager(_logger); // Real State Manager for Integration
 
             _actionSystem = new ActionSystem(turnManager, _mapManager, _logger);
             _actionSystem.SetMatchManager(_matchManager);
@@ -69,6 +70,10 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                 _logger,
                 12345
             );
+
+            // Use Real MatchManager to test integration logic (DevourMarketCard -> MarketManager)
+            _matchManager = new MatchManager(_context, _logger, Substitute.For<IVictoryManager>());
+            _actionSystem.SetMatchManager(_matchManager);
         }
 
         #region FEATURE: Market Devour & Replace (Carrion Crawler)
@@ -95,11 +100,22 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             _actionSystem.StartTargeting(ActionState.TargetingDevourMarket, sourceCard);
 
             // Act
-            _actionSystem.HandleDevourMarketSelection(targetCard);
+            // Act
+            var cmd = _actionSystem.HandleDevourMarketSelection(targetCard);
+            var state = Substitute.For<IGameplayState>();
+            state.MatchManager.Returns(_matchManager); // Used for DevourMarketCard
+            state.ActionSystem.Returns(_actionSystem); // Used for AdvanceDevourChain (Clearing State)
+            state.MatchContext.Returns((MatchContext)null!); // Explicit null for test setup, suppress warning
+            // Wait, DevourCardCommand uses state.MatchContext?.RecordAction. 
+            // So null match context is fine (propagates null).
+            // But DevourMarketCard is on IMatchManager interface now.
+            
+            Assert.IsNotNull(cmd);
+            cmd.Execute(state);
 
             // Assert
-            // Moves card to market
-            _playerStateManager.Received(1).MoveCardToMarket(_player, sourceCard);
+            // Moves card to market (State Check)
+            Assert.DoesNotContain(sourceCard, _player.PlayedCards, "Source card should be moved out of played cards.");
             // Replaces target
             _marketManager.Received(1).ReplaceCard(targetCard, sourceCard);
             // Clears state
@@ -122,7 +138,13 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             _actionSystem.StartTargeting(ActionState.TargetingDevourMarket, sourceCard);
 
             // Act
-            _actionSystem.HandleDevourMarketSelection(targetCard);
+            // Act
+            var cmd = _actionSystem.HandleDevourMarketSelection(targetCard);
+            var state = Substitute.For<IGameplayState>();
+            state.MatchManager.Returns(_matchManager);
+            state.ActionSystem.Returns(_actionSystem);
+            Assert.IsNotNull(cmd);
+            cmd.Execute(state);
 
             // Assert
             // Standard removal
@@ -150,12 +172,19 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             _actionSystem.TryStartDevourHand(sourceCard);
 
             // Simulate selection
-            _actionSystem.HandleDevourSelection(handCard);
+            var cmd = _actionSystem.HandleDevourSelection(handCard);
             // Confirm/Execute
-            _actionSystem.CompleteAction();
+            var state = Substitute.For<IGameplayState>();
+            state.MatchManager.Returns(_matchManager);
+            state.ActionSystem.Returns(_actionSystem); // For CompleteAction
+            
+            Assert.IsNotNull(cmd);
+            cmd.Execute(state);
 
             // Assert
-            _matchManager.Received(1).DevourCard(handCard);
+            // Used real MatchManager, so check VoidPile and Hand
+            Assert.Contains(handCard, _context.VoidPile, "Hand card should be moved to Void.");
+            Assert.DoesNotContain(handCard, _player.Hand, "Hand card should be removed from Hand.");
         }
 
         #endregion
