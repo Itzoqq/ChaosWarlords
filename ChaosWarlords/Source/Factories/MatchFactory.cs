@@ -129,7 +129,7 @@ namespace ChaosWarlords.Source.Factories
             return actionSystem;
         }
 
-        private static void ApplyScenarioRules(MapManager mapManager)
+        internal static void ApplyScenarioRules(MapManager mapManager)
         {
             if (mapManager.SitesInternal is null) return;
 

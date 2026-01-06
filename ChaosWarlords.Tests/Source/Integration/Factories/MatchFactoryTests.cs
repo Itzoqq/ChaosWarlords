@@ -8,6 +8,9 @@ using ChaosWarlords.Source.Core.Interfaces.Services;
 using System.Linq;
 using ChaosWarlords.Source.Entities.Actors;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using ChaosWarlords.Source.Entities.Map;
+using ChaosWarlords.Source.Managers;
+using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Integration.Factories
 {
@@ -55,6 +58,61 @@ namespace ChaosWarlords.Tests.Integration.Factories
              Assert.AreEqual(p1_blue.SeatIndex, p2_blue.SeatIndex);
              
              Assert.AreNotEqual(p1_red.SeatIndex, p1_blue.SeatIndex);
+        }
+        [TestMethod]
+        public void ApplyScenarioRules_AddsSpies_ToCityOfGold()
+        {
+            // Arrange
+            var nodes = new List<MapNode>();
+            var sites = new List<Site>();
+            // Use concrete CitySite
+            var cityOfGold = new CitySite("The City of Gold", ResourceType.Power, 1, ResourceType.Influence, 1);
+            cityOfGold.Id = 1;
+            sites.Add(cityOfGold);
+
+            var mapManager = new MapManager(nodes, sites, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+
+            // Act
+            MatchFactory.ApplyScenarioRules(mapManager);
+
+            // Assert
+            CollectionAssert.Contains(cityOfGold.Spies, PlayerColor.Blue);
+            CollectionAssert.Contains(cityOfGold.Spies, PlayerColor.Red);
+            CollectionAssert.Contains(cityOfGold.Spies, PlayerColor.Neutral);
+        }
+
+        [TestMethod]
+        public void ApplyScenarioRules_DoesNothing_ForNormalSites()
+        {
+            // Arrange
+            var nodes = new List<MapNode>();
+            var sites = new List<Site>();
+            var normalSite = new CitySite("Normal Forest", ResourceType.Power, 1, ResourceType.Influence, 1);
+            normalSite.Id = 2;
+            sites.Add(normalSite);
+
+            var mapManager = new MapManager(nodes, sites, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+
+            // Act
+            MatchFactory.ApplyScenarioRules(mapManager);
+
+            // Assert
+            CollectionAssert.AreEqual(new List<PlayerColor>(), normalSite.Spies);
+        }
+
+        [TestMethod]
+        public void ApplyScenarioRules_HandlesNullSites_Gracefully()
+        {
+            // Arrange
+            // We need a map manager with null sites. 
+            // MapManager constructor assigns directly.
+            var mapManager = new MapManager(new List<MapNode>(), null!, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+
+            // Act
+            MatchFactory.ApplyScenarioRules(mapManager);
+
+            // Assert
+            // Should not throw exception
         }
     }
 }

@@ -363,7 +363,7 @@ namespace ChaosWarlords.Source.GameStates
         /// Centralized command execution point - ALL player commands flow through here.
         /// Automatically records commands for replay before executing them.
         /// </summary>
-        public void RecordAndExecuteCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command)
+        public virtual void RecordAndExecuteCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command)
         {
             _commandDispatcher.Dispatch(command, this);
         }

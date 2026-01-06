@@ -4,6 +4,7 @@ using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
+using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.GameStates;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Mechanics.Actions;
@@ -189,6 +190,53 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             Assert.IsInstanceOfType(state.InputMode, typeof(NormalPlayInputMode));
         }
 
+        [TestMethod]
+        public void UnloadContent_UnsubscribesFromActionSystem_AutoExecuteCommand()
+        {
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            // Mock Dispatcher
+            var mockDispatcher = Substitute.For<ICommandDispatcher>();
+            state.SetCommandDispatcher(mockDispatcher);
+
+            // Sanity Check: Trigger event BEFORE unload
+            var cmd = Substitute.For<IGameCommand>();
+            _actionSystem.OnAutoExecuteCommand += Raise.Event<Action<IGameCommand>>(cmd);
+            mockDispatcher.Received(1).Dispatch(cmd, state);
+
+            // Act
+            state.UnloadContent();
+
+            // Trigger again
+            mockDispatcher.ClearReceivedCalls();
+            _actionSystem.OnAutoExecuteCommand += Raise.Event<Action<IGameCommand>>(cmd);
+
+            // Assert
+            mockDispatcher.DidNotReceive().Dispatch(Arg.Any<IGameCommand>(), Arg.Any<IGameplayState>());
+        }
+
+        [TestMethod]
+        public void UnloadContent_CleansUpUIEventMediator_UnsubscribesFromUIManager()
+        {
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            // Sanity Check: Market Toggle works
+            state.UIManager.OnMarketToggleRequest += Raise.Event();
+            Assert.IsTrue(state.IsMarketOpen);
+
+            // Act
+            state.UnloadContent();
+
+            // Trigger again
+            state.UIManager.OnMarketToggleRequest += Raise.Event();
+            
+            // Should NOT toggle back to closed (or re-open if logic was different)
+            // If handler is removed, IsMarketOpen remains True
+            Assert.IsTrue(state.IsMarketOpen);
+        }
+
         // --- Helper Class ---
         // Marked Internal so we can assign internal fields directly
         internal class TestableGameplayState : GameplayState
@@ -266,7 +314,15 @@ namespace ChaosWarlords.Tests.Integration.GameStates
                 _replayController = new ReplayController(this, base._replayManager, _inputManagerBacking, ChaosWarlords.Tests.Utilities.TestLogger.Instance, () => { });
                 _commandDispatcher = new CommandDispatcher(base._replayManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
+                // Manual Subscription (mimicking InitializeMatch)
+                _matchContext.ActionSystem.OnAutoExecuteCommand += RecordAndExecuteCommand;
+
                 SwitchToNormalMode();
+            }
+
+            public void SetCommandDispatcher(ICommandDispatcher dispatcher)
+            {
+                _commandDispatcher = dispatcher;
             }
 
             public new MatchContext MatchContext => base.MatchContext;

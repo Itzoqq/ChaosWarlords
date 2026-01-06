@@ -681,8 +681,88 @@ namespace ChaosWarlords.Tests.Systems
             Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState, "Should be waiting for input on second play");
             _mapManager.DidNotReceive().Assassinate(Arg.Any<MapNode>(), Arg.Any<Player>());
             Assert.IsFalse(completed, "Action should not have completed automatically");
+
         }
+
+        #region 7. Pre-Target Execution Tests (CRAP Reduction)
+
+        [TestMethod]
+        public void TryStartSupplant_WithMapNodePreTarget_ExecutesImmediately()
+        {
+            // Arrange
+            var card = TestData.Cards.SupplantCard();
+            _actionSystem.SetPreTarget(card, ActionState.TargetingSupplant, _node2);
+            // Ensure map checks pass implicitly or are skipped by direct execution? 
+            // Looking at TryExecuteSupplantPreTarget, it calls PerformSupplant DIRECTLY, skipping validation?
+            // Wait, TryExecuteSupplantPreTarget implementation:
+            // if (targetNode != null) { PerformSupplant(...); return true; }
+            // So it SKIPS "CanStartSupplant" validation if pre-target exists? 
+            // Need to verify logic. Usually PreTargets are assumed valid because they come from valid sources (Replay/AI).
+
+            // Act
+            _actionSystem.TryStartSupplant(card);
+
+            // Assert
+            _mapManager.Received(1).Supplant(_node2, _player1);
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "State should be Normal after auto-execution");
+        }
+
+        [TestMethod]
+        public void TryStartSupplant_WithNodeIdPreTarget_FindsNodeAndExecutes()
+        {
+            // Arrange
+            var card = TestData.Cards.SupplantCard();
+            // _node2 ID is usually hardcoded in TestData or we rely on object equality. 
+            // TestData.MapNodes.Node2().Id is usually 2.
+            int targetId = _node2.Id;
+            _actionSystem.SetPreTarget(card, ActionState.TargetingSupplant, targetId);
+
+            // Act
+            _actionSystem.TryStartSupplant(card);
+
+            // Assert
+            _mapManager.Received(1).Supplant(_node2, _player1);
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
+        }
+
+        [TestMethod]
+        public void TryStartSupplant_WithNullPreTarget_FallsBackToTargeting()
+        {
+            // Arrange
+            var card = TestData.Cards.SupplantCard();
+            // No pre-target set
+            
+            // Mock validation to allow start
+            _player1.TroopsInBarracks = 1;
+            _mapManager.HasValidAssassinationTarget(_player1).Returns(true);
+
+            // Act
+            _actionSystem.TryStartSupplant(card);
+
+            // Assert
+            Assert.AreEqual(ActionState.TargetingSupplant, _actionSystem.CurrentState, "Should enter targeting mode");
+            _mapManager.DidNotReceive().Supplant(Arg.Any<MapNode>(), Arg.Any<Player>());
+        }
+
+        [TestMethod]
+        public void TryStartSupplant_WithInvalidPreTargetType_FallsBackToTargeting()
+        {
+            // Arrange
+            var card = TestData.Cards.SupplantCard();
+            _actionSystem.SetPreTarget(card, ActionState.TargetingSupplant, "InvalidObject");
+
+            // Mock validation to allow start
+            _player1.TroopsInBarracks = 1;
+            _mapManager.HasValidAssassinationTarget(_player1).Returns(true);
+
+            // Act
+            _actionSystem.TryStartSupplant(card);
+
+            // Assert
+            Assert.AreEqual(ActionState.TargetingSupplant, _actionSystem.CurrentState, "Should ignore invalid target and enter targeting mode");
+            _mapManager.DidNotReceive().Supplant(Arg.Any<MapNode>(), Arg.Any<Player>());
+        }
+
+        #endregion
     }
 }
-
-
