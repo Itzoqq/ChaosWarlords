@@ -49,55 +49,106 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
                 if (!foundCurrent)
                 {
-                    // Case 1: Searching for the Current State
-                    if (effectState == currentState)
-                    {
-                        foundCurrent = true;
-
-                        // Found it! Now look for the NEXT step.
-                        // Priority 1: Children (Dependency), unless skipped.
-                        if (!isCurrentStateSkipped && effect.OnSuccess != null)
-                        {
-                            var childState = FindTargetingStateRecursive(effect.OnSuccess);
-                            if (childState != ActionState.Normal) return childState;
-                        }
-                        
-                        // Priority 2: Next Sibling (Continue loop)
-                        continue;
-                    }
-
-                    // Case 2: Current state not found here, check children.
-                    if (effect.OnSuccess != null)
-                    {
-                        var nextInChild = TraverseForNext(new[] { effect.OnSuccess }, currentState, isCurrentStateSkipped, ref foundCurrent);
-                        
-                        // If we found 'Current' deep in the child tree...
-                        if (foundCurrent)
-                        {
-                            // ...and the child tree gave us a Next state, return it.
-                            if (nextInChild != ActionState.Normal) return nextInChild;
-                            
-                            // If child tree finished (returned Normal), we continue to Next Sibling.
-                            continue;
-                        }
-                    }
+                    // Still searching for the current state
+                    var result = SearchForCurrentState(effect, effectState, currentState, isCurrentStateSkipped, ref foundCurrent);
+                    if (result != ActionState.Normal) return result;
                 }
                 else
                 {
-                    // Case 3: We have already passed the Current State.
-                    // We are now looking for ANY valid targeting state in this subtree (Candidates for "Next")
-                    
-                    if (CardPlaySystem.IsTargetingEffect(effect.Type))
-                    {
-                        return effectState;
-                    }
-
-                    if (effect.OnSuccess != null)
-                    {
-                        var childState = FindTargetingStateRecursive(effect.OnSuccess);
-                        if (childState != ActionState.Normal) return childState;
-                    }
+                    // Already found current state, looking for next targeting state
+                    var result = FindNextTargetingState(effect, effectState);
+                    if (result != ActionState.Normal) return result;
                 }
+            }
+
+            return ActionState.Normal;
+        }
+
+        /// <summary>
+        /// Searches for the current state in the effect tree.
+        /// Returns the next state if found and processed, otherwise Normal.
+        /// </summary>
+        private static ActionState SearchForCurrentState(
+            CardEffect effect, 
+            ActionState effectState, 
+            ActionState currentState, 
+            bool isCurrentStateSkipped, 
+            ref bool foundCurrent)
+        {
+            // Case 1: This effect IS the current state
+            if (effectState == currentState)
+            {
+                foundCurrent = true;
+                return ProcessFoundCurrentState(effect, isCurrentStateSkipped);
+            }
+
+            // Case 2: Current state might be in children
+            if (effect.OnSuccess != null)
+            {
+                return SearchInChildTree(effect, currentState, isCurrentStateSkipped, ref foundCurrent);
+            }
+
+            return ActionState.Normal;
+        }
+
+        /// <summary>
+        /// Processes the effect after finding the current state.
+        /// Looks for the next targeting state in children (if not skipped).
+        /// </summary>
+        private static ActionState ProcessFoundCurrentState(CardEffect effect, bool isCurrentStateSkipped)
+        {
+            // Priority 1: Children (Dependency), unless skipped
+            if (!isCurrentStateSkipped && effect.OnSuccess != null)
+            {
+                var childState = FindTargetingStateRecursive(effect.OnSuccess);
+                if (childState != ActionState.Normal) return childState;
+            }
+
+            // Priority 2: Next Sibling (handled by continuing the loop)
+            return ActionState.Normal;
+        }
+
+        /// <summary>
+        /// Searches for the current state in the child tree.
+        /// If found, returns the next state from the child tree or continues to siblings.
+        /// </summary>
+        private static ActionState SearchInChildTree(
+            CardEffect effect, 
+            ActionState currentState, 
+            bool isCurrentStateSkipped, 
+            ref bool foundCurrent)
+        {
+            var nextInChild = TraverseForNext(new[] { effect.OnSuccess! }, currentState, isCurrentStateSkipped, ref foundCurrent);
+
+            // If we found 'Current' deep in the child tree...
+            if (foundCurrent)
+            {
+                // ...and the child tree gave us a Next state, return it
+                if (nextInChild != ActionState.Normal) return nextInChild;
+
+                // If child tree finished (returned Normal), continue to Next Sibling
+            }
+
+            return ActionState.Normal;
+        }
+
+        /// <summary>
+        /// Finds the next targeting state after we've already passed the current state.
+        /// Looks for ANY valid targeting state in this subtree.
+        /// </summary>
+        private static ActionState FindNextTargetingState(CardEffect effect, ActionState effectState)
+        {
+            // Check if this effect itself is a targeting effect
+            if (CardPlaySystem.IsTargetingEffect(effect.Type))
+            {
+                return effectState;
+            }
+
+            // Check children for targeting effects
+            if (effect.OnSuccess != null)
+            {
+                var childState = FindTargetingStateRecursive(effect.OnSuccess);
+                if (childState != ActionState.Normal) return childState;
             }
 
             return ActionState.Normal;

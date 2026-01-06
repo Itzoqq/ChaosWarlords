@@ -33,46 +33,65 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
             var effect = effects[index];
             
-            // Check if effect is optional - if so, ask player
+            // Check if effect is optional
             if (effect.IsOptional)
             {
-                // If UIEventMediator is null (test scenario), skip the optional effect
-                if (context.UIEventMediator == null)
-                {
-                    logger.Log($"Skipped optional {effect.Type} (no UI mediator)", LogChannel.Info);
-                    ProcessNextEffect(effects, index + 1, card, context, logger);
-                    return;
-                }
-
-                // Refactored: Use CardRuleEngine.IsEffectChainValid for deep validation
-                // This checks if the current effect AND all subsequent effects in the chain are viable.
-                // If not, we skip the optional popup to prevent bad UX.
-                if (!context.CardRuleEngine.IsEffectChainValid(context.ActivePlayer, effect, card))
-                {
-                     logger.Log($"Skipped optional {effect.Type}: Effect chain is invalid (targets missing).", LogChannel.Info);
-                     ProcessNextEffect(effects, index + 1, card, context, logger);
-                     return;
-                }
-
-                context.UIEventMediator.RequestOptionalEffect(
-                    card,
-                    effect,
-                    onAccept: () => {
-                        ApplyEffect(effect, card, context, logger);
-                        ProcessNextEffect(effects, index + 1, card, context, logger);
-                    },
-                    onDecline: () => {
-                        logger.Log($"Skipped optional {effect.Type}", LogChannel.Info);
-                        ProcessNextEffect(effects, index + 1, card, context, logger);
-                    }
-                );
+                ProcessOptionalEffect(effect, effects, index, card, context, logger);
             }
             else
             {
-                // Mandatory effect - execute immediately
-                ApplyEffect(effect, card, context, logger);
-                ProcessNextEffect(effects, index + 1, card, context, logger);
+                ProcessMandatoryEffect(effect, effects, index, card, context, logger);
             }
+        }
+
+        private static void ProcessOptionalEffect(CardEffect effect, System.Collections.Generic.List<CardEffect> effects, int index, Card card, MatchContext context, IGameLogger logger)
+        {
+            // If UIEventMediator is null (test scenario), skip the optional effect
+            if (context.UIEventMediator == null)
+            {
+                logger.Log($"Skipped optional {effect.Type} (no UI mediator)", LogChannel.Info);
+                ProcessNextEffect(effects, index + 1, card, context, logger);
+                return;
+            }
+
+            // Skip if effect chain is invalid (deep validation)
+            if (ShouldSkipOptionalEffect(effect, card, context, logger))
+            {
+                ProcessNextEffect(effects, index + 1, card, context, logger);
+                return;
+            }
+
+            // Request user decision
+            context.UIEventMediator.RequestOptionalEffect(
+                card,
+                effect,
+                onAccept: () => {
+                    ApplyEffect(effect, card, context, logger);
+                    ProcessNextEffect(effects, index + 1, card, context, logger);
+                },
+                onDecline: () => {
+                    logger.Log($"Skipped optional {effect.Type}", LogChannel.Info);
+                    ProcessNextEffect(effects, index + 1, card, context, logger);
+                }
+            );
+        }
+
+        private static bool ShouldSkipOptionalEffect(CardEffect effect, Card card, MatchContext context, IGameLogger logger)
+        {
+            // Use CardRuleEngine.IsEffectChainValid for deep validation
+            // This checks if the current effect AND all subsequent effects in the chain are viable
+            if (!context.CardRuleEngine.IsEffectChainValid(context.ActivePlayer, effect, card))
+            {
+                logger.Log($"Skipped optional {effect.Type}: Effect chain is invalid (targets missing).", LogChannel.Info);
+                return true;
+            }
+            return false;
+        }
+
+        private static void ProcessMandatoryEffect(CardEffect effect, System.Collections.Generic.List<CardEffect> effects, int index, Card card, MatchContext context, IGameLogger logger)
+        {
+            ApplyEffect(effect, card, context, logger);
+            ProcessNextEffect(effects, index + 1, card, context, logger);
         }
 
         private static void ApplyEffect(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
@@ -209,46 +228,37 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         private static void ApplyDevour(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger, Action? onComplete, bool defer)
         {
-            if (defer && effect.OnSuccess != null && ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.OnSuccess.Type))
+            // Lookahead validation: Skip if dependent effect has no valid targets
+            if (ShouldSkipDevourChain(effect, sourceCard, context, logger, defer))
             {
-                // Lookahead: If the dependent effect has no valid targets, abort the chain early.
-                // This prevents asking the user to pay a cost (Devour) for an impossible action.
-                if (!context.CardRuleEngine.HasValidTargets(context.ActivePlayer, effect.OnSuccess.Type, sourceCard))
-                {
-                     logger.Log($"{sourceCard.Name}: Cannot start Devour chain - dependent effect {effect.OnSuccess.Type} has no valid targets.", LogChannel.Warning);
-                     return;
-                }
+                return;
             }
 
-            if (effect.TargetLocation == CardLocation.Market)
+            // Use strategy pattern to handle different devour locations
+            var strategy = DevourStrategyFactory.GetStrategy(effect.TargetLocation);
+            strategy.Execute(sourceCard, context, logger, onComplete, defer);
+        }
+
+        private static bool ShouldSkipDevourChain(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger, bool defer)
+        {
+            if (!defer || effect.OnSuccess == null)
             {
-                context.ActionSystem.TryStartDevourMarket(sourceCard, onComplete, defer);
+                return false;
             }
-            else if (effect.TargetLocation == CardLocation.Hand)
+
+            if (!ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.OnSuccess.Type))
             {
-                // Explicit Hand targeting
-                if (context.ActivePlayer.Hand.Count > 0)
-                {
-                    context.ActionSystem.TryStartDevourHand(sourceCard, onComplete, defer);
-                }
-                else
-                {
-                    logger.Log($"{sourceCard.Name}: Hand empty, cannot Devour.", LogChannel.Warning);
-                }
+                return false;
             }
-            else
+
+            // Lookahead: If the dependent effect has no valid targets, abort the chain early
+            if (!context.CardRuleEngine.HasValidTargets(context.ActivePlayer, effect.OnSuccess.Type, sourceCard))
             {
-                // Default/fallback for None or unspecified
-                logger.Log($"{sourceCard.Name}: Invalid or unspecified TargetLocation for Devour. Defaulting to Hand.", LogChannel.Warning);
-                if (context.ActivePlayer.Hand.Count > 0)
-                {
-                    context.ActionSystem.TryStartDevourHand(sourceCard, onComplete, defer);
-                }
-                else
-                {
-                    logger.Log($"{sourceCard.Name}: Hand empty, cannot Devour.", LogChannel.Warning);
-                }
+                logger.Log($"{sourceCard.Name}: Cannot start Devour chain - dependent effect {effect.OnSuccess.Type} has no valid targets.", LogChannel.Warning);
+                return true;
             }
+
+            return false;
         }
     }
 }

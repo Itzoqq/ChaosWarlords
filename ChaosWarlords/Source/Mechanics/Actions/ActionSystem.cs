@@ -85,6 +85,7 @@ namespace ChaosWarlords.Source.Managers
         // Subsystems
         private readonly DevourSubsystem _devourSubsystem;
         private readonly SpySubsystem _spySubsystem;
+        private readonly PreTargetHandler _preTargetHandler;
 
         public ActionSystem(ITurnManager turnManager, IMapManager mapManager, IGameLogger logger)
         {
@@ -95,6 +96,7 @@ namespace ChaosWarlords.Source.Managers
             // Initialize Subsystems
             _devourSubsystem = new ChaosWarlords.Source.Mechanics.Actions.Subsystems.DevourSubsystem(_turnManager, this, _logger);
             _spySubsystem = new ChaosWarlords.Source.Mechanics.Actions.Subsystems.SpySubsystem(_mapManager, _turnManager, this, _logger);
+            _preTargetHandler = new PreTargetHandler(_logger, _preSelectedTargets);
             
             _actionHandlers = new Dictionary<ActionState, Func<MapNode?, Site?, IGameCommand?>>();
             InitializeHandlers();
@@ -162,45 +164,15 @@ namespace ChaosWarlords.Source.Managers
             PendingCard = card;
 
             // Auto-Execute if Pre-Target exists (Transactional/Replay Flow)
-            if (card != null && _preSelectedTargets.TryGetValue(card, out var stateTargets))
+            if (card != null && _preTargetHandler.TryExecutePreTarget(
+                card, 
+                state, 
+                HandleTargetClick, 
+                HandleDevourSelection,
+                cmd => OnAutoExecuteCommand?.Invoke(cmd)))
             {
-                if (stateTargets.TryGetValue(state, out var target))
-                {
-                    _logger.Log($"StartTargeting: Pre-Target found for {state}. Auto-executing...", LogChannel.Info);
-                    
-                    // CRITICAL FIX: Consume the target immediately to prevent "zombie" targets if the card is replayed later
-                    stateTargets.Remove(state);
-                    if (stateTargets.Count == 0) _preSelectedTargets.Remove(card);
-
-                    // Special Case: Devour is handled via TryStartDevourHand usually, but if we get here with state...
-                    if (state == ActionState.TargetingDevourHand)
-                    {
-                         // If we are here, it means we want to execute the Devour logic via "Target".
-                         // BUT Devour logic is unique (Cost).
-                         // Let's defer to TryStartDevourHand? No, infinite loop risk.
-                         // Actually, HandleDevourSelection(target as Card) is better.
-                         if (target is Card c) HandleDevourSelection(c);
-                         else if (target == SkippedTarget) HandleDevourSelection(null);
-                         
-                         // Note: HandleDevourSelection calls CompleteAction/ClearState if immediate, or buffers if deferred.
-                         // If deferred, we stay in state? No, AdvanceTargeting moves state.
-                         return;
-                    }
-
-                    if (target is MapNode node)
-                    {
-                        var cmd = HandleTargetClick(node, null);
-                        if (cmd != null) OnAutoExecuteCommand?.Invoke(cmd);
-                        return;
-                    }
-                    if (target is Site site)
-                    {
-                        var cmd = HandleTargetClick(null, site);
-                        if (cmd != null) OnAutoExecuteCommand?.Invoke(cmd);
-                        return;
-                    }
-                    // Handle other types if needed (e.g. Card for Promote? Promote uses logic)
-                }
+                // Pre-target was found and executed
+                return;
             }
         }
 
@@ -382,38 +354,67 @@ namespace ChaosWarlords.Source.Managers
         {
             // Check Pre-Target
             var preTarget = GetAndClearPreTarget(sourceCard, ActionState.TargetingSupplant);
-            if (preTarget is int targetNodeId) 
+            
+            // Try to execute pre-target if it exists
+            if (TryExecuteSupplantPreTarget(preTarget, sourceCard))
             {
-                 // Retrieve node by ID
-                 var retrievedNode = _mapManager.Nodes.FirstOrDefault(n => n.Id == targetNodeId);
-                 if (retrievedNode != null)
-                 {
-                     _logger.Log($"Supplant Pre-Target found (ID): Node {retrievedNode.Id}. Executing...", LogChannel.Info);
-                     PerformSupplant(retrievedNode, sourceCard.Id);
-                     return;
-                 }
-            }
-            if (preTarget is MapNode node)
-            {
-                _logger.Log($"Supplant Pre-Target found (Object): Node {node.Id}. Executing...", LogChannel.Info);
-                PerformSupplant(node, sourceCard.Id);
                 return;
             }
 
-            // Normal Flow
+            // Normal Flow - validate and start targeting
+            if (!CanStartSupplant(sourceCard, out string? failureReason))
+            {
+                if (failureReason != null)
+                {
+                    _logger.Log($"{sourceCard.Name}: {failureReason}", LogChannel.Warning);
+                }
+                return;
+            }
+
+            StartTargeting(ActionState.TargetingSupplant, sourceCard);
+            _logger.Log($"{sourceCard.Name}: Initiating Supplant targeting. Select a valid target.", LogChannel.Input);
+        }
+
+        private bool TryExecuteSupplantPreTarget(object? preTarget, Card sourceCard)
+        {
+            if (preTarget == null) return false;
+
+            MapNode? targetNode = preTarget switch
+            {
+                int nodeId => _mapManager.Nodes.FirstOrDefault(n => n.Id == nodeId),
+                MapNode node => node,
+                _ => null
+            };
+
+            if (targetNode != null)
+            {
+                _logger.Log($"Supplant Pre-Target found: Node {targetNode.Id}. Executing...", LogChannel.Info);
+                PerformSupplant(targetNode, sourceCard.Id);
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool CanStartSupplant(Card sourceCard, out string? failureReason)
+        {
             bool canAssassinate = _mapManager.HasValidAssassinationTarget(CurrentPlayer);
             bool hasTroops = CurrentPlayer.TroopsInBarracks > 0;
 
-            if (canAssassinate && hasTroops)
+            if (!hasTroops)
             {
-                StartTargeting(ActionState.TargetingSupplant, sourceCard);
-                _logger.Log($"{sourceCard.Name}: Initiating Supplant targeting. Select a valid target.", LogChannel.Input);
+                failureReason = "Cannot Supplant (No Troops in Barracks).";
+                return false;
             }
-            else
+
+            if (!canAssassinate)
             {
-               if (!hasTroops) _logger.Log($"{sourceCard.Name}: Cannot Supplant (No Troops in Barracks).", LogChannel.Warning);
-               else _logger.Log($"{sourceCard.Name}: No valid targets to Supplant.", LogChannel.Warning);
+                failureReason = "No valid targets to Supplant.";
+                return false;
             }
+
+            failureReason = null;
+            return true;
         }
 
         public bool AdvancePreCommitTargeting(Card sourceCard)

@@ -315,17 +315,25 @@ sequenceDiagram
 
 ---
 
-### 5.4 Action Delegation (Subsystems)
-The `ActionSystem` acts as a coordinator, delegating specific complex mechanics to dedicated subsystems.
+### 5.4 Action Delegation (Subsystems \u0026 Helpers)
+The `ActionSystem` acts as a coordinator, delegating specific complex mechanics to dedicated subsystems and helper classes to maintain low cyclomatic complexity.
 
 ```mermaid
 classDiagram
     class ActionSystem {
         +StartTargeting()
         +HandleTargetClick()
+        +TryStartSupplant()
+    }
+    class PreTargetHandler {
+        +TryExecutePreTarget()
+        -ExecuteDevourPreTarget()
+        -ExecuteMapNodePreTarget()
+        -ExecuteSitePreTarget()
     }
     class DevourSubsystem {
-        +TryStartDevour()
+        +TryStartDevourHand()
+        +TryStartDevourMarket()
         +HandleDevourSelection()
     }
     class SpySubsystem {
@@ -333,11 +341,54 @@ classDiagram
         +PerformSpyReturn()
     }
 
+    ActionSystem --> PreTargetHandler : Uses for pre-target auto-execution
     ActionSystem --> DevourSubsystem : Delegates Devour Logic
     ActionSystem --> SpySubsystem : Delegates Spy Logic
 ```
 
-> **Key Takeaway**: To keep the logic clean, `ActionSystem` doesn't know *how* to devour a card or validate a spy placement. It just knows *who* to ask.
+> **Key Takeaway**: To keep complexity low (CC ≤ 10), `ActionSystem` delegates to specialized helpers:
+> - **PreTargetHandler** - Handles pre-selected target execution (extracted to reduce CC 26→6)
+> - **DevourSubsystem** - Manages devour mechanics
+> - **SpySubsystem** - Handles spy placement and removal
+
+---
+
+### 5.5 Card Effect Processing (Strategy Pattern)
+The `CardEffectProcessor` uses the Strategy Pattern for devour operations to eliminate conditional complexity.
+
+```mermaid
+classDiagram
+    class CardEffectProcessor {
+        +ProcessNextEffect()
+        +ApplyDevour()
+        -ProcessOptionalEffect()
+        -ShouldSkipDevourChain()
+    }
+    class DevourStrategyFactory {
+        +GetStrategy(location)
+    }
+    class IDevourStrategy {
+        <<interface>>
+        +Execute(card, context, logger, onComplete, defer)
+    }
+    class DevourFromHandStrategy {
+        +Execute()
+    }
+    class DevourFromMarketStrategy {
+        +Execute()
+    }
+    class DevourFromDeckStrategy {
+        +Execute()
+    }
+
+    CardEffectProcessor --> DevourStrategyFactory : Uses
+    DevourStrategyFactory --> IDevourStrategy : Creates
+    IDevourStrategy <|-- DevourFromHandStrategy : Implements
+    IDevourStrategy <|-- DevourFromMarketStrategy : Implements
+    IDevourStrategy <|-- DevourFromDeckStrategy : Implements
+```
+
+> **Key Takeaway**: Instead of nested conditionals checking `CardLocation`, the processor uses a **Strategy Pattern**. This reduced `ApplyDevour` complexity from CC 16→6 and makes adding new devour locations trivial.
 
 ---
 
