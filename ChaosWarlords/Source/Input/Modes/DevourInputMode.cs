@@ -24,7 +24,16 @@ namespace ChaosWarlords.Source.Input.Modes
             _actionSystem = actionSystem;
             _sourceCard = actionSystem.PendingCard; // Capture which card triggered this
 
-            _gameplayState.Logger.Log("Select a card from your HAND to Devour (Remove from game).", LogChannel.General);
+            _sourceCard = actionSystem.PendingCard; // Capture which card triggered this
+            
+            if (actionSystem.CurrentState == ActionState.TargetingDevourInnerCircle)
+            {
+                 _gameplayState.Logger.Log("Select a card from your INNER CIRCLE to Devour.", LogChannel.General);
+            }
+            else
+            {
+                _gameplayState.Logger.Log("Select a card from your HAND to Devour (Remove from game).", LogChannel.General);
+            }
         }
 
         private int _updateFrames;
@@ -89,7 +98,17 @@ namespace ChaosWarlords.Source.Input.Modes
 
         private IGameCommand? HandleCardClick(IActionSystem actionSystem)
         {
-            Card? targetCard = _gameplayState.GetHoveredHandCard();
+            Card? targetCard = null;
+
+            if (actionSystem.CurrentState == ActionState.TargetingDevourInnerCircle)
+            {
+                targetCard = _gameplayState.GetHoveredBrowserCard();
+            }
+            else
+            {
+                // Default to Hand
+                 targetCard = _gameplayState.GetHoveredHandCard();
+            }
 
             if (targetCard is null)
             {
@@ -99,6 +118,12 @@ namespace ChaosWarlords.Source.Input.Modes
             if (!IsValidDevourTarget(targetCard))
             {
                 return null;
+            }
+            
+            if (actionSystem.CurrentState == ActionState.TargetingDevourInnerCircle)
+            {
+                var cmd = actionSystem.HandleDevourInnerCircleSelection(targetCard);
+                return cmd;
             }
 
             return IsPreCommitFlow() 

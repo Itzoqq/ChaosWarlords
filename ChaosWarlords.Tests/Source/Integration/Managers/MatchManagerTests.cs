@@ -640,6 +640,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
         public Card? GetHoveredHandCard() => null;
         public Card? GetHoveredPlayedCard() => null;
         public Card? GetHoveredMarketCard() => null;
+        public Card? GetHoveredBrowserCard() => null;
     }
 }
 

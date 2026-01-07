@@ -46,6 +46,7 @@ namespace ChaosWarlords.Source.Rendering.Views
 
         // Market is internal just in case, but kept as a backing property style
         public List<CardViewModel> MarketViewModels { get; private set; } = [];
+        public List<CardViewModel> BrowserViewModels => _cardBrowser.ViewModels;
 
         // --- Layout State ---
         public int HandY { get; private set; }
@@ -54,6 +55,7 @@ namespace ChaosWarlords.Source.Rendering.Views
         private readonly IGameLogger _logger;
         private Texture2D? _whitePixel; // For drawing backgrounds
         private OptionalEffectPopup? _optionalEffectPopup;
+        private CardCollectionBrowser _cardBrowser = new();
 
         public GameplayView(GraphicsDevice graphicsDevice, IGameLogger logger)
         {
@@ -109,6 +111,20 @@ namespace ChaosWarlords.Source.Rendering.Views
 
             // Update optional effect popup mouse position
             _optionalEffectPopup?.UpdateMousePosition(inputManager.MousePosition.ToPoint());
+
+            // Update Browser State
+            if (context.ActionSystem.CurrentState == ActionState.TargetingDevourInnerCircle)
+            {
+                if (!_cardBrowser.IsVisible)
+                {
+                    _cardBrowser.Show(context.ActivePlayer.InnerCircle, "Select Inner Circle Card to Devour");
+                }
+                _cardBrowser.Update(inputManager.MousePosition.ToPoint());
+            }
+            else
+            {
+                if (_cardBrowser.IsVisible) _cardBrowser.Hide();
+            }
         }
 
         public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying, IMatchManager matchManager)
@@ -191,6 +207,12 @@ namespace ChaosWarlords.Source.Rendering.Views
             if (_optionalEffectPopup?.IsVisible == true && _whitePixel != null)
             {
                 _optionalEffectPopup.Draw(spriteBatch, _defaultFont, _whitePixel, uiManager.ScreenWidth, uiManager.ScreenHeight);
+            }
+
+            // 9.5 Draw Browser (Overlay)
+            if (_cardBrowser.IsVisible && _whitePixel != null)
+            {
+                _cardBrowser.Draw(spriteBatch, _defaultFont, _whitePixel, uiManager.ScreenWidth, uiManager.ScreenHeight, _cardRenderer);
             }
 
             // 10. Draw Pause Menu (Top-most Modal)

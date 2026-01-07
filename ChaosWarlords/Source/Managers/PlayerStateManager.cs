@@ -172,6 +172,7 @@ namespace ChaosWarlords.Source.Managers
             // Logic to remove card from game
             bool removed = player.Hand.Remove(card);
             if (!removed) removed = player.PlayedCards.Remove(card);
+            if (!removed) removed = player.InnerCircle.Remove(card);
             
             // If we found it:
             if (removed)

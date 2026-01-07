@@ -128,7 +128,12 @@ namespace ChaosWarlords.Source.Mechanics.Actions
                 EffectType.Supplant => ActionState.TargetingSupplant,
                 EffectType.PlaceSpy => ActionState.TargetingPlaceSpy,
                 EffectType.MoveUnit => ActionState.TargetingMoveSource,
-                EffectType.Devour => (effect.TargetLocation == CardLocation.Market) ? ActionState.TargetingDevourMarket : ActionState.TargetingDevourHand,
+                EffectType.Devour => effect.TargetLocation switch
+                {
+                    CardLocation.Market => ActionState.TargetingDevourMarket,
+                    CardLocation.InnerCircle => ActionState.TargetingDevourInnerCircle,
+                    _ => ActionState.TargetingDevourHand
+                },
                 _ => ActionState.Normal
             };
         }

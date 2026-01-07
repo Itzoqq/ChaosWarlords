@@ -52,9 +52,13 @@ namespace ChaosWarlords.Tests.Source.Doubles.State
         }
 
         // --- Interaction Helpers ---
+        // --- Interaction Helpers ---
         public Card? GetHoveredHandCard() => HoveredHandCard;
         public Card? GetHoveredPlayedCard() => HoveredPlayedCard;
         public Card? GetHoveredMarketCard() => HoveredMarketCard;
+        public Card? GetHoveredBrowserCard() => HoveredBrowserCard;
+
+        public Card? HoveredBrowserCard { get; set; }
 
         // --- Unused / NotImplemented for basic tests ---
         public void LoadContent() { }

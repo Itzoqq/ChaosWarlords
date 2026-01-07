@@ -18,6 +18,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Rendering
         List<CardViewModel> HandViewModels { get; }
         List<CardViewModel> PlayedViewModels { get; }
         List<CardViewModel> MarketViewModels { get; }
+        List<CardViewModel> BrowserViewModels { get; }
 
         void LoadContent(ContentManager content);
         void Update(MatchContext context, InputManager inputManager, bool isMarketOpen);

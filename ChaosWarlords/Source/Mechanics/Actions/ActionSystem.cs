@@ -521,6 +521,11 @@ namespace ChaosWarlords.Source.Managers
             _devourSubsystem.TryStartDevourMarket(sourceCard, onComplete, deferExecution);
         }
 
+        public void TryStartDevourInnerCircle(Card sourceCard, Action? onComplete = null, bool deferExecution = false)
+        {
+            _devourSubsystem.TryStartDevourInnerCircle(sourceCard, onComplete, deferExecution);
+        }
+
         public void DeferDevour(Card card)
         {
             _devourSubsystem.DeferDevour(card);
@@ -531,6 +536,11 @@ namespace ChaosWarlords.Source.Managers
         public ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourMarketSelection(Card? targetCard)
         {
             return _devourSubsystem.HandleDevourMarketSelection(targetCard);
+        }
+
+        public ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourInnerCircleSelection(Card? targetCard)
+        {
+            return _devourSubsystem.HandleDevourInnerCircleSelection(targetCard);
         }
 
         public ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourSelection(Card? targetCard)

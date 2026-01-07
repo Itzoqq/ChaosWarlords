@@ -80,5 +80,37 @@ namespace ChaosWarlords.Tests.Mechanics.Actions
             Assert.IsNull(executedCmd, "Should NOT auto-execute play command (avoid double play)");
             _matchManager.Received(1).ResumeDevourChain(corruptor);
         }
+
+        [TestMethod]
+        public void AdvanceDevourChain_FromInnerCircleState_TransitionsToNextEffect()
+        {
+            // Arrange
+            // Cultist: Devour(Inner) -> OnSuccess: GainResource
+            var cultist = new Card("cultist", "Cultist", 3, CardAspect.Sorcery, 1, 1, 0);
+            var devEff = new CardEffect(EffectType.Devour, 1) { TargetLocation = CardLocation.InnerCircle };
+            devEff.OnSuccess = new CardEffect(EffectType.GainResource, 3, ResourceType.Influence);
+            cultist.AddEffect(devEff);
+
+            // Simulation: We are currently in TargetingDevourInnerCircle state
+            // And we just completed the generic "Devour" action. 
+            // Now AdvanceDevourChain is called. It should see the current state was InnerCircle,
+            // find the effect that corresponds to it, and move to Next (GainResource).
+            
+            // To properly mock "CurrentState" on the real ActionSystem object (which is NOT a mock here, but the SUT),
+            // we have to rely on its internal state. 
+            // We can set it via StartTargeting.
+            _actionSystem.StartTargeting(ActionState.TargetingDevourInnerCircle, cultist);
+
+            IGameCommand? executedCmd = null;
+            _actionSystem.OnAutoExecuteCommand += (cmd) => executedCmd = cmd;
+
+            // Act
+            _actionSystem.AdvanceDevourChain(cultist);
+
+            // Assert
+            // GainResource is non-targeting, so it should finish the chain (State -> Normal, ResumeDevourChain called).
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "Should transition to Normal (Next effect is instant)");
+            _matchManager.Received(1).ResumeDevourChain(cultist);
+        }
     }
 }

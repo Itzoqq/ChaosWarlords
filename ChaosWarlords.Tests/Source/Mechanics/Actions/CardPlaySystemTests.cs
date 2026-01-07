@@ -151,6 +151,26 @@ namespace ChaosWarlords.Tests.Systems
 
             Assert.IsFalse(_system.HasViableTargets(card));
         }
+
+        [TestMethod]
+        public void PlayCard_DevourInnerCircle_SwitchesToCorrectTargetingState()
+        {
+            var card = TestData.Cards.DevourCard();
+            // Modify to target Inner Circle
+            // We need to reflectively or otherwise modify the effect since TestData returns a fixed card.
+            // Or just create a new card manually for this specific test case.
+            
+            var innerDevourCard = new Card("inner_dev", "Inner Devourer", 2, CardAspect.Sorcery, 0, 0, 0);
+            innerDevourCard.AddEffect(new CardEffect(EffectType.Devour, 0) { TargetLocation = CardLocation.InnerCircle });
+
+            // Ensure Inner Circle has cards so it doesn't auto-skip
+            _matchContext.ActivePlayer.InnerCircle.Add(TestData.Cards.CheapCard());
+
+            _system.PlayCard(innerDevourCard);
+
+            _actionSystem.Received(1).StartTargeting(ActionState.TargetingDevourInnerCircle, innerDevourCard);
+            _targetingCallback.Received(1).Invoke();
+        }
     }
 }
 

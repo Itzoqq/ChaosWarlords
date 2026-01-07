@@ -147,6 +147,18 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                              return false;
                          }
                     }
+                    else if (devourEffect.TargetLocation == CardLocation.InnerCircle)
+                    {
+                        if (player.InnerCircle.Count > 0)
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            _logger.Log("[RuleEngine] Inner Circle Devour failed: Inner Circle is empty.", LogChannel.Warning);
+                            return false;
+                        }
+                    }
                 }
             }
 

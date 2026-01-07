@@ -113,9 +113,10 @@ namespace ChaosWarlords.Source.Input
                 _state.Logger.Log($"Coordinator: Switching to PromoteInputMode (Amount: {amount})", Utilities.LogChannel.Input);
                 _currentMode = new PromoteInputMode(_state, _inputManager, _context.ActionSystem, amount);
             }
-            else if (_context.ActionSystem.CurrentState == Utilities.ActionState.TargetingDevourHand)
+            else if (_context.ActionSystem.CurrentState == Utilities.ActionState.TargetingDevourHand ||
+                     _context.ActionSystem.CurrentState == Utilities.ActionState.TargetingDevourInnerCircle)
             {
-                _state.Logger.Log("Coordinator: Switching to DevourInputMode (Hand)", Utilities.LogChannel.Input);
+                _state.Logger.Log($"Coordinator: Switching to DevourInputMode (State: {_context.ActionSystem.CurrentState})", Utilities.LogChannel.Input);
                 _currentMode = new DevourInputMode(_state, _inputManager, _context.ActionSystem);
             }
             // Note: TargetingDevourMarket is handled by MarketStateManager.ModeChanged event.

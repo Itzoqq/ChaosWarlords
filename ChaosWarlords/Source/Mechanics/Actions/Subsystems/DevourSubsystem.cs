@@ -107,6 +107,30 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             _logger.Log($"Triggering Devour for {sourceCard.Name}. Select a card from MARKET to remove.", LogChannel.General);
         }
 
+        public void TryStartDevourInnerCircle(Card sourceCard, Action? onComplete = null, bool deferExecution = false)
+        {
+            var preTarget = _actionSystem.GetAndClearPreTarget(sourceCard, ActionState.TargetingDevourInnerCircle);
+            
+            if (HandlePreTargetSkipped(preTarget, sourceCard))
+                return;
+
+            if (preTarget is Card targetCard)
+            {
+                HandleDevourInnerCircleSelection(targetCard);
+                return;
+            }
+
+            if (!HasValidInnerCircleTargets())
+            {
+                _logger.Log("Inner Circle is empty. No targets to Devour.", LogChannel.Warning);
+                _actionSystem.CompleteAction();
+                return;
+            }
+
+            StartDevourTargeting(ActionState.TargetingDevourInnerCircle, sourceCard, onComplete, deferExecution);
+            _logger.Log($"Triggering Devour for {sourceCard.Name}. Select a card from INNER CIRCLE to remove.", LogChannel.General);
+        }
+
         private bool HandlePreTargetSkipped(object? preTarget, Card sourceCard)
         {
             if (preTarget != null && !(preTarget is Card))
@@ -226,6 +250,37 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
                 return false;
             }
             return true;
+        }
+
+
+
+        private bool HasValidInnerCircleTargets()
+        {
+            return _turnManager.ActivePlayer.InnerCircle.Count > 0;
+        }
+
+        public ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourInnerCircleSelection(Card? targetCard)
+        {
+             if (targetCard is null) return null;
+
+             if (targetCard.Location != CardLocation.InnerCircle)
+             {
+                 _logger.Log("Selected card is not in Inner Circle!", LogChannel.Warning);
+                 return null;
+             }
+
+             // Note: Can't easily check for 'Self' devour here since Self is usually in Hand/Played/Stack
+             // But technically one could have a card in Inner Circle that devours itself? Unlikely.
+
+             _logger.Log($"Devouring Inner Circle Card: {targetCard.Name}", LogChannel.Info);
+             
+             var cmd = new ChaosWarlords.Source.Commands.DevourCardCommand(targetCard)
+             {
+                 SourceCard = _actionSystem.PendingCard,
+                 IsDeferred = _deferDevourExecution
+             };
+             
+             return cmd;
         }
 
         private void ExecuteImmediateMarketDevour(Card targetCard)

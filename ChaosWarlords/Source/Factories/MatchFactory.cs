@@ -53,7 +53,7 @@ namespace ChaosWarlords.Source.Factories
             _logger.Log($"[RNG] Post-MarketManager Checksum: {random.CallCount}", LogChannel.Info);
 
             _logger.Log($"[RNG] Pre-CreatePlayers: {random.CallCount}", LogChannel.Debug);
-            var players = CreatePlayers(random, _logger);
+            var players = CreatePlayers(_cardDatabase, random, _logger);
             _logger.Log($"[RNG] Post-Players Checksum: {random.CallCount}", LogChannel.Info);
             
             var turnManager = new TurnManager(players, random, _logger);
@@ -78,22 +78,22 @@ namespace ChaosWarlords.Source.Factories
             };
         }
 
-        private static List<Player> CreatePlayers(IGameRandom random, IGameLogger logger)
+        private static List<Player> CreatePlayers(ICardDatabase cardDatabase, IGameRandom random, IGameLogger logger)
         {
             var players = new List<Player>();
 
             // Player 1 (Red)
-            var playerRed = CreateDefaultPlayer(PlayerColor.Red, "Player Red", 0, random, logger);
+            var playerRed = CreateDefaultPlayer(PlayerColor.Red, "Player Red", 0, cardDatabase, random, logger);
             players.Add(playerRed);
 
             // Player 2 (Blue)
-            var playerBlue = CreateDefaultPlayer(PlayerColor.Blue, "Player Blue", 1, random, logger);
+            var playerBlue = CreateDefaultPlayer(PlayerColor.Blue, "Player Blue", 1, cardDatabase, random, logger);
             players.Add(playerBlue);
 
             return players;
         }
 
-        private static Player CreateDefaultPlayer(PlayerColor color, string name, int seatIndex, IGameRandom random, IGameLogger logger)
+        private static Player CreateDefaultPlayer(PlayerColor color, string name, int seatIndex, ICardDatabase cardDatabase, IGameRandom random, IGameLogger logger)
         {
             logger.Log($"[RNG] Creating Player {color}: {(random as SeededGameRandom)?.CallCount ?? -1}", LogChannel.Debug);
             // Deterministic ID generation for Replay compatibility
@@ -109,6 +109,32 @@ namespace ChaosWarlords.Source.Factories
             logger.Log($"Created {name} with SeatIndex: {seatIndex}", LogChannel.Info);
             for (int i = 0; i < 3; i++) player.DeckManager.AddToTop(CardFactory.CreateSoldier(random));
             for (int i = 0; i < 7; i++) player.DeckManager.AddToTop(CardFactory.CreateNoble(random));
+            
+            // --- TEMPORARY DEBUG: Manual Testing Setup ---
+            if (color == PlayerColor.Red)
+            {
+                logger.Log("Adding Debug Cards to Red Player...", LogChannel.Debug);
+                
+                // Add Cultist (Core Mechanic)
+                var cultist = cardDatabase.GetCardById("cultist_of_myrkul", random);
+                if (cultist != null) player.DeckManager.AddToTop(cultist);
+
+                // Add Drow Noble (For Promotion)
+                var drowNoble = cardDatabase.GetCardById("core_noble", random);
+                // We add 2 to ensure we have one to promote and one to be promoted if needed, or just to have options
+                if (drowNoble != null) 
+                {
+                    player.DeckManager.AddToTop(drowNoble);
+                    // Add a second copy - GetCardById creates a NEW instance typically? 
+                    // ICardDatabase.GetCardById usually returns a NEW instance from template. 
+                    // If not, we might share reference. Assuming standard Factory pattern in DB.
+                    // To be safe, call again.
+                    var drowNoble2 = cardDatabase.GetCardById("core_noble", random);
+                    if (drowNoble2 != null) player.DeckManager.AddToTop(drowNoble2);
+                }
+            }
+            // -----------------------------------
+
             logger.Log($"[RNG] Shuffling Deck for {color}: {(random as SeededGameRandom)?.CallCount ?? -1}", LogChannel.Debug);
             player.DeckManager.Shuffle(random);
             logger.Log($"[RNG] Post-Shuffle for {color}: {(random as SeededGameRandom)?.CallCount ?? -1}", LogChannel.Debug);

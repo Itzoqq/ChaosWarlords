@@ -196,6 +196,12 @@ namespace ChaosWarlords.Source.Core.Interfaces.State
         /// </summary>
         /// <returns>The hovered card or null.</returns>
         Card? GetHoveredMarketCard();
+
+        /// <summary>
+        /// Gets the card currently hovered in the card browser, if any.
+        /// </summary>
+        /// <returns>The hovered card or null.</returns>
+        Card? GetHoveredBrowserCard();
     }
 }
 

@@ -39,6 +39,11 @@ namespace ChaosWarlords.Source.Input
             return _view.PlayedViewModels.FirstOrDefault(vm => vm.Bounds.Contains(input.MousePosition))?.Model;
         }
 
+        public Card? GetHoveredBrowserCard()
+        {
+            return _view.BrowserViewModels.FirstOrDefault(vm => vm.IsHovered)?.Model;
+        }
+
         public PlayerColor? GetClickedSpyReturnButton(Point mousePos, Site site, int screenWidth)
         {
             // This logic was previously hidden in View. 

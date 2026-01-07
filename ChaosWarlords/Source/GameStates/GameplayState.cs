@@ -408,6 +408,7 @@ namespace ChaosWarlords.Source.GameStates
         public Card? GetHoveredHandCard() => _interactionMapper?.GetHoveredHandCard();
         public Card? GetHoveredPlayedCard() => _interactionMapper?.GetHoveredPlayedCard(_inputManagerBacking);
         public Card? GetHoveredMarketCard() => _interactionMapper?.GetHoveredMarketCard();
+        public Card? GetHoveredBrowserCard() => _interactionMapper?.GetHoveredBrowserCard();
     }
 }
 

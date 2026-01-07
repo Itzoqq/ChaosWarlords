@@ -28,12 +28,14 @@ namespace ChaosWarlords.Source.Core.Interfaces.Input
         Card? GetHoveredPlayedCard(InputManager input);
 
         /// <summary>
+        /// Gets the card currently hovered in the browser area.
+        /// </summary>
+        Card? GetHoveredBrowserCard();
+
+        /// <summary>
         /// Gets the spy color clicked in the spy return UI.
         /// </summary>
         PlayerColor? GetClickedSpyReturnButton(Point mousePos, Site site, int screenWidth);
     }
 }
-
-
-
 

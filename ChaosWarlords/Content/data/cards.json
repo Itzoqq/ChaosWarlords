@@ -232,5 +232,30 @@
         }
       }
     ]
+  },
+  {
+    "Id": "cultist_of_myrkul",
+    "Name": "Cultist of Myrkul",
+    "Description": "Devour a card from your Inner Circle -> Gain 3 Influence and Promote 2 cards played this turn.",
+    "Cost": 4,
+    "Aspect": "Oblivion",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "Effects": [
+      {
+        "Type": "Devour",
+        "TargetLocation": "InnerCircle",
+        "IsOptional": true,
+        "OnSuccess": {
+          "Type": "GainResource",
+          "Amount": 3,
+          "TargetResource": "Influence",
+          "OnSuccess": {
+            "Type": "Promote",
+            "Amount": 2
+          }
+        }
+      }
+    ]
   }
 ]

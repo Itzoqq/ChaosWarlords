@@ -146,6 +146,16 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourMarketSelection(Card? targetCard);
 
         /// <summary>
+        /// Initiates the Devour Inner Circle action flow.
+        /// </summary>
+        void TryStartDevourInnerCircle(Card sourceCard, Action? onComplete = null, bool deferExecution = false);
+
+        /// <summary>
+        /// Handles the selection of an inner circle card to devour.
+        /// </summary>
+        ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourInnerCircleSelection(Card? targetCard);
+
+        /// <summary>
         /// Explicitly sets the pending devour card (deferral).
         /// </summary>
         void DeferDevour(Card card);

@@ -69,14 +69,34 @@ namespace ChaosWarlords.Source.Managers
         {
             // Robustness: Ensure we possess the card instance or find equivalent
             var player = _context.ActivePlayer;
-            if (!player.Hand.Contains(card))
+
+            
+            // Generic check for ownership across collections
+            bool isOwned = player.Hand.Contains(card) || 
+                           player.InnerCircle.Contains(card) || 
+                           player.PlayedCards.Contains(card);
+
+            if (!isOwned)
             {
+                // Try finding by ID in Hand as fallback (legacy behavior for UI sync issues)
                 var instance = player.Hand.FirstOrDefault(c => c.Id == card.Id);
-                if (instance != null) card = instance;
+                if (instance != null) 
+                {
+                    card = instance;
+                }
                 else
                 {
-                    _logger.Log($"DevourCard Failed: Card {card.Name} ({card.Id}) not found in hand.", LogChannel.Warning);
-                    return;
+                    // Check Inner Circle by ID
+                    instance = player.InnerCircle.FirstOrDefault(c => c.Id == card.Id);
+                    if (instance != null)
+                    {
+                        card = instance;
+                    }
+                    else
+                    {
+                        _logger.Log($"DevourCard Failed: Card {card.Name} ({card.Id}) not found in player's collections.", LogChannel.Warning);
+                        return;
+                    }
                 }
             }
 

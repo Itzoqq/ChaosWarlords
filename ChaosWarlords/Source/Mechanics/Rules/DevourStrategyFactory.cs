@@ -61,6 +61,17 @@ namespace ChaosWarlords.Source.Mechanics.Rules
     }
 
     /// <summary>
+    /// Strategy for devouring cards from the Inner Circle.
+    /// </summary>
+    internal class DevourFromInnerCircleStrategy : IDevourStrategy
+    {
+        public void Execute(Card sourceCard, MatchContext context, IGameLogger logger, Action? onComplete, bool defer)
+        {
+            context.ActionSystem.TryStartDevourInnerCircle(sourceCard, onComplete, defer);
+        }
+    }
+
+    /// <summary>
     /// Factory for creating appropriate devour strategy based on card location.
     /// </summary>
     internal static class DevourStrategyFactory
@@ -68,6 +79,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         private static readonly DevourFromHandStrategy _handStrategy = new();
         private static readonly DevourFromMarketStrategy _marketStrategy = new();
         private static readonly DevourSelfStrategy _selfStrategy = new();
+        private static readonly DevourFromInnerCircleStrategy _innerCircleStrategy = new();
 
         public static IDevourStrategy GetStrategy(CardLocation location)
         {
@@ -76,6 +88,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 CardLocation.Market => _marketStrategy,
                 CardLocation.Hand => _handStrategy,
                 CardLocation.Self => _selfStrategy,
+                CardLocation.InnerCircle => _innerCircleStrategy,
                 _ => _handStrategy // Default fallback to Hand
             };
         }
