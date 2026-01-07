@@ -125,6 +125,7 @@ ChaosWarlords.Tests/Source/
 │   │   ├── Controllers/
 │   │   │   └── PlayerControllerTests.cs
 │   │   ├── Modes/
+│   │   │   ├── DevourFromInnerCircleIntegrationTests.cs
 │   │   │   ├── DevourInputModeTests.cs
 │   │   │   ├── MarketInputModeTests.cs
 │   │   │   ├── NormalPlayInputModeTests.cs

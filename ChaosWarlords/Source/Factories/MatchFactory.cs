@@ -110,30 +110,6 @@ namespace ChaosWarlords.Source.Factories
             for (int i = 0; i < 3; i++) player.DeckManager.AddToTop(CardFactory.CreateSoldier(random));
             for (int i = 0; i < 7; i++) player.DeckManager.AddToTop(CardFactory.CreateNoble(random));
             
-            // --- TEMPORARY DEBUG: Manual Testing Setup ---
-            if (color == PlayerColor.Red)
-            {
-                logger.Log("Adding Debug Cards to Red Player...", LogChannel.Debug);
-                
-                // Add Cultist (Core Mechanic)
-                var cultist = cardDatabase.GetCardById("cultist_of_myrkul", random);
-                if (cultist != null) player.DeckManager.AddToTop(cultist);
-
-                // Add Drow Noble (For Promotion)
-                var drowNoble = cardDatabase.GetCardById("core_noble", random);
-                // We add 2 to ensure we have one to promote and one to be promoted if needed, or just to have options
-                if (drowNoble != null) 
-                {
-                    player.DeckManager.AddToTop(drowNoble);
-                    // Add a second copy - GetCardById creates a NEW instance typically? 
-                    // ICardDatabase.GetCardById usually returns a NEW instance from template. 
-                    // If not, we might share reference. Assuming standard Factory pattern in DB.
-                    // To be safe, call again.
-                    var drowNoble2 = cardDatabase.GetCardById("core_noble", random);
-                    if (drowNoble2 != null) player.DeckManager.AddToTop(drowNoble2);
-                }
-            }
-            // -----------------------------------
 
             logger.Log($"[RNG] Shuffling Deck for {color}: {(random as SeededGameRandom)?.CallCount ?? -1}", LogChannel.Debug);
             player.DeckManager.Shuffle(random);

@@ -67,6 +67,7 @@ stateDiagram-v2
         PlayedArea --> InnerCircle: Promote (Spend Power)
         Hand --> Void: Devour (From Hand)
         PlayedArea --> Void: Devour (From Play)
+        InnerCircle --> Void: Devour (From Inner Circle)
     }
 
     InnerCircle --> [*]: End Game (Scoring)
@@ -384,8 +385,10 @@ classDiagram
     CardEffectProcessor --> DevourStrategyFactory : Uses
     DevourStrategyFactory --> IDevourStrategy : Creates
     IDevourStrategy <|-- DevourFromHandStrategy : Implements
+    IDevourStrategy <|-- DevourFromHandStrategy : Implements
     IDevourStrategy <|-- DevourFromMarketStrategy : Implements
     IDevourStrategy <|-- DevourFromDeckStrategy : Implements
+    IDevourStrategy <|-- DevourFromInnerCircleStrategy : Implements
 ```
 
 > **Key Takeaway**: Instead of nested conditionals checking `CardLocation`, the processor uses a **Strategy Pattern**. This reduced `ApplyDevour` complexity from CC 16→6 and makes adding new devour locations trivial.

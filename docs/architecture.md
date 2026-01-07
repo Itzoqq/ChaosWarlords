@@ -204,6 +204,7 @@ Solution Root
     ├── UI/                              # UI Components
     │   ├── ButtonManager.cs             # Handles button registration
     │   ├── ButtonRenderer.cs            # Renders buttons
+    │   ├── CardCollectionBrowser.cs     # Browser UI for card collections
     │   ├── OptionalEffectPopup.cs       # Popup for optional choices
     │   ├── Popup.cs                     # Base popup class
     │   ├── PopupBuilder.cs              # Fluent builder for popups
@@ -286,7 +287,7 @@ The codebase underwent significant refactoring to reduce cyclomatic complexity a
 
 2. **DevourStrategyFactory** (Internal) - Strategy pattern for devour operations
    - `IDevourStrategy` interface with location-specific implementations
-   - `DevourFromHandStrategy`, `DevourFromMarketStrategy`, `DevourFromDeckStrategy`
+   - `DevourFromHandStrategy`, `DevourFromMarketStrategy`, `DevourFromDeckStrategy`, `DevourFromInnerCircleStrategy`
    - Eliminates conditional complexity in `CardEffectProcessor`
 
 **Benefits:**
