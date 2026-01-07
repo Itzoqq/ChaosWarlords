@@ -316,5 +316,33 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         #endregion
+        [TestMethod]
+        public void RecordAndSerialize_DevourInnerCircle_RoundTrip_PreservesData()
+        {
+            // Arrange
+            var player = new Player(PlayerColor.Red);
+            var card = new Card("inner_circle_1", "Inner Circle Victim", 1, CardAspect.Neutral, 0, 0, 0);
+            card.Location = CardLocation.InnerCircle;
+            player.InnerCircle.Add(card);
+            
+            var command = new DevourCardCommand(card);
+
+            // Act
+            _manager.InitializeRecording(789);
+            _manager.RecordCommand(command, player, 1);
+            string json = _manager.GetRecordingJson();
+
+            // Assert JSON contains correct location
+            StringAssert.Contains(json, "\"Location\":\"InnerCircle\"", "JSON should contain InnerCircle location");
+            StringAssert.Contains(json, "\"CardId\":\"inner_circle_1\"", "JSON should contain CardId");
+
+            // Simulate new session playback
+            var newManager = new ReplayManager(_loggerMock);
+            newManager.StartReplay(json);
+            var serializedBack = newManager.GetRecordingJson();
+
+            // Assert Round Trip equality
+            Assert.AreEqual(json, serializedBack);
+        }
     }
 }

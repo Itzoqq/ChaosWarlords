@@ -271,6 +271,10 @@ namespace ChaosWarlords.Source.Core.Utilities
             {
                  card = state.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardId);
             }
+            else if (string.Equals(dto.Location, "InnerCircle", StringComparison.OrdinalIgnoreCase))
+            {
+                 card = player.InnerCircle.FirstOrDefault(c => c.Id == dto.CardId);
+            }
             
             // Fallback / Hand Search
             if (card == null)

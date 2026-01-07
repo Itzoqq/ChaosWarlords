@@ -380,5 +380,32 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
                 Assert.IsNotNull(result);
                 Assert.AreEqual("devour_111", result.CardToDevour.Id);
             }
+            [TestMethod]
+            public void HydrateCommand_Devour_FromInnerCircle()
+            {
+                var p = new Player(PlayerColor.Red, Guid.NewGuid());
+                var card1 = new Card("inner_111", "Inner1", 0, CardAspect.Neutral, 1, 1, 1);
+                card1.Location = CardLocation.InnerCircle;
+                p.InnerCircle.Add(card1);
+                p.SeatIndex = 0;
+                
+                var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+                var tmMock = Substitute.For<ITurnManager>();
+                tmMock.Players.Returns(new List<Player> { p });
+                stateMock.TurnManager = tmMock;
+                
+                var dto = new DevourCardCommandDto
+                {
+                    CardId = "inner_111",
+                    Location = "InnerCircle",
+                    Seat = 0
+                };
+                
+                var result = DtoMapper.HydrateCommand(dto, stateMock) as DevourCardCommand;
+                
+                Assert.IsNotNull(result);
+                Assert.AreEqual("inner_111", result.CardToDevour.Id);
+                Assert.AreEqual(CardLocation.InnerCircle, result.CardToDevour.Location);
+            }
     }
 }
