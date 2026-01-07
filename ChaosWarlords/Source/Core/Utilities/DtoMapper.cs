@@ -264,45 +264,45 @@ namespace ChaosWarlords.Source.Core.Utilities
         {
             if (player == null) return null;
 
-            Card? card = null;
-
-            // Handle Market Location
-            if (string.Equals(dto.Location, "Market", StringComparison.OrdinalIgnoreCase) && state != null)
-            {
-                 card = state.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardId);
-            }
-            else if (string.Equals(dto.Location, "InnerCircle", StringComparison.OrdinalIgnoreCase))
-            {
-                 card = player.InnerCircle.FirstOrDefault(c => c.Id == dto.CardId);
-            }
-            
-            // Fallback / Hand Search
-            if (card == null)
-            {
-                // Prefer CardId for robustness
-                if (dto.CardId != null)
-                    card = player.Hand.FirstOrDefault(c => c.Id == dto.CardId);
-
-                if (card == null)
-                    card = player.Hand.ElementAtOrDefault(dto.HandIdx);
-            }
-            
-            // Hydrate Source Card
-            Card? sourceCard = null;
-            if (dto.SourceCardId != null && state != null)
-            {
-                 // Check Hand (if not played yet?) or more likely check ALL internal lists? 
-                 // Or better: ask MatchContext?
-                 // For now, check likely locations: Hand, Market (unlikely), Void, or just check 'state.PendingCard' if we could? No.
-                 // We will check Player Hand or maybe we need a global lookup.
-                 // Assuming it's the card currently being played. 
-                 // Let's check Hand first.
-                 sourceCard = player.Hand.FirstOrDefault(c => c.Id == dto.SourceCardId);
-            }
+            var card = FindDevourTargetCard(dto, player, state);
+            var sourceCard = FindDevourSourceCard(dto, player);
 
             var cmd = card != null ? new DevourCardCommand(card) : null;
             if (cmd != null) cmd.SourceCard = sourceCard;
             return cmd;
+        }
+
+        private static Card? FindDevourTargetCard(DevourCardCommandDto dto, Player player, IGameplayState? state)
+        {
+            if (string.Equals(dto.Location, "Market", StringComparison.OrdinalIgnoreCase) && state != null)
+            {
+                return state.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardId);
+            }
+            
+            if (string.Equals(dto.Location, "InnerCircle", StringComparison.OrdinalIgnoreCase))
+            {
+                return player.InnerCircle.FirstOrDefault(c => c.Id == dto.CardId);
+            }
+
+            return FindCardInHand(dto, player);
+        }
+
+        private static Card? FindCardInHand(DevourCardCommandDto dto, Player player)
+        {
+            // Prefer CardId for robustness
+            if (dto.CardId != null)
+            {
+                var card = player.Hand.FirstOrDefault(c => c.Id == dto.CardId);
+                if (card != null) return card;
+            }
+
+            return player.Hand.ElementAtOrDefault(dto.HandIdx);
+        }
+
+        private static Card? FindDevourSourceCard(DevourCardCommandDto dto, Player player)
+        {
+            if (dto.SourceCardId == null) return null;
+            return player.Hand.FirstOrDefault(c => c.Id == dto.SourceCardId);
         }
 
         // --- Victory Mapping ---

@@ -283,44 +283,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
              return cmd;
         }
 
-        private void ExecuteImmediateMarketDevour(Card targetCard)
-        {
-            var pendingCard = _actionSystem.PendingCard;
-            var currentPlayer = _turnManager.ActivePlayer;
-            
-            var devourEffect = pendingCard?.Effects.FirstOrDefault(e => e.Type == EffectType.Devour && e.TargetLocation == CardLocation.Market);
-            bool shouldReplace = devourEffect?.ReplaceWithSource ?? false;
 
-            if (_marketManager == null)
-            {
-                _logger.Log("MarketManager is missing!", LogChannel.Error);
-                return;
-            }
-
-            if (shouldReplace && _playerStateManager != null && pendingCard != null)
-            {
-                ReplaceMarketCard(targetCard, pendingCard, currentPlayer);
-            }
-            else
-            {
-                RemoveMarketCard(targetCard);
-            }
-        }
-
-        private void ReplaceMarketCard(Card targetCard, Card pendingCard, ChaosWarlords.Source.Entities.Actors.Player currentPlayer)
-        {
-            _logger.Log($"Replacing Market Card {targetCard.Name} with {pendingCard.Name}", LogChannel.Info);
-
-            _playerStateManager!.MoveCardToMarket(currentPlayer, pendingCard);
-            _marketManager!.ReplaceCard(targetCard, pendingCard);
-            targetCard.Location = CardLocation.Void;
-        }
-
-        private void RemoveMarketCard(Card targetCard)
-        {
-            _marketManager!.RemoveCard(targetCard);
-            targetCard.Location = CardLocation.Void;
-        }
 
         private void TriggerCompletion()
         {

@@ -69,6 +69,11 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// Resumes the execution of a card's effect chain (e.g. OnSuccess after targeting).
         /// </summary>
         void ResumeDevourChain(Card sourceCard);
+
+        /// <summary>
+        /// Gets the shared list of all cards that have been devoured (Void).
+        /// </summary>
+        System.Collections.Generic.IReadOnlyList<Card> VoidPile { get; }
     }
 }
 

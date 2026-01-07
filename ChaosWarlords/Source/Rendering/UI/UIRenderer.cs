@@ -98,6 +98,9 @@ namespace ChaosWarlords.Source.Rendering.UI
             // Inner Circle (Purple)
             DrawRightAlignedStat(spriteBatch, "Inner Circle", player.InnerCircle.Count.ToString(CultureInfo.InvariantCulture), Color.MediumPurple, ref rightX);
 
+            // Void / Devour Pile (Plum/DarkRed) - Shared Pile
+            DrawRightAlignedStat(spriteBatch, "Void", matchManager.VoidPile.Count.ToString(CultureInfo.InvariantCulture), Color.Plum, ref rightX);
+
             // ====================================================
             // TROOP DEPLOYMENT INDICATOR (Right side, below bar)
             // ====================================================

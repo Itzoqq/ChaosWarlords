@@ -235,6 +235,25 @@ namespace ChaosWarlords.Tests.Integration.Managers
         }
 
         [TestMethod]
+        public void VoidPile_Property_ExposesContextVoidPile()
+        {
+            // Test the new interface property added for the UI
+            
+            // Arrange
+            var card = TestData.Cards.CheapCard();
+            _context.VoidPile.Add(card);
+
+            // Act
+            var exposedPile = _controller.VoidPile;
+
+            // Assert
+            Assert.IsNotNull(exposedPile);
+            Assert.HasCount(1, exposedPile);
+            Assert.AreEqual(card, exposedPile[0]);
+            Assert.AreSame(_context.VoidPile, exposedPile, "Property should return reference to the context list (or wrapper around it).");
+        }
+
+        [TestMethod]
         public void EndTurn_StaysInSetup_IfPlayerHasNoTroops()
         {
             // Arrange

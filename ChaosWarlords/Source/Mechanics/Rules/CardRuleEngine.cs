@@ -101,68 +101,47 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         private bool CheckDevourTargets(Player player, Card? sourceCard)
         {
-            // Default: Devour from Hand
-            // NOTE: We'll need to pass the specific Effect to checking function to know TargetLocation
-            // But HasValidTargets signature currently only takes EffectType. 
-            // We should overload or update HasValidTargets to take CardEffect if we can.
-            // For now, let's assume if it's "Devour" type, we might check both or look for the context?
-            
-            // REFACTOR: To support Devour from Market, we need to know WHICH effect we are validating.
-            // The current signature `HasValidTargets(Player, EffectType, Card?)` is insufficient if the context depends on properties of the CardEffect (like TargetLocation).
-            
-            // Temporary Logic until signature update:
-            // Check if ANY effect on the sourceCard is Devour from Market?
-            if (sourceCard != null)
-            {
-                var devourEffect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.Devour);
-                if (devourEffect != null)
-                {
-                    if (devourEffect.TargetLocation == CardLocation.Self)
-                    {
-                        return true;
-                    }
-                    else if (devourEffect.TargetLocation == CardLocation.Market)
-                    {
-                         // Use MarketManager to check if any cards are available
-                         // MarketRow is a List<Card>, so checking count is enough (or Any)
-                         if (_context.MarketManager.MarketRow.Count > 0)
-                         {
-                             return true;
-                         }
-                         else
-                         {
-                             _logger.Log("[RuleEngine] Market Devour failed: Market is empty.", LogChannel.Warning);
-                             return false;
-                         }
-                    }
-                    else if (devourEffect.TargetLocation == CardLocation.Deck)
-                    {
-                         if (player.Deck.Count > 0)
-                         {
-                             return true;
-                         }
-                         else
-                         {
-                             _logger.Log("[RuleEngine] Deck Devour failed: Deck is empty.", LogChannel.Warning);
-                             return false;
-                         }
-                    }
-                    else if (devourEffect.TargetLocation == CardLocation.InnerCircle)
-                    {
-                        if (player.InnerCircle.Count > 0)
-                        {
-                            return true;
-                        }
-                        else
-                        {
-                            _logger.Log("[RuleEngine] Inner Circle Devour failed: Inner Circle is empty.", LogChannel.Warning);
-                            return false;
-                        }
-                    }
-                }
-            }
+            if (sourceCard == null) return HasHandTargets(player, sourceCard);
 
-            // Fallback to Hand Devour
+            var devourEffect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.Devour);
+            if (devourEffect == null) return HasHandTargets(player, sourceCard);
+
+            return devourEffect.TargetLocation switch
+            {
+                CardLocation.Self => true,
+                CardLocation.Market => HasMarketTargets(),
+                CardLocation.Deck => HasDeckTargets(player),
+                CardLocation.InnerCircle => HasInnerCircleTargets(player),
+                _ => HasHandTargets(player, sourceCard)
+            };
+        }
+
+        private bool HasMarketTargets()
+        {
+            if (_context.MarketManager.MarketRow.Count > 0) return true;
+            
+            _logger.Log("[RuleEngine] Market Devour failed: Market is empty.", LogChannel.Warning);
+            return false;
+        }
+
+        private bool HasDeckTargets(Player player)
+        {
+            if (player.Deck.Count > 0) return true;
+
+            _logger.Log("[RuleEngine] Deck Devour failed: Deck is empty.", LogChannel.Warning);
+            return false;
+        }
+
+        private bool HasInnerCircleTargets(Player player)
+        {
+            if (player.InnerCircle.Count > 0) return true;
+
+            _logger.Log("[RuleEngine] Inner Circle Devour failed: Inner Circle is empty.", LogChannel.Warning);
+            return false;
+        }
+
+        private static bool HasHandTargets(Player player, Card? sourceCard)
+        {
             return player.Hand.Any(c => c != sourceCard);
         }
 

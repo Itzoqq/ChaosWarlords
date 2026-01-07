@@ -299,6 +299,8 @@ namespace ChaosWarlords.Source.Managers
                 _logger.Log($"Game Over triggered! Winner: {VictoryResult.WinnerName ?? "None"} - Reason: {VictoryResult.VictoryReason}", LogChannel.General);
             }
         }
+
+        public System.Collections.Generic.IReadOnlyList<Card> VoidPile => _context.VoidPile;
     }
 }
 
