@@ -119,6 +119,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
         public void CanEndTurn_ReturnsTrue_EvenIfHandNotEmpty()
         {
             // Arrange
+            _context.CurrentPhase = MatchPhase.Playing;
             _p1.Hand.Add(TestData.Cards.CheapCard());
 
             // Act
@@ -251,6 +252,42 @@ namespace ChaosWarlords.Tests.Integration.Managers
             Assert.HasCount(1, exposedPile);
             Assert.AreEqual(card, exposedPile[0]);
             Assert.AreSame(_context.VoidPile, exposedPile, "Property should return reference to the context list (or wrapper around it).");
+        }
+
+        [TestMethod]
+        public void CanEndTurn_ReturnsFalse_InSetup_IfPlayerHasNotDeployed()
+        {
+            // Arrange
+            _context.CurrentPhase = MatchPhase.Setup;
+            
+            // MapManager Mock: P1 has NOT deployed (0 nodes occupied)
+            _mapManager.Nodes.Returns(new List<MapNode> { TestData.MapNodes.Node2() }); 
+
+            // Act
+            bool result = _controller.CanEndTurn(out string reason);
+
+            // Assert
+            Assert.IsFalse(result, "Should NOT allow ending turn in Setup if player hasn't deployed.");
+            Assert.AreEqual("You must deploy your army before ending your turn.", reason);
+        }
+
+        [TestMethod]
+        public void CanEndTurn_ReturnsTrue_InSetup_IfPlayerHasDeployed()
+        {
+            // Arrange
+            _context.CurrentPhase = MatchPhase.Setup;
+            
+            // MapManager Mock: P1 has deployed
+            var node = TestData.MapNodes.Node1();
+            node.Occupant = _p1.Color;
+            _mapManager.Nodes.Returns(new List<MapNode> { node });
+
+            // Act
+            bool result = _controller.CanEndTurn(out string reason);
+
+            // Assert
+            Assert.IsTrue(result, "Should allow ending turn in Setup if player HAS deployed.");
+            Assert.AreEqual(string.Empty, reason);
         }
 
         [TestMethod]

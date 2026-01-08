@@ -168,6 +168,18 @@ namespace ChaosWarlords.Source.Managers
 
         public bool CanEndTurn(out string reason)
         {
+            if (_context.CurrentPhase == MatchPhase.Setup)
+            {
+                // Check if current player has deployed a troop
+                bool hasDeployed = _context.MapManager.Nodes.Any(n => n.Occupant == _context.ActivePlayer.Color);
+                
+                if (!hasDeployed)
+                {
+                    reason = "You must deploy your army before ending your turn.";
+                    return false;
+                }
+            }
+
             if (_context.TurnManager.CurrentTurnContext.PendingPromotionsCount > 0)
             {
                 // Optional: Could block here if strictly enforcing cleanup
