@@ -31,6 +31,7 @@ namespace ChaosWarlords.Tests.Source.Doubles.State
         public bool IsMarketOpen => MarketStateManager.IsOpen;
         public bool IsConfirmationPopupOpen { get; set; }
         public bool IsPauseMenuOpen { get; set; }
+        public bool IsOptionalEffectPopupOpen { get; set; }
         public int HandY { get; set; }
         public int PlayedY { get; set; }
 

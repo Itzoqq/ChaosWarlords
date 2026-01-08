@@ -642,6 +642,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
         public bool IsMarketOpen => false;
         public bool IsConfirmationPopupOpen => false;
         public bool IsPauseMenuOpen => false;
+        public bool IsOptionalEffectPopupOpen => false;
         public int HandY => 0;
         public int PlayedY => 0;
         public bool CanEndTurn(out string reason) => throw new NotImplementedException();

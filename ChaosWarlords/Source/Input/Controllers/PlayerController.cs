@@ -40,12 +40,15 @@ namespace ChaosWarlords.Source.Input.Controllers
             if (HandleGlobalInput()) return true;
             if (HandleSpySelectionInput()) return true;
 
-            // Handle optional effect popup clicks
+            // Handle optional effect popup clicks (Priority Handling)
             if (HandleOptionalEffectPopup()) return true;
 
-            // CRITICAL: Block all game input when pause menu or popup is open
+            // CRITICAL: Block all game input when blocking overlays are open
             // This prevents clicks from passing through UI to the game world
-            if (_gameState.IsPauseMenuOpen || _gameState.IsConfirmationPopupOpen)
+            // NOTE: Market is handled by InputCoordinator (MarketInputMode), so we MUST NOT block it here.
+            if (_gameState.IsPauseMenuOpen || 
+                _gameState.IsConfirmationPopupOpen ||
+                _gameState.IsOptionalEffectPopupOpen)
             {
                 return true; // Input blocked
             }
@@ -80,34 +83,17 @@ namespace ChaosWarlords.Source.Input.Controllers
         {
             if (!_inputManager.IsKeyJustPressed(Keys.Enter)) return false;
 
-            // Block if pause menu is open
-            if (_gameState.IsPauseMenuOpen) return true;
-
-            // Priority 1: Check Optional Effect Popup via View
-            if (_gameState is GameStates.GameplayState gps && 
-                gps._view is Rendering.Views.GameplayView view)
+            // Block if blocking overlays are open
+            if (_gameState.IsPauseMenuOpen || 
+                _gameState.IsMarketOpen || 
+                _gameState.IsOptionalEffectPopupOpen) 
             {
-                if (view.HandleOptionalEffectAccept()) return true;
+                return true;
             }
-            
+
             // Priority 2: Check Confirmation Popup
             if (_gameState.IsConfirmationPopupOpen)
             {
-                // UIEventMediator handles this via specific key binding or we should trigger 'Confirm' logic
-                // UIEventMediator currently doesn't have a public 'ConfirmPopup' method, 
-                // but it listens to events.
-                // Reusing EndTurn logic below might be redundant or conflicting.
-                // The popup is just a visual overlay in `GameplayView`, state is in `UIEventMediator` via `_gameState`.
-                // If popup is open, 'Enter' should probably confirm it.
-                // Currently `HandleEndTurnKeyPress` handles logic, but `IsConfirmationPopupOpen` is handled by `HandlePopupConfirm`.
-                // We need to trigger `OnPopupConfirm` in `UIManager`?
-                // Or call `_gameState.UIManager.TriggerPopupConfirm()`?
-                
-                // For now, let's assume `HandleEndTurnKeyPress` is NOT the confirmation of the popup itself,
-                // but the popup asks "End Turn?". Confirming means executing the action.
-                
-                // Better approach: Invoke the confirm action directly if possible.
-                // `UIManager` has `TriggerPopupConfirm()`.
                 _gameState.UIManager.TriggerPopupConfirm();
                 return true;
             }

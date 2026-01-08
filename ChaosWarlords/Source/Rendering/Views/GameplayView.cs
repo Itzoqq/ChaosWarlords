@@ -238,6 +238,8 @@ namespace ChaosWarlords.Source.Rendering.Views
             return false;
         }
 
+        public bool IsOptionalEffectPopupOpen => _optionalEffectPopup?.IsVisible == true;
+
         // --- Internal Render Logic ---
 
         private void SyncHandVisuals(List<Card> hand)

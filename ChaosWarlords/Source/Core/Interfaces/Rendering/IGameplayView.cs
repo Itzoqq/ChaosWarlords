@@ -24,6 +24,8 @@ namespace ChaosWarlords.Source.Core.Interfaces.Rendering
         void Update(MatchContext context, InputManager inputManager, bool isMarketOpen);
         void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying, IMatchManager matchManager);
         void DrawSetupPhaseOverlay(SpriteBatch spriteBatch, Player activePlayer);
+
+        bool IsOptionalEffectPopupOpen { get; }
     }
 }
 

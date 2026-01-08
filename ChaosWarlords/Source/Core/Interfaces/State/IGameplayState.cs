@@ -91,6 +91,11 @@ namespace ChaosWarlords.Source.Core.Interfaces.State
         /// </summary>
         bool IsPauseMenuOpen { get; }
 
+        /// <summary>
+        /// Gets a value indicating whether the optional effect popup is currently blocking input.
+        /// </summary>
+        bool IsOptionalEffectPopupOpen { get; }
+
         // --- Layout ---
 
         /// <summary>

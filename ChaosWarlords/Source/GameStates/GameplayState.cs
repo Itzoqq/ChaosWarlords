@@ -75,6 +75,9 @@ namespace ChaosWarlords.Source.GameStates
         // Expose UIEventMediator state for tests and views
         public bool IsConfirmationPopupOpen => _uiEventMediator?.IsConfirmationPopupOpen ?? false;
         public bool IsPauseMenuOpen => _uiEventMediator?.IsPauseMenuOpen ?? false;
+        
+        // Expose View State for input blocking
+        public bool IsOptionalEffectPopupOpen => _view?.IsOptionalEffectPopupOpen ?? false;
 
         public GameplayState(IGameDependencies dependencies)
         {
