@@ -115,6 +115,9 @@ namespace ChaosWarlords.Source.Managers
             catch (System.Exception ex)
             {
                 _logger.Log($"Failed to record command: {ex.Message}", LogChannel.Error);
+#if DEBUG
+                throw;
+#endif
             }
         }
     }

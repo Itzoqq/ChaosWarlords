@@ -154,6 +154,14 @@ namespace ChaosWarlords.Source.Managers
                 return;
             }
 
+            // BUG FIX: Validate that valid targets exist before starting targeting
+            if (!_mapManager.HasValidReturnSpyTarget(CurrentPlayer))
+            {
+                OnActionFailed?.Invoke(this, "No enemy spies to return!");
+                _logger.Log("Return Spy failed: No valid targets.", LogChannel.Warning);
+                return;
+            }
+
             StartTargeting(ActionState.TargetingReturnSpy);
             _logger.Log($"Select a SITE to remove Enemy Spy (Cost: {RETURN_SPY_COST} Power)...", LogChannel.General);
         }
@@ -197,6 +205,16 @@ namespace ChaosWarlords.Source.Managers
 
         public void CancelTargeting()
         {
+            // BUG FIX: Return card to hand if targeting is cancelled
+            // This provides a "safety net" for misclicks or strategy changes
+            if (PendingCard != null && PendingCard.Location == CardLocation.Played)
+            {
+                CurrentPlayer.PlayedCards.Remove(PendingCard);
+                CurrentPlayer.Hand.Add(PendingCard);
+                PendingCard.Location = CardLocation.Hand;
+                _logger.Log($"Returned {PendingCard.Name} to hand after targeting cancellation.", LogChannel.Info);
+            }
+
             // Clear Pre-Selected targets to prevent "Zombie" executions if we restart
             if (PendingCard != null && _preSelectedTargets.ContainsKey(PendingCard))
             {

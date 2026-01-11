@@ -30,6 +30,7 @@ namespace ChaosWarlords.Tests.Map
                 (node) => TestData.Sites.NeutralSite(),
                 (site, player) => _siteRecalculated = true,
                 () => _currentPhase,
+                (color) => null, // getPlayerByColor - not needed for these unit tests
                 stateManager,
                 ChaosWarlords.Tests.Utilities.TestLogger.Instance
             );

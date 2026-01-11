@@ -19,6 +19,7 @@ namespace ChaosWarlords.Source.Managers
         public MatchManager(MatchContext context, IGameLogger logger, IVictoryManager victoryManager)
         {
             _context = context;
+            _context.MatchManager = this;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _victoryManager = victoryManager ?? throw new ArgumentNullException(nameof(victoryManager));
             _effectProcessor = new CardEffectProcessor();
@@ -140,6 +141,12 @@ namespace ChaosWarlords.Source.Managers
                   _context.MarketManager.RemoveCard(targetCard);
                   targetCard.Location = CardLocation.Void;
                   _context.VoidPile.Add(targetCard);
+              }
+
+              // BUG FIX: Resume the devour chain to apply successor effects (e.g., gaining influence)
+              if (sourceCard != null)
+              {
+                  ResumeDevourChain(sourceCard);
               }
          }
 

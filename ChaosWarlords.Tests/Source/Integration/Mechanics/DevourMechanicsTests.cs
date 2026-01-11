@@ -97,21 +97,14 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             targetCard.Location = CardLocation.Market;
 
             // 3. Start Targeting
+            _marketManager.MarketRow.Returns(new List<Card> { targetCard });
             _actionSystem.StartTargeting(ActionState.TargetingDevourMarket, sourceCard);
 
             // Act
             // Act
             var cmd = _actionSystem.HandleDevourMarketSelection(targetCard);
-            var state = Substitute.For<IGameplayState>();
-            state.MatchManager.Returns(_matchManager); // Used for DevourMarketCard
-            state.ActionSystem.Returns(_actionSystem); // Used for AdvanceDevourChain (Clearing State)
-            state.MatchContext.Returns((MatchContext)null!); // Explicit null for test setup, suppress warning
-            // Wait, DevourCardCommand uses state.MatchContext?.RecordAction. 
-            // So null match context is fine (propagates null).
-            // But DevourMarketCard is on IMatchManager interface now.
-            
             Assert.IsNotNull(cmd);
-            cmd.Execute(state);
+            cmd.Execute(_context);
 
             // Assert
             // Moves card to market (State Check)
@@ -134,17 +127,15 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             });
 
             var targetCard = new Card("m1", "Market Victim", 0, CardAspect.Neutral, 0, 0, 0) { Location = CardLocation.Market };
+            _marketManager.MarketRow.Returns(new List<Card> { targetCard });
 
             _actionSystem.StartTargeting(ActionState.TargetingDevourMarket, sourceCard);
 
             // Act
             // Act
             var cmd = _actionSystem.HandleDevourMarketSelection(targetCard);
-            var state = Substitute.For<IGameplayState>();
-            state.MatchManager.Returns(_matchManager);
-            state.ActionSystem.Returns(_actionSystem);
             Assert.IsNotNull(cmd);
-            cmd.Execute(state);
+            cmd.Execute(_context);
 
             // Assert
             // Standard removal
@@ -174,12 +165,8 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Simulate selection
             var cmd = _actionSystem.HandleDevourSelection(handCard);
             // Confirm/Execute
-            var state = Substitute.For<IGameplayState>();
-            state.MatchManager.Returns(_matchManager);
-            state.ActionSystem.Returns(_actionSystem); // For CompleteAction
-            
             Assert.IsNotNull(cmd);
-            cmd.Execute(state);
+            cmd.Execute(_context);
 
             // Assert
             // Used real MatchManager, so check VoidPile and Hand

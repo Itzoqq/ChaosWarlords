@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Utilities;
 using System;
 
 namespace ChaosWarlords.Source.Core.Interfaces.Services
@@ -38,10 +39,17 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// </summary>
         void EndTurn();
 
-        /// <summary>
-        /// Event fired when the turn control passes to a new player.
-        /// </summary>
-        event EventHandler<Player> OnTurnChanged;
+    /// <summary>
+    /// Event fired when the turn control passes to a new player.
+    /// </summary>
+    event EventHandler<Player> OnTurnChanged;
+
+    /// <summary>
+    /// Gets a player by their color.
+    /// </summary>
+    /// <param name="color">The player color to search for.</param>
+    /// <returns>The player with the specified color, or null if not found.</returns>
+    Player? GetPlayerByColor(PlayerColor color);
     }
 }
 

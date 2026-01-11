@@ -2,6 +2,7 @@ using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Source.Commands
 {
@@ -24,13 +25,16 @@ namespace ChaosWarlords.Source.Commands
             Player = player;
         }
 
-        public void Execute(IGameplayState state)
+        public bool Validate(MatchContext context)
         {
-            state.MatchContext?.RecordAction("Deploy", $"Deployed troop at Node {Node.Id}");
-            
-            // Use the stored player if available (replay), otherwise use ActivePlayer (normal gameplay)
-            var playerToUse = Player ?? state.TurnManager.ActivePlayer;
-            state.MapManager.TryDeploy(playerToUse, Node);
+            var p = Player ?? context.TurnManager.ActivePlayer;
+            return context.MapManager.CanDeployAt(Node, p.Color);
+        }
+
+        public void Execute(MatchContext context)
+        {
+            var p = Player ?? context.TurnManager.ActivePlayer;
+            context.MapManager.TryDeploy(p, Node);
         }
     }
 }

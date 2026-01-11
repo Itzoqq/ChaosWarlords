@@ -57,10 +57,9 @@ namespace ChaosWarlords.Source.GameStates
         public IUIManager UIManager => _uiManagerBacking;
         public IMatchManager MatchManager => _matchManager;
 
-        public IMapManager MapManager => _matchContext?.MapManager!;
-        public IMarketManager MarketManager => _matchContext?.MarketManager!;
-        public IActionSystem ActionSystem => _matchContext?.ActionSystem!;
-        public ITurnManager TurnManager => _matchContext?.TurnManager!;
+        // REMOVED: Service Locator properties (MapManager, MarketManager, etc.)
+        // Access these via MatchContext if absolutely necessary, or better, inject them where needed.
+        
         public MatchContext MatchContext => _matchContext;
 
         public IInputMode InputMode => _inputCoordinator.CurrentMode;

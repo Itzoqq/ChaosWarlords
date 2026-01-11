@@ -31,8 +31,15 @@ namespace ChaosWarlords.Source.Managers
                     _replayManager.RecordCommand(command, state.MatchContext.ActivePlayer, ++_localSequenceCounter);
                 }
 
-                // Execute the command
-                command.Execute(state);
+                // Validate (Optional but recommended)
+                if (!command.Validate(state.MatchContext))
+                {
+                    _logger.Log($"Validation failed for command {command.GetType().Name}", LogChannel.Warning);
+                    return;
+                }
+
+                // Execute the command via MatchContext
+                command.Execute(state.MatchContext);
             }
             catch (Exception ex)
             {

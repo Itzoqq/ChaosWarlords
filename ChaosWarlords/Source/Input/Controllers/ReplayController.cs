@@ -80,7 +80,7 @@ namespace ChaosWarlords.Source.Input.Controllers
             if (_inputManager.IsKeyJustPressed(Keys.F6))
             {
                 // Check for existing troop presence to prevent mid-game load
-                bool anyTroopsPlaced = _gameState.MapManager.Nodes.Any(n => n.Occupant != PlayerColor.None && n.Occupant != PlayerColor.Neutral);
+                bool anyTroopsPlaced = _gameState.MatchContext.MapManager.Nodes.Any(n => n.Occupant != PlayerColor.None && n.Occupant != PlayerColor.Neutral);
                 
                 if (anyTroopsPlaced)
                 {
@@ -128,8 +128,8 @@ namespace ChaosWarlords.Source.Input.Controllers
                 if (cmd != null)
                 {
                     // Execute command directly
-                    cmd.Execute(_gameState);
-                    _logger.Log($"Replay Executed: {cmd.GetType().Name} (ActivePlayer: {_gameState.TurnManager.ActivePlayer.Color})", LogChannel.Info);
+                    cmd.Execute(_gameState.MatchContext);
+                    _logger.Log($"Replay Executed: {cmd.GetType().Name} (ActivePlayer: {_gameState.MatchContext.TurnManager.ActivePlayer.Color})", LogChannel.Info);
                     
                     // Force view update provided by the state
                     // We can't call _view.Update() here easily unless exposed, 

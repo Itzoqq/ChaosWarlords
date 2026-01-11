@@ -1,5 +1,5 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
+using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
 
 namespace ChaosWarlords.Source.Commands
@@ -9,29 +9,22 @@ namespace ChaosWarlords.Source.Commands
         public Card Card { get; }
         public bool BypassChecks { get; }
 
-        public PlayCardCommand(Card card, bool bypassChecks = false) 
-        { 
+        public PlayCardCommand(Card card, bool bypassChecks = false)
+        {
             Card = card;
             BypassChecks = bypassChecks;
         }
 
-        public void Execute(IGameplayState state)
+        public bool Validate(MatchContext context)
         {
-            state.MatchContext?.RecordAction("PlayCard", $"Played {Card.Name} (Bypass: {BypassChecks})");
-            
-            if (BypassChecks)
-            {
-                // Directly execute play logic, bypassing CardPlaySystem's targeting checks
-                // This is used for Pre-Commit flows where targeting is already handled
-                state.MatchManager.PlayCard(Card);
-            }
-            else
-            {
-                state.PlayCard(Card);
-            }
+            // Can Play if in hand
+            var player = context.TurnManager.ActivePlayer;
+            return player.Hand.Contains(Card);
+        }
+
+        public void Execute(MatchContext context)
+        {
+            context.MatchManager.PlayCard(Card);
         }
     }
 }
-
-
-

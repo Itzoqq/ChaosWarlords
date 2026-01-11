@@ -10,6 +10,8 @@ using ChaosWarlords.Source.Commands;
 using NSubstitute;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
+using ChaosWarlords.Source.Core.Interfaces.Data;
+using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -67,12 +69,19 @@ namespace ChaosWarlords.Tests.Systems
             var cmd = _actionSystem.HandleDevourSelection(fodderCard);
             
             // Execute the command to trigger deferral logic
-            var state = Substitute.For<IGameplayState>();
-            state.ActionSystem.Returns(_actionSystem);
-            state.MatchManager.Returns(_matchManager);
+            // Execute the command to trigger deferral logic
+            var context = new MatchContext(
+                _turnManager, 
+                _mapManager, 
+                Substitute.For<IMarketManager>(), 
+                _actionSystem, 
+                Substitute.For<ICardDatabase>(), 
+                Substitute.For<IPlayerStateManager>(), 
+                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(), 
+                ChaosWarlords.Tests.Utilities.TestLogger.Instance) { MatchManager = _matchManager };
             
             Assert.IsNotNull(cmd);
-            cmd.Execute(state);
+            cmd.Execute(context);
 
             // Assert
             // 1. Devour should NOT have happened on MatchManager
@@ -105,11 +114,17 @@ namespace ChaosWarlords.Tests.Systems
 
             // Step 2: Select Fodder & Execute Deferral
             var cmd = _actionSystem.HandleDevourSelection(fodderCard);
-            var state = Substitute.For<IGameplayState>();
-            state.ActionSystem.Returns(_actionSystem);
-            state.MatchManager.Returns(_matchManager);
+            var context = new MatchContext(
+                _turnManager, 
+                _mapManager, 
+                Substitute.For<IMarketManager>(), 
+                _actionSystem, 
+                Substitute.For<ICardDatabase>(), 
+                Substitute.For<IPlayerStateManager>(), 
+                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(), 
+                ChaosWarlords.Tests.Utilities.TestLogger.Instance) { MatchManager = _matchManager };
             Assert.IsNotNull(cmd);
-            cmd.Execute(state);
+            cmd.Execute(context);
 
             // Assert Intermediate
             Assert.AreEqual(fodderCard, _actionSystem.PendingDevourCard);
@@ -140,11 +155,17 @@ namespace ChaosWarlords.Tests.Systems
 
             _actionSystem.TryStartDevourHand(sourceCard, null, deferExecution: true);
             var cmd = _actionSystem.HandleDevourSelection(fodderCard);
-            var state = Substitute.For<IGameplayState>();
-            state.ActionSystem.Returns(_actionSystem);
-            state.MatchManager.Returns(_matchManager);
+            var context = new MatchContext(
+                _turnManager, 
+                _mapManager, 
+                Substitute.For<IMarketManager>(), 
+                _actionSystem, 
+                Substitute.For<ICardDatabase>(), 
+                Substitute.For<IPlayerStateManager>(), 
+                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(), 
+                ChaosWarlords.Tests.Utilities.TestLogger.Instance) { MatchManager = _matchManager };
             Assert.IsNotNull(cmd);
-            cmd.Execute(state);
+            cmd.Execute(context);
             
             // Verify buffering
             Assert.AreEqual(fodderCard, _actionSystem.PendingDevourCard);

@@ -489,7 +489,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
             actionSystem.OnAutoExecuteCommand += (cmd) => 
             {
-               cmd.Execute(testState); 
+               cmd.Execute(testState.MatchContext); 
             };
 
             return (manager, actionSystem, context, p1);

@@ -30,6 +30,7 @@ namespace ChaosWarlords.Source.Contexts
         public ITurnManager TurnManager { get; private set; }
         public IMapManager MapManager { get; private set; }
         public IMarketManager MarketManager { get; private set; }
+        public IMatchManager MatchManager { get; set; } = null!; // Late init allow
         public IActionSystem ActionSystem { get; private set; }
         public ICardDatabase CardDatabase { get; private set; }
         public CardRuleEngine CardRuleEngine { get; private set; }
@@ -116,5 +117,3 @@ namespace ChaosWarlords.Source.Contexts
         }
     }
 }
-
-

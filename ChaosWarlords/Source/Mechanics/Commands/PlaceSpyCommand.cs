@@ -1,6 +1,7 @@
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Entities.Map;
+using ChaosWarlords.Source.Contexts;
 using System.Linq;
 
 namespace ChaosWarlords.Source.Commands
@@ -16,13 +17,23 @@ namespace ChaosWarlords.Source.Commands
             CardId = cardId;
         }
 
-        public void Execute(IGameplayState state)
+        public bool Validate(MatchContext context)
         {
-            var site = state.MapManager.Sites.FirstOrDefault(s => s.Id == TargetSiteId);
+            var site = context.MapManager.Sites.FirstOrDefault(s => s.Id == TargetSiteId);
+            if (site == null) return false;
+            
+            // Check if player has spies to place
+            return context.TurnManager.ActivePlayer.SpiesInBarracks > 0;
+        }
+
+        public void Execute(MatchContext context)
+        {
+            var site = context.MapManager.Sites.FirstOrDefault(s => s.Id == TargetSiteId);
             if (site != null)
             {
-                state.ActionSystem.PerformPlaceSpy(site, CardId);
-                state.MatchContext?.RecordAction("PlaceSpy", $"Placed spy at {site.Name}");
+                context.MapManager.PlaceSpy(site, context.TurnManager.ActivePlayer);
+                context.RecordAction("PlaceSpy", $"Placed spy at {site.Name}");
+                context.ActionSystem.CompleteAction();
             }
         }
     }

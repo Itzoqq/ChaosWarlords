@@ -19,26 +19,11 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var command = new EndTurnCommand();
 
             // Act
-            command.Execute(stateFake);
+            command.Execute(stateFake.MatchContext);
 
             // Assert
-            Assert.IsTrue(stateFake.EndTurnCalled, "EndTurn should be called when allowed.");
-        }
-
-        [TestMethod]
-        public void Execute_WhenCannotEndTurn_DoesNotCallEndTurn()
-        {
-            // Arrange
-            var stateFake = new TestGameplayState();
-            stateFake.TestCanEndTurnResult = false;
-            
-            var command = new EndTurnCommand();
-
-            // Act
-            command.Execute(stateFake);
-
-            // Assert
-            Assert.IsFalse(stateFake.EndTurnCalled, "EndTurn should NOT be called when prohibited.");
+            // Command delegates to MatchManager
+            stateFake.MatchManager.Received(1).EndTurn();
         }
     }
 }

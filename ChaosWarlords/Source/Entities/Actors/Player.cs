@@ -161,14 +161,33 @@ namespace ChaosWarlords.Source.Entities.Actors
             }
 
             // Try to remove from Hand first, then PlayedCards
-            bool removed = Hand.Remove(card) || PlayedCards.Remove(card);
+            // Key Fix: Use RuntimeId to ensure we remove the EXACT instance requested
+            // Use RemoveAll with count check or Find + Remove
+            
+            // Check Hand
+            var handMatch = Hand.Find(c => c.RuntimeId == card.RuntimeId);
+            bool removed = false;
+            if (handMatch != null)
+            {
+                removed = Hand.Remove(handMatch);
+            }
+            
+            // Check PlayedCards if not found in Hand
+            if (!removed)
+            {
+               var playedMatch = PlayedCards.Find(c => c.RuntimeId == card.RuntimeId);
+               if (playedMatch != null)
+               {
+                   removed = PlayedCards.Remove(playedMatch);
+               }
+            }
 
             // Guard clause: card not found
             if (!removed)
             {
                 // Card not found in Hand or PlayedCards
                 // Note: Promotion from Discard pile is not currently supported
-                errorMessage = $"Card '{card.Name}' not found in Hand or Played area";
+                errorMessage = $"Card '{card.Name}' (ID: {card.RuntimeId}) not found in Hand or Played area";
                 return false;
             }
 

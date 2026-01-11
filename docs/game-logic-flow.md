@@ -38,10 +38,56 @@ graph TD
 
 ---
 
-## 2. Data Lifecycles
+## 2. MatchContext Lifecycle
+**Concept**: The foundation. How a match is initialized and what MatchContext provides to all game systems.
+
+```mermaid
+sequenceDiagram
+    participant Menu as MainMenuState
+    participant Factory as MatchFactory
+    participant Context as MatchContext
+    participant Managers as Managers/Systems
+    participant Gameplay as GameplayState
+
+    Menu->>Factory: CreateMatch(config)
+    
+    rect rgb(30, 30, 30)
+        Note over Factory: Dependency Assembly
+        Factory->>Factory: Create TurnManager
+        Factory->>Factory: Create MapManager
+        Factory->>Factory: Create MarketManager
+        Factory->>Factory: Create PlayerStateManager
+        Factory->>Factory: Create ActionSystem
+        Factory->>Factory: Create MatchManager
+    end
+    
+    Factory->>Context: new MatchContext(managers...)
+    Context->>Context: Initialize Seeded RNG
+    Context->>Context: Initialize CardRuleEngine
+    
+    Factory->>Managers: Inject MatchContext
+    Factory->>Gameplay: new GameplayState(context)
+    
+    Gameplay->>Context: Access via Properties
+    Note over Gameplay,Context: TurnManager, MapManager,<br/>ActionSystem, etc.
+    
+    Gameplay-->>Menu: Match Ready
+```
+
+> **Key Takeaway**: **MatchContext** is a scoped DI container created by `MatchFactory`. It holds all managers, systems, and game state for a single match. All game logic accesses dependencies through MatchContext, enabling headless execution and clean testing.
+
+**MatchContext Contents:**
+- **Managers**: `TurnManager`, `MapManager`, `MarketManager`, `MatchManager`, `PlayerStateManager`
+- **Systems**: `ActionSystem`, `CardRuleEngine`
+- **State**: `ActivePlayer`, `VoidPile`, `Random` (seeded RNG)
+- **Separation**: Pure game logic, no UI dependencies
+
+---
+
+## 3. Data Lifecycles
 **Concept**: Before understanding *how* things happen, understand *what* is being manipulated (Cards & Victory Points).
 
-### 2.1 Card Lifecycle
+### 3.1 Card Lifecycle
 A card's journey from the Market through a player's hand and eventually to their scoring pile.
 
 ```mermaid
@@ -79,7 +125,7 @@ stateDiagram-v2
 
 > **Key Takeaway**: Cards flow from the **Market** to your **Hand**. When played, they go to your **Played Area**. At the end of the turn, they are **Discarded**. You can only **Promote** cards from the Played Area to your Inner Circle (Score Pile). Devouring a card removes it from the game permanently (Void).
 
-### 2.2 Victory & Scoring Flows
+### 3.2 Victory & Scoring Flows
 The ultimate goal of the game: how the winner is decided.
 
 ```mermaid
@@ -127,7 +173,7 @@ flowchart TD
 
 ---
 
-## 3. Game State & Turn Lifecycle
+## 4. Game State & Turn Lifecycle
 **Concept**: The "Pulse" of the game. How the application moves between states and how a single turn is structured.
 
 ```mermaid
@@ -169,9 +215,168 @@ stateDiagram-v2
 
 > **Key Takeaway**: The game loops through **Turns**. In each turn, a player enters an **Input Phase** where they can perform multiple actions (Idle -> Target -> Execute) until they explicitly choose to **End Turn**. **Setup Phase** happens once at the start.
 
+> **Key Takeaway**: The game loops through **Turns**. In each turn, a player enters an **Input Phase** where they can perform multiple actions (Idle -> Target -> Execute) until they explicitly choose to **End Turn**. **Setup Phase** happens once at the start.
+
 ---
 
-## 4. Input Processing Pipeline
+## 5. Turn Phase Transitions
+**Concept**: The detailed flow through a single turn, from start to cleanup.
+
+```mermaid
+sequenceDiagram
+    participant TM as TurnManager
+    participant Reward as MapRewardSystem
+    participant Player as PlayerStateManager
+    participant Market as MarketManager
+    participant Action as ActionSystem
+    
+    Note over TM: Start of Turn
+    TM->>TM: Switch Active Player
+    TM->>Reward: GenerateResources(ActivePlayer)
+    
+    rect rgb(30, 30, 30)
+        Note over Reward: Resource Generation
+        Reward->>Reward: Calculate Site Control
+        Reward->>Player: AddPower(amount)
+        Reward->>Player: AddInfluence(amount)
+        Reward->>Player: AddTroops(amount)
+    end
+    
+    TM->>Player: DrawCards(5, Random)
+    
+    Note over TM,Action: Main Phase (Player Actions)
+    loop Until End Turn
+        Action->>Action: Process Player Actions
+    end
+    
+    Note over TM: End of Turn
+    TM->>Player: CleanUpTurn(ActivePlayer)
+    
+    rect rgb(30, 30, 30)
+        Note over Player: Cleanup Process
+        Player->>Player: Move PlayedCards → DiscardPile
+        Player->>Player: Discard excess Hand cards
+        Player->>Player: Reset temporary buffs
+    end
+    
+    TM->>Market: RefillMarket()
+    Market->>Market: Fill empty slots from deck
+    
+    TM->>TM: Check Victory Conditions
+```
+
+> **Key Takeaway**: Each turn follows a strict sequence: **Generate Resources** → **Draw Cards** → **Main Phase** (player actions) → **Cleanup** → **Refill Market** → **Check Victory**. `TurnManager` orchestrates this flow, delegating to specialized managers.
+
+---
+
+## 6. Resource Generation Flow
+**Concept**: How sites generate Power, Influence, and Troops at the start of each turn.
+
+```mermaid
+flowchart TD
+    Start([Turn Start]) --> Iterate[For Each Site]
+    Iterate --> CheckControl{Player Controls Site?}
+    CheckControl -- No --> Iterate
+    CheckControl -- Yes --> GetRewards[Get Site Rewards]
+    
+    GetRewards --> Power{Generates Power?}
+    Power -- Yes --> AddPower[PlayerState.AddPower]
+    Power -- No --> Influence
+    
+    Influence{Generates Influence?}
+    Influence -- Yes --> AddInfluence[PlayerState.AddInfluence]
+    Influence -- No --> Troops
+    
+    Troops{Generates Troops?}
+    Troops -- Yes --> AddTroops[PlayerState.AddTroops]
+    Troops -- No --> CheckBonus
+    
+    CheckBonus{Total Control Bonus?}
+    CheckBonus -- Yes --> BonusReward[+2 Bonus Resources]
+    CheckBonus -- No --> NextSite
+    
+    BonusReward --> NextSite[Next Site]
+    AddPower --> NextSite
+    AddInfluence --> NextSite
+    AddTroops --> NextSite
+    NextSite --> MoreSites{More Sites?}
+    MoreSites -- Yes --> Iterate
+    MoreSites -- No --> Done([Resources Generated])
+    
+    style AddPower fill:#c8e6c9,stroke:#1b5e20,color:black
+    style AddInfluence fill:#c8e6c9,stroke:#1b5e20,color:black
+    style AddTroops fill:#c8e6c9,stroke:#1b5e20,color:black
+    style BonusReward fill:#fff9c4,stroke:#fbc02d,color:black
+```
+
+> **Key Takeaway**: `MapRewardSystem` iterates through all sites, checking ownership. Controlled sites grant their resources (Power/Influence/Troops) to the controlling player. **Total Control** of all sites in a region grants bonus resources.
+
+---
+
+## 7. Market Operations
+**Concept**: How the market refills and how players acquire cards.
+
+### 7.1 Market Refill Flow
+
+```mermaid
+flowchart LR
+    subgraph Market State
+        Slot1[Slot 1]
+        Slot2[Slot 2]
+        Slot3[Slot 3]
+        Slot4[Slot 4]
+        Slot5[Slot 5]
+    end
+    
+    subgraph Market Deck
+        Deck[Shuffled Deck]
+    end
+    
+    Check{Empty Slots?} --> |Yes| Draw[Draw from Deck]
+    Check --> |No| Done([Market Full])
+    Draw --> Fill[Fill Empty Slot]
+    Fill --> Check
+    
+    Deck -.->|Draw Card| Fill
+    
+    style Slot1 fill:#f3e5f5,stroke:#4a148c,color:black
+    style Slot2 fill:#f3e5f5,stroke:#4a148c,color:black
+    style Slot3 fill:#f3e5f5,stroke:#4a148c,color:black
+    style Slot4 fill:#f3e5f5,stroke:#4a148c,color:black
+    style Slot5 fill:#f3e5f5,stroke:#4a148c,color:black
+```
+
+### 7.2 Card Acquisition Flow
+
+```mermaid
+sequenceDiagram
+    participant Player
+    participant UI as UIEventMediator
+    participant Market as MarketManager
+    participant PlayerState as PlayerStateManager
+    participant Card as Card Entity
+    
+    Player->>UI: Click Market Card
+    UI->>Market: CanAfford(card, player)
+    
+    alt Sufficient Influence
+        Market->>PlayerState: SpendInfluence(cost)
+        Market->>Market: RemoveCard(card)
+        Market->>PlayerState: AcquireCard(player, card)
+        PlayerState->>PlayerState: Add to DiscardPile
+        Card->>Card: Location = DiscardPile
+        Market->>Market: RefillMarket()
+    else Insufficient Influence
+        Market-->>UI: Failed (Not Enough Influence)
+        UI-->>Player: Show Error Message
+    end
+```
+
+> **Key Takeaway**: The market maintains 5 slots, refilling from the deck when cards are purchased or devoured. Cards are acquired to the **DiscardPile** (not Hand), ensuring they enter the player's deck cycle. The market refills immediately after acquisition.
+
+---
+
+## 8. Input Processing Pipeline
 **Concept**: How a user interacts with the running loop. From "Click" to "Command".
 
 ```mermaid
@@ -209,10 +414,86 @@ sequenceDiagram
 
 ---
 
-## 5. Detailed Systems Interaction
+## 9. Event System Flow
+**Concept**: How components communicate without tight coupling using the Pub/Sub pattern.
+
+```mermaid
+sequenceDiagram
+    participant Publisher as PlayerStateManager
+    participant EventMgr as EventManager
+    participant Sub1 as UIManager (Subscriber)
+    participant Sub2 as GameEventLogger (Subscriber)
+    participant Sub3 as ReplayManager (Subscriber)
+    
+    Note over EventMgr: Initialization
+    Sub1->>EventMgr: Subscribe(ResourceChanged)
+    Sub2->>EventMgr: Subscribe(ResourceChanged)
+    Sub3->>EventMgr: Subscribe(ResourceChanged)
+    
+    Note over Publisher: Game Event Occurs
+    Publisher->>Publisher: AddPower(player, 5)
+    Publisher->>EventMgr: Publish(ResourceChanged Event)
+    
+    rect rgb(30, 30, 30)
+        Note over EventMgr: Event Distribution
+        EventMgr->>Sub1: OnResourceChanged(event)
+        EventMgr->>Sub2: OnResourceChanged(event)
+        EventMgr->>Sub3: OnResourceChanged(event)
+    end
+    
+    Sub1->>Sub1: Update UI Display
+    Sub2->>Sub2: Log Event
+    Sub3->>Sub3: Record for Replay
+```
+
+> **Key Takeaway**: `EventManager` implements Pub/Sub to decouple components. Publishers (like `PlayerStateManager`) emit events without knowing who's listening. Subscribers (like `UIManager`, `GameEventLogger`) react independently. This enables features like replay recording and UI updates without modifying game logic.
+
+---
+
+## 10. UI Event Mediation
+**Concept**: How UI button clicks trigger game logic without creating tight coupling between View and Logic layers.
+
+```mermaid
+sequenceDiagram
+    participant Button as UI Button
+    participant UIManager as UIManager
+    participant Mediator as UIEventMediator
+    participant GameState as GameplayState
+    participant Command as CommandDispatcher
+    
+    Button->>UIManager: OnClick()
+    UIManager->>Mediator: HandleEndTurnRequest()
+    
+    rect rgb(30, 30, 30)
+        Note over Mediator: Validation Layer
+        Mediator->>GameState: CanEndTurn()
+        
+        alt Can End Turn
+            GameState-->>Mediator: True
+            Mediator->>Command: Dispatch(EndTurnCommand)
+            Command->>GameState: Execute()
+        else Cannot End Turn
+            GameState-->>Mediator: False (reason)
+            Mediator->>UIManager: ShowPopup(reason)
+        end
+    end
+```
+
+> **Key Takeaway**: `UIEventMediator` sits between the UI layer and game logic, translating UI events into validated commands. This prevents the View from directly calling game logic, maintaining the separation needed for headless execution. The mediator validates state before dispatching commands.
+
+**Key Responsibilities:**
+- Validate UI actions against game state
+- Translate UI events → Commands
+- Handle confirmation popups
+- Manage market open/close state
+- Coordinate input mode transitions
+
+---
+
+## 11. Detailed Systems Interaction
 **Concept**: The specific mechanics that run when a command is executed.
 
-### 5.1 Card Effect Resolution
+### 11.1 Card Effect Resolution
 This sequence details how a card's effects are processed after it is played.
 
 ```mermaid
@@ -249,7 +530,7 @@ sequenceDiagram
 
 > **Key Takeaway**: Playing a card triggers a chain of events. The **CardRuleEngine** first validates the play. Then, the **Processor** iterates through every effect on the card. Each effect (Resource, Map, Draw) is handled by a specific Manager.
 
-### 5.2 Troop Deployment Validation
+### 11.2 Troop Deployment Validation
 The `MapRuleEngine` ensures all deployments follow graph connectivity and occupancy rules.
 
 ```mermaid
@@ -276,7 +557,7 @@ flowchart TD
 
 > **Key Takeaway**: You can't just put troops anywhere. The **MapRuleEngine** enforces specific rules: You must have troops available, the node must be empty, it must be adjacent to your site, AND within range. All checks must pass.
 
-### 5.3 Combat & Spy Operations (Assassination)
+### 11.3 Combat & Spy Operations (Assassination)
 This flow shows the interaction between the Command, MapManager, and CombatResolver.
 
 ```mermaid
@@ -316,7 +597,7 @@ sequenceDiagram
 
 ---
 
-### 5.4 Action Delegation (Subsystems \u0026 Helpers)
+### 11.4 Action Delegation (Subsystems & Helpers)
 The `ActionSystem` acts as a coordinator, delegating specific complex mechanics to dedicated subsystems and helper classes to maintain low cyclomatic complexity.
 
 ```mermaid
@@ -354,7 +635,7 @@ classDiagram
 
 ---
 
-### 5.5 Card Effect Processing (Strategy Pattern)
+### 11.5 Card Effect Processing (Strategy Pattern)
 The `CardEffectProcessor` uses the Strategy Pattern for devour operations to eliminate conditional complexity.
 
 ```mermaid
@@ -395,7 +676,7 @@ classDiagram
 
 ---
 
-## 6. Transactional Action Flow (ActionSystem)
+## 12. Transactional Action Flow (ActionSystem)
 **Concept**: Advanced Topic. How complex, multi-step actions (like Devour) are orchestrated between the Coordinator and Subsystems.
 
 ```mermaid
@@ -427,10 +708,10 @@ sequenceDiagram
 
 ---
 
-## 7. Serialization & Replay System
+## 13. Serialization & Replay System
 **Concept**: Infrastructure. How the system ensures consistency across network/save-loads by converting "Live Objects" into "Data Transfer Objects" (DTOs).
 
-### 7.1 DTO Mapping Strategy
+### 13.1 DTO Mapping Strategy
 The bridge between complex Runtime Entities and simple Serializable Data.
 
 ```mermaid
@@ -461,7 +742,7 @@ flowchart LR
 
 > **Key Takeaway**: **DtoMapper** is the translator. It takes complex game objects like `Player` (with logic methods) and turns them into dumb data `PlayerDto` (just numbers and strings) that can be saved to a file or sent over the internet.
 
-### 7.2 Replay Loop
+### 13.2 Replay Loop
 How the game ensures every client sees the same result by re-executing serialized commands.
 
 ```mermaid
@@ -483,3 +764,15 @@ flowchart LR
 ```
 
 > **Key Takeaway**: To show a replay, we don't record video. We just record the **List of Commands** (as DTOs). To "play" it back, we just feed those commands into the game engine one by one. The **Seeded RNG** ensures that all "random" events happen in the exact same way every time.
+
+---
+
+## Summary
+
+This document visualizes the complete game logic flow from high-level architecture to detailed implementation. The flows demonstrate:
+- Clear separation between Logic, Input, and Presentation layers
+- Deterministic execution via Command Pattern and Seeded RNG
+- Complex mechanics handled by specialized subsystems
+- Transactional action processing with deferred execution
+
+For implementation details, see [architecture.md](architecture.md). For test coverage, see [testing.md](testing.md).

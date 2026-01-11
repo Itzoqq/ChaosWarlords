@@ -143,6 +143,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
             var mockActionSystem = Substitute.For<IActionSystem>();
             mockActionSystem.IsTargeting().Returns(true);
             _stateFake.ActionSystem = mockActionSystem; // Inject mock into fake
+            _stateFake.InitializeMatchContext(); // Update MatchContext to use new mock
 
             // Act
             var result = _controller.Update();
@@ -166,6 +167,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
             mockActionSystem.PendingSite.Returns(mockSite);
             
             _stateFake.ActionSystem = mockActionSystem;
+            _stateFake.InitializeMatchContext();
 
             _mockInputManager.IsLeftMouseJustClicked().Returns(true);
             _mockInputManager.MousePosition.Returns(new Vector2(100, 100));

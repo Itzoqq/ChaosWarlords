@@ -126,7 +126,7 @@ namespace ChaosWarlords.Source.Core.Utilities
 
         private static Player? GetSeatPlayer(GameCommandDto dto, IGameplayState state)
         {
-             return state.TurnManager?.Players.FirstOrDefault(p => p.SeatIndex == dto.Seat);
+             return state.MatchContext.TurnManager?.Players.FirstOrDefault(p => p.SeatIndex == dto.Seat);
         }
 
         // --- Card Mapping ---
@@ -163,6 +163,20 @@ namespace ChaosWarlords.Source.Core.Utilities
         {
             if (node == null) return null;
             return new MapNodeDto(node);
+        }
+
+        public static MapDto ToDto(IMapManager mapManager)
+        {
+            var dto = new MapDto();
+            if (mapManager?.Nodes != null)
+            {
+               dto.Nodes = mapManager.Nodes.Select(n => ToDto(n)).Where(n => n != null).ToList()!;
+            }
+            if (mapManager?.Sites != null)
+            {
+                dto.Sites = mapManager.Sites.Select(s => new SiteDto(s)).ToList();
+            }
+            return dto;
         }
 
         // --- Command Mapping ---
@@ -248,13 +262,13 @@ namespace ChaosWarlords.Source.Core.Utilities
 
         private static BuyCardCommand? HydrateBuyCard(BuyCardCommandDto dto, IGameplayState state)
         {
-            var card = state.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardId);
+            var card = state.MatchContext.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardId);
             return card != null ? new BuyCardCommand(card) : null;
         }
 
         private static DeployTroopCommand? HydrateDeploy(DeployTroopCommandDto dto, IGameplayState state, Player? player)
         {
-            var node = state.MapManager.Nodes.FirstOrDefault(n => n.Id == dto.NodeId);
+            var node = state.MatchContext.MapManager.Nodes.FirstOrDefault(n => n.Id == dto.NodeId);
             if (node != null && player != null)
                 return new DeployTroopCommand(node, player);
             return null;
@@ -276,7 +290,7 @@ namespace ChaosWarlords.Source.Core.Utilities
         {
             if (string.Equals(dto.Location, "Market", StringComparison.OrdinalIgnoreCase) && state != null)
             {
-                return state.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardId);
+                return state.MatchContext.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardId);
             }
             
             if (string.Equals(dto.Location, "InnerCircle", StringComparison.OrdinalIgnoreCase))

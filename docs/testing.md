@@ -140,8 +140,11 @@ ChaosWarlords.Tests/Source/
 │   │   ├── MapManagerTests.cs
 │   │   └── MatchManagerTests.cs
 │   └── Mechanics/
+│       ├── ActionSystemCancellationTests.cs
 │       ├── ConditionalEffectTests.cs
+│       ├── DevourFromInnerCircleIntegrationTests.cs
 │       ├── DevourMechanicsTests.cs
+│       ├── MarketDevourChainTests.cs
 │       ├── SelfDevourIntegrationTests.cs
 │       └── TransactionalCommandTests.cs
 │
@@ -260,7 +263,7 @@ ChaosWarlords.Tests/Source/
 
 ## Test Categories Breakdown
 
-**Total Test Suite: 556 tests** (401 Unit + 148 Integration + 7 Performance)
+**Total Test Suite: 680 tests** (401 Unit + 272 Integration + 7 Performance)
 
 ### Unit Tests (401 tests)
 **Purpose**: Test single classes in isolation  
@@ -274,10 +277,10 @@ ChaosWarlords.Tests/Source/
 - **Core/Utilities** (7 files): Infrastructure (TurnContext, Dto, Random, Database)
 - **Map Components** (4 files): Map subsystems (Combat, Rewards, Topology, Spies)
 
-### Integration Tests (148 tests)
+### Integration Tests (272 tests)
 **Purpose**: Test component interactions  
 **Characteristics**: Slower, use real implementations, test coordination  
-**Run Time**: ~1.3 seconds
+**Run Time**: ~4.7 seconds
 
 **Organization**: All integration tests now in dedicated `Integration/` folder
 

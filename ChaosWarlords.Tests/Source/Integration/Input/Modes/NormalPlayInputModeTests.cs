@@ -64,7 +64,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
                 ActionSystem = _actionSub,
                 MarketManager = _marketSub, // Assuming IMarketManager property exists in state
                 MatchContext = new MatchContext(
-                     Substitute.For<ITurnManager>(), // Dummy for now, or match _turnManager
+                     _turnManager,
                      _mapSub,
                      _marketSub,
                      _actionSub,
@@ -140,8 +140,9 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             Assert.IsInstanceOfType(result, typeof(DeployTroopCommand));
             
             // Execute the command to verify it calls map manager
+            // result.Execute(_stateFake);
             // Note: Since _stateFake holds the mock _mapSub, executing the command should trigger the Call.
-            result.Execute(_stateFake);
+            result.Execute(_stateFake.MatchContext);
             _mapSub.Received(1).TryDeploy(_activePlayer, targetNode);
         }
 

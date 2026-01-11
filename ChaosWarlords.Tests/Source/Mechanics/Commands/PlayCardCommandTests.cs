@@ -18,14 +18,13 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // Arrange
             var stateFake = new TestGameplayState();
             // Mock MatchManager to verify the delegate call from State -> Manager
-            var matchManagerSub = Substitute.For<IMatchManager>();
-            stateFake.MatchManager = matchManagerSub;
+            var matchManagerSub = stateFake.MatchManager;
 
             var card = TestData.Cards.AssassinCard();
             var command = new PlayCardCommand(card);
 
             // Act
-            command.Execute(stateFake);
+            command.Execute(stateFake.MatchContext);
 
             // Assert
             // Since our TestGameplayState.PlayCard calls MatchManager.PlayCard,
@@ -38,14 +37,13 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         {
             // Arrange
             var stateFake = new TestGameplayState();
-            var matchManagerSub = Substitute.For<IMatchManager>();
-            stateFake.MatchManager = matchManagerSub;
+            var matchManagerSub = stateFake.MatchManager;
             
             var card = TestData.Cards.AssassinCard();
             var command = new PlayCardCommand(card, true);
 
             // Act
-            command.Execute(stateFake);
+            command.Execute(stateFake.MatchContext);
 
             // Assert
             matchManagerSub.Received(1).PlayCard(card);

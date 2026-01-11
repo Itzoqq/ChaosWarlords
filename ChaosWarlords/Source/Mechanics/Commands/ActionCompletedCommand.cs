@@ -1,6 +1,5 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Source.Commands
 {
@@ -10,29 +9,14 @@ namespace ChaosWarlords.Source.Commands
     /// </summary>
     public class ActionCompletedCommand : IGameCommand
     {
-        public void Execute(IGameplayState state)
+        public bool Validate(MatchContext context)
         {
-            state.MatchContext?.RecordAction("ActionCompleted", "Finalizing action");
-            // Access system managers via public properties
-            var actionSystem = state.ActionSystem;
+            return true;
+        }
 
-            // 1. Finalize the pending card
-            if (actionSystem.PendingCard is not null)
-            {
-                // Delegated to MatchManager which now handles Effect Resolution + Movement + Focus
-                // We no longer call ResolveCardEffects or MoveCardToPlayed manually here.
-                state.MatchManager.PlayCard(actionSystem.PendingCard);
-            }
-
-            // 2. Reset the action system state
-            actionSystem.CancelTargeting();
-
-            // 3. Return to normal input mode
-            state.SwitchToNormalMode();
-
-            // 4. Log the completion
-            state.Logger.Log("Action Complete.", LogChannel.General);
+        public void Execute(MatchContext context)
+        {
+            // Just a marker command, no logic needed
         }
     }
 }
-

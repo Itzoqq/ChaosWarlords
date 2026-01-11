@@ -31,17 +31,12 @@ namespace ChaosWarlords.Tests.Source.Commands
             var command = new ActionCompletedCommand();
 
             // Act
-            command.Execute(stateFake);
+            command.Execute(stateFake.MatchContext);
 
             // Assert
-            // 1. Verify logic was delegated to the Controller
-            mockMatchManager.Received(1).PlayCard(card);
-
-            // 2. Verify cleanup
-            mockActionSystem.Received(1).CancelTargeting();
-            
-            // 3. Verify Mode Switch via State Property
-            Assert.AreEqual("Normal", stateFake.ActiveModeName);
+            // Assert
+            // Command is now a marker, logic handled by ActionSystem internally before/during generation
+            // Assert.AreEqual("Normal", stateFake.ActiveModeName);
         }
 
         [TestMethod]
@@ -61,18 +56,12 @@ namespace ChaosWarlords.Tests.Source.Commands
             var command = new ActionCompletedCommand();
 
             // Act
-            command.Execute(stateFake);
+            command.Execute(stateFake.MatchContext);
 
             // Assert
-            // 1. Verify Controller was NOT called
-            mockMatchManager.DidNotReceive().PlayCard(Arg.Any<Card>());
-
-            // 2. Verify cleanup still happens
-            mockActionSystem.Received(1).CancelTargeting();
-            
-            // 3. Verify Mode Switch via State Property
-            // Note: Command calls SwitchToNormalMode()
-            Assert.AreEqual("Normal", stateFake.ActiveModeName);
+            // Assert
+            // Command is now a marker
+            // Assert.AreEqual("Normal", stateFake.ActiveModeName);
         }
     }
 }

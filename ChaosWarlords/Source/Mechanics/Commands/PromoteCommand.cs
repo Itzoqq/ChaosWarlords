@@ -1,5 +1,5 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
+using ChaosWarlords.Source.Contexts;
 using System.Linq;
 
 namespace ChaosWarlords.Source.Commands
@@ -13,21 +13,28 @@ namespace ChaosWarlords.Source.Commands
             CardId = cardId;
         }
 
-        public void Execute(IGameplayState state)
+        public bool Validate(MatchContext context)
         {
-            if (string.IsNullOrEmpty(CardId)) return;
+            var player = context.TurnManager.ActivePlayer;
+            // Check if card exists in Hand/Played
+            // We need to find it first.
+            var card = player.Hand.FirstOrDefault(c => c.Id == CardId) ?? 
+                       player.PlayedCards.FirstOrDefault(c => c.Id == CardId);
+                       
+            return card != null && context.PlayerStateManager.TryPromoteCard(player, card, out _);
+        }
 
-            var player = state.TurnManager.ActivePlayer;
-            // Try to find the card in Hand, Discard, or Played area.
-            // Promotion usually happens from Hand or Played.
-            var card = player.Hand.FirstOrDefault(c => c.Id == CardId) 
-                    ?? player.PlayedCards.FirstOrDefault(c => c.Id == CardId);
+        public void Execute(MatchContext context)
+        {
+            var player = context.TurnManager.ActivePlayer;
+            var card = player.Hand.FirstOrDefault(c => c.Id == CardId) ?? 
+                       player.PlayedCards.FirstOrDefault(c => c.Id == CardId);
 
             if (card != null)
             {
-                if (state.MatchContext.PlayerStateManager.TryPromoteCard(player, card, out var error))
+                if (context.PlayerStateManager.TryPromoteCard(player, card, out var error))
                 {
-                     state.MatchContext.RecordAction("Promote", $"Promoted {card.Name} to Inner Circle.");
+                     context.RecordAction("Promote", $"Promoted {card.Name} to Inner Circle.");
                 }
                 else
                 {

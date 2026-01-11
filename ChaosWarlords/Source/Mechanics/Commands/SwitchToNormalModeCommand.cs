@@ -1,5 +1,5 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
+using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Source.Commands
 {
@@ -8,12 +8,14 @@ namespace ChaosWarlords.Source.Commands
     /// </summary>
     public class SwitchToNormalModeCommand : IGameCommand
     {
-        public void Execute(IGameplayState state)
+        public bool Validate(MatchContext context)
         {
-            state.MatchContext?.RecordAction("SwitchToNormal", "Switched back to normal play mode");
-            state.SwitchToNormalMode();
+            return true;
+        }
+
+        public void Execute(MatchContext context)
+        {
+            context.ActionSystem.CancelTargeting();
         }
     }
 }
-
-

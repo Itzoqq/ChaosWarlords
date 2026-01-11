@@ -108,7 +108,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             // Execute Command
             // Needed a state Double
             var testState = new TestGameplayState(_context, _matchManager, _logger);
-            cmd.Execute(testState);
+            cmd?.Execute(testState.MatchContext);
 
             // 3. Assert
             CollectionAssert.DoesNotContain(player.InnerCircle, innerCard, "Inner Circle card should be removed");
@@ -191,7 +191,8 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             
             // Execute Command
             var testState = new TestGameplayState(_context, _matchManager, _logger);
-            cmd?.Execute(testState);
+            cmd?.Execute(testState.MatchContext);
+            _matchManager.ResumeDevourChain(cultist);
 
             // 3. Assert
             // Verify Card Removed
@@ -229,7 +230,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             // Stubs
             public IInputManager InputManager => throw new System.NotImplementedException();
             public IUIManager UIManager => throw new System.NotImplementedException();
-            public void RecordAndExecuteCommand(IGameCommand command) => command.Execute(this);
+            public void RecordAndExecuteCommand(IGameCommand command) => command.Execute(MatchContext);
             public void LoadContent() { }
             public void UnloadContent() { }
             public void Update(Microsoft.Xna.Framework.GameTime gameTime) { }

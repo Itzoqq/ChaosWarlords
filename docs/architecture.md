@@ -250,6 +250,40 @@ To ensure synchronization without shared memory:
 - **Action Sequencing**: Actions are assigned sequence numbers.
 - **Seeded RNG**: `IGameRandom` ensures identical random number sequences across all clients.
 
+### 7. MatchContext vs IGameplayState: Separation of Concerns
+
+**MatchContext** and **IGameplayState** serve distinct, complementary purposes:
+
+#### MatchContext (Pure Game State & Logic)
+- **Purpose**: Scoped DI container holding all game state and logic for a single match
+- **Contains**: Managers, systems, and game state (players, cards, map, etc.)
+- **Used By**: Game logic, commands, rules engines
+- **Properties**:
+  - `TurnManager`, `MapManager`, `MarketManager`, `MatchManager`
+  - `ActionSystem`, `CardRuleEngine`, `PlayerStateManager`
+  - `ActivePlayer`, `VoidPile`, `Random`
+- **Key Enhancement (2026-01)**: Added `MatchManager` property for direct access in commands
+
+#### IGameplayState (UI State Machine & Input Coordination)
+- **Purpose**: Manages UI state, input modes, and user interaction flow
+- **Contains**: UI managers, input coordinators, state machine logic
+- **Used By**: Input controllers, UI mediators, rendering layer
+- **Properties**:
+  - `IsPauseMenuOpen`, `IsMarketOpen`, `IsConfirmationPopupOpen`
+  - `UIManager`, `MarketStateManager`, `InputCoordinator`
+  - `SwitchToNormalMode()`, `SwitchToTargetingMode()`, `RecordAndExecuteCommand()`
+- **Accesses**: `MatchContext` via `MatchContext` property for game state queries
+
+#### Why Both Are Needed
+- **MatchContext**: Headless-compatible, contains no UI dependencies, can run on server
+- **IGameplayState**: Client-only, manages UI state machine and user interaction
+- **Clear Boundary**: Game logic never touches UI state; UI layer accesses game state via MatchContext
+
+This separation enables:
+- ✅ Headless server support (MatchContext only)
+- ✅ Clean testing (mock MatchContext for logic tests, mock IGameplayState for UI tests)
+- ✅ Single Responsibility Principle (each handles one concern)
+
 ---
 
 ## Design Patterns Used

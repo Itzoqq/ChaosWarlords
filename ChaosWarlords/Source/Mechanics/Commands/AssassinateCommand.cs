@@ -1,6 +1,7 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
+using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Map;
+using ChaosWarlords.Source.Utilities;
 using System.Linq;
 
 namespace ChaosWarlords.Source.Commands
@@ -18,42 +19,32 @@ namespace ChaosWarlords.Source.Commands
             DevourCardId = devourCardId;
         }
 
-        public void Execute(IGameplayState state)
+        public bool Validate(MatchContext context)
         {
-            // Transactional Devour Handling
-            if (!string.IsNullOrEmpty(DevourCardId))
-            {
-                var player = state.TurnManager.ActivePlayer;
-                var instance = player.Hand.FirstOrDefault(c => c.Id == DevourCardId);
-                if (instance != null)
-                {
-                    state.MatchManager.DevourCard(instance);
-                }
-            }
+             // 1. Get Node
+            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
+            if (node == null) return false;
 
-            var node = state.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
+            // 2. Get Player
+            var player = context.TurnManager.ActivePlayer; // Assassinate is usually active player action
+
+            // 3. Delegation
+            return context.MapManager.CanAssassinate(node, player);
+        }
+
+        public void Execute(MatchContext context)
+        {
+            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
+            var player = context.TurnManager.ActivePlayer;
             if (node != null)
             {
-                // 1. Execute the Action Logic
-                state.ActionSystem.PerformAssassinate(node, CardId);
-                
-                // 2. Ensuring Consistency for Replay/Direct Execution
-                // In normal gameplay, UIEventMediator handles playing the card via ActionSystem.PendingCard.
-                // In Replay (or if PendingCard is null), we must play it manually to remove it from hand.
-                if (!string.IsNullOrEmpty(CardId)) 
+                if (string.IsNullOrEmpty(CardId))
                 {
-                     if (state.ActionSystem.PendingCard == null)
-                     {
-                         var player = state.TurnManager.ActivePlayer;
-                         var card = player.Hand.FirstOrDefault(c => c.Id == CardId);
-                         if (card != null)
-                         {
-                             state.MatchManager.PlayCard(card);
-                         }
-                     }
+                    context.PlayerStateManager.TrySpendPower(player, GameConstants.AssassinatePowerCost);
                 }
-                
-                state.MatchContext?.RecordAction("Assassinate", $"Assassinated troop at {node.Id}");
+
+                context.MapManager.Assassinate(node, player);
+                context.ActionSystem.CompleteAction();
             }
         }
     }

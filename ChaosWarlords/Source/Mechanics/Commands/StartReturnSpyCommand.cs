@@ -1,19 +1,20 @@
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Source.Commands
 {
     public class StartReturnSpyCommand : IGameCommand
     {
-        public void Execute(IGameplayState state)
+        public bool Validate(MatchContext context)
         {
-            state.MatchContext?.RecordAction("StartReturnSpy", "Initiated Return Spy targeting");
-            state.ActionSystem.TryStartReturnSpy();
-            if (state.ActionSystem.CurrentState == ActionState.TargetingReturnSpy)
-            {
-                state.SwitchToTargetingMode();
-            }
+            return true;
+        }
+
+        public void Execute(MatchContext context)
+        {
+            context.ActionSystem.StartTargeting(ChaosWarlords.Source.Utilities.ActionState.TargetingReturnSpy, null);
         }
     }
 }

@@ -11,9 +11,16 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
     public interface IGameCommand
     {
         /// <summary>
-        /// Executes the command logic against the provided game state.
+        /// Validates if the command can be executed in the current context.
         /// </summary>
-        /// <param name="state">The context in which to execute (allows deterministic simulation).</param>
-        void Execute(IGameplayState state);
+        /// <param name="context">The match context containing data about the game.</param>
+        /// <returns>True if the command is valid, false otherwise.</returns>
+        bool Validate(ChaosWarlords.Source.Contexts.MatchContext context);
+
+        /// <summary>
+        /// Executes the command logic against the provided match context.
+        /// </summary>
+        /// <param name="context">The context in which to execute (allows deterministic simulation).</param>
+        void Execute(ChaosWarlords.Source.Contexts.MatchContext context);
     }
 }

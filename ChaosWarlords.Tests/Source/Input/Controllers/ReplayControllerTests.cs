@@ -200,13 +200,13 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
             _controller.Update(new GameTime(TimeSpan.Zero, TimeSpan.FromSeconds(0.1)));
             
             // Assert - Command not executed yet
-            mockCommand.DidNotReceive().Execute(Arg.Any<IGameplayState>());
+            mockCommand.DidNotReceive().Execute(Arg.Any<ChaosWarlords.Source.Contexts.MatchContext>());
 
             // Act - Second update (timer >= 0.2s)
             _controller.Update(new GameTime(TimeSpan.Zero, TimeSpan.FromSeconds(0.15)));
 
             // Assert - Command executed
-            mockCommand.Received(1).Execute(_stateFake); // Passed fake state
+            mockCommand.Received(1).Execute(_stateFake.MatchContext); // Passed fake state's context
             _loggerMock.Received(1).Log(Arg.Is<string>(s => s.Contains("Replay Executed")), LogChannel.Info);
         }
 

@@ -27,7 +27,13 @@ namespace ChaosWarlords.Source.Managers
         private bool _isConfirmationPopupOpen;
         private bool _isPauseMenuOpen;
 
-        public bool IsConfirmationPopupOpen => _isConfirmationPopupOpen;
+        public bool IsConfirmationPopupOpen 
+        {
+            get 
+            {
+                return _isConfirmationPopupOpen; 
+            }
+        }
         public bool IsPauseMenuOpen => _isPauseMenuOpen;
 
         public UIEventMediator(
@@ -148,6 +154,8 @@ namespace ChaosWarlords.Source.Managers
         {
             // Check for unplayed cards first (same logic as HandleEndTurnRequest)
             bool hasUnplayedCards = _gameState.MatchContext.ActivePlayer.Hand.Count > 0;
+            
+            
             if (hasUnplayedCards)
             {
                 _logger.Log("Gameplay: Opening Confirmation Popup", LogChannel.Info);
@@ -192,7 +200,15 @@ namespace ChaosWarlords.Source.Managers
         private void HandleEndTurnRequest(object? sender, EventArgs e)
         {
             _logger.Log("Gameplay: EndTurn Request Received", LogChannel.Info);
+
+            if (!_gameState.CanEndTurn(out string reason))
+            {
+                _logger.Log($"Cannot End Turn: {reason}", LogChannel.Warning);
+                return;
+            }
+
             bool hasUnplayedCards = _gameState.MatchContext.ActivePlayer.Hand.Count > 0;
+            
             if (hasUnplayedCards)
             {
                 _logger.Log("Gameplay: Opening Confirmation Popup", LogChannel.Info);
@@ -291,12 +307,18 @@ namespace ChaosWarlords.Source.Managers
 
         private void HandleEndTurnWithPromotionCheck()
         {
-            int pending = _gameState.TurnManager.CurrentTurnContext.PendingPromotionsCount;
+            int pending = _gameState.MatchContext.TurnManager.CurrentTurnContext.PendingPromotionsCount;
+            _logger.Log($"DEBUG: HandleEndTurnWithPromotionCheck. Pending: {pending}", LogChannel.Info);
+
             if (pending > 0)
             {
-                var activePlayer = _gameState.TurnManager.ActivePlayer;
+                var activePlayer = _gameState.MatchContext.TurnManager.ActivePlayer;
+                _logger.Log($"DEBUG: ActivePlayer: {activePlayer.DisplayName}. PlayedCards: {activePlayer.PlayedCards.Count}", LogChannel.Info);
+                
                 bool hasValidTargets = activePlayer.PlayedCards.Any(c =>
-                    _gameState.TurnManager.CurrentTurnContext.HasValidCreditFor(c));
+                    _gameState.MatchContext.TurnManager.CurrentTurnContext.HasValidCreditFor(c));
+                
+                _logger.Log($"DEBUG: HasValidTargets: {hasValidTargets}", LogChannel.Info);
 
                 if (hasValidTargets)
                 {

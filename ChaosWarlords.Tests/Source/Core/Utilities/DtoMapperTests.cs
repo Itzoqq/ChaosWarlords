@@ -95,11 +95,8 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             };
 
             var state = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
-            var turnManager = Substitute.For<ITurnManager>();
-
             // Setup mocking infrastructure
-            turnManager.Players.Returns(new List<Player> { player });
-            state.TurnManager = turnManager;
+            state.TurnManager.Players.Returns(new List<Player> { player });
 
             // Act
             var resultCommand = DtoMapper.HydrateCommand(dto, state);
@@ -252,9 +249,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
                 var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
                 stateMock.Logger = loggerMock;
                 
-                var tmMock = Substitute.For<ITurnManager>();
-                tmMock.Players.Returns(new List<Player> { p });
-                stateMock.TurnManager = tmMock;
+                stateMock.TurnManager.Players.Returns(new List<Player> { p });
                 
                 var dto = new PlayCardCommandDto
                 {
@@ -281,9 +276,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
                 var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
                 stateMock.Logger = loggerMock;
                 
-                var tmMock = Substitute.For<ITurnManager>();
-                tmMock.Players.Returns(new List<Player> { p });
-                stateMock.TurnManager = tmMock;
+                stateMock.TurnManager.Players.Returns(new List<Player> { p });
                 
                 var dto = new PlayCardCommandDto
                 {
@@ -312,9 +305,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
                 p.SeatIndex = 0;
                 
                 var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
-                var tmMock = Substitute.For<ITurnManager>();
-                tmMock.Players.Returns(new List<Player> { p });
-                stateMock.TurnManager = tmMock;
+                stateMock.TurnManager.Players.Returns(new List<Player> { p });
                 
                 var dto = new DevourCardCommandDto
                 {
@@ -338,9 +329,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
                 p.SeatIndex = 0;
                 
                 var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
-                var tmMock = Substitute.For<ITurnManager>();
-                tmMock.Players.Returns(new List<Player> { p });
-                stateMock.TurnManager = tmMock;
+                stateMock.TurnManager.Players.Returns(new List<Player> { p });
                 
                 var dto = new DevourCardCommandDto
                 {
@@ -364,9 +353,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
                 p.SeatIndex = 0;
                 
                 var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
-                var tmMock = Substitute.For<ITurnManager>();
-                tmMock.Players.Returns(new List<Player> { p });
-                stateMock.TurnManager = tmMock;
+                stateMock.TurnManager.Players.Returns(new List<Player> { p });
                 
                 var dto = new DevourCardCommandDto
                 {
@@ -390,9 +377,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
                 p.SeatIndex = 0;
                 
                 var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
-                var tmMock = Substitute.For<ITurnManager>();
-                tmMock.Players.Returns(new List<Player> { p });
-                stateMock.TurnManager = tmMock;
+                stateMock.TurnManager.Players.Returns(new List<Player> { p });
                 
                 var dto = new DevourCardCommandDto
                 {

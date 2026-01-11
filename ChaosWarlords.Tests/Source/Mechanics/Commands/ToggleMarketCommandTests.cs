@@ -2,7 +2,7 @@ using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Commands;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
-
+using ChaosWarlords.Source.Core.Interfaces.Services;
 namespace ChaosWarlords.Tests.Mechanics.Commands
 {
     [TestClass]
@@ -14,15 +14,17 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         {
             // Arrange
             var stateFake = new TestGameplayState();
-            stateFake.MarketStateManager.Close();
+            // MarketManager in logic also implements IMarketStateManager
+            var mockState = (IMarketStateManager)stateFake.MarketManager;
+            mockState.IsOpen.Returns(false);
             
             var command = new ToggleMarketCommand();
 
             // Act
-            command.Execute(stateFake);
+            command.Execute(stateFake.MatchContext);
 
             // Assert
-            Assert.IsTrue(stateFake.IsMarketOpen, "Market should be open.");
+            mockState.Received(1).OpenForBrowsing();
         }
 
         [TestMethod]
@@ -30,15 +32,17 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         {
             // Arrange
             var stateFake = new TestGameplayState();
-            stateFake.MarketStateManager.OpenForBrowsing();
+            // MarketManager in logic also implements IMarketStateManager
+            var mockState = (IMarketStateManager)stateFake.MarketManager;
+            mockState.IsOpen.Returns(true);
             
             var command = new ToggleMarketCommand();
 
             // Act
-            command.Execute(stateFake);
+            command.Execute(stateFake.MatchContext);
 
             // Assert
-            Assert.IsFalse(stateFake.IsMarketOpen, "Market should be closed.");
+            mockState.Received(1).Close();
         }
     }
 }

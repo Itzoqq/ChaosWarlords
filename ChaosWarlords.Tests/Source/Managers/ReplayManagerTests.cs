@@ -185,9 +185,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             newManager.StartReplay(json);
 
             var stateFake = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
-            var turnManagerMock = Substitute.For<ITurnManager>();
-            turnManagerMock.Players.Returns(new System.Collections.Generic.List<Player> { player });
-            stateFake.TurnManager = turnManagerMock;
+            stateFake.TurnManager.Players.Returns(new System.Collections.Generic.List<Player> { player });
             stateFake.Logger = _loggerMock; // Fake allows setter
 
             // Act

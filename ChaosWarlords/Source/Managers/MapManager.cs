@@ -39,42 +39,43 @@ namespace ChaosWarlords.Source.Managers
         IReadOnlyList<MapNode> IMapManager.Nodes => NodesInternal;
         IReadOnlyList<Site> IMapManager.Sites => SitesInternal;
 
-        public MapManager(List<MapNode> nodes, List<Site> sites, IGameLogger logger, IPlayerStateManager playerState = null!)
+    public MapManager(List<MapNode> nodes, List<Site> sites, ITurnManager turnManager, IGameLogger logger, IPlayerStateManager playerState = null!)
+    {
+        NodesInternal = nodes;
+        SitesInternal = sites;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _playerStateManager = playerState;
+        _nodeSiteLookup = new Dictionary<MapNode, Site>();
+
+        // Build Lookup
+        if (sites is not null)
         {
-            NodesInternal = nodes;
-            SitesInternal = sites;
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _playerStateManager = playerState;
-            _nodeSiteLookup = new Dictionary<MapNode, Site>();
-
-            // Build Lookup
-            if (sites is not null)
+            foreach (var site in sites)
             {
-                foreach (var site in sites)
-                {
-                    site.RecalculateBounds();
-                    foreach (var node in site.NodesInternal)
-                        _nodeSiteLookup[node] = site;
-                }
+                site.RecalculateBounds();
+                foreach (var node in site.NodesInternal)
+                    _nodeSiteLookup[node] = site;
             }
-
-            // Initialize Sub-Systems (Composition)
-            _ruleEngine = new MapRuleEngine(NodesInternal, SitesInternal, _nodeSiteLookup, _logger);
-            _controlSystem = new SiteControlSystem(_logger);
-            if (_playerStateManager is not null) _controlSystem.SetPlayerStateManager(_playerStateManager);
-
-            // Initialize New Service Classes
-            _topology = new MapTopology(NodesInternal, SitesInternal);
-            _rewards = new MapRewardSystem(_controlSystem);
-            _combat = new CombatResolver(
-                node => GetSiteForNode(node)!,
-                (site, player) => RecalculateSiteState(site, player),
-                () => CurrentPhase,
-                _playerStateManager!,
-                _logger
-            );
-            _spyOps = new SpyOperations((site, player) => RecalculateSiteState(site, player), _playerStateManager!, _logger);
         }
+
+        // Initialize Sub-Systems (Composition)
+        _ruleEngine = new MapRuleEngine(NodesInternal, SitesInternal, _nodeSiteLookup, _logger);
+        _controlSystem = new SiteControlSystem(_logger);
+        if (_playerStateManager is not null) _controlSystem.SetPlayerStateManager(_playerStateManager);
+
+        // Initialize New Service Classes
+        _topology = new MapTopology(NodesInternal, SitesInternal);
+        _rewards = new MapRewardSystem(_controlSystem);
+        _combat = new CombatResolver(
+            node => GetSiteForNode(node)!,
+            (site, player) => RecalculateSiteState(site, player),
+            () => CurrentPhase,
+            color => turnManager?.GetPlayerByColor(color),
+            _playerStateManager!,
+            _logger
+        );
+        _spyOps = new SpyOperations((site, player) => RecalculateSiteState(site, player), _playerStateManager!, _logger);
+    }
 
         public void SetPlayerStateManager(IPlayerStateManager stateManager)
         {

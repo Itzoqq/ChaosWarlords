@@ -18,6 +18,8 @@ namespace ChaosWarlords.Tests.Source.Input
         private IGameplayInputCoordinator _inputCoordinator = null!;
         private IInteractionMapper _interactionMapper = null!;
 
+        private ChaosWarlords.Source.Core.Interfaces.Logic.IActionSystem _actionSystem = null!;
+
         [TestInitialize]
         public void Setup()
         {
@@ -25,6 +27,21 @@ namespace ChaosWarlords.Tests.Source.Input
             _inputManager = Substitute.For<IInputManager>();
             _inputCoordinator = Substitute.For<IGameplayInputCoordinator>();
             _interactionMapper = Substitute.For<IInteractionMapper>();
+            _actionSystem = Substitute.For<ChaosWarlords.Source.Core.Interfaces.Logic.IActionSystem>();
+
+            // Create MatchContext with mocks
+            var context = new ChaosWarlords.Source.Contexts.MatchContext(
+                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.ITurnManager>(),
+                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IMapManager>(),
+                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IMarketManager>(),
+                _actionSystem,
+                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Data.ICardDatabase>(),
+                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IPlayerStateManager>(),
+                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
+                ChaosWarlords.Tests.Utilities.TestLogger.Instance
+            );
+
+            _gameState.MatchContext.Returns(context);
 
             _controller = new PlayerController(
                 _gameState,

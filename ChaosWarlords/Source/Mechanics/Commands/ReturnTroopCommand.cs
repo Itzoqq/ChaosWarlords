@@ -1,5 +1,5 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
+using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Map;
 using System.Linq;
 
@@ -16,13 +16,23 @@ namespace ChaosWarlords.Source.Commands
             CardId = cardId;
         }
 
-        public void Execute(IGameplayState state)
+        public bool Validate(MatchContext context)
         {
-            var node = state.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
+             var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
+             if (node == null) return false;
+             
+             // Check if node has occupant
+             return node.Occupant != ChaosWarlords.Source.Utilities.PlayerColor.None;
+        }
+
+        public void Execute(MatchContext context)
+        {
+            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
             if (node != null)
             {
-                state.ActionSystem.PerformReturnTroop(node, CardId);
-                state.MatchContext?.RecordAction("ReturnTroop", $"Returned troop at {node.Id}");
+                context.MapManager.ReturnTroop(node, context.TurnManager.ActivePlayer);
+                context.RecordAction("ReturnTroop", $"Returned troop at {node.Id}");
+                context.ActionSystem.CompleteAction();
             }
         }
     }

@@ -1,6 +1,7 @@
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Entities.Map;
+using ChaosWarlords.Source.Contexts;
 using System.Linq;
 
 namespace ChaosWarlords.Source.Commands
@@ -18,14 +19,30 @@ namespace ChaosWarlords.Source.Commands
             CardId = cardId;
         }
 
-        public void Execute(IGameplayState state)
+        public bool Validate(MatchContext context)
         {
-            var source = state.MapManager.Nodes.FirstOrDefault(n => n.Id == SourceNodeId);
-            var dest = state.MapManager.Nodes.FirstOrDefault(n => n.Id == DestinationNodeId);
-            if (source != null && dest != null)
+             // 1. Get Nodes
+             var src = context.MapManager.Nodes.FirstOrDefault(n => n.Id == SourceNodeId);
+             var dest = context.MapManager.Nodes.FirstOrDefault(n => n.Id == DestinationNodeId);
+             
+             if (src == null || dest == null) return false;
+             
+             var player = context.TurnManager.ActivePlayer;
+             
+             // 2. Delegate to MapManager logic
+             return context.MapManager.CanMoveSource(src, player) && context.MapManager.CanMoveDestination(dest);
+        }
+
+        public void Execute(MatchContext context)
+        {
+            var src = context.MapManager.Nodes.FirstOrDefault(n => n.Id == SourceNodeId);
+            var dest = context.MapManager.Nodes.FirstOrDefault(n => n.Id == DestinationNodeId);
+            var player = context.TurnManager.ActivePlayer;
+
+            if (src != null && dest != null)
             {
-                state.ActionSystem.PerformMoveTroop(source, dest, CardId);
-                state.MatchContext?.RecordAction("MoveTroop", $"Moved troop from {source.Id} to {dest.Id}");
+                context.MapManager.MoveTroop(src, dest, player);
+                context.ActionSystem.CompleteAction();
             }
         }
     }

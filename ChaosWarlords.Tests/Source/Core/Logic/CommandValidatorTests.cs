@@ -14,7 +14,8 @@ namespace ChaosWarlords.Tests.Source.Core.Logic
         // Mock Command
         public class TestCommand : IGameCommand
         {
-            public void Execute(IGameplayState state) { }
+            public bool Validate(ChaosWarlords.Source.Contexts.MatchContext context) => true;
+            public void Execute(ChaosWarlords.Source.Contexts.MatchContext context) { }
         }
 
         // Mock Validator

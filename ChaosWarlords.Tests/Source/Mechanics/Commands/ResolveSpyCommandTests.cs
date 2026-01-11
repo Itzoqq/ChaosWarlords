@@ -8,6 +8,7 @@ using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
+using ChaosWarlords.Source.Entities.Actors;
 
 namespace ChaosWarlords.Tests.Mechanics.Commands
 {
@@ -21,11 +22,8 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // Arrange
             var stateFake = new TestGameplayState();
             
-            var mockActionSystem = Substitute.For<IActionSystem>();
-            var mockMapManager = Substitute.For<IMapManager>();
-            
-            stateFake.ActionSystem = mockActionSystem;
-            stateFake.MapManager = mockMapManager;
+            var mockActionSystem = stateFake.ActionSystem;
+            var mockMapManager = stateFake.MapManager;
 
             var site = TestData.Sites.NeutralSite();
             site.Id = 10;
@@ -35,10 +33,11 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var command = new ResolveSpyCommand(10, PlayerColor.Blue);
 
             // Act
-            command.Execute(stateFake);
+            command.Execute(stateFake.MatchContext);
 
             // Assert
-            mockActionSystem.Received(1).PerformSpyReturn(site, PlayerColor.Blue, null);
+            // Command now delegates to MapManager.ReturnSpecificSpy
+            mockMapManager.Received(1).ReturnSpecificSpy(site, Arg.Any<Player>(), PlayerColor.Blue);
         }
     }
 }

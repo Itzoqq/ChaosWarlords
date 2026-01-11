@@ -37,6 +37,7 @@ namespace ChaosWarlords.Tests.Source.Managers
              _state = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
 
             _command = Substitute.For<IGameCommand>();
+            _command.Validate(Arg.Any<MatchContext>()).Returns(true);
 
             _dispatcher = new CommandDispatcher(_replayManager, _logger);
         }
@@ -72,7 +73,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             _replayManager.Received(1).RecordCommand(_command, player, Arg.Any<int>());
             
             // 2. Verifies Execution
-            _command.Received(1).Execute(_state);
+            _command.Received(1).Execute(((ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState)_state).MatchContext);
         }
 
         [TestMethod]
@@ -87,7 +88,7 @@ namespace ChaosWarlords.Tests.Source.Managers
 
             // Assert
             _replayManager.DidNotReceive().RecordCommand(Arg.Any<IGameCommand>(), Arg.Any<Player>(), Arg.Any<int>());
-            _command.Received(1).Execute(_state);
+            _command.Received(1).Execute(((ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState)_state).MatchContext);
         }
 
         [TestMethod]

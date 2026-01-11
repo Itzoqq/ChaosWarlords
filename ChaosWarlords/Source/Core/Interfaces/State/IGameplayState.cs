@@ -34,26 +34,6 @@ namespace ChaosWarlords.Source.Core.Interfaces.State
         IUIManager UIManager { get; }
 
         /// <summary>
-        /// Gets the map manager for board state.
-        /// </summary>
-        IMapManager MapManager { get; }
-
-        /// <summary>
-        /// Gets the market manager for card purchasing.
-        /// </summary>
-        IMarketManager MarketManager { get; }
-
-        /// <summary>
-        /// Gets the action system for targeting and resolution.
-        /// </summary>
-        IActionSystem ActionSystem { get; }
-
-        /// <summary>
-        /// Gets the turn manager for phase control.
-        /// </summary>
-        ITurnManager TurnManager { get; }
-
-        /// <summary>
         /// Gets the composite match context containing all shared data.
         /// </summary>
         MatchContext MatchContext { get; }

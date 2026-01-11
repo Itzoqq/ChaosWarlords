@@ -32,17 +32,14 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // Arrange
             var stateFake = new TestGameplayState();
             
-            var mockMatchManager = Substitute.For<IMatchManager>();
-            var mockActionSystem = Substitute.For<IActionSystem>();
-            
-            stateFake.MatchManager = mockMatchManager;
-            stateFake.ActionSystem = mockActionSystem;
+            var mockMatchManager = stateFake.MatchManager;
+            var mockActionSystem = stateFake.ActionSystem;
 
             var card = TestData.Cards.CheapCard();
             var command = new DevourCardCommand(card);
 
             // Act
-            command.Execute(stateFake);
+            command.Execute(stateFake.MatchContext);
 
             // Assert
             mockMatchManager.Received(1).DevourCard(card);
@@ -54,17 +51,14 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // Arrange
             var stateFake = new TestGameplayState();
             
-            var mockMatchManager = Substitute.For<IMatchManager>();
-            var mockActionSystem = Substitute.For<IActionSystem>();
-
-            stateFake.MatchManager = mockMatchManager;
-            stateFake.ActionSystem = mockActionSystem;
+            var mockMatchManager = stateFake.MatchManager;
+            var mockActionSystem = stateFake.ActionSystem;
             
             var card = TestData.Cards.CheapCard();
             var command = new DevourCardCommand(card);
 
             // Act
-            command.Execute(stateFake);
+            command.Execute(stateFake.MatchContext);
 
             // Assert
             mockActionSystem.Received(1).CompleteAction();
@@ -76,11 +70,8 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // Arrange
             var stateFake = new TestGameplayState();
             
-            var mockMatchManager = Substitute.For<IMatchManager>();
-            var mockActionSystem = Substitute.For<IActionSystem>();
-            
-            stateFake.MatchManager = mockMatchManager;
-            stateFake.ActionSystem = mockActionSystem;
+            var mockMatchManager = stateFake.MatchManager;
+            var mockActionSystem = stateFake.ActionSystem;
 
             var card = TestData.Cards.CheapCard();
             var command = new DevourCardCommand(card);
@@ -93,7 +84,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
                 .Do(_ => callOrder.Add("CompleteAction"));
 
             // Act
-            command.Execute(stateFake);
+            command.Execute(stateFake.MatchContext);
 
             // Assert
             Assert.HasCount(2, callOrder);

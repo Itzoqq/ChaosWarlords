@@ -51,7 +51,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var command = new BuyCardCommand(card);
 
             // Act
-            command.Execute(stateFake);
+            command.Execute(stateFake.MatchContext);
 
             // Assert
             // Verify the command delegation to the underlying manager

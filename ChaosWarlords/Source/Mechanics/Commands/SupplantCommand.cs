@@ -1,6 +1,5 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Entities.Map;
+using ChaosWarlords.Source.Contexts;
 using System.Linq;
 
 namespace ChaosWarlords.Source.Commands
@@ -18,43 +17,29 @@ namespace ChaosWarlords.Source.Commands
             DevourCardId = devourCardId;
         }
 
-        public void Execute(IGameplayState state)
+        public bool Validate(MatchContext context)
         {
-            // Transactional Devour Handling
-            if (!string.IsNullOrEmpty(DevourCardId))
-            {
-                var cardToDevour = state.MatchContext.CardDatabase.GetCardById(DevourCardId);
-                // Note: GetCardById returns a fresh instance normally, but for runtime state we need the actual card instance?
-                // The CardDatabase likely returns New instances. 
-                // We need the instance in the Player's Hand?
-                // MatchManager.DevourCard uses the Card object.
-                // We typically find the card in the player's Hand by ID.
-                
-                // Assuming ID is unique enough for lookup in Hand + Played + Limbo.
-                // In a perfect world, we have a global card lookup/registry for runtime cards.
-                // For now, let's search Player's Hand.
-                
-                var player = state.TurnManager.ActivePlayer;
-                // Search Hand
-                var instance = player.Hand.FirstOrDefault(c => c.Id == DevourCardId);
-                
-                // If not in hand (Unlikely if transactional), could be elsewhere.
-                if (instance != null)
-                {
-                    state.MatchManager.DevourCard(instance);
-                }
-                else
-                {
-                   // Log error or ignore? 
-                   // Replay safety: If card is already gone, maybe fine.
-                }
-            }
+             // Supplant = Assassinate + Deploy
+             var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
+             var player = context.TurnManager.ActivePlayer;
+             
+             if (node == null) return false;
+             
+             // Must be able to Assassinate (implied have presence somewhere?)
+             // And then Deploy (implied have presence there after?)
+             // Strict rule: "Recall an enemy troop, then place one of your troops at that site."
+             
+             return context.MapManager.CanAssassinate(node, player); // && context.MapManager.CanDeployAt(node, player.Color) logic?
+        }
 
-            var node = state.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
+        public void Execute(MatchContext context)
+        {
+            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
+            var player = context.TurnManager.ActivePlayer;
             if (node != null)
             {
-                state.ActionSystem.PerformSupplant(node, CardId);
-                state.MatchContext?.RecordAction("Supplant", $"Supplanted troop at {node.Id} [Devoured: {DevourCardId ?? "None"}]");
+                context.MapManager.Supplant(node, player);
+                context.ActionSystem.CompleteAction();
             }
         }
     }

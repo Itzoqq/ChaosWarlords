@@ -1,12 +1,10 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
+using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Utilities;
+using System.Linq;
 
 namespace ChaosWarlords.Source.Commands
 {
-    /// <summary>
-    /// Needed for the Spy Selection Popup
-    /// </summary>
     public class ResolveSpyCommand : IGameCommand
     {
         public int SiteId { get; }
@@ -20,33 +18,32 @@ namespace ChaosWarlords.Source.Commands
             CardId = cardId;
         }
 
-        public void Execute(IGameplayState state)
+        public bool Validate(MatchContext context)
         {
-            state.MatchContext?.RecordAction("ResolveSpy", $"Selected {SpyColor} spy to return from Site {SiteId}");
-            
-            var site = state.MapManager.Sites.FirstOrDefault(s => s.Id == SiteId);
+            // Logic: Can we return this spy?
+            // Site.HasSpy(SpyColor)
+            var site = context.MapManager.Sites.FirstOrDefault(s => s.Id == SiteId);
+            return site != null && site.HasSpy(SpyColor);
+        }
+
+        public void Execute(MatchContext context)
+        {
+            var site = context.MapManager.Sites.FirstOrDefault(s => s.Id == SiteId);
             if (site != null)
             {
-                // Execute logic directly with the stored CardId (works for Replay and Normal)
-                state.ActionSystem.PerformSpyReturn(site, SpyColor, CardId);
-                
-                // Replay Consistency: Ensure card is played if it wasn't by ActionSystem
-                if (!string.IsNullOrEmpty(CardId))
+                if (context.MapManager.ReturnSpecificSpy(site, context.TurnManager.ActivePlayer, SpyColor))
                 {
-                    if (state.ActionSystem.PendingCard == null)
+                    if (string.IsNullOrEmpty(CardId))
                     {
-                         var player = state.TurnManager.ActivePlayer;
-                         var card = player.Hand.FirstOrDefault(c => c.Id == CardId);
-                         if (card != null)
-                         {
-                             state.MatchManager.PlayCard(card);
-                         }
+                         context.PlayerStateManager.TrySpendPower(context.TurnManager.ActivePlayer, GameConstants.ReturnSpyPowerCost);
                     }
+                    context.ActionSystem.CompleteAction();
+                }
+                else
+                {
+                    context.ActionSystem.NotifyFailure("Failed to return spy.");
                 }
             }
+        }
     }
 }
-}
-
-
-

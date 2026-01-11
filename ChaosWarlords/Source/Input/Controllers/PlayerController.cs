@@ -83,6 +83,8 @@ namespace ChaosWarlords.Source.Input.Controllers
         {
             if (!_inputManager.IsKeyJustPressed(Keys.Enter)) return false;
 
+
+            
             // Block if blocking overlays are open
             if (_gameState.IsPauseMenuOpen || 
                 _gameState.IsMarketOpen || 
@@ -119,9 +121,9 @@ namespace ChaosWarlords.Source.Input.Controllers
                 return true;
             }
 
-            if (_gameState.ActionSystem.IsTargeting())
+            if (_gameState.MatchContext.ActionSystem.IsTargeting())
             {
-                _gameState.ActionSystem.CancelTargeting();
+                _gameState.MatchContext.ActionSystem.CancelTargeting();
                 _gameState.SwitchToNormalMode();
                 return true;
             }
@@ -131,12 +133,12 @@ namespace ChaosWarlords.Source.Input.Controllers
 
         private bool HandleSpySelectionInput()
         {
-            if (_gameState.ActionSystem.CurrentState != ActionState.SelectingSpyToReturn)
+            if (_gameState.MatchContext.ActionSystem.CurrentState != ActionState.SelectingSpyToReturn)
                 return false;
 
             if (!_inputManager.IsLeftMouseJustClicked()) return false;
 
-            var site = _gameState.ActionSystem.PendingSite;
+            var site = _gameState.MatchContext.ActionSystem.PendingSite;
             if (site is null) return false;
 
             if (_interactionMapper is null) return false;
@@ -148,7 +150,7 @@ namespace ChaosWarlords.Source.Input.Controllers
 
             if (clickedSpy.HasValue)
             {
-                _gameState.ActionSystem.FinalizeSpyReturn(clickedSpy.Value);
+                _gameState.MatchContext.ActionSystem.FinalizeSpyReturn(clickedSpy.Value);
             }
 
             return true;

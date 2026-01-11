@@ -10,6 +10,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Managers;
 using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Core.Interfaces.Data;
 
 namespace ChaosWarlords.Tests.Source.Doubles.State
 {
@@ -21,7 +22,7 @@ namespace ChaosWarlords.Tests.Source.Doubles.State
         public IGameLogger Logger { get; set; }
         public IUIManager UIManager { get; set; } = NSubstitute.Substitute.For<IUIManager>();
         public IMapManager MapManager { get; set; } = NSubstitute.Substitute.For<IMapManager>();
-        public IMarketManager MarketManager { get; set; } = NSubstitute.Substitute.For<IMarketManager>();
+        public IMarketManager MarketManager { get; set; } = NSubstitute.Substitute.For<IMarketManager, IMarketStateManager>();
         public IActionSystem ActionSystem { get; set; } = NSubstitute.Substitute.For<IActionSystem>();
         public ITurnManager TurnManager { get; set; } = NSubstitute.Substitute.For<ITurnManager>();
         public MatchContext MatchContext { get; set; } = null!; // Concrete class, keep null or manual
@@ -44,12 +45,39 @@ namespace ChaosWarlords.Tests.Source.Doubles.State
         {
             // Defaults to avoid null refs if not set
             Logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance;
+            
+            // Auto-wire MatchContext with current mocks
+            // Note: If tests replace mocks later, they might need to update MatchContext or we use lazy properties
+            // But usually tests set mocks BEFORE usage.
+            // For now, let's just initialize it with current properties.
+            // However, properties like TurnManager are initialized inline.
+            InitializeMatchContext();
+        }
+
+        public void InitializeMatchContext()
+        {
+             // Create a dummy PlayerStateManager if needed because it's not in the property list of TestGameplayState explicitly as an interface?
+             // Actually IGameplayState doesn't have PlayerStateManager anymore (it was removed).
+             // But MatchContext needs one.
+             var playerState = new PlayerStateManager(Logger);
+
+             MatchContext = new MatchContext(
+                 TurnManager,
+                 MapManager,
+                 MarketManager,
+                 ActionSystem,
+                 NSubstitute.Substitute.For<ICardDatabase>(),
+                 playerState,
+                 NSubstitute.Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
+                 Logger
+             );
+             MatchContext.MatchManager = MatchManager;
         }
 
         public void RecordAndExecuteCommand(IGameCommand command)
         {
             ExecutedCommands.Add(command);
-            command.Execute(this);
+            command.Execute(MatchContext);
         }
 
         // --- Interaction Helpers ---

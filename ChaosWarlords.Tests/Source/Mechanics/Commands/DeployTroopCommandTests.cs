@@ -17,12 +17,9 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // Arrange
             var stateFake = new TestGameplayState();
             
-            var mockMapManager = Substitute.For<IMapManager>();
-            var mockTurnManager = Substitute.For<ITurnManager>();
+            var mockMapManager = stateFake.MapManager;
+            var mockTurnManager = stateFake.TurnManager;
             var mockPlayer = TestData.Players.RedPlayer();
-
-            stateFake.MapManager = mockMapManager;
-            stateFake.TurnManager = mockTurnManager;
             
             mockTurnManager.ActivePlayer.Returns(mockPlayer);
 
@@ -30,7 +27,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var command = new DeployTroopCommand(node);
 
             // Act
-            command.Execute(stateFake);
+            command.Execute(stateFake.MatchContext);
 
             // Assert
             mockMapManager.Received(1).TryDeploy(mockPlayer, node);

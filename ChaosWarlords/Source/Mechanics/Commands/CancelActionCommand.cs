@@ -1,17 +1,18 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
+using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Source.Commands
 {
     public class CancelActionCommand : IGameCommand
     {
-        public void Execute(IGameplayState state)
+        public bool Validate(MatchContext context)
         {
-            state.MatchContext?.RecordAction("CancelAction", "Cancelled current action");
-            state.ActionSystem.CancelTargeting();
-            state.SwitchToNormalMode();
+            return true;
+        }
+
+        public void Execute(MatchContext context)
+        {
+            context.ActionSystem.CancelTargeting();
         }
     }
 }
-
-

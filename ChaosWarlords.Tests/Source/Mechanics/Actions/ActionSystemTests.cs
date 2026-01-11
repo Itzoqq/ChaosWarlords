@@ -94,7 +94,10 @@ namespace ChaosWarlords.Tests.Systems
             stateFake.ActionSystem = _actionSystem;
             stateFake.TurnManager = _turnManager;
             
-            cmd?.Execute(stateFake);
+            // Re-build MatchContext to use these updated dependencies
+            stateFake.InitializeMatchContext();
+            
+            cmd?.Execute(stateFake.MatchContext);
         }
 
         #region 1. Initiation Tests
@@ -114,6 +117,12 @@ namespace ChaosWarlords.Tests.Systems
         {
             _player1.Power = playerPower;
             _eventFailedFired = false; // Reset
+
+            // Setup map validation for Return Spy (required after bug fix)
+            if (actionName == "ReturnSpy")
+            {
+                _mapManager.HasValidReturnSpyTarget(_player1).Returns(shouldSucceed);
+            }
 
             if (actionName == "Assassinate")
                 _actionSystem.TryStartAssassinate();

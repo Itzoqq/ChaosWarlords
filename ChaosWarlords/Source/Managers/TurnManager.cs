@@ -92,6 +92,10 @@ namespace ChaosWarlords.Source.Managers
             // 2. Start the next turn (Creates new Context)
             StartTurn();
         }
+
+        public Player? GetPlayerByColor(PlayerColor color)
+        {
+            return Players.Find(p => p.Color == color);
+        }
     }
 }
-
