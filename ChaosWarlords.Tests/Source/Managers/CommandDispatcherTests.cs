@@ -62,18 +62,18 @@ namespace ChaosWarlords.Tests.Source.Managers
                 _logger,
                 123);
             
-            // Assign context to fake state
-            ((ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState)_state).MatchContext = matchContext;
-
             // Act
-            _dispatcher.Dispatch(_command, _state);
+            _dispatcher.Dispatch(_command, matchContext);
 
             // Assert
-            // 1. Verifies Recording
-            _replayManager.Received(1).RecordCommand(_command, player, Arg.Any<int>());
+            // 1. Verifies Recording (Sequence Number starts at 0, increments to 1)
+            _replayManager.Received(1).RecordCommand(_command, player, 1);
             
             // 2. Verifies Execution
-            _command.Received(1).Execute(((ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState)_state).MatchContext);
+            _command.Received(1).Execute(matchContext);
+            
+            // 3. Verify Context Sequence Updated
+            Assert.AreEqual(1, matchContext.SequenceNumber);
         }
 
         [TestMethod]
@@ -82,13 +82,24 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             _replayManager.IsReplaying.Returns(true);
+            var matchContext = new MatchContext(
+                Substitute.For<ITurnManager>(),
+                Substitute.For<IMapManager>(),
+                Substitute.For<IMarketManager>(),
+                Substitute.For<IActionSystem>(),
+                Substitute.For<ICardDatabase>(),
+                Substitute.For<IPlayerStateManager>(),
+                null,
+                _logger,
+                123);
 
             // Act
-            _dispatcher.Dispatch(_command, _state);
+            _dispatcher.Dispatch(_command, matchContext);
 
             // Assert
             _replayManager.DidNotReceive().RecordCommand(Arg.Any<IGameCommand>(), Arg.Any<Player>(), Arg.Any<int>());
-            _command.Received(1).Execute(((ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState)_state).MatchContext);
+            _command.Received(1).Execute(matchContext);
+            Assert.AreEqual(1, matchContext.SequenceNumber); // Still increments sequence logic
         }
 
         [TestMethod]
@@ -111,15 +122,15 @@ namespace ChaosWarlords.Tests.Source.Managers
                 _logger,
                 123);
             
-             ((ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState)_state).MatchContext = matchContext;
 
             // Act
-            _dispatcher.Dispatch(_command, _state); // seq 1
-            _dispatcher.Dispatch(_command, _state); // seq 2
+            _dispatcher.Dispatch(_command, matchContext); // seq 1
+            _dispatcher.Dispatch(_command, matchContext); // seq 2
 
             // Assert
             _replayManager.Received().RecordCommand(_command, player, 1);
             _replayManager.Received().RecordCommand(_command, player, 2);
+            Assert.AreEqual(2, matchContext.SequenceNumber);
         }
     }
 }

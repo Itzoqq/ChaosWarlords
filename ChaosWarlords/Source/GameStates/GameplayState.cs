@@ -367,7 +367,7 @@ namespace ChaosWarlords.Source.GameStates
         /// </summary>
         public virtual void RecordAndExecuteCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command)
         {
-            _commandDispatcher.Dispatch(command, this);
+            _commandDispatcher.Dispatch(command, this.MatchContext);
         }
 
         public void EndTurn()

@@ -29,8 +29,7 @@ namespace ChaosWarlords.Source.Managers
                 .Any(p => p.TroopsInBarracks == 0);
 
             // Check 2: Market deck empty?
-            bool marketDeckEmpty = context.MarketManager.MarketRow.Count == 0 && 
-                                   !context.MarketManager.HasCardsInDeck();
+            bool marketDeckEmpty = !context.MarketManager.HasCardsInDeck();
 
             if (anyPlayerOutOfTroops)
             {

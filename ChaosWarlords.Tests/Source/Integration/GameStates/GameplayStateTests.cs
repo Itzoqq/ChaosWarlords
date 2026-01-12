@@ -203,7 +203,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             // Sanity Check: Trigger event BEFORE unload
             var cmd = Substitute.For<IGameCommand>();
             _actionSystem.OnAutoExecuteCommand += Raise.Event<Action<IGameCommand>>(cmd);
-            mockDispatcher.Received(1).Dispatch(cmd, state);
+            mockDispatcher.Received(1).Dispatch(cmd, state.MatchContext);
 
             // Act
             state.UnloadContent();
@@ -213,7 +213,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             _actionSystem.OnAutoExecuteCommand += Raise.Event<Action<IGameCommand>>(cmd);
 
             // Assert
-            mockDispatcher.DidNotReceive().Dispatch(Arg.Any<IGameCommand>(), Arg.Any<IGameplayState>());
+            mockDispatcher.DidNotReceive().Dispatch(Arg.Any<IGameCommand>(), Arg.Any<MatchContext>());
         }
 
         [TestMethod]

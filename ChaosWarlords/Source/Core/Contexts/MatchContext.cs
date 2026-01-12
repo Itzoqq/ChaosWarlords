@@ -82,6 +82,12 @@ namespace ChaosWarlords.Source.Contexts
 
         // Phase Tracking
         public MatchPhase CurrentPhase { get; set; } = MatchPhase.Setup;
+        
+        /// <summary>
+        /// Monotonically increasing sequence number for every executed command.
+        /// Critical for multiplayer synchronization and state verification.
+        /// </summary>
+        public long SequenceNumber { get; set; }
 
         public MatchContext(
             ITurnManager turn,

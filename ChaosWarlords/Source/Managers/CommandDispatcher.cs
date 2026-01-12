@@ -18,28 +18,31 @@ namespace ChaosWarlords.Source.Managers
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public void Dispatch(IGameCommand command, IGameplayState state)
+        public void Dispatch(IGameCommand command, ChaosWarlords.Source.Contexts.MatchContext context)
         {
             try
             {
-                // Record the command for replay (unless we're currently replaying)
-                if (!_replayManager.IsReplaying)
-                {
-                    state.MatchContext.RecordAction(command.GetType().Name, command.ToString() ?? "Command");
-                    
-                    // Increment and Record to ReplayManager
-                    _replayManager.RecordCommand(command, state.MatchContext.ActivePlayer, ++_localSequenceCounter);
-                }
-
-                // Validate (Optional but recommended)
-                if (!command.Validate(state.MatchContext))
+                // Validate (Strict Server-Side Validation)
+                if (!command.Validate(context))
                 {
                     _logger.Log($"Validation failed for command {command.GetType().Name}", LogChannel.Warning);
                     return;
                 }
 
-                // Execute the command via MatchContext
-                command.Execute(state.MatchContext);
+                // Increment Sequence Number (Authority)
+                context.SequenceNumber++;
+
+                // Record the command for replay (unless we're currently replaying)
+                if (!_replayManager.IsReplaying)
+                {
+                    context.RecordAction(command.GetType().Name, command.ToString() ?? "Command");
+                    
+                    // Record to ReplayManager using the authoritative sequence number
+                    _replayManager.RecordCommand(command, context.ActivePlayer, (int)context.SequenceNumber);
+                }
+
+                // Execute the command via MatchContext (Transaction)
+                command.Execute(context);
             }
             catch (Exception ex)
             {

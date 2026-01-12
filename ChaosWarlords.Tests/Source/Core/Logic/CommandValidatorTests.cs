@@ -27,7 +27,7 @@ namespace ChaosWarlords.Tests.Source.Core.Logic
         {
             public bool ShouldFail { get; set; }
 
-            public ValidationResult Validate(TestCommand command, IGameplayState state)
+            public ValidationResult Validate(TestCommand command, ChaosWarlords.Source.Contexts.MatchContext context)
             {
                 if (ShouldFail)
                 {
@@ -43,10 +43,16 @@ namespace ChaosWarlords.Tests.Source.Core.Logic
             // Arrange
             var validator = new TestCommandValidator { ShouldFail = false };
             var command = new TestCommand();
-            var state = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+            // We need a dummy MatchContext, which is hard to mock due to concrete dependencies.
+            // But validation here ignores the context. We can pass null context?
+            // The interface requires it. Let's try to mock it or pass null if logic allows.
+            // Given the test double logic "return Success", null should work for runtime, 
+            // but for type safety it expects MatchContext.
+            // Let's create a minimal context or pass null!.
+            ChaosWarlords.Source.Contexts.MatchContext context = null!; 
 
             // Act
-            var result = validator.Validate(command, state);
+            var result = validator.Validate(command, context);
 
             // Assert
             Assert.IsTrue(result.IsValid);
@@ -59,10 +65,10 @@ namespace ChaosWarlords.Tests.Source.Core.Logic
             // Arrange
             var validator = new TestCommandValidator { ShouldFail = true };
             var command = new TestCommand();
-            var state = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+            ChaosWarlords.Source.Contexts.MatchContext context = null!;
 
             // Act
-            var result = validator.Validate(command, state);
+            var result = validator.Validate(command, context);
 
             // Assert
             Assert.IsFalse(result.IsValid);
