@@ -7,6 +7,17 @@ namespace ChaosWarlords.Source.Commands
 {
     public class ResolveSpyCommand : IGameCommand
     {
+        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.ResolveSpy;
+
+        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        {
+            return new ChaosWarlords.Source.Core.Data.Dtos.ResolveSpyCommandDto
+            {
+                SiteId = SiteId,
+                Color = SpyColor.ToString(),
+                CardId = CardId
+            };
+        }
         public int SiteId { get; }
         public PlayerColor SpyColor { get; }
         public string? CardId { get; }

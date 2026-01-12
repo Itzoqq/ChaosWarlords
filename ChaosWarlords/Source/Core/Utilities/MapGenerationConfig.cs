@@ -14,7 +14,7 @@ namespace ChaosWarlords.Source.Utilities
         public required string Name { get; set; }
         public bool IsCity { get; set; }
         public bool IsStartingSite { get; set; }
-        public Vector2 Position { get; set; } // Center position
+        public ChaosWarlords.Source.Core.Data.LogicVector2 Position { get; set; } // Center position
         public int NodeCount { get; set; } = 1;
         public ResourceType ControlResource { get; set; }
         public int ControlAmount { get; set; }

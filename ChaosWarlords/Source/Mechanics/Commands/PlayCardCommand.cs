@@ -6,6 +6,16 @@ namespace ChaosWarlords.Source.Commands
 {
     public class PlayCardCommand : IGameCommand
     {
+        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.PlayCard;
+
+        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        {
+            return new ChaosWarlords.Source.Core.Data.Dtos.PlayCardCommandDto
+            {
+                CardId = Card.Id,
+                HandIdx = -1 // Cannot determine without context, relying on ID
+            };
+        }
         public Card Card { get; }
         public bool BypassChecks { get; }
 

@@ -7,6 +7,18 @@ namespace ChaosWarlords.Source.Commands
 {
     public class DevourCardCommand : IGameCommand
     {
+        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.DevourCard;
+
+        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        {
+            return new ChaosWarlords.Source.Core.Data.Dtos.DevourCardCommandDto
+            {
+                CardId = CardToDevour.Id,
+                Location = CardToDevour.Location.ToString(),
+                SourceCardId = SourceCard?.Id
+            };
+        }
+
         public Card CardToDevour { get; }
         public Card? SourceCard { get; set; } // Optional: For "Replace With Source" mechanic
 

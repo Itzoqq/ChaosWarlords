@@ -137,30 +137,31 @@ namespace ChaosWarlords.Source.Utilities
             }
         }
 
-        private List<MapNode> GenerateSiteNodes(Vector2 center, int count, bool isCity)
+        private List<MapNode> GenerateSiteNodes(ChaosWarlords.Source.Core.Data.LogicVector2 center, int count, bool isCity)
         {
             List<MapNode> results = [];
             if (count <= 0) return results;
 
             int maxCols = 3;
-            float spacing = 50f;
+            // Spacing 50f -> 50000 in Logic Space
+            int spacing = 50 * ChaosWarlords.Source.Core.Data.LogicVector2.ScaleFactor;
 
             int totalRows = (int)Math.Ceiling((double)count / maxCols);
-            float totalHeight = (totalRows - 1) * spacing;
-            float startY = center.Y - (totalHeight / 2);
+            int totalHeight = (totalRows - 1) * spacing;
+            int startY = center.Y - (totalHeight / 2);
 
             int nodesCreated = 0;
             for (int r = 0; r < totalRows; r++)
             {
                 int itemsInThisRow = Math.Min(maxCols, count - nodesCreated);
-                float rowWidth = (itemsInThisRow - 1) * spacing;
-                float startX = center.X - (rowWidth / 2);
-                float y = startY + (r * spacing);
+                int rowWidth = (itemsInThisRow - 1) * spacing;
+                int startX = center.X - (rowWidth / 2);
+                int y = startY + (r * spacing);
 
                 for (int c = 0; c < itemsInThisRow; c++)
                 {
-                    float x = startX + (c * spacing);
-                    results.Add(new MapNode(_nodeIdCounter++, new Vector2(x, y)));
+                    int x = startX + (c * spacing);
+                    results.Add(new MapNode(_nodeIdCounter++, new ChaosWarlords.Source.Core.Data.LogicVector2(x, y)));
                     nodesCreated++;
                 }
             }
@@ -176,8 +177,8 @@ namespace ChaosWarlords.Source.Utilities
             // Linear interpolation
             for (int i = 1; i <= count; i++)
             {
-                float t = (float)i / (count + 1);
-                Vector2 pos = Vector2.Lerp(start.Position, end.Position, t);
+                // Lerp using deterministic math
+                var pos = ChaosWarlords.Source.Core.Data.LogicVector2.Lerp(start.LogicPosition, end.LogicPosition, i, count + 1);
                 results.Add(new MapNode(_nodeIdCounter++, pos));
             }
 
@@ -189,13 +190,13 @@ namespace ChaosWarlords.Source.Utilities
             // Simple approach: find the pair of nodes (one from each site) with the minimum distance
             MapNode? bestStart = null;
             MapNode? bestEnd = null;
-            float minDstSq = float.MaxValue;
+            long minDstSq = long.MaxValue;
 
             foreach (var n1 in from.NodesInternal)
             {
                 foreach (var n2 in to.NodesInternal)
                 {
-                    float dst = Vector2.DistanceSquared(n1.Position, n2.Position);
+                    long dst = ChaosWarlords.Source.Core.Data.LogicVector2.DistanceSquared(n1.LogicPosition, n2.LogicPosition);
                     if (dst < minDstSq)
                     {
                         minDstSq = dst;

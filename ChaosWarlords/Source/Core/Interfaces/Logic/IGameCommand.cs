@@ -11,6 +11,17 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
     public interface IGameCommand
     {
         /// <summary>
+        /// Gets the type of the command for identification.
+        /// </summary>
+        ChaosWarlords.Source.Core.Data.Enums.CommandType Type { get; }
+
+        /// <summary>
+        /// Converts the command to a serializable Data Transfer Object.
+        /// </summary>
+        /// <returns>The serializable DTO representing this command.</returns>
+        ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto();
+
+        /// <summary>
         /// Validates if the command can be executed in the current context.
         /// </summary>
         /// <param name="context">The match context containing data about the game.</param>

@@ -6,6 +6,18 @@ namespace ChaosWarlords.Source.Commands
 {
     public class SupplantCommand : IGameCommand
     {
+        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.Supplant;
+
+        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        {
+            return new ChaosWarlords.Source.Core.Data.Dtos.SupplantCommandDto
+            {
+                NodeId = TargetNodeId,
+                CardId = CardId,
+                DevourCardId = DevourCardId
+            };
+        }
+
         public int TargetNodeId { get; }
         public string? CardId { get; }
         public string? DevourCardId { get; }

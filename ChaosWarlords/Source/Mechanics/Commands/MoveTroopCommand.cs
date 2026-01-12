@@ -8,6 +8,17 @@ namespace ChaosWarlords.Source.Commands
 {
     public class MoveTroopCommand : IGameCommand
     {
+        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.MoveTroop;
+
+        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        {
+            return new ChaosWarlords.Source.Core.Data.Dtos.MoveTroopCommandDto
+            {
+                SrcId = SourceNodeId,
+                DestId = DestinationNodeId,
+                CardId = CardId
+            };
+        }
         public int SourceNodeId { get; }
         public int DestinationNodeId { get; }
         public string? CardId { get; }

@@ -250,10 +250,19 @@ namespace ChaosWarlords.Source.Rendering.World
 
         private static Vector2 GetIntersection(Rectangle rect, Vector2 start, Vector2 end)
         {
-            if (MapGeometry.TryGetLineIntersection(start, end, new Vector2(rect.Left, rect.Top), new Vector2(rect.Right, rect.Top), out Vector2 r)) return r;
-            if (MapGeometry.TryGetLineIntersection(start, end, new Vector2(rect.Right, rect.Top), new Vector2(rect.Right, rect.Bottom), out r)) return r;
-            if (MapGeometry.TryGetLineIntersection(start, end, new Vector2(rect.Right, rect.Bottom), new Vector2(rect.Left, rect.Bottom), out r)) return r;
-            if (MapGeometry.TryGetLineIntersection(start, end, new Vector2(rect.Left, rect.Bottom), new Vector2(rect.Left, rect.Top), out r)) return r;
+            var lStart = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(start);
+            var lEnd = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(end);
+
+            var topLeft = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(rect.Left, rect.Top));
+            var topRight = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(rect.Right, rect.Top));
+            var bottomRight = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(rect.Right, rect.Bottom));
+            var bottomLeft = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(rect.Left, rect.Bottom));
+
+            if (MapGeometry.TryGetLineIntersection(lStart, lEnd, topLeft, topRight, out var lr1)) return lr1.ToVector2();
+            if (MapGeometry.TryGetLineIntersection(lStart, lEnd, topRight, bottomRight, out var lr2)) return lr2.ToVector2();
+            if (MapGeometry.TryGetLineIntersection(lStart, lEnd, bottomRight, bottomLeft, out var lr3)) return lr3.ToVector2();
+            if (MapGeometry.TryGetLineIntersection(lStart, lEnd, bottomLeft, topLeft, out var lr4)) return lr4.ToVector2();
+            
             return end;
         }
 

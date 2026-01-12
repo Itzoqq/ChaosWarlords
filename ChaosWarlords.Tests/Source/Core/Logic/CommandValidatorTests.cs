@@ -14,6 +14,10 @@ namespace ChaosWarlords.Tests.Source.Core.Logic
         // Mock Command
         public class TestCommand : IGameCommand
         {
+            public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.None;
+
+            public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto() => new ChaosWarlords.Source.Core.Data.Dtos.ActionCompletedCommandDto();
+
             public bool Validate(ChaosWarlords.Source.Contexts.MatchContext context) => true;
             public void Execute(ChaosWarlords.Source.Contexts.MatchContext context) { }
         }

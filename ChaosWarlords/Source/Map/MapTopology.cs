@@ -29,7 +29,11 @@ namespace ChaosWarlords.Source.Map
             if (_nodes.Count == 0) return;
 
             var (MinX, MinY, MaxX, MaxY) = MapGeometry.CalculateBounds(_nodes);
-            Vector2 mapCenter = new((MinX + MaxX) / 2f, (MinY + MaxY) / 2f);
+            
+            // Logic Bounds are scaled up (x1000). We need to convert to Screen/World Units for centering.
+            float scale = ChaosWarlords.Source.Core.Data.LogicVector2.ScaleFactor;
+            Vector2 mapCenter = new((MinX + MaxX) / (2f * scale), (MinY + MaxY) / (2f * scale));
+
             Vector2 screenCenter = new(screenWidth / 2f, screenHeight / 2f);
             ApplyOffset(screenCenter - mapCenter);
         }

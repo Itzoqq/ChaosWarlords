@@ -16,215 +16,214 @@ This document outlines the architecture of the `ChaosWarlords` codebase, a digit
 The project uses a semantic folder structure. Below is a detailed listing of all files and their responsibilities.
 
 ```text
-Solution Root
-├── ChaosWarlords.sln            # Visual Studio Solution
-├── README.md                    # Project Documentation
-├── docs/                        # Architecture & Testing Specs
-└── ChaosWarlords/               # Project Directory
-    ├── ChaosWarlords.csproj     # Project File
-    ├── app.manifest             # Windows Application Manifest
-    ├── Program.cs               # Application Entry Point
-    ├── Game1.cs                 # MonoGame Main Loop
-    └── Source/
-        ├── Core/
-│   ├── Composition/                     # Dependency Injection composition roots
-│   │   └── GameDependencies.cs          # Concrete dependency container
-│   ├── Contexts/                        # Data Holders (The "Glue")
-│   │   ├── ExecutedAction.cs            # Record capturing a single game event
-│   │   ├── MatchContext.cs              # Scoped DI container for a single match
-│   │   └── TurnContext.cs               # Transient state for current turn
-│   ├── Data/
-│   │   └── Dtos/                        # Data Transfer Objects
-│   │       ├── CardDto.cs               # Serializable card data
-│   │       ├── CommandDto.cs            # Serializable command data
-│   │       ├── GameStateDto.cs          # Serializable game state snapshot
-│   │       ├── MapDto.cs                # Serializable map data
-│   │       ├── PlayerDto.cs             # Serializable player data
-│   │       ├── ReplayDataDto.cs         # Serializable replay container
-│   │       ├── ScoreBreakdownDto.cs     # Serializable victory score details
-│   │       └── VictoryDto.cs            # Serializable victory state data
-│   ├── Events/                          # Event System
-│   │   ├── GameEvent.cs                 # Base record for all game events
-│   │   └── StateChangeEvent.cs          # Event for state mutations
-│   ├── Interfaces/                      # Contracts (API Definitions)
-│   │   ├── Composition/
-│   │   │   └── IGameDependencies.cs     # Service container interface
-│   │   ├── Data/
-│   │   │   ├── ICardDatabase.cs         # Contract for retrieving card definitions
-│   │   │   └── IDto.cs                  # Marker interface for DTOs
-│   │   ├── Input/
-│   │   │   ├── IGameplayInputCoordinator.cs
-│   │   │   ├── IInputManager.cs
-│   │   │   ├── IInputMode.cs
-│   │   │   ├── IInputProvider.cs
-│   │   │   └── IInteractionMapper.cs
-│   │   ├── Logic/
-│   │   │   ├── IActionSystem.cs
-│   │   │   ├── ICommandValidator.cs
-│   │   │   └── IGameCommand.cs
-│   │   ├── Rendering/
-│   │   │   ├── IButtonManager.cs
-│   │   │   ├── IGameplayView.cs
-│   │   │   ├── IMainMenuView.cs
-│   │   │   ├── IUIManager.cs
-│   │   │   └── IVictoryView.cs
-│   │   ├── Services/
-│   │   │   ├── ICommandDispatcher.cs
-│   │   │   ├── IEventManager.cs
-│   │   │   ├── IGameLogger.cs
-│   │   │   ├── IGameRandom.cs
-│   │   │   ├── IMapManager.cs
-│   │   │   ├── IMarketManager.cs
-│   │   │   ├── IMarketStateManager.cs
-│   │   │   ├── IMatchManager.cs
-│   │   │   ├── IPlayerStateManager.cs
-│   │   │   ├── IReplayManager.cs
-│   │   │   ├── ITurnManager.cs
-│   │   │   ├── IUIEventMediator.cs
-│   │   │   └── IVictoryManager.cs
-│   │   └── State/
-│   │       ├── IDrawableState.cs
-│   │       ├── IGameplayState.cs
-│   │       ├── IState.cs
-│   │       └── IStateManager.cs
-│   └── Utilities/                       # Infrastructure & Constants
-│       ├── BufferedAsyncLogger.cs       # Async-optimized logging
-│       ├── CardDatabase.cs              # Implementation of the card library
-│       ├── DtoMapper.cs                 # Mapping logic between Entities and DTOs
-│       ├── GameConstants.cs             # Global configuration values
-│       ├── GameEnums.cs                 # Enums (PlayerColor, ResourceType, etc.)
-│       ├── MapGenerationConfig.cs       # Parameters for procedural map generation
-│       ├── MapGeometry.cs               # Helper for hexagonal grid math
-│       ├── MapLayoutEngine.cs           # Procedural map generation logic
-│       ├── SeededGameRandom.cs          # Deterministic RNG implementation
-│       ├── TextCache.cs                 # Caches string measurements
-│       └── ValidationResult.cs          # Standardized validation response
-│
-├── Entities/                            # Domain Models (Pure Data + Behavior)
-│   ├── Actors/
-│   │   └── Player.cs                    # Represents a human or AI player
-│   ├── Cards/
-│   │   ├── Card.cs                      # Data model for a playable card
-│   │   ├── CardEffects.cs               # Definitions for card effects
-│   │   ├── Deck.cs                      # Manages a collection of cards
-│   │   └── EffectCondition.cs           # Condition requirements for effects
-│   └── Map/
-│       ├── CitySite.cs                  # Represents a Capturable City
-│       ├── MapNode.cs                   # A graph node representing a location
-│       ├── NonCitySite.cs               # Represents a neutral/resource site
-│       ├── Route.cs                     # A path connection between two MapNodes
-│       ├── Site.cs                      # Abstract base class for all sites
-│       └── StartingSite.cs              # Special site where players spawn
-│
-├── Factories/                           # Object Creation Logic
-│   ├── CardFactory.cs                   # Creates Card instances from data
-│   ├── MapFactory.cs                    # Generates the map graph and nodes
-│   └── MatchFactory.cs                  # Assembles all dependencies for a new match
-│
-├── GameStates/                          # Application State Machine
-│   ├── GameplayState.cs                 # The Core Game Loop (Logic Only)
-│   ├── MainMenuState.cs                 # Entry Point / Composition Root
-│   ├── StateManager.cs                  # Stack-based State Machine implementation
-│   └── VictoryState.cs                  # Post-game summary state
-│
-├── Input/                               # Human Interface Layer
-│   ├── Controllers/
-│   │   ├── PlayerController.cs          # High-Level Intent Parser
-│   │   └── ReplayController.cs          # Replay Workflow Orchestrator
-│   ├── Modes/                           # Input State Machine
-│   │   ├── DevourInputMode.cs           # Input mode for trashing a card
-│   │   ├── MarketInputMode.cs           # Input mode for interacting with market
-│   │   ├── NormalPlayInputMode.cs       # Default input mode for standard play
-│   │   ├── PromoteInputMode.cs          # Input mode for upgrading units/sites
-│   │   └── TargetingInputMode.cs        # Input mode for selecting targets
-│   ├── Processors/
-│   │   ├── GameplayInputCoordinator.cs  # Orchestrates input flow
-│   │   └── InteractionMapper.cs         # Translates Screen(X,Y) → Entity
-│   └── Services/
-│       ├── InputManager.cs              # Raw MonoGame Input Wrapper
-│       └── MonoGameInputProvider.cs     # Concrete provider for MonoGame input
-│
-├── Managers/                            # Business Logic Services
-│   ├── CommandDispatcher.cs             # Central Command Processor
-│   ├── EventManager.cs                  # Pub/Sub event system backend
-│   ├── GameEventLogger.cs               # Logs events for debugging/replay
-│   ├── MapManager.cs                    # Facade for Board Logic
-│   ├── MarketManager.cs                 # Manages the Card Market
-│   ├── MarketStateManager.cs            # Manages logic for market interactions
-│   ├── MatchManager.cs                  # Manages Match & Victory
-│   ├── PlayerStateManager.cs            # Centralized player mutations
-│   ├── ReplayManager.cs                 # Replay recording and playback
-│   ├── TurnManager.cs                   # Manages Turn Order and Phase Transitions
-│   ├── UIEventMediator.cs               # Decouples Game Logic from UI Events
-│   ├── UIManager.cs                     # Manages layout and state of UI widgets
-│   └── VictoryManager.cs                # Manages victory conditions
-│
-├── Map/                                 # Map-Specific Subsystems
-│   ├── CombatResolver.cs                # Determines outcomes of battles
-│   ├── MapRewardSystem.cs               # Calculates resource generation
-│   ├── MapTopology.cs                   # Pathfinding logic
-│   └── SpyOperations.cs                 # Handles spy placement and removal
-│
-├── Mechanics/                           # The "Rules" of the Game
-│   ├── Actions/
-│   │   ├── Subsystems/                  # Logic Sub-modules
-│   │   │   ├── DevourSubsystem.cs       # Devour mechanics
-│   │   │   └── SpySubsystem.cs          # Spy mechanics
-│   │   ├── ActionSystem.cs              # Handles targeting logic (Refactored: CC 26→6)
-│   │   ├── CardPlaySystem.cs            # Validates and conducts card plays
-│   │   └── PreTargetHandler.cs          # Internal helper for pre-target auto-execution
-│   ├── Commands/                        # Command Pattern Implementations
-│   │   ├── ActionCompletedCommand.cs    # Signals action completion
-│   │   ├── AssassinateCommand.cs        # Execute assassination
-│   │   ├── BuyCardCommand.cs            # Purchase card
-│   │   ├── CancelActionCommand.cs       # Cancel targeting
-│   │   ├── DeployTroopCommand.cs        # Place unit
-│   │   ├── DevourCardCommand.cs         # Trash card
-│   │   ├── EndTurnCommand.cs            # End turn
-│   │   ├── MoveTroopCommand.cs          # Move unit between nodes
-│   │   ├── PlaceSpyCommand.cs           # Place spy on site
-│   │   ├── PlayCardCommand.cs           # Play card
-│   │   ├── PromoteCommand.cs            # Upgrade unit/site
-│   │   ├── ResolveSpyCommand.cs         # Execute spy action
-│   │   ├── ReturnTroopCommand.cs        # Return unit to hand
-│   │   ├── StartAssassinateCommand.cs   # Initiate assassination
-│   │   ├── StartReturnSpyCommand.cs     # Initiate spy return
-│   │   ├── SupplantCommand.cs           # Replace enemy unit
-│   │   ├── SwitchToNormalModeCommand.cs # Reset input mode
-│   │   └── ToggleMarketCommand.cs       # Open/Close market
-│   └── Rules/                           # Pure Logic Engines
-│       ├── CardEffectProcessor.cs       # Applies card effects (Refactored: CC 14→7, 16→6)
-│       ├── CardRuleEngine.cs            # Validates card conditions
-│       ├── DevourStrategyFactory.cs     # Strategy pattern for devour operations
-│       ├── MapRuleEngine.cs             # Validates map rules
-│       ├── SiteControlSystem.cs         # Manages site ownership
-│       └── TargetingStateEngine.cs      # Determines targeting state sequences (Refactored: CC 26→8)
-│
-└── Rendering/                           # Presentation Layer (The "View")
-    ├── UI/                              # UI Components
-    │   ├── ButtonManager.cs             # Handles button registration
-    │   ├── ButtonRenderer.cs            # Renders buttons
-    │   ├── CardCollectionBrowser.cs     # Browser UI for card collections
-    │   ├── OptionalEffectPopup.cs       # Popup for optional choices
-    │   ├── Popup.cs                     # Base popup class
-    │   ├── PopupBuilder.cs              # Fluent builder for popups
-    │   ├── SimpleButton.cs              # Basic UI button implementation
-    │   └── UIRenderer.cs                # General UI rendering
-    ├── ViewModels/                      # MVVM State
-    │   └── CardViewModel.cs             # View-Logic wrapper for Card
-    ├── Views/                           # Concrete Views
-    │   ├── GameplayView.cs              # Main gameplay renderer
-    │   ├── MainMenuView.cs              # Main Menu screen renderer
-    │   └── VictoryView.cs               # Victory screen renderer
-    └── World/                           # In-Game Object Renderers
-        ├── CardRenderer.cs              # Draws individual cards to screen
-        └── MapRenderer.cs               # Draws the hex map and units
+ChaosWarlords/                   # Project Root
+├── ChaosWarlords.csproj         # Project File
+├── app.manifest                 # Windows Application Manifest
+├── Program.cs                   # Application Entry Point
+├── Game1.cs                     # MonoGame Main Loop
+└── Source/
+    ├── Core/
+    │   ├── Composition/                     # Dependency Injection composition roots
+    │   │   └── GameDependencies.cs          # Concrete dependency container
+    │   ├── Contexts/                        # Data Holders (The "Glue")
+    │   │   ├── ExecutedAction.cs            # Record capturing a single game event
+    │   │   ├── MatchContext.cs              # Scoped DI container for a single match
+    │   │   └── TurnContext.cs               # Transient state for current turn
+    │   ├── Data/
+    │   │   ├── Dtos/                        # Data Transfer Objects
+    │   │   │   ├── CardDto.cs               # Serializable card data
+    │   │   │   ├── CommandDto.cs            # Serializable command data
+    │   │   │   ├── GameStateDto.cs          # Serializable game state snapshot
+    │   │   │   ├── MapDto.cs                # Serializable map data
+    │   │   │   ├── PlayerDto.cs             # Serializable player data
+    │   │   │   ├── ReplayDataDto.cs         # Serializable replay container
+    │   │   │   ├── ScoreBreakdownDto.cs     # Serializable victory score details
+    │   │   │   └── VictoryDto.cs            # Serializable victory state data
+    │   │   ├── Enums/                       # New home for Enums
+    │   │   │   └── CommandType.cs           # Enum for command identification
+    │   │   └── LogicVector2.cs              # Deterministic integer vector struct
+    │   ├── Events/                          # Event System
+    │   │   ├── GameEvent.cs                 # Base record for all game events
+    │   │   └── StateChangeEvent.cs          # Event for state mutations
+    │   ├── Interfaces/                      # Contracts (API Definitions)
+    │   │   ├── Composition/
+    │   │   │   └── IGameDependencies.cs     # Service container interface
+    │   │   ├── Data/
+    │   │   │   ├── ICardDatabase.cs         # Contract for retrieving card definitions
+    │   │   │   └── IDto.cs                  # Marker interface for DTOs
+    │   │   ├── Input/
+    │   │   │   ├── IGameplayInputCoordinator.cs
+    │   │   │   ├── IInputManager.cs
+    │   │   │   ├── IInputMode.cs
+    │   │   │   ├── IInputProvider.cs
+    │   │   │   └── IInteractionMapper.cs
+    │   │   ├── Logic/
+    │   │   │   ├── IActionSystem.cs
+    │   │   │   ├── ICommandValidator.cs
+    │   │   │   └── IGameCommand.cs
+    │   │   ├── Rendering/
+    │   │   │   ├── IButtonManager.cs
+    │   │   │   ├── IGameplayView.cs
+    │   │   │   ├── IMainMenuView.cs
+    │   │   │   ├── IUIManager.cs
+    │   │   │   └── IVictoryView.cs
+    │   │   ├── Services/
+    │   │   │   ├── ICommandDispatcher.cs
+    │   │   │   ├── IEventManager.cs
+    │   │   │   ├── IGameLogger.cs
+    │   │   │   ├── IGameRandom.cs
+    │   │   │   ├── IMapManager.cs
+    │   │   │   ├── IMarketManager.cs
+    │   │   │   ├── IMarketStateManager.cs
+    │   │   │   ├── IMatchManager.cs
+    │   │   │   ├── IPlayerStateManager.cs
+    │   │   │   ├── IReplayManager.cs
+    │   │   │   ├── ITurnManager.cs
+    │   │   │   ├── IUIEventMediator.cs
+    │   │   │   └── IVictoryManager.cs
+    │   │   └── State/
+    │   │       ├── IDrawableState.cs
+    │   │       ├── IGameplayState.cs
+    │   │       ├── IState.cs
+    │   │       └── IStateManager.cs
+    │   └── Utilities/                       # Infrastructure & Constants
+    │       ├── BufferedAsyncLogger.cs       # Async-optimized logging
+    │       ├── CardDatabase.cs              # Implementation of card library
+    │       ├── DtoMapper.cs                 # Mapping logic between Entities and DTOs
+    │       ├── GameConstants.cs             # Global configuration values
+    │       ├── GameEnums.cs                 # Enums (PlayerColor, ResourceType, etc.)
+    │       ├── MapGenerationConfig.cs       # Parameters for procedural map generation
+    │       ├── MapGeometry.cs               # Deterministic geometry helper (LogicVector2 based)
+    │       ├── MapLayoutEngine.cs           # Procedural map generation logic
+    │       ├── SeededGameRandom.cs          # Deterministic RNG implementation
+    │       ├── TextCache.cs                 # Caches string measurements
+    │       └── ValidationResult.cs          # Standardized validation response
+    │
+    ├── Entities/                            # Domain Models (Pure Data + Behavior)
+    │   ├── Actors/
+    │   │   └── Player.cs                    # Represents a human or AI player
+    │   ├── Cards/
+    │   │   ├── Card.cs                      # Data model for a playable card
+    │   │   ├── CardEffects.cs               # Definitions for card effects
+    │   │   ├── Deck.cs                      # Manages a collection of cards
+    │   │   └── EffectCondition.cs           # Condition requirements for effects
+    │   └── Map/
+    │       ├── CitySite.cs                  # Represents a Capturable City
+    │       ├── MapNode.cs                   # A graph node representing a location
+    │       ├── NonCitySite.cs               # Represents a neutral/resource site
+    │       ├── Route.cs                     # A path connection between two MapNodes
+    │       ├── Site.cs                      # Abstract base class for all sites
+    │       └── StartingSite.cs              # Special site where players spawn
+    │
+    ├── Factories/                           # Object Creation Logic
+    │   ├── CardFactory.cs                   # Creates Card instances from data
+    │   ├── MapFactory.cs                    # Generates the map graph and nodes
+    │   ├── MatchFactory.cs                  # Assembles all dependencies for a new match
+    │   └── WrapperFactory.cs
+    │
+    ├── GameStates/                          # Application State Machine
+    │   ├── GameplayState.cs                 # The Core Game Loop (Logic Only)
+    │   ├── MainMenuState.cs                 # Entry Point / Composition Root
+    │   ├── StateManager.cs                  # Stack-based State Machine implementation
+    │   └── VictoryState.cs                  # Post-game summary state
+    │
+    ├── Input/                               # Human Interface Layer
+    │   ├── Controllers/
+    │   │   ├── PlayerController.cs          # High-Level Intent Parser
+    │   │   └── ReplayController.cs          # Replay Workflow Orchestrator
+    │   ├── Modes/                           # Input State Machine
+    │   │   ├── DevourInputMode.cs           # Input mode for trashing a card
+    │   │   ├── MarketInputMode.cs           # Input mode for interacting with market
+    │   │   ├── NormalPlayInputMode.cs       # Default input mode for standard play
+    │   │   ├── PromoteInputMode.cs          # Input mode for upgrading units/sites
+    │   │   └── TargetingInputMode.cs        # Input mode for selecting targets
+    │   ├── Processors/
+    │   │   ├── GameplayInputCoordinator.cs  # Orchestrates input flow
+    │   │   └── InteractionMapper.cs         # Translates Screen(X,Y) -> Entity
+    │   └── Services/
+    │       ├── InputManager.cs              # Raw MonoGame Input Wrapper
+    │       └── MonoGameInputProvider.cs     # Concrete provider for MonoGame input
+    │
+    ├── Managers/                            # Business Logic Services
+    │   ├── CommandDispatcher.cs             # Central Command Processor
+    │   ├── EventManager.cs                  # Pub/Sub event system backend
+    │   ├── GameEventLogger.cs               # Logs events for debugging/replay
+    │   ├── MapManager.cs                    # Facade for Board Logic
+    │   ├── MarketManager.cs                 # Manages the Card Market
+    │   ├── MarketStateManager.cs            # Manages logic for market interactions
+    │   ├── MatchManager.cs                  # Manages Match & Victory
+    │   ├── PlayerStateManager.cs            # Centralized player mutations
+    │   ├── ReplayManager.cs                 # Replay recording and playback
+    │   ├── TurnManager.cs                   # Manages Turn Order and Phase Transitions
+    │   ├── UIEventMediator.cs               # Decouples Game Logic from UI Events
+    │   ├── UIManager.cs                     # Manages layout and state of UI widgets
+    │   └── VictoryManager.cs                # Manages victory conditions
+    │
+    ├── Map/                                 # Map-Specific Subsystems
+    │   ├── CombatResolver.cs                # Determines outcomes of battles
+    │   ├── MapRewardSystem.cs               # Calculates resource generation
+    │   ├── MapTopology.cs                   # Pathfinding logic
+    │   └── SpyOperations.cs                 # Handles spy placement and removal
+    │
+    ├── Mechanics/                           # The "Rules" of the Game
+    │   ├── Actions/
+    │   │   ├── Subsystems/                  # Logic Sub-modules
+    │   │   │   ├── DevourSubsystem.cs       # Devour mechanics
+    │   │   │   └── SpySubsystem.cs          # Spy mechanics
+    │   │   ├── ActionSystem.cs              # Handles targeting logic
+    │   │   ├── CardPlaySystem.cs            # Validates and conducts card plays
+    │   │   └── PreTargetHandler.cs          # Internal helper for pre-target auto-execution
+    │   ├── Commands/                        # Command Pattern Implementations
+    │   │   ├── ActionCompletedCommand.cs    # Signals action completion
+    │   │   ├── AssassinateCommand.cs        # Execute assassination
+    │   │   ├── BuyCardCommand.cs            # Purchase card
+    │   │   ├── CancelActionCommand.cs       # Cancel targeting
+    │   │   ├── DeployTroopCommand.cs        # Place unit
+    │   │   ├── DevourCardCommand.cs         # Trash card
+    │   │   ├── EndTurnCommand.cs            # End turn
+    │   │   ├── MoveTroopCommand.cs          # Move unit between nodes
+    │   │   ├── PlaceSpyCommand.cs           # Place spy on site
+    │   │   ├── PlayCardCommand.cs           # Play card
+    │   │   ├── PromoteCommand.cs            # Upgrade unit/site
+    │   │   ├── ResolveSpyCommand.cs         # Execute spy action
+    │   │   ├── ReturnTroopCommand.cs        # Return unit to hand
+    │   │   ├── StartAssassinateCommand.cs   # Initiate assassination
+    │   │   ├── StartReturnSpyCommand.cs     # Initiate spy return
+    │   │   ├── SupplantCommand.cs           # Replace enemy unit
+    │   │   ├── SwitchToNormalModeCommand.cs # Reset input mode
+    │   │   └── ToggleMarketCommand.cs       # Open/Close market
+    │   └── Rules/                           # Pure Logic Engines
+    │       ├── CardEffectProcessor.cs       # Applies card effects
+    │       ├── CardRuleEngine.cs            # Validates card conditions
+    │       ├── DevourStrategyFactory.cs     # Strategy pattern for devour operations
+    │       ├── MapRuleEngine.cs             # Validates map rules
+    │       ├── SiteControlSystem.cs         # Manages site ownership
+    │       └── TargetingStateEngine.cs      # Determines targeting state sequences
+    │
+    └── Rendering/                           # Presentation Layer (The "View")
+        ├── UI/                              # UI Components
+        │   ├── ButtonManager.cs             # Handles button registration
+        │   ├── ButtonRenderer.cs            # Renders buttons
+        │   ├── CardCollectionBrowser.cs     # Browser UI for card collections
+        │   ├── OptionalEffectPopup.cs       # Popup for optional choices
+        │   ├── Popup.cs                     # Base popup class
+        │   ├── PopupBuilder.cs              # Fluent builder for popups
+        │   ├── SimpleButton.cs              # Basic UI button implementation
+        │   └── UIRenderer.cs                # General UI rendering
+        ├── ViewModels/                      # MVVM State
+        │   └── CardViewModel.cs             # View-Logic wrapper for Card
+        ├── Views/                           # Concrete Views
+        │   ├── GameplayView.cs              # Main gameplay renderer
+        │   ├── MainMenuView.cs              # Main Menu screen renderer
+        │   └── VictoryView.cs               # Victory screen renderer
+        └── World/                           # In-Game Object Renderers
+            ├── CardRenderer.cs              # Draws individual cards to screen
+            └── MapRenderer.cs               # Draws the hex map and units
 ```
 
 ---
 
 ## Key Systems Breakdown
-
 ### 1. Decoupled Rendering System
 The architecture supports multiplayer by strictly separating Game Logic from Rendering. `GameplayState` (Logic) delegates all visualization to the `IGameplayView` interface, ensuring it never depends on `GraphicsDevice` or MonoGame types directly. This allows the server to run with a `NullGameplayView` while clients use full rendering.
 

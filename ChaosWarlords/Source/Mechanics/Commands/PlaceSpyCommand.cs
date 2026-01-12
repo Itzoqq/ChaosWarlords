@@ -8,6 +8,16 @@ namespace ChaosWarlords.Source.Commands
 {
     public class PlaceSpyCommand : IGameCommand
     {
+        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.PlaceSpy;
+
+        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        {
+            return new ChaosWarlords.Source.Core.Data.Dtos.PlaceSpyCommandDto
+            {
+                SiteId = TargetSiteId,
+                CardId = CardId
+            };
+        }
         public int TargetSiteId { get; }
         public string? CardId { get; }
 

@@ -130,8 +130,8 @@ The ultimate goal of the game: how the winner is decided.
 
 ```mermaid
 flowchart TD
-    CheckEnd[End Turn Check] --> Condition1{Any Player\nTroops == 0?}
-    CheckEnd --> Condition2{Market Deck\nEmpty?}
+    CheckEnd[End Turn Check] --> Condition1{Any Player<br/>Troops == 0?}
+    CheckEnd --> Condition2{Market Deck<br/>Empty?}
     
     Condition1 -- Yes --> TriggerEnd[Trigger Game End]
     Condition1 -- No --> Condition2

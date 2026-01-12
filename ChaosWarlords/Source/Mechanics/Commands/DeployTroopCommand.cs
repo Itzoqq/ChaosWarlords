@@ -8,6 +8,15 @@ namespace ChaosWarlords.Source.Commands
 {
     public class DeployTroopCommand : IGameCommand
     {
+        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.DeployTroop;
+
+        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        {
+            return new ChaosWarlords.Source.Core.Data.Dtos.DeployTroopCommandDto
+            {
+                NodeId = Node.Id
+            };
+        }
         public MapNode Node { get; }
         public Player? Player { get; }
         

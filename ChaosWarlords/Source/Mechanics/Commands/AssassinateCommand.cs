@@ -8,6 +8,17 @@ namespace ChaosWarlords.Source.Commands
 {
     public class AssassinateCommand : IGameCommand
     {
+        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.Assassinate;
+
+        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        {
+            return new ChaosWarlords.Source.Core.Data.Dtos.AssassinateCommandDto
+            {
+                NodeId = TargetNodeId,
+                CardId = CardId,
+                DevourCardId = DevourCardId
+            };
+        }
         public int TargetNodeId { get; }
         public string? CardId { get; }
         public string? DevourCardId { get; }

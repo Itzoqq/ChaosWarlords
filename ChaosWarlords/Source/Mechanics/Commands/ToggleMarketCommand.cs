@@ -5,6 +5,12 @@ namespace ChaosWarlords.Source.Commands
 {
     public class ToggleMarketCommand : IGameCommand
     {
+        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.ToggleMarket;
+
+        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        {
+            return new ChaosWarlords.Source.Core.Data.Dtos.ToggleMarketCommandDto();
+        }
         public bool Validate(MatchContext context)
         {
             return true;

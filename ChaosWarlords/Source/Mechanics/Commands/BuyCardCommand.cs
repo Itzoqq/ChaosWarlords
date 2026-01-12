@@ -7,6 +7,15 @@ namespace ChaosWarlords.Source.Commands
 {
     public class BuyCardCommand : IGameCommand
     {
+        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.BuyCard;
+
+        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        {
+            return new ChaosWarlords.Source.Core.Data.Dtos.BuyCardCommandDto
+            {
+                CardId = Card.Id
+            };
+        }
         public Card Card { get; }
         public BuyCardCommand(Card card) { Card = card; }
 

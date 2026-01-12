@@ -78,6 +78,8 @@ The test project mirrors the main project structure. Each test file corresponds 
 ```text
 ChaosWarlords.Tests/Source/
 ├── Core/                        # Unit Tests for Core Infrastructure
+│   ├── Data/                    # Unit Tests for Data Structures
+│   │   └── LogicVector2Tests.cs
 │   ├── Events/
 │   │   └── EventManagerTests.cs
 │   └── Utilities/               # Unit Tests for Utilities
@@ -179,6 +181,7 @@ ChaosWarlords.Tests/Source/
 │   │   ├── ActionCompletedCommandTests.cs
 │   │   ├── BuyCardCommandTests.cs
 │   │   ├── CancelActionCommandTests.cs
+│   │   ├── CommandSerializationTests.cs
 │   │   ├── DeployTroopCommandTests.cs
 │   │   ├── DevourCardCommandTests.cs
 │   │   ├── EndTurnCommandTests.cs

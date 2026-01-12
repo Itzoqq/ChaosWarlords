@@ -7,6 +7,12 @@ namespace ChaosWarlords.Source.Commands
 {
     public class StartAssassinateCommand : IGameCommand
     {
+        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.StartAssassinate;
+
+        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        {
+            return new ChaosWarlords.Source.Core.Data.Dtos.StartAssassinateCommandDto();
+        }
         public bool Validate(MatchContext context)
         {
             return true;

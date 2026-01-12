@@ -17,7 +17,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
             {
                 Name = "Test City",
                 IsCity = true,
-                Position = new Vector2(100, 100),
+                Position = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(100, 100)),
                 NodeCount = 4
             });
 
@@ -25,7 +25,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
             {
                 Name = "Test Cave",
                 IsCity = false,
-                Position = new Vector2(300, 100),
+                Position = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(300, 100)),
                 NodeCount = 2
             });
 
@@ -48,8 +48,8 @@ namespace ChaosWarlords.Tests.Source.Utilities
         public void TestGenerateMap_CreatesRoutes()
         {
             var config = new MapGenerationConfig();
-            config.Sites.Add(new SiteConfig { Name = "A", Position = new Vector2(0, 0), NodeCount = 1 });
-            config.Sites.Add(new SiteConfig { Name = "B", Position = new Vector2(100, 0), NodeCount = 1 });
+            config.Sites.Add(new SiteConfig { Name = "A", Position = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(0, 0)), NodeCount = 1 });
+            config.Sites.Add(new SiteConfig { Name = "B", Position = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(100, 0)), NodeCount = 1 });
 
             config.Routes.Add(new RouteConfig { FromSiteName = "A", ToSiteName = "B", NodeCount = 3 });
 
@@ -77,7 +77,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
             {
                 Name = "Connectivity City",
                 IsCity = true,
-                Position = new Vector2(100, 100),
+                Position = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(100, 100)),
                 NodeCount = 3
             });
 
