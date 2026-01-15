@@ -64,7 +64,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// <summary>
         /// The final victory data if the game is over.
         /// </summary>
-        ChaosWarlords.Source.Core.Data.Dtos.VictoryDto? VictoryResult { get; }
+        Core.Data.Dtos.VictoryDto? VictoryResult { get; }
         /// <summary>
         /// Resumes the execution of a card's effect chain (e.g. OnSuccess after targeting).
         /// </summary>
@@ -73,7 +73,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// <summary>
         /// Gets the shared list of all cards that have been devoured (Void).
         /// </summary>
-        System.Collections.Generic.IReadOnlyList<Card> VoidPile { get; }
+        IReadOnlyList<Card> VoidPile { get; }
     }
 }
 

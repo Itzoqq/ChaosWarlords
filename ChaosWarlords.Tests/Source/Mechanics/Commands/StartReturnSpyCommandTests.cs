@@ -1,5 +1,3 @@
-using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Commands;
 using NSubstitute;
@@ -16,10 +14,10 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         {
             // Arrange
             var stateFake = new TestGameplayState();
-            
+
             var mockActionSystem = stateFake.ActionSystem;
             mockActionSystem.CurrentState.Returns(ActionState.TargetingReturnSpy);
-            
+
             var command = new StartReturnSpyCommand();
 
             // Act

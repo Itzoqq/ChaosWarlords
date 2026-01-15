@@ -1,15 +1,10 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.Xna.Framework;
 using NSubstitute;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -35,7 +30,7 @@ namespace ChaosWarlords.Tests.Systems
         public void Setup()
         {
             // ARRANGE
-            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
+            Utilities.TestLogger.Initialize();
             _player1 = TestData.Players.RedPlayer();
             _player2 = TestData.Players.BluePlayer();
 
@@ -57,7 +52,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.Sites.Returns(new List<Site> { _siteA });
 
             // Inject the mock
-            _actionSystem = new ActionSystem(_turnManager, _mapManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _actionSystem = new ActionSystem(_turnManager, _mapManager, Utilities.TestLogger.Instance);
             var playerStateManager = Substitute.For<IPlayerStateManager>();
             playerStateManager.TrySpendPower(Arg.Any<Player>(), Arg.Any<int>())
                 .Returns(x =>
@@ -93,10 +88,10 @@ namespace ChaosWarlords.Tests.Systems
             stateFake.MapManager = _mapManager;
             stateFake.ActionSystem = _actionSystem;
             stateFake.TurnManager = _turnManager;
-            
+
             // Re-build MatchContext to use these updated dependencies
             stateFake.InitializeMatchContext();
-            
+
             cmd?.Execute(stateFake.MatchContext);
         }
 
@@ -183,7 +178,7 @@ namespace ChaosWarlords.Tests.Systems
             _player1.SpiesInBarracks = 1;
 
             // Act
-            var cmd = _actionSystem.HandleTargetClick(null!,_siteA);
+            var cmd = _actionSystem.HandleTargetClick(null!, _siteA);
             ExecuteIfNotNull(cmd);
 
             // Assert
@@ -261,7 +256,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.GetEnemySpiesAtSite(_siteA, _player1).Returns(new List<PlayerColor> { PlayerColor.Blue, PlayerColor.Neutral });
 
             // Act
-            var cmd = _actionSystem.HandleTargetClick(null!,_siteA);
+            var cmd = _actionSystem.HandleTargetClick(null!, _siteA);
             ExecuteIfNotNull(cmd);
 
             // Assert
@@ -467,7 +462,7 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.ReturnSpecificSpy(_siteA, _player1, PlayerColor.Blue).Returns(true);
 
             // Act
-            var cmd2 = _actionSystem.HandleTargetClick(null!,_siteA);
+            var cmd2 = _actionSystem.HandleTargetClick(null!, _siteA);
             ExecuteIfNotNull(cmd2);
 
             // Assert
@@ -669,10 +664,10 @@ namespace ChaosWarlords.Tests.Systems
             var card = TestData.Cards.AssassinCard();
             _actionSystem.SetPreTarget(card, ActionState.TargetingAssassinate, _node2);
             _mapManager.CanAssassinate(_node2, _player1).Returns(true);
-            
+
             // Act 1: First Play (Should Auto-Execute)
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card);
-            
+
             // Assert 1: Should have executed
             _mapManager.Received(1).Assassinate(_node2, _player1);
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "State should be Normal after auto-execution");
@@ -740,7 +735,7 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange
             var card = TestData.Cards.SupplantCard();
             // No pre-target set
-            
+
             // Mock validation to allow start
             _player1.TroopsInBarracks = 1;
             _mapManager.HasValidAssassinationTarget(_player1).Returns(true);

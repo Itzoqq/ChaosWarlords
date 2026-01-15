@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace ChaosWarlords.Source.Core.Data.Dtos
 {
     /// <summary>

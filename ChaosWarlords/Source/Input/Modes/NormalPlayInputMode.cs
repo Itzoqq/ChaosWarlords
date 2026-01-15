@@ -6,7 +6,6 @@ using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
 
 
@@ -49,11 +48,11 @@ namespace ChaosWarlords.Source.Input.Modes
             return HandleMapClick(inputManager, mapManager, activePlayer);
         }
 
-        private ChaosWarlords.Source.Commands.PlayCardCommand? HandleCardClick(Card clickedCard, IActionSystem actionSystem)
+        private PlayCardCommand? HandleCardClick(Card clickedCard, IActionSystem actionSystem)
         {
             // Check if this card has a devour effect that needs pre-commit handling
             var devourEffect = clickedCard.Effects.FirstOrDefault(e => e.Type == EffectType.Devour);
-            
+
             if (devourEffect != null && ShouldHandleDevourPreCommit(devourEffect))
             {
                 return HandleDevourCardClick(clickedCard, actionSystem);
@@ -81,7 +80,7 @@ namespace ChaosWarlords.Source.Input.Modes
             return true;
         }
 
-        private ChaosWarlords.Source.Commands.PlayCardCommand? HandleDevourCardClick(Card clickedCard, IActionSystem actionSystem)
+        private PlayCardCommand? HandleDevourCardClick(Card clickedCard, IActionSystem actionSystem)
         {
             actionSystem.TryStartDevourHand(clickedCard);
 
@@ -96,10 +95,10 @@ namespace ChaosWarlords.Source.Input.Modes
             return new PlayCardCommand(clickedCard);
         }
 
-        private static ChaosWarlords.Source.Commands.DeployTroopCommand? HandleMapClick(IInputManager inputManager, IMapManager mapManager, Player activePlayer)
+        private static DeployTroopCommand? HandleMapClick(IInputManager inputManager, IMapManager mapManager, Player activePlayer)
         {
             var clickedNode = mapManager.GetNodeAt(inputManager.MousePosition);
-            
+
             if (clickedNode is not null && mapManager.CanDeployAt(clickedNode, activePlayer.Color))
             {
                 return new DeployTroopCommand(clickedNode);

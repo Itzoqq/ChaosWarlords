@@ -1,6 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Core.Data.Dtos;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Source.Core.Data.Dtos
 {

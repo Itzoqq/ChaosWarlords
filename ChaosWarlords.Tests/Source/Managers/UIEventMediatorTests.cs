@@ -1,11 +1,7 @@
-using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Commands;
@@ -31,7 +27,7 @@ namespace ChaosWarlords.Tests.Managers
             _state = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
             _mockUIManager = Substitute.For<IUIManager>();
             _mockActionSystem = Substitute.For<IActionSystem>();
-            
+
             // Assign ActionSystem to state as well so internal logic works if needed
             // But Mediator takes ActionSystem separately in ctor.
             _state.ActionSystem = _mockActionSystem;
@@ -49,9 +45,9 @@ namespace ChaosWarlords.Tests.Managers
                 mockMarket,
                 _mockActionSystem,
                 mockDb,
-                new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance),
-                null, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            
+                new PlayerStateManager(Utilities.TestLogger.Instance),
+                null, Utilities.TestLogger.Instance);
+
             matchContext.MatchManager = _state.MatchManager;
 
             _state.MatchContext = matchContext;
@@ -61,10 +57,10 @@ namespace ChaosWarlords.Tests.Managers
             mockTurn.ActivePlayer.Returns(player);
 
             // Mock TurnContext for promotion check
-            var turnContext = new TurnContext(player, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var turnContext = new TurnContext(player, Utilities.TestLogger.Instance);
             mockTurn.CurrentTurnContext.Returns(turnContext);
 
-            _mediator = new UIEventMediator(_state, _mockUIManager, _mockActionSystem, ChaosWarlords.Tests.Utilities.TestLogger.Instance, null!);
+            _mediator = new UIEventMediator(_state, _mockUIManager, _mockActionSystem, Utilities.TestLogger.Instance, null!);
         }
 
         [TestMethod]
@@ -101,7 +97,7 @@ namespace ChaosWarlords.Tests.Managers
         {
             _state.IsPauseMenuOpen = true;  // Fake state
             _mediator.HandleEscapeKeyPress();
-            
+
             // If Mediator toggles local flag AND updates state? 
             // Assert.IsFalse(_mediator.IsPauseMenuOpen);
         }
@@ -187,7 +183,7 @@ namespace ChaosWarlords.Tests.Managers
             // State-Based Assertion: Check if EndTurnCommand was executed
             Assert.IsNotEmpty(_state.ExecutedCommands);
             Assert.IsInstanceOfType(_state.ExecutedCommands[0], typeof(EndTurnCommand));
-            
+
             Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
         }
 
@@ -237,9 +233,9 @@ namespace ChaosWarlords.Tests.Managers
 
             // MatchManager is a mock inside the fake, so we can verify calls on it
             _state.MatchManager.Received(1).PlayCard(card);
-            
+
             _mockActionSystem.DidNotReceive().CancelTargeting();
-            
+
             // State-Based Assertion
             Assert.AreEqual("Normal", _state.ActiveModeName);
         }

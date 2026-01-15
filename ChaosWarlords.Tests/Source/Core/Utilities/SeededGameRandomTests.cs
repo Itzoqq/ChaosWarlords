@@ -1,5 +1,4 @@
 using ChaosWarlords.Source.Core.Utilities;
-using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Tests.Core.Utilities
 {
@@ -12,8 +11,8 @@ namespace ChaosWarlords.Tests.Core.Utilities
         public void Next_WithSameSeed_ProducesSameSequence()
         {
             int seed = 12345;
-            var rng1 = new SeededGameRandom(seed, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            var rng2 = new SeededGameRandom(seed, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var rng1 = new SeededGameRandom(seed, Tests.Utilities.TestLogger.Instance);
+            var rng2 = new SeededGameRandom(seed, Tests.Utilities.TestLogger.Instance);
 
             for (int i = 0; i < 100; i++)
             {
@@ -25,8 +24,8 @@ namespace ChaosWarlords.Tests.Core.Utilities
         public void Next_Range_ProducesSameSequence()
         {
             int seed = 98765;
-            var rng1 = new SeededGameRandom(seed, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            var rng2 = new SeededGameRandom(seed, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var rng1 = new SeededGameRandom(seed, Tests.Utilities.TestLogger.Instance);
+            var rng2 = new SeededGameRandom(seed, Tests.Utilities.TestLogger.Instance);
 
             for (int i = 0; i < 100; i++)
             {
@@ -42,8 +41,8 @@ namespace ChaosWarlords.Tests.Core.Utilities
             var list1 = Enumerable.Range(0, 50).ToList();
             var list2 = Enumerable.Range(0, 50).ToList();
 
-            var rng1 = new SeededGameRandom(seed, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            var rng2 = new SeededGameRandom(seed, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var rng1 = new SeededGameRandom(seed, Tests.Utilities.TestLogger.Instance);
+            var rng2 = new SeededGameRandom(seed, Tests.Utilities.TestLogger.Instance);
 
             rng1.Shuffle(list1);
             rng2.Shuffle(list2);
@@ -55,7 +54,7 @@ namespace ChaosWarlords.Tests.Core.Utilities
         public void Seed_Property_ReturnsInitializedValue()
         {
             int seed = 1337;
-            var rng = new SeededGameRandom(seed, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var rng = new SeededGameRandom(seed, Tests.Utilities.TestLogger.Instance);
             Assert.AreEqual(seed, rng.Seed);
         }
 
@@ -64,8 +63,8 @@ namespace ChaosWarlords.Tests.Core.Utilities
         {
             // Note: Theoretically they COULD produce the same sequence, 
             // but for a large enough range and sequence length, it's virtually impossible.
-            var rng1 = new SeededGameRandom(1, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            var rng2 = new SeededGameRandom(2, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var rng1 = new SeededGameRandom(1, Tests.Utilities.TestLogger.Instance);
+            var rng2 = new SeededGameRandom(2, Tests.Utilities.TestLogger.Instance);
 
             bool matches = true;
             for (int i = 0; i < 20; i++)

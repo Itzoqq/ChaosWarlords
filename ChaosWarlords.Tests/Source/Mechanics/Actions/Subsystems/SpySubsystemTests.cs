@@ -4,10 +4,7 @@ using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Mechanics.Actions.Subsystems;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
-using ChaosWarlords.Tests; // For TestData
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
 {
@@ -80,7 +77,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
         [TestMethod]
         public void HandleReturnSpyInitialClick_ReturnsCommand_ForSingleSpy()
         {
-             // Arrange
+            // Arrange
             _mapManager.GetEnemySpiesAtSite(_site, _activePlayer).Returns(new List<PlayerColor> { PlayerColor.Blue });
 
             // Act

@@ -1,9 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System.Collections.Generic;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Rendering.ViewModels;
-using System.Linq;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Rendering.UI
@@ -26,7 +24,7 @@ namespace ChaosWarlords.Source.Rendering.UI
         private const int SideMargin = 100;
 
         public bool IsVisible => _isVisible;
-        
+
         /// <summary>
         /// Access to currently displayed ViewModels for the InteractionMapper.
         /// </summary>
@@ -65,7 +63,7 @@ namespace ChaosWarlords.Source.Rendering.UI
             }
         }
 
-        public void Draw(SpriteBatch spriteBatch, SpriteFont font, Texture2D whitePixel, int screenWidth, int screenHeight, ChaosWarlords.Source.Rendering.World.CardRenderer cardRenderer)
+        public void Draw(SpriteBatch spriteBatch, SpriteFont font, Texture2D whitePixel, int screenWidth, int screenHeight, World.CardRenderer cardRenderer)
         {
             if (!_isVisible) return;
 
@@ -87,7 +85,7 @@ namespace ChaosWarlords.Source.Rendering.UI
             for (int i = 0; i < _activeViewModels.Count; i++)
             {
                 var vm = _activeViewModels[i];
-                
+
                 int row = i / cardsPerRow;
                 int col = i % cardsPerRow;
 

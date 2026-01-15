@@ -2,8 +2,6 @@ using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Input;
-using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 using NSubstitute;

@@ -1,16 +1,15 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
-using System.Linq;
 
 namespace ChaosWarlords.Source.Commands
 {
     public class SupplantCommand : IGameCommand
     {
-        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.Supplant;
+        public Core.Data.Enums.CommandType Type => Core.Data.Enums.CommandType.Supplant;
 
-        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        public Core.Data.Dtos.GameCommandDto ToDto()
         {
-            return new ChaosWarlords.Source.Core.Data.Dtos.SupplantCommandDto
+            return new Core.Data.Dtos.SupplantCommandDto
             {
                 NodeId = TargetNodeId,
                 CardId = CardId,
@@ -31,17 +30,17 @@ namespace ChaosWarlords.Source.Commands
 
         public bool Validate(MatchContext context)
         {
-             // Supplant = Assassinate + Deploy
-             var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
-             var player = context.TurnManager.ActivePlayer;
-             
-             if (node == null) return false;
-             
-             // Must be able to Assassinate (implied have presence somewhere?)
-             // And then Deploy (implied have presence there after?)
-             // Strict rule: "Recall an enemy troop, then place one of your troops at that site."
-             
-             return context.MapManager.CanAssassinate(node, player); // && context.MapManager.CanDeployAt(node, player.Color) logic?
+            // Supplant = Assassinate + Deploy
+            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
+            var player = context.TurnManager.ActivePlayer;
+
+            if (node == null) return false;
+
+            // Must be able to Assassinate (implied have presence somewhere?)
+            // And then Deploy (implied have presence there after?)
+            // Strict rule: "Recall an enemy troop, then place one of your troops at that site."
+
+            return context.MapManager.CanAssassinate(node, player); // && context.MapManager.CanDeployAt(node, player.Color) logic?
         }
 
         public void Execute(MatchContext context)

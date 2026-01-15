@@ -4,10 +4,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Mechanics.Actions.Subsystems;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
-using System;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
 {
@@ -22,7 +19,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
         private IMatchManager _matchManager = null!;
         private IMarketManager _marketManager = null!;
         private IPlayerStateManager _playerStateManager = null!;
-        
+
         private Player _activePlayer = null!;
 
         [TestInitialize]
@@ -59,7 +56,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
             // Arrange
             var card = CreateTestCard("Devourer", CardLocation.Hand);
             var preTarget = CreateTestCard("Food", CardLocation.Hand);
-            
+
             _actionSystem.GetAndClearPreTarget(card, ActionState.TargetingDevourHand).Returns(preTarget);
 
             // Act
@@ -91,7 +88,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
         {
             // Arrange
             var target = CreateTestCard("Target");
-            
+
             // Act
             var cmd = _subsystem.HandleDevourSelection(target);
 

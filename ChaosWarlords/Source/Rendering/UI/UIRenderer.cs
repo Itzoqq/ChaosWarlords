@@ -4,10 +4,8 @@ using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Linq;
 
 namespace ChaosWarlords.Source.Rendering.UI
 {
@@ -114,11 +112,11 @@ namespace ChaosWarlords.Source.Rendering.UI
                     screenWidth - GameConstants.UILayout.TopBarPadding - textSize.X,
                     rightYPos
                 );
-                
+
                 // Draw with pulsing effect to draw attention
                 float pulse = (float)Math.Sin(DateTime.Now.Millisecond / 200.0) * 0.3f + 0.7f;
                 Color troopColor = Color.LimeGreen * pulse;
-                
+
                 spriteBatch.DrawString(_defaultFont, troopDeployText, position, troopColor);
             }
         }
@@ -200,7 +198,7 @@ namespace ChaosWarlords.Source.Rendering.UI
             }
 
             sb.Draw(_pixelTexture, rect, bgColor);
-            UIRenderer.DrawBorder(sb, _pixelTexture, rect, 2, isEnabled ? Color.White : Color.Gray);
+            DrawBorder(sb, _pixelTexture, rect, 2, isEnabled ? Color.White : Color.Gray);
 
             SpriteFont font = _smallFont ?? _defaultFont;
             Vector2 textSize = font.MeasureString(text);
@@ -286,7 +284,7 @@ namespace ChaosWarlords.Source.Rendering.UI
             DrawHorizontalButton(sb, ui.ExitButtonRect, "EXIT", ui.IsExitHovered, true, Color.Red);
         }
 
-        public void DrawVictoryPopup(SpriteBatch sb, ChaosWarlords.Source.Core.Data.Dtos.VictoryDto victoryData, int screenWidth, int screenHeight)
+        public void DrawVictoryPopup(SpriteBatch sb, Core.Data.Dtos.VictoryDto victoryData, int screenWidth, int screenHeight)
         {
             if (victoryData == null || !victoryData.IsGameOver) return;
 
@@ -318,7 +316,7 @@ namespace ChaosWarlords.Source.Rendering.UI
             // 4. Draw Other Players (Row beneath)
             float otherPlayersY = topY + 300f;
             float gap = 250f;
-            
+
             // Filter out winner
             var otherPlayers = victoryData.ScoreBreakdowns.Keys
                 .Where(seat => seat != victoryData.WinnerSeat)
@@ -341,8 +339,8 @@ namespace ChaosWarlords.Source.Rendering.UI
                     {
                         pColorName = mappedName.ToUpper(CultureInfo.InvariantCulture);
                     }
-                    string name = $"PLAYER {pColorName}"; 
-                    
+                    string name = $"PLAYER {pColorName}";
+
                     DrawScoreBreakdown(sb, breakdown, new Vector2(startX + (i * gap), otherPlayersY), false, name, pColor);
                 }
             }
@@ -366,7 +364,7 @@ namespace ChaosWarlords.Source.Rendering.UI
             return Color.White;
         }
 
-        private void DrawScoreBreakdown(SpriteBatch sb, ChaosWarlords.Source.Core.Data.Dtos.ScoreBreakdownDto breakdown, Vector2 centerPos, bool isWinner, string playerName, Color playerColor)
+        private void DrawScoreBreakdown(SpriteBatch sb, Core.Data.Dtos.ScoreBreakdownDto breakdown, Vector2 centerPos, bool isWinner, string playerName, Color playerColor)
         {
             float scale = isWinner ? 1.0f : 0.8f;
             // Use player color for Winner title too, or keep Gold? User said: "other players ... match the victors in color". 
@@ -378,8 +376,8 @@ namespace ChaosWarlords.Source.Rendering.UI
             // User: "can we maybe make the other players name and total vp match the victors in color?"
             // This implies the other players currently DON'T match the victor (who is colored).
             // So we should colorize the others.
-            
-            Color titleColor = isWinner ? Color.Gold : playerColor; 
+
+            Color titleColor = isWinner ? Color.Gold : playerColor;
             Color textColor = Color.LightGray;
 
             int yOffset = 0;

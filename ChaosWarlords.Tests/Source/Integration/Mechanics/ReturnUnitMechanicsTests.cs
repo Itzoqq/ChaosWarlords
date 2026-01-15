@@ -1,11 +1,9 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Integration.Mechanics
 {
@@ -26,8 +24,8 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         [TestInitialize]
         public void Setup()
         {
-            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
-            var logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance;
+            Utilities.TestLogger.Initialize();
+            var logger = Utilities.TestLogger.Instance;
 
             _player1 = TestData.Players.RedPlayer();
             _player1.TroopsInBarracks = 10;
@@ -76,13 +74,13 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Arrange
             var node1 = _mapManager.NodesInternal[0];
             var node2 = _mapManager.NodesInternal[1];
-            
+
             // Player 1 has presence at node1 (needed to perform Return action)
             node1.Occupant = _player1.Color;
-            
+
             // Player 2's troop is at node2
             node2.Occupant = _player2.Color;
-            
+
             int player1InitialTroops = _player1.TroopsInBarracks;
             int player2InitialTroops = _player2.TroopsInBarracks;
 
@@ -101,19 +99,19 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Arrange
             var node1 = _mapManager.NodesInternal[0];
             var node2 = _mapManager.NodesInternal[1];
-            
+
             // Player 1 needs presence to perform return action
             node1.Occupant = _player1.Color;
-            
+
             // Node 2 has a troop from a color with no player
             node2.Occupant = PlayerColor.Black;
-            
+
             // Mock returns null for Black
             _turnManager.GetPlayerByColor(PlayerColor.Black).Returns((Player?)null);
 
             // Act & Assert - should not throw
             _mapManager.ReturnTroop(node2, _player1);
-            
+
             // Node should still be cleared even if player not found
             Assert.AreEqual(PlayerColor.None, node2.Occupant, "Node should be empty even if player not found");
         }

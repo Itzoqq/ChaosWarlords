@@ -1,9 +1,7 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
 
@@ -18,7 +16,7 @@ namespace ChaosWarlords.Tests.Source.Commands
         {
             // Arrange
             var stateFake = new TestGameplayState();
-            
+
             var mockActionSystem = Substitute.For<IActionSystem>();
             var mockMatchManager = Substitute.For<IMatchManager>();
 
@@ -44,7 +42,7 @@ namespace ChaosWarlords.Tests.Source.Commands
         {
             // Arrange
             var stateFake = new TestGameplayState();
-            
+
             var mockActionSystem = Substitute.For<IActionSystem>();
             var mockMatchManager = Substitute.For<IMatchManager>();
 

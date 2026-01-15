@@ -1,14 +1,8 @@
-using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Commands;
 using NSubstitute;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
-using System.Reflection;
 
 namespace ChaosWarlords.Tests.Mechanics.Actions
 {
@@ -24,12 +18,12 @@ namespace ChaosWarlords.Tests.Mechanics.Actions
         [TestInitialize]
         public void Setup()
         {
-            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
+            Utilities.TestLogger.Initialize();
             _turnManager = Substitute.For<ITurnManager>();
             _mapManager = Substitute.For<IMapManager>();
             _matchManager = Substitute.For<IMatchManager>();
 
-            _actionSystem = new ActionSystem(_turnManager, _mapManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _actionSystem = new ActionSystem(_turnManager, _mapManager, Utilities.TestLogger.Instance);
             _actionSystem.SetMatchManager(_matchManager);
         }
 
@@ -39,10 +33,10 @@ namespace ChaosWarlords.Tests.Mechanics.Actions
             // Arrange
             // Wight: Devour -> OnSuccess: Supplant
             var wight = new Card("wight", "Wight", 3, CardAspect.Sorcery, 1, 1, 0);
-            
+
             // We simulate the Stack behavior manually for Unit Testing
             // In reality, CardEffectProcessor would wire this up.
-            
+
             // 2. The Child Effect (Supplant) to be pushed when Devour resolves
             var supplantCtx = new ChaosWarlords.Source.Core.Contexts.EffectContext(
                 ActionState.TargetingSupplant,
@@ -58,11 +52,12 @@ namespace ChaosWarlords.Tests.Mechanics.Actions
                 wight,
                 true, // Requires Input
                 "Devour",
-                (success) => {
+                (success) =>
+                {
                     if (success) _actionSystem.PushEffect(supplantCtx);
                 }
             );
-            
+
             // Push Parent
             _actionSystem.PushEffect(devourCtx);
 
@@ -92,9 +87,10 @@ namespace ChaosWarlords.Tests.Mechanics.Actions
                 corruptor,
                 false, // Auto
                 "Gain Resource",
-                (s) => { 
-                     // Verify this runs
-                     _matchManager.ResumeDevourChain(corruptor); // Mock call for verification
+                (s) =>
+                {
+                    // Verify this runs
+                    _matchManager.ResumeDevourChain(corruptor); // Mock call for verification
                 }
             );
 
@@ -104,7 +100,8 @@ namespace ChaosWarlords.Tests.Mechanics.Actions
                 corruptor,
                 true,
                 "Devour",
-                (success) => {
+                (success) =>
+                {
                     if (success) _actionSystem.PushEffect(resourceCtx);
                 }
             );
@@ -117,7 +114,7 @@ namespace ChaosWarlords.Tests.Mechanics.Actions
 
             // Act 2: Resolve Devour
             _actionSystem.ResolveCurrentEffect(true);
-            
+
             // Stack behavior:
             // 1. Devour Pops.
             // 2. OnResolved Pushes Resource.
@@ -133,7 +130,7 @@ namespace ChaosWarlords.Tests.Mechanics.Actions
         [TestMethod]
         public void AdvanceDevourChain_FromInnerCircleState_TransitionsToNextEffect()
         {
-             // Arrange
+            // Arrange
             var cultist = new Card("cultist", "Cultist", 3, CardAspect.Sorcery, 1, 1, 0);
 
             var resourceCtx = new ChaosWarlords.Source.Core.Contexts.EffectContext(
@@ -149,7 +146,7 @@ namespace ChaosWarlords.Tests.Mechanics.Actions
                 cultist,
                 true,
                 "Devour",
-                (success) => { if(success) _actionSystem.PushEffect(resourceCtx); }
+                (success) => { if (success) _actionSystem.PushEffect(resourceCtx); }
             );
 
             _actionSystem.PushEffect(devourCtx);

@@ -9,6 +9,6 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
     /// </summary>
     public interface ICommandDispatcher
     {
-        void Dispatch(IGameCommand command, ChaosWarlords.Source.Contexts.MatchContext context);
+        void Dispatch(IGameCommand command, Source.Contexts.MatchContext context);
     }
 }

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using System.Diagnostics.CodeAnalysis;

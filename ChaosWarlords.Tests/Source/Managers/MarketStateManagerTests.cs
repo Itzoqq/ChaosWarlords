@@ -1,11 +1,10 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+
 using NSubstitute;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Core.Interfaces.Logic; // Added for IGameCommand
 using ChaosWarlords.Source.Utilities; // For MarketMode, LogChannel
-using System;
 
 namespace ChaosWarlords.Tests.Managers
 {
@@ -58,22 +57,22 @@ namespace ChaosWarlords.Tests.Managers
         [TestMethod]
         public void OpenForDevour_NullCallback_Throws()
         {
-             try
-             {
-                 _manager.OpenForDevour(null!);
-                 Assert.Fail("Expected ArgumentNullException");
-             }
-             catch (ArgumentNullException)
-             {
-                 // Success
-             }
+            try
+            {
+                _manager.OpenForDevour(null!);
+                Assert.Fail("Expected ArgumentNullException");
+            }
+            catch (ArgumentNullException)
+            {
+                // Success
+            }
         }
 
         [TestMethod]
         public void Close_SetsModeClosedAndClearsCallback()
         {
             // Arrange
-            _manager.OpenForDevour((c) => null); 
+            _manager.OpenForDevour((c) => null);
 
             // Act
             _manager.Close();

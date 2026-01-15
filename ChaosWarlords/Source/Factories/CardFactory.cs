@@ -1,6 +1,5 @@
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using System;
 
 namespace ChaosWarlords.Source.Utilities
 {
@@ -92,7 +91,7 @@ namespace ChaosWarlords.Source.Utilities
             }
             else
             {
-                System.Console.WriteLine($"[CardFactory] FAILED to parse TargetLocation: {data.TargetLocation}");
+                Console.WriteLine($"[CardFactory] FAILED to parse TargetLocation: {data.TargetLocation}");
             }
         }
 

@@ -1,7 +1,4 @@
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Commands;
-using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
 
@@ -16,11 +13,11 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         {
             // Arrange
             var stateFake = new TestGameplayState();
-            
+
             var mockMapManager = stateFake.MapManager;
             var mockTurnManager = stateFake.TurnManager;
             var mockPlayer = TestData.Players.RedPlayer();
-            
+
             mockTurnManager.ActivePlayer.Returns(mockPlayer);
 
             var node = TestData.MapNodes.Node1();

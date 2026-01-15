@@ -8,7 +8,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Rendering
         void AddButton(SimpleButton button);
         void Update(Point mousePosition, bool isMouseClicked);
         void Clear();
-        System.Collections.Generic.IEnumerable<SimpleButton> GetButtons();
+        IEnumerable<SimpleButton> GetButtons();
     }
 }
 

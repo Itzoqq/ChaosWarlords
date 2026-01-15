@@ -56,11 +56,11 @@ namespace ChaosWarlords.Source.GameStates
             IButtonManager buttonManager = null!)
         {
             _game = game;
-            _inputProvider = inputProvider ?? throw new System.ArgumentNullException(nameof(inputProvider));
+            _inputProvider = inputProvider ?? throw new ArgumentNullException(nameof(inputProvider));
             _stateManager = stateManager;
             _cardDatabase = cardDatabase;
-            _replayManager = replayManager ?? throw new System.ArgumentNullException(nameof(replayManager));
-            _logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
+            _replayManager = replayManager ?? throw new ArgumentNullException(nameof(replayManager));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _view = view;
             _buttonManager = buttonManager;
         }
@@ -78,9 +78,9 @@ namespace ChaosWarlords.Source.GameStates
             // View Setup (Only if View exists - Client Side; or create it if missing)
             if (_view is null && _game?.GraphicsDevice is not null)
             {
-                 // Create default view if none injected (e.g. from transition)
-                 // We rely on _buttonManager being initialized above.
-                 _view = new MainMenuView(_game.GraphicsDevice, _game.Content, _buttonManager!, _logger);
+                // Create default view if none injected (e.g. from transition)
+                // We rely on _buttonManager being initialized above.
+                _view = new MainMenuView(_game.GraphicsDevice, _game.Content, _buttonManager!, _logger);
             }
 
             _view?.LoadContent();
@@ -191,14 +191,14 @@ namespace ChaosWarlords.Source.GameStates
             // We need to create NEW Input and UI Managers for GameplayState or reuse existing ones?
             // GameplayState logic (previously) created its OWN infrastructure. 
             // Now we must create it here to pass it in.
-            
+
             // NOTE: Currently MainMenuState shares InputProvider but has its own ButtonManager.
             // GameplayState needs InputManager (wrapper around Provider) and UIManager.
-            
-            var inputManager = new ChaosWarlords.Source.Managers.InputManager(_inputProvider);
-            var uiManager = new ChaosWarlords.Source.Managers.UIManager(width, height, _logger);
-            
-            var dependencies = new ChaosWarlords.Source.Core.Composition.GameDependencies
+
+            var inputManager = new Managers.InputManager(_inputProvider);
+            var uiManager = new Managers.UIManager(width, height, _logger);
+
+            var dependencies = new Core.Composition.GameDependencies
             {
                 Game = _game,
                 InputManager = inputManager,

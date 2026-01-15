@@ -1,5 +1,3 @@
-using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
@@ -7,10 +5,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Factories;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
-using System.Linq;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Mechanics.Actions;
-using ChaosWarlords.Source.Input.Modes;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 
@@ -36,11 +31,11 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             database.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new System.Collections.Generic.List<Card>());
             var replayManager = Substitute.For<IReplayManager>();
             var factory = new MatchFactory(database, _logger);
-            
+
             // Basic match setup
             var worldData = factory.Build(replayManager, 12345);
             _actionSystem = (ActionSystem)worldData.ActionSystem;
-            
+
             Console.WriteLine($"TurnManager is null: {worldData.TurnManager == null}");
             Console.WriteLine($"MapManager is null: {worldData.MapManager == null}");
             Console.WriteLine($"MarketManager is null: {worldData.MarketManager == null}");
@@ -75,7 +70,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
         {
             // 1. Arrange
             var player = _context.ActivePlayer;
-            
+
             // Add a card to Inner Circle (Target)
             var innerCard = new Card("inner_victim", "Inner Victim", 1, CardAspect.Neutral, 1, 1, 0);
             innerCard.Location = CardLocation.InnerCircle;
@@ -83,10 +78,10 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
 
             // Create a generic card with "Devour Inner Circle" effect
             var devourCard = new Card("devourer", "Inner Devourer", 2, CardAspect.Sorcery, 0, 0, 0);
-            devourCard.AddEffect(new CardEffect(EffectType.Devour, 0) 
-            { 
-               TargetLocation = CardLocation.InnerCircle,
-               OnSuccess = new CardEffect(EffectType.GainResource, 3, ResourceType.Influence)
+            devourCard.AddEffect(new CardEffect(EffectType.Devour, 0)
+            {
+                TargetLocation = CardLocation.InnerCircle,
+                OnSuccess = new CardEffect(EffectType.GainResource, 3, ResourceType.Influence)
             });
             player.Hand.Add(devourCard);
 
@@ -94,7 +89,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             // We simulate the PlayCard flow manually since we don't have the full InputCoordinator here
             // We simulate the PlayCard flow manually since we don't have the full InputCoordinator here
             // _actionSystem.PendingCard is set by StartTargeting inside the strategy execution
-            
+
             // Trigger start logic (usually called by CardPlaySystem)
             var strategy = ChaosWarlords.Source.Mechanics.Rules.DevourStrategyFactory.GetStrategy(CardLocation.InnerCircle);
             strategy.Execute(devourCard, _context, _logger, () => { }, false);
@@ -105,7 +100,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             // Simulate Selection
             var cmd = _actionSystem.HandleDevourInnerCircleSelection(innerCard);
             Assert.IsNotNull(cmd, "Should generate Devour Command");
-            
+
             // Execute Command
             // Needed a state Double
             var testState = new TestGameplayState(_context, _matchManager, _logger);
@@ -114,7 +109,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             // 3. Assert
             CollectionAssert.DoesNotContain(player.InnerCircle, innerCard, "Inner Circle card should be removed");
             Assert.AreEqual(CardLocation.Void, innerCard.Location, "Inner Circle card should be in Void");
-            
+
             // Note: OnSuccess effect (Gain Influence) is triggered by the Command execution via MatchManager logic
             // But checking influence might be tricky if "ResumeDevourChain" isn't fully mocked/integrated here.
             // The command only does the Devour. The 'OnSuccess' is handled by the callback in the ActionSystem chain.
@@ -124,33 +119,33 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
         [TestMethod]
         public void DevourInnerCircle_Emptylist_AutoCompletesOrLogsWarning()
         {
-             // 1. Arrange
+            // 1. Arrange
             var player = _context.ActivePlayer;
             player.InnerCircle.Clear(); // Ensure empty
 
-             var devourCard = new Card("devourer", "Inner Devourer", 2, CardAspect.Sorcery, 0, 0, 0);
-             devourCard.AddEffect(new CardEffect(EffectType.Devour, 0) 
-             { 
+            var devourCard = new Card("devourer", "Inner Devourer", 2, CardAspect.Sorcery, 0, 0, 0);
+            devourCard.AddEffect(new CardEffect(EffectType.Devour, 0)
+            {
                 TargetLocation = CardLocation.InnerCircle,
                 IsOptional = true // CRITICAL: Only optional effects trigger the UI popup check
-             });
+            });
             player.Hand.Add(devourCard);
 
             // 2. Act
-             // Direct execution via Strategy would bypass CardEffectProcessor's optional check logic if we call Execute directly on Strategy?
-             // NO. Strategy.Execute is for the ACTION part (Targeting). 
-             // The POPUP happens in CardEffectProcessor BEFORE Strategy.Execute is called.
-             // So we must test CardEffectProcessor logic here, or just simulate the flow.
-             
-             // To test "Skipping Popup", we must invoke CardEffectProcessor.ResolveEffects
-             ChaosWarlords.Source.Mechanics.Rules.CardEffectProcessor.ResolveEffects(devourCard, _context, false, _logger);
+            // Direct execution via Strategy would bypass CardEffectProcessor's optional check logic if we call Execute directly on Strategy?
+            // NO. Strategy.Execute is for the ACTION part (Targeting). 
+            // The POPUP happens in CardEffectProcessor BEFORE Strategy.Execute is called.
+            // So we must test CardEffectProcessor logic here, or just simulate the flow.
+
+            // To test "Skipping Popup", we must invoke CardEffectProcessor.ResolveEffects
+            ChaosWarlords.Source.Mechanics.Rules.CardEffectProcessor.ResolveEffects(devourCard, _context, false, _logger);
 
             // 3. Assert
             // Ensure UI was NOT asked for permission
             _uiMediator.DidNotReceive().RequestOptionalEffect(
-                Arg.Any<Card>(), 
-                Arg.Any<CardEffect>(), 
-                Arg.Any<Action>(), 
+                Arg.Any<Card>(),
+                Arg.Any<CardEffect>(),
+                Arg.Any<Action>(),
                 Arg.Any<Action>()
             );
 
@@ -163,7 +158,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
         {
             // 1. Arrange
             var player = _context.ActivePlayer;
-            
+
             // Add a card to Inner Circle (Target)
             var innerCard = new Card("inner_victim", "Inner Victim", 1, CardAspect.Neutral, 1, 1, 0);
             innerCard.Location = CardLocation.InnerCircle;
@@ -171,14 +166,14 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
 
             // Create Cultist of Myrkul behavior (Devour Inner Circle -> Gain 3 Infl -> Promote 2)
             var cultist = new Card("cultist", "Cultist of Myrkul", 4, CardAspect.Oblivion, 0, 0, 0);
-            cultist.AddEffect(new CardEffect(EffectType.Devour, 0) 
-            { 
-               TargetLocation = CardLocation.InnerCircle,
-               IsOptional = true,
-               OnSuccess = new CardEffect(EffectType.GainResource, 3, ResourceType.Influence)
-               {
-                   OnSuccess = new CardEffect(EffectType.Promote, 2)
-               }
+            cultist.AddEffect(new CardEffect(EffectType.Devour, 0)
+            {
+                TargetLocation = CardLocation.InnerCircle,
+                IsOptional = true,
+                OnSuccess = new CardEffect(EffectType.GainResource, 3, ResourceType.Influence)
+                {
+                    OnSuccess = new CardEffect(EffectType.Promote, 2)
+                }
             });
             player.Hand.Add(cultist);
 
@@ -189,7 +184,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             Assert.AreEqual(ActionState.TargetingDevourInnerCircle, _actionSystem.CurrentState);
 
             var cmd = _actionSystem.HandleDevourInnerCircleSelection(innerCard);
-            
+
             // Execute Command
             var testState = new TestGameplayState(_context, _matchManager, _logger);
             cmd?.Execute(testState.MatchContext);
@@ -212,7 +207,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
         {
             public MatchContext MatchContext { get; }
             public IMatchManager MatchManager { get; }
-            
+
             // Managers
             public IMapManager MapManager => MatchContext.MapManager;
             public IMarketManager MarketManager => MatchContext.MarketManager;

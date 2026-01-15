@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Entities.Cards
@@ -15,7 +14,7 @@ namespace ChaosWarlords.Source.Entities.Cards
         /// Unique identifier for this specific instance of the card.
         /// Essential for distinguishing between identical cards (e.g. two "Drow Soldier" cards).
         /// </summary>
-        public System.Guid RuntimeId { get; private set; } = System.Guid.NewGuid();
+        public Guid RuntimeId { get; private set; } = Guid.NewGuid();
 
         /// <summary>
         /// Unique identifier for the card definition (e.g. "c_obsidian_golem").
@@ -68,8 +67,8 @@ namespace ChaosWarlords.Source.Entities.Cards
         public CardLocation Location { get; set; }
 
         // Constants moved to GameConstants.CardRendering for centralization
-        public static int Width => Utilities.GameConstants.CardRendering.CardWidth;
-        public static int Height => Utilities.GameConstants.CardRendering.CardHeight;
+        public static int Width => GameConstants.CardRendering.CardWidth;
+        public static int Height => GameConstants.CardRendering.CardHeight;
 
         public Card(string id, string name, int cost, CardAspect aspect, int deckVp, int innerCircleVp, int influence)
         {
@@ -107,20 +106,20 @@ namespace ChaosWarlords.Source.Entities.Cards
                     Condition = effect.Condition, // Reference copy for condition (usually shared/immutable)
                     // Deep copy OnSuccess recursively if needed, or check if CardEffect has a Clone
                 };
-                
+
                 if (effect.OnSuccess != null)
                 {
-                     // Simplified recursive copy for OnSuccess chain
-                     // Note: We should strictly implement a Clone on CardEffect, but inline here for now.
-                     // Assuming depth is shallow usually. Be careful of stack overflow if circular (unlikely).
-                     newEffect.OnSuccess = new CardEffect(effect.OnSuccess.Type, effect.OnSuccess.Amount, effect.OnSuccess.TargetResource)
-                     {
+                    // Simplified recursive copy for OnSuccess chain
+                    // Note: We should strictly implement a Clone on CardEffect, but inline here for now.
+                    // Assuming depth is shallow usually. Be careful of stack overflow if circular (unlikely).
+                    newEffect.OnSuccess = new CardEffect(effect.OnSuccess.Type, effect.OnSuccess.Amount, effect.OnSuccess.TargetResource)
+                    {
                         RequiresFocus = effect.OnSuccess.RequiresFocus,
                         IsOptional = effect.OnSuccess.IsOptional,
                         TargetLocation = effect.OnSuccess.TargetLocation,
                         ReplaceWithSource = effect.OnSuccess.ReplaceWithSource,
                         Condition = effect.OnSuccess.Condition
-                     };
+                    };
                 }
 
                 newCard.Effects.Add(newEffect);

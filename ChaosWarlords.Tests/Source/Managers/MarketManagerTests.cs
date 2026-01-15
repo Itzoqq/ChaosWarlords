@@ -4,7 +4,6 @@ using NSubstitute;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -37,7 +36,7 @@ namespace ChaosWarlords.Tests.Systems
             _mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(deck);
 
             // 4. Use Real StateManager (or Mock if strictly isolating, but Real is better for logic verification)
-            _stateManager = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _stateManager = new PlayerStateManager(Utilities.TestLogger.Instance);
 
             // 3. Inject the Mock with a mock IGameRandom for deterministic shuffling
             var mockRandom = Substitute.For<IGameRandom>();

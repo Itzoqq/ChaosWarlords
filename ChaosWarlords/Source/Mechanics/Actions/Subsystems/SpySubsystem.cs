@@ -1,11 +1,8 @@
-using System;
-using System.Collections.Generic;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Managers;
 
 namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
 {
@@ -42,7 +39,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             if (targetSite.Spies.Contains(CurrentPlayer.Color)) return null;
             if (CurrentPlayer.SpiesInBarracks <= 0) return null;
 
-            return new ChaosWarlords.Source.Commands.PlaceSpyCommand(targetSite.Id, cardId);
+            return new Commands.PlaceSpyCommand(targetSite.Id, cardId);
         }
 
         public void PerformPlaceSpy(Site site, string? cardId)
@@ -73,7 +70,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
                 // See ActionSystem internal implementation: OnActionFailed?.Invoke(...)
                 // We can't invoke that event from outside.
                 // Refactor opportunity: IActionSystem should have `NotifyFailure(string reason)`.
-                
+
                 // Refactor opportunity uses NotifyFailure.
                 _actionSystem.NotifyFailure(failReason);
                 return null;
@@ -108,14 +105,14 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
                 // We can return immediately only if we know the spy color.
                 // But wait, ExecuteReturnSpy in original code set PendingSite and returned FinalizeSpyReturn
                 // OR set state to SelectingSpyToReturn.
-                
+
                 // We need to support state transitions.
                 // If 1 spy: Immediate command generation.
                 // If >1 spy: Transition to SelectingSpyToReturn state.
-                
+
                 // But wait, if we generate command here, who executes it?
                 // The caller (ActionSystem.HandleTargetClick) -> AutoExecuteCommand.
-                
+
                 return FinalizeSpyReturn(enemySpies[0], site, cardId);
             }
 
@@ -123,28 +120,28 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             // We need to tell ActionSystem to buffer the Site and switch state.
             // ActionSystem has PendingSite. We can't set it directly via Interface?
             // Interface says: "Site? PendingSite { get; }" -> Read Only.
-            
+
             // CHALLENGE: Subsystem cannot set ActionSystem state directly.
             // Solution: 
             // 1. ActionSystem exposes methods to SetPendingSite?
             // 2. Subsystem manages this state?
             // 3. Return a special "SwitchStateCommand"? No.
-            
+
             // If we want good decoupling, Subsystem should manage the "Selection" phase logic.
             // But ActionSystem holds the "PendingSite".
-            
+
             // Workaround: We cast to ActionSystem concrete (bad) or add setter to interface (good).
             // Or we handle state transition via a Side Effect method on IActionSystem.
             // "EnterSpySelectionState(Site site)"
-            
+
             _logger.Log("Multiple spies detected. Select which spy to return.", LogChannel.General);
-            
+
             // This requires ActionSystem support to store the site and switch state.
             // For now, I will assume we can add a method to IActionSystem later or cast.
             // Given I am modifying ActionSystem anyway, I will add `SetPendingSpyReturnSite(Site site)` to interface or similar.
-            
+
             _actionSystem.TransitionToSpySelection(site);
-            
+
             return null;
         }
 
@@ -154,7 +151,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
 
             if (!ValidateSpyReturn(CurrentPlayer, cardId)) return null;
 
-            return new ChaosWarlords.Source.Commands.ResolveSpyCommand(pendingSite.Id, selectedSpyColor, cardId);
+            return new Commands.ResolveSpyCommand(pendingSite.Id, selectedSpyColor, cardId);
         }
 
         private bool ValidateSpyReturn(Player player, string? cardId)
@@ -173,7 +170,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
 
         public bool PerformSpyReturn(Site site, PlayerColor selectedSpyColor, string? cardId)
         {
-             // Logic
+            // Logic
             bool success = _mapManager.ReturnSpecificSpy(site, CurrentPlayer, selectedSpyColor);
 
             if (success)
@@ -187,10 +184,10 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
                     }
                     else
                     {
-                         CurrentPlayer.Power -= GameConstants.ReturnSpyPowerCost;
+                        CurrentPlayer.Power -= GameConstants.ReturnSpyPowerCost;
                     }
                 }
-                
+
                 _actionSystem.CompleteAction();
                 return true;
             }

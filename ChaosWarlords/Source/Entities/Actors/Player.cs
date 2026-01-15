@@ -1,6 +1,4 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using System;
-using System.Collections.Generic;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Entities.Cards;
 
@@ -163,7 +161,7 @@ namespace ChaosWarlords.Source.Entities.Actors
             // Try to remove from Hand first, then PlayedCards
             // Key Fix: Use RuntimeId to ensure we remove the EXACT instance requested
             // Use RemoveAll with count check or Find + Remove
-            
+
             // Check Hand
             var handMatch = Hand.Find(c => c.RuntimeId == card.RuntimeId);
             bool removed = false;
@@ -171,15 +169,15 @@ namespace ChaosWarlords.Source.Entities.Actors
             {
                 removed = Hand.Remove(handMatch);
             }
-            
+
             // Check PlayedCards if not found in Hand
             if (!removed)
             {
-               var playedMatch = PlayedCards.Find(c => c.RuntimeId == card.RuntimeId);
-               if (playedMatch != null)
-               {
-                   removed = PlayedCards.Remove(playedMatch);
-               }
+                var playedMatch = PlayedCards.Find(c => c.RuntimeId == card.RuntimeId);
+                if (playedMatch != null)
+                {
+                    removed = PlayedCards.Remove(playedMatch);
+                }
             }
 
             // Guard clause: card not found

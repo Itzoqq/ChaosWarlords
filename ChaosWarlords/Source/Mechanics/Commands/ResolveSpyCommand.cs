@@ -1,17 +1,16 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Utilities;
-using System.Linq;
 
 namespace ChaosWarlords.Source.Commands
 {
     public class ResolveSpyCommand : IGameCommand
     {
-        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.ResolveSpy;
+        public Core.Data.Enums.CommandType Type => Core.Data.Enums.CommandType.ResolveSpy;
 
-        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        public Core.Data.Dtos.GameCommandDto ToDto()
         {
-            return new ChaosWarlords.Source.Core.Data.Dtos.ResolveSpyCommandDto
+            return new Core.Data.Dtos.ResolveSpyCommandDto
             {
                 SiteId = SiteId,
                 Color = SpyColor.ToString(),
@@ -46,7 +45,7 @@ namespace ChaosWarlords.Source.Commands
                 {
                     if (string.IsNullOrEmpty(CardId))
                     {
-                         context.PlayerStateManager.TrySpendPower(context.TurnManager.ActivePlayer, GameConstants.ReturnSpyPowerCost);
+                        context.PlayerStateManager.TrySpendPower(context.TurnManager.ActivePlayer, GameConstants.ReturnSpyPowerCost);
                     }
                     context.ActionSystem.CompleteAction();
                 }

@@ -30,7 +30,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// <summary>
         /// Gets a detailed breakdown of the player's score.
         /// </summary>
-        ChaosWarlords.Source.Core.Data.Dtos.ScoreBreakdownDto GetScoreBreakdown(Player player, MatchContext context);
+        Core.Data.Dtos.ScoreBreakdownDto GetScoreBreakdown(Player player, MatchContext context);
 
         /// <summary>
         /// Determines the winner based on final scores.

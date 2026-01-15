@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
@@ -44,8 +42,8 @@ namespace ChaosWarlords.Tests.Source.Doubles.State
         public TestGameplayState()
         {
             // Defaults to avoid null refs if not set
-            Logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance;
-            
+            Logger = Tests.Utilities.TestLogger.Instance;
+
             // Auto-wire MatchContext with current mocks
             // Note: If tests replace mocks later, they might need to update MatchContext or we use lazy properties
             // But usually tests set mocks BEFORE usage.
@@ -56,22 +54,22 @@ namespace ChaosWarlords.Tests.Source.Doubles.State
 
         public void InitializeMatchContext()
         {
-             // Create a dummy PlayerStateManager if needed because it's not in the property list of TestGameplayState explicitly as an interface?
-             // Actually IGameplayState doesn't have PlayerStateManager anymore (it was removed).
-             // But MatchContext needs one.
-             var playerState = new PlayerStateManager(Logger);
+            // Create a dummy PlayerStateManager if needed because it's not in the property list of TestGameplayState explicitly as an interface?
+            // Actually IGameplayState doesn't have PlayerStateManager anymore (it was removed).
+            // But MatchContext needs one.
+            var playerState = new PlayerStateManager(Logger);
 
-             MatchContext = new MatchContext(
-                 TurnManager,
-                 MapManager,
-                 MarketManager,
-                 ActionSystem,
-                 NSubstitute.Substitute.For<ICardDatabase>(),
-                 playerState,
-                 NSubstitute.Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
-                 Logger
-             );
-             MatchContext.MatchManager = MatchManager;
+            MatchContext = new MatchContext(
+                TurnManager,
+                MapManager,
+                MarketManager,
+                ActionSystem,
+                NSubstitute.Substitute.For<ICardDatabase>(),
+                playerState,
+                NSubstitute.Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
+                Logger
+            );
+            MatchContext.MatchManager = MatchManager;
         }
 
         public void RecordAndExecuteCommand(IGameCommand command)
@@ -94,39 +92,39 @@ namespace ChaosWarlords.Tests.Source.Doubles.State
         public bool TestCanEndTurnResult { get; set; } = true;
         public bool EndTurnCalled { get; private set; }
 
-        public bool CanEndTurn(out string reason) 
-        { 
-            reason = ""; 
-            return TestCanEndTurnResult; 
+        public bool CanEndTurn(out string reason)
+        {
+            reason = "";
+            return TestCanEndTurnResult;
         }
 
         public void EndTurn() { EndTurnCalled = true; }
-        
-        public IMarketStateManager MarketStateManager { get; set; } = new MarketStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-        
+
+        public IMarketStateManager MarketStateManager { get; set; } = new MarketStateManager(Tests.Utilities.TestLogger.Instance);
+
         public string ActiveModeName { get; set; } = "None"; // For testing mode switches
         public void SwitchToTargetingMode() { ActiveModeName = "Targeting"; }
         public void SwitchToNormalMode() { ActiveModeName = "Normal"; }
         public void SwitchToPromoteMode(int amount) { ActiveModeName = "Promote"; }
         public bool EscapeHandled { get; private set; }
         public bool EndTurnRequested { get; private set; }
-        
+
         public void HandleEscapeKeyPress() { EscapeHandled = true; }
         public void HandleEndTurnKeyPress() { EndTurnRequested = true; }
-        public void PlayCard(Card card) 
+        public void PlayCard(Card card)
         {
             // For State-Based Verification
             // 1. Delegate to MatchManager if it exists (mimicking real state)
             MatchManager?.PlayCard(card);
-            
+
             // 2. Or just track it locally if MatchManager isn't critical for the specific test
             // But usually PlayCard involves moving card from Hand to Played
             MoveCardToPlayed(card);
         }
 
-        public void MoveCardToPlayed(Card card) 
+        public void MoveCardToPlayed(Card card)
         {
-             // Verify this method is called by PlayCard
+            // Verify this method is called by PlayCard
         }
         public bool HasViableTargets(Card card) => true;
         public string GetTargetingText(ActionState state) => "Test Targeting";

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Source.Core.Data.Dtos
@@ -17,10 +16,10 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         // Entities
         public List<PlayerDto> Players { get; set; } = [];
         public MapDto Map { get; set; } = new MapDto();
-        
+
         // Market (Row of cards)
         public List<CardDto> Market { get; set; } = [];
-        
+
         // Void (Removed cards)
         public List<CardDto> VoidPile { get; set; } = [];
 

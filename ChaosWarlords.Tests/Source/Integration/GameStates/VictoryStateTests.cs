@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using ChaosWarlords.Source.GameStates;
 using ChaosWarlords.Source.Core.Data.Dtos;
@@ -8,8 +7,6 @@ using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
-using ChaosWarlords.Source.Utilities;
-using System;
 
 namespace ChaosWarlords.Tests.Integration.GameStates
 {
@@ -25,21 +22,21 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         private VictoryDto _testVictoryDto = null!;
 
         [TestInitialize]
-        
+
         public void Setup()
         {
             _mockInput = Substitute.For<IInputProvider>();
             _mockStateManager = Substitute.For<IStateManager>();
             _mockLogger = Substitute.For<IGameLogger>();
             _mockView = Substitute.For<IVictoryView>();
-            
+
             // We pass null for Game1 where possible, as mocking Game class is hard.
             // Our refactored constructor allows passing dependencies directly.
-            _mockGame = null!; 
+            _mockGame = null!;
 
-            _testVictoryDto = new VictoryDto 
-            { 
-                WinnerName = "Red Player", 
+            _testVictoryDto = new VictoryDto
+            {
+                WinnerName = "Red Player",
                 VictoryReason = "Total Domination",
                 WinnerSeat = 0,
                 FinalScores = new System.Collections.Generic.Dictionary<int, int> { { 0, 15 }, { 1, 10 } },
@@ -55,26 +52,26 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void Constructor_ThrowsOnNullArguments()
         {
-             // Manual checks to avoid version issues with ThrowsException
-             bool threw = false;
-             try { new VictoryState(_mockGame, null!, _mockInput, _mockStateManager, _mockLogger, _mockView); }
-             catch (ArgumentNullException) { threw = true; }
-             Assert.IsTrue(threw, "Should throw on null VictoryDto");
+            // Manual checks to avoid version issues with ThrowsException
+            bool threw = false;
+            try { new VictoryState(_mockGame, null!, _mockInput, _mockStateManager, _mockLogger, _mockView); }
+            catch (ArgumentNullException) { threw = true; }
+            Assert.IsTrue(threw, "Should throw on null VictoryDto");
 
-             threw = false;
-             try { new VictoryState(_mockGame, _testVictoryDto, null!, _mockStateManager, _mockLogger, _mockView); }
-             catch (ArgumentNullException) { threw = true; }
-             Assert.IsTrue(threw, "Should throw on null InputProvider");
-             
-             threw = false;
-             try { new VictoryState(_mockGame, _testVictoryDto, _mockInput, null!, _mockLogger, _mockView); }
-             catch (ArgumentNullException) { threw = true; }
-             Assert.IsTrue(threw, "Should throw on null StateManager");
+            threw = false;
+            try { new VictoryState(_mockGame, _testVictoryDto, null!, _mockStateManager, _mockLogger, _mockView); }
+            catch (ArgumentNullException) { threw = true; }
+            Assert.IsTrue(threw, "Should throw on null InputProvider");
 
-             threw = false;
-             try { new VictoryState(_mockGame, _testVictoryDto, _mockInput, _mockStateManager, null!, _mockView); }
-             catch (ArgumentNullException) { threw = true; }
-             Assert.IsTrue(threw, "Should throw on null Logger");
+            threw = false;
+            try { new VictoryState(_mockGame, _testVictoryDto, _mockInput, null!, _mockLogger, _mockView); }
+            catch (ArgumentNullException) { threw = true; }
+            Assert.IsTrue(threw, "Should throw on null StateManager");
+
+            threw = false;
+            try { new VictoryState(_mockGame, _testVictoryDto, _mockInput, _mockStateManager, null!, _mockView); }
+            catch (ArgumentNullException) { threw = true; }
+            Assert.IsTrue(threw, "Should throw on null Logger");
         }
 
         [TestMethod]
@@ -101,7 +98,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
 
             // Mock Mouse Inside Button
             _mockInput.GetMouseState().Returns(new MouseState(150, 125, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
-            
+
             // Act
             state.Update(new GameTime());
 
@@ -120,45 +117,45 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             // Beacuse we cannot easily mock Game1 (concrete class), checking the logic:
             // The lambda in SetupButtons calls ReturnToMainMenu().
             // Ideally, we'd mock the action or the button, but the button is created internally.
-            
+
             // Re-Pattern: We can test up to the point of button click handling.
             // Or we force `_game` to be a substitute.
             // NSubstitute can mock classes if members are virtual. Game1 has mixed members.
             // However, MainMenuState creation is hard-coded `new MainMenuState(_game)`.
             // Any test invoking `ReturnToMainMenu` requires a valid `_game` that can satisfy `MainMenuState` constructor.
-            
+
             // Alternative: Verify `ButtonManager` interactions if possible? 
             // `ButtonManager` is internal private.
-            
+
             // For Integration Test level, we skip testing the actual `ChangeState` call if dependencies are too heavy,
             // OR we fix `VictoryState` to inject `IStateFactory` (too big refactor).
-            
+
             // Compromise: We CANNOT easily test `ReturnToMainMenu` without a `Game1` instance.
             // I will implement the test but mark it as possibly needing valid Game mock if I can.
             // But `Game1` inherits `Game` which has unmockable internals often.
-            
+
             // Let's rely on Unit Tests for logic and Integration for flow.
             // This test is labeled Integration. Ideally we instantiate `Game1`.
             // But `Game1` needs `GraphicsDevice`.
-            
+
             // I will skip the crash-prone `ReturnToMainMenu` test for now, 
             // and instead test that it *registers* the click.
             // Wait, I can't check registration without side effect.
-            
+
             // Let's assume for now I cannot fully test `ReturnToMainMenu` without heavy mocking.
             // I will verify logic up to button click detection.
-            
+
         }
 
         [TestMethod]
         public void Dispose_DisposesView()
         {
-             // Arrange
+            // Arrange
             var state = new VictoryState(_mockGame, _testVictoryDto, _mockInput, _mockStateManager, _mockLogger, _mockView);
-            
+
             // Act
             state.Dispose();
-            
+
             // Assert
             _mockView.Received(1).Dispose();
         }

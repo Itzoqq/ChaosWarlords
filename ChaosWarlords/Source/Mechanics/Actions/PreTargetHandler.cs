@@ -1,11 +1,7 @@
-using System;
-using System.Collections.Generic;
-using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Mechanics.Actions;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Managers
@@ -34,8 +30,8 @@ namespace ChaosWarlords.Source.Managers
         /// Returns true if a pre-target was found and executed, false otherwise.
         /// </summary>
         public bool TryExecutePreTarget(
-            Card card, 
-            ActionState state, 
+            Card card,
+            ActionState state,
             Func<MapNode?, Site?, IGameCommand?> handleTargetClick,
             Func<Card?, IGameCommand?> handleDevourSelection,
             Action<IGameCommand> onAutoExecuteCommand)
@@ -102,7 +98,7 @@ namespace ChaosWarlords.Source.Managers
         }
 
         private void ExecuteDevourPreTarget(
-            object target, 
+            object target,
             Func<Card?, IGameCommand?> handleDevourSelection,
             Action<IGameCommand> onAutoExecuteCommand)
         {

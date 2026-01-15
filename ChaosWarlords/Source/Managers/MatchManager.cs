@@ -1,5 +1,4 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using System.Linq;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
@@ -60,7 +59,7 @@ namespace ChaosWarlords.Source.Managers
             // Now that the card is "played", we trigger its game logic.
             // We pass the 'hasFocus' snapshot we calculated earlier.
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus, _logger);
-            
+
             // Trigger automatic processing of the stack (e.g. for instant effects like GainResource)
             _context.ActionSystem.ProcessStack();
 
@@ -74,17 +73,17 @@ namespace ChaosWarlords.Source.Managers
             // Robustness: Ensure we possess the card instance or find equivalent
             var player = _context.ActivePlayer;
 
-            
+
             // Generic check for ownership across collections
-            bool isOwned = player.Hand.Contains(card) || 
-                           player.InnerCircle.Contains(card) || 
+            bool isOwned = player.Hand.Contains(card) ||
+                           player.InnerCircle.Contains(card) ||
                            player.PlayedCards.Contains(card);
 
             if (!isOwned)
             {
                 // Try finding by ID in Hand as fallback (legacy behavior for UI sync issues)
                 var instance = player.Hand.FirstOrDefault(c => c.Id == card.Id);
-                if (instance != null) 
+                if (instance != null)
                 {
                     card = instance;
                 }
@@ -123,9 +122,9 @@ namespace ChaosWarlords.Source.Managers
                 if (_context.ActionSystem is ActionSystem realActionSystem)
                 {
                     // Real ActionSystem - check if source card is on the stack
-                    bool sourceCardOnStack = realActionSystem.ExecutionStack.Count > 0 && 
+                    bool sourceCardOnStack = realActionSystem.ExecutionStack.Count > 0 &&
                                             realActionSystem.ExecutionStack.Any(ctx => ctx.SourceCard == sourceCard);
-                    
+
                     shouldResumeChain = !sourceCardOnStack;
                     if (shouldResumeChain)
                     {
@@ -150,109 +149,109 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
-         public void DevourMarketCard(Card targetCard, Card? sourceCard)
-         {
-              if (targetCard.Location != CardLocation.Market)
-              {
-                  _logger.Log("DevourMarketCard Failed: Selected card is not in Market!", LogChannel.Warning);
-                  return;
-              }
+        public void DevourMarketCard(Card targetCard, Card? sourceCard)
+        {
+            if (targetCard.Location != CardLocation.Market)
+            {
+                _logger.Log("DevourMarketCard Failed: Selected card is not in Market!", LogChannel.Warning);
+                return;
+            }
 
-              var currentPlayer = _context.ActivePlayer;
-              bool shouldReplace = false;
+            var currentPlayer = _context.ActivePlayer;
+            bool shouldReplace = false;
 
-              if (sourceCard != null)
-              {
-                  var devourEffect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.Devour && e.TargetLocation == CardLocation.Market);
-                  shouldReplace = devourEffect?.ReplaceWithSource ?? false;
-              }
-              
-              if (shouldReplace && sourceCard != null)
-              {
-                  _logger.Log($"Replacing Market Card {targetCard.Name} with {sourceCard.Name}", LogChannel.Info);
-                  _context.PlayerStateManager.MoveCardToMarket(currentPlayer, sourceCard);
-                  _context.MarketManager.ReplaceCard(targetCard, sourceCard);
-                  targetCard.Location = CardLocation.Void; // Manual voiding as ReplaceCard might just remove it from list
-                  _context.VoidPile.Add(targetCard);
-              }
-              else
-              {
-                  _context.MarketManager.RemoveCard(targetCard);
-                  targetCard.Location = CardLocation.Void;
-                  _context.VoidPile.Add(targetCard);
-              }
+            if (sourceCard != null)
+            {
+                var devourEffect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.Devour && e.TargetLocation == CardLocation.Market);
+                shouldReplace = devourEffect?.ReplaceWithSource ?? false;
+            }
+
+            if (shouldReplace && sourceCard != null)
+            {
+                _logger.Log($"Replacing Market Card {targetCard.Name} with {sourceCard.Name}", LogChannel.Info);
+                _context.PlayerStateManager.MoveCardToMarket(currentPlayer, sourceCard);
+                _context.MarketManager.ReplaceCard(targetCard, sourceCard);
+                targetCard.Location = CardLocation.Void; // Manual voiding as ReplaceCard might just remove it from list
+                _context.VoidPile.Add(targetCard);
+            }
+            else
+            {
+                _context.MarketManager.RemoveCard(targetCard);
+                targetCard.Location = CardLocation.Void;
+                _context.VoidPile.Add(targetCard);
+            }
 
 
 
-              // Resume chain if source card provided
-              // BUT: Only if we're NOT in a stack-based flow
-              // Check: if the source card is on the stack, the callback will handle the chain
-              // For mocked ActionSystems (tests), always call ResumeDevourChain
-              bool shouldResumeChain = false;
-              if (sourceCard != null)
-              {
-                  if (_context.ActionSystem is ActionSystem realActionSystem)
-                  {
-                      // Real ActionSystem - check if source card is on the stack
-                      bool sourceCardOnStack = realActionSystem.ExecutionStack.Count > 0 && 
-                                              realActionSystem.ExecutionStack.Any(ctx => ctx.SourceCard == sourceCard);
-                      
-                      shouldResumeChain = !sourceCardOnStack;
-                      if (shouldResumeChain)
-                      {
-                          _logger.Log($"DevourMarketCard: Direct API call detected (source card not on stack). Manually resuming chain.", LogChannel.Debug);
-                      }
-                      else
-                      {
-                          _logger.Log($"DevourMarketCard: Stack-based flow detected (source card on stack, size: {realActionSystem.ExecutionStack.Count}). Callback will handle chain.", LogChannel.Debug);
-                      }
-                  }
-                  else
-                  {
-                      // Mocked ActionSystem - always resume chain
-                      shouldResumeChain = true;
-                      _logger.Log($"DevourMarketCard: Mocked ActionSystem detected. Manually resuming chain.", LogChannel.Debug);
-                  }
+            // Resume chain if source card provided
+            // BUT: Only if we're NOT in a stack-based flow
+            // Check: if the source card is on the stack, the callback will handle the chain
+            // For mocked ActionSystems (tests), always call ResumeDevourChain
+            bool shouldResumeChain = false;
+            if (sourceCard != null)
+            {
+                if (_context.ActionSystem is ActionSystem realActionSystem)
+                {
+                    // Real ActionSystem - check if source card is on the stack
+                    bool sourceCardOnStack = realActionSystem.ExecutionStack.Count > 0 &&
+                                            realActionSystem.ExecutionStack.Any(ctx => ctx.SourceCard == sourceCard);
 
-                  if (shouldResumeChain)
-                  {
-                      ResumeDevourChain(sourceCard);
-                  }
-              }
-         }
+                    shouldResumeChain = !sourceCardOnStack;
+                    if (shouldResumeChain)
+                    {
+                        _logger.Log($"DevourMarketCard: Direct API call detected (source card not on stack). Manually resuming chain.", LogChannel.Debug);
+                    }
+                    else
+                    {
+                        _logger.Log($"DevourMarketCard: Stack-based flow detected (source card on stack, size: {realActionSystem.ExecutionStack.Count}). Callback will handle chain.", LogChannel.Debug);
+                    }
+                }
+                else
+                {
+                    // Mocked ActionSystem - always resume chain
+                    shouldResumeChain = true;
+                    _logger.Log($"DevourMarketCard: Mocked ActionSystem detected. Manually resuming chain.", LogChannel.Debug);
+                }
 
-         public void ResumeDevourChain(Card sourceCard)
-         {
-             // Find the Devour effect that likely initiated this chain.
-             var devourEffect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.Devour);
-             
-             if (devourEffect != null && devourEffect.OnSuccess != null)
-             {
-                 _logger.Log($"Resuming Devour Chain for {sourceCard.Name} -> {devourEffect.OnSuccess.Type}", LogChannel.Info);
-                 
-                 // Push the child effect to the stack
-                 var child = devourEffect.OnSuccess;
-                 var state = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.GetTargetingState(child);
-                 bool requiresInput = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(child.Type) || child.IsOptional;
-                 
-                  var childCtx = new ChaosWarlords.Source.Core.Contexts.EffectContext(
-                     state,
-                     sourceCard,
-                     requiresInput,
-                     $"Successor Effect: {child.Type}",
-                     (success) => { }, // Recursive/Standard handling
-                     child
-                 );
-                 _context.ActionSystem.PushEffect(childCtx);
-                 
-                 // Process immediately
-                 _context.ActionSystem.ProcessStack();
-             }
-             else
-             {
-                 _logger.Log($"ResumeDevourChain: No successor effect found for {sourceCard.Name}.", LogChannel.Info);
-             }
-         }
+                if (shouldResumeChain)
+                {
+                    ResumeDevourChain(sourceCard);
+                }
+            }
+        }
+
+        public void ResumeDevourChain(Card sourceCard)
+        {
+            // Find the Devour effect that likely initiated this chain.
+            var devourEffect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.Devour);
+
+            if (devourEffect != null && devourEffect.OnSuccess != null)
+            {
+                _logger.Log($"Resuming Devour Chain for {sourceCard.Name} -> {devourEffect.OnSuccess.Type}", LogChannel.Info);
+
+                // Push the child effect to the stack
+                var child = devourEffect.OnSuccess;
+                var state = Mechanics.Actions.CardPlaySystem.GetTargetingState(child);
+                bool requiresInput = Mechanics.Actions.CardPlaySystem.IsTargetingEffect(child.Type) || child.IsOptional;
+
+                var childCtx = new Core.Contexts.EffectContext(
+                   state,
+                   sourceCard,
+                   requiresInput,
+                   $"Successor Effect: {child.Type}",
+                   (success) => { }, // Recursive/Standard handling
+                   child
+               );
+                _context.ActionSystem.PushEffect(childCtx);
+
+                // Process immediately
+                _context.ActionSystem.ProcessStack();
+            }
+            else
+            {
+                _logger.Log($"ResumeDevourChain: No successor effect found for {sourceCard.Name}.", LogChannel.Info);
+            }
+        }
 
         public void MoveCardToPlayed(Card card)
         {
@@ -265,7 +264,7 @@ namespace ChaosWarlords.Source.Managers
             {
                 // Check if current player has deployed a troop
                 bool hasDeployed = _context.MapManager.Nodes.Any(n => n.Occupant == _context.ActivePlayer.Color);
-                
+
                 if (!hasDeployed)
                 {
                     reason = "You must deploy your army before ending your turn.";
@@ -296,11 +295,11 @@ namespace ChaosWarlords.Source.Managers
             foreach (var card in _context.CardsMarkedForTurnEndDevour.ToList())
             {
                 _logger.Log($"Processing Turn End Devour: {card.Name} -> Void", LogChannel.Info);
-                
+
                 // Remove from wherever it is (likely Played or Hand)
                 _context.ActivePlayer.PlayedCards.Remove(card);
                 _context.ActivePlayer.Hand.Remove(card);
-                
+
                 // Move to Void
                 card.Location = CardLocation.Void;
                 _context.VoidPile.Add(card);
@@ -352,7 +351,7 @@ namespace ChaosWarlords.Source.Managers
             _context.MapManager.DistributeStartOfTurnRewards(_context.ActivePlayer);
 
             // --- DEFERRED VICTORY CHECK ---
-            
+
             // Check if end game conditions are met NOW (e.g. barracks empty)
             // But do not trigger immediately if the round is not over.
             if (!_endGamePending)
@@ -387,17 +386,17 @@ namespace ChaosWarlords.Source.Managers
             return _gameOver;
         }
 
-        public ChaosWarlords.Source.Core.Data.Dtos.VictoryDto? VictoryResult { get; private set; }
+        public Core.Data.Dtos.VictoryDto? VictoryResult { get; private set; }
 
         public void TriggerGameOver()
         {
             if (_gameOver) return; // Already triggered
 
             _gameOver = true;
-            
+
             // Calculate and cache victory result using Mapper logic (or direct use if mapper logic was in VictoryManager)
             // Since our VictoryManager calculates scores and DtoMapper organizes them, we should use DtoMapper here to utilize the method we just wrote.
-            VictoryResult = ChaosWarlords.Source.Core.Utilities.DtoMapper.ToVictoryDto(_context, _victoryManager);
+            VictoryResult = Core.Utilities.DtoMapper.ToVictoryDto(_context, _victoryManager);
 
             if (VictoryResult != null)
             {
@@ -405,7 +404,7 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
-        public System.Collections.Generic.IReadOnlyList<Card> VoidPile => _context.VoidPile;
+        public IReadOnlyList<Card> VoidPile => _context.VoidPile;
     }
 }
 

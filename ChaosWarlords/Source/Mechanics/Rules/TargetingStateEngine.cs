@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Mechanics.Actions;
 using ChaosWarlords.Source.Utilities;
@@ -69,10 +67,10 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// Returns the next state if found and processed, otherwise Normal.
         /// </summary>
         private static ActionState SearchForCurrentState(
-            CardEffect effect, 
-            ActionState effectState, 
-            ActionState currentState, 
-            bool isCurrentStateSkipped, 
+            CardEffect effect,
+            ActionState effectState,
+            ActionState currentState,
+            bool isCurrentStateSkipped,
             ref bool foundCurrent)
         {
             // Case 1: This effect IS the current state
@@ -113,9 +111,9 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// If found, returns the next state from the child tree or continues to siblings.
         /// </summary>
         private static ActionState SearchInChildTree(
-            CardEffect effect, 
-            ActionState currentState, 
-            bool isCurrentStateSkipped, 
+            CardEffect effect,
+            ActionState currentState,
+            bool isCurrentStateSkipped,
             ref bool foundCurrent)
         {
             var nextInChild = TraverseForNext(new[] { effect.OnSuccess! }, currentState, isCurrentStateSkipped, ref foundCurrent);

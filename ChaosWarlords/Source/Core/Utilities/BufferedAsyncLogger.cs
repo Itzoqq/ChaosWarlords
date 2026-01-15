@@ -1,11 +1,7 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using System;
 using System.Collections.Concurrent;
 using System.Globalization;
-using System.IO;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace ChaosWarlords.Source.Utilities
 {
@@ -20,7 +16,7 @@ namespace ChaosWarlords.Source.Utilities
         private readonly Task _processingTask;
         private readonly CancellationTokenSource _cts = new();
         private readonly AutoResetEvent _signal = new(false);
-        
+
         // Configuration
         private const int FlushIntervalMs = 500;
         private const int MaxBatchSize = 100;
@@ -30,9 +26,9 @@ namespace ChaosWarlords.Source.Utilities
         public BufferedAsyncLogger(string logFilePath = "session_log.txt")
         {
             _logFilePath = logFilePath;
-            
+
             // Initialize file
-            try 
+            try
             {
                 File.WriteAllText(_logFilePath, $"--- Session Started: {DateTime.Now} ---\n");
             }
@@ -49,13 +45,13 @@ namespace ChaosWarlords.Source.Utilities
         public void Log(string message, LogChannel channel = LogChannel.General)
         {
             if (!IsEnabled) return;
-            
+
             // Handle null string explicitly
             message ??= "null";
 
             string timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
             string formattedLine = $"[{timestamp}] [{channel}] {message}";
-            
+
             _logQueue.Enqueue(formattedLine);
             _signal.Set(); // Signal writer thread that data is available
         }
@@ -68,7 +64,7 @@ namespace ChaosWarlords.Source.Utilities
         private async Task ProcessQueue()
         {
             var buffer = new StringBuilder();
-            
+
             while (!_cts.Token.IsCancellationRequested)
             {
                 // Wait for signal OR timeout (periodic flush)
@@ -86,7 +82,7 @@ namespace ChaosWarlords.Source.Utilities
 
                 if (buffer.Length > 0)
                 {
-                    try 
+                    try
                     {
                         await WriteToFileAsync(buffer.ToString());
                         buffer.Clear();
@@ -94,13 +90,13 @@ namespace ChaosWarlords.Source.Utilities
                     catch (OperationCanceledException)
                     {
                         // If cancelled during write, we keep the buffer and exit loop to FlushRemaining
-                        break; 
+                        break;
                     }
-                    catch 
+                    catch
                     {
                         // If IO error, we might want to retry or just drop to avoid infinite loop. 
                         // For safe shutdown, let's keep it in buffer and try synchronous write in FlushRemaining.
-                         break;
+                        break;
                     }
                 }
             }
@@ -142,7 +138,7 @@ namespace ChaosWarlords.Source.Utilities
                 _processingTask.Wait(1000); // Give it a second to finish
             }
             catch { } // Ignore task cancellation exceptions
-            
+
             _cts.Dispose();
             _signal.Dispose();
             GC.SuppressFinalize(this);

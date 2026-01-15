@@ -1,6 +1,4 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Commands;
-using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
 
 namespace ChaosWarlords.Tests.Mechanics.Commands
@@ -15,7 +13,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // Arrange
             var stateFake = new TestGameplayState();
             stateFake.ActiveModeName = "Targeting"; // Start in a different mode
-            
+
             var command = new SwitchToNormalModeCommand();
 
             // Act

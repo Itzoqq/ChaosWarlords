@@ -5,10 +5,7 @@ using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Rendering.UI;
 using System.Diagnostics.CodeAnalysis;
 using ChaosWarlords.Source.Utilities;
-using System;
-
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using System;
 
 namespace ChaosWarlords.Source.Rendering.Views
 {
@@ -78,9 +75,9 @@ namespace ChaosWarlords.Source.Rendering.Views
 
         public void Dispose()
         {
-             if (_isBackgroundManual) _backgroundTexture?.Dispose();
-             _buttonRenderer?.Dispose();
-             GC.SuppressFinalize(this);
+            if (_isBackgroundManual) _backgroundTexture?.Dispose();
+            _buttonRenderer?.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         public void Update(GameTime gameTime)

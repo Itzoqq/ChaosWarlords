@@ -1,16 +1,15 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
-using System.Linq;
 
 namespace ChaosWarlords.Source.Commands
 {
     public class PromoteCommand : IGameCommand
     {
-        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.Promote;
+        public Core.Data.Enums.CommandType Type => Core.Data.Enums.CommandType.Promote;
 
-        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        public Core.Data.Dtos.GameCommandDto ToDto()
         {
-            return new ChaosWarlords.Source.Core.Data.Dtos.PromoteCommandDto
+            return new Core.Data.Dtos.PromoteCommandDto
             {
                 CardId = CardId
             };
@@ -28,23 +27,23 @@ namespace ChaosWarlords.Source.Commands
             var player = context.TurnManager.ActivePlayer;
             // Check if card exists in Hand/Played
             // We need to find it first.
-            var card = player.Hand.FirstOrDefault(c => c.Id == CardId) ?? 
+            var card = player.Hand.FirstOrDefault(c => c.Id == CardId) ??
                        player.PlayedCards.FirstOrDefault(c => c.Id == CardId);
-                       
+
             return card != null && context.PlayerStateManager.TryPromoteCard(player, card, out _);
         }
 
         public void Execute(MatchContext context)
         {
             var player = context.TurnManager.ActivePlayer;
-            var card = player.Hand.FirstOrDefault(c => c.Id == CardId) ?? 
+            var card = player.Hand.FirstOrDefault(c => c.Id == CardId) ??
                        player.PlayedCards.FirstOrDefault(c => c.Id == CardId);
 
             if (card != null)
             {
                 if (context.PlayerStateManager.TryPromoteCard(player, card, out var error))
                 {
-                     context.RecordAction("Promote", $"Promoted {card.Name} to Inner Circle.");
+                    context.RecordAction("Promote", $"Promoted {card.Name} to Inner Circle.");
                 }
                 else
                 {

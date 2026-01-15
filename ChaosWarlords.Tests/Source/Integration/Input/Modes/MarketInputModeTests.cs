@@ -2,13 +2,11 @@ using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Input.Modes;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Contexts;
@@ -64,12 +62,12 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
                     _marketSub,
                     _actionSub,
                     _cardDbSub,
-                    new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance),
-                    null, ChaosWarlords.Tests.Utilities.TestLogger.Instance)
+                    new PlayerStateManager(Utilities.TestLogger.Instance),
+                    null, Utilities.TestLogger.Instance)
             };
-            
+
             // Ensure IsMarketOpen starts true for market tests if needed, or default false
-            _stateFake.MarketStateManager.OpenForBrowsing(); 
+            _stateFake.MarketStateManager.OpenForBrowsing();
 
             _inputMode = new MarketInputMode(_stateFake, _inputManager, _stateFake.MatchContext);
 
@@ -133,7 +131,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             Assert.IsNull(result);
             Assert.IsTrue(_stateFake.IsMarketOpen, "Market should remain open if UI button is clicked.");
         }
-        
+
         [TestMethod]
         public void HandleInput_WithCallback_InvokesCallback_WhenCardClicked()
         {
@@ -147,7 +145,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // Re-initialize (parameterless)
             // Re-initialize (parameterless)
             _inputMode = new MarketInputMode(_stateFake, _inputManager, _stateFake.MatchContext);
-            for(int i=0; i<10; i++) _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+            for (int i = 0; i < 10; i++) _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
 
             var card = TestData.Cards.PowerCard();
             _stateFake.HoveredMarketCard = card;

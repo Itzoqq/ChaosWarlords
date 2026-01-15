@@ -1,6 +1,4 @@
 using ChaosWarlords.Source.Map;
-using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Managers;
 
@@ -18,13 +16,13 @@ namespace ChaosWarlords.Tests.Map
         [TestInitialize]
         public void Setup()
         {
-            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
+            Utilities.TestLogger.Initialize();
             _siteRecalculated = false;
-            _playerState = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _playerState = new PlayerStateManager(Utilities.TestLogger.Instance);
             _spyOps = new SpyOperations(
                 (site, player) => { _siteRecalculated = true; },
                 _playerState,
-                ChaosWarlords.Tests.Utilities.TestLogger.Instance
+                Utilities.TestLogger.Instance
             );
         }
 

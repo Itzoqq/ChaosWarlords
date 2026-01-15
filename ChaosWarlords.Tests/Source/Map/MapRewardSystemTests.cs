@@ -1,8 +1,6 @@
 using ChaosWarlords.Source.Map;
 using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 
 namespace ChaosWarlords.Tests.Map
@@ -18,8 +16,8 @@ namespace ChaosWarlords.Tests.Map
         [TestInitialize]
         public void Setup()
         {
-            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
-            _mockControlSystem = Substitute.For<SiteControlSystem>(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            Utilities.TestLogger.Initialize();
+            _mockControlSystem = Substitute.For<SiteControlSystem>(Utilities.TestLogger.Instance);
             _rewardSystem = new MapRewardSystem(_mockControlSystem);
         }
 

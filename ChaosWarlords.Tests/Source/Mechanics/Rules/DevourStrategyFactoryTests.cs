@@ -1,11 +1,9 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+
 using NSubstitute;
-using System;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Mechanics.Rules;
@@ -255,7 +253,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
         {
             var turnManager = Substitute.For<ITurnManager>();
             turnManager.ActivePlayer.Returns(player);
-            
+
             var mapManager = Substitute.For<IMapManager>();
             var marketManager = Substitute.For<IMarketManager>();
             var cardDb = Substitute.For<ICardDatabase>();

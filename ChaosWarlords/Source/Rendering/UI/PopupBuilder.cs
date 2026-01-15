@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace ChaosWarlords.Source.Rendering.UI
 {
     public class PopupBuilder

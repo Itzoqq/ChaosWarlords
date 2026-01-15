@@ -4,7 +4,6 @@ using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.GameStates;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Mechanics.Actions;
@@ -56,7 +55,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
                 Game = null!,
                 InputManager = new InputManager(_inputProvider),
                 CardDatabase = _cardDatabase,
-                Logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance,
+                Logger = Utilities.TestLogger.Instance,
                 UIManager = Substitute.For<IUIManager>(),
                 ReplayManager = Substitute.For<IReplayManager>(),
                 View = null
@@ -76,7 +75,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         {
             // Arrange
             var viewMock = Substitute.For<IGameplayView>();
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance, viewMock);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance, viewMock);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             // Act
@@ -89,7 +88,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void SwitchToTargetingMode_SetsCorrectInputMode()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             state.SwitchToTargetingMode();
@@ -100,7 +99,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void SwitchToNormalMode_SetsCorrectInputMode()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             state.SwitchToTargetingMode(); // Switch away first
@@ -112,7 +111,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void ToggleMarket_SwitchesInputModesAndFlags()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             state.MarketStateManager.OpenForBrowsing();
@@ -135,7 +134,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void PlayCard_TriggersTargeting_SwitchInputMode_WhenTargetsExist()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             var card = TestData.Cards.AssassinCard();
@@ -161,7 +160,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void Update_RightClick_CancelsTargeting_AndResetsInputMode()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             // Force into targeting
@@ -180,7 +179,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void SubscribesToEvents_OnActionCompleted_ResetsInputMode()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             state.SwitchToTargetingMode();
@@ -193,7 +192,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void UnloadContent_UnsubscribesFromActionSystem_AutoExecuteCommand()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             // Mock Dispatcher
@@ -219,7 +218,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void UnloadContent_CleansUpUIEventMediator_UnsubscribesFromUIManager()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
             state.MatchContext.CurrentPhase = MatchPhase.Playing;
 
@@ -232,7 +231,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
 
             // Trigger again
             state.UIManager.OnMarketToggleRequest += Raise.Event();
-            
+
             // Should NOT toggle back to closed (or re-open if logic was different)
             // If handler is removed, IsMarketOpen remains True
             Assert.IsTrue(state.IsMarketOpen);
@@ -249,15 +248,15 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             public TestableGameplayState(Game? game, IInputProvider input, ICardDatabase db, IGameLogger logger, IGameplayView? view = null)
                 : base(new GameDependencies
                 {
-                   Game = game,
-                   InputManager = new ChaosWarlords.Source.Managers.InputManager(input), // Use concrete wrapper
-                   CardDatabase = db,
-                   Logger = logger,
-                   UIManager = Substitute.For<IUIManager>(), // Default Mock
-                   ReplayManager = Substitute.For<IReplayManager>(),
-                   View = view ?? Substitute.For<IGameplayView>(),
-                   ViewportWidth = 1920,
-                   ViewportHeight = 1080
+                    Game = game,
+                    InputManager = new ChaosWarlords.Source.Managers.InputManager(input), // Use concrete wrapper
+                    CardDatabase = db,
+                    Logger = logger,
+                    UIManager = Substitute.For<IUIManager>(), // Default Mock
+                    ReplayManager = Substitute.For<IReplayManager>(),
+                    View = view ?? Substitute.For<IGameplayView>(),
+                    ViewportWidth = 1920,
+                    ViewportHeight = 1080
                 })
             {
                 _testInput = input;
@@ -276,41 +275,41 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             public void InitializeTestEnvironment(IMapManager map, IMarketManager market, IActionSystem action)
             {
                 _inputManagerBacking = new InputManager(_testInput);
-                
+
                 // 1. New Re-wiring Strategy: Fix Dependency Mismatches
                 // The base GameplayState constructor has already run and created its own MatchContext, Mediator, etc.
                 // We are about to Create a NEW MatchContext for testing.
                 // WE MUST RE-WIRE the internal components (Mediator, PlayerController, etc.) to use this NEW Context.
-                
+
                 // A. Create Mediator FIRST (It needs State, but doesn't access Context in Ctor)
                 // We pass 'this' (TestableGameplayState) as the state.
                 // We pass the MOCKED ActionSystem.
-                _uiEventMediator = new UIEventMediator(this, _uiManagerBacking, action, ChaosWarlords.Tests.Utilities.TestLogger.Instance, null);
+                _uiEventMediator = new UIEventMediator(this, _uiManagerBacking, action, Utilities.TestLogger.Instance, null);
 
                 var p1 = TestData.Players.RedPlayer();
                 var p2 = TestData.Players.BluePlayer();
                 var mockRandom = Substitute.For<IGameRandom>();
-                var tm = new TurnManager(new List<Player> { p1, p2 }, mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+                var tm = new TurnManager(new List<Player> { p1, p2 }, mockRandom, Utilities.TestLogger.Instance);
 
-                var ps = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-                
+                var ps = new PlayerStateManager(Utilities.TestLogger.Instance);
+
                 // B. Create MatchContext (Passing the NEW Mediator)
-                _matchContext = new MatchContext(tm, map, market, action, _testDb, ps, _uiEventMediator, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-                
+                _matchContext = new MatchContext(tm, map, market, action, _testDb, ps, _uiEventMediator, Utilities.TestLogger.Instance);
+
                 var victoryManager = Substitute.For<IVictoryManager>();
-                _matchManager = new MatchManager(_matchContext, ChaosWarlords.Tests.Utilities.TestLogger.Instance, victoryManager);
-                
+                _matchManager = new MatchManager(_matchContext, Utilities.TestLogger.Instance, victoryManager);
+
                 // C. Connect Systems
                 _matchContext.ActionSystem.SetMatchManager(_matchManager);
-                
+
                 // MarketStateManager is required by GameplayInputCoordinator (via State property)
                 // Since tests don't call LoadContent, we must initialize it here.
-                _marketStateManager = new MarketStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+                _marketStateManager = new MarketStateManager(Utilities.TestLogger.Instance);
                 _matchContext.ActionSystem.SetMarketStateManager(_marketStateManager);
 
                 // D. Re-Create InputCoordinator (Needs NEW MatchContext AND MarketStateManager initialized)
                 _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
-                
+
                 // E. Re-Create PlayerController (Needs NEW InputCoordinator)
                 _interactionMapper = new InteractionMapper(_view!);
                 _playerController = new PlayerController(this, _inputManagerBacking, _inputCoordinator, _interactionMapper);
@@ -322,11 +321,11 @@ namespace ChaosWarlords.Tests.Integration.GameStates
                 // Thanks to [InternalsVisibleTo] and 'internal' modifier
 
                 // 3. CardPlaySystem
-                _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, _replayManager, () => SwitchToTargetingMode(), ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+                _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, _replayManager, () => SwitchToTargetingMode(), Utilities.TestLogger.Instance);
 
                 // 6. ReplayController
-                _replayController = new ReplayController(this, base._replayManager, _inputManagerBacking, ChaosWarlords.Tests.Utilities.TestLogger.Instance, () => { });
-                _commandDispatcher = new CommandDispatcher(base._replayManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+                _replayController = new ReplayController(this, _replayManager, _inputManagerBacking, Utilities.TestLogger.Instance, () => { });
+                _commandDispatcher = new CommandDispatcher(_replayManager, Utilities.TestLogger.Instance);
 
                 // Manual Subscription (mimicking InitializeMatch)
                 _matchContext.ActionSystem.OnAutoExecuteCommand += RecordAndExecuteCommand;
@@ -346,7 +345,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         public void Update_EnterKey_WithPendingPromotions_SwitchesToPromoteInputMode()
         {
             // --- Arrange ---
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
             state.MatchContext.CurrentPhase = MatchPhase.Playing;
 
@@ -361,7 +360,8 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             _actionSystem.CurrentState.Returns(ActionState.Normal); // Start Normal
 
             _actionSystem.When(x => x.StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>()))
-                          .Do(x => {
+                          .Do(x =>
+                          {
                               var s = (ActionState)x[0];
                               var c = (Card?)x[1];
                               _actionSystem.CurrentState.Returns(ActionState.SelectingCardToPromote);
@@ -378,7 +378,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             // --- Act ---
             var ctx = state.MatchContext.TurnManager.CurrentTurnContext;
             var ap = state.MatchContext.ActivePlayer;
-            
+
             state.Update(new GameTime());
 
             // --- Assert ---
@@ -400,13 +400,13 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void EndTurnRequest_WithUnplayedCards_OpensPopup_AndDoesNotEndTurn()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
             state.MatchContext.CurrentPhase = MatchPhase.Playing;
 
             // Add unplayed card
             state.MatchContext.ActivePlayer.Hand.Add(TestData.Cards.CheapCard());
-            
+
             // Raise Request (simulating Button Click)
             // We need to access the mock UI system. TestableGameplayState creates a real UIManager, 
             // but we can trigger the event handler directly if we expose it or use the mock approach.
@@ -426,10 +426,10 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void EndTurnRequest_WithNoUnplayedCards_EndsTurnImmediately()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
-            state.MatchContext.CurrentPhase = ChaosWarlords.Source.Contexts.MatchPhase.Playing;
+            state.MatchContext.CurrentPhase = MatchPhase.Playing;
             state.MatchContext.ActivePlayer.Hand.Clear();
 
             _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
@@ -442,7 +442,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void PopupConfirm_EndsTurn()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
             state.MatchContext.CurrentPhase = MatchPhase.Playing;
 
@@ -463,7 +463,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void PopupCancel_ClosesPopup_AndDoesNotEndTurn()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
             state.MatchContext.CurrentPhase = MatchPhase.Playing;
 
@@ -486,7 +486,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void GetTargetingText_ReturnsCorrectText()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             var text = state.GetTargetingText(ActionState.TargetingAssassinate);
@@ -497,7 +497,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void SwitchToPromoteMode_SetsActionSystemState()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             state.SwitchToPromoteMode(1);
@@ -508,7 +508,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void MoveCardToPlayed_DelegatesToMatchManager()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             var card = TestData.Cards.CheapCard();
@@ -523,10 +523,10 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestMethod]
         public void EndTurnRequest_ViaUI_DuringSetup_WithoutDeployment_DoesNotEndTurn()
         {
-            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
             state.MatchContext.CurrentPhase = MatchPhase.Setup;
-            
+
             // Should be empty initially
             state.MatchContext.ActivePlayer.Hand.Clear();
 

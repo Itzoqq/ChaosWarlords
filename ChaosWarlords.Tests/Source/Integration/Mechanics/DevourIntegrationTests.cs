@@ -1,20 +1,12 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using ChaosWarlords.Source.Mechanics.Rules;
-using ChaosWarlords.Source.Mechanics.Actions;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Managers;
-using System.Collections.Generic;
-using System;
-using System.Linq;
 
 namespace ChaosWarlords.Tests.Integration.Mechanics
 {
@@ -36,8 +28,8 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         [TestInitialize]
         public void Setup()
         {
-            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
-            _logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance;
+            Utilities.TestLogger.Initialize();
+            _logger = Utilities.TestLogger.Instance;
 
             _player = new Player(PlayerColor.Red);
 
@@ -87,15 +79,15 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         [TestMethod]
         public void MarketDevour_WithReplace_ReplacesCard()
         {
-             // Arrange
+            // Arrange
             // 1. Create Source Card (Carrion Crawler style)
             var sourceCard = new Card("carrion", "Carrion Crawler", 4, CardAspect.Oblivion, 1, 3, 0);
-            sourceCard.AddEffect(new CardEffect(EffectType.Devour, 1) 
-            { 
+            sourceCard.AddEffect(new CardEffect(EffectType.Devour, 1)
+            {
                 TargetLocation = CardLocation.Market,
                 ReplaceWithSource = true
             });
-            sourceCard.Location = CardLocation.Played; 
+            sourceCard.Location = CardLocation.Played;
             _player.PlayedCards.Add(sourceCard);
 
             // 2. Create Target Card in Market
@@ -124,12 +116,12 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         [TestMethod]
         public void MarketDevour_Structure_StandardRemove()
         {
-             // Arrange
+            // Arrange
             var sourceCard = new Card("corruptor", "Market Corruptor", 3, CardAspect.Sorcery, 1, 1, 0);
-            sourceCard.AddEffect(new CardEffect(EffectType.Devour, 1) 
-            { 
+            sourceCard.AddEffect(new CardEffect(EffectType.Devour, 1)
+            {
                 TargetLocation = CardLocation.Market,
-                ReplaceWithSource = false 
+                ReplaceWithSource = false
             });
 
             var targetCard = new Card("m1", "Market Victim", 0, CardAspect.Neutral, 0, 0, 0) { Location = CardLocation.Market };
@@ -156,14 +148,14 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         [TestMethod]
         public void HandDevour_ValidSelection_CallsDevourCard()
         {
-             // Arrange
-             var handCard = new Card("h1", "Hand Victim", 0, CardAspect.Neutral, 0, 0, 0) { Location = CardLocation.Hand };
-             _player.Hand.Add(handCard);
+            // Arrange
+            var handCard = new Card("h1", "Hand Victim", 0, CardAspect.Neutral, 0, 0, 0) { Location = CardLocation.Hand };
+            _player.Hand.Add(handCard);
 
-             // Act
+            // Act
             // Directly check ActionSystem's handling of specific devours if exposed, 
             // OR use the flow via TryStartDevourHand
-            
+
             // Setup a pending source
             var sourceCard = new Card("src", "Source", 0, CardAspect.Neutral, 0, 0, 0);
             _actionSystem.TryStartDevourHand(sourceCard);
@@ -187,20 +179,20 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         [TestMethod]
         public void OptionalPopup_Shown_WhenValid()
         {
-             var card = new Card("opt", "Optional", 3, CardAspect.Sorcery, 1, 2, 0);
-             var devourEffect = new CardEffect(EffectType.Devour, 1)
-             {
-                 TargetLocation = CardLocation.Market,
-                 IsOptional = true,
-                 OnSuccess = new CardEffect(EffectType.GainResource, 1)
-             };
-             card.Effects.Add(devourEffect);
+            var card = new Card("opt", "Optional", 3, CardAspect.Sorcery, 1, 2, 0);
+            var devourEffect = new CardEffect(EffectType.Devour, 1)
+            {
+                TargetLocation = CardLocation.Market,
+                IsOptional = true,
+                OnSuccess = new CardEffect(EffectType.GainResource, 1)
+            };
+            card.Effects.Add(devourEffect);
 
             // Setup valid market
             var marketCard = new Card("m1", "MarketCard", 0, CardAspect.Neutral, 0, 0, 0) { Location = CardLocation.Market };
             _marketManager.MarketRow.Returns(new List<Card> { marketCard });
 
-             // Act
+            // Act
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, _logger);
 
             // Assert
@@ -210,26 +202,26 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         [TestMethod]
         public void OptionalPopup_Skipped_WhenInvalid_WightFix()
         {
-             // Scenario: Card has Devour -> Supplant (or similar).
-             // Supplant target is missing.
-             // Should NOT show popup.
+            // Scenario: Card has Devour -> Supplant (or similar).
+            // Supplant target is missing.
+            // Should NOT show popup.
 
-             var card = new Card("wight", "Wight", 3, CardAspect.Shadow, 1, 2, 0);
-             var devourEffect = new CardEffect(EffectType.Devour, 1)
-             {
-                 TargetLocation = CardLocation.Hand,
-                 IsOptional = true,
-                 OnSuccess = new CardEffect(EffectType.Supplant, 1) // Dependent effect
-             };
-             card.Effects.Add(devourEffect);
+            var card = new Card("wight", "Wight", 3, CardAspect.Shadow, 1, 2, 0);
+            var devourEffect = new CardEffect(EffectType.Devour, 1)
+            {
+                TargetLocation = CardLocation.Hand,
+                IsOptional = true,
+                OnSuccess = new CardEffect(EffectType.Supplant, 1) // Dependent effect
+            };
+            card.Effects.Add(devourEffect);
 
-             // Arrange: Player has hand cards (so base Devour is valid)
-             _player.Hand.Add(new Card("h1", "Hand", 0, CardAspect.Neutral, 0, 0, 0));
+            // Arrange: Player has hand cards (so base Devour is valid)
+            _player.Hand.Add(new Card("h1", "Hand", 0, CardAspect.Neutral, 0, 0, 0));
 
-             // Arrange: Map has NO valid targets for Supplant
-             _mapManager.HasValidAssassinationTarget(_player).Returns(false); // Supplant checks this
+            // Arrange: Map has NO valid targets for Supplant
+            _mapManager.HasValidAssassinationTarget(_player).Returns(false); // Supplant checks this
 
-             // Act
+            // Act
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, _logger);
 
             // Assert
@@ -269,7 +261,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             var sourceCard = new Card("market_corruptor", "Market Corruptor", 0, CardAspect.Oblivion, 0, 0, 0);
             var marketCard = new Card("market_card", "Market Card", 0, CardAspect.Neutral, 0, 0, 0);
             marketCard.Location = CardLocation.Market;
-            
+
             _marketManager.MarketRow.Returns(new List<Card> { marketCard });
 
             // Act
@@ -296,20 +288,20 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
 
             // Act - Execute the full market devour flow
             _actionSystem.TryStartDevourMarket(sourceCard);
-            
+
             // Verify OpenForDevour was called (market opened)
             _marketStateManager.Received(1).OpenForDevour(Arg.Any<Func<Card, ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand?>>());
-            
+
             // Now simulate the user clicking a card - this should trigger Close()
             // We can't easily test HandleDevourMarketSelection directly, but we can verify
             // that the flow would call Close() by checking the mock expectations
             _marketStateManager.ClearReceivedCalls();
-            
+
             // Create and execute a DevourCardCommand (simulates what HandleDevourMarketSelection returns)
             var devourCmd = new ChaosWarlords.Source.Commands.DevourCardCommand(targetCard) { SourceCard = sourceCard };
             // The actual Close() is called in HandleDevourMarketSelection, which we can't easily invoke
             // So this test verifies the OpenForDevour was called - the Close() test is covered by unit tests
-            
+
             // Assert - This test primarily verifies the market opens; Close() is harder to test in integration
             // The fix ensures HandleDevourMarketSelection calls Close(), which is verified by manual testing
             Assert.IsTrue(true, "Market auto-open verified; Close() behavior verified by manual testing");
@@ -342,7 +334,8 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                 Arg.Any<CardEffect>(),
                 Arg.Any<Action>(),
                 Arg.Any<Action>()))
-                .Do(callInfo => {
+                .Do(callInfo =>
+                {
                     acceptCallback = callInfo.ArgAt<Action>(2); // Capture onAccept
                 });
 
@@ -422,7 +415,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         {
             // Arrange
             var sourceCard = new Card("powerful_corruptor", "Powerful Corruptor", 0, CardAspect.Oblivion, 0, 0, 0);
-            
+
             // Chain: Devour → Gain Influence → Gain Power
             var gainPowerEffect = new CardEffect(EffectType.GainResource, 2, ResourceType.Power);
             var gainInfluenceEffect = new CardEffect(EffectType.GainResource, 3, ResourceType.Influence)
@@ -466,7 +459,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         {
             // Arrange
             var player = _context.ActivePlayer;
-            
+
             // Add a card to Inner Circle (Target)
             var innerCard = new Card("inner_victim", "Inner Victim", 1, CardAspect.Neutral, 1, 1, 0);
             innerCard.Location = CardLocation.InnerCircle;
@@ -474,15 +467,15 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
 
             // Create a generic card with "Devour Inner Circle" effect
             var devourCard = new Card("devourer", "Inner Devourer", 2, CardAspect.Sorcery, 0, 0, 0);
-            devourCard.AddEffect(new CardEffect(EffectType.Devour, 0) 
-            { 
-               TargetLocation = CardLocation.InnerCircle,
-               OnSuccess = new CardEffect(EffectType.GainResource, 3, ResourceType.Influence)
+            devourCard.AddEffect(new CardEffect(EffectType.Devour, 0)
+            {
+                TargetLocation = CardLocation.InnerCircle,
+                OnSuccess = new CardEffect(EffectType.GainResource, 3, ResourceType.Influence)
             });
             player.Hand.Add(devourCard);
 
             // Act - Trigger devour flow
-            var strategy = ChaosWarlords.Source.Mechanics.Rules.DevourStrategyFactory.GetStrategy(CardLocation.InnerCircle);
+            var strategy = DevourStrategyFactory.GetStrategy(CardLocation.InnerCircle);
             strategy.Execute(devourCard, _context, _logger, () => { }, false);
 
             // Verify State Transition
@@ -491,7 +484,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Simulate Selection
             var cmd = _actionSystem.HandleDevourInnerCircleSelection(innerCard);
             Assert.IsNotNull(cmd, "Should generate Devour Command");
-            
+
             // Execute Command
             cmd?.Execute(_context);
 
@@ -512,21 +505,21 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             player.InnerCircle.Clear(); // Ensure empty
 
             var devourCard = new Card("devourer", "Inner Devourer", 2, CardAspect.Sorcery, 0, 0, 0);
-            devourCard.AddEffect(new CardEffect(EffectType.Devour, 0) 
-            { 
+            devourCard.AddEffect(new CardEffect(EffectType.Devour, 0)
+            {
                 TargetLocation = CardLocation.InnerCircle,
                 IsOptional = true // CRITICAL: Only optional effects trigger the UI popup check
             });
             player.Hand.Add(devourCard);
 
             // Act - Resolve effects (should skip popup due to no valid targets)
-            ChaosWarlords.Source.Mechanics.Rules.CardEffectProcessor.ResolveEffects(devourCard, _context, false, _logger);
+            CardEffectProcessor.ResolveEffects(devourCard, _context, false, _logger);
 
             // Assert - Ensure UI was NOT asked for permission
             _uiMediator.DidNotReceive().RequestOptionalEffect(
-                Arg.Any<Card>(), 
-                Arg.Any<CardEffect>(), 
-                Arg.Any<Action>(), 
+                Arg.Any<Card>(),
+                Arg.Any<CardEffect>(),
+                Arg.Any<Action>(),
                 Arg.Any<Action>()
             );
 

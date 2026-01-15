@@ -1,20 +1,15 @@
 using ChaosWarlords.Source.Input.Controllers;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using NSubstitute;
-using System;
-using System.Collections.Generic;
-using System.IO;
+
 
 namespace ChaosWarlords.Tests.Source.Input.Controllers
 {
@@ -38,12 +33,12 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
         public void Setup()
         {
             _stateFake = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
-            
+
             _replayManagerMock = Substitute.For<IReplayManager>();
             _inputManagerMock = Substitute.For<IInputManager>();
             _loggerMock = Substitute.For<IGameLogger>();
             // Use Fake Logger if possible? No, controller takes logger separate from state.
-            
+
             _onRestartMock = Substitute.For<Action>();
             _mapManagerMock = Substitute.For<IMapManager>();
             _turnManagerMock = Substitute.For<ITurnManager>();
@@ -198,7 +193,7 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
 
             // Act - First update (timer < 0.2s)
             _controller.Update(new GameTime(TimeSpan.Zero, TimeSpan.FromSeconds(0.1)));
-            
+
             // Assert - Command not executed yet
             mockCommand.DidNotReceive().Execute(Arg.Any<ChaosWarlords.Source.Contexts.MatchContext>());
 

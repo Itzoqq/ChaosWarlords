@@ -21,7 +21,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// Fired when an action fails validation or execution, providing a reason string.
         /// </summary>
         event EventHandler<string> OnActionFailed;
-        
+
         /// <summary>
         /// Fired when the system auto-generates a command (e.g. from Pre-Targeting) that needs execution.
         /// </summary>
@@ -96,13 +96,13 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// </summary>
         /// <param name="targetNode">The node clicked.</param>
         /// <param name="targetSite">The specific site within the node (unused if node-level action).</param>
-        ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand? HandleTargetClick(MapNode? targetNode, Site? targetSite);
+        IGameCommand? HandleTargetClick(MapNode? targetNode, Site? targetSite);
 
         /// <summary>
         /// Completes the Return Spy action for a specific selected spy color.
         /// </summary>
         /// <param name="selectedSpyColor">The faction color of the spy to return.</param>
-        ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand? FinalizeSpyReturn(PlayerColor selectedSpyColor);
+        IGameCommand? FinalizeSpyReturn(PlayerColor selectedSpyColor);
 
 
 
@@ -128,22 +128,22 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// </summary>
         /// <param name="sourceCard">The card triggering the devour effect.</param>
         /// <param name="deferExecution">If true, the devour action is not executed immediately but stored.</param>
-        void TryStartDevourHand(Entities.Cards.Card sourceCard, Action? onComplete = null, bool deferExecution = false);
+        void TryStartDevourHand(Card sourceCard, Action? onComplete = null, bool deferExecution = false);
 
         /// <summary>
         /// Initiates the Devour Market action flow.
         /// </summary>
-        void TryStartDevourMarket(Entities.Cards.Card sourceCard, Action? onComplete = null, bool deferExecution = false);
+        void TryStartDevourMarket(Card sourceCard, Action? onComplete = null, bool deferExecution = false);
 
         /// <summary>
         /// Handles the selection of a hand card to devour.
         /// </summary>
-        ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourSelection(Card? targetCard);
+        Commands.DevourCardCommand? HandleDevourSelection(Card? targetCard);
 
         /// <summary>
         /// Handles the selection of a market card to devour.
         /// </summary>
-        ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourMarketSelection(Card? targetCard);
+        Commands.DevourCardCommand? HandleDevourMarketSelection(Card? targetCard);
 
         /// <summary>
         /// Initiates the Devour Inner Circle action flow.
@@ -153,7 +153,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// <summary>
         /// Handles the selection of an inner circle card to devour.
         /// </summary>
-        ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourInnerCircleSelection(Card? targetCard);
+        Commands.DevourCardCommand? HandleDevourInnerCircleSelection(Card? targetCard);
 
         /// <summary>
         /// Explicitly sets the pending devour card (deferral).
@@ -185,28 +185,28 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// <summary>
         /// Stores a pre-selected target for a card to prevent re-entering targeting mode during resolution.
         /// </summary>
-        void SetPreTarget(Entities.Cards.Card source, ActionState forState, object target);
+        void SetPreTarget(Card source, ActionState forState, object target);
 
         /// <summary>
         /// Retrieves and consumes the pre-selected target for a card.
         /// </summary>
-        object? GetAndClearPreTarget(Entities.Cards.Card source, ActionState forState);
+        object? GetAndClearPreTarget(Card source, ActionState forState);
 
         /// <summary>
         /// The stack of pending effects to be resolved.
         /// Replaces linear recursion with an iterative stack for multiplayer compatibility.
         /// </summary>
-        System.Collections.Generic.Stack<ChaosWarlords.Source.Core.Contexts.EffectContext> ExecutionStack { get; }
+        Stack<Contexts.EffectContext> ExecutionStack { get; }
 
         /// <summary>
         /// Pushes a new effect onto the execution stack.
         /// </summary>
-        void PushEffect(ChaosWarlords.Source.Core.Contexts.EffectContext context);
+        void PushEffect(Contexts.EffectContext context);
 
         /// <summary>
         /// Peeks the current effect from the stack.
         /// </summary>
-        ChaosWarlords.Source.Core.Contexts.EffectContext? CurrentEffect { get; }
+        Contexts.EffectContext? CurrentEffect { get; }
 
         /// <summary>
         /// Processes the stack. If the top item requires input, it waits.

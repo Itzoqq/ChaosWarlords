@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 

@@ -44,7 +44,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.State
         IMatchManager MatchManager { get; }
 
         // Command Execution
-        void RecordAndExecuteCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command);
+        void RecordAndExecuteCommand(IGameCommand command);
 
         // Lifecycle
         new void LoadContent();

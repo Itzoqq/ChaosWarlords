@@ -1,7 +1,6 @@
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Tests.Contexts
 {
@@ -19,7 +18,7 @@ namespace ChaosWarlords.Tests.Contexts
         public void Setup()
         {
             _dummyPlayer = TestData.Players.RedPlayer();
-            _turnContext = new TurnContext(_dummyPlayer, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _turnContext = new TurnContext(_dummyPlayer, Utilities.TestLogger.Instance);
 
             _cardA = TestData.Cards.CheapCard();
             _cardB = TestData.Cards.ExpensiveCard();
@@ -123,7 +122,7 @@ namespace ChaosWarlords.Tests.Contexts
             _turnContext.RecordAction("Type", "Summary");
 
             // Timestamp should be recent
-            var diff = System.DateTime.Now - _turnContext.ActionHistory[0].Timestamp;
+            var diff = DateTime.Now - _turnContext.ActionHistory[0].Timestamp;
             Assert.IsLessThan(5.0, diff.TotalSeconds);
         }
     }

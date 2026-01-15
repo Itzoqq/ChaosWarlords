@@ -1,8 +1,5 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Utilities;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using NSubstitute;
 
 namespace ChaosWarlords.Tests.Source.Core.Logic
 {
@@ -49,7 +46,7 @@ namespace ChaosWarlords.Tests.Source.Core.Logic
             // Given the test double logic "return Success", null should work for runtime, 
             // but for type safety it expects MatchContext.
             // Let's create a minimal context or pass null!.
-            ChaosWarlords.Source.Contexts.MatchContext context = null!; 
+            ChaosWarlords.Source.Contexts.MatchContext context = null!;
 
             // Act
             var result = validator.Validate(command, context);

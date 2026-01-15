@@ -1,7 +1,6 @@
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Data;
-using System;
 
 namespace ChaosWarlords.Source.Core.Data.Dtos
 {
@@ -25,17 +24,17 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
             ArgumentNullException.ThrowIfNull(card);
             DefinitionId = card.Id;
             InstanceId = Guid.NewGuid().ToString(); // Generate a temporary ID if one doesn't exist on Entity yet, or map it if it did. 
-            // Ideally Card entity should have an InstanceId. For now, we generate one or use DefinitionId if strictly one-to-one (which it isn't).
-            // Let's assume for serialization of a *running* game, we need stable IDs.
-            // But Card entity currently doesn't seem to have a unique InstanceId in the code shown? 
-            // Checking Card.cs in memory... it has Id (Definition) but maybe not InstanceId.
-            // For the DTO, we need to satisfy the 'required' contract. 
-            
+                                                    // Ideally Card entity should have an InstanceId. For now, we generate one or use DefinitionId if strictly one-to-one (which it isn't).
+                                                    // Let's assume for serialization of a *running* game, we need stable IDs.
+                                                    // But Card entity currently doesn't seem to have a unique InstanceId in the code shown? 
+                                                    // Checking Card.cs in memory... it has Id (Definition) but maybe not InstanceId.
+                                                    // For the DTO, we need to satisfy the 'required' contract. 
+
             // Re-reading Card.cs from context... I don't see it open but I recall it.
             // If Card doesn't have InstanceId, we can't reliably persist it round-trip without one if we need it.
             // But for now, to fix the build, we must assign it.
-            InstanceId = System.Guid.NewGuid().ToString(); 
-            
+            InstanceId = Guid.NewGuid().ToString();
+
             Location = card.Location;
             ListIndex = index;
         }
@@ -56,7 +55,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
                 card.Location = Location;
                 return card;
             }
-            throw new System.InvalidOperationException($"Failed to hydrate card: {DefinitionId} not found.");
+            throw new InvalidOperationException($"Failed to hydrate card: {DefinitionId} not found.");
         }
     }
 }

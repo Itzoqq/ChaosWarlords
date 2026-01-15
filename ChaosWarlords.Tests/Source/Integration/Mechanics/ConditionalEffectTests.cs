@@ -9,9 +9,7 @@ using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Core.Contexts;
 using ChaosWarlords.Tests.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Integration.Mechanics
 {
@@ -22,13 +20,13 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         private MatchContext _context = null!;
         private Player _player = null!;
         private IGameLogger _logger = null!;
-        
+
         [TestInitialize]
         public void Setup()
         {
             TestLogger.Initialize();
             _logger = TestLogger.Instance;
-            
+
             // Setup generic mocks
             var turn = Substitute.For<ITurnManager>();
             var map = Substitute.For<IMapManager>();
@@ -39,7 +37,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
 
             // Setup real MatchContext which initializes CardRuleEngine internally
             _context = new MatchContext(turn, map, market, action, cardDb, playerState, null, _logger);
-            
+
             _player = new Player(PlayerColor.Red);
             turn.ActivePlayer.Returns(_player);
 
@@ -65,7 +63,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         {
             // Arrange: Player controls a site
             var site = new StartingSite("TestSite", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
-            var node = new MapNode(1, new Microsoft.Xna.Framework.Vector2(0,0)) { Occupant = PlayerColor.Red };
+            var node = new MapNode(1, new Microsoft.Xna.Framework.Vector2(0, 0)) { Occupant = PlayerColor.Red };
             site.NodesInternal.Add(node);
             _context.MapManager.Sites.Returns(new List<Site> { site });
 

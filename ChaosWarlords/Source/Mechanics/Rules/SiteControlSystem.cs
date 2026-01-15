@@ -1,5 +1,4 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using System.Linq;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
@@ -13,7 +12,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         public SiteControlSystem(IGameLogger logger)
         {
-            _logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public void SetPlayerStateManager(IPlayerStateManager stateManager)
@@ -114,7 +113,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
         }
 
-        public void DistributeStartOfTurnRewards(System.Collections.Generic.IReadOnlyList<Site> sites, Player activePlayer)
+        public void DistributeStartOfTurnRewards(IReadOnlyList<Site> sites, Player activePlayer)
         {
             if (sites is null) return;
             foreach (var site in sites)

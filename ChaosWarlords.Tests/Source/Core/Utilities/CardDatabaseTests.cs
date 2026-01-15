@@ -121,8 +121,8 @@ namespace ChaosWarlords.Tests.Source.Utilities
     [TestMethod]
     public void LoadFromJson_ParsesRecursiveEffects()
     {
-        // Arrange
-        string recursiveJson = @"
+      // Arrange
+      string recursiveJson = @"
         [
           {
             ""id"": ""wight"",
@@ -145,21 +145,21 @@ namespace ChaosWarlords.Tests.Source.Utilities
           }
         ]";
 
-        var db = new CardDatabase();
-        db.LoadFromJson(recursiveJson);
+      var db = new CardDatabase();
+      db.LoadFromJson(recursiveJson);
 
-        // Act
-        var card = db.GetCardById("wight");
+      // Act
+      var card = db.GetCardById("wight");
 
-        // Assert
-        Assert.IsNotNull(card);
-        Assert.HasCount(1, card.Effects);
-        
-        var devourEffect = card.Effects[0];
-        Assert.AreEqual(ChaosWarlords.Source.Utilities.EffectType.Devour, devourEffect.Type);
-        
-        Assert.IsNotNull(devourEffect.OnSuccess, "Recursive effect should be parsed.");
-        Assert.AreEqual(ChaosWarlords.Source.Utilities.EffectType.Supplant, devourEffect.OnSuccess.Type);
+      // Assert
+      Assert.IsNotNull(card);
+      Assert.HasCount(1, card.Effects);
+
+      var devourEffect = card.Effects[0];
+      Assert.AreEqual(EffectType.Devour, devourEffect.Type);
+
+      Assert.IsNotNull(devourEffect.OnSuccess, "Recursive effect should be parsed.");
+      Assert.AreEqual(EffectType.Supplant, devourEffect.OnSuccess.Type);
     }
   }
 }

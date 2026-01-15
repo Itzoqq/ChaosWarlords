@@ -17,7 +17,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         MatchPhase CurrentPhase { get; }
 
         // Events
-        event System.Action OnSetupDeploymentComplete;
+        event Action OnSetupDeploymentComplete;
 
         void CenterMap(int screenWidth, int screenHeight);
 

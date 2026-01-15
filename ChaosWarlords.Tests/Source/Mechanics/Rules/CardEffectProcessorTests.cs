@@ -24,7 +24,7 @@ namespace ChaosWarlords.Tests.Source.Systems
         [TestInitialize]
         public void Setup()
         {
-            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
+            Tests.Utilities.TestLogger.Initialize();
             _processor = new CardEffectProcessor();
             _player = TestData.Players.PoorPlayer();
             _uiMediator = Substitute.For<IUIEventMediator>();
@@ -32,7 +32,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             var turnSub = Substitute.For<ITurnManager>();
             turnSub.ActivePlayer.Returns(_player);
             // We need a real TurnContext for promotions
-            turnSub.CurrentTurnContext.Returns(new TurnContext(_player, ChaosWarlords.Tests.Utilities.TestLogger.Instance));
+            turnSub.CurrentTurnContext.Returns(new TurnContext(_player, Tests.Utilities.TestLogger.Instance));
 
             _context = new MatchContext(
                 turnSub,
@@ -40,9 +40,9 @@ namespace ChaosWarlords.Tests.Source.Systems
                 Substitute.For<IMarketManager>(),
                 Substitute.For<IActionSystem>(),
                 Substitute.For<ICardDatabase>(),
-                new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance), // <--- Use real StateManager for logic testing
+                new PlayerStateManager(Tests.Utilities.TestLogger.Instance), // <--- Use real StateManager for logic testing
                 _uiMediator,
-                ChaosWarlords.Tests.Utilities.TestLogger.Instance
+                Tests.Utilities.TestLogger.Instance
             );
         }
 
@@ -51,7 +51,7 @@ namespace ChaosWarlords.Tests.Source.Systems
         {
             var card = TestData.Cards.PowerCard();
 
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
 
             // Assert: Pushed to Stack
             _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.SourceEffect != null && c.SourceEffect.Type == EffectType.GainResource));
@@ -62,7 +62,7 @@ namespace ChaosWarlords.Tests.Source.Systems
         {
             var card = TestData.Cards.FocusPowerCard();
 
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
 
             _context.ActionSystem.DidNotReceive().PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>());
         }
@@ -72,7 +72,7 @@ namespace ChaosWarlords.Tests.Source.Systems
         {
             var card = TestData.Cards.FocusPowerCard();
 
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true, Tests.Utilities.TestLogger.Instance);
 
             _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.SourceEffect != null && c.SourceEffect.Type == EffectType.GainResource));
         }
@@ -82,7 +82,7 @@ namespace ChaosWarlords.Tests.Source.Systems
         {
             var card = TestData.Cards.NobleCard();
 
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
 
             _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.SourceEffect != null && c.SourceEffect.Type == EffectType.Promote));
         }
@@ -92,7 +92,7 @@ namespace ChaosWarlords.Tests.Source.Systems
         {
             var card = TestData.Cards.InfluenceCard();
 
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
 
             _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.SourceEffect != null && c.SourceEffect.Type == EffectType.GainResource));
         }
@@ -106,7 +106,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _player.DeckManager.AddToTop(TestData.Cards.CheapCard());
             _player.DeckManager.AddToTop(TestData.Cards.CheapCard());
 
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
 
             _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.SourceEffect != null && c.SourceEffect.Type == EffectType.DrawCard));
         }
@@ -131,7 +131,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             SetupValidTargets(validationMethod, hasTargets: true);
 
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
 
             // Assert: Pushed to Stack with correct state
             _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.EffectType == expectedState));
@@ -155,7 +155,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             SetupValidTargets(validationMethod, hasTargets: false);
 
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
 
             _context.ActionSystem.DidNotReceive().PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>());
         }
@@ -173,7 +173,7 @@ namespace ChaosWarlords.Tests.Source.Systems
                 // Mocking MapManager calls is valid IF CardRuleEngine delegates to MapManager.
                 // Assuming CardRuleEngine delegates to Manager calls, these mocks work.
                 // Logic trace: HasValidAssassinationTarget -> MapManager.HasValidAssassinationTarget.
-                
+
                 case "MoveSource":
                     _context.MapManager.HasValidMoveSource(_player).Returns(hasTargets);
                     break;
@@ -194,7 +194,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _context.MapManager.HasValidAssassinationTarget(_player).Returns(true);
             _player.TroopsInBarracks = 1;
 
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
 
             _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.EffectType == ActionState.TargetingSupplant));
         }
@@ -207,7 +207,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _context.MapManager.HasValidPlaceSpyTarget(_player).Returns(true);
             _player.SpiesInBarracks = 1;
 
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
 
             _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.EffectType == ActionState.TargetingPlaceSpy));
         }
@@ -220,7 +220,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _context.MapManager.HasValidPlaceSpyTarget(_player).Returns(true);
             _player.SpiesInBarracks = 0;
 
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
 
             _context.ActionSystem.DidNotReceive().PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>());
         }
@@ -233,7 +233,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             _context.MapManager.HasValidPlaceSpyTarget(_player).Returns(false);
             _player.SpiesInBarracks = 1;
 
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
 
             _context.ActionSystem.DidNotReceive().PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>());
         }
@@ -245,7 +245,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             _player.Hand.Add(TestData.Cards.CheapCard());
 
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
 
             _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.EffectType == ActionState.TargetingDevourHand));
         }
@@ -256,7 +256,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             var card = TestData.Cards.DevourCard();
             // Hand Empty
 
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
 
             _context.ActionSystem.DidNotReceive().PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>());
         }
@@ -270,7 +270,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             card.Effects.Add(new CardEffect(EffectType.GainResource, 2, ResourceType.Power));
             card.Effects.Add(new CardEffect(EffectType.GainResource, 3, ResourceType.Influence));
 
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
 
             // Expecting 3 Calls
             _context.ActionSystem.Received(3).PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>());
@@ -287,9 +287,9 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             // Ensure Hand is empty (source card is explicitly excluded by definition in HasValidTargets)
             _player.Hand.Clear();
-            
+
             // Act
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true, Tests.Utilities.TestLogger.Instance);
 
             // Assert
             // Should NOT push effect if logic validation works (RequiresInput + InvalidTarget = Skip)
@@ -310,11 +310,11 @@ namespace ChaosWarlords.Tests.Source.Systems
             _player.Hand.Add(new Card("dummy", "Dummy", 0, CardAspect.Neutral, 0, 0, 0) { Location = CardLocation.Hand });
 
             // Act
-            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true, Tests.Utilities.TestLogger.Instance);
 
             // Assert
             // Should Push Effect with RequiresInput = true
-             _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.EffectType == ActionState.TargetingDevourHand && c.RequiresInput));
+            _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.EffectType == ActionState.TargetingDevourHand && c.RequiresInput));
         }
     }
 }

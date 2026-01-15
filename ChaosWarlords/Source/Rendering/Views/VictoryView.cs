@@ -5,7 +5,6 @@ using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Rendering.Views
@@ -30,20 +29,20 @@ namespace ChaosWarlords.Source.Rendering.Views
 
             // Initialize Renderer
             // NOTE: In a real DI container this would be injected, but we are manually composing for now.
-             // We reuse UIRenderer logic but need to handle its requirements.
-             // Currently manual composition with dummy fonts if not provided (see second ctor).
-             // However, UIRenderer ctor requires valid fonts.
-             // This ctor is potentially unsafe if called without content.
-             // We should probably remove it or ensure it fails explicitly if called?
-             // Or assume default fonts? Can't assume without Content.
+            // We reuse UIRenderer logic but need to handle its requirements.
+            // Currently manual composition with dummy fonts if not provided (see second ctor).
+            // However, UIRenderer ctor requires valid fonts.
+            // This ctor is potentially unsafe if called without content.
+            // We should probably remove it or ensure it fails explicitly if called?
+            // Or assume default fonts? Can't assume without Content.
             // Unused constructor for now - unsafe
-            _uiRenderer = null!; 
+            _uiRenderer = null!;
         }
 
         // Revised Constructor with Content
         public VictoryView(GraphicsDevice graphicsDevice, Microsoft.Xna.Framework.Content.ContentManager content, IButtonManager buttonManager, VictoryDto victoryData, IGameLogger logger)
         {
-             _buttonManager = buttonManager;
+            _buttonManager = buttonManager;
             _victoryData = victoryData;
             _logger = logger;
 
@@ -72,7 +71,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             // Or just call DrawVictoryPopup with full screen args?
             // DrawVictoryPopup draws ISOLATED popup on top of game.
             // Here we want it as the main screen.
-            
+
             // Let's use DrawVictoryPopup logic but centralized.
             _uiRenderer.DrawVictoryPopup(spriteBatch, _victoryData, width, height);
 

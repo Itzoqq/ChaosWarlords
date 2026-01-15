@@ -1,9 +1,6 @@
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ChaosWarlords.Source.Core.Data.Dtos
 {

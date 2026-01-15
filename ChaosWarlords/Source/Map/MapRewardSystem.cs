@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Mechanics.Rules;

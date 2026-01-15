@@ -1,5 +1,4 @@
 using ChaosWarlords.Source.Core.Data.Dtos;
-using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Tests.Source.Core.Data
@@ -16,10 +15,10 @@ namespace ChaosWarlords.Tests.Source.Core.Data
                 .WithId(5)
                 .OccupiedBy(PlayerColor.Blue)
                 .Build();
-            
+
             // Act
             var dto = new MapNodeDto(node);
-            
+
             // Assert
             Assert.AreEqual(5, dto.Id);
             Assert.AreEqual(PlayerColor.Blue, dto.Occupant);
@@ -30,7 +29,7 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         {
             // Act
             var dto = new MapNodeDto(null!);
-            
+
             // Assert
             Assert.AreEqual(0, dto.Id);
             Assert.AreEqual(PlayerColor.None, dto.Occupant);
@@ -41,7 +40,7 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         {
             // Arrange
             var dto = new MapNodeDto { Id = 1, Occupant = PlayerColor.Red };
-            
+
             // Act & Assert
             try
             {
@@ -59,7 +58,7 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         {
             // Act
             var dto = new MapNodeDto();
-            
+
             // Assert
             Assert.AreEqual(0, dto.Id);
             Assert.AreEqual(PlayerColor.None, dto.Occupant);
@@ -70,11 +69,11 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         {
             // Arrange
             var dto = new MapNodeDto();
-            
+
             // Act
             dto.Id = 42;
             dto.Occupant = PlayerColor.Black;
-            
+
             // Assert
             Assert.AreEqual(42, dto.Id);
             Assert.AreEqual(PlayerColor.Black, dto.Occupant);
@@ -88,10 +87,10 @@ namespace ChaosWarlords.Tests.Source.Core.Data
                 .WithId(10)
                 .OccupiedBy(PlayerColor.None)
                 .Build();
-            
+
             // Act
             var dto = new MapNodeDto(node);
-            
+
             // Assert
             Assert.AreEqual(10, dto.Id);
             Assert.AreEqual(PlayerColor.None, dto.Occupant);
@@ -105,13 +104,13 @@ namespace ChaosWarlords.Tests.Source.Core.Data
             var blueNode = new MapNodeBuilder().WithId(2).OccupiedBy(PlayerColor.Blue).Build();
             var blackNode = new MapNodeBuilder().WithId(3).OccupiedBy(PlayerColor.Black).Build();
             var orangeNode = new MapNodeBuilder().WithId(4).OccupiedBy(PlayerColor.Orange).Build();
-            
+
             // Act
             var redDto = new MapNodeDto(redNode);
             var blueDto = new MapNodeDto(blueNode);
             var blackDto = new MapNodeDto(blackNode);
             var orangeDto = new MapNodeDto(orangeNode);
-            
+
             // Assert
             Assert.AreEqual(PlayerColor.Red, redDto.Occupant);
             Assert.AreEqual(PlayerColor.Blue, blueDto.Occupant);

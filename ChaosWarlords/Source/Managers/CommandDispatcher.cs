@@ -1,7 +1,5 @@
-using System;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Managers
@@ -18,7 +16,7 @@ namespace ChaosWarlords.Source.Managers
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public void Dispatch(IGameCommand command, ChaosWarlords.Source.Contexts.MatchContext context)
+        public void Dispatch(IGameCommand command, Contexts.MatchContext context)
         {
             try
             {
@@ -36,7 +34,7 @@ namespace ChaosWarlords.Source.Managers
                 if (!_replayManager.IsReplaying)
                 {
                     context.RecordAction(command.GetType().Name, command.ToString() ?? "Command");
-                    
+
                     // Record to ReplayManager using the authoritative sequence number
                     _replayManager.RecordCommand(command, context.ActivePlayer, (int)context.SequenceNumber);
                 }
@@ -47,7 +45,7 @@ namespace ChaosWarlords.Source.Managers
             catch (Exception ex)
             {
                 _logger.Log($"Error executing/recording command {command.GetType().Name}: {ex}", LogChannel.Error);
-                throw; 
+                throw;
             }
         }
     }

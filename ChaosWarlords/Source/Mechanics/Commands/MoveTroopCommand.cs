@@ -1,18 +1,15 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Contexts;
-using System.Linq;
 
 namespace ChaosWarlords.Source.Commands
 {
     public class MoveTroopCommand : IGameCommand
     {
-        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.MoveTroop;
+        public Core.Data.Enums.CommandType Type => Core.Data.Enums.CommandType.MoveTroop;
 
-        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        public Core.Data.Dtos.GameCommandDto ToDto()
         {
-            return new ChaosWarlords.Source.Core.Data.Dtos.MoveTroopCommandDto
+            return new Core.Data.Dtos.MoveTroopCommandDto
             {
                 SrcId = SourceNodeId,
                 DestId = DestinationNodeId,
@@ -32,16 +29,16 @@ namespace ChaosWarlords.Source.Commands
 
         public bool Validate(MatchContext context)
         {
-             // 1. Get Nodes
-             var src = context.MapManager.Nodes.FirstOrDefault(n => n.Id == SourceNodeId);
-             var dest = context.MapManager.Nodes.FirstOrDefault(n => n.Id == DestinationNodeId);
-             
-             if (src == null || dest == null) return false;
-             
-             var player = context.TurnManager.ActivePlayer;
-             
-             // 2. Delegate to MapManager logic
-             return context.MapManager.CanMoveSource(src, player) && context.MapManager.CanMoveDestination(dest);
+            // 1. Get Nodes
+            var src = context.MapManager.Nodes.FirstOrDefault(n => n.Id == SourceNodeId);
+            var dest = context.MapManager.Nodes.FirstOrDefault(n => n.Id == DestinationNodeId);
+
+            if (src == null || dest == null) return false;
+
+            var player = context.TurnManager.ActivePlayer;
+
+            // 2. Delegate to MapManager logic
+            return context.MapManager.CanMoveSource(src, player) && context.MapManager.CanMoveDestination(dest);
         }
 
         public void Execute(MatchContext context)

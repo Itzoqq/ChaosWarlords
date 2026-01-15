@@ -1,4 +1,3 @@
-using System;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
@@ -103,33 +102,33 @@ namespace ChaosWarlords.Source.Managers
         public void DrawCards(Player player, int count, IGameRandom random)
         {
             if (count <= 0) return;
-            
+
             // Snapshot hand before draw to calculate diff (or just log what's added)
             int preCount = player.Hand.Count;
-            
+
             // Delegate to Player implementation which handles deck/shuffle logic
             player.DrawCards(count, random);
-            
+
             _logger.Log($"[State] {player.DisplayName} drew {count} cards.", LogChannel.Info);
-            
+
             // Log specifically WHICH cards were added (the last 'count' cards)
             // Note: Player.DrawCards adds to the END of the list.
             for (int i = preCount; i < player.Hand.Count; i++)
             {
-                 var card = player.Hand[i];
-                 _logger.Log($"   > Drawn: {card.Name} (ID: {card.Id})", LogChannel.Info);
+                var card = player.Hand[i];
+                _logger.Log($"   > Drawn: {card.Name} (ID: {card.Id})", LogChannel.Info);
             }
-            
+
             LogHandState(player);
         }
 
         public void LogHandState(Player player)
         {
-             _logger.Log($"[Hand Dump] {player.DisplayName} Hand ({player.Hand.Count}):", LogChannel.Debug);
-             foreach(var card in player.Hand)
-             {
-                 _logger.Log($"   - {card.Name} [{card.Id}]", LogChannel.Debug);
-             }
+            _logger.Log($"[Hand Dump] {player.DisplayName} Hand ({player.Hand.Count}):", LogChannel.Debug);
+            foreach (var card in player.Hand)
+            {
+                _logger.Log($"   - {card.Name} [{card.Id}]", LogChannel.Debug);
+            }
         }
 
         public void PlayCard(Player player, Card card)
@@ -139,7 +138,7 @@ namespace ChaosWarlords.Source.Managers
             player.Hand.Remove(card);
             card.Location = CardLocation.Played;
             player.PlayedCards.Add(card);
-            
+
             _logger.Log($"[State] {player.DisplayName} played '{card.Name}'", LogChannel.Info);
         }
 
@@ -173,7 +172,7 @@ namespace ChaosWarlords.Source.Managers
             bool removed = player.Hand.Remove(card);
             if (!removed) removed = player.PlayedCards.Remove(card);
             if (!removed) removed = player.InnerCircle.Remove(card);
-            
+
             // If we found it:
             if (removed)
             {
@@ -187,7 +186,7 @@ namespace ChaosWarlords.Source.Managers
             // Logic to remove card from player ownership
             bool removed = player.Hand.Remove(card);
             if (!removed) removed = player.PlayedCards.Remove(card);
-            
+
             if (removed)
             {
                 card.Location = CardLocation.Market;
@@ -195,7 +194,7 @@ namespace ChaosWarlords.Source.Managers
             }
             else
             {
-                 _logger.Log($"[State] Failed to move '{card.Name}' to Market: Not found in Hand or PlayedCards.", LogChannel.Warning);
+                _logger.Log($"[State] Failed to move '{card.Name}' to Market: Not found in Hand or PlayedCards.", LogChannel.Warning);
             }
         }
 
@@ -203,7 +202,7 @@ namespace ChaosWarlords.Source.Managers
         {
             _logger.Log($"[Cleanup] Clearning hand for {player.DisplayName}. Content was:", LogChannel.Debug);
             LogHandState(player);
-            
+
             player.CleanUpTurn();
             _logger.Log($"[State] {player.DisplayName} ended turn. Hand and Played cards discarded.", LogChannel.Info);
         }

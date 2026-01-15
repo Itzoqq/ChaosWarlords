@@ -1,5 +1,3 @@
-using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Commands;
 using NSubstitute;
@@ -16,11 +14,11 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         {
             // Arrange
             var stateFake = new TestGameplayState();
-            
+
             var mockActionSystem = stateFake.ActionSystem;
             // Verify TryStartAssassinate sets state (simulated)
             mockActionSystem.CurrentState.Returns(ActionState.TargetingAssassinate);
-            
+
             var command = new StartAssassinateCommand();
 
             // Act
@@ -29,7 +27,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // Assert
             // 1. Verify Action delegation
             mockActionSystem.Received(1).StartTargeting(Arg.Is(ActionState.TargetingAssassinate), null);
-            
+
             // 2. Verify State Transition
             // Assert.AreEqual("Targeting", stateFake.ActiveModeName, "Should switch to Targeting mode.");
         }

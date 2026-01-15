@@ -1,9 +1,6 @@
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using System.Collections.Generic;
-using System.IO;
 using System.Text.Json;
-using System.Linq;
 using ChaosWarlords.Source.Entities.Cards;
 using System.Diagnostics.CodeAnalysis;
 
@@ -38,7 +35,7 @@ namespace ChaosWarlords.Source.Utilities
         public string? ConditionResource { get; set; }
 
         public bool IsOptional { get; set; }
-        
+
         public bool ReplaceWithSource { get; set; }
     }
 
@@ -69,7 +66,7 @@ namespace ChaosWarlords.Source.Utilities
             foreach (var data in _cardDataCache.OrderBy(c => c.Id))
             {
                 // Trace for Replay Desync Debugging
-                Console.WriteLine($"[CardDatabase] Processing Market Card: {data.Id}"); 
+                Console.WriteLine($"[CardDatabase] Processing Market Card: {data.Id}");
                 cards.Add(CardFactory.CreateFromData(data, random));
             }
             return cards;

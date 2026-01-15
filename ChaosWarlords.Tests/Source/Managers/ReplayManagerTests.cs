@@ -1,13 +1,10 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using NSubstitute;
-using System;
 
 namespace ChaosWarlords.Tests.Source.Managers
 {
@@ -322,7 +319,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             var card = new Card("inner_circle_1", "Inner Circle Victim", 1, CardAspect.Neutral, 0, 0, 0);
             card.Location = CardLocation.InnerCircle;
             player.InnerCircle.Add(card);
-            
+
             var command = new DevourCardCommand(card);
 
             // Act

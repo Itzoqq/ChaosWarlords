@@ -1,18 +1,16 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
-using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
-using System.Linq;
 
 namespace ChaosWarlords.Source.Commands
 {
     public class AssassinateCommand : IGameCommand
     {
-        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.Assassinate;
+        public Core.Data.Enums.CommandType Type => Core.Data.Enums.CommandType.Assassinate;
 
-        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        public Core.Data.Dtos.GameCommandDto ToDto()
         {
-            return new ChaosWarlords.Source.Core.Data.Dtos.AssassinateCommandDto
+            return new Core.Data.Dtos.AssassinateCommandDto
             {
                 NodeId = TargetNodeId,
                 CardId = CardId,
@@ -32,7 +30,7 @@ namespace ChaosWarlords.Source.Commands
 
         public bool Validate(MatchContext context)
         {
-             // 1. Get Node
+            // 1. Get Node
             var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
             if (node == null) return false;
 

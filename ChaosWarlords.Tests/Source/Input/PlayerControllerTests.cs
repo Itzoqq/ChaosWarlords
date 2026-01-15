@@ -1,11 +1,9 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+
 using NSubstitute;
 using ChaosWarlords.Source.Input.Controllers;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using Microsoft.Xna.Framework.Input;
-using ChaosWarlords.Source.Input;
 
 namespace ChaosWarlords.Tests.Source.Input
 {
@@ -38,7 +36,7 @@ namespace ChaosWarlords.Tests.Source.Input
                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Data.ICardDatabase>(),
                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IPlayerStateManager>(),
                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
-                ChaosWarlords.Tests.Utilities.TestLogger.Instance
+                Tests.Utilities.TestLogger.Instance
             );
 
             _gameState.MatchContext.Returns(context);
@@ -145,7 +143,7 @@ namespace ChaosWarlords.Tests.Source.Input
             _gameState.IsOptionalEffectPopupOpen.Returns(false);
             _gameState.IsPauseMenuOpen.Returns(false);
             _gameState.IsConfirmationPopupOpen.Returns(false);
-            
+
             _inputManager.IsKeyJustPressed(Keys.Enter).Returns(true);
             _gameState.CanEndTurn(out Arg.Any<string>()).Returns(true);
 

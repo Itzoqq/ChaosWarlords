@@ -17,11 +17,11 @@ namespace ChaosWarlords.Tests.Integration.Managers
     [TestCategory("Integration")]
     public class MapManagerTests
     {
-    private Player _player1 = null!;
-    private Player _player2 = null!;
-    private MapManager _mapManager = null!;
-    private IPlayerStateManager _stateManager = null!;
-    private ITurnManager _turnManager = null!;
+        private Player _player1 = null!;
+        private Player _player2 = null!;
+        private MapManager _mapManager = null!;
+        private IPlayerStateManager _stateManager = null!;
+        private ITurnManager _turnManager = null!;
 
         // Nodes & Sites for testing
         private MapNode _node1 = null!, _node2 = null!, _node3 = null!, _node4 = null!, _node5 = null!;
@@ -65,16 +65,16 @@ namespace ChaosWarlords.Tests.Integration.Managers
             var nodes = new List<MapNode> { _node1, _node2, _node3, _node4, _node5 };
             var sites = new List<Site> { _siteA, _siteB };
 
-            _stateManager = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _stateManager = new PlayerStateManager(Utilities.TestLogger.Instance);
 
-        // Create mock TurnManager
-        _turnManager = Substitute.For<ITurnManager>();
-        _turnManager.GetPlayerByColor(PlayerColor.Red).Returns(_player1);
-        _turnManager.GetPlayerByColor(PlayerColor.Blue).Returns(_player2);
+            // Create mock TurnManager
+            _turnManager = Substitute.For<ITurnManager>();
+            _turnManager.GetPlayerByColor(PlayerColor.Red).Returns(_player1);
+            _turnManager.GetPlayerByColor(PlayerColor.Blue).Returns(_player2);
 
-        // The Manager now uses the SubSystems internally, but we test the RESULT of that integration here
-        _mapManager = new MapManager(nodes, sites, _turnManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance, _stateManager);
-            _mapManager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
+            // The Manager now uses the SubSystems internally, but we test the RESULT of that integration here
+            _mapManager = new MapManager(nodes, sites, _turnManager, Utilities.TestLogger.Instance, _stateManager);
+            _mapManager.SetPhase(MatchPhase.Playing);
         }
 
         #region 1. Deployment Actions (State & Resources)
@@ -104,8 +104,8 @@ namespace ChaosWarlords.Tests.Integration.Managers
             var testNodes = new List<MapNode> { testNode1, testNode2 };
             testNode1.AddNeighbor(testNode2);
             testNode2.AddNeighbor(testNode1);
-            var testManager = new MapManager(testNodes, new List<Site>(), _turnManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance, _stateManager);
-            testManager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
+            var testManager = new MapManager(testNodes, new List<Site>(), _turnManager, Utilities.TestLogger.Instance, _stateManager);
+            testManager.SetPhase(MatchPhase.Playing);
 
             bool result = testManager.TryDeploy(testPlayer, testNode2);
 
@@ -147,8 +147,8 @@ namespace ChaosWarlords.Tests.Integration.Managers
             testNode1.AddNeighbor(testNode2);
             testNode2.AddNeighbor(testNode1);
 
-            var testManager = new MapManager(testNodes, new List<Site>(), _turnManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance, _stateManager);
-            testManager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
+            var testManager = new MapManager(testNodes, new List<Site>(), _turnManager, Utilities.TestLogger.Instance, _stateManager);
+            testManager.SetPhase(MatchPhase.Playing);
 
             // Act
             bool result = testManager.TryDeploy(testPlayer, testNode2);
@@ -213,7 +213,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             }
 
             // Create fresh manager with test site
-            var testManager = new MapManager(new List<MapNode>(), new List<Site> { testSite }, _turnManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance, _stateManager);
+            var testManager = new MapManager(new List<MapNode>(), new List<Site> { testSite }, _turnManager, Utilities.TestLogger.Instance, _stateManager);
 
             testManager.PlaceSpy(testSite, testPlayer);
 
@@ -255,7 +255,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             remoteSite.AddNode(remoteNode);
 
             // New manager instance for isolation
-            var manager = new MapManager(new List<MapNode> { remoteNode }, new List<Site> { remoteSite }, _turnManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance, _stateManager);
+            var manager = new MapManager(new List<MapNode> { remoteNode }, new List<Site> { remoteSite }, _turnManager, Utilities.TestLogger.Instance, _stateManager);
 
             bool result = manager.HasValidPlaceSpyTarget(_player1);
             Assert.IsTrue(result, "Should be able to place a spy on a remote site with zero presence.");
@@ -315,10 +315,10 @@ namespace ChaosWarlords.Tests.Integration.Managers
                 new List<MapNode> { cityNodeTL, cityNodeTR, cityNodeDL, cityNodeDR, routeNode },
                 new List<Site> { citySite },
                 _turnManager,
-                ChaosWarlords.Tests.Utilities.TestLogger.Instance,
+                Utilities.TestLogger.Instance,
                 _stateManager
             );
-            manager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
+            manager.SetPhase(MatchPhase.Playing);
 
             // Red blocks the exit nodes
             cityNodeTL.Occupant = PlayerColor.Red;
@@ -341,8 +341,8 @@ namespace ChaosWarlords.Tests.Integration.Managers
             startNode.Occupant = _player1.Color;
             var farNode = TestData.MapNodes.EmptyNode();
 
-            var manager = new MapManager(new List<MapNode> { startNode, farNode }, new List<Site>(), _turnManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance, _stateManager);
-            manager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
+            var manager = new MapManager(new List<MapNode> { startNode, farNode }, new List<Site>(), _turnManager, Utilities.TestLogger.Instance, _stateManager);
+            manager.SetPhase(MatchPhase.Playing);
 
             bool result = manager.CanDeployAt(farNode, _player1.Color);
 
@@ -360,8 +360,8 @@ namespace ChaosWarlords.Tests.Integration.Managers
             var siteB = TestData.Sites.NeutralSite();
             siteB.AddNode(siteBNode);
 
-            var manager = new MapManager(new List<MapNode> { siteANode, siteBNode }, new List<Site> { siteA, siteB }, _turnManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance, _stateManager);
-            manager.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
+            var manager = new MapManager(new List<MapNode> { siteANode, siteBNode }, new List<Site> { siteA, siteB }, _turnManager, Utilities.TestLogger.Instance, _stateManager);
+            manager.SetPhase(MatchPhase.Playing);
 
             siteA.Spies.Add(_player1.Color);
 
@@ -492,7 +492,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
                 new List<MapNode> { enemyNode, targetNode, myBaseNode },
                 new List<Site> { enemySite },
                 _turnManager,
-                ChaosWarlords.Tests.Utilities.TestLogger.Instance,
+                Utilities.TestLogger.Instance,
                 _stateManager
             );
 
@@ -596,9 +596,9 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // Mock Card DB to return deterministic cards
             cardDbMock.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
             cardDbMock.GetAllMarketCards(null).Returns(new List<Card>());
-            
+
             var factory = new MatchFactory(cardDbMock, loggerMock);
-            
+
             // Allow ReplayManager logic to flow
             var replayManagerMock = Substitute.For<IReplayManager>();
             replayManagerMock.IsReplaying.Returns(true);
@@ -621,15 +621,15 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // Act: Verify MapManager event firing
             bool eventFired = false;
             worldData.MapManager.OnSetupDeploymentComplete += () => eventFired = true;
-            
+
             worldData.MapManager.SetPhase(MatchPhase.Setup);
-            
+
             var p1 = worldData.TurnManager.Players[0];
             p1.TroopsInBarracks = 1; // Last troop
-            
+
             // Find a valid starting node (must be StartingSite and Empty)
             MapNode? deployNode = null;
-            foreach(var n in worldData.MapManager.NodesInternal)
+            foreach (var n in worldData.MapManager.NodesInternal)
             {
                 var site = worldData.MapManager.GetSiteForNode(n);
                 if (site is StartingSite && n.Occupant == PlayerColor.None)
@@ -641,7 +641,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             Assert.IsNotNull(deployNode, "Could not find a valid StartingSite node for test.");
 
             worldData.MapManager.TryDeploy(p1, deployNode);
-            
+
             Assert.IsTrue(eventFired, "MapManager SHOULD fire the event when setup deployment occurs.");
         }
     }

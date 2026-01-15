@@ -1,5 +1,3 @@
-using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
@@ -8,8 +6,6 @@ using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Commands;
 using NSubstitute;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Contexts;
 
@@ -20,17 +16,17 @@ namespace ChaosWarlords.Tests.Systems
     public class ActionSystemTransactionTests
     {
         private Player _player1 = null!;
-        private IMapManager _mapManager = null!; 
-        private ITurnManager _turnManager = null!; 
+        private IMapManager _mapManager = null!;
+        private ITurnManager _turnManager = null!;
         private IMatchManager _matchManager = null!;
-        private ActionSystem _actionSystem = null!; 
+        private ActionSystem _actionSystem = null!;
 
         private MapNode _node1 = null!;
 
         [TestInitialize]
         public void Setup()
         {
-            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
+            Utilities.TestLogger.Initialize();
             _player1 = TestData.Players.RedPlayer();
 
             _mapManager = Substitute.For<IMapManager>();
@@ -43,9 +39,9 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.Nodes.Returns(new List<MapNode> { _node1 });
 
             // Create System
-            _actionSystem = new ActionSystem(_turnManager, _mapManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _actionSystem = new ActionSystem(_turnManager, _mapManager, Utilities.TestLogger.Instance);
             _actionSystem.SetMatchManager(_matchManager);
-            
+
             // Mock PlayerStateManager
             var psm = Substitute.For<IPlayerStateManager>();
             _actionSystem.SetPlayerStateManager(psm);
@@ -67,31 +63,32 @@ namespace ChaosWarlords.Tests.Systems
 
             // Handle Selection and Execute Command
             var cmd = _actionSystem.HandleDevourSelection(fodderCard);
-            
+
             // Execute the command to trigger deferral logic
             // Execute the command to trigger deferral logic
             var context = new MatchContext(
-                _turnManager, 
-                _mapManager, 
-                Substitute.For<IMarketManager>(), 
-                _actionSystem, 
-                Substitute.For<ICardDatabase>(), 
-                Substitute.For<IPlayerStateManager>(), 
-                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(), 
-                ChaosWarlords.Tests.Utilities.TestLogger.Instance) { MatchManager = _matchManager };
-            
+                _turnManager,
+                _mapManager,
+                Substitute.For<IMarketManager>(),
+                _actionSystem,
+                Substitute.For<ICardDatabase>(),
+                Substitute.For<IPlayerStateManager>(),
+                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
+                Utilities.TestLogger.Instance)
+            { MatchManager = _matchManager };
+
             Assert.IsNotNull(cmd);
             cmd.Execute(context);
 
             // Assert
             // 1. Devour should NOT have happened on MatchManager
             _matchManager.DidNotReceive().DevourCard(Arg.Any<Card>());
-            
+
             // 2. PendingDevourCard should be set
             Assert.AreEqual(fodderCard, _actionSystem.PendingDevourCard);
-            
+
             // 3. State should be cleared (CompleteAction called)
-            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState); 
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
             // Note: In a real flow, the callback would start the next targeting. 
             // Here, we didn't pass a callback that starts new targeting, so it went to Normal.
         }
@@ -106,23 +103,24 @@ namespace ChaosWarlords.Tests.Systems
             _player1.TroopsInBarracks = 5;
 
             // Step 1: Start Devour (Deferred)
-            _actionSystem.TryStartDevourHand(sourceCard, () => 
+            _actionSystem.TryStartDevourHand(sourceCard, () =>
             {
                 // Callback simulates transitioning to Supplant
-                 _actionSystem.StartTargeting(ActionState.TargetingSupplant, sourceCard);
+                _actionSystem.StartTargeting(ActionState.TargetingSupplant, sourceCard);
             }, deferExecution: true);
 
             // Step 2: Select Fodder & Execute Deferral
             var cmd = _actionSystem.HandleDevourSelection(fodderCard);
             var context = new MatchContext(
-                _turnManager, 
-                _mapManager, 
-                Substitute.For<IMarketManager>(), 
-                _actionSystem, 
-                Substitute.For<ICardDatabase>(), 
-                Substitute.For<IPlayerStateManager>(), 
-                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(), 
-                ChaosWarlords.Tests.Utilities.TestLogger.Instance) { MatchManager = _matchManager };
+                _turnManager,
+                _mapManager,
+                Substitute.For<IMarketManager>(),
+                _actionSystem,
+                Substitute.For<ICardDatabase>(),
+                Substitute.For<IPlayerStateManager>(),
+                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
+                Utilities.TestLogger.Instance)
+            { MatchManager = _matchManager };
             Assert.IsNotNull(cmd);
             cmd.Execute(context);
 
@@ -132,7 +130,7 @@ namespace ChaosWarlords.Tests.Systems
 
             // Step 3: Select Supplant Target
             _mapManager.CanAssassinate(_node1, _player1).Returns(true);
-            
+
             // Act
             var command = _actionSystem.HandleTargetClick(_node1, null);
 
@@ -140,7 +138,7 @@ namespace ChaosWarlords.Tests.Systems
             Assert.IsNotNull(command);
             Assert.IsInstanceOfType(command, typeof(SupplantCommand));
             var supplantCmd = (SupplantCommand)command;
-            
+
             Assert.AreEqual(sourceCard.Id, supplantCmd.CardId);
             Assert.AreEqual(fodderCard.Id, supplantCmd.DevourCardId);
         }
@@ -156,17 +154,18 @@ namespace ChaosWarlords.Tests.Systems
             _actionSystem.TryStartDevourHand(sourceCard, null, deferExecution: true);
             var cmd = _actionSystem.HandleDevourSelection(fodderCard);
             var context = new MatchContext(
-                _turnManager, 
-                _mapManager, 
-                Substitute.For<IMarketManager>(), 
-                _actionSystem, 
-                Substitute.For<ICardDatabase>(), 
-                Substitute.For<IPlayerStateManager>(), 
-                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(), 
-                ChaosWarlords.Tests.Utilities.TestLogger.Instance) { MatchManager = _matchManager };
+                _turnManager,
+                _mapManager,
+                Substitute.For<IMarketManager>(),
+                _actionSystem,
+                Substitute.For<ICardDatabase>(),
+                Substitute.For<IPlayerStateManager>(),
+                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
+                Utilities.TestLogger.Instance)
+            { MatchManager = _matchManager };
             Assert.IsNotNull(cmd);
             cmd.Execute(context);
-            
+
             // Verify buffering
             Assert.AreEqual(fodderCard, _actionSystem.PendingDevourCard);
 

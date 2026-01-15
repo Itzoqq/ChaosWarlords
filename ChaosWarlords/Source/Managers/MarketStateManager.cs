@@ -1,4 +1,3 @@
-using System;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
@@ -13,12 +12,12 @@ namespace ChaosWarlords.Source.Managers
     {
         private readonly IGameLogger _logger;
         private MarketMode _currentMode = MarketMode.Closed;
-        private Func<Card, ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand?>? _devourCallback;
+        private Func<Card, Core.Interfaces.Logic.IGameCommand?>? _devourCallback;
 
         public MarketMode CurrentMode => _currentMode;
         public bool IsOpen => _currentMode != MarketMode.Closed;
-        public Func<Card, ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand?>? DevourCallback => _devourCallback;
-        
+        public Func<Card, Core.Interfaces.Logic.IGameCommand?>? DevourCallback => _devourCallback;
+
         public event EventHandler<MarketMode>? ModeChanged;
 
         public MarketStateManager(IGameLogger logger)
@@ -34,7 +33,7 @@ namespace ChaosWarlords.Source.Managers
             ModeChanged?.Invoke(this, _currentMode);
         }
 
-        public void OpenForDevour(Func<Card, ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand?> onDevourCallback)
+        public void OpenForDevour(Func<Card, Core.Interfaces.Logic.IGameCommand?> onDevourCallback)
         {
             ArgumentNullException.ThrowIfNull(onDevourCallback);
 

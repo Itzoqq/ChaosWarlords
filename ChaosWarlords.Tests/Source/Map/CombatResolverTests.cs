@@ -1,10 +1,8 @@
 using ChaosWarlords.Source.Map;
 using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Managers;
-using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Tests.Map
 {
@@ -24,7 +22,7 @@ namespace ChaosWarlords.Tests.Map
             _testSite = TestData.Sites.NeutralSite();
             _siteRecalculated = false;
 
-            var stateManager = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var stateManager = new PlayerStateManager(Utilities.TestLogger.Instance);
 
             _resolver = new CombatResolver(
                 (node) => TestData.Sites.NeutralSite(),
@@ -32,7 +30,7 @@ namespace ChaosWarlords.Tests.Map
                 () => _currentPhase,
                 (color) => null, // getPlayerByColor - not needed for these unit tests
                 stateManager,
-                ChaosWarlords.Tests.Utilities.TestLogger.Instance
+                Utilities.TestLogger.Instance
             );
         }
 

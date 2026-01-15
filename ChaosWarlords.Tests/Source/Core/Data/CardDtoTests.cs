@@ -2,7 +2,6 @@ using ChaosWarlords.Source.Core.Data.Dtos;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 
 namespace ChaosWarlords.Tests.Source.Core.Data
@@ -16,10 +15,10 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         {
             // Arrange
             var card = TestData.Cards.PowerCard();
-            
+
             // Act
             var dto = new CardDto(card, 0);
-            
+
             // Assert
             Assert.AreEqual(card.Id, dto.DefinitionId);
         }
@@ -32,10 +31,10 @@ namespace ChaosWarlords.Tests.Source.Core.Data
                 .WithName("test_card")
                 .InHand()
                 .Build();
-            
+
             // Act
             var dto = new CardDto(card, 2);
-            
+
             // Assert
             Assert.AreEqual(CardLocation.Hand, dto.Location);
             Assert.AreEqual(2, dto.ListIndex);
@@ -60,13 +59,13 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         public void ToEntity_WithoutDatabase_ThrowsInvalidOperationException()
         {
             // Arrange
-            var dto = new CardDto 
-            { 
-                DefinitionId = "test_card", 
+            var dto = new CardDto
+            {
+                DefinitionId = "test_card",
                 InstanceId = Guid.NewGuid().ToString(),
-                Location = CardLocation.Hand 
+                Location = CardLocation.Hand
             };
-            
+
             // Act & Assert
             try
             {
@@ -86,13 +85,13 @@ namespace ChaosWarlords.Tests.Source.Core.Data
             var mockDatabase = Substitute.For<ICardDatabase>();
             var originalCard = TestData.Cards.PowerCard();
             mockDatabase.GetCardById(originalCard.Id).Returns(originalCard);
-            
+
             var dto = new CardDto(originalCard, 0);
             dto.Location = CardLocation.DiscardPile;
-            
+
             // Act
             var result = dto.ToEntity(mockDatabase);
-            
+
             // Assert
             Assert.AreEqual(originalCard.Id, result.Id);
             Assert.AreEqual(CardLocation.DiscardPile, result.Location);
@@ -104,13 +103,13 @@ namespace ChaosWarlords.Tests.Source.Core.Data
             // Arrange
             var mockDatabase = Substitute.For<ICardDatabase>();
             mockDatabase.GetCardById("invalid_id").Returns((Card?)null);
-            
-            var dto = new CardDto 
-            { 
-                DefinitionId = "invalid_id", 
-                InstanceId = Guid.NewGuid().ToString() 
+
+            var dto = new CardDto
+            {
+                DefinitionId = "invalid_id",
+                InstanceId = Guid.NewGuid().ToString()
             };
-            
+
             // Act & Assert
             try
             {
@@ -130,12 +129,12 @@ namespace ChaosWarlords.Tests.Source.Core.Data
             var cardInDeck = new CardBuilder().WithName("deck_card").InDeck().Build();
             var cardInDiscard = new CardBuilder().WithName("discard_card").InDiscard().Build();
             var cardInInnerCircle = new CardBuilder().WithName("inner_card").InInnerCircle().Build();
-            
+
             // Act
             var deckDto = new CardDto(cardInDeck, 0);
             var discardDto = new CardDto(cardInDiscard, 1);
             var innerDto = new CardDto(cardInInnerCircle, 2);
-            
+
             // Assert
             Assert.AreEqual(CardLocation.Deck, deckDto.Location);
             Assert.AreEqual(CardLocation.DiscardPile, discardDto.Location);
@@ -147,11 +146,11 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         {
             // Arrange
             var card = TestData.Cards.CheapCard();
-            
+
             // Act
             var dto1 = new CardDto(card, 0);
             var dto2 = new CardDto(card, 0);
-            
+
             // Assert
             Assert.AreNotEqual(dto1.InstanceId, dto2.InstanceId);
             Assert.IsFalse(string.IsNullOrEmpty(dto1.InstanceId));

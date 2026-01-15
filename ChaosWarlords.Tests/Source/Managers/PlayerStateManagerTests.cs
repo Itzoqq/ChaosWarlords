@@ -1,6 +1,5 @@
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using NSubstitute;
@@ -18,7 +17,7 @@ namespace ChaosWarlords.Tests.Managers
         [TestInitialize]
         public void Setup()
         {
-            _manager = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _manager = new PlayerStateManager(Utilities.TestLogger.Instance);
             _player = TestData.Players.PoorPlayer();
         }
 

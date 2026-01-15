@@ -57,16 +57,16 @@ namespace ChaosWarlords.Source.Input.Modes
                     context.ConsumeCreditFor(targetCard);
 
                     // 1. Manually execute the promote command immediately
-                    var promoteCmd = new ChaosWarlords.Source.Commands.PromoteCommand(targetCard.Id);
+                    var promoteCmd = new Commands.PromoteCommand(targetCard.Id);
                     _gameplayState.RecordAndExecuteCommand(promoteCmd);
 
                     // 2. Check if we are done
                     if (_cardsLeftToPromote <= 0)
                     {
                         actionSystem.CancelTargeting();
-                        
+
                         // 3. Return EndTurn command to be executed by Coordinator immediately after
-                        return new ChaosWarlords.Source.Commands.EndTurnCommand();
+                        return new Commands.EndTurnCommand();
                     }
 
                     // 4. If not done, return null (Command already executed above)

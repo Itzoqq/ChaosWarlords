@@ -1,4 +1,3 @@
-#nullable enable
 using ChaosWarlords.Source.Core.Interfaces.Composition;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
@@ -21,7 +20,7 @@ namespace ChaosWarlords.Source.Core.Composition
         public required IUIManager UIManager { get; init; }
         public IGameplayView? View { get; init; }
         public required IReplayManager ReplayManager { get; init; }
-        
+
         public int ViewportWidth { get; init; } = 1920;
         public int ViewportHeight { get; init; } = 1080;
     }

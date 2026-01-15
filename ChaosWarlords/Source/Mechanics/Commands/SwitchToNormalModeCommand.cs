@@ -8,11 +8,11 @@ namespace ChaosWarlords.Source.Commands
     /// </summary>
     public class SwitchToNormalModeCommand : IGameCommand
     {
-        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.SwitchMode;
+        public Core.Data.Enums.CommandType Type => Core.Data.Enums.CommandType.SwitchMode;
 
-        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        public Core.Data.Dtos.GameCommandDto ToDto()
         {
-            return new ChaosWarlords.Source.Core.Data.Dtos.SwitchModeCommandDto();
+            return new Core.Data.Dtos.SwitchModeCommandDto();
         }
         public bool Validate(MatchContext context)
         {

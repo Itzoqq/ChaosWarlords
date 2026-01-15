@@ -1,6 +1,5 @@
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Managers;
-
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using NSubstitute;

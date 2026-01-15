@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Core.Data;
 using Microsoft.Xna.Framework;
 
@@ -35,7 +34,7 @@ namespace ChaosWarlords.Tests.Source.Core.Data
             var p2 = new LogicVector2(3000, 4000); // 3, 4 triangle scaled by 1000
 
             long distSq = LogicVector2.DistanceSquared(p1, p2);
-            
+
             // 3000^2 + 4000^2 = 9M + 16M = 25M
             Assert.AreEqual(25_000_000L, distSq);
         }

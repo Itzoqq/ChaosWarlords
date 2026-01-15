@@ -1,14 +1,9 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
-using System;
-using System.Collections.Generic;
-using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Mechanics.Actions;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Tests.Source.Mechanics.Actions
@@ -142,7 +137,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
             var mockCommand = Substitute.For<IGameCommand>();
             var mockHandleClick = Substitute.For<Func<MapNode?, Site?, IGameCommand?>>();
             mockHandleClick.Invoke(targetNode, null).Returns(mockCommand);
-            
+
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
 
@@ -175,7 +170,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
             var mockCommand = Substitute.For<IGameCommand>();
             var mockHandleClick = Substitute.For<Func<MapNode?, Site?, IGameCommand?>>();
             mockHandleClick.Invoke(Arg.Any<MapNode?>(), Arg.Any<Site?>()).Returns(mockCommand);
-            
+
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
 
@@ -204,7 +199,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
             var mockCommand = Substitute.For<IGameCommand>();
             var mockHandleClick = Substitute.For<Func<MapNode?, Site?, IGameCommand?>>();
             mockHandleClick.Invoke(null, targetSite).Returns(mockCommand);
-            
+
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
 
@@ -354,7 +349,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
             var card = new CardBuilder().WithName("multi_effect").Build();
             var node1 = TestData.MapNodes.Node1();
             var node2 = TestData.MapNodes.Node2();
-            
+
             _preTargets[card] = new Dictionary<ActionState, object>
             {
                 [ActionState.TargetingSupplant] = node1,
@@ -364,7 +359,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
             var mockCommand = Substitute.For<IGameCommand>();
             var mockHandleClick = Substitute.For<Func<MapNode?, Site?, IGameCommand?>>();
             mockHandleClick.Invoke(Arg.Any<MapNode?>(), Arg.Any<Site?>()).Returns(mockCommand);
-            
+
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
 
@@ -391,7 +386,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
             var mockCommand = Substitute.For<IGameCommand>();
             var mockHandleClick = Substitute.For<Func<MapNode?, Site?, IGameCommand?>>();
             mockHandleClick.Invoke(Arg.Any<MapNode?>(), Arg.Any<Site?>()).Returns(mockCommand);
-            
+
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
 

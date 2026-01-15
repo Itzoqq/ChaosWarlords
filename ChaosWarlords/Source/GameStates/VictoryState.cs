@@ -11,7 +11,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace ChaosWarlords.Source.GameStates
 {
-    public class VictoryState : IState, IDrawableState, System.IDisposable
+    public class VictoryState : IState, IDrawableState, IDisposable
     {
         private readonly Game1 _game;
         private readonly IInputProvider _inputProvider;
@@ -22,7 +22,7 @@ namespace ChaosWarlords.Source.GameStates
         private readonly ButtonManager _buttonManager;
 
         // Main Constructor
-        public VictoryState(Game1 game, VictoryDto victoryData) 
+        public VictoryState(Game1 game, VictoryDto victoryData)
             : this(game, victoryData, game.InputProvider, game.StateManager, game.Logger, null)
         { }
 
@@ -30,19 +30,19 @@ namespace ChaosWarlords.Source.GameStates
         public VictoryState(Game1 game, VictoryDto victoryData, IInputProvider inputProvider, IStateManager stateManager, IGameLogger logger, IVictoryView? view)
         {
             _game = game; // Can be null in tests if careful, but logic uses it.
-            _victoryData = victoryData ?? throw new System.ArgumentNullException(nameof(victoryData));
-            _inputProvider = inputProvider ?? throw new System.ArgumentNullException(nameof(inputProvider));
-            _stateManager = stateManager ?? throw new System.ArgumentNullException(nameof(stateManager));
-            _logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
+            _victoryData = victoryData ?? throw new ArgumentNullException(nameof(victoryData));
+            _inputProvider = inputProvider ?? throw new ArgumentNullException(nameof(inputProvider));
+            _stateManager = stateManager ?? throw new ArgumentNullException(nameof(stateManager));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             _buttonManager = new ButtonManager();
 
             // Initialize View if not provided
             if (view == null)
             {
-                 // Production Path
-                 if (game == null) throw new ArgumentNullException(nameof(game), "Game cannot be null when creating default view.");
-                 _view = new VictoryView(game.GraphicsDevice, game.Content, _buttonManager, victoryData, _logger);
+                // Production Path
+                if (game == null) throw new ArgumentNullException(nameof(game), "Game cannot be null when creating default view.");
+                _view = new VictoryView(game.GraphicsDevice, game.Content, _buttonManager, victoryData, _logger);
             }
             else
             {
@@ -65,13 +65,13 @@ namespace ChaosWarlords.Source.GameStates
 
         private void ReturnToMainMenu()
         {
-             _logger.Log("Returning to Main Menu from Victory Screen.", LogChannel.Info);
-            
+            _logger.Log("Returning to Main Menu from Victory Screen.", LogChannel.Info);
+
             // We want to reset the game state.
             // Create a fresh MainMenuState.
             // DEPENDENCY: MainMenuState constructor requires many services.
             var mainMenu = new MainMenuState(_game);
-            
+
             // Replace current state (Victory) with Main Menu
             _stateManager.ChangeState(mainMenu);
         }
@@ -98,7 +98,7 @@ namespace ChaosWarlords.Source.GameStates
             bool isClick = false;
 
             // Only register click on Release
-            if (currentMouse.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Released && 
+            if (currentMouse.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Released &&
                 _previousMouseState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed)
             {
                 isClick = true;
@@ -106,7 +106,7 @@ namespace ChaosWarlords.Source.GameStates
 
             // Update Buttons
             _buttonManager.Update(mousePos, isClick);
-            
+
             // Update View hover states
             _view.IsMainMenuHovered = _view.MainMenuButtonRect.Contains(mousePos);
 

@@ -8,8 +8,6 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
-using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ChaosWarlords.Tests.Source.Managers
 {
@@ -30,8 +28,8 @@ namespace ChaosWarlords.Tests.Source.Managers
             var logger = Substitute.For<IGameLogger>();
             _victoryManager = new VictoryManager(logger);
 
-            _p1 = new Player(PlayerColor.Red, System.Guid.NewGuid(), "Player 1");
-            _p2 = new Player(PlayerColor.Blue, System.Guid.NewGuid(), "Player 2");
+            _p1 = new Player(PlayerColor.Red, Guid.NewGuid(), "Player 1");
+            _p2 = new Player(PlayerColor.Blue, Guid.NewGuid(), "Player 2");
 
             _mapManager = Substitute.For<IMapManager>();
             _marketManager = Substitute.For<IMarketManager>();
@@ -157,7 +155,7 @@ namespace ChaosWarlords.Tests.Source.Managers
 
             // P2 Score: 10
             _p2.VictoryPoints = 10;
-            
+
             _mapManager.Sites.Returns(new List<Site>());
 
             // Act
@@ -248,7 +246,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             // Scenario 2: Equal Score, Equal Troops, Different Seat
             // Both have 0 troops in barracks
             _p2.TroopsInBarracks = 0;
-            
+
             // P1 is Seat 0, P2 is Seat 1
             _p1.SeatIndex = 0;
             _p2.SeatIndex = 1;

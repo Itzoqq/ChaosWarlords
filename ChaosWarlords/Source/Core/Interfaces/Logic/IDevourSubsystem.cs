@@ -31,12 +31,12 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// <summary>
         /// Handles the selection of a card to devour from Hand.
         /// </summary>
-        ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourSelection(Card? targetCard);
+        Commands.DevourCardCommand? HandleDevourSelection(Card? targetCard);
 
         /// <summary>
         /// Handles the selection of a card to devour from Market.
         /// </summary>
-        ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourMarketSelection(Card? targetCard);
+        Commands.DevourCardCommand? HandleDevourMarketSelection(Card? targetCard);
 
         /// <summary>
         /// Clears the pending devour state (if any).

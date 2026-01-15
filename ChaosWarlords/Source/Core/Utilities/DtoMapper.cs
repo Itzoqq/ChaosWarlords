@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using ChaosWarlords.Source.Core.Data.Dtos;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
@@ -9,7 +7,6 @@ using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using System.Linq;
 
 namespace ChaosWarlords.Source.Core.Utilities
 {
@@ -35,11 +32,11 @@ namespace ChaosWarlords.Source.Core.Utilities
                 { typeof(SwitchModeCommandDto), (d, s) => new SwitchToNormalModeCommand() },
                 { typeof(StartAssassinateCommandDto), (d, s) => new StartAssassinateCommand() },
                 { typeof(StartReturnSpyCommandDto), (d, s) => new StartReturnSpyCommand() },
-                { typeof(ResolveSpyCommandDto), (d, s) => 
+                { typeof(ResolveSpyCommandDto), (d, s) =>
                     {
                         var dto = (ResolveSpyCommandDto)d;
                         return Enum.TryParse<PlayerColor>(dto.Color, out var c) ? new ResolveSpyCommand(dto.SiteId, c, dto.CardId) : null;
-                    } 
+                    }
                 },
                 { typeof(AssassinateCommandDto), (d, s) => new AssassinateCommand(((AssassinateCommandDto)d).NodeId, ((AssassinateCommandDto)d).CardId, ((AssassinateCommandDto)d).DevourCardId) },
                 { typeof(ReturnTroopCommandDto), (d, s) => new ReturnTroopCommand(((ReturnTroopCommandDto)d).NodeId, ((ReturnTroopCommandDto)d).CardId) },
@@ -53,7 +50,7 @@ namespace ChaosWarlords.Source.Core.Utilities
 
         private static Player? GetSeatPlayer(GameCommandDto dto, IGameplayState state)
         {
-             return state.MatchContext.TurnManager?.Players.FirstOrDefault(p => p.SeatIndex == dto.Seat);
+            return state.MatchContext.TurnManager?.Players.FirstOrDefault(p => p.SeatIndex == dto.Seat);
         }
 
         // --- Card Mapping ---
@@ -97,7 +94,7 @@ namespace ChaosWarlords.Source.Core.Utilities
             var dto = new MapDto();
             if (mapManager?.Nodes != null)
             {
-               dto.Nodes = mapManager.Nodes.Select(n => ToDto(n)).Where(n => n != null).ToList()!;
+                dto.Nodes = mapManager.Nodes.Select(n => ToDto(n)).Where(n => n != null).ToList()!;
             }
             if (mapManager?.Sites != null)
             {
@@ -111,7 +108,7 @@ namespace ChaosWarlords.Source.Core.Utilities
         public static GameCommandDto? ToDto(IGameCommand? command, int sequenceNumber, Player? actor)
         {
             if (command == null) return null;
-            
+
             var dto = command.ToDto();
             dto.Seq = sequenceNumber;
             dto.Seat = actor?.SeatIndex ?? -1;
@@ -137,19 +134,19 @@ namespace ChaosWarlords.Source.Core.Utilities
         public static IGameCommand? HydrateCommand(GameCommandDto dto, IGameplayState state)
         {
             if (dto == null) return null;
-            
+
             if (_dtoToCommandMap.TryGetValue(dto.GetType(), out var factory))
             {
                 return factory(dto, state);
             }
-            
+
             return null;
         }
 
         private static PlayCardCommand? HydratePlayCard(PlayCardCommandDto dto, Player? player, IGameLogger? logger = null)
         {
             if (player == null) return null;
-            
+
             var card = FindCardForPlayCommand(dto, player, logger);
             return card != null ? new PlayCardCommand(card) : null;
         }
@@ -158,40 +155,40 @@ namespace ChaosWarlords.Source.Core.Utilities
         {
             // Try to find by CardId first
             var card = TryFindCardById(dto.CardId, player, logger);
-            
+
             // Fallback to index if ID lookup failed
             if (card == null)
             {
                 card = TryFindCardByIndex(dto.HandIdx, player, logger);
             }
-            
+
             return card;
         }
 
         private static Card? TryFindCardById(string? cardId, Player player, IGameLogger? logger)
         {
             if (cardId == null) return null;
-            
+
             var card = player.Hand.FirstOrDefault(c => c.Id == cardId);
-            
+
             if (card == null)
             {
                 logger?.Log($"[Hydrate Error] Could not find CardId '{cardId}' in Hand of {player.DisplayName}.", LogChannel.Error);
                 logger?.Log($"Hand IDs: {string.Join(", ", player.Hand.Select(c => c.Id))}", LogChannel.Error);
             }
-            
+
             return card;
         }
 
         private static Card? TryFindCardByIndex(int handIdx, Player player, IGameLogger? logger)
         {
             var card = player.Hand.ElementAtOrDefault(handIdx);
-            
+
             if (card != null)
             {
                 logger?.Log($"[Hydrate Warning] Fell back to Index {handIdx} -> Found {card.Name} ({card.Id})", LogChannel.Warning);
             }
-            
+
             return card;
         }
 
@@ -228,7 +225,7 @@ namespace ChaosWarlords.Source.Core.Utilities
             {
                 return state.MatchContext.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardId);
             }
-            
+
             if (string.Equals(dto.Location, "InnerCircle", StringComparison.OrdinalIgnoreCase))
             {
                 return player.InnerCircle.FirstOrDefault(c => c.Id == dto.CardId);
@@ -257,10 +254,10 @@ namespace ChaosWarlords.Source.Core.Utilities
 
         // --- Victory Mapping ---
 
-        public static VictoryDto ToVictoryDto(ChaosWarlords.Source.Contexts.MatchContext context, IVictoryManager victoryManager)
+        public static VictoryDto ToVictoryDto(Source.Contexts.MatchContext context, IVictoryManager victoryManager)
         {
             var dto = new VictoryDto();
-            
+
             // Check current status
             dto.IsGameOver = victoryManager.CheckEndGameConditions(context, out var reason);
             dto.VictoryReason = reason;

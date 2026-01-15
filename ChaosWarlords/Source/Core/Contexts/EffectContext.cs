@@ -1,4 +1,3 @@
-using System;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
 
@@ -51,15 +50,15 @@ namespace ChaosWarlords.Source.Core.Contexts
         /// <summary>
         /// The specific effect definition from the card (optional).
         /// </summary>
-        public ChaosWarlords.Source.Entities.Cards.CardEffect? SourceEffect { get; }
+        public CardEffect? SourceEffect { get; }
 
         public EffectContext(
-            ActionState effectType, 
-            Card sourceCard, 
-            bool requiresInput, 
+            ActionState effectType,
+            Card sourceCard,
+            bool requiresInput,
             string description,
             Action<bool> onResolved,
-            ChaosWarlords.Source.Entities.Cards.CardEffect? sourceEffect = null,
+            CardEffect? sourceEffect = null,
             Action? onCancelled = null,
             params object[] parameters)
         {

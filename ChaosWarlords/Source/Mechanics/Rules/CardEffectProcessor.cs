@@ -3,7 +3,6 @@ using ChaosWarlords.Source.Core.Contexts; // For EffectContext
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Utilities;
-using System;
 
 namespace ChaosWarlords.Source.Mechanics.Rules
 {
@@ -15,7 +14,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         public static void ResolveEffects(Card card, MatchContext context, bool hasFocus, IGameLogger logger)
         {
             // Filter effects based on focus requirement
-            var effectQueue = new System.Collections.Generic.List<CardEffect>();
+            var effectQueue = new List<CardEffect>();
             foreach (var effect in card.Effects)
             {
                 if (!effect.RequiresFocus || hasFocus)
@@ -23,22 +22,22 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                     effectQueue.Add(effect);
                 }
             }
-            
+
             // Push effects to Stack in REVERSE order (LIFO)
             for (int i = effectQueue.Count - 1; i >= 0; i--)
             {
                 var effect = effectQueue[i];
-                var state = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.GetTargetingState(effect);
-                
+                var state = Actions.CardPlaySystem.GetTargetingState(effect);
+
                 // Determine if this effect requires blocking input
-                bool requiresInput = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.Type) || effect.IsOptional;
-                
+                bool requiresInput = Actions.CardPlaySystem.IsTargetingEffect(effect.Type) || effect.IsOptional;
+
                 // VALIDATION: If the effect requires targeting, ensure valid targets exist.
                 // If not, we skip pushing it (and thus skip the action), matching legacy behavior.
                 if (requiresInput && !context.CardRuleEngine.HasValidTargets(context.ActivePlayer, effect.Type, card))
                 {
-                     logger.Log($"{card.Name}: No valid targets for {effect.Type}. Effect skipped.", LogChannel.Warning);
-                     continue;
+                    logger.Log($"{card.Name}: No valid targets for {effect.Type}. Effect skipped.", LogChannel.Warning);
+                    continue;
                 }
 
                 var ctx = new EffectContext(
@@ -46,7 +45,8 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                     card,
                     requiresInput,
                     $"Effect: {effect.Type}",
-                    (success) => {
+                    (success) =>
+                    {
                         // OnResolved callback (Executed after success)
                         // For blocking effects, we must explicitly push the child effect here
                         // because ApplyEffect is NOT called for them (they are handled by input)
@@ -57,7 +57,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                     },
                     effect
                 );
-                
+
                 context.ActionSystem.PushEffect(ctx);
             }
 
@@ -67,24 +67,25 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         private static void PushChildEffect(CardEffect parent, Card card, MatchContext context)
         {
-             if (parent.OnSuccess != null)
-             {
-                 var child = parent.OnSuccess;
-                 var state = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.GetTargetingState(child);
-                 bool requiresInput = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(child.Type) || child.IsOptional;
+            if (parent.OnSuccess != null)
+            {
+                var child = parent.OnSuccess;
+                var state = Actions.CardPlaySystem.GetTargetingState(child);
+                bool requiresInput = Actions.CardPlaySystem.IsTargetingEffect(child.Type) || child.IsOptional;
 
-                 var childCtx = new EffectContext(
-                     state,
-                     card,
-                     requiresInput,
-                     $"Child Effect: {child.Type}",
-                     (success) => { 
-                         if (success) PushChildEffect(child, card, context); 
-                     },
-                     child
-                 );
-                 context.ActionSystem.PushEffect(childCtx); // Push to Top
-             }
+                var childCtx = new EffectContext(
+                    state,
+                    card,
+                    requiresInput,
+                    $"Child Effect: {child.Type}",
+                    (success) =>
+                    {
+                        if (success) PushChildEffect(child, card, context);
+                    },
+                    child
+                );
+                context.ActionSystem.PushEffect(childCtx); // Push to Top
+            }
         }
 
         // Restored public ApplyEffect method
@@ -102,7 +103,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             {
                 handler(effect, sourceCard, context, logger);
             }
-            
+
             // Note: Standard ApplyEffect does not automatically push children to stack.
             // That logic is handled by ResolveEffects (for initial play) or OnResolved callbacks.
             // However, if this is called directly (e.g. legacy), we might miss children?
@@ -110,7 +111,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             // Stack-based children are pushed by OnResolved.
         }
 
-        private static readonly System.Collections.Generic.Dictionary<EffectType, Action<CardEffect, Card, MatchContext, IGameLogger>> _effectHandlers = new()
+        private static readonly Dictionary<EffectType, Action<CardEffect, Card, MatchContext, IGameLogger>> _effectHandlers = new()
         {
             [EffectType.GainResource] = (effect, card, ctx, log) => ApplyGainResource(effect, card, ctx, log),
             [EffectType.DrawCard] = (effect, card, ctx, log) => ApplyDrawCard(effect, ctx),
@@ -130,8 +131,8 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             // MatchManager.DevourCard handles the chain for Direct API calls via ResumeDevourChain.
             Action? onSuccess = null;
 
-            bool deferExecution = effect.OnSuccess != null 
-                && ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.OnSuccess.Type);
+            bool deferExecution = effect.OnSuccess != null
+                && Actions.CardPlaySystem.IsTargetingEffect(effect.OnSuccess.Type);
 
             ApplyDevour(effect, sourceCard, context, logger, onSuccess, deferExecution);
         }
@@ -148,26 +149,26 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 context.ActivePlayer.PendingFreeTroops += effect.Amount;
                 logger.Log($"{sourceCard.Name}: Gained {effect.Amount} free troop deployment(s) this turn.", LogChannel.Info);
             }
-            
+
             // Auto-trigger recursive effects for instant actions
             // This is required for chains like GainResource -> GainResource where the second effect
             // might not be pushed to the stack by OnResolved if we are outside a full stack context (e.g. tests)
             // Or if the first effect was "Automatic" and not pushed as a "Blocking" effect.
             if (effect.OnSuccess != null)
             {
-                ApplyEffect(effect.OnSuccess, sourceCard, context, logger); 
+                ApplyEffect(effect.OnSuccess, sourceCard, context, logger);
             }
         }
-        
+
         // REFACTOR: ApplyEffect needs to handle the recursion for Instant effects too? 
         // Or should each ApplyX method handle it? 
         // Better: ApplyEffect handles it via "OnActionCompleted" event? No, avoiding event spaghetti.
         // Simple synchronous chaining for instant effects. Callback chaining for async (Targeting) effects.
-        
+
         // Let's stick to the user request: Devour -> Supplant. Devour is async.
         // Valid handling for ApplyDevour above. 
         // For simple effects, we might need a general handling.
-        
+
 
         private static void ApplyDrawCard(CardEffect effect, MatchContext context)
         {
@@ -259,7 +260,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 return false;
             }
 
-            if (!ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.OnSuccess.Type))
+            if (!Actions.CardPlaySystem.IsTargetingEffect(effect.OnSuccess.Type))
             {
                 return false;
             }

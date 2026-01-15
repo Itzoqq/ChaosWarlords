@@ -2,10 +2,8 @@ using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
-using System;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.GameStates;
-using System.Linq;
 
 namespace ChaosWarlords.Source.Managers
 {
@@ -27,11 +25,11 @@ namespace ChaosWarlords.Source.Managers
         private bool _isConfirmationPopupOpen;
         private bool _isPauseMenuOpen;
 
-        public bool IsConfirmationPopupOpen 
+        public bool IsConfirmationPopupOpen
         {
-            get 
+            get
             {
-                return _isConfirmationPopupOpen; 
+                return _isConfirmationPopupOpen;
             }
         }
         public bool IsPauseMenuOpen => _isPauseMenuOpen;
@@ -154,8 +152,8 @@ namespace ChaosWarlords.Source.Managers
         {
             // Check for unplayed cards first (same logic as HandleEndTurnRequest)
             bool hasUnplayedCards = _gameState.MatchContext.ActivePlayer.Hand.Count > 0;
-            
-            
+
+
             if (hasUnplayedCards)
             {
                 _logger.Log("Gameplay: Opening Confirmation Popup", LogChannel.Info);
@@ -208,7 +206,7 @@ namespace ChaosWarlords.Source.Managers
             }
 
             bool hasUnplayedCards = _gameState.MatchContext.ActivePlayer.Hand.Count > 0;
-            
+
             if (hasUnplayedCards)
             {
                 _logger.Log("Gameplay: Opening Confirmation Popup", LogChannel.Info);
@@ -252,8 +250,8 @@ namespace ChaosWarlords.Source.Managers
                 // Properly create MainMenuState with view and button manager
                 // This matches the initialization pattern in Game1.LoadContent()
                 // This matches the initialization pattern in Game1.LoadContent()
-                var buttonManager = new ChaosWarlords.Source.Rendering.UI.ButtonManager();
-                var mainMenuView = new ChaosWarlords.Source.Rendering.Views.MainMenuView(
+                var buttonManager = new Rendering.UI.ButtonManager();
+                var mainMenuView = new Rendering.Views.MainMenuView(
                     _game.GraphicsDevice,
                     _game.Content,
                     buttonManager,
@@ -296,7 +294,7 @@ namespace ChaosWarlords.Source.Managers
             // 1. It wipes PendingDevourCard, breaking chained transactions.
             // 2. ActionSystem.CompleteAction() already calls ClearState(), which is safer.
             // _actionSystem.CancelTargeting();
-            
+
             // Only switch to Normal Mode if Market is NOT open.
             // If Market is open (e.g. after Devour), we want to stay in MarketInputMode.
             if (!_gameState.IsMarketOpen)
@@ -314,10 +312,10 @@ namespace ChaosWarlords.Source.Managers
             {
                 var activePlayer = _gameState.MatchContext.TurnManager.ActivePlayer;
                 _logger.Log($"DEBUG: ActivePlayer: {activePlayer.DisplayName}. PlayedCards: {activePlayer.PlayedCards.Count}", LogChannel.Info);
-                
+
                 bool hasValidTargets = activePlayer.PlayedCards.Any(c =>
                     _gameState.MatchContext.TurnManager.CurrentTurnContext.HasValidCreditFor(c));
-                
+
                 _logger.Log($"DEBUG: HasValidTargets: {hasValidTargets}", LogChannel.Info);
 
                 if (hasValidTargets)
@@ -329,14 +327,14 @@ namespace ChaosWarlords.Source.Managers
                 {
                     _logger.Log("No valid cards to promote. Promotion effects skipped.", LogChannel.Info);
                     // Create and execute EndTurn command through centralized system
-                    var cmd = new ChaosWarlords.Source.Commands.EndTurnCommand();
+                    var cmd = new Commands.EndTurnCommand();
                     _gameState.RecordAndExecuteCommand(cmd);
                 }
             }
             else
             {
                 // Create and execute EndTurn command through centralized system
-                var cmd = new ChaosWarlords.Source.Commands.EndTurnCommand();
+                var cmd = new Commands.EndTurnCommand();
                 _gameState.RecordAndExecuteCommand(cmd);
             }
         }

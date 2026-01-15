@@ -6,10 +6,8 @@ using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
-using System.Linq;
 
 namespace ChaosWarlords.Source.Input.Modes
 {
@@ -89,7 +87,7 @@ namespace ChaosWarlords.Source.Input.Modes
             Vector2 mousePos = inputManager.MousePosition;
             MapNode? targetNode = mapManager.GetNodeAt(mousePos);
             Site? targetSite = mapManager.GetSiteAt(mousePos);
-            
+
             // Return the command if the click resolved an action
             return HandleTargetingClick(actionSystem, targetNode, targetSite);
         }
@@ -136,7 +134,7 @@ namespace ChaosWarlords.Source.Input.Modes
                 return null;
             }
 
-            return IsPreCommitFlow(actionSystem) 
+            return IsPreCommitFlow(actionSystem)
                 ? HandlePreCommitTargeting(actionSystem, targetNode, targetSite)
                 : command;
         }
@@ -146,11 +144,11 @@ namespace ChaosWarlords.Source.Input.Modes
             return actionSystem.PendingCard != null && actionSystem.PendingCard.Location == CardLocation.Hand;
         }
 
-        private static ChaosWarlords.Source.Commands.PlayCardCommand? HandlePreCommitTargeting(IActionSystem actionSystem, MapNode? targetNode, Site? targetSite)
+        private static PlayCardCommand? HandlePreCommitTargeting(IActionSystem actionSystem, MapNode? targetNode, Site? targetSite)
         {
             var pendingCard = actionSystem.PendingCard!;
             object target = (object?)targetNode ?? targetSite!;
-            
+
             actionSystem.SetPreTarget(pendingCard, actionSystem.CurrentState, target);
 
             if (actionSystem.AdvancePreCommitTargeting(pendingCard))
@@ -160,7 +158,7 @@ namespace ChaosWarlords.Source.Input.Modes
             }
 
             // Chain complete - commit the play
-            return new ChaosWarlords.Source.Commands.PlayCardCommand(pendingCard, true);
+            return new PlayCardCommand(pendingCard, true);
         }
     }
 }

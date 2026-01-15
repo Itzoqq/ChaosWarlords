@@ -2,7 +2,6 @@ using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Commands;
-using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
@@ -20,7 +19,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // Arrange
             // 1. Setup TestGameplayState with basic mocks
             var stateFake = new TestGameplayState();
-            
+
             var mockMarketManager = Substitute.For<IMarketManager>();
             var mockTurnManager = Substitute.For<ITurnManager>();
             var mockInputManager = Substitute.For<IInputManager>();
@@ -31,7 +30,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             stateFake.MarketManager = mockMarketManager;
             stateFake.TurnManager = mockTurnManager;
             stateFake.InputManager = mockInputManager;
-            
+
             mockTurnManager.ActivePlayer.Returns(mockPlayer);
 
             // 2. Setup MatchContext (because BuyCardCommand might access state.MatchContext.MarketManager)
@@ -43,7 +42,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
                 Substitute.For<ICardDatabase>(),
                 mockStateManager,
                 null,
-                ChaosWarlords.Tests.Utilities.TestLogger.Instance
+                Utilities.TestLogger.Instance
             );
             stateFake.MatchContext = context;
 

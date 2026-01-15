@@ -40,8 +40,8 @@ namespace ChaosWarlords.Tests.Systems
             var cardDb = Substitute.For<ICardDatabase>();
 
             // Create context with our mocked MapManager and ActionSystem
-            var ps = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            _matchContext = new MatchContext(turnManager, _mapManager, marketManager, _actionSystem, cardDb, ps, null, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var ps = new PlayerStateManager(Utilities.TestLogger.Instance);
+            _matchContext = new MatchContext(turnManager, _mapManager, marketManager, _actionSystem, cardDb, ps, null, Utilities.TestLogger.Instance);
 
             // Set Active Player manually if needed
             var player = TestData.Players.RedPlayer();
@@ -49,7 +49,7 @@ namespace ChaosWarlords.Tests.Systems
 
             // System under test
             var replayManager = Substitute.For<IReplayManager>();
-            _system = new CardPlaySystem(_matchContext, _matchManager, replayManager, _targetingCallback, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _system = new CardPlaySystem(_matchContext, _matchManager, replayManager, _targetingCallback, Utilities.TestLogger.Instance);
         }
 
         [TestMethod]
@@ -159,7 +159,7 @@ namespace ChaosWarlords.Tests.Systems
             // Modify to target Inner Circle
             // We need to reflectively or otherwise modify the effect since TestData returns a fixed card.
             // Or just create a new card manually for this specific test case.
-            
+
             var innerDevourCard = new Card("inner_dev", "Inner Devourer", 2, CardAspect.Sorcery, 0, 0, 0);
             innerDevourCard.AddEffect(new CardEffect(EffectType.Devour, 0) { TargetLocation = CardLocation.InnerCircle });
 

@@ -32,19 +32,19 @@ namespace ChaosWarlords.Tests.Integration.Input.Processors
             var p1 = TestData.Players.RedPlayer();
             var p2 = TestData.Players.BluePlayer();
             var mockRandom = Substitute.For<IGameRandom>();
-            var tm = new TurnManager(new List<Player> { p1, p2 }, mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var tm = new TurnManager(new List<Player> { p1, p2 }, mockRandom, Utilities.TestLogger.Instance);
 
             var mapManager = Substitute.For<IMapManager>();
             var marketManager = Substitute.For<IMarketManager>();
             _actionSub = Substitute.For<IActionSystem>();
             var cardDb = Substitute.For<ICardDatabase>();
 
-            var ps = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            _context = new MatchContext(tm, mapManager, marketManager, _actionSub, cardDb, ps, null, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var ps = new PlayerStateManager(Utilities.TestLogger.Instance);
+            _context = new MatchContext(tm, mapManager, marketManager, _actionSub, cardDb, ps, null, Utilities.TestLogger.Instance);
 
             // 2. Setup Testable State
             // We pass null for Game/InputProvider because our subclass doesn't use them in this specific test scope
-            _state = new TestableGameplayState(null!, Substitute.For<IInputProvider>(), cardDb, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _state = new TestableGameplayState(null!, Substitute.For<IInputProvider>(), cardDb, Utilities.TestLogger.Instance);
 
             // Inject a Mock UIManager so SwitchToNormalMode() doesn't crash
             _state.SetUIManager(Substitute.For<IUIManager>());
@@ -144,7 +144,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Processors
             // Arrange
             _actionSub.CurrentState.Returns(ActionState.SelectingCardToPromote);
             // Use AddPromotionCredit on the REAL context instead of mocking the property
-            var dummyCard = ChaosWarlords.Source.Utilities.CardFactory.CreateSoldier(Substitute.For<IGameRandom>());
+            var dummyCard = CardFactory.CreateSoldier(Substitute.For<IGameRandom>());
             _context.TurnManager.CurrentTurnContext.AddPromotionCredit(dummyCard, 2);
 
             // Act
@@ -174,7 +174,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Processors
             var mockMode = Substitute.For<IInputMode>();
             mockMode.HandleInput(Arg.Any<IInputManager>(), Arg.Any<IMarketManager>(), Arg.Any<IMapManager>(), Arg.Any<Player>(), Arg.Any<IActionSystem>())
                 .Returns((IGameCommand?)null);
-            
+
             // Use reflection to set the current mode
             var field = typeof(GameplayInputCoordinator).GetField("_currentMode", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             field?.SetValue(_coordinator, mockMode);
@@ -195,7 +195,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Processors
             var mockMode = Substitute.For<IInputMode>();
             mockMode.HandleInput(Arg.Any<IInputManager>(), Arg.Any<IMarketManager>(), Arg.Any<IMapManager>(), Arg.Any<Player>(), Arg.Any<IActionSystem>())
                 .Returns(mockCommand);
-            
+
             // Use reflection to set the current mode
             var field = typeof(GameplayInputCoordinator).GetField("_currentMode", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             field?.SetValue(_coordinator, mockMode);
@@ -220,7 +220,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Processors
         {
             _state.MarketStateManager.OpenForBrowsing();
             Assert.IsInstanceOfType(_coordinator.CurrentMode, typeof(MarketInputMode));
-            
+
             _state.MarketStateManager.Close();
             Assert.IsInstanceOfType(_coordinator.CurrentMode, typeof(NormalPlayInputMode));
         }

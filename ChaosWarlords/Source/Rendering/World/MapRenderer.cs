@@ -2,9 +2,7 @@ using ChaosWarlords.Source.Core.Interfaces.Services;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using ChaosWarlords.Source.Contexts;
@@ -136,14 +134,14 @@ namespace ChaosWarlords.Source.Rendering.World
             }
             else
             {
-            {
-                sb.Append('\n');
-                sb.Append('(');
-                sb.Append(site.ControlAmount);
-                sb.Append(' ');
-                sb.Append(site.ControlResource);
-                sb.Append(')');
-            }
+                {
+                    sb.Append('\n');
+                    sb.Append('(');
+                    sb.Append(site.ControlAmount);
+                    sb.Append(' ');
+                    sb.Append(site.ControlResource);
+                    sb.Append(')');
+                }
             }
         }
 
@@ -241,7 +239,7 @@ namespace ChaosWarlords.Source.Rendering.World
         private void DrawLine(SpriteBatch spriteBatch, Vector2 start, Vector2 end, Color color, int thickness)
         {
             Vector2 edge = end - start;
-            float angle = (float)System.Math.Atan2(edge.Y, edge.X);
+            float angle = (float)Math.Atan2(edge.Y, edge.X);
 
             spriteBatch.Draw(_pixelTexture,
                 new Rectangle((int)start.X, (int)start.Y, (int)edge.Length(), thickness),
@@ -250,19 +248,19 @@ namespace ChaosWarlords.Source.Rendering.World
 
         private static Vector2 GetIntersection(Rectangle rect, Vector2 start, Vector2 end)
         {
-            var lStart = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(start);
-            var lEnd = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(end);
+            var lStart = Core.Data.LogicVector2.FromVector2(start);
+            var lEnd = Core.Data.LogicVector2.FromVector2(end);
 
-            var topLeft = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(rect.Left, rect.Top));
-            var topRight = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(rect.Right, rect.Top));
-            var bottomRight = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(rect.Right, rect.Bottom));
-            var bottomLeft = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(rect.Left, rect.Bottom));
+            var topLeft = Core.Data.LogicVector2.FromVector2(new Vector2(rect.Left, rect.Top));
+            var topRight = Core.Data.LogicVector2.FromVector2(new Vector2(rect.Right, rect.Top));
+            var bottomRight = Core.Data.LogicVector2.FromVector2(new Vector2(rect.Right, rect.Bottom));
+            var bottomLeft = Core.Data.LogicVector2.FromVector2(new Vector2(rect.Left, rect.Bottom));
 
             if (MapGeometry.TryGetLineIntersection(lStart, lEnd, topLeft, topRight, out var lr1)) return lr1.ToVector2();
             if (MapGeometry.TryGetLineIntersection(lStart, lEnd, topRight, bottomRight, out var lr2)) return lr2.ToVector2();
             if (MapGeometry.TryGetLineIntersection(lStart, lEnd, bottomRight, bottomLeft, out var lr3)) return lr3.ToVector2();
             if (MapGeometry.TryGetLineIntersection(lStart, lEnd, bottomLeft, topLeft, out var lr4)) return lr4.ToVector2();
-            
+
             return end;
         }
 

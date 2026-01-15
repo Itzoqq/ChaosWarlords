@@ -1,16 +1,9 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Commands;
-using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Core.Utilities;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Data.Dtos;
-using Microsoft.Xna.Framework;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 
 namespace ChaosWarlords.Tests.Replay

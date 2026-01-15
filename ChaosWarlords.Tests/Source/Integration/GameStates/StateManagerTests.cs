@@ -4,7 +4,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using NSubstitute;
 
-
 namespace ChaosWarlords.Tests.Integration.GameStates
 {
     [TestClass]

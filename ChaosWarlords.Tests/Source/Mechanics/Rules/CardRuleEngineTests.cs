@@ -1,16 +1,12 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities; // Added for Enums
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Source.Mechanics.Rules
 {
@@ -27,7 +23,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
         public void Setup()
         {
             _logger = Substitute.For<IGameLogger>();
-            
+
             // Mock MatchContext dependencies
             var turnManager = Substitute.For<ITurnManager>();
             var mapManager = Substitute.For<IMapManager>();
@@ -38,14 +34,14 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             var uiMediator = Substitute.For<IUIEventMediator>();
 
             _context = new MatchContext(
-                turnManager, 
-                mapManager, 
-                marketManager, 
-                actionSystem, 
-                cardDb, 
-                playerState, 
-                uiMediator, 
-                _logger, 
+                turnManager,
+                mapManager,
+                marketManager,
+                actionSystem,
+                cardDb,
+                playerState,
+                uiMediator,
+                _logger,
                 12345
             );
 
@@ -101,11 +97,11 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             // Assert
             Assert.IsTrue(result, "Should pass if there is another card (c2)");
         }
-        
+
         [TestMethod]
         public void HasValidTargets_Devour_ReturnsTrue_WhenSourceCardIsNotInHand()
         {
-             // Arrange: Source card is "Played" (e.g. on stack), Hand has 1 card
+            // Arrange: Source card is "Played" (e.g. on stack), Hand has 1 card
             var sourceCard = new Card("c1", "Source", 0, CardAspect.Neutral, 0, 0, 0)
             {
                 Location = CardLocation.Played
@@ -128,7 +124,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             // Arrange
             var sourceCard = new Card("c1", "Source", 0, CardAspect.Neutral, 0, 0, 0);
             sourceCard.Effects.Add(new CardEffect(EffectType.Devour, 1) { TargetLocation = CardLocation.Market });
-            
+
             // Mock Market with one card
             var marketCards = new List<Card>
             {

@@ -1,6 +1,4 @@
-using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Tests.Entities
 {

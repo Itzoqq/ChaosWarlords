@@ -1,9 +1,5 @@
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
 
@@ -18,7 +14,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         {
             // Arrange
             var card = TestData.Cards.CheapCard();
-            
+
             // Act
             var command = new DevourCardCommand(card);
 
@@ -31,7 +27,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         {
             // Arrange
             var stateFake = new TestGameplayState();
-            
+
             var mockMatchManager = stateFake.MatchManager;
             var mockActionSystem = stateFake.ActionSystem;
 
@@ -50,10 +46,10 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         {
             // Arrange
             var stateFake = new TestGameplayState();
-            
+
             var mockMatchManager = stateFake.MatchManager;
             var mockActionSystem = stateFake.ActionSystem;
-            
+
             var card = TestData.Cards.CheapCard();
             var command = new DevourCardCommand(card);
 
@@ -69,13 +65,13 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         {
             // Arrange
             var stateFake = new TestGameplayState();
-            
+
             var mockMatchManager = stateFake.MatchManager;
             var mockActionSystem = stateFake.ActionSystem;
 
             var card = TestData.Cards.CheapCard();
             var command = new DevourCardCommand(card);
-            
+
             var callOrder = new System.Collections.Generic.List<string>();
 
             mockMatchManager.When(x => x.DevourCard(Arg.Any<Card>()))

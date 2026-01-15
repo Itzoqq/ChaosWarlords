@@ -2,7 +2,6 @@ using ChaosWarlords.Source.Core.Interfaces.Input;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 
-
 namespace ChaosWarlords.Source.Managers
 {
     public class InputManager : IInputManager

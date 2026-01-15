@@ -1,7 +1,4 @@
-using System.Collections.Generic;
-using System.IO;
 using System.Text.Json;
-using System.Linq;
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Map;
@@ -29,7 +26,7 @@ namespace ChaosWarlords.Source.Utilities
                 string json = File.ReadAllText(filePath);
                 return LoadFromData(json, logger);
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 logger.Log(ex, LogChannel.Error);
                 logger.Log("Map load failed. Reverting to Test Map.", LogChannel.Error);
@@ -70,7 +67,7 @@ namespace ChaosWarlords.Source.Utilities
                     return LoadFromData(json, logger);
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 logger.Log(ex, LogChannel.Error);
                 return CreateTestMap(logger);
@@ -88,7 +85,7 @@ namespace ChaosWarlords.Source.Utilities
                 var newNode = new MapNode(n.Id, new Vector2(n.X, n.Y));
 
                 if (!string.IsNullOrEmpty(n.Occupant) &&
-                    System.Enum.TryParse(n.Occupant, out PlayerColor color))
+                    Enum.TryParse(n.Occupant, out PlayerColor color))
                 {
                     newNode.Occupant = color;
                 }
@@ -129,9 +126,9 @@ namespace ChaosWarlords.Source.Utilities
 
         private static Site CreateSiteFromData(SiteData s, IGameLogger logger)
         {
-            if (!System.Enum.TryParse(s.ControlResource, out ResourceType cType))
+            if (!Enum.TryParse(s.ControlResource, out ResourceType cType))
                 cType = ResourceType.Influence; // Default fallback
-            if (!System.Enum.TryParse(s.TotalControlResource, out ResourceType tType))
+            if (!Enum.TryParse(s.TotalControlResource, out ResourceType tType))
                 tType = ResourceType.VictoryPoints; // Default fallback
 
             Site newSite;
@@ -170,7 +167,7 @@ namespace ChaosWarlords.Source.Utilities
                 Name = "Crystal Cave",
                 IsCity = false,
                 IsStartingSite = true,
-                Position = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(250, 100)),
+                Position = Core.Data.LogicVector2.FromVector2(new Vector2(250, 100)),
                 NodeCount = 2,
                 ControlResource = ResourceType.Power,
                 ControlAmount = 0,
@@ -184,7 +181,7 @@ namespace ChaosWarlords.Source.Utilities
             {
                 Name = "Void Portal",
                 IsCity = false,
-                Position = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(250, 400)),
+                Position = Core.Data.LogicVector2.FromVector2(new Vector2(250, 400)),
                 NodeCount = 3,
                 ControlResource = ResourceType.Power,
                 ControlAmount = 0,
@@ -199,7 +196,7 @@ namespace ChaosWarlords.Source.Utilities
                 Name = "Shadow Market",
                 IsCity = false,
                 IsStartingSite = true,
-                Position = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(250, 700)),
+                Position = Core.Data.LogicVector2.FromVector2(new Vector2(250, 700)),
                 NodeCount = 2,
                 ControlResource = ResourceType.Power,
                 ControlAmount = 0,
@@ -213,7 +210,7 @@ namespace ChaosWarlords.Source.Utilities
             {
                 Name = "City of Gold",
                 IsCity = true,
-                Position = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(600, 400)),
+                Position = Core.Data.LogicVector2.FromVector2(new Vector2(600, 400)),
                 NodeCount = 4,
                 ControlResource = ResourceType.Influence,
                 ControlAmount = 1,
@@ -227,7 +224,7 @@ namespace ChaosWarlords.Source.Utilities
             {
                 Name = "Obsidian Fortress",
                 IsCity = true,
-                Position = ChaosWarlords.Source.Core.Data.LogicVector2.FromVector2(new Vector2(1000, 400)),
+                Position = Core.Data.LogicVector2.FromVector2(new Vector2(1000, 400)),
                 NodeCount = 6,
                 ControlResource = ResourceType.Influence,
                 ControlAmount = 1,

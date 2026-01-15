@@ -1,6 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Rendering.UI;
-using System.Linq;
 
 namespace ChaosWarlords.Tests.Source.Rendering.UI
 {

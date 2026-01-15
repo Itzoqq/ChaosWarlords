@@ -9,11 +9,11 @@ namespace ChaosWarlords.Source.Commands
     /// </summary>
     public class ActionCompletedCommand : IGameCommand
     {
-        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.ActionCompleted;
+        public Core.Data.Enums.CommandType Type => Core.Data.Enums.CommandType.ActionCompleted;
 
-        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        public Core.Data.Dtos.GameCommandDto ToDto()
         {
-            return new ChaosWarlords.Source.Core.Data.Dtos.ActionCompletedCommandDto();
+            return new Core.Data.Dtos.ActionCompletedCommandDto();
         }
         public bool Validate(MatchContext context)
         {

@@ -1,4 +1,3 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Commands;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
@@ -15,7 +14,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // Arrange
             var stateFake = new TestGameplayState();
             stateFake.TestCanEndTurnResult = true;
-            
+
             var command = new EndTurnCommand();
 
             // Act

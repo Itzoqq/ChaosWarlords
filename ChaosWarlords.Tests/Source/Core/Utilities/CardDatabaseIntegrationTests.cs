@@ -1,8 +1,4 @@
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Entities.Cards;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ChaosWarlords.Tests.Core.Utilities
 {
@@ -16,11 +12,11 @@ namespace ChaosWarlords.Tests.Core.Utilities
             // Arrange
             // Adjust path to point to Content relative to the executed DLL or project root
             // The previous test used "../../../../ChaosWarlords/" which implies running from bin/Debug/net10.0
-            var path = System.IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
-            if (!System.IO.File.Exists(path)) Assert.Inconclusive("cards.json not found at " + path);
-            
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
+            if (!File.Exists(path)) Assert.Inconclusive("cards.json not found at " + path);
+
             var database = new CardDatabase();
-            using (var stream = System.IO.File.OpenRead(path))
+            using (var stream = File.OpenRead(path))
             {
                 database.Load(stream);
             }

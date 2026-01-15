@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Mechanics.Actions.Subsystems; // Implementations remain here
 using ChaosWarlords.Source.Commands; // Retained from original
 
@@ -27,10 +22,10 @@ namespace ChaosWarlords.Source.Managers
         public event Action<IGameCommand>? OnAutoExecuteCommand;
 
         private ActionState _currentState = ActionState.Normal;
-        public ActionState CurrentState 
-        { 
-            get => _currentState; 
-            internal set 
+        public ActionState CurrentState
+        {
+            get => _currentState;
+            internal set
             {
                 if (_currentState != value)
                 {
@@ -60,7 +55,7 @@ namespace ChaosWarlords.Source.Managers
                 {
                     stateTargets.Remove(forState);
                     if (stateTargets.Count == 0) _preSelectedTargets.Remove(source);
-                    
+
                     _logger.Log($"ActionSystem: GetAndClear Found target for {source.Name} [{forState}]", LogChannel.Debug);
                     return target;
                 }
@@ -68,9 +63,9 @@ namespace ChaosWarlords.Source.Managers
             return null;
         }
         public Site? PendingSite { get; private set; }
-        
 
-        
+
+
         public Card? PendingDevourCard => _devourSubsystem.PendingDevourCard;
         // _deferDevourExecution moved to Subsystem
 
@@ -83,7 +78,7 @@ namespace ChaosWarlords.Source.Managers
         private Player CurrentPlayer => _turnManager.ActivePlayer;
 
         public MapNode? PendingMoveSource { get; private set; }
-        
+
         // Subsystems
         private readonly DevourSubsystem _devourSubsystem;
         private readonly SpySubsystem _spySubsystem;
@@ -94,12 +89,12 @@ namespace ChaosWarlords.Source.Managers
             _turnManager = turnManager;
             _mapManager = mapManager;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            
+
             // Initialize Subsystems
-            _devourSubsystem = new ChaosWarlords.Source.Mechanics.Actions.Subsystems.DevourSubsystem(_turnManager, this, _logger);
-            _spySubsystem = new ChaosWarlords.Source.Mechanics.Actions.Subsystems.SpySubsystem(_mapManager, _turnManager, this, _logger);
+            _devourSubsystem = new DevourSubsystem(_turnManager, this, _logger);
+            _spySubsystem = new SpySubsystem(_mapManager, _turnManager, this, _logger);
             _preTargetHandler = new PreTargetHandler(_logger, _preSelectedTargets);
-            
+
             _actionHandlers = new Dictionary<ActionState, Func<MapNode?, Site?, IGameCommand?>>();
             InitializeHandlers();
         }
@@ -110,7 +105,7 @@ namespace ChaosWarlords.Source.Managers
             _devourSubsystem.SetPlayerStateManager(stateManager);
             // SpySubsystem uses PlayerStateManager via ActionSystem? No, it has its own logic that might need it?
             // Checking SpySubsystem: It has SetPlayerStateManager.
-            if (_spySubsystem is ChaosWarlords.Source.Mechanics.Actions.Subsystems.SpySubsystem concreteSpy)
+            if (_spySubsystem is SpySubsystem concreteSpy)
                 concreteSpy.SetPlayerStateManager(stateManager);
         }
 
@@ -180,9 +175,9 @@ namespace ChaosWarlords.Source.Managers
 
             // Auto-Execute if Pre-Target exists (Transactional/Replay Flow)
             if (card != null && _preTargetHandler.TryExecutePreTarget(
-                card, 
-                state, 
-                HandleTargetClick, 
+                card,
+                state,
+                HandleTargetClick,
                 HandleDevourSelection,
                 cmd => OnAutoExecuteCommand?.Invoke(cmd)))
             {
@@ -202,12 +197,12 @@ namespace ChaosWarlords.Source.Managers
 
         public void NotifyFailure(string reason)
         {
-             _logger.Log($"Action Failed: {reason}", LogChannel.Warning);
-             // Verify if we should CancelTargeting here or just notify?
-             // Usually failure implies resetting state or at least notifying UI.
-             // CancelTargeting() clears state.
-             CancelTargeting(); 
-             OnActionFailed?.Invoke(this, reason);
+            _logger.Log($"Action Failed: {reason}", LogChannel.Warning);
+            // Verify if we should CancelTargeting here or just notify?
+            // Usually failure implies resetting state or at least notifying UI.
+            // CancelTargeting() clears state.
+            CancelTargeting();
+            OnActionFailed?.Invoke(this, reason);
         }
 
         public void CancelTargeting()
@@ -232,18 +227,18 @@ namespace ChaosWarlords.Source.Managers
             // NEW: Resolve ALL effects associated with the cancelled card to prevent "Zombie" executions.
             // We manualy Pop to avoid ResolveCurrentEffect triggering ProcessStack recursively for each item.
             var cardToClear = PendingCard;
-            
+
             ClearState();
             _devourSubsystem.ClearState();
             _logger.Log("ActionSystem: Targeting Cancelled. State cleared.", LogChannel.Info);
-            
+
             var cancelledEffects = new List<Core.Contexts.EffectContext>();
 
             if (ExecutionStack.Count > 0)
             {
                 // Always pop the top effect (current targeting effect being cancelled)
                 cancelledEffects.Add(ExecutionStack.Pop());
-                
+
                 // Continue popping if subsequent effects belong to the same card
                 if (cardToClear != null)
                 {
@@ -253,14 +248,14 @@ namespace ChaosWarlords.Source.Managers
                     }
                 }
             }
-            
+
             // Invoke Cancellation Callbacks (if any)
             foreach (var effect in cancelledEffects)
             {
-                 _logger.Log($"ActionSystem: [CANCEL] Popped effect [{effect.EffectType}] for {effect.SourceCard?.Name ?? "Unknown"}.", LogChannel.Debug);
-                 effect.OnCancelled?.Invoke();
+                _logger.Log($"ActionSystem: [CANCEL] Popped effect [{effect.EffectType}] for {effect.SourceCard?.Name ?? "Unknown"}.", LogChannel.Debug);
+                effect.OnCancelled?.Invoke();
             }
-            
+
             // Finally, resume stack processing ONLY if there are remaining effects (from previous cards).
             // If stack is empty, we are done with cancellation and should NOT trigger OnActionCompleted.
             if (ExecutionStack.Count > 0)
@@ -305,9 +300,9 @@ namespace ChaosWarlords.Source.Managers
             if (targetNode is null) return null;
             if (!ValidateAssassinate(targetNode)) return null;
 
-            return new ChaosWarlords.Source.Commands.AssassinateCommand(targetNode.Id, PendingCard?.Id, PendingDevourCard?.Id);
+            return new AssassinateCommand(targetNode.Id, PendingCard?.Id, PendingDevourCard?.Id);
         }
-        
+
         public void PerformAssassinate(MapNode node, string? cardId, string? devourCardId = null)
         {
             // Transactional Devour Handling (Logic Layer)
@@ -369,7 +364,7 @@ namespace ChaosWarlords.Source.Managers
             {
                 if (targetNode.Occupant == PlayerColor.Neutral) return null;
 
-                return new ChaosWarlords.Source.Commands.ReturnTroopCommand(targetNode.Id, PendingCard?.Id);
+                return new ReturnTroopCommand(targetNode.Id, PendingCard?.Id);
             }
             return null;
         }
@@ -387,7 +382,7 @@ namespace ChaosWarlords.Source.Managers
             if (!_mapManager.CanAssassinate(targetNode, CurrentPlayer)) return null;
             if (CurrentPlayer.TroopsInBarracks <= 0) return null;
 
-            return new ChaosWarlords.Source.Commands.SupplantCommand(targetNode.Id, PendingCard?.Id, PendingDevourCard?.Id);
+            return new SupplantCommand(targetNode.Id, PendingCard?.Id, PendingDevourCard?.Id);
         }
 
         public void PerformSupplant(MapNode node, string? cardId, string? devourCardId = null)
@@ -415,7 +410,7 @@ namespace ChaosWarlords.Source.Managers
         {
             // Check Pre-Target
             var preTarget = GetAndClearPreTarget(sourceCard, ActionState.TargetingSupplant);
-            
+
             // Try to execute pre-target if it exists
             if (TryExecuteSupplantPreTarget(preTarget, sourceCard))
             {
@@ -483,31 +478,31 @@ namespace ChaosWarlords.Source.Managers
             // Determine if the *current* step was skipped by the user, so the Engine knows to skip its children.
             bool isCurrentSkipped = IsPreTargetSkipped(sourceCard, CurrentState);
 
-            var nextState = ChaosWarlords.Source.Mechanics.Rules.TargetingStateEngine.DetermineNextState(sourceCard.Effects, CurrentState, isCurrentSkipped);
-            
+            var nextState = Mechanics.Rules.TargetingStateEngine.DetermineNextState(sourceCard.Effects, CurrentState, isCurrentSkipped);
+
             if (nextState != ActionState.Normal)
             {
                 StartTargeting(nextState, sourceCard);
                 _logger.Log($"Advancing Pre-Commit Targeting to {nextState}...", LogChannel.Info);
-                return true; 
+                return true;
             }
 
             // No more targeting steps.
             _logger.Log($"Pre-Commit Targeting Complete for {sourceCard.Name}.", LogChannel.Info);
-            ClearState(); 
-            return false; 
+            ClearState();
+            return false;
         }
 
         private bool IsPreTargetSkipped(Card source, ActionState state)
         {
-             if (_preSelectedTargets.TryGetValue(source, out var stateTargets))
-             {
-                 if (stateTargets.TryGetValue(state, out var target))
-                 {
-                     return target == SkippedTarget;
-                 }
-             }
-             return false;
+            if (_preSelectedTargets.TryGetValue(source, out var stateTargets))
+            {
+                if (stateTargets.TryGetValue(state, out var target))
+                {
+                    return target == SkippedTarget;
+                }
+            }
+            return false;
         }
 
         public void PerformPlaceSpy(Site site, string? cardId)
@@ -517,15 +512,15 @@ namespace ChaosWarlords.Source.Managers
 
         public IGameCommand? FinalizeSpyReturn(PlayerColor selectedSpyColor)
         {
-             if (PendingSite is null) return null;
-             // We need to pass PendingSite to subsystem or let subsystem manage it?
-             // Subsystem stateless methods are better.
-             return _spySubsystem.FinalizeSpyReturn(selectedSpyColor, PendingSite, PendingCard?.Id);
+            if (PendingSite is null) return null;
+            // We need to pass PendingSite to subsystem or let subsystem manage it?
+            // Subsystem stateless methods are better.
+            return _spySubsystem.FinalizeSpyReturn(selectedSpyColor, PendingSite, PendingCard?.Id);
         }
 
         public bool PerformSpyReturn(Site site, PlayerColor selectedSpyColor, string? cardId)
         {
-             return _spySubsystem.PerformSpyReturn(site, selectedSpyColor, cardId);
+            return _spySubsystem.PerformSpyReturn(site, selectedSpyColor, cardId);
         }
 
         // Support for SpySubsystem State Transition
@@ -561,7 +556,7 @@ namespace ChaosWarlords.Source.Managers
                 return null;
             }
 
-            return new ChaosWarlords.Source.Commands.MoveTroopCommand(PendingMoveSource.Id, targetNode.Id, PendingCard?.Id);
+            return new MoveTroopCommand(PendingMoveSource.Id, targetNode.Id, PendingCard?.Id);
         }
 
         public void PerformMoveTroop(MapNode source, MapNode dest, string? cardId)
@@ -594,17 +589,17 @@ namespace ChaosWarlords.Source.Managers
 
 
 
-        public ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourMarketSelection(Card? targetCard)
+        public DevourCardCommand? HandleDevourMarketSelection(Card? targetCard)
         {
             return _devourSubsystem.HandleDevourMarketSelection(targetCard);
         }
 
-        public ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourInnerCircleSelection(Card? targetCard)
+        public DevourCardCommand? HandleDevourInnerCircleSelection(Card? targetCard)
         {
             return _devourSubsystem.HandleDevourInnerCircleSelection(targetCard);
         }
 
-        public ChaosWarlords.Source.Commands.DevourCardCommand? HandleDevourSelection(Card? targetCard)
+        public DevourCardCommand? HandleDevourSelection(Card? targetCard)
         {
             return _devourSubsystem.HandleDevourSelection(targetCard);
         }
@@ -613,7 +608,7 @@ namespace ChaosWarlords.Source.Managers
             // NEW STACK LOGIC:
             // Completing an action (like Assassinate or Return Spy) implies the current "Blocking" effect on the stack is resolved.
             // We resolve it with Success=true.
-            
+
             if (ExecutionStack.Count > 0)
             {
                 _logger.Log("ActionSystem: CompleteAction invoked. Resolving current stack effect...", LogChannel.Debug);
@@ -629,12 +624,12 @@ namespace ChaosWarlords.Source.Managers
         }
 
         // --- Stack-Based Architecture ---
-        
-        public Stack<ChaosWarlords.Source.Core.Contexts.EffectContext> ExecutionStack { get; } = new();
 
-        public ChaosWarlords.Source.Core.Contexts.EffectContext? CurrentEffect => ExecutionStack.Count > 0 ? ExecutionStack.Peek() : null;
+        public Stack<Core.Contexts.EffectContext> ExecutionStack { get; } = new();
 
-        public void PushEffect(ChaosWarlords.Source.Core.Contexts.EffectContext context)
+        public Core.Contexts.EffectContext? CurrentEffect => ExecutionStack.Count > 0 ? ExecutionStack.Peek() : null;
+
+        public void PushEffect(Core.Contexts.EffectContext context)
         {
             ExecutionStack.Push(context);
             _logger.Log($"ActionSystem: Pushed Effect [{context.EffectType}] from {context.SourceCard?.Name}. Stack Size: {ExecutionStack.Count}", LogChannel.Debug);
@@ -676,8 +671,8 @@ namespace ChaosWarlords.Source.Managers
             _logger.Log($"ActionSystem: [RESOLVE] ProcessStack returned. Current state: {CurrentState}", LogChannel.Debug);
         }
 
-        private ChaosWarlords.Source.Contexts.MatchContext? _matchContext;
-        public void SetMatchContext(ChaosWarlords.Source.Contexts.MatchContext context)
+        private Contexts.MatchContext? _matchContext;
+        public void SetMatchContext(Contexts.MatchContext context)
         {
             _matchContext = context;
         }
@@ -685,7 +680,7 @@ namespace ChaosWarlords.Source.Managers
         public void ProcessStack()
         {
             _logger.Log($"ActionSystem: [PROCESS] ProcessStack called. Stack size: {ExecutionStack.Count}, Current state: {CurrentState}", LogChannel.Debug);
-            
+
             if (ExecutionStack.Count == 0)
             {
                 // Sequence Complete
@@ -703,14 +698,14 @@ namespace ChaosWarlords.Source.Managers
                 // Set PendingCard but DEFER State Change if Optional
                 PendingCard = nextEffect.SourceCard;
                 bool isOptional = nextEffect.SourceEffect?.IsOptional == true;
-                
+
                 if (!isOptional)
                 {
                     _logger.Log($"ActionSystem: [PROCESS] Effect requires input. Setting state to [{nextEffect.EffectType}]", LogChannel.Debug);
                     CurrentState = nextEffect.EffectType;
                     _logger.Log($"ActionSystem: [PROCESS] State set to: {CurrentState}", LogChannel.Debug);
                 }
-                 
+
                 // Handle Optional Effects - Show UI Popup
                 if (isOptional && _uiMediator != null)
                 {
@@ -719,16 +714,16 @@ namespace ChaosWarlords.Source.Managers
                     if (nextEffect.SourceEffect?.OnSuccess != null && _matchContext != null)
                     {
                         var onSuccessEffect = nextEffect.SourceEffect.OnSuccess;
-                        bool onSuccessRequiresTargeting = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(onSuccessEffect.Type);
-                        
+                        bool onSuccessRequiresTargeting = Mechanics.Actions.CardPlaySystem.IsTargetingEffect(onSuccessEffect.Type);
+
                         if (onSuccessRequiresTargeting)
                         {
                             bool hasValidTargets = _matchContext.CardRuleEngine.HasValidTargets(
-                                _matchContext.ActivePlayer, 
-                                onSuccessEffect.Type, 
+                                _matchContext.ActivePlayer,
+                                onSuccessEffect.Type,
                                 nextEffect.SourceCard
                             );
-                            
+
                             if (!hasValidTargets)
                             {
                                 _logger.Log($"ActionSystem: Skipping optional effect {nextEffect.SourceEffect.Type} - OnSuccess effect {onSuccessEffect.Type} has no valid targets.", LogChannel.Warning);
@@ -738,28 +733,30 @@ namespace ChaosWarlords.Source.Managers
                             }
                         }
                     }
-                    
+
                     _logger.Log($"ActionSystem: Requesting optional effect confirmation for {nextEffect.SourceEffect?.Type}...", LogChannel.Input);
-                    
+
                     _uiMediator.RequestOptionalEffect(
                         nextEffect.SourceCard,
                         nextEffect.SourceEffect,
-                        onAccept: () => {
+                        onAccept: () =>
+                        {
                             _logger.Log($"ActionSystem: Optional effect {nextEffect.SourceEffect?.Type} accepted.", LogChannel.Input);
-                            
+
                             // User accepted - NOW we set the state to Targeting (if applicable)
                             if (CurrentState == ActionState.Normal && nextEffect.EffectType != ActionState.Normal)
                             {
-                                 CurrentState = nextEffect.EffectType;
-                                 _logger.Log($"ActionSystem: [PROCESS] Optional Accepted -> State set to: {CurrentState}", LogChannel.Debug);
+                                CurrentState = nextEffect.EffectType;
+                                _logger.Log($"ActionSystem: [PROCESS] Optional Accepted -> State set to: {CurrentState}", LogChannel.Debug);
                             }
 
                             // User accepted - execute the effect
                             // For Devour Self, execute the strategy directly
                             if (nextEffect.SourceEffect?.Type == EffectType.Devour && nextEffect.SourceEffect.TargetLocation == CardLocation.Self)
                             {
-                                var strategy = ChaosWarlords.Source.Mechanics.Rules.DevourStrategyFactory.GetStrategy(CardLocation.Self);
-                                strategy.Execute(nextEffect.SourceCard, _matchContext!, _logger, () => {
+                                var strategy = Mechanics.Rules.DevourStrategyFactory.GetStrategy(CardLocation.Self);
+                                strategy.Execute(nextEffect.SourceCard, _matchContext!, _logger, () =>
+                                {
                                     // OnComplete callback - resolve the effect
                                     ResolveCurrentEffect(true);
                                 }, false);
@@ -767,8 +764,9 @@ namespace ChaosWarlords.Source.Managers
                             // For other optional Devour effects (Market, Hand, InnerCircle), call the strategy
                             else if (nextEffect.SourceEffect?.Type == EffectType.Devour)
                             {
-                                var strategy = ChaosWarlords.Source.Mechanics.Rules.DevourStrategyFactory.GetStrategy(nextEffect.SourceEffect.TargetLocation);
-                                strategy.Execute(nextEffect.SourceCard, _matchContext!, _logger, () => {
+                                var strategy = Mechanics.Rules.DevourStrategyFactory.GetStrategy(nextEffect.SourceEffect.TargetLocation);
+                                strategy.Execute(nextEffect.SourceCard, _matchContext!, _logger, () =>
+                                {
                                     // OnComplete callback - resolve the effect
                                     ResolveCurrentEffect(true);
                                 }, false);
@@ -779,21 +777,22 @@ namespace ChaosWarlords.Source.Managers
                                 // Don't return - let it fall through
                             }
                         },
-                        onDecline: () => {
+                        onDecline: () =>
+                        {
                             _logger.Log($"ActionSystem: Optional effect {nextEffect.SourceEffect?.Type} declined.", LogChannel.Input);
                             // Skip this effect and move to next
                             ResolveCurrentEffect(false);
                         }
                     );
-                    
+
                     return; // Wait for user choice (callbacks will handle continuation)
                 }
 
                 // Auto-Execute if Pre-Target exists (Test/Replay support)
                 if (nextEffect.SourceCard != null && _preTargetHandler.TryExecutePreTarget(
-                    nextEffect.SourceCard, 
-                    nextEffect.EffectType, 
-                    HandleTargetClick, 
+                    nextEffect.SourceCard,
+                    nextEffect.EffectType,
+                    HandleTargetClick,
                     HandleDevourSelection,
                     cmd => OnAutoExecuteCommand?.Invoke(cmd)))
                 {
@@ -806,7 +805,7 @@ namespace ChaosWarlords.Source.Managers
                     return;
                 }
 
-                 _logger.Log($"ActionSystem: Waiting for input for {nextEffect.EffectType}...", LogChannel.Input);
+                _logger.Log($"ActionSystem: Waiting for input for {nextEffect.EffectType}...", LogChannel.Input);
             }
             else
             {
@@ -814,9 +813,9 @@ namespace ChaosWarlords.Source.Managers
                 // Execute immediately via CardEffectProcessor logic
                 if (nextEffect.SourceEffect != null && _matchContext != null)
                 {
-                    ChaosWarlords.Source.Mechanics.Rules.CardEffectProcessor.ApplyEffect(nextEffect.SourceEffect, nextEffect.SourceCard, _matchContext, _logger);
+                    Mechanics.Rules.CardEffectProcessor.ApplyEffect(nextEffect.SourceEffect, nextEffect.SourceCard, _matchContext, _logger);
                 }
-                
+
                 ResolveCurrentEffect(true);
             }
         }

@@ -25,10 +25,10 @@ namespace ChaosWarlords.Source.Input.Modes
             _sourceCard = actionSystem.PendingCard; // Capture which card triggered this
 
             _sourceCard = actionSystem.PendingCard; // Capture which card triggered this
-            
+
             if (actionSystem.CurrentState == ActionState.TargetingDevourInnerCircle)
             {
-                 _gameplayState.Logger.Log("Select a card from your INNER CIRCLE to Devour.", LogChannel.General);
+                _gameplayState.Logger.Log("Select a card from your INNER CIRCLE to Devour.", LogChannel.General);
             }
             else
             {
@@ -42,7 +42,7 @@ namespace ChaosWarlords.Source.Input.Modes
         public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             _updateFrames++;
-            
+
             if (_updateFrames < COOLDOWN_FRAMES) return null;
 
             if (ShouldCancel(inputManager))
@@ -75,7 +75,7 @@ namespace ChaosWarlords.Source.Input.Modes
             return inputManager.IsKeyJustPressed(Keys.Space);
         }
 
-        private ChaosWarlords.Source.Commands.PlayCardCommand? HandleSkipOptionalCost(IActionSystem actionSystem)
+        private Commands.PlayCardCommand? HandleSkipOptionalCost(IActionSystem actionSystem)
         {
             if (!IsPreCommitFlow())
             {
@@ -83,7 +83,7 @@ namespace ChaosWarlords.Source.Input.Modes
             }
 
             actionSystem.SetPreTarget(_sourceCard!, ActionState.TargetingDevourHand, ActionSystem.SkippedTarget);
-            
+
             if (actionSystem.AdvancePreCommitTargeting(_sourceCard!))
             {
                 // Advanced to next targeting state
@@ -93,7 +93,7 @@ namespace ChaosWarlords.Source.Input.Modes
             // No more targeting needed, commit the play
             actionSystem.CompleteAction();
             _gameplayState.SwitchToNormalMode();
-            return new ChaosWarlords.Source.Commands.PlayCardCommand(_sourceCard!, true);
+            return new Commands.PlayCardCommand(_sourceCard!, true);
         }
 
         private IGameCommand? HandleCardClick(IActionSystem actionSystem)
@@ -107,7 +107,7 @@ namespace ChaosWarlords.Source.Input.Modes
             else
             {
                 // Default to Hand
-                 targetCard = _gameplayState.GetHoveredHandCard();
+                targetCard = _gameplayState.GetHoveredHandCard();
             }
 
             if (targetCard is null)
@@ -119,14 +119,14 @@ namespace ChaosWarlords.Source.Input.Modes
             {
                 return null;
             }
-            
+
             if (actionSystem.CurrentState == ActionState.TargetingDevourInnerCircle)
             {
                 var cmd = actionSystem.HandleDevourInnerCircleSelection(targetCard);
                 return cmd;
             }
 
-            return IsPreCommitFlow() 
+            return IsPreCommitFlow()
                 ? HandlePreCommitSelection(targetCard, actionSystem)
                 : HandleStandardFlowSelection(targetCard);
         }
@@ -146,10 +146,10 @@ namespace ChaosWarlords.Source.Input.Modes
             return true;
         }
 
-        private ChaosWarlords.Source.Commands.PlayCardCommand? HandlePreCommitSelection(Card targetCard, IActionSystem actionSystem)
+        private Commands.PlayCardCommand? HandlePreCommitSelection(Card targetCard, IActionSystem actionSystem)
         {
             actionSystem.SetPreTarget(_sourceCard!, ActionState.TargetingDevourHand, targetCard);
-            
+
             if (actionSystem.AdvancePreCommitTargeting(_sourceCard!))
             {
                 // Advanced to next targeting state
@@ -159,13 +159,13 @@ namespace ChaosWarlords.Source.Input.Modes
             // Chain complete, commit the play
             actionSystem.CompleteAction();
             _gameplayState.SwitchToNormalMode();
-            return new ChaosWarlords.Source.Commands.PlayCardCommand(_sourceCard!, true);
+            return new Commands.PlayCardCommand(_sourceCard!, true);
         }
 
-        private ChaosWarlords.Source.Commands.DevourCardCommand? HandleStandardFlowSelection(Card targetCard)
+        private Commands.DevourCardCommand? HandleStandardFlowSelection(Card targetCard)
         {
             var cmd = _actionSystem.HandleDevourSelection(targetCard);
-            
+
             if (_actionSystem.IsTargeting())
             {
                 _gameplayState.SwitchToTargetingMode();

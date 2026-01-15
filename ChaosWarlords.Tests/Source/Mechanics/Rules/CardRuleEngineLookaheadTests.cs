@@ -1,4 +1,3 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Contexts;
@@ -8,8 +7,6 @@ using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Managers;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Source.Mechanics.Rules
 {
@@ -26,13 +23,13 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
         [TestInitialize]
         public void Setup()
         {
-            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
-            _logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance;
+            Tests.Utilities.TestLogger.Initialize();
+            _logger = Tests.Utilities.TestLogger.Instance;
 
             _player = new Player(PlayerColor.Red);
 
             _mapManager = Substitute.For<IMapManager>();
-            
+
             _context = new MatchContext(
                 Substitute.For<ITurnManager>(),
                 _mapManager, // Injected for specific queries
@@ -46,7 +43,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             );
 
             _ruleEngine = new CardRuleEngine(_context, _logger);
-            
+
             // Wire logic: The rule engine delegates to MapManager for many checks.
             // Setup default success for specific methods
             _mapManager.HasValidAssassinationTarget(Arg.Any<Player>()).Returns(true);
@@ -93,7 +90,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
         {
             // Arrange: Devour (Valid) -> Assassinate (Invalid/Impossible)
             _player.Hand.Add(new Card("h1", "Hand", 0, CardAspect.Neutral, 0, 0, 0));
-            
+
             // Mock Assassinate failing
             _mapManager.HasValidAssassinationTarget(_player).Returns(false);
 
@@ -113,15 +110,15 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
         [TestMethod]
         public void IsEffectChainValid_ChainInvalidBase_ReturnsFalse()
         {
-             // Arrange: Devour (Invalid - No Cards) -> GainResource (Valid)
-             // Default setup: Player hand is empty.
-             _player.Hand.Clear();
+            // Arrange: Devour (Invalid - No Cards) -> GainResource (Valid)
+            // Default setup: Player hand is empty.
+            _player.Hand.Clear();
 
             var card = new Card("test", "Test", 0, CardAspect.Neutral, 0, 0, 0);
             var effect = new CardEffect(EffectType.Devour, 1)
             {
                 TargetLocation = CardLocation.Hand,
-                OnSuccess = new CardEffect(EffectType.GainResource, 1) 
+                OnSuccess = new CardEffect(EffectType.GainResource, 1)
             };
 
             // Act
@@ -135,11 +132,11 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
         public void IsEffectChainValid_NestedRecursion_ReturnsFalse()
         {
             // Arrange: Devour -> Draw -> Assassinate (Fail)
-             _player.Hand.Add(new Card("h1", "Hand", 0, CardAspect.Neutral, 0, 0, 0));
-             _mapManager.HasValidAssassinationTarget(_player).Returns(false);
+            _player.Hand.Add(new Card("h1", "Hand", 0, CardAspect.Neutral, 0, 0, 0));
+            _mapManager.HasValidAssassinationTarget(_player).Returns(false);
 
             var card = new Card("test", "Test", 0, CardAspect.Neutral, 0, 0, 0);
-            
+
             var deepEffect = new CardEffect(EffectType.Assassinate, 1);
             var midEffect = new CardEffect(EffectType.DrawCard, 1) { OnSuccess = deepEffect };
             var rootEffect = new CardEffect(EffectType.Devour, 1) { OnSuccess = midEffect };

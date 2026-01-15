@@ -1,10 +1,8 @@
-#nullable enable
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Entities.Cards;
@@ -13,12 +11,10 @@ using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Mechanics.Actions;
 using ChaosWarlords.Source.Input;
 using ChaosWarlords.Source.Contexts;
-
 using ChaosWarlords.Source.Input.Controllers;
 using ChaosWarlords.Source.Factories;
 using ChaosWarlords.Source.Core.Interfaces.Composition;
-using ChaosWarlords.Source.Core.Composition;
-using System;
+
 
 namespace ChaosWarlords.Source.GameStates
 {
@@ -50,7 +46,7 @@ namespace ChaosWarlords.Source.GameStates
         internal PlayerController _playerController = null!;
         internal UIEventMediator _uiEventMediator = null!;
         internal ICommandDispatcher _commandDispatcher = null!;
-        
+
         // 1. Viewport Settings
         public IInputManager InputManager => _inputManagerBacking;
         public IGameLogger Logger => _logger;
@@ -59,7 +55,7 @@ namespace ChaosWarlords.Source.GameStates
 
         // REMOVED: Service Locator properties (MapManager, MarketManager, etc.)
         // Access these via MatchContext if absolutely necessary, or better, inject them where needed.
-        
+
         public MatchContext MatchContext => _matchContext;
 
         public IInputMode InputMode => _inputCoordinator.CurrentMode;
@@ -68,49 +64,49 @@ namespace ChaosWarlords.Source.GameStates
         public int PlayedY => _view?.PlayedY ?? 0;
 
         public IMarketStateManager MarketStateManager => _marketStateManager;
-        
+
         public bool IsMarketOpen => _marketStateManager.IsOpen;
 
         // Expose UIEventMediator state for tests and views
         public bool IsConfirmationPopupOpen => _uiEventMediator?.IsConfirmationPopupOpen ?? false;
         public bool IsPauseMenuOpen => _uiEventMediator?.IsPauseMenuOpen ?? false;
-        
+
         // Expose View State for input blocking
         public bool IsOptionalEffectPopupOpen => _view?.IsOptionalEffectPopupOpen ?? false;
 
         public GameplayState(IGameDependencies dependencies)
         {
             ArgumentNullException.ThrowIfNull(dependencies);
-            
+
             _game = dependencies.Game;
             _inputManagerBacking = (InputManager)dependencies.InputManager; // Cast for now as internal usage relies on specific class features if any, or just assign interface
-            // Actually _inputManagerBacking is defined as InputManager internal field. 
-            // We should check if we can change that field to IInputManager or if we need the cast.
-            // Looking at the file, _inputManagerBacking is InputManager. 
-            // The interface IGameDependencies returns IInputManager.
-            // If InputManager implementation is required by other internal parts, we cast. 
-            // Better practice: Change internal fields to interfaces.
-            // For now, let's cast to keep changes minimal, but ideally we refactor the fields too.
-            // Wait, dependencies.InputManager comes from Game1 which creates 'new InputManager', so it's safe.
-            
+                                                                            // Actually _inputManagerBacking is defined as InputManager internal field. 
+                                                                            // We should check if we can change that field to IInputManager or if we need the cast.
+                                                                            // Looking at the file, _inputManagerBacking is InputManager. 
+                                                                            // The interface IGameDependencies returns IInputManager.
+                                                                            // If InputManager implementation is required by other internal parts, we cast. 
+                                                                            // Better practice: Change internal fields to interfaces.
+                                                                            // For now, let's cast to keep changes minimal, but ideally we refactor the fields too.
+                                                                            // Wait, dependencies.InputManager comes from Game1 which creates 'new InputManager', so it's safe.
+
             // To be cleaner, let's try to stick to interfaces. 
             // However, InputManagerBacking is passed to many internal coordinate systems.
             // Let's assume strict cast for now or update the field type.
             // Updating the field type to IInputManager is safer.
-            
+
             // Re-reading file... 
             // internal InputManager _inputManagerBacking = null!;
             // public IInputManager InputManager => _inputManagerBacking;
-            
+
             // I will update the constructor to Use dependencies. 
             // I'll keep the logic simple.
-            
+
             if (dependencies.InputManager is InputManager concretInput)
                 _inputManagerBacking = concretInput;
             else
                 throw new ArgumentException("GameplayState currently requires concrete InputManager", nameof(dependencies));
-            
-            
+
+
             _cardDatabase = dependencies.CardDatabase;
             _replayManager = dependencies.ReplayManager ?? throw new ArgumentException("ReplayManager must not be null", nameof(dependencies));
             _logger = dependencies.Logger ?? throw new InvalidOperationException("Dependency Logger must not be null");
@@ -151,7 +147,7 @@ namespace ChaosWarlords.Source.GameStates
         {
             // Use seed from replay if we are replaying, otherwise generate new one
             int? seedToUse = _replayManager.IsReplaying ? _replayManager.Seed : (int?)null;
-            
+
             var builder = new MatchFactory(_cardDatabase, _logger);
             var worldData = builder.Build(_replayManager, seedToUse);
 
@@ -173,7 +169,7 @@ namespace ChaosWarlords.Source.GameStates
 
             // Set UI Mediator on ActionSystem for optional effect popups
             worldData.ActionSystem.SetUIMediator(_uiEventMediator);
-            
+
             // Set MatchContext on ActionSystem for effect processing
             worldData.ActionSystem.SetMatchContext(_matchContext);
 
@@ -185,12 +181,12 @@ namespace ChaosWarlords.Source.GameStates
 
             var victoryManager = new VictoryManager(_logger);
             _matchManager = new MatchManager(_matchContext, _logger, victoryManager);
-            
+
             // Connect ActionSystem to MatchManager
             worldData.ActionSystem.SetMatchManager(_matchManager);
             // Connect ActionSystem to MatchContext (Required for Stack-Based Execution of Auto-Effects)
             worldData.ActionSystem.SetMatchContext(_matchContext);
-            
+
             // Subscribe to Logic-Initiated Commands (Auto-Execute)
             _matchContext.ActionSystem.OnAutoExecuteCommand += RecordAndExecuteCommand;
 
@@ -213,11 +209,11 @@ namespace ChaosWarlords.Source.GameStates
         {
             // Initialize MarketStateManager
             _marketStateManager = new MarketStateManager(_logger);
-            
+
             // Inject MarketStateManager into ActionSystem
             // Note: MatchContext holds the ActionSystem instance created by MatchFactory
             _matchContext.ActionSystem.SetMarketStateManager(_marketStateManager);
-            
+
             _inputCoordinator = new GameplayInputCoordinator(this, _inputManagerBacking, _matchContext);
             _commandDispatcher = new CommandDispatcher(_replayManager, _logger);
             _cardPlaySystem = new CardPlaySystem(_matchContext, _matchManager, _replayManager, () => SwitchToTargetingMode(), _logger);
@@ -238,7 +234,7 @@ namespace ChaosWarlords.Source.GameStates
             {
                 InitializeMatch();
                 // We MUST re-initialize systems that depend on MatchContext (like InputCoordinator)
-                InitializeSystems(); 
+                InitializeSystems();
             });
         }
 
@@ -252,7 +248,7 @@ namespace ChaosWarlords.Source.GameStates
                 if (_replayManager.IsReplaying) return;
 
                 // Create and execute EndTurn command through centralized system
-                var cmd = new ChaosWarlords.Source.Commands.EndTurnCommand();
+                var cmd = new Commands.EndTurnCommand();
                 RecordAndExecuteCommand(cmd);
             }
         }
@@ -268,7 +264,7 @@ namespace ChaosWarlords.Source.GameStates
         public void Update(GameTime gameTime)
         {
             UpdateCoreSystems();
-            
+
             if (ShouldSkipGameplayUpdate())
             {
                 _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
@@ -373,7 +369,7 @@ namespace ChaosWarlords.Source.GameStates
         /// Centralized command execution point - ALL player commands flow through here.
         /// Automatically records commands for replay before executing them.
         /// </summary>
-        public virtual void RecordAndExecuteCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command)
+        public virtual void RecordAndExecuteCommand(Core.Interfaces.Logic.IGameCommand command)
         {
             _commandDispatcher.Dispatch(command, this.MatchContext);
         }

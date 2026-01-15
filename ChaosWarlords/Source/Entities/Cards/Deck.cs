@@ -1,6 +1,4 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using System;
-using System.Collections.Generic;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Entities.Cards

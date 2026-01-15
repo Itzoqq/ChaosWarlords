@@ -1,7 +1,5 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Rendering.UI
@@ -104,11 +102,11 @@ namespace ChaosWarlords.Source.Rendering.UI
                 // Draw Button
                 Color color = btn.IsDefault ? Color.DarkGreen : Color.DarkRed; // Simple defaults for now
                 // Override for generic buttons? Maybe Gray?
-                if (!btn.IsDefault && Buttons.Count > 1) color = Color.Gray; 
+                if (!btn.IsDefault && Buttons.Count > 1) color = Color.Gray;
                 // Let's refine colors later or allow Button to specify color.
-                
+
                 spriteBatch.Draw(whitePixel, btnRect, color);
-                
+
                 Vector2 textSize = font.MeasureString(btn.Text);
                 Vector2 textPos = new Vector2(btnRect.X + (btnRect.Width - textSize.X) / 2, btnRect.Y + (btnRect.Height - textSize.Y) / 2);
                 spriteBatch.DrawString(font, btn.Text, textPos, Color.White);

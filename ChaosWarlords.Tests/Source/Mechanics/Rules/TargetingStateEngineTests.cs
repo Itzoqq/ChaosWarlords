@@ -1,8 +1,6 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Utilities; // For ActionState
 using ChaosWarlords.Source.Entities.Cards;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Source.Mechanics.Rules
 {
@@ -86,11 +84,11 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             // Root1: Assassinate -> OnSuccess: ReturnUnit (Child)
             // Root2: PlaceSpy (Sibling)
             // Scenario: User SKIPS Assassinate. Should NOT trigger ReturnUnit. Should trigger PlaceSpy.
-            
+
             var child = new CardEffect(EffectType.ReturnUnit, 0);
             var root1 = new CardEffect(EffectType.Assassinate, 0) { OnSuccess = child };
             var root2 = new CardEffect(EffectType.PlaceSpy, 0);
-            
+
             var effects = new List<CardEffect> { root1, root2 };
 
             // Act
@@ -107,7 +105,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             // Arrange
             // Root -> Child (Assassinate) -> GrandChild (PlaceSpy)
             // We are at Assassinate. Next should be PlaceSpy.
-            
+
             var grandChild = new CardEffect(EffectType.PlaceSpy, 0);
             var child = new CardEffect(EffectType.Assassinate, 0) { OnSuccess = grandChild };
             var root = new CardEffect(EffectType.GainResource, 0) { OnSuccess = child }; // GainResource is non-targeting

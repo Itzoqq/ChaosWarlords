@@ -1,4 +1,3 @@
-using System;
 using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Source.Core.Data
@@ -91,7 +90,7 @@ namespace ChaosWarlords.Source.Core.Data
         {
             return new LogicVector2(a.X - b.X, a.Y - b.Y);
         }
-        
+
         public static bool operator ==(LogicVector2 a, LogicVector2 b) => a.X == b.X && a.Y == b.Y;
         public static bool operator !=(LogicVector2 a, LogicVector2 b) => !(a == b);
 

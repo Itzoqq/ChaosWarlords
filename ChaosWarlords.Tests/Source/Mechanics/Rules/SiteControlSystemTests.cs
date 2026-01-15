@@ -1,8 +1,6 @@
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Mechanics.Rules;
-using ChaosWarlords.Source.Utilities;
-using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -20,7 +18,7 @@ namespace ChaosWarlords.Tests.Systems
         [TestInitialize]
         public void Setup()
         {
-            _system = new SiteControlSystem(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _system = new SiteControlSystem(Utilities.TestLogger.Instance);
             _player1 = TestData.Players.RedPlayer();
             _player2 = TestData.Players.BluePlayer();
 

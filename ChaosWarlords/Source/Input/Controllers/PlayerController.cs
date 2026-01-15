@@ -2,8 +2,6 @@ using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Rendering.Views;
-using System;
 
 namespace ChaosWarlords.Source.Input.Controllers
 {
@@ -46,7 +44,7 @@ namespace ChaosWarlords.Source.Input.Controllers
             // CRITICAL: Block all game input when blocking overlays are open
             // This prevents clicks from passing through UI to the game world
             // NOTE: Market is handled by InputCoordinator (MarketInputMode), so we MUST NOT block it here.
-            if (_gameState.IsPauseMenuOpen || 
+            if (_gameState.IsPauseMenuOpen ||
                 _gameState.IsConfirmationPopupOpen ||
                 _gameState.IsOptionalEffectPopupOpen)
             {
@@ -84,11 +82,11 @@ namespace ChaosWarlords.Source.Input.Controllers
             if (!_inputManager.IsKeyJustPressed(Keys.Enter)) return false;
 
 
-            
+
             // Block if blocking overlays are open
-            if (_gameState.IsPauseMenuOpen || 
-                _gameState.IsMarketOpen || 
-                _gameState.IsOptionalEffectPopupOpen) 
+            if (_gameState.IsPauseMenuOpen ||
+                _gameState.IsMarketOpen ||
+                _gameState.IsOptionalEffectPopupOpen)
             {
                 return true;
             }
@@ -159,7 +157,7 @@ namespace ChaosWarlords.Source.Input.Controllers
         private bool HandleOptionalEffectPopup()
         {
             // Check if optional effect popup is visible and handle clicks
-            if (_gameState is GameStates.GameplayState gameplayState && 
+            if (_gameState is GameStates.GameplayState gameplayState &&
                 gameplayState._view is Rendering.Views.GameplayView view)
             {
                 // If popup is visible, handle clicks and block other input

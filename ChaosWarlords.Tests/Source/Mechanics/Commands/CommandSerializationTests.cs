@@ -1,11 +1,9 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Core.Data.Enums;
 using ChaosWarlords.Source.Core.Data.Dtos;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Core.Utilities;
-using System.Collections.Generic;
 using ChaosWarlords.Source.Entities.Actors;
 
 namespace ChaosWarlords.Tests.Source.Mechanics.Commands
@@ -94,7 +92,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Commands
             player.Hand.Add(card);
 
             var cmd = new PlayCardCommand(card);
-            
+
             // Should produce enriched DTO
             var dto = (PlayCardCommandDto)DtoMapper.ToDto(cmd, 1, player)!;
 

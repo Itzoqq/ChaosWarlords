@@ -1,5 +1,3 @@
-using ChaosWarlords.Source.Core.Events;
-
 namespace ChaosWarlords.Source.Core.Events
 {
     /// <summary>

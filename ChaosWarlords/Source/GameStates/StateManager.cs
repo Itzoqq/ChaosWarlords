@@ -1,8 +1,6 @@
 using ChaosWarlords.Source.Core.Interfaces.State;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System.Collections.Generic;
-
 
 namespace ChaosWarlords.Source.GameStates
 {

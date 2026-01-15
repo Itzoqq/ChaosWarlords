@@ -2,7 +2,6 @@ using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Managers;
 using Microsoft.Xna.Framework;
 using NSubstitute;
-using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -21,7 +20,7 @@ namespace ChaosWarlords.Tests.Systems
         [TestInitialize]
         public void Setup()
         {
-            _ui = new UIManager(ScreenWidth, ScreenHeight, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _ui = new UIManager(ScreenWidth, ScreenHeight, Utilities.TestLogger.Instance);
 
             // Create the NSubstitute mock
             _inputProvider = Substitute.For<IInputProvider>();

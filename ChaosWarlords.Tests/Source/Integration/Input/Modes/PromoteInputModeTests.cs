@@ -1,13 +1,11 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Input.Modes;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Contexts;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
@@ -21,10 +19,10 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         private PromoteInputMode _inputMode = null!;
         private MockInputProvider _mockInput = null!;
         private IInputManager _inputManager = null!;
-        
+
         // Changed to Concrete Fake
         private TestGameplayState _stateFake = null!;
-        
+
         private IActionSystem _actionSub = null!;
         private Player _activePlayer = null!;
         private TurnContext _realTurnContext = null!;
@@ -45,7 +43,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             // Setup Player and Context
             _activePlayer = TestData.Players.RedPlayer();
-            _realTurnContext = new TurnContext(_activePlayer, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _realTurnContext = new TurnContext(_activePlayer, Utilities.TestLogger.Instance);
 
             // Setup MatchContext hierarchy
             var turnManagerSub = Substitute.For<ITurnManager>();
@@ -58,8 +56,8 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
                 _marketSub,
                 _actionSub,
                 Substitute.For<ICardDatabase>(),
-                new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance),
-                null, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+                new PlayerStateManager(Utilities.TestLogger.Instance),
+                null, Utilities.TestLogger.Instance);
 
             // Initialize Fake State
             _stateFake = new TestGameplayState
@@ -113,10 +111,12 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             var targetCard = TestData.Cards.CheapCard();
 
             // Force unique IDs to prevent collision
-            try { 
+            try
+            {
                 typeof(Card).GetProperty("Id")?.SetValue(sourceCard, "ID_SOURCE");
                 typeof(Card).GetProperty("Id")?.SetValue(targetCard, "ID_TARGET");
-            } catch {}
+            }
+            catch { }
 
             _activePlayer.PlayedCards.Add(sourceCard);
             _activePlayer.PlayedCards.Add(targetCard);

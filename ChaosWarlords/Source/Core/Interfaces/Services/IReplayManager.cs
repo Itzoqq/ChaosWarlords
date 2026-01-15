@@ -27,8 +27,8 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// </summary>
         void StopReplay();
 
-        void RecordCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command, ChaosWarlords.Source.Entities.Actors.Player actor, int sequenceNumber);
-        
+        void RecordCommand(Logic.IGameCommand command, Entities.Actors.Player actor, int sequenceNumber);
+
         /// <summary>
         /// Gets the seed used for the recorded session.
         /// Only valid after StartReplay or during recording.
@@ -39,10 +39,10 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// Initializes a new recording session with the specified seed.
         /// </summary>
         void InitializeRecording(int seed);
-        
+
         /// <summary>
         /// Retrieves the next command from the replay queue, if available.
         /// </summary>
-        ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand? GetNextCommand(ChaosWarlords.Source.Core.Interfaces.State.IGameplayState state);
+        Logic.IGameCommand? GetNextCommand(State.IGameplayState state);
     }
 }

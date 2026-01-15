@@ -1,10 +1,6 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Commands;
-using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
-using ChaosWarlords.Source.Core.Interfaces.Services;
 
 namespace ChaosWarlords.Tests.Mechanics.Commands
 {
@@ -38,7 +34,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // Arrange
             var stateFake = new TestGameplayState();
             var matchManagerSub = stateFake.MatchManager;
-            
+
             var card = TestData.Cards.AssassinCard();
             var command = new PlayCardCommand(card, true);
 

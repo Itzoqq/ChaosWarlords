@@ -1,5 +1,4 @@
 using ChaosWarlords.Source.Core.Data.Dtos;
-using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Tests.Source.Core.Data

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace ChaosWarlords.Source.Core.Data.Dtos
 {
     /// <summary>
@@ -11,7 +9,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         public bool IsGameOver { get; set; }
         public int? WinnerSeat { get; set; }
         public string? WinnerName { get; set; }
-        
+
         /// <summary>
         /// Map of Player Seat Index -> Final Score
         /// </summary>

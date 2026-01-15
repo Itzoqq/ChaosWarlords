@@ -1,4 +1,3 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
@@ -8,25 +7,25 @@ namespace ChaosWarlords.Source.Commands
 {
     public class DeployTroopCommand : IGameCommand
     {
-        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.DeployTroop;
+        public Core.Data.Enums.CommandType Type => Core.Data.Enums.CommandType.DeployTroop;
 
-        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        public Core.Data.Dtos.GameCommandDto ToDto()
         {
-            return new ChaosWarlords.Source.Core.Data.Dtos.DeployTroopCommandDto
+            return new Core.Data.Dtos.DeployTroopCommandDto
             {
                 NodeId = Node.Id
             };
         }
         public MapNode Node { get; }
         public Player? Player { get; }
-        
+
         // Constructor for normal gameplay (uses ActivePlayer)
-        public DeployTroopCommand(MapNode node) 
-        { 
+        public DeployTroopCommand(MapNode node)
+        {
             Node = node;
             Player = null; // Will use ActivePlayer during execution
         }
-        
+
         // Constructor for replay (uses specific player)
         public DeployTroopCommand(MapNode node, Player player)
         {

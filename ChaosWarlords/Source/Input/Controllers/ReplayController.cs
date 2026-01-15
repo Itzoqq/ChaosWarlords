@@ -1,14 +1,8 @@
-using System;
-using System.IO;
-using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Core.Utilities;
 using ChaosWarlords.Source.Utilities; // For LogChannel, PlayerColor
 using ChaosWarlords.Source.Contexts; // For MatchPhase
 
@@ -32,9 +26,9 @@ namespace ChaosWarlords.Source.Input.Controllers
         private bool _replayComplete;
 
         public ReplayController(
-            IGameplayState gameState, 
-            IReplayManager replayManager, 
-            IInputManager inputManager, 
+            IGameplayState gameState,
+            IReplayManager replayManager,
+            IInputManager inputManager,
             IGameLogger logger,
             Action onReplayRestartRequested)
         {
@@ -81,7 +75,7 @@ namespace ChaosWarlords.Source.Input.Controllers
             {
                 // Check for existing troop presence to prevent mid-game load
                 bool anyTroopsPlaced = _gameState.MatchContext.MapManager.Nodes.Any(n => n.Occupant != PlayerColor.None && n.Occupant != PlayerColor.Neutral);
-                
+
                 if (anyTroopsPlaced)
                 {
                     if (_replayManager.IsReplaying || _replayComplete)
@@ -109,7 +103,7 @@ namespace ChaosWarlords.Source.Input.Controllers
 
             string json = File.ReadAllText(path);
             _replayManager.StartReplay(json);
-            
+
             // Callback to GameplayState to re-initialize match with new seed
             _onReplayRestartRequested?.Invoke();
 
@@ -130,7 +124,7 @@ namespace ChaosWarlords.Source.Input.Controllers
                     // Execute command directly
                     cmd.Execute(_gameState.MatchContext);
                     _logger.Log($"Replay Executed: {cmd.GetType().Name} (ActivePlayer: {_gameState.MatchContext.TurnManager.ActivePlayer.Color})", LogChannel.Info);
-                    
+
                     // Force view update provided by the state
                     // We can't call _view.Update() here easily unless exposed, 
                     // but GameplayState.Update calls View.Update at the end anyway.

@@ -61,9 +61,9 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 EffectType.Assassinate => _context.MapManager.HasValidAssassinationTarget(player),
                 EffectType.MoveUnit => _context.MapManager.HasValidMoveSource(player),
                 EffectType.Supplant => player.TroopsInBarracks > 0 && _context.MapManager.HasValidAssassinationTarget(player), // Supplant requires Assassinate target + placing troop
-                
+
                 EffectType.Devour => CheckDevourTargets(player, sourceCard),
-                
+
                 _ => true // Most effects (GainResource, DrawCard) don't need external targets
             };
 
@@ -82,14 +82,14 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         public bool IsEffectChainValid(Player player, CardEffect effect, Card? sourceCard)
         {
             // 1. Validate the current effect (if it requires targets)
-            if (ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.Type))
+            if (Actions.CardPlaySystem.IsTargetingEffect(effect.Type))
             {
                 if (!HasValidTargets(player, effect.Type, sourceCard))
                 {
                     return false;
                 }
             }
-            
+
             // 2. Recursively validate success chain
             if (effect.OnSuccess != null)
             {
@@ -119,7 +119,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         private bool HasMarketTargets()
         {
             if (_context.MarketManager.MarketRow.Count > 0) return true;
-            
+
             _logger.Log("[RuleEngine] Market Devour failed: Market is empty.", LogChannel.Warning);
             return false;
         }

@@ -1,15 +1,9 @@
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
-using ChaosWarlords.Source.Factories;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Mechanics.Rules;
-using ChaosWarlords.Source.Core.Contexts;
 using ChaosWarlords.Tests.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
-using System.Collections.Generic;
-using System.Linq;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Utilities;
 
@@ -28,7 +22,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         public void Setup()
         {
             TestLogger.Initialize();
-            
+
             // Setup minimal match environment
             var players = new List<ChaosWarlords.Source.Entities.Actors.Player>
             {
@@ -38,7 +32,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
 
             // Mock UI Mediator
             _uiMediator = Substitute.For<IUIEventMediator>();
-            
+
             // Create Context via Factory
             var turnManager = new TurnManager(players, new SeededGameRandom(12345, TestLogger.Instance), TestLogger.Instance);
             var mapManager = Substitute.For<IMapManager>();
@@ -54,13 +48,13 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             actionSystem.SetUIMediator(_uiMediator);
 
             _context = new MatchContext(
-                turnManager, 
-                mapManager, 
-                marketManager, 
-                actionSystem, 
-                cardDb, 
-                playerState, 
-                _uiMediator, 
+                turnManager,
+                mapManager,
+                marketManager,
+                actionSystem,
+                cardDb,
+                playerState,
+                _uiMediator,
                 TestLogger.Instance
             );
 
@@ -76,10 +70,10 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         {
             // Arrange
             var player = _context.ActivePlayer;
-            
+
             // Create "Skeletal Horde" card manually
             var card = new Card("skeletal_horde", "Skeletal Horde", 3, CardAspect.Oblivion, 1, 3, 0);
-            
+
             // Base Effect: Gain 2 Troops
             card.Effects.Add(new CardEffect(EffectType.GainResource, 2, ResourceType.Troops));
 
@@ -102,7 +96,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Assert 1: Effect Applied Immediately
             // 2 Base + 3 Bonus = 5 Total
             Assert.AreEqual(5, player.PendingFreeTroops, "Should have gained 5 free troops (2 Base + 3 Bonus).");
-            
+
             // Assert 2: Card Marked for Devour
             CollectionAssert.Contains(_context.CardsMarkedForTurnEndDevour, card, "Card should be marked for end-of-turn devour.");
             Assert.AreEqual(CardLocation.Played, card.Location, "Card should still be 'Played' (on board) until end of turn.");
@@ -123,9 +117,9 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         {
             // Arrange
             var player = _context.ActivePlayer;
-            
+
             var card = new Card("skeletal_horde", "Skeletal Horde", 3, CardAspect.Oblivion, 1, 3, 0);
-            
+
             // Base Effect
             card.Effects.Add(new CardEffect(EffectType.GainResource, 2, ResourceType.Troops));
 
@@ -148,7 +142,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Assert 1: No Effect
             Assert.AreEqual(2, player.PendingFreeTroops, "Should grant 2 troops (Base only) if declined.");
             CollectionAssert.DoesNotContain(_context.CardsMarkedForTurnEndDevour, card, "Should NOT be marked for devour.");
-            
+
             // Verify it is in PlayedCards
             Assert.AreEqual(CardLocation.Played, card.Location, "Card should be in Played location before EndTurn.");
             CollectionAssert.Contains(player.PlayedCards, card, "Card should be in player.PlayedCards before EndTurn.");

@@ -1,4 +1,3 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Contexts;
@@ -7,11 +6,11 @@ namespace ChaosWarlords.Source.Commands
 {
     public class BuyCardCommand : IGameCommand
     {
-        public ChaosWarlords.Source.Core.Data.Enums.CommandType Type => ChaosWarlords.Source.Core.Data.Enums.CommandType.BuyCard;
+        public Core.Data.Enums.CommandType Type => Core.Data.Enums.CommandType.BuyCard;
 
-        public ChaosWarlords.Source.Core.Data.Dtos.GameCommandDto ToDto()
+        public Core.Data.Dtos.GameCommandDto ToDto()
         {
-            return new ChaosWarlords.Source.Core.Data.Dtos.BuyCardCommandDto
+            return new Core.Data.Dtos.BuyCardCommandDto
             {
                 CardId = Card.Id
             };
@@ -21,11 +20,11 @@ namespace ChaosWarlords.Source.Commands
 
         public bool Validate(MatchContext context)
         {
-             // Valid if card is in market and player checks out
-             // NOTE: Simple validation here. Deep validation logic is inside MarketManager.TryBuyCard usually.
-             // But we can check basic state.
-             var player = context.TurnManager.ActivePlayer;
-             return context.MarketManager.MarketRow.Contains(Card);
+            // Valid if card is in market and player checks out
+            // NOTE: Simple validation here. Deep validation logic is inside MarketManager.TryBuyCard usually.
+            // But we can check basic state.
+            var player = context.TurnManager.ActivePlayer;
+            return context.MarketManager.MarketRow.Contains(Card);
         }
 
         public void Execute(MatchContext context)

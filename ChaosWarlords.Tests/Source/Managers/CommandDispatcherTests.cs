@@ -6,9 +6,7 @@ using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
-using System;
 
 namespace ChaosWarlords.Tests.Source.Managers
 {
@@ -31,10 +29,10 @@ namespace ChaosWarlords.Tests.Source.Managers
             // We'll init the fake in each test or setup if possible, but the fake is lightweight.
             // Let's create a field for it but we need to reset it for each test if we shared it.
             // Better to instantiate in logic, but test fields are fine if re-init in setup.
-            
+
             // Actually, let's keep the field type as IGameplayState interface for the dispatcher signature,
             // but assign the concrete fake.
-             _state = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+            _state = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
 
             _command = Substitute.For<IGameCommand>();
             _command.Validate(Arg.Any<MatchContext>()).Returns(true);
@@ -61,17 +59,17 @@ namespace ChaosWarlords.Tests.Source.Managers
                 null,
                 _logger,
                 123);
-            
+
             // Act
             _dispatcher.Dispatch(_command, matchContext);
 
             // Assert
             // 1. Verifies Recording (Sequence Number starts at 0, increments to 1)
             _replayManager.Received(1).RecordCommand(_command, player, 1);
-            
+
             // 2. Verifies Execution
             _command.Received(1).Execute(matchContext);
-            
+
             // 3. Verify Context Sequence Updated
             Assert.AreEqual(1, matchContext.SequenceNumber);
         }
@@ -106,7 +104,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         [TestCategory("Unit")]
         public void Dispatch_IncrementsSequenceCounter()
         {
-             // Arrange
+            // Arrange
             _replayManager.IsReplaying.Returns(false);
             var player = new Player(PlayerColor.Red);
             var turnManager = Substitute.For<ITurnManager>();
@@ -121,7 +119,7 @@ namespace ChaosWarlords.Tests.Source.Managers
                 null,
                 _logger,
                 123);
-            
+
 
             // Act
             _dispatcher.Dispatch(_command, matchContext); // seq 1

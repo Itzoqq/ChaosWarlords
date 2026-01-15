@@ -1,4 +1,3 @@
-using System;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Core.Interfaces.Services;
@@ -51,7 +50,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         public void Execute(Card sourceCard, MatchContext context, IGameLogger logger, Action? onComplete, bool defer)
         {
             logger.Log($"{sourceCard.Name}: Marked for self-devour at end of turn.", LogChannel.Info);
-            
+
             // Mark for end-of-turn destruction
             context.CardsMarkedForTurnEndDevour.Add(sourceCard);
 

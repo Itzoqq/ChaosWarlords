@@ -5,9 +5,6 @@ using ChaosWarlords.Source.Core.Utilities;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Managers;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
 
 namespace ChaosWarlords.Source.Factories
 {
@@ -47,7 +44,7 @@ namespace ChaosWarlords.Source.Factories
             _logger.Log($"Match created with seed: {matchSeed}", LogChannel.Info);
 
             var playerStateManager = new PlayerStateManager(_logger);
-            
+
             _logger.Log($"[RNG] Pre-MarketManager: {random.CallCount}", LogChannel.Debug);
             var marketManager = new MarketManager(_cardDatabase, random);
             _logger.Log($"[RNG] Post-MarketManager Checksum: {random.CallCount}", LogChannel.Info);
@@ -55,7 +52,7 @@ namespace ChaosWarlords.Source.Factories
             _logger.Log($"[RNG] Pre-CreatePlayers: {random.CallCount}", LogChannel.Debug);
             var players = CreatePlayers(_cardDatabase, random, _logger);
             _logger.Log($"[RNG] Post-Players Checksum: {random.CallCount}", LogChannel.Info);
-            
+
             var turnManager = new TurnManager(players, random, _logger);
 
             // Create VictoryManager
@@ -109,7 +106,7 @@ namespace ChaosWarlords.Source.Factories
             logger.Log($"Created {name} with SeatIndex: {seatIndex}", LogChannel.Info);
             for (int i = 0; i < 3; i++) player.DeckManager.AddToTop(CardFactory.CreateSoldier(random));
             for (int i = 0; i < 7; i++) player.DeckManager.AddToTop(CardFactory.CreateNoble(random));
-            
+
             // TESTING: Add all devour cards to starting deck
             player.DeckManager.AddToTop(cardDatabase.GetCardById("wight"));
             player.DeckManager.AddToTop(cardDatabase.GetCardById("market_corruptor"));

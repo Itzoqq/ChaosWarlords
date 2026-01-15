@@ -1,8 +1,4 @@
 using ChaosWarlords.Source.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace ChaosWarlords.Tests.Source.Core.Utilities
 {

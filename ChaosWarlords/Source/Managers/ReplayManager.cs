@@ -1,6 +1,5 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Data.Dtos;
-using System.Collections.Generic;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Utilities;
 
@@ -18,7 +17,7 @@ namespace ChaosWarlords.Source.Managers
 
         public ReplayManager(IGameLogger logger)
         {
-            _logger = logger ?? throw new System.ArgumentNullException(nameof(logger));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public bool IsReplaying => _isReplaying;
@@ -34,7 +33,7 @@ namespace ChaosWarlords.Source.Managers
         public void StartReplay(string replayJson)
         {
             _logger.Log("Starting Replay...", LogChannel.Info);
-            try 
+            try
             {
                 var data = System.Text.Json.JsonSerializer.Deserialize<ReplayDataDto>(replayJson);
                 if (data is not null)
@@ -43,25 +42,25 @@ namespace ChaosWarlords.Source.Managers
                     _seed = data.Seed;
                     _recording.Clear();
                     _recording.AddRange(data.Commands);
-                    
+
                     // Initialize playback queue
                     _playbackQueue = new Queue<GameCommandDto>(data.Commands);
-                    
+
                     _logger.Log($"Replay loaded: {data.Commands.Count} actions (Seed: {_seed}).", LogChannel.Info);
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.Log($"Failed to load replay: {ex.Message}", LogChannel.Error);
             }
         }
-        
+
         private Queue<GameCommandDto> _playbackQueue = new Queue<GameCommandDto>();
 
-        public ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand? GetNextCommand(ChaosWarlords.Source.Core.Interfaces.State.IGameplayState state)
+        public Core.Interfaces.Logic.IGameCommand? GetNextCommand(Core.Interfaces.State.IGameplayState state)
         {
             if (!_isReplaying) return null;
-            
+
             if (_playbackQueue.Count == 0)
             {
                 StopReplay();
@@ -93,7 +92,7 @@ namespace ChaosWarlords.Source.Managers
             _logger.Log("Replay Stopped.", LogChannel.Info);
         }
 
-        public void RecordCommand(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand command, ChaosWarlords.Source.Entities.Actors.Player actor, int sequenceNumber)
+        public void RecordCommand(Core.Interfaces.Logic.IGameCommand command, Entities.Actors.Player actor, int sequenceNumber)
         {
             if (_isReplaying) return;
             if (command == null) return;
@@ -112,7 +111,7 @@ namespace ChaosWarlords.Source.Managers
                     _logger.Log($"[ReplayManager] DtoMapper returned null for {command.GetType().Name}.", LogChannel.Warning);
                 }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 _logger.Log($"Failed to record command: {ex.Message}", LogChannel.Error);
 #if DEBUG

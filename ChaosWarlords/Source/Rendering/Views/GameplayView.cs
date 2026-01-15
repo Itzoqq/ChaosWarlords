@@ -1,11 +1,8 @@
 using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
@@ -72,11 +69,11 @@ namespace ChaosWarlords.Source.Rendering.Views
             _whitePixel = new Texture2D(_graphicsDevice, 1, 1);
             _whitePixel.SetData(new[] { Color.White });
 
-            try { _defaultFont = content.Load<SpriteFont>("fonts/DefaultFont"); } 
+            try { _defaultFont = content.Load<SpriteFont>("fonts/DefaultFont"); }
             catch (ContentLoadException ex) { _logger.Log($"Failed to load DefaultFont: {ex.Message}", LogChannel.Error); }
             catch (Exception ex) { _logger.Log($"Unexpected error loading DefaultFont: {ex.Message}", LogChannel.Error); }
 
-            try { _smallFont = content.Load<SpriteFont>("fonts/SmallFont"); } 
+            try { _smallFont = content.Load<SpriteFont>("fonts/SmallFont"); }
             catch (ContentLoadException ex) { _logger.Log($"Failed to load SmallFont: {ex.Message}", LogChannel.Error); }
             catch (Exception ex) { _logger.Log($"Unexpected error loading SmallFont: {ex.Message}", LogChannel.Error); }
 
@@ -92,7 +89,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             PlayedY = HandY - Card.Height - GameConstants.CardRendering.PlayedAreaGap;
         }
 
-        public void SubscribeToOptionalEffectEvent(Managers.UIEventMediator uiEventMediator)
+        public void SubscribeToOptionalEffectEvent(UIEventMediator uiEventMediator)
         {
             if (uiEventMediator != null && _optionalEffectPopup != null)
             {
@@ -178,14 +175,14 @@ namespace ChaosWarlords.Source.Rendering.Views
                 string replayText = "=== REPLAY MODE ===";
                 Vector2 textSize = _defaultFont.MeasureString(replayText);
                 Vector2 position = new Vector2((uiManager.ScreenWidth - textSize.X) / 2, GameConstants.UILayout.MediumPadding);
-                
+
                 // Draw semi-transparent background
                 Rectangle bgRect = new Rectangle((int)position.X - GameConstants.UILayout.MediumPadding, (int)position.Y - GameConstants.UILayout.SmallPadding, (int)textSize.X + GameConstants.UILayout.LargePadding, (int)textSize.Y + GameConstants.UILayout.MediumPadding);
                 if (_whitePixel != null)
                 {
                     spriteBatch.Draw(_whitePixel, bgRect, Color.Black * 0.7f);
                 }
-                
+
                 // Draw text
                 spriteBatch.DrawString(_defaultFont, replayText, position, Color.Yellow);
             }

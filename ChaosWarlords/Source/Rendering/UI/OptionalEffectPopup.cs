@@ -2,7 +2,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
-using System;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Rendering.UI
@@ -99,7 +98,7 @@ namespace ChaosWarlords.Source.Rendering.UI
             Color yesColor = yesHovered ? new Color(0, 200, 0) : new Color(0, 140, 0);
             spriteBatch.Draw(whitePixel, _yesButtonRect, yesColor);
             DrawBorder(spriteBatch, whitePixel, _yesButtonRect, 2, Color.White);
-            
+
             string yesText = "Yes";
             Vector2 yesTextSize = font.MeasureString(yesText);
             Vector2 yesTextPos = new Vector2(
@@ -112,7 +111,7 @@ namespace ChaosWarlords.Source.Rendering.UI
             Color noColor = noHovered ? new Color(200, 0, 0) : new Color(140, 0, 0);
             spriteBatch.Draw(whitePixel, _noButtonRect, noColor);
             DrawBorder(spriteBatch, whitePixel, _noButtonRect, 2, Color.White);
-            
+
             string noText = "No";
             Vector2 noTextSize = font.MeasureString(noText);
             Vector2 noTextPos = new Vector2(

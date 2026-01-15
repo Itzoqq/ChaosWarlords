@@ -1,9 +1,6 @@
 using ChaosWarlords.Source.Core.Events;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Utilities;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ChaosWarlords.Tests.Source.Managers
 {
@@ -28,7 +25,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             {
                 Unsubscriptions.Add((typeof(T), handler));
             }
-            
+
             // Helper to invoke a handler for testing
             public void InvokeHandler<T>(T evt) where T : GameEvent
             {
@@ -44,11 +41,11 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             var fakeManager = new FakeEventManager();
-            var logger = new GameEventLogger(fakeManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            
+            var logger = new GameEventLogger(fakeManager, Tests.Utilities.TestLogger.Instance);
+
             // Act
             logger.Initialize();
-            
+
             // Assert
             var sub = fakeManager.Subscriptions.FirstOrDefault(s => s.Type == typeof(StateChangeEvent));
             Assert.IsNotNull(sub.Handler, "Should subscribe to StateChangeEvent");
@@ -59,11 +56,11 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             var fakeManager = new FakeEventManager();
-            var logger = new GameEventLogger(fakeManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            
+            var logger = new GameEventLogger(fakeManager, Tests.Utilities.TestLogger.Instance);
+
             // Act
             logger.Initialize();
-            
+
             // Assert
             var sub = fakeManager.Subscriptions.FirstOrDefault(s => s.Type == typeof(GameEvent));
             Assert.IsNotNull(sub.Handler, "Should subscribe to GameEvent");
@@ -74,12 +71,12 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             var fakeManager = new FakeEventManager();
-            var logger = new GameEventLogger(fakeManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var logger = new GameEventLogger(fakeManager, Tests.Utilities.TestLogger.Instance);
             logger.Initialize();
-            
+
             // Act
             logger.Cleanup();
-            
+
             // Assert
             var unsub = fakeManager.Unsubscriptions.FirstOrDefault(s => s.Type == typeof(StateChangeEvent));
             Assert.IsNotNull(unsub.Handler, "Should unsubscribe from StateChangeEvent");
@@ -90,12 +87,12 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             var fakeManager = new FakeEventManager();
-            var logger = new GameEventLogger(fakeManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var logger = new GameEventLogger(fakeManager, Tests.Utilities.TestLogger.Instance);
             logger.Initialize();
-            
+
             // Act
             logger.Cleanup();
-            
+
             // Assert
             var unsub = fakeManager.Unsubscriptions.FirstOrDefault(s => s.Type == typeof(GameEvent));
             Assert.IsNotNull(unsub.Handler, "Should unsubscribe from GameEvent");
@@ -106,15 +103,15 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             var fakeManager = new FakeEventManager();
-            var logger = new GameEventLogger(fakeManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var logger = new GameEventLogger(fakeManager, Tests.Utilities.TestLogger.Instance);
             logger.Initialize();
-            
+
             // Act - Invoke via our fake helper
             var evt = new StateChangeEvent("TestState", 10, 5);
-            
+
             // This effectively calls the private OnStateChanged method via the delegate
             fakeManager.InvokeHandler(evt);
-            
+
             // Assert - Log verification would require mocking dependency of GameLogger or capturing console/static interaction.
             // Since GameLogger is static, we assume if no exception was thrown, the logic executed.
             // In a better architecture, GameLogger would be an interface we could mock.
@@ -128,14 +125,14 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             var fakeManager = new FakeEventManager();
-            var logger = new GameEventLogger(fakeManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var logger = new GameEventLogger(fakeManager, Tests.Utilities.TestLogger.Instance);
             logger.Initialize();
-            
+
             var evt = new TestSimpleEvent { Context = "TestEvent" };
-            
+
             // Act
             fakeManager.InvokeHandler<GameEvent>(evt);
-            
+
             // Assert - No crash
         }
 
@@ -144,15 +141,15 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             var fakeManager = new FakeEventManager();
-            var logger = new GameEventLogger(fakeManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var logger = new GameEventLogger(fakeManager, Tests.Utilities.TestLogger.Instance);
             logger.Initialize();
-            
+
             var evt = new StateChangeEvent("TestState", 10, 5);
-            
+
             // Act
             // Pass StateChangeEvent as a generic GameEvent
             fakeManager.InvokeHandler<GameEvent>(evt);
-            
+
             // Assert - No exception, logic inside OnGenericEvent filters it out
         }
     }

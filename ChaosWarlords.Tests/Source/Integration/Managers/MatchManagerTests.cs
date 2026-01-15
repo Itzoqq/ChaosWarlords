@@ -46,8 +46,8 @@ namespace ChaosWarlords.Tests.Integration.Managers
             _victoryManager = Substitute.For<IVictoryManager>();
 
             var mockRandom = Substitute.For<IGameRandom>();
-            var playerState = new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            var turnManager = new TurnManager(new List<Player> { _p1, _p2 }, mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var playerState = new PlayerStateManager(Utilities.TestLogger.Instance);
+            var turnManager = new TurnManager(new List<Player> { _p1, _p2 }, mockRandom, Utilities.TestLogger.Instance);
 
             _context = new MatchContext(
                 turnManager,
@@ -57,25 +57,25 @@ namespace ChaosWarlords.Tests.Integration.Managers
                 _cardDatabase,
                 playerState,
 
-                null, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+                null, Utilities.TestLogger.Instance);
 
             // Fix for Legacy Tests: Configure Mock ActionSystem to execute "Instant" effects immediately
             // This mimics the real ActionSystem.ProcessStack() behavior for non-blocking effects.
             // IMPORTANT: This must be done AFTER _context is initialized so the closure captures the correct reference.
             _actionSystem.When(x => x.PushEffect(Arg.Any<EffectContext>()))
-                         .Do(callInfo => 
+                         .Do(callInfo =>
                          {
                              var ctx = callInfo.Arg<EffectContext>();
                              if (!ctx.RequiresInput && ctx.SourceCard != null)
                              {
                                  // Execute Logic directly
-                                 CardEffectProcessor.ApplyEffect(ctx.SourceEffect, ctx.SourceCard, _context, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+                                 CardEffectProcessor.ApplyEffect(ctx.SourceEffect, ctx.SourceCard, _context, Utilities.TestLogger.Instance);
                                  // Simulate Resolution
                                  ctx.OnResolved?.Invoke(true);
                              }
                          });
 
-            _controller = new MatchManager(_context, ChaosWarlords.Tests.Utilities.TestLogger.Instance, _victoryManager);
+            _controller = new MatchManager(_context, Utilities.TestLogger.Instance, _victoryManager);
 
 
             // Ensure _p1 always refers to the Active Player for test consistency.
@@ -208,7 +208,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
         public void PlayCard_WithFocus_FromHandReveal_TriggersEffect()
         {
             var revealCard = TestData.Cards.SupplantCard(); // Shadow
-            var focusCard = TestData.Cards.FocusPowerCard(); 
+            var focusCard = TestData.Cards.FocusPowerCard();
             // I'll update TestData FocusPowerCard to be Shadow for consistency with these tests.
 
             _p1.Power = 0;
@@ -257,7 +257,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
         public void VoidPile_Property_ExposesContextVoidPile()
         {
             // Test the new interface property added for the UI
-            
+
             // Arrange
             var card = TestData.Cards.CheapCard();
             _context.VoidPile.Add(card);
@@ -277,9 +277,9 @@ namespace ChaosWarlords.Tests.Integration.Managers
         {
             // Arrange
             _context.CurrentPhase = MatchPhase.Setup;
-            
+
             // MapManager Mock: P1 has NOT deployed (0 nodes occupied)
-            _mapManager.Nodes.Returns(new List<MapNode> { TestData.MapNodes.Node2() }); 
+            _mapManager.Nodes.Returns(new List<MapNode> { TestData.MapNodes.Node2() });
 
             // Act
             bool result = _controller.CanEndTurn(out string reason);
@@ -294,7 +294,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
         {
             // Arrange
             _context.CurrentPhase = MatchPhase.Setup;
-            
+
             // MapManager Mock: P1 has deployed
             var node = TestData.MapNodes.Node1();
             node.Occupant = _p1.Color;
@@ -405,7 +405,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // Arrange
             // Force P1 to be the active player and P2 to be next (and last).
             // Logic: P1 Ends Turn -> P2 Starts -> P2 Ends Turn -> Round Over -> Game Over Triggered
-            
+
             // Mock Victory Handler to ALWAYS say the game should end (e.g. troops depleted)
             _victoryManager.CheckEndGameConditions(_context, out Arg.Any<string>())
                   .Returns(x => { x[1] = "Mock End Game"; return true; });
@@ -432,10 +432,10 @@ namespace ChaosWarlords.Tests.Integration.Managers
         public void BuyCard_TriggersEndGame_WhenMarketDeckEmpty()
         {
             // Integration Test: MatchManager + Real VictoryManager logic
-            
+
             // 1. Setup Real VictoryManager to verify the CONDITION logic actually works within the loop
-            var realVictoryManager = new VictoryManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-            _controller = new MatchManager(_context, ChaosWarlords.Tests.Utilities.TestLogger.Instance, realVictoryManager);
+            var realVictoryManager = new VictoryManager(Utilities.TestLogger.Instance);
+            _controller = new MatchManager(_context, Utilities.TestLogger.Instance, realVictoryManager);
 
             // 2. Setup Market State: Empty Row and Empty Deck
             _marketManager.MarketRow.Returns(new List<Card>());
@@ -445,14 +445,14 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // Active Player is P1. P2 is next.
             // Setup TurnManager to treat P2 as last. 
             // In Setup(), P1 is seat 0, P2 is seat 1.
-            
+
             // Act: P1 Ends Turn -> Checks Victory
             _controller.EndTurn();
 
             // Assert 1: Victory Condition MET ("Market Empty"), but deferred (End of Round)
             // P1 is NOT last player (P2 is). So Game NOT Over yet.
             Assert.IsFalse(_controller.IsGameOver(), "Should defer victory until round completes.");
-            
+
             // Act 2: P2 Ends Turn
             _controller.EndTurn();
 
@@ -469,7 +469,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
         {
             var p1 = TestData.Players.RedPlayer();
             var p2 = TestData.Players.BluePlayer();
-            var logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance;
+            var logger = Utilities.TestLogger.Instance;
 
             // Mocks
             var mapManager = Substitute.For<IMapManager>();
@@ -486,7 +486,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // Real Systems
             var actionSystem = new ActionSystem(turnManager, mapManager, logger);
             var playerState = new PlayerStateManager(logger);
-            
+
             // Wiring
             actionSystem.SetPlayerStateManager(playerState);
 
@@ -506,9 +506,9 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
             var testState = new IntegrationTestGameplayState(context, manager, logger);
 
-            actionSystem.OnAutoExecuteCommand += (cmd) => 
+            actionSystem.OnAutoExecuteCommand += (cmd) =>
             {
-               cmd.Execute(testState.MatchContext); 
+                cmd.Execute(testState.MatchContext);
             };
 
             return (manager, actionSystem, context, p1);
@@ -521,10 +521,10 @@ namespace ChaosWarlords.Tests.Integration.Managers
             var (manager, actionSystem, context, p1) = SetupRealDevourSystem();
             var devourCard = TestData.Cards.DevourCard();
             var otherCard = TestData.Cards.CheapCard();
-            
+
             p1.Hand.Add(devourCard);
             p1.Hand.Add(otherCard);
-            int startHandCount = p1.Hand.Count; 
+            int startHandCount = p1.Hand.Count;
 
             // Set Pre-Target to SKIP
             actionSystem.SetPreTarget(devourCard, ActionState.TargetingDevourHand, ActionSystem.SkippedTarget);
@@ -595,15 +595,15 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
             // Arrange
             var (manager, actionSystem, context, p1) = SetupRealDevourSystem();
-            
+
             // Construct Market Corruptor Manually
             var corruptor = new Card("market_corruptor_test", "Market Corruptor", 3, CardAspect.Sorcery, 1, 2, 0);
-            
+
             var gainInfluence = new CardEffect(EffectType.GainResource, 3, ResourceType.Influence);
-            var devour = new CardEffect(EffectType.Devour, 0) 
-            { 
-                TargetLocation = CardLocation.Market, 
-                OnSuccess = gainInfluence 
+            var devour = new CardEffect(EffectType.Devour, 0)
+            {
+                TargetLocation = CardLocation.Market,
+                OnSuccess = gainInfluence
             };
             corruptor.AddEffect(devour);
 
@@ -629,7 +629,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
             // Arrange
             var (manager, actionSystem, context, p1) = SetupRealDevourSystem();
-            
+
             // 1. Construct Wight
             var wight = new Card("wight_test", "Wight", 4, CardAspect.Sorcery, 1, 0, 0);
             var supplantEffect = new CardEffect(EffectType.Supplant, 0); // Logic handled by rules
@@ -657,7 +657,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             actionSystem.SetPreTarget(wight, ActionState.TargetingDevourHand, fodder);
 
             // Act
-            manager.PlayCard(wight); 
+            manager.PlayCard(wight);
 
             // Assert
             Assert.AreEqual(ActionState.TargetingSupplant, actionSystem.CurrentState, "Should transition to TargetingSupplant after Devour.");
@@ -666,7 +666,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // Since we are using PreTarget with stack automation, the command executes immediately (Non-Deferred)
             // and the stack advances to Supplant.
             Assert.IsNull(actionSystem.PendingDevourCard, "PendingDevourCard should be null (Devour executed).");
-            Assert.IsTrue(context.VoidPile.Contains(fodder), "Fodder SHOULD be in void (Devour executed).");
+            Assert.Contains(fodder, context.VoidPile, "Fodder SHOULD be in void (Devour executed).");
         }
 
     }

@@ -6,9 +6,7 @@ using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
-using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Source.Entities.Cards
 {
@@ -52,8 +50,8 @@ namespace ChaosWarlords.Tests.Source.Entities.Cards
             var node = new MapNode(0, new Microsoft.Xna.Framework.Vector2(0, 0)) { Occupant = PlayerColor.Red };
             // Constructor: name, controlRes, controlAmt, totalRes, totalAmt
             var site = new StartingSite("TestSite", ResourceType.Power, 1, ResourceType.VictoryPoints, 2);
-            site.NodesInternal.Add(node); 
-            
+            site.NodesInternal.Add(node);
+
             var list = new List<Site> { site };
             _mapManager.Sites.Returns(list);
 
@@ -90,12 +88,12 @@ namespace ChaosWarlords.Tests.Source.Entities.Cards
         [TestMethod]
         public void Evaluate_InnerCircleCount_ReturnsTrueIfMet()
         {
-             // How to add to InnerCircle? It's a public property List<Card> usually?
-             // Let's check Player.cs
-             _player.InnerCircle.Add(new Card("1", "Test", 0, CardAspect.Neutral, 0, 0, 0));
-             
-             var condition = new EffectCondition(ConditionType.InnerCircleCount, 1);
-             Assert.IsTrue(condition.Evaluate(_context, _player));
+            // How to add to InnerCircle? It's a public property List<Card> usually?
+            // Let's check Player.cs
+            _player.InnerCircle.Add(new Card("1", "Test", 0, CardAspect.Neutral, 0, 0, 0));
+
+            var condition = new EffectCondition(ConditionType.InnerCircleCount, 1);
+            Assert.IsTrue(condition.Evaluate(_context, _player));
         }
     }
 }

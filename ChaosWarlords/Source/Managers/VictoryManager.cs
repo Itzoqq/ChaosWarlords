@@ -2,8 +2,6 @@ using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ChaosWarlords.Source.Managers
 {
@@ -52,7 +50,7 @@ namespace ChaosWarlords.Source.Managers
         public int CalculateFinalScore(Player player, MatchContext context)
         {
             var breakdown = GetScoreBreakdown(player, context);
-            
+
             _logger.Log($"{player.DisplayName} Final Score: {breakdown.TotalScore} " +
                        $"(VP:{breakdown.VPTokens} Sites:{breakdown.SiteControlVP} Trophies:{breakdown.TrophyHallVP} " +
                        $"Deck:{breakdown.DeckVP} InnerCircle:{breakdown.InnerCircleVP})",
@@ -61,7 +59,7 @@ namespace ChaosWarlords.Source.Managers
             return breakdown.TotalScore;
         }
 
-        public ChaosWarlords.Source.Core.Data.Dtos.ScoreBreakdownDto GetScoreBreakdown(Player player, MatchContext context)
+        public Core.Data.Dtos.ScoreBreakdownDto GetScoreBreakdown(Player player, MatchContext context)
         {
             int vpTokens = player.VictoryPoints;
             int siteControl = CalculateSiteControlVP(player, context);
@@ -69,7 +67,7 @@ namespace ChaosWarlords.Source.Managers
             int deckVP = CalculateDeckVP(player);
             int innerCircleVP = CalculateInnerCircleVP(player);
 
-            return new ChaosWarlords.Source.Core.Data.Dtos.ScoreBreakdownDto
+            return new Core.Data.Dtos.ScoreBreakdownDto
             {
                 VPTokens = vpTokens,
                 SiteControlVP = siteControl,
@@ -151,9 +149,9 @@ namespace ChaosWarlords.Source.Managers
                 .ThenBy(kvp => kvp.Key.TroopsInBarracks) // Secondary: More Deployed (Lower Barracks)
                 .ThenBy(kvp => kvp.Key.SeatIndex) // Tertiary: Seat Index
                 .First().Key;
-            
+
             _logger.Log($"Winner: {winner.DisplayName} with {scores[winner]} VP!", LogChannel.General);
-            
+
             return winner;
         }
     }

@@ -1,6 +1,4 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using System;
-using System.Linq;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Contexts;
 
@@ -42,13 +40,13 @@ namespace ChaosWarlords.Source.Mechanics.Actions
         private bool ShouldSkipPreCommitTargeting(Card card)
         {
             bool hasOptionalTargeting = card.Effects.Any(e => e.IsOptional && IsTargetingEffect(e.Type));
-            
+
             if (hasOptionalTargeting)
             {
                 _logger.Log($"Card {card.Name} has optional targeting effects. Skipping pre-commit targeting - popup will handle it.", LogChannel.Debug);
                 return true;
             }
-            
+
             return false;
         }
 

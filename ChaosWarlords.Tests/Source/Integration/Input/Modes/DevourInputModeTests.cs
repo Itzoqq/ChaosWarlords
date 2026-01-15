@@ -1,6 +1,5 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Input.Modes;
 using ChaosWarlords.Source.Entities.Cards;
@@ -44,12 +43,12 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
                     Substitute.For<IMarketManager>(),
                     _mockActionSystem,
                     Substitute.For<ICardDatabase>(),
-                    new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance),
-                    null, ChaosWarlords.Tests.Utilities.TestLogger.Instance)
+                    new PlayerStateManager(Utilities.TestLogger.Instance),
+                    null, Utilities.TestLogger.Instance)
             };
 
             _mode = new DevourInputMode(_stateFake, _mockInputManager, _mockActionSystem);
-            
+
             // Warmup because of cooldown
             for (int i = 0; i < 15; i++)
             {
@@ -68,7 +67,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             // Assert
             _mockActionSystem.Received(1).CancelTargeting();
-            
+
             // State-based assertion
             Assert.AreEqual("Normal", _stateFake.ActiveModeName, "Should switch to Normal mode on cancel.");
             Assert.IsNull(result);
@@ -119,7 +118,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             _mockActionSystem.PendingCard.Returns(sourceCard);
             _mockInputManager.IsLeftMouseJustClicked().Returns(true);
             _stateFake.HoveredHandCard = targetCard;
-            
+
             // SIMULATE CHAIN: ActionSystem is now targeting (e.g. Supplant)
             _mockActionSystem.IsTargeting().Returns(true);
 
@@ -177,8 +176,8 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             // Re-create mode to capture PendingCard
             var mode = new DevourInputMode(_stateFake, _mockInputManager, _mockActionSystem);
-            for(int i=0; i<15; i++) mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
-            
+            for (int i = 0; i < 15; i++) mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
+
             _mockActionSystem.ClearReceivedCalls();
 
             // Act
@@ -187,7 +186,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // Assert
             // 1. Check SkippedTarget was set
             _mockActionSystem.Received(1).SetPreTarget(sourceCard, ActionState.TargetingDevourHand, ActionSystem.SkippedTarget);
-            
+
             // 2. Check Action Completed (Exit Targeting)
             _mockActionSystem.Received(1).CompleteAction();
 
@@ -215,8 +214,8 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             // Re-create mode
             var mode = new DevourInputMode(_stateFake, _mockInputManager, _mockActionSystem);
-            for(int i=0; i<15; i++) mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
-            
+            for (int i = 0; i < 15; i++) mode.HandleInput(_mockInputManager, null!, null!, null!, _mockActionSystem);
+
             _mockActionSystem.ClearReceivedCalls();
 
             // Act

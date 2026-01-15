@@ -1,8 +1,4 @@
-using System.Collections.Generic;
-using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Entities.Map;
-using System.Linq;
-using System;
 
 namespace ChaosWarlords.Source.Utilities
 {
@@ -137,14 +133,14 @@ namespace ChaosWarlords.Source.Utilities
             }
         }
 
-        private List<MapNode> GenerateSiteNodes(ChaosWarlords.Source.Core.Data.LogicVector2 center, int count, bool isCity)
+        private List<MapNode> GenerateSiteNodes(Core.Data.LogicVector2 center, int count, bool isCity)
         {
             List<MapNode> results = [];
             if (count <= 0) return results;
 
             int maxCols = 3;
             // Spacing 50f -> 50000 in Logic Space
-            int spacing = 50 * ChaosWarlords.Source.Core.Data.LogicVector2.ScaleFactor;
+            int spacing = 50 * Core.Data.LogicVector2.ScaleFactor;
 
             int totalRows = (int)Math.Ceiling((double)count / maxCols);
             int totalHeight = (totalRows - 1) * spacing;
@@ -161,7 +157,7 @@ namespace ChaosWarlords.Source.Utilities
                 for (int c = 0; c < itemsInThisRow; c++)
                 {
                     int x = startX + (c * spacing);
-                    results.Add(new MapNode(_nodeIdCounter++, new ChaosWarlords.Source.Core.Data.LogicVector2(x, y)));
+                    results.Add(new MapNode(_nodeIdCounter++, new Core.Data.LogicVector2(x, y)));
                     nodesCreated++;
                 }
             }
@@ -178,7 +174,7 @@ namespace ChaosWarlords.Source.Utilities
             for (int i = 1; i <= count; i++)
             {
                 // Lerp using deterministic math
-                var pos = ChaosWarlords.Source.Core.Data.LogicVector2.Lerp(start.LogicPosition, end.LogicPosition, i, count + 1);
+                var pos = Core.Data.LogicVector2.Lerp(start.LogicPosition, end.LogicPosition, i, count + 1);
                 results.Add(new MapNode(_nodeIdCounter++, pos));
             }
 
@@ -196,7 +192,7 @@ namespace ChaosWarlords.Source.Utilities
             {
                 foreach (var n2 in to.NodesInternal)
                 {
-                    long dst = ChaosWarlords.Source.Core.Data.LogicVector2.DistanceSquared(n1.LogicPosition, n2.LogicPosition);
+                    long dst = Core.Data.LogicVector2.DistanceSquared(n1.LogicPosition, n2.LogicPosition);
                     if (dst < minDstSq)
                     {
                         minDstSq = dst;

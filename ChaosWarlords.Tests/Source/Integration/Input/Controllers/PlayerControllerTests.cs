@@ -1,6 +1,5 @@
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Input.Controllers;
 using ChaosWarlords.Source.Utilities;
@@ -8,8 +7,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
-using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Entities.Map;
 
 namespace ChaosWarlords.Tests.Integration.Input.Controllers
 {
@@ -29,12 +26,12 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
             _mockInputManager = Substitute.For<IInputManager>();
             _mockCoordinator = Substitute.For<IGameplayInputCoordinator>();
             _mockMapper = Substitute.For<IInteractionMapper>();
-            
+
             // Setup Fake State
             _stateFake = new TestGameplayState
             {
                 InputManager = _mockInputManager,
-                ActionSystem = Substitute.For<IActionSystem>() 
+                ActionSystem = Substitute.For<IActionSystem>()
             };
 
             _controller = new PlayerController(
@@ -139,7 +136,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
             // Arrange
             _mockInputManager.IsRightMouseJustClicked().Returns(true);
             _stateFake.MarketStateManager.Close();
-            
+
             var mockActionSystem = Substitute.For<IActionSystem>();
             mockActionSystem.IsTargeting().Returns(true);
             _stateFake.ActionSystem = mockActionSystem; // Inject mock into fake
@@ -150,10 +147,10 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
 
             // Assert
             mockActionSystem.Received(1).CancelTargeting();
-            
+
             // Verify state logic (PlayerController calls SwitchToNormalMode on state)
             Assert.AreEqual("Normal", _stateFake.ActiveModeName, "Should switch to Normal mode.");
-            
+
             Assert.IsTrue(result);
         }
 
@@ -165,7 +162,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
             mockActionSystem.CurrentState.Returns(ActionState.SelectingSpyToReturn);
             var mockSite = TestData.Sites.CitySite();
             mockActionSystem.PendingSite.Returns(mockSite);
-            
+
             _stateFake.ActionSystem = mockActionSystem;
             _stateFake.InitializeMatchContext();
 

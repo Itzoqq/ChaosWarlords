@@ -1,4 +1,3 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Commands;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
@@ -17,7 +16,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // MarketManager in logic also implements IMarketStateManager
             var mockState = (IMarketStateManager)stateFake.MarketManager;
             mockState.IsOpen.Returns(false);
-            
+
             var command = new ToggleMarketCommand();
 
             // Act
@@ -35,7 +34,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // MarketManager in logic also implements IMarketStateManager
             var mockState = (IMarketStateManager)stateFake.MarketManager;
             mockState.IsOpen.Returns(true);
-            
+
             var command = new ToggleMarketCommand();
 
             // Act

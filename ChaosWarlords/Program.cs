@@ -1,11 +1,3 @@
-using ChaosWarlords.Source.Rendering.ViewModels;
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
-using System;
 using System.Diagnostics.CodeAnalysis;
 using ChaosWarlords.Source.Utilities;
 using System.Runtime.CompilerServices;
@@ -14,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace ChaosWarlords
 {
-    [ExcludeFromCodeCoverage] 
+    [ExcludeFromCodeCoverage]
     public static class Program
     {
         static void Main()
@@ -23,7 +15,7 @@ namespace ChaosWarlords
             // We verify BufferedAsyncLogger is used for file I/O and diposed correctly.
             using BufferedAsyncLogger logger = new BufferedAsyncLogger();
 
-            using var game = new ChaosWarlords.Game1(logger);
+            using var game = new Game1(logger);
 
             try
             {
@@ -36,7 +28,7 @@ namespace ChaosWarlords
                 logger.Log(ex, LogChannel.Error);
 
                 // 2. Flush immediately just in case - Dispose handles this via FlushRemaining
-                logger.Dispose(); 
+                logger.Dispose();
             }
             // 'using' block handles logger.Dispose() which flushes logs normally.
         }

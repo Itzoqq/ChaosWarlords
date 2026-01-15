@@ -3,15 +3,9 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Mechanics.Actions;
-using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.State;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
-using System.Collections.Generic;
 using ChaosWarlords.Source.Core.Interfaces.Data;
-using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Tests.Integration.Mechanics
 {
@@ -33,7 +27,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         [TestInitialize]
         public void Setup()
         {
-            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
+            Utilities.TestLogger.Initialize();
             _player = TestData.Players.RedPlayer();
 
             _mapManager = Substitute.For<IMapManager>();
@@ -45,7 +39,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             _node1 = TestData.MapNodes.Node1();
             _mapManager.Nodes.Returns(new List<MapNode> { _node1 });
 
-            _actionSystem = new ActionSystem(_turnManager, _mapManager, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            _actionSystem = new ActionSystem(_turnManager, _mapManager, Utilities.TestLogger.Instance);
             _actionSystem.SetMatchManager(_matchManager);
             _actionSystem.SetPlayerStateManager(Substitute.For<IPlayerStateManager>());
 
@@ -63,7 +57,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Act: Start deferred devour and selecttarget
             _actionSystem.TryStartDevourHand(sourceCard, null, deferExecution: true);
             var cmd = _actionSystem.HandleDevourSelection(targetCard);
-            
+
             // Execute command to trigger deferral
             // Mock Context
             var context = new ChaosWarlords.Source.Contexts.MatchContext(
@@ -73,8 +67,8 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                  _actionSystem,
                  Substitute.For<ICardDatabase>(),
                  Substitute.For<IPlayerStateManager>(),
-                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(), 
-                 ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
+                 Utilities.TestLogger.Instance);
 
             Assert.IsNotNull(cmd);
             cmd.Execute(context);
@@ -110,9 +104,9 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                  _actionSystem,
                  Substitute.For<ICardDatabase>(),
                  Substitute.For<IPlayerStateManager>(),
-                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(), 
-                 ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-                 
+                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
+                 Utilities.TestLogger.Instance);
+
             Assert.IsNotNull(cmd);
             cmd.Execute(context);
 
@@ -141,7 +135,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
 
             _actionSystem.TryStartDevourHand(sourceCard, null, deferExecution: true);
             var cmd = _actionSystem.HandleDevourSelection(targetCard);
-            
+
             var context = new ChaosWarlords.Source.Contexts.MatchContext(
                  _turnManager,
                  _mapManager,
@@ -149,9 +143,9 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                  _actionSystem,
                  Substitute.For<ICardDatabase>(),
                  Substitute.For<IPlayerStateManager>(),
-                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(), 
-                 ChaosWarlords.Tests.Utilities.TestLogger.Instance);
-                 
+                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
+                 Utilities.TestLogger.Instance);
+
             Assert.IsNotNull(cmd);
             cmd.Execute(context);
             Assert.AreEqual(targetCard, _actionSystem.PendingDevourCard);

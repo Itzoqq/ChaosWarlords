@@ -15,6 +15,6 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// <param name="command">The command instance to validate.</param>
         /// <param name="state">The current gameplay state.</param>
         /// <returns>A ValidationResult indicating success or failure.</returns>
-        ValidationResult Validate(TCommand command, ChaosWarlords.Source.Contexts.MatchContext context);
+        ValidationResult Validate(TCommand command, Source.Contexts.MatchContext context);
     }
 }

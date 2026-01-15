@@ -1,6 +1,5 @@
 using NSubstitute;
 using ChaosWarlords.Source.GameStates;
-using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
@@ -20,18 +19,18 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         [TestInitialize]
         public void Setup()
         {
-            ChaosWarlords.Tests.Utilities.TestLogger.Initialize();
+            Utilities.TestLogger.Initialize();
         }
 
         [TestMethod]
         public void Constructor_InitializesCorrectly()
         {
             // Arrange
-            var mockGame = Substitute.For<Game1>(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var mockGame = Substitute.For<Game1>(Utilities.TestLogger.Instance);
             var mockInput = Substitute.For<IInputProvider>();
 
             // Act
-            var state = new MainMenuState(mockGame, mockInput, Substitute.For<IStateManager>(), Substitute.For<ICardDatabase>(), Substitute.For<IReplayManager>(), ChaosWarlords.Tests.Utilities.TestLogger.Instance, null!, null!);
+            var state = new MainMenuState(mockGame, mockInput, Substitute.For<IStateManager>(), Substitute.For<ICardDatabase>(), Substitute.For<IReplayManager>(), Utilities.TestLogger.Instance, null!, null!);
 
             // Assert
             Assert.IsNotNull(state);
@@ -50,7 +49,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         public void Update_StartBoundsClick_TriggersGameStart()
         {
             // Arrange
-            var mockGame = Substitute.For<Game1>(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var mockGame = Substitute.For<Game1>(Utilities.TestLogger.Instance);
             var mockInput = Substitute.For<IInputProvider>();
             var mockButtonManager = Substitute.For<IButtonManager>();
             var mockStateManager = Substitute.For<IStateManager>();
@@ -66,7 +65,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
                              });
 
             // Standard Constructor Injection
-            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, Substitute.For<IReplayManager>(), ChaosWarlords.Tests.Utilities.TestLogger.Instance, null!, mockButtonManager);
+            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, Substitute.For<IReplayManager>(), Utilities.TestLogger.Instance, null!, mockButtonManager);
             state.LoadContent();
 
             Assert.IsNotNull(startButton, "Start Button was not added");
@@ -82,7 +81,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         public void Update_ExitBoundsClick_TriggersExit()
         {
             // Arrange
-            var mockGame = Substitute.For<Game1>(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var mockGame = Substitute.For<Game1>(Utilities.TestLogger.Instance);
             var mockInput = Substitute.For<IInputProvider>();
             var mockButtonManager = Substitute.For<IButtonManager>();
             var mockStateManager = Substitute.For<IStateManager>();
@@ -96,7 +95,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
                                  if (btn.Text == "Exit") exitButton = btn;
                              });
 
-            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, Substitute.For<IReplayManager>(), ChaosWarlords.Tests.Utilities.TestLogger.Instance, null!, mockButtonManager);
+            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, Substitute.For<IReplayManager>(), Utilities.TestLogger.Instance, null!, mockButtonManager);
             state.LoadContent();
 
             Assert.IsNotNull(exitButton, "Exit Button was not added");
@@ -112,13 +111,13 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         public void Update_DelegatesToButtonManager()
         {
             // Arrange
-            var mockGame = Substitute.For<Game1>(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var mockGame = Substitute.For<Game1>(Utilities.TestLogger.Instance);
             var mockInput = Substitute.For<IInputProvider>();
             var mockButtonManager = Substitute.For<IButtonManager>();
             var mockStateManager = Substitute.For<IStateManager>();
             var mockCardDb = Substitute.For<ICardDatabase>();
 
-            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, Substitute.For<IReplayManager>(), ChaosWarlords.Tests.Utilities.TestLogger.Instance, null!, mockButtonManager);
+            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, Substitute.For<IReplayManager>(), Utilities.TestLogger.Instance, null!, mockButtonManager);
 
             // Act
             state.Update(new GameTime());
@@ -130,13 +129,13 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         public void Update_WaitReleaseLogic_PreventsDragThroughClick()
         {
             // Arrange
-            var mockGame = Substitute.For<Game1>(ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var mockGame = Substitute.For<Game1>(Utilities.TestLogger.Instance);
             var mockInput = Substitute.For<IInputProvider>();
             var mockButtonManager = Substitute.For<IButtonManager>();
             var mockStateManager = Substitute.For<IStateManager>();
             var mockCardDb = Substitute.For<ICardDatabase>();
 
-            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, Substitute.For<IReplayManager>(), ChaosWarlords.Tests.Utilities.TestLogger.Instance, null!, mockButtonManager);
+            var state = new MainMenuState(mockGame, mockInput, mockStateManager, mockCardDb, Substitute.For<IReplayManager>(), Utilities.TestLogger.Instance, null!, mockButtonManager);
 
             // 1. Initial Load - Button is PRESSED (e.g. from previous screen click)
             mockInput.GetMouseState().Returns(new MouseState(0, 0, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));

@@ -1,7 +1,6 @@
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Data;
-using System.Linq;
 
 namespace ChaosWarlords.Source.Core.Data.Dtos
 {
@@ -26,7 +25,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
 
         public MapNode ToEntity()
         {
-            throw new System.NotImplementedException("MapNode hydration requires IMapManager context.");
+            throw new NotImplementedException("MapNode hydration requires IMapManager context.");
         }
     }
 
@@ -37,7 +36,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     public class SiteDto : IDto<Site>
     {
         public int Id { get; set; }
-        public System.Collections.Generic.List<string> Spies { get; set; } = new System.Collections.Generic.List<string>();
+        public List<string> Spies { get; set; } = new List<string>();
 
         public SiteDto() { }
 
@@ -50,7 +49,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
 
         public Site ToEntity()
         {
-            throw new System.NotImplementedException("Site hydration requires IMapManager context.");
+            throw new NotImplementedException("Site hydration requires IMapManager context.");
         }
     }
 
@@ -59,7 +58,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     /// </summary>
     public class MapDto
     {
-        public System.Collections.Generic.List<MapNodeDto> Nodes { get; set; } = new System.Collections.Generic.List<MapNodeDto>();
-        public System.Collections.Generic.List<SiteDto> Sites { get; set; } = new System.Collections.Generic.List<SiteDto>();
+        public List<MapNodeDto> Nodes { get; set; } = new List<MapNodeDto>();
+        public List<SiteDto> Sites { get; set; } = new List<SiteDto>();
     }
 }

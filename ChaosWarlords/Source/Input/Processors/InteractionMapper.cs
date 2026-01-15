@@ -3,7 +3,6 @@ using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
-using System.Linq;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Managers;
 

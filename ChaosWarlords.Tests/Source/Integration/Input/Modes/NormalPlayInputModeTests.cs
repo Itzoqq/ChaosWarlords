@@ -1,18 +1,15 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Contexts;
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Input.Modes;
 using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Commands;
-using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
 
@@ -50,11 +47,11 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             _mockUI = Substitute.For<IUIManager>();
             _activePlayer = TestData.Players.RedPlayer();
             var mockRandom = Substitute.For<IGameRandom>();
-            
+
             // Define p1 and p2 for the TurnManager instantiation
-            var p1 = _activePlayer; 
-            var p2 = TestData.Players.BluePlayer(); 
-            _turnManager = new TurnManager(new List<Player> { p1, p2 }, mockRandom, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+            var p1 = _activePlayer;
+            var p2 = TestData.Players.BluePlayer();
+            _turnManager = new TurnManager(new List<Player> { p1, p2 }, mockRandom, Utilities.TestLogger.Instance);
 
             // Initialize Fake State
             _stateFake = new TestGameplayState
@@ -69,8 +66,8 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
                      _marketSub,
                      _actionSub,
                      Substitute.For<ICardDatabase>(),
-                     new PlayerStateManager(ChaosWarlords.Tests.Utilities.TestLogger.Instance),
-                     null, ChaosWarlords.Tests.Utilities.TestLogger.Instance
+                     new PlayerStateManager(Utilities.TestLogger.Instance),
+                     null, Utilities.TestLogger.Instance
                 )
             };
 
@@ -138,7 +135,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // 3. Assert
             Assert.IsNotNull(result, "Map interaction should return a DeployTroopCommand.");
             Assert.IsInstanceOfType(result, typeof(DeployTroopCommand));
-            
+
             // Execute the command to verify it calls map manager
             // result.Execute(_stateFake);
             // Note: Since _stateFake holds the mock _mapSub, executing the command should trigger the Call.

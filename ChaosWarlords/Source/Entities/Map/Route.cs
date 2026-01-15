@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace ChaosWarlords.Source.Entities.Map
 {
     public class Route

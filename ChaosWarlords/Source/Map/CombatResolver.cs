@@ -1,5 +1,4 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
-using System;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
@@ -13,33 +12,33 @@ namespace ChaosWarlords.Source.Map
     /// </summary>
     public class CombatResolver
     {
-    private readonly Func<MapNode, Site> _getSiteForNode;
-    private readonly Action<Site, Player> _recalculateSiteState;
-    private readonly Func<MatchPhase> _getCurrentPhase;
-    private readonly Func<PlayerColor, Player?> _getPlayerByColor;
-    private IPlayerStateManager _stateManager;
-    private readonly IGameLogger _logger;
+        private readonly Func<MapNode, Site> _getSiteForNode;
+        private readonly Action<Site, Player> _recalculateSiteState;
+        private readonly Func<MatchPhase> _getCurrentPhase;
+        private readonly Func<PlayerColor, Player?> _getPlayerByColor;
+        private IPlayerStateManager _stateManager;
+        private readonly IGameLogger _logger;
 
         public void SetPlayerStateManager(IPlayerStateManager stateManager)
         {
             _stateManager = stateManager;
         }
 
-    public CombatResolver(
-        Func<MapNode, Site> getSiteForNode,
-        Action<Site, Player> recalculateSiteState,
-        Func<MatchPhase> getCurrentPhase,
-        Func<PlayerColor, Player?> getPlayerByColor,
-        IPlayerStateManager stateManager,
-        IGameLogger logger)
-    {
-        _getSiteForNode = getSiteForNode;
-        _recalculateSiteState = recalculateSiteState;
-        _getCurrentPhase = getCurrentPhase;
-        _getPlayerByColor = getPlayerByColor;
-        _stateManager = stateManager;
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+        public CombatResolver(
+            Func<MapNode, Site> getSiteForNode,
+            Action<Site, Player> recalculateSiteState,
+            Func<MatchPhase> getCurrentPhase,
+            Func<PlayerColor, Player?> getPlayerByColor,
+            IPlayerStateManager stateManager,
+            IGameLogger logger)
+        {
+            _getSiteForNode = getSiteForNode;
+            _recalculateSiteState = recalculateSiteState;
+            _getCurrentPhase = getCurrentPhase;
+            _getPlayerByColor = getPlayerByColor;
+            _stateManager = stateManager;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
 
         /// <summary>
         /// Deploys a troop to the target node. Handles resource costs and validation.
@@ -121,14 +120,14 @@ namespace ChaosWarlords.Source.Map
             {
                 PlayerColor enemyColor = node.Occupant;
                 node.Occupant = PlayerColor.None;
-                
+
                 // Find the enemy player and return their troop to barracks
                 var enemyPlayer = _getPlayerByColor(enemyColor);
                 if (enemyPlayer != null)
                 {
                     _stateManager.AddTroops(enemyPlayer, 1);
                 }
-                
+
                 _logger.Log($"Returned {enemyColor} troop at Node {node.Id} to their barracks.", LogChannel.Combat);
             }
 

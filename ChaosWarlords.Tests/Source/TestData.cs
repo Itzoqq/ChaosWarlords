@@ -2,7 +2,6 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Tests
 {
