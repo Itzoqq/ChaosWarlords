@@ -63,6 +63,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             // Initialize MatchManager
             _matchManager = new MatchManager(_context, _logger!, new VictoryManager(_logger!));
             _actionSystem.SetMatchManager(_matchManager);
+            _actionSystem.SetMatchContext(_context);
 
             // Give active player some resources
             _context.ActivePlayer.Power = 10;
@@ -192,7 +193,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             // Execute Command
             var testState = new TestGameplayState(_context, _matchManager, _logger);
             cmd?.Execute(testState.MatchContext);
-            _matchManager.ResumeDevourChain(cultist);
+            // ResumeDevourChain is now handled automatically by the command's callback chain
 
             // 3. Assert
             // Verify Card Removed

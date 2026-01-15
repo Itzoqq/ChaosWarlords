@@ -3,6 +3,8 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Factories;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Mechanics.Rules;
+using ChaosWarlords.Source.Core.Contexts;
 using ChaosWarlords.Tests.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
@@ -41,10 +43,15 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             var turnManager = new TurnManager(players, new SeededGameRandom(12345, TestLogger.Instance), TestLogger.Instance);
             var mapManager = Substitute.For<IMapManager>();
             var marketManager = Substitute.For<IMarketManager>();
-            var actionSystem = Substitute.For<ChaosWarlords.Source.Core.Interfaces.Logic.IActionSystem>();
+            var actionSystem = new ActionSystem(turnManager, mapManager, TestLogger.Instance);
             var cardDb = Substitute.For<ChaosWarlords.Source.Core.Interfaces.Data.ICardDatabase>();
             var playerState = new ChaosWarlords.Source.Managers.PlayerStateManager(TestLogger.Instance);
             var victoryManager = Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IVictoryManager>();
+
+            // Set up ActionSystem dependencies
+            actionSystem.SetPlayerStateManager(playerState);
+            actionSystem.SetMarketManager(marketManager);
+            actionSystem.SetUIMediator(_uiMediator);
 
             _context = new MatchContext(
                 turnManager, 
@@ -57,7 +64,11 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                 TestLogger.Instance
             );
 
+            // Set MatchContext on ActionSystem for effect processing
+            actionSystem.SetMatchContext(_context);
+
             _matchManager = new MatchManager(_context, TestLogger.Instance, victoryManager);
+            actionSystem.SetMatchManager(_matchManager);
         }
 
         [TestMethod]

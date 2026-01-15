@@ -25,7 +25,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// Permanently removes a card from the game (devour mechanic).
         /// </summary>
         /// <param name="card">The card to devour.</param>
-        void DevourCard(Card card);
+        void DevourCard(Card card, Card? sourceCard = null);
 
         /// <summary>
         /// Devours a card specifically from the Market, potentially replacing it with a source card.

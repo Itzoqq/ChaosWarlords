@@ -7,6 +7,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Mechanics.Rules;
+using ChaosWarlords.Source.Core.Contexts;
 using ChaosWarlords.Tests.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
@@ -45,6 +46,18 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Default Map Manager behavior (empty)
             map.Sites.Returns(new List<Site>());
             map.Nodes.Returns(new List<MapNode>());
+
+            // Configure mock ActionSystem to execute instant effects immediately
+            action.When(x => x.PushEffect(Arg.Any<EffectContext>()))
+                  .Do(callInfo =>
+                  {
+                      var ctx = callInfo.Arg<EffectContext>();
+                      if (!ctx.RequiresInput && ctx.SourceCard != null)
+                      {
+                          CardEffectProcessor.ApplyEffect(ctx.SourceEffect, ctx.SourceCard, _context, _logger);
+                          ctx.OnResolved?.Invoke(true);
+                      }
+                  });
         }
 
         [TestMethod]

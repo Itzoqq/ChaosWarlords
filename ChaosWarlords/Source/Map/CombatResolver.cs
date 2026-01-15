@@ -148,20 +148,18 @@ namespace ChaosWarlords.Source.Map
             node.Occupant = PlayerColor.None;
             _stateManager.AddTrophy(attacker);
 
-            // Priority 1: Use PendingFreeTroops (from cards this turn) - always free
+            // Supplant deployment is ALWAYS FREE (it's part of the Supplant action)
+            // Priority 1: Use PendingFreeTroops (from cards this turn)
             if (attacker.PendingFreeTroops > 0)
             {
                 attacker.PendingFreeTroops--;
                 _logger.Log($"Supplanted with FREE troop from card effect. Remaining free: {attacker.PendingFreeTroops}", LogChannel.Combat);
             }
-            // Priority 2: Use barracks troops (free in Setup, costs Power otherwise)
+            // Priority 2: Use barracks troops (also free for Supplant)
             else
             {
-                if (_getCurrentPhase() != MatchPhase.Setup && attacker.TroopsInBarracks > 0)
-                {
-                    _stateManager.TrySpendPower(attacker, GameConstants.DeployPowerCost);
-                }
                 _stateManager.RemoveTroops(attacker, 1);
+                _logger.Log($"Supplanted with troop from barracks (FREE as part of Supplant action). Supply: {attacker.TroopsInBarracks}", LogChannel.Combat);
             }
 
             node.Occupant = attacker.Color;

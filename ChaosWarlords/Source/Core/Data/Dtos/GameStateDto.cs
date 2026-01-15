@@ -45,7 +45,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
                 hash = hash * 23 + Phase.GetHashCode();
                 hash = hash * 23 + SequenceNumber.GetHashCode();
                 // Add more fields if needed for deeper verification
-                return hash.ToString("X");
+                return hash.ToString("X", System.Globalization.CultureInfo.InvariantCulture);
             }
         }
     }

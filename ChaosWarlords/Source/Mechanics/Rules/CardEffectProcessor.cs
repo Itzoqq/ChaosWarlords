@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Core.Contexts; // For EffectContext
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Utilities;
@@ -23,103 +24,71 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 }
             }
             
-            // Process effects sequentially (important for optional effects)
-            ProcessNextEffect(effectQueue, 0, card, context, logger);
-        }
-
-        /// <summary>
-        /// Explicitly executes the successor (OnSuccess) of a specific effect.
-        /// Used for resuming chains (e.g. after async Devour).
-        /// </summary>
-        public static void ApplySuccessorEffect(CardEffect parentEffect, Card sourceCard, MatchContext context, IGameLogger logger)
-        {
-            if (parentEffect.OnSuccess != null)
+            // Push effects to Stack in REVERSE order (LIFO)
+            for (int i = effectQueue.Count - 1; i >= 0; i--)
             {
-                ApplyEffect(parentEffect.OnSuccess, sourceCard, context, logger);
-            }
-        }
-
-        private static void ProcessNextEffect(System.Collections.Generic.List<CardEffect> effects, int index, Card card, MatchContext context, IGameLogger logger)
-        {
-            if (index >= effects.Count) return; // All effects processed
-
-            var effect = effects[index];
-            
-            // Check if effect is optional
-            if (effect.IsOptional)
-            {
-                ProcessOptionalEffect(effect, effects, index, card, context, logger);
-            }
-            else
-            {
-                ProcessMandatoryEffect(effect, effects, index, card, context, logger);
-            }
-        }
-
-        private static void ProcessOptionalEffect(CardEffect effect, System.Collections.Generic.List<CardEffect> effects, int index, Card card, MatchContext context, IGameLogger logger)
-        {
-            // If UIEventMediator is null (test scenario), skip the optional effect
-            if (context.UIEventMediator == null)
-            {
-                logger.Log($"Skipped optional {effect.Type} (no UI mediator)", LogChannel.Info);
-                ProcessNextEffect(effects, index + 1, card, context, logger);
-                return;
-            }
-
-            // Skip if effect chain is invalid (deep validation)
-            if (ShouldSkipOptionalEffect(effect, card, context, logger))
-            {
-                ProcessNextEffect(effects, index + 1, card, context, logger);
-                return;
-            }
-
-            // Request user decision
-            context.UIEventMediator.RequestOptionalEffect(
-                card,
-                effect,
-                onAccept: () => {
-                    ApplyEffect(effect, card, context, logger);
-                    ProcessNextEffect(effects, index + 1, card, context, logger);
-                },
-                onDecline: () => {
-                    logger.Log($"Skipped optional {effect.Type}", LogChannel.Info);
-                    ProcessNextEffect(effects, index + 1, card, context, logger);
+                var effect = effectQueue[i];
+                var state = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.GetTargetingState(effect);
+                
+                // Determine if this effect requires blocking input
+                bool requiresInput = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.Type) || effect.IsOptional;
+                
+                // VALIDATION: If the effect requires targeting, ensure valid targets exist.
+                // If not, we skip pushing it (and thus skip the action), matching legacy behavior.
+                if (requiresInput && !context.CardRuleEngine.HasValidTargets(context.ActivePlayer, effect.Type, card))
+                {
+                     logger.Log($"{card.Name}: No valid targets for {effect.Type}. Effect skipped.", LogChannel.Warning);
+                     continue;
                 }
-            );
-        }
 
-        private static bool ShouldSkipOptionalEffect(CardEffect effect, Card card, MatchContext context, IGameLogger logger)
-        {
-            // Use CardRuleEngine.IsEffectChainValid for deep validation
-            // This checks if the current effect AND all subsequent effects in the chain are viable
-            if (!context.CardRuleEngine.IsEffectChainValid(context.ActivePlayer, effect, card))
-            {
-                logger.Log($"Skipped optional {effect.Type}: Effect chain is invalid (targets missing).", LogChannel.Info);
-                return true;
+                var ctx = new EffectContext(
+                    state,
+                    card,
+                    requiresInput,
+                    $"Effect: {effect.Type}",
+                    (success) => {
+                        // OnResolved callback (Executed after success)
+                        // For blocking effects, we must explicitly push the child effect here
+                        // because ApplyEffect is NOT called for them (they are handled by input)
+                        if (success)
+                        {
+                            PushChildEffect(effect, card, context);
+                        }
+                    },
+                    effect
+                );
+                
+                context.ActionSystem.PushEffect(ctx);
             }
-            return false;
+
+            // Start Stack Processing
+            context.ActionSystem.ProcessStack();
         }
 
-        private static void ProcessMandatoryEffect(CardEffect effect, System.Collections.Generic.List<CardEffect> effects, int index, Card card, MatchContext context, IGameLogger logger)
+        private static void PushChildEffect(CardEffect parent, Card card, MatchContext context)
         {
-            ApplyEffect(effect, card, context, logger);
-            ProcessNextEffect(effects, index + 1, card, context, logger);
+             if (parent.OnSuccess != null)
+             {
+                 var child = parent.OnSuccess;
+                 var state = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.GetTargetingState(child);
+                 bool requiresInput = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(child.Type) || child.IsOptional;
+
+                 var childCtx = new EffectContext(
+                     state,
+                     card,
+                     requiresInput,
+                     $"Child Effect: {child.Type}",
+                     (success) => { 
+                         if (success) PushChildEffect(child, card, context); 
+                     },
+                     child
+                 );
+                 context.ActionSystem.PushEffect(childCtx); // Push to Top
+             }
         }
 
-        private static readonly Dictionary<EffectType, Action<CardEffect, Card, MatchContext, IGameLogger>> _effectHandlers = new()
-        {
-            [EffectType.GainResource] = (effect, card, ctx, log) => ApplyGainResource(effect, card, ctx, log),
-            [EffectType.DrawCard] = (effect, card, ctx, log) => ApplyDrawCard(effect, ctx),
-            [EffectType.Promote] = (effect, card, ctx, log) => ApplyPromote(effect, card, ctx, log),
-            [EffectType.MoveUnit] = (effect, card, ctx, log) => ApplyMoveUnit(card, ctx, log),
-            [EffectType.Assassinate] = (effect, card, ctx, log) => ApplyAssassinate(card, ctx, log),
-            [EffectType.Supplant] = (effect, card, ctx, log) => ApplySupplant(card, ctx, log),
-            [EffectType.PlaceSpy] = (effect, card, ctx, log) => ApplyPlaceSpy(card, ctx, log),
-            [EffectType.ReturnUnit] = (effect, card, ctx, log) => ApplyReturnUnit(card, ctx, log),
-            [EffectType.Devour] = (effect, card, ctx, log) => ApplyDevourWithChain(effect, card, ctx, log)
-        };
-
-        private static void ApplyEffect(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
+        // Restored public ApplyEffect method
+        public static void ApplyEffect(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
         {
             logger.Log($"Applying effect {effect.Type} for {sourceCard.Name}...", LogChannel.Debug);
 
@@ -133,13 +102,33 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             {
                 handler(effect, sourceCard, context, logger);
             }
+            
+            // Note: Standard ApplyEffect does not automatically push children to stack.
+            // That logic is handled by ResolveEffects (for initial play) or OnResolved callbacks.
+            // However, if this is called directly (e.g. legacy), we might miss children?
+            // "Instant" children (GainResource->GainResource) are handled by ApplyGainResource chaining.
+            // Stack-based children are pushed by OnResolved.
         }
+
+        private static readonly System.Collections.Generic.Dictionary<EffectType, Action<CardEffect, Card, MatchContext, IGameLogger>> _effectHandlers = new()
+        {
+            [EffectType.GainResource] = (effect, card, ctx, log) => ApplyGainResource(effect, card, ctx, log),
+            [EffectType.DrawCard] = (effect, card, ctx, log) => ApplyDrawCard(effect, ctx),
+            [EffectType.Promote] = (effect, card, ctx, log) => ApplyPromote(effect, card, ctx, log),
+            [EffectType.MoveUnit] = (effect, card, ctx, log) => ApplyMoveUnit(card, ctx, log),
+            [EffectType.Assassinate] = (effect, card, ctx, log) => ApplyAssassinate(card, ctx, log),
+            [EffectType.Supplant] = (effect, card, ctx, log) => ApplySupplant(card, ctx, log),
+            [EffectType.PlaceSpy] = (effect, card, ctx, log) => ApplyPlaceSpy(card, ctx, log),
+            [EffectType.ReturnUnit] = (effect, card, ctx, log) => ApplyReturnUnit(card, ctx, log),
+            [EffectType.Devour] = (effect, card, ctx, log) => ApplyDevourWithChain(effect, card, ctx, log)
+        };
 
         private static void ApplyDevourWithChain(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
         {
-            Action? onSuccess = effect.OnSuccess != null 
-                ? () => ApplyEffect(effect.OnSuccess, sourceCard, context, logger) 
-                : null;
+            // Note: We do NOT pass an onSuccess callback anymore. 
+            // The Stack System handles the chain via OnResolved -> PushChildEffect.
+            // MatchManager.DevourCard handles the chain for Direct API calls via ResumeDevourChain.
+            Action? onSuccess = null;
 
             bool deferExecution = effect.OnSuccess != null 
                 && ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(effect.OnSuccess.Type);
@@ -161,9 +150,11 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
             
             // Auto-trigger recursive effects for instant actions
+            // This is required for chains like GainResource -> GainResource where the second effect
+            // might not be pushed to the stack by OnResolved if we are outside a full stack context (e.g. tests)
+            // Or if the first effect was "Automatic" and not pushed as a "Blocking" effect.
             if (effect.OnSuccess != null)
             {
-                // Instant effects (GainResource, DrawCard) complete immediately, so we can chain immediately.
                 ApplyEffect(effect.OnSuccess, sourceCard, context, logger); 
             }
         }

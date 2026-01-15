@@ -171,6 +171,12 @@ namespace ChaosWarlords.Source.GameStates
                 worldData.Seed
             );
 
+            // Set UI Mediator on ActionSystem for optional effect popups
+            worldData.ActionSystem.SetUIMediator(_uiEventMediator);
+            
+            // Set MatchContext on ActionSystem for effect processing
+            worldData.ActionSystem.SetMatchContext(_matchContext);
+
             // Initialize recording if we're NOT replaying
             if (!_replayManager.IsReplaying)
             {
@@ -181,7 +187,9 @@ namespace ChaosWarlords.Source.GameStates
             _matchManager = new MatchManager(_matchContext, _logger, victoryManager);
             
             // Connect ActionSystem to MatchManager
-            _matchContext.ActionSystem.SetMatchManager(_matchManager);
+            worldData.ActionSystem.SetMatchManager(_matchManager);
+            // Connect ActionSystem to MatchContext (Required for Stack-Based Execution of Auto-Effects)
+            worldData.ActionSystem.SetMatchContext(_matchContext);
             
             // Subscribe to Logic-Initiated Commands (Auto-Execute)
             _matchContext.ActionSystem.OnAutoExecuteCommand += RecordAndExecuteCommand;

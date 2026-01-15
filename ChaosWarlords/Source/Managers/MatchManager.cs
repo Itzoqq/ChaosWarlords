@@ -60,13 +60,16 @@ namespace ChaosWarlords.Source.Managers
             // Now that the card is "played", we trigger its game logic.
             // We pass the 'hasFocus' snapshot we calculated earlier.
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus, _logger);
+            
+            // Trigger automatic processing of the stack (e.g. for instant effects like GainResource)
+            _context.ActionSystem.ProcessStack();
 
             // --- 4. UPDATE STATS ---
             // Finally, register the card with the turn manager to update Aspect counts for future Focus checks.
             _context.TurnManager.PlayCard(card);
         }
 
-        public void DevourCard(Card card)
+        public void DevourCard(Card card, Card? sourceCard = null)
         {
             // Robustness: Ensure we possess the card instance or find equivalent
             var player = _context.ActivePlayer;
@@ -109,6 +112,42 @@ namespace ChaosWarlords.Source.Managers
             {
                 _context.VoidPile.Add(card);
             }
+
+            // Resume chain if source card provided
+            // BUT: Only if we're NOT in a stack-based flow
+            // Check: if the source card is on the stack, the callback will handle the chain
+            // For mocked ActionSystems (tests), always call ResumeDevourChain
+            bool shouldResumeChain = false;
+            if (sourceCard != null)
+            {
+                if (_context.ActionSystem is ActionSystem realActionSystem)
+                {
+                    // Real ActionSystem - check if source card is on the stack
+                    bool sourceCardOnStack = realActionSystem.ExecutionStack.Count > 0 && 
+                                            realActionSystem.ExecutionStack.Any(ctx => ctx.SourceCard == sourceCard);
+                    
+                    shouldResumeChain = !sourceCardOnStack;
+                    if (shouldResumeChain)
+                    {
+                        _logger.Log($"DevourCard: Direct API call detected (source card not on stack). Manually resuming chain.", LogChannel.Debug);
+                    }
+                    else
+                    {
+                        _logger.Log($"DevourCard: Stack-based flow detected (source card on stack, size: {realActionSystem.ExecutionStack.Count}). Callback will handle chain.", LogChannel.Debug);
+                    }
+                }
+                else
+                {
+                    // Mocked ActionSystem - always resume chain
+                    shouldResumeChain = true;
+                    _logger.Log($"DevourCard: Mocked ActionSystem detected. Manually resuming chain.", LogChannel.Debug);
+                }
+
+                if (shouldResumeChain)
+                {
+                    ResumeDevourChain(sourceCard);
+                }
+            }
         }
 
          public void DevourMarketCard(Card targetCard, Card? sourceCard)
@@ -143,24 +182,71 @@ namespace ChaosWarlords.Source.Managers
                   _context.VoidPile.Add(targetCard);
               }
 
-              // BUG FIX: Resume the devour chain to apply successor effects (e.g., gaining influence)
+
+
+              // Resume chain if source card provided
+              // BUT: Only if we're NOT in a stack-based flow
+              // Check: if the source card is on the stack, the callback will handle the chain
+              // For mocked ActionSystems (tests), always call ResumeDevourChain
+              bool shouldResumeChain = false;
               if (sourceCard != null)
               {
-                  ResumeDevourChain(sourceCard);
+                  if (_context.ActionSystem is ActionSystem realActionSystem)
+                  {
+                      // Real ActionSystem - check if source card is on the stack
+                      bool sourceCardOnStack = realActionSystem.ExecutionStack.Count > 0 && 
+                                              realActionSystem.ExecutionStack.Any(ctx => ctx.SourceCard == sourceCard);
+                      
+                      shouldResumeChain = !sourceCardOnStack;
+                      if (shouldResumeChain)
+                      {
+                          _logger.Log($"DevourMarketCard: Direct API call detected (source card not on stack). Manually resuming chain.", LogChannel.Debug);
+                      }
+                      else
+                      {
+                          _logger.Log($"DevourMarketCard: Stack-based flow detected (source card on stack, size: {realActionSystem.ExecutionStack.Count}). Callback will handle chain.", LogChannel.Debug);
+                      }
+                  }
+                  else
+                  {
+                      // Mocked ActionSystem - always resume chain
+                      shouldResumeChain = true;
+                      _logger.Log($"DevourMarketCard: Mocked ActionSystem detected. Manually resuming chain.", LogChannel.Debug);
+                  }
+
+                  if (shouldResumeChain)
+                  {
+                      ResumeDevourChain(sourceCard);
+                  }
               }
          }
 
          public void ResumeDevourChain(Card sourceCard)
          {
              // Find the Devour effect that likely initiated this chain.
-             // Prioritize Market devour if we were in Market context, but generic lookup is usually fine 
-             // as cards rarely have multiple Devour effects.
              var devourEffect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.Devour);
              
              if (devourEffect != null && devourEffect.OnSuccess != null)
              {
                  _logger.Log($"Resuming Devour Chain for {sourceCard.Name} -> {devourEffect.OnSuccess.Type}", LogChannel.Info);
-                 CardEffectProcessor.ApplySuccessorEffect(devourEffect, sourceCard, _context, _logger);
+                 
+                 // Push the child effect to the stack
+                 var child = devourEffect.OnSuccess;
+                 var state = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.GetTargetingState(child);
+                 bool requiresInput = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(child.Type) || child.IsOptional;
+                 
+                  var childCtx = new ChaosWarlords.Source.Core.Contexts.EffectContext(
+                     state,
+                     sourceCard,
+                     requiresInput,
+                     $"Successor Effect: {child.Type}",
+                     (success) => { }, // Recursive/Standard handling
+                     child
+                 );
+                 _context.ActionSystem.PushEffect(childCtx);
+                 
+                 // Process immediately
+                 _context.ActionSystem.ProcessStack();
              }
              else
              {

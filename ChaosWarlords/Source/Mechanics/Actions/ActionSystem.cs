@@ -8,6 +8,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Mechanics.Actions.Subsystems; // Implementations remain here
 using ChaosWarlords.Source.Commands; // Retained from original
 
@@ -77,6 +78,7 @@ namespace ChaosWarlords.Source.Managers
         private readonly IMapManager _mapManager;
         private readonly IGameLogger _logger;
         private IPlayerStateManager _playerStateManager = null!;
+        private IUIEventMediator? _uiMediator;
 
         private Player CurrentPlayer => _turnManager.ActivePlayer;
 
@@ -132,6 +134,11 @@ namespace ChaosWarlords.Source.Managers
         {
             _marketStateManager = manager;
             _devourSubsystem.SetMarketStateManager(manager);
+        }
+
+        public void SetUIMediator(IUIEventMediator uiMediator)
+        {
+            _uiMediator = uiMediator;
         }
 
         public void TryStartAssassinate()
@@ -222,9 +229,45 @@ namespace ChaosWarlords.Source.Managers
                 _logger.Log($"Cleared Pre-Targets for {PendingCard.Name} due to Cancellation.", LogChannel.Debug);
             }
 
+            // NEW: Resolve ALL effects associated with the cancelled card to prevent "Zombie" executions.
+            // We manualy Pop to avoid ResolveCurrentEffect triggering ProcessStack recursively for each item.
+            var cardToClear = PendingCard;
+            
             ClearState();
             _devourSubsystem.ClearState();
             _logger.Log("ActionSystem: Targeting Cancelled. State cleared.", LogChannel.Info);
+            
+            var cancelledEffects = new List<Core.Contexts.EffectContext>();
+
+            if (ExecutionStack.Count > 0)
+            {
+                // Always pop the top effect (current targeting effect being cancelled)
+                cancelledEffects.Add(ExecutionStack.Pop());
+                
+                // Continue popping if subsequent effects belong to the same card
+                if (cardToClear != null)
+                {
+                    while (ExecutionStack.Count > 0 && ExecutionStack.Peek().SourceCard == cardToClear)
+                    {
+                        cancelledEffects.Add(ExecutionStack.Pop());
+                    }
+                }
+            }
+            
+            // Invoke Cancellation Callbacks (if any)
+            foreach (var effect in cancelledEffects)
+            {
+                 _logger.Log($"ActionSystem: [CANCEL] Popped effect [{effect.EffectType}] for {effect.SourceCard?.Name ?? "Unknown"}.", LogChannel.Debug);
+                 effect.OnCancelled?.Invoke();
+            }
+            
+            // Finally, resume stack processing ONLY if there are remaining effects (from previous cards).
+            // If stack is empty, we are done with cancellation and should NOT trigger OnActionCompleted.
+            if (ExecutionStack.Count > 0)
+            {
+                _logger.Log($"ActionSystem: [CANCEL] Cleanup complete. Resuming stack (Size: {ExecutionStack.Count}).", LogChannel.Debug);
+                ProcessStack();
+            }
         }
 
         public bool IsTargeting()
@@ -567,38 +610,214 @@ namespace ChaosWarlords.Source.Managers
         }
         public void CompleteAction()
         {
-            // Fix: Clear state FIRST. 
-            // Previous order (Event -> Clear) caused any state set by Event Handlers (e.g. recursive PlayCard) 
-            // to be immediately wiped by ClearState.
-            ClearState();
-
-            _logger.Log("ActionSystem: CompleteAction - State cleared. Invoking events/callbacks.", LogChannel.Debug);
-
-            OnActionCompleted?.Invoke(this, EventArgs.Empty);
-        }
-
-        public void AdvanceDevourChain(Card sourceCard)
-        {
-            // Determine next state
-            var nextState = TargetingStateEngine.DetermineNextState(sourceCard.Effects, CurrentState, false);
-
-            if (nextState != ActionState.Normal)
+            // NEW STACK LOGIC:
+            // Completing an action (like Assassinate or Return Spy) implies the current "Blocking" effect on the stack is resolved.
+            // We resolve it with Success=true.
+            
+            if (ExecutionStack.Count > 0)
             {
-                // Continue chain (e.g. Supplant)
-                StartTargeting(nextState, sourceCard);
-                _logger.Log($"Advancing Devour Chain for {sourceCard.Name} -> {nextState}", LogChannel.Info);
+                _logger.Log("ActionSystem: CompleteAction invoked. Resolving current stack effect...", LogChannel.Debug);
+                ResolveCurrentEffect(true);
             }
             else
             {
-                // Chain Complete. Finish the Play (Immediate effects).
-                 _logger.Log($"Devour Chain Complete for {sourceCard.Name}. Resuming chain logic.", LogChannel.Info);
+                // Fallback: Legacy/Direct mode support (Unit Tests or Actions without Effects)
+                _logger.Log("ActionSystem: CompleteAction (Direct). No stack context.", LogChannel.Debug);
+                OnActionCompleted?.Invoke(this, EventArgs.Empty);
+                ClearState();
+            }
+        }
+
+        // --- Stack-Based Architecture ---
+        
+        public Stack<ChaosWarlords.Source.Core.Contexts.EffectContext> ExecutionStack { get; } = new();
+
+        public ChaosWarlords.Source.Core.Contexts.EffectContext? CurrentEffect => ExecutionStack.Count > 0 ? ExecutionStack.Peek() : null;
+
+        public void PushEffect(ChaosWarlords.Source.Core.Contexts.EffectContext context)
+        {
+            ExecutionStack.Push(context);
+            _logger.Log($"ActionSystem: Pushed Effect [{context.EffectType}] from {context.SourceCard?.Name}. Stack Size: {ExecutionStack.Count}", LogChannel.Debug);
+        }
+
+        public void ResolveCurrentEffect(bool success)
+        {
+            if (ExecutionStack.Count == 0)
+            {
+                _logger.Log("ActionSystem: ResolveCurrentEffect called but stack is empty!", LogChannel.Warning);
+                return;
+            }
+
+            var effect = ExecutionStack.Pop();
+            _logger.Log($"ActionSystem: [RESOLVE] Popped effect [{effect.EffectType}] Success={success}. Remaining Stack: {ExecutionStack.Count}", LogChannel.Debug);
+            _logger.Log($"ActionSystem: [RESOLVE] Effect has callback: {effect.OnResolved != null}, SourceEffect: {effect.SourceEffect?.Type}", LogChannel.Debug);
+
+            if (success)
+            {
+                if (effect.OnResolved != null)
+                {
+                    _logger.Log($"ActionSystem: [RESOLVE] Invoking OnResolved callback for [{effect.EffectType}]...", LogChannel.Debug);
+                    effect.OnResolved.Invoke(true);
+                    _logger.Log($"ActionSystem: [RESOLVE] OnResolved callback completed. Stack now has {ExecutionStack.Count} items.", LogChannel.Debug);
+                }
+                else
+                {
+                    _logger.Log($"ActionSystem: [RESOLVE] No OnResolved callback for [{effect.EffectType}]", LogChannel.Debug);
+                }
+            }
+            else
+            {
+                effect.OnCancelled?.Invoke();
+            }
+
+            // After popping, process the next item
+            _logger.Log($"ActionSystem: [RESOLVE] Calling ProcessStack to continue. Stack size: {ExecutionStack.Count}", LogChannel.Debug);
+            ProcessStack();
+            _logger.Log($"ActionSystem: [RESOLVE] ProcessStack returned. Current state: {CurrentState}", LogChannel.Debug);
+        }
+
+        private ChaosWarlords.Source.Contexts.MatchContext? _matchContext;
+        public void SetMatchContext(ChaosWarlords.Source.Contexts.MatchContext context)
+        {
+            _matchContext = context;
+        }
+
+        public void ProcessStack()
+        {
+            _logger.Log($"ActionSystem: [PROCESS] ProcessStack called. Stack size: {ExecutionStack.Count}, Current state: {CurrentState}", LogChannel.Debug);
+            
+            if (ExecutionStack.Count == 0)
+            {
+                // Sequence Complete
+                _logger.Log("ActionSystem: [PROCESS] Stack Empty. Sequence Complete.", LogChannel.Debug);
+                OnActionCompleted?.Invoke(this, EventArgs.Empty);
+                ClearState();
+                return;
+            }
+
+            var nextEffect = ExecutionStack.Peek();
+            _logger.Log($"ActionSystem: [PROCESS] Next effect: [{nextEffect.EffectType}] RequiresInput={nextEffect.RequiresInput}, SourceEffect={nextEffect.SourceEffect?.Type}", LogChannel.Debug);
+
+            if (nextEffect.RequiresInput)
+            {
+                // Set PendingCard but DEFER State Change if Optional
+                PendingCard = nextEffect.SourceCard;
+                bool isOptional = nextEffect.SourceEffect?.IsOptional == true;
+                
+                if (!isOptional)
+                {
+                    _logger.Log($"ActionSystem: [PROCESS] Effect requires input. Setting state to [{nextEffect.EffectType}]", LogChannel.Debug);
+                    CurrentState = nextEffect.EffectType;
+                    _logger.Log($"ActionSystem: [PROCESS] State set to: {CurrentState}", LogChannel.Debug);
+                }
                  
-                 // Clear Devour Targeting State
-                 ClearState();
-                 
-                 // Resume the chain directly via MatchManager to avoid re-playing the card (which is already played).
-                 // This ensures immediate effects (like GainResource) nested in OnSuccess are executed.
-                 _matchManager.ResumeDevourChain(sourceCard);
+                // Handle Optional Effects - Show UI Popup
+                if (isOptional && _uiMediator != null)
+                {
+                    // Deep Lookahead: Check if OnSuccess chain has valid targets
+                    // If the OnSuccess effect requires targeting and has no valid targets, skip the popup
+                    if (nextEffect.SourceEffect?.OnSuccess != null && _matchContext != null)
+                    {
+                        var onSuccessEffect = nextEffect.SourceEffect.OnSuccess;
+                        bool onSuccessRequiresTargeting = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(onSuccessEffect.Type);
+                        
+                        if (onSuccessRequiresTargeting)
+                        {
+                            bool hasValidTargets = _matchContext.CardRuleEngine.HasValidTargets(
+                                _matchContext.ActivePlayer, 
+                                onSuccessEffect.Type, 
+                                nextEffect.SourceCard
+                            );
+                            
+                            if (!hasValidTargets)
+                            {
+                                _logger.Log($"ActionSystem: Skipping optional effect {nextEffect.SourceEffect.Type} - OnSuccess effect {onSuccessEffect.Type} has no valid targets.", LogChannel.Warning);
+                                // Skip this effect and move to next
+                                ResolveCurrentEffect(false);
+                                return;
+                            }
+                        }
+                    }
+                    
+                    _logger.Log($"ActionSystem: Requesting optional effect confirmation for {nextEffect.SourceEffect?.Type}...", LogChannel.Input);
+                    
+                    _uiMediator.RequestOptionalEffect(
+                        nextEffect.SourceCard,
+                        nextEffect.SourceEffect,
+                        onAccept: () => {
+                            _logger.Log($"ActionSystem: Optional effect {nextEffect.SourceEffect?.Type} accepted.", LogChannel.Input);
+                            
+                            // User accepted - NOW we set the state to Targeting (if applicable)
+                            if (CurrentState == ActionState.Normal && nextEffect.EffectType != ActionState.Normal)
+                            {
+                                 CurrentState = nextEffect.EffectType;
+                                 _logger.Log($"ActionSystem: [PROCESS] Optional Accepted -> State set to: {CurrentState}", LogChannel.Debug);
+                            }
+
+                            // User accepted - execute the effect
+                            // For Devour Self, execute the strategy directly
+                            if (nextEffect.SourceEffect?.Type == EffectType.Devour && nextEffect.SourceEffect.TargetLocation == CardLocation.Self)
+                            {
+                                var strategy = ChaosWarlords.Source.Mechanics.Rules.DevourStrategyFactory.GetStrategy(CardLocation.Self);
+                                strategy.Execute(nextEffect.SourceCard, _matchContext!, _logger, () => {
+                                    // OnComplete callback - resolve the effect
+                                    ResolveCurrentEffect(true);
+                                }, false);
+                            }
+                            // For other optional Devour effects (Market, Hand, InnerCircle), call the strategy
+                            else if (nextEffect.SourceEffect?.Type == EffectType.Devour)
+                            {
+                                var strategy = ChaosWarlords.Source.Mechanics.Rules.DevourStrategyFactory.GetStrategy(nextEffect.SourceEffect.TargetLocation);
+                                strategy.Execute(nextEffect.SourceCard, _matchContext!, _logger, () => {
+                                    // OnComplete callback - resolve the effect
+                                    ResolveCurrentEffect(true);
+                                }, false);
+                            }
+                            else
+                            {
+                                // For other optional effects, continue to normal targeting flow
+                                // Don't return - let it fall through
+                            }
+                        },
+                        onDecline: () => {
+                            _logger.Log($"ActionSystem: Optional effect {nextEffect.SourceEffect?.Type} declined.", LogChannel.Input);
+                            // Skip this effect and move to next
+                            ResolveCurrentEffect(false);
+                        }
+                    );
+                    
+                    return; // Wait for user choice (callbacks will handle continuation)
+                }
+
+                // Auto-Execute if Pre-Target exists (Test/Replay support)
+                if (nextEffect.SourceCard != null && _preTargetHandler.TryExecutePreTarget(
+                    nextEffect.SourceCard, 
+                    nextEffect.EffectType, 
+                    HandleTargetClick, 
+                    HandleDevourSelection,
+                    cmd => OnAutoExecuteCommand?.Invoke(cmd)))
+                {
+                    _logger.Log($"ActionSystem: Pre-Target executed for {nextEffect.EffectType}. Continuing stack...", LogChannel.Debug);
+                    // Don't return - the pre-target execution may have resolved the effect?
+                    // TryExecutePreTarget returns true if executed. 
+                    // If executed, we should verify if stack advanced?
+                    // Usually pre-target executes command -> Resolve -> Pop.
+                    // So we should return?
+                    return;
+                }
+
+                 _logger.Log($"ActionSystem: Waiting for input for {nextEffect.EffectType}...", LogChannel.Input);
+            }
+            else
+            {
+                // Automatic Effect (e.g. GainResource, DrawCard)
+                // Execute immediately via CardEffectProcessor logic
+                if (nextEffect.SourceEffect != null && _matchContext != null)
+                {
+                    ChaosWarlords.Source.Mechanics.Rules.CardEffectProcessor.ApplyEffect(nextEffect.SourceEffect, nextEffect.SourceCard, _matchContext, _logger);
+                }
+                
+                ResolveCurrentEffect(true);
             }
         }
     }

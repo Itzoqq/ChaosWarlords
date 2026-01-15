@@ -132,6 +132,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions
                 {
                     CardLocation.Market => ActionState.TargetingDevourMarket,
                     CardLocation.InnerCircle => ActionState.TargetingDevourInnerCircle,
+                    CardLocation.Self => ActionState.Normal,
                     _ => ActionState.TargetingDevourHand
                 },
                 _ => ActionState.Normal
@@ -139,6 +140,3 @@ namespace ChaosWarlords.Source.Mechanics.Actions
         }
     }
 }
-
-
-

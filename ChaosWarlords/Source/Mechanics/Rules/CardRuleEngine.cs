@@ -56,11 +56,11 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         {
             bool isValid = effectType switch
             {
-                EffectType.PlaceSpy => _context.MapManager.HasValidPlaceSpyTarget(player),
+                EffectType.PlaceSpy => player.SpiesInBarracks > 0 && _context.MapManager.HasValidPlaceSpyTarget(player),
                 EffectType.ReturnUnit => _context.MapManager.HasValidReturnTroopTarget(player),
                 EffectType.Assassinate => _context.MapManager.HasValidAssassinationTarget(player),
                 EffectType.MoveUnit => _context.MapManager.HasValidMoveSource(player),
-                EffectType.Supplant => _context.MapManager.HasValidAssassinationTarget(player), // Supplant requires Assassinate target + placing troop
+                EffectType.Supplant => player.TroopsInBarracks > 0 && _context.MapManager.HasValidAssassinationTarget(player), // Supplant requires Assassinate target + placing troop
                 
                 EffectType.Devour => CheckDevourTargets(player, sourceCard),
                 

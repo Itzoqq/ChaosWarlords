@@ -10,7 +10,7 @@ namespace ChaosWarlords.Source.Managers
     {
         private readonly IReplayManager _replayManager;
         private readonly IGameLogger _logger;
-        private int _localSequenceCounter;
+
 
         public CommandDispatcher(IReplayManager replayManager, IGameLogger logger)
         {

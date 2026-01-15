@@ -53,7 +53,8 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            Assert.AreEqual(3, _player.Power);
+            // Assert: Pushed to Stack
+            _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.SourceEffect != null && c.SourceEffect.Type == EffectType.GainResource));
         }
 
         [TestMethod]
@@ -63,7 +64,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            Assert.AreEqual(0, _player.Power);
+            _context.ActionSystem.DidNotReceive().PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>());
         }
 
         [TestMethod]
@@ -73,7 +74,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            Assert.AreEqual(3, _player.Power);
+            _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.SourceEffect != null && c.SourceEffect.Type == EffectType.GainResource));
         }
 
         [TestMethod]
@@ -83,23 +84,17 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            Assert.AreEqual(1, _context.TurnManager.CurrentTurnContext.PendingPromotionsCount);
+            _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.SourceEffect != null && c.SourceEffect.Type == EffectType.Promote));
         }
 
         [TestMethod]
         public void ResolveEffects_GainInfluence_AddsToPlayer()
         {
-            // Note: InfluenceCard() in TestData gives 2 Influence, but the test expected 5.
-            // I'll stick to the test's expectation of 5 to keep logic verification valid, 
-            // or I could update the test if 2 is enough. 
-            // Better to use builder for specific amounts if TestData doesn't match exactly.
-            // But wait, the test architecture.md says use TestData for common scenarios.
-            // I'll update the test to use InfluenceCard and expect 2.
             var card = TestData.Cards.InfluenceCard();
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            Assert.AreEqual(2, _player.Influence);
+            _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.SourceEffect != null && c.SourceEffect.Type == EffectType.GainResource));
         }
 
         [TestMethod]
@@ -113,7 +108,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            Assert.HasCount(2, _player.Hand);
+            _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.SourceEffect != null && c.SourceEffect.Type == EffectType.DrawCard));
         }
 
 
@@ -138,7 +133,8 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            _context.ActionSystem.Received(1).StartTargeting(expectedState, card);
+            // Assert: Pushed to Stack with correct state
+            _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.EffectType == expectedState));
         }
 
         [TestMethod]
@@ -161,13 +157,23 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
+            _context.ActionSystem.DidNotReceive().PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>());
         }
 
         private void SetupValidTargets(string validationMethod, bool hasTargets)
         {
             switch (validationMethod)
             {
+                // NOTE: CardEffectProcessor now uses CardRuleEngine for validation.
+                // We must mock CardRuleEngine via the Context (which we didn't mock explicitly in Setup but passed a real one via MatchContext constructor?)
+                // Wait, MatchContext constructor takes ICardRuleEngine? 
+                // Checks Setup: MatchContext has ICardRuleEngine? 
+                // No, MatchContext constructs CardRuleEngine internally?
+                // Checking MatchContext.cs...
+                // Mocking MapManager calls is valid IF CardRuleEngine delegates to MapManager.
+                // Assuming CardRuleEngine delegates to Manager calls, these mocks work.
+                // Logic trace: HasValidAssassinationTarget -> MapManager.HasValidAssassinationTarget.
+                
                 case "MoveSource":
                     _context.MapManager.HasValidMoveSource(_player).Returns(hasTargets);
                     break;
@@ -185,13 +191,12 @@ namespace ChaosWarlords.Tests.Source.Systems
         {
             var card = TestData.Cards.SupplantCard();
 
-            // Conditions don't matter to the Processor anymore, it just calls TryStartSupplant
             _context.MapManager.HasValidAssassinationTarget(_player).Returns(true);
             _player.TroopsInBarracks = 1;
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            _context.ActionSystem.Received(1).TryStartSupplant(card);
+            _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.EffectType == ActionState.TargetingSupplant));
         }
 
         [TestMethod]
@@ -204,7 +209,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            _context.ActionSystem.Received(1).StartTargeting(ActionState.TargetingPlaceSpy, card);
+            _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.EffectType == ActionState.TargetingPlaceSpy));
         }
 
         [TestMethod]
@@ -217,7 +222,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
+            _context.ActionSystem.DidNotReceive().PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>());
         }
 
         [TestMethod]
@@ -230,7 +235,7 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
+            _context.ActionSystem.DidNotReceive().PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>());
         }
 
         [TestMethod]
@@ -242,19 +247,18 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            _context.ActionSystem.Received(1).TryStartDevourHand(card);
+            _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.EffectType == ActionState.TargetingDevourHand));
         }
 
         [TestMethod]
         public void ResolveEffects_Devour_EmptyHand_DoesNotStartDevour()
         {
             var card = TestData.Cards.DevourCard();
-
-            // Hand is empty by default
+            // Hand Empty
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            _context.ActionSystem.DidNotReceive().TryStartDevourHand(Arg.Any<Card>());
+            _context.ActionSystem.DidNotReceive().PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>());
         }
 
         [TestMethod]
@@ -268,9 +272,8 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
-            Assert.AreEqual(2, _player.Power);
-            Assert.AreEqual(3, _player.Influence);
-            Assert.AreEqual(1, _context.TurnManager.CurrentTurnContext.PendingPromotionsCount);
+            // Expecting 3 Calls
+            _context.ActionSystem.Received(3).PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>());
         }
         [TestMethod]
         public void ResolveEffects_SkipsOptionalPopup_WhenNoValidTargets()
@@ -284,20 +287,13 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             // Ensure Hand is empty (source card is explicitly excluded by definition in HasValidTargets)
             _player.Hand.Clear();
-            // Note: CardEffectProcessor does not add the source card to hand automatically, the caller logic does. 
-            // We just need to ensure Player.Hand count excluding source is 0.
             
             // Act
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             // Assert
-            // UI Mediator should NOT receive RequestOptionalEffect call
-            _uiMediator.DidNotReceive().RequestOptionalEffect(
-                Arg.Any<Card>(), 
-                Arg.Any<CardEffect>(), 
-                Arg.Any<Action>(), 
-                Arg.Any<Action>()
-            );
+            // Should NOT push effect if logic validation works (RequiresInput + InvalidTarget = Skip)
+            _context.ActionSystem.DidNotReceive().PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>());
         }
 
         [TestMethod]
@@ -317,13 +313,8 @@ namespace ChaosWarlords.Tests.Source.Systems
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
 
             // Assert
-            // UI Mediator SHOULD receive RequestOptionalEffect call
-            _uiMediator.Received(1).RequestOptionalEffect(
-                card, 
-                devourEffect, 
-                Arg.Any<Action>(), 
-                Arg.Any<Action>()
-            );
+            // Should Push Effect with RequiresInput = true
+             _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.EffectType == ActionState.TargetingDevourHand && c.RequiresInput));
         }
     }
 }

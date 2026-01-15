@@ -110,6 +110,11 @@ namespace ChaosWarlords.Source.Factories
             for (int i = 0; i < 3; i++) player.DeckManager.AddToTop(CardFactory.CreateSoldier(random));
             for (int i = 0; i < 7; i++) player.DeckManager.AddToTop(CardFactory.CreateNoble(random));
             
+            // TESTING: Add all devour cards to starting deck
+            player.DeckManager.AddToTop(cardDatabase.GetCardById("wight"));
+            player.DeckManager.AddToTop(cardDatabase.GetCardById("market_corruptor"));
+            player.DeckManager.AddToTop(cardDatabase.GetCardById("skeletal_horde"));
+            player.DeckManager.AddToTop(cardDatabase.GetCardById("cultist_of_myrkul"));
 
             logger.Log($"[RNG] Shuffling Deck for {color}: {(random as SeededGameRandom)?.CallCount ?? -1}", LogChannel.Debug);
             player.DeckManager.Shuffle(random);

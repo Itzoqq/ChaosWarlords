@@ -8,6 +8,8 @@ using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Mechanics.Rules;
+using ChaosWarlords.Source.Core.Contexts;
 using System.Collections.Generic;
 
 namespace ChaosWarlords.Tests.Integration.Mechanics
@@ -54,6 +56,18 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                 uiMediator,
                 _logger
             );
+
+            // Configure mock ActionSystem to execute instant effects immediately
+            actionSystem.When(x => x.PushEffect(Arg.Any<EffectContext>()))
+                        .Do(callInfo =>
+                        {
+                            var ctx = callInfo.Arg<EffectContext>();
+                            if (!ctx.RequiresInput && ctx.SourceCard != null)
+                            {
+                                CardEffectProcessor.ApplyEffect(ctx.SourceEffect, ctx.SourceCard, _context, _logger);
+                                ctx.OnResolved?.Invoke(true);
+                            }
+                        });
         }
 
         [TestMethod]

@@ -102,8 +102,10 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
                 return;
             }
 
-            StartDevourTargeting(ActionState.TargetingDevourMarket, sourceCard, onComplete, deferExecution);
+            // CRITICAL: Open market BEFORE setting targeting state
+            // This ensures the market is open when HandleActionStateChanged fires
             _marketStateManager?.OpenForDevour((card) => HandleDevourMarketSelection(card));
+            StartDevourTargeting(ActionState.TargetingDevourMarket, sourceCard, onComplete, deferExecution);
             _logger.Log($"Triggering Devour for {sourceCard.Name}. Select a card from MARKET to remove.", LogChannel.General);
         }
 
@@ -224,7 +226,8 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
         {
             if (targetCard is null) return null;
             
-            _marketStateManager?.OpenForBrowsing();
+            // Close the market after selection (matching Inner Circle behavior)
+            _marketStateManager?.Close();
 
             if (!IsValidMarketCard(targetCard))
             {

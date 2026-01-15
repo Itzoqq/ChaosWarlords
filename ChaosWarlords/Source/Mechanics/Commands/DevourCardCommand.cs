@@ -48,7 +48,7 @@ namespace ChaosWarlords.Source.Commands
             }
             else
             {
-                context.MatchManager.DevourCard(CardToDevour);
+                context.MatchManager.DevourCard(CardToDevour, SourceCard);
                 context.ActionSystem.CompleteAction();
             }
         }

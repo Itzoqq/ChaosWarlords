@@ -1,7 +1,10 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
+using System;
+using System.Collections.Generic;
 using ChaosWarlords.Source.Mechanics.Actions;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Core.Contexts; // Needed for EffectContext
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Data;
@@ -128,6 +131,38 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
         }
 
+        [TestMethod]
+        public void CancelTargeting_ClearsExecutionStack()
+        {
+            // Arrange
+            var card = new Card("spy_master", "Spy Master", 0, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.PlaceSpy, 1);
+            
+            // Push an effect to the stack (simulating CardEffectProcessor behavior)
+            var context = new EffectContext(
+                ActionState.TargetingPlaceSpy, 
+                card, 
+                true, // Requires Input
+                "Place Spy", 
+                (bool success) => { }, // Dummy callback with explicit type
+                effect
+            );
+            _actionSystem.PushEffect(context);
+            
+            // Process stack to enter targeting state (and consume the item - wait, ProcessStack Peeks, doesn't Pop until Resolved)
+            _actionSystem.ProcessStack();
+            
+            Assert.AreEqual(1, _actionSystem.ExecutionStack.Count, "Stack should have 1 item before cancellation");
+            Assert.AreEqual(ActionState.TargetingPlaceSpy, _actionSystem.CurrentState, "State should be Targeting");
+
+            // Act
+            _actionSystem.CancelTargeting();
+
+            // Assert
+            Assert.AreEqual(0, _actionSystem.ExecutionStack.Count, "Stack should be empty after cancellation");
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "State should return to Normal");
+        }
+
         #endregion
 
         #region Return Spy Validation Tests
@@ -160,6 +195,59 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Assert
             Assert.AreEqual(ActionState.TargetingReturnSpy, _actionSystem.CurrentState,
                 "Should enter targeting state when valid targets exist");
+        }
+
+        [TestMethod]
+        public void CancelTargeting_WithMultipleEffects_ClearsAllEffectsForCard()
+        {
+            // Arrange
+            // Create a card with two effects: 
+            // 1. Assassinate (Blocking/Targeting)
+            // 2. Gain Resource (Automatic/Focus)
+            var card = new Card("shadow_blade", "Shadow Blade", 0, CardAspect.Neutral, 0, 0, 0);
+            
+            // Blocking Effect (Top of Stack)
+            var effect1 = new CardEffect(EffectType.Assassinate, 1);
+            var context1 = new EffectContext(
+                ActionState.TargetingAssassinate, 
+                card, 
+                true, // Requires Input
+                "Assassinate", 
+                (bool s) => { }, 
+                effect1
+            );
+
+            // Automatic Effect (Bottom of Stack)
+            var effect2 = new CardEffect(EffectType.GainResource, 1);
+            var context2 = new EffectContext(
+                ActionState.Normal, 
+                card, 
+                false, // No Input
+                "Gain Power", 
+                (bool s) => { if (s) Assert.Fail("Zombie Effect Executed Successfully! This should have been cancelled/skipped."); }, 
+                effect2
+            );
+            
+            // Push in reverse order (as CardEffectProcessor does)
+            _actionSystem.PushEffect(context2); // Bottom
+            _actionSystem.PushEffect(context1); // Top
+            
+            // Validate Stack State
+            Assert.AreEqual(2, _actionSystem.ExecutionStack.Count);
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
+
+            // Start Processing (Will stop at Assassinate)
+            _actionSystem.ProcessStack();
+            
+            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState);
+            Assert.AreEqual(2, _actionSystem.ExecutionStack.Count, "Both effects should be on stack");
+
+            // Act
+            _actionSystem.CancelTargeting();
+
+            // Assert
+            Assert.AreEqual(0, _actionSystem.ExecutionStack.Count, "Stack should be empty after cancellation. All card effects should be cleared.");
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState);
         }
 
         [TestMethod]

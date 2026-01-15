@@ -119,7 +119,20 @@ namespace ChaosWarlords.Source.Input
                 _state.Logger.Log($"Coordinator: Switching to DevourInputMode (State: {_context.ActionSystem.CurrentState})", Utilities.LogChannel.Input);
                 _currentMode = new DevourInputMode(_state, _inputManager, _context.ActionSystem);
             }
-            // Note: TargetingDevourMarket is handled by MarketStateManager.ModeChanged event.
+            else if (_context.ActionSystem.CurrentState == Utilities.ActionState.TargetingDevourMarket)
+            {
+                // Market devour is handled by DevourSubsystem calling MarketStateManager.OpenForDevour
+                // which triggers HandleMarketModeChanged event. Just switch to TargetingInputMode temporarily.
+                _state.Logger.Log($"Coordinator: TargetingDevourMarket detected. Market will open via MarketStateManager.", Utilities.LogChannel.Input);
+                _currentMode = new TargetingInputMode(
+                    _state,
+                    _inputManager,
+                    _state.UIManager,
+                    _context.MapManager,
+                    _context.TurnManager,
+                    _context.ActionSystem
+                );
+            }
             else
             {
                 _state.Logger.Log($"Coordinator: Switching to TargetingInputMode (State: {_context.ActionSystem.CurrentState})", Utilities.LogChannel.Input);

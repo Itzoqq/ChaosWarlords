@@ -193,9 +193,32 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         object? GetAndClearPreTarget(Entities.Cards.Card source, ActionState forState);
 
         /// <summary>
-        /// Advances the Devour chain to the next targeting state or finalizes the card play.
+        /// The stack of pending effects to be resolved.
+        /// Replaces linear recursion with an iterative stack for multiplayer compatibility.
         /// </summary>
-        void AdvanceDevourChain(Card sourceCard);
+        System.Collections.Generic.Stack<ChaosWarlords.Source.Core.Contexts.EffectContext> ExecutionStack { get; }
+
+        /// <summary>
+        /// Pushes a new effect onto the execution stack.
+        /// </summary>
+        void PushEffect(ChaosWarlords.Source.Core.Contexts.EffectContext context);
+
+        /// <summary>
+        /// Peeks the current effect from the stack.
+        /// </summary>
+        ChaosWarlords.Source.Core.Contexts.EffectContext? CurrentEffect { get; }
+
+        /// <summary>
+        /// Processes the stack. If the top item requires input, it waits.
+        /// If the top item is automatic (e.g. GainResource), it executes immediately and pops.
+        /// </summary>
+        void ProcessStack();
+
+        /// <summary>
+        /// Explicitly resolves the current top-of-stack effect (e.g. after a valid command is received).
+        /// </summary>
+        /// <param name="success">Whether the effect resolved successfully.</param>
+        void ResolveCurrentEffect(bool success);
     }
 }
 

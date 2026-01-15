@@ -12,6 +12,8 @@ using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Mechanics.Rules;
+using ChaosWarlords.Source.Core.Contexts;
 
 namespace ChaosWarlords.Tests.Integration.Managers
 {
@@ -56,6 +58,22 @@ namespace ChaosWarlords.Tests.Integration.Managers
                 playerState,
 
                 null, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+
+            // Fix for Legacy Tests: Configure Mock ActionSystem to execute "Instant" effects immediately
+            // This mimics the real ActionSystem.ProcessStack() behavior for non-blocking effects.
+            // IMPORTANT: This must be done AFTER _context is initialized so the closure captures the correct reference.
+            _actionSystem.When(x => x.PushEffect(Arg.Any<EffectContext>()))
+                         .Do(callInfo => 
+                         {
+                             var ctx = callInfo.Arg<EffectContext>();
+                             if (!ctx.RequiresInput && ctx.SourceCard != null)
+                             {
+                                 // Execute Logic directly
+                                 CardEffectProcessor.ApplyEffect(ctx.SourceEffect, ctx.SourceCard, _context, ChaosWarlords.Tests.Utilities.TestLogger.Instance);
+                                 // Simulate Resolution
+                                 ctx.OnResolved?.Invoke(true);
+                             }
+                         });
 
             _controller = new MatchManager(_context, ChaosWarlords.Tests.Utilities.TestLogger.Instance, _victoryManager);
 
@@ -484,6 +502,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
             var manager = new MatchManager(context, logger, victoryManager);
             actionSystem.SetMatchManager(manager);
+            actionSystem.SetMatchContext(context);
 
             var testState = new IntegrationTestGameplayState(context, manager, logger);
 
@@ -644,8 +663,10 @@ namespace ChaosWarlords.Tests.Integration.Managers
             Assert.AreEqual(ActionState.TargetingSupplant, actionSystem.CurrentState, "Should transition to TargetingSupplant after Devour.");
             Assert.AreEqual(wight, actionSystem.PendingCard, "Pending card should be Wight.");
             // Deferred Devour Check:
-            Assert.AreEqual(fodder, actionSystem.PendingDevourCard, "Fodder should be pending devour.");
-            Assert.DoesNotContain(fodder, context.VoidPile, "Fodder should NOT be in void yet (deferred).");
+            // Since we are using PreTarget with stack automation, the command executes immediately (Non-Deferred)
+            // and the stack advances to Supplant.
+            Assert.IsNull(actionSystem.PendingDevourCard, "PendingDevourCard should be null (Devour executed).");
+            Assert.IsTrue(context.VoidPile.Contains(fodder), "Fodder SHOULD be in void (Devour executed).");
         }
 
     }
