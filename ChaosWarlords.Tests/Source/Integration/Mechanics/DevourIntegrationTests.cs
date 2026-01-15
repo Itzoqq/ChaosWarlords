@@ -357,5 +357,187 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         }
 
         #endregion
+
+        #region Market Devour - OnSuccess Chains (from MarketDevourChainTests)
+
+        /// <summary>
+        /// Verifies market devour with OnSuccess effect applies the successor effect.
+        /// Tests the devour chain: Devour Market → Gain Influence.
+        /// </summary>
+        [TestMethod]
+        public void MarketDevour_WithOnSuccessEffect_AppliesSuccessorEffect()
+        {
+            // Arrange
+            var sourceCard = new Card("market_corruptor", "Market Corruptor", 0, CardAspect.Oblivion, 0, 0, 0);
+            var gainInfluenceEffect = new CardEffect(EffectType.GainResource, 3, ResourceType.Influence);
+            var devourEffect = new CardEffect(EffectType.Devour, 1)
+            {
+                TargetLocation = CardLocation.Market,
+                OnSuccess = gainInfluenceEffect
+            };
+            sourceCard.AddEffect(devourEffect);
+
+            var targetCard = new Card("market_card", "Market Card", 0, CardAspect.Neutral, 0, 0, 0);
+            targetCard.Location = CardLocation.Market;
+
+            _player.Influence = 0;
+
+            // Create real MatchManager for this test
+            var victoryManager = Substitute.For<IVictoryManager>();
+            var realMatchManager = new MatchManager(_context, _logger, victoryManager);
+
+            // Act
+            realMatchManager.DevourMarketCard(targetCard, sourceCard);
+
+            // Assert
+            Assert.AreEqual(3, _player.Influence, "Player should gain 3 influence from OnSuccess effect");
+            Assert.AreEqual(CardLocation.Void, targetCard.Location, "Target card should be voided");
+        }
+
+        /// <summary>
+        /// Verifies market devour without source card doesn't crash.
+        /// Edge case: null source card should be handled gracefully.
+        /// </summary>
+        [TestMethod]
+        public void MarketDevour_WithoutSourceCard_DoesNotCrash()
+        {
+            // Arrange
+            var targetCard = new Card("market_card", "Market Card", 0, CardAspect.Neutral, 0, 0, 0);
+            targetCard.Location = CardLocation.Market;
+
+            var victoryManager = Substitute.For<IVictoryManager>();
+            var realMatchManager = new MatchManager(_context, _logger, victoryManager);
+
+            // Act & Assert - should not throw
+            realMatchManager.DevourMarketCard(targetCard, null);
+            Assert.AreEqual(CardLocation.Void, targetCard.Location);
+        }
+
+        /// <summary>
+        /// Verifies market devour with multiple chained OnSuccess effects applies all.
+        /// Tests the chain: Devour Market → Gain Influence → Gain Power.
+        /// </summary>
+        [TestMethod]
+        public void MarketDevour_WithMultipleEffects_AppliesAllSuccessorEffects()
+        {
+            // Arrange
+            var sourceCard = new Card("powerful_corruptor", "Powerful Corruptor", 0, CardAspect.Oblivion, 0, 0, 0);
+            
+            // Chain: Devour → Gain Influence → Gain Power
+            var gainPowerEffect = new CardEffect(EffectType.GainResource, 2, ResourceType.Power);
+            var gainInfluenceEffect = new CardEffect(EffectType.GainResource, 3, ResourceType.Influence)
+            {
+                OnSuccess = gainPowerEffect
+            };
+            var devourEffect = new CardEffect(EffectType.Devour, 1)
+            {
+                TargetLocation = CardLocation.Market,
+                OnSuccess = gainInfluenceEffect
+            };
+            sourceCard.AddEffect(devourEffect);
+
+            var targetCard = new Card("market_card", "Market Card", 0, CardAspect.Neutral, 0, 0, 0);
+            targetCard.Location = CardLocation.Market;
+
+            _player.Influence = 0;
+            _player.Power = 0;
+
+            var victoryManager = Substitute.For<IVictoryManager>();
+            var realMatchManager = new MatchManager(_context, _logger, victoryManager);
+
+            // Act
+            realMatchManager.DevourMarketCard(targetCard, sourceCard);
+
+            // Assert
+            Assert.AreEqual(3, _player.Influence, "Player should gain 3 influence");
+            Assert.AreEqual(2, _player.Power, "Player should gain 2 power from chained effect");
+        }
+
+        #endregion
+
+        #region Inner Circle Devour (from DevourFromInnerCircleIntegrationTests)
+
+        /// <summary>
+        /// Verifies Inner Circle devour removes card and grants OnSuccess bonus.
+        /// Standard flow: Devour Inner Circle card → Card voided → OnSuccess effect applied.
+        /// </summary>
+        [TestMethod]
+        public void InnerCircleDevour_StandardFlow_RemovesCardAndGrantsBonus()
+        {
+            // Arrange
+            var player = _context.ActivePlayer;
+            
+            // Add a card to Inner Circle (Target)
+            var innerCard = new Card("inner_victim", "Inner Victim", 1, CardAspect.Neutral, 1, 1, 0);
+            innerCard.Location = CardLocation.InnerCircle;
+            player.InnerCircle.Add(innerCard);
+
+            // Create a generic card with "Devour Inner Circle" effect
+            var devourCard = new Card("devourer", "Inner Devourer", 2, CardAspect.Sorcery, 0, 0, 0);
+            devourCard.AddEffect(new CardEffect(EffectType.Devour, 0) 
+            { 
+               TargetLocation = CardLocation.InnerCircle,
+               OnSuccess = new CardEffect(EffectType.GainResource, 3, ResourceType.Influence)
+            });
+            player.Hand.Add(devourCard);
+
+            // Act - Trigger devour flow
+            var strategy = ChaosWarlords.Source.Mechanics.Rules.DevourStrategyFactory.GetStrategy(CardLocation.InnerCircle);
+            strategy.Execute(devourCard, _context, _logger, () => { }, false);
+
+            // Verify State Transition
+            Assert.AreEqual(ActionState.TargetingDevourInnerCircle, _actionSystem.CurrentState, "Should switch to Inner Circle Targeting");
+
+            // Simulate Selection
+            var cmd = _actionSystem.HandleDevourInnerCircleSelection(innerCard);
+            Assert.IsNotNull(cmd, "Should generate Devour Command");
+            
+            // Execute Command
+            cmd?.Execute(_context);
+
+            // Assert
+            CollectionAssert.DoesNotContain(player.InnerCircle, innerCard, "Inner Circle card should be removed");
+            Assert.AreEqual(CardLocation.Void, innerCard.Location, "Inner Circle card should be in Void");
+        }
+
+        /// <summary>
+        /// Verifies empty Inner Circle auto-completes without showing popup.
+        /// Edge case: Optional devour with no valid targets should skip popup.
+        /// </summary>
+        [TestMethod]
+        public void InnerCircleDevour_EmptyList_AutoCompletesOrLogsWarning()
+        {
+            // Arrange
+            var player = _context.ActivePlayer;
+            player.InnerCircle.Clear(); // Ensure empty
+
+            var devourCard = new Card("devourer", "Inner Devourer", 2, CardAspect.Sorcery, 0, 0, 0);
+            devourCard.AddEffect(new CardEffect(EffectType.Devour, 0) 
+            { 
+                TargetLocation = CardLocation.InnerCircle,
+                IsOptional = true // CRITICAL: Only optional effects trigger the UI popup check
+            });
+            player.Hand.Add(devourCard);
+
+            // Act - Resolve effects (should skip popup due to no valid targets)
+            ChaosWarlords.Source.Mechanics.Rules.CardEffectProcessor.ResolveEffects(devourCard, _context, false, _logger);
+
+            // Assert - Ensure UI was NOT asked for permission
+            _uiMediator.DidNotReceive().RequestOptionalEffect(
+                Arg.Any<Card>(), 
+                Arg.Any<CardEffect>(), 
+                Arg.Any<Action>(), 
+                Arg.Any<Action>()
+            );
+
+            // Ensure logic remains safe (no targeting state entered)
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "Should NOT enter targeting state if skipped");
+        }
+
+        // NOTE: InnerCircleDevour_PromoteFlow_AddsPromotionCredits test was not migrated
+        // because it requires MatchFactory setup with CurrentTurnContext which is not
+        // available in this test class. It remains in DevourFromInnerCircleIntegrationTests.cs.
+
+        #endregion
     }
 }
