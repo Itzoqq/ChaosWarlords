@@ -304,7 +304,6 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
 
             // Assert - This test primarily verifies the market opens; Close() is harder to test in integration
             // The fix ensures HandleDevourMarketSelection calls Close(), which is verified by manual testing
-            Assert.IsTrue(true, "Market auto-open verified; Close() behavior verified by manual testing");
         }
 
         /// <summary>

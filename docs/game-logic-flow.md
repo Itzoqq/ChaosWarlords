@@ -767,6 +767,98 @@ flowchart LR
 
 ---
 
+
+---
+
+## 14. Stack-Based Action System (Nested Logic)
+**Concept**: How the game handles "Interrupts" or nested sequences (e.g., Playing a card -> Triggers Devour -> Triggers Input -> Resolves Devour -> Resumes Play).
+
+```mermaid
+sequenceDiagram
+    participant Stack as CardEffectProcessor
+    participant UI as User
+    participant Logic as ActionSystem
+    participant Sub as DevourSubsystem
+
+    Note over Stack: 1. Main Action Starts
+    Stack->>Stack: PlayCard(Source)
+    
+    Stack->>Stack: 2. Encounter Optional Effect
+    Stack->>UI: Request Input (Accept?)
+    
+    alt Accepted (Nested Action Pushed)
+        UI-->>Logic: Accept
+        Logic->>Sub: StartDevour() 
+        Note right of Logic: PAUSE PlayCard
+        
+        Sub->>UI: Request Target
+        UI-->>Sub: Select Card
+        Sub->>Sub: Execute Devour
+        
+        Sub-->>Logic: Devour Complete
+        Note right of Logic: RESUME PlayCard
+    else Declined
+        UI-->>Logic: Decline
+        Note right of Logic: SKIP Effect, Continue
+    end
+    
+    Stack->>Stack: 3. Finish PlayCard
+```
+
+> **Key Takeaway**: The game logic is effectively a **Stack**. When an optional impact (like Devour or Reaction) occurs, the current action pauses, the new action (and its input states) is pushed onto the stack, executed, and popped, before the original action resumes.
+
+---
+
+## 15. Object Pooling Lifecycle (Performance)
+**Concept**: How memory is managed to prevent "Stop-the-world" Garbage Collection calls during gameplay.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Available: Initialize Match
+    
+    state Pool {
+        Available --> Rented: Rent() called
+        Rented --> Available: Dispose() called
+    }
+    
+    state Gameplay {
+        Rented --> Use: Draw Loop
+        Use --> Use: Updates (Mutable)
+        Use --> Rented: Scope End
+    }
+    
+    Available --> [*]: Match End/Clear
+```
+
+```mermaid
+sequenceDiagram
+    participant Render as UIRenderer
+    participant Pool as PooledRectangle
+    participant Struct as Rectangle (Stack)
+    
+    Note over Render: Frame Start
+    
+    Render->>Pool: Rent(x, y, w, h)
+    Pool->>Pool: Pop from Stack
+    Pool-->>Render: Wrapper Instance
+    
+    Render->>Struct: Access .Value (Mutable)
+    
+    loop Draw 100 Buttons
+        Render->>Struct: Update .Value (x, y...)
+        Render->>Render: SpriteBatch.Draw(.Value)
+    end
+    
+    Render->>Pool: Dispose() (via using)
+    Pool->>Pool: Push to Stack
+    
+    Note over Render: Zero Garbage Generated
+```
+
+> **Key Takeaway**: Instead of creating 100 `new Rectangle()` objects every frame (6000/sec), we take **one** mutable wrapper from the pool, reuse it 100 times by changing its value, and put it back. This keeps the memory manager idle and the framerate smooth.
+
+---
+
 ## Summary
 
 This document visualizes the complete game logic flow from high-level architecture to detailed implementation. The flows demonstrate:
@@ -774,5 +866,7 @@ This document visualizes the complete game logic flow from high-level architectu
 - Deterministic execution via Command Pattern and Seeded RNG
 - Complex mechanics handled by specialized subsystems
 - Transactional action processing with deferred execution
+- **Stack-based** resolution for nested game actions
+- **Zero-Allocation** pooling for high-performance rendering
 
 For implementation details, see [architecture.md](architecture.md). For test coverage, see [testing.md](testing.md).

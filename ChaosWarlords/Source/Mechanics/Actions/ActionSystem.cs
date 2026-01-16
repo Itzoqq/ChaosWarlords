@@ -738,7 +738,7 @@ namespace ChaosWarlords.Source.Managers
 
                     _uiMediator.RequestOptionalEffect(
                         nextEffect.SourceCard,
-                        nextEffect.SourceEffect,
+                        nextEffect.SourceEffect!,
                         onAccept: () =>
                         {
                             _logger.Log($"ActionSystem: Optional effect {nextEffect.SourceEffect?.Type} accepted.", LogChannel.Input);

@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using ChaosWarlords.Source.Core.Utilities;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Rendering.UI
@@ -68,22 +69,23 @@ namespace ChaosWarlords.Source.Rendering.UI
             // Layout Calculation
             int x = (screenWidth - popupWidth) / 2;
             int y = (screenHeight - popupHeight) / 2;
-            _bounds = new Rectangle(x, y, popupWidth, popupHeight);
+            // Pooled rectangles for overlay and bounds (0 allocations)
+            using var overlay = PooledRectangle.Rent(0, 0, screenWidth, screenHeight);
+            using var bounds = PooledRectangle.Rent(x, y, popupWidth, popupHeight);
+            _bounds = bounds.Value;
 
-            // Overlay
-            spriteBatch.Draw(whitePixel, new Rectangle(0, 0, screenWidth, screenHeight), Color.Black * 0.7f);
+            spriteBatch.Draw(whitePixel, overlay.Value, Color.Black * 0.7f);
+            spriteBatch.Draw(whitePixel, bounds.Value, Color.DarkSlateGray);
 
-            // Popup Background
-            spriteBatch.Draw(whitePixel, _bounds, Color.DarkSlateGray);
-
-            // Title
+            // Title - pooled vector (0 allocations)
             Vector2 titleSize = font.MeasureString(Title);
-            spriteBatch.DrawString(font, Title, new Vector2(x + (popupWidth - titleSize.X) / 2, y + 20), Color.White);
+            using var titlePos = PooledVector2.Rent(x + (popupWidth - titleSize.X) / 2, y + 20);
+            spriteBatch.DrawString(font, Title, titlePos.Value, Color.White);
 
-            // Message
+            // Message - pooled vector (0 allocations)
             Vector2 msgSize = font.MeasureString(Message);
-            // Center message
-            spriteBatch.DrawString(font, Message, new Vector2(x + (popupWidth - msgSize.X) / 2, y + 60), Color.LightGray);
+            using var msgPos = PooledVector2.Rent(x + (popupWidth - msgSize.X) / 2, y + 60);
+            spriteBatch.DrawString(font, Message, msgPos.Value, Color.LightGray);
 
             // Buttons
             int btnWidth = 100;
@@ -93,23 +95,24 @@ namespace ChaosWarlords.Source.Rendering.UI
             int startX = x + (popupWidth - totalBtnWidth) / 2;
             int btnY = y + popupHeight - btnHeight - 20;
 
+            // Pool rectangle and vector outside loop (0 allocations)
+            using var btnRect = PooledRectangle.Rent(0, 0, btnWidth, btnHeight);
+            using var textPos = PooledVector2.Rent(0, 0);
+
             for (int i = 0; i < Buttons.Count; i++)
             {
                 var btn = Buttons[i];
-                var btnRect = new Rectangle(startX + (i * (btnWidth + gap)), btnY, btnWidth, btnHeight);
-                btn.Bounds = btnRect; // Store for click handling
+                btnRect.Value = new Rectangle(startX + (i * (btnWidth + gap)), btnY, btnWidth, btnHeight);
+                btn.Bounds = btnRect.Value;
 
-                // Draw Button
-                Color color = btn.IsDefault ? Color.DarkGreen : Color.DarkRed; // Simple defaults for now
-                // Override for generic buttons? Maybe Gray?
+                Color color = btn.IsDefault ? Color.DarkGreen : Color.DarkRed;
                 if (!btn.IsDefault && Buttons.Count > 1) color = Color.Gray;
-                // Let's refine colors later or allow Button to specify color.
 
-                spriteBatch.Draw(whitePixel, btnRect, color);
+                spriteBatch.Draw(whitePixel, btnRect.Value, color);
 
                 Vector2 textSize = font.MeasureString(btn.Text);
-                Vector2 textPos = new Vector2(btnRect.X + (btnRect.Width - textSize.X) / 2, btnRect.Y + (btnRect.Height - textSize.Y) / 2);
-                spriteBatch.DrawString(font, btn.Text, textPos, Color.White);
+                textPos.Value = new Vector2(btnRect.Value.X + (btnRect.Value.Width - textSize.X) / 2, btnRect.Value.Y + (btnRect.Value.Height - textSize.Y) / 2);
+                spriteBatch.DrawString(font, btn.Text, textPos.Value, Color.White);
             }
         }
         public class PopupButton

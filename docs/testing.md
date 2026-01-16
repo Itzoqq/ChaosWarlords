@@ -90,7 +90,10 @@ ChaosWarlords.Tests/Source/
 │       ├── DtoMapperTests.cs
 │       ├── MapGeometryTest.cs
 │       ├── MapLayoutEngineTests.cs
-│       └── SeededGameRandomTests.cs
+│       ├── ObjectPoolTests.cs
+│       ├── PooledPrimitivesTests.cs
+│       ├── SeededGameRandomTests.cs
+│       └── TestLogger.cs
 │
 ├── Doubles/                     # Test Doubles & Mocks
 │   └── State/
@@ -156,6 +159,7 @@ ChaosWarlords.Tests/Source/
 │   ├── MarketManagerTests.cs
 │   ├── MarketStateManagerTests.cs
 │   ├── PlayerStateManagerTests.cs
+│   ├── PoolManagerTests.cs
 │   ├── ReplayManagerTests.cs
 │   ├── TurnManagerTests.cs
 │   ├── UIEventMediatorTests.cs
@@ -208,7 +212,7 @@ ChaosWarlords.Tests/Source/
 │   └── ReplayManagerTests.cs
 │
 └── Utilities/                   # Unit Tests for Utilities
-    └── TestLogger.cs
+    # TestLogger.cs moved to Core/Utilities
 ├── TestData.cs                          # Centralized test data factory
 │   ├── TestData.Cards                   # Pre-configured card instances
 │   │   ├── CheapCard()                  # Low-cost card (2 cost)
@@ -266,21 +270,21 @@ ChaosWarlords.Tests/Source/
 
 ## Test Categories Breakdown
 
-**Total Test Suite: 680 tests** (401 Unit + 272 Integration + 7 Performance)
+**Total Test Suite: 715 tests** (417 Unit + 291 Integration + 7 Performance)
 
-### Unit Tests (401 tests)
+### Unit Tests (417 tests)
 **Purpose**: Test single classes in isolation  
 **Characteristics**: Fast, no external dependencies, use mocks  
-**Run Time**: ~0.9 seconds
+**Run Time**: ~1.1 seconds
 
 **Categories**:
 - **Entities** (7 files): Domain models (Card, Deck, Player, EffectCondition, etc.)
 - **Mechanics** (18 files): Game rules, commands, actions, effects
-- **Managers** (9 files): State managers (PlayerState, Market, Turn, UI, Replay, Command Dispatcher)
-- **Core/Utilities** (7 files): Infrastructure (TurnContext, Dto, Random, Database)
+- **Managers** (10 files): State managers + PoolManager
+- **Core/Utilities** (9 files): Infrastructure (ObjectPool, PooledPrimitives, etc.)
 - **Map Components** (4 files): Map subsystems (Combat, Rewards, Topology, Spies)
 
-### Integration Tests (272 tests)
+### Integration Tests (291 tests)
 **Purpose**: Test component interactions  
 **Characteristics**: Slower, use real implementations, test coordination  
 **Run Time**: ~4.7 seconds

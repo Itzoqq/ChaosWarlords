@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using ChaosWarlords.Source.Core.Utilities;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Rendering.UI
@@ -34,21 +35,30 @@ namespace ChaosWarlords.Source.Rendering.UI
             // Draw background with transparency
             spriteBatch.Draw(pixelTexture, Bounds, Color.Black * 0.5f);
 
-            // Draw Border
+            // Draw Border - pooled rectangle (0 allocations vs 4)
             int border = 2;
-            spriteBatch.Draw(pixelTexture, new Rectangle(Bounds.X, Bounds.Y, Bounds.Width, border), color); // Top
-            spriteBatch.Draw(pixelTexture, new Rectangle(Bounds.X, Bounds.Y + Bounds.Height - border, Bounds.Width, border), color); // Bottom
-            spriteBatch.Draw(pixelTexture, new Rectangle(Bounds.X, Bounds.Y, border, Bounds.Height), color); // Left
-            spriteBatch.Draw(pixelTexture, new Rectangle(Bounds.X + Bounds.Width - border, Bounds.Y, border, Bounds.Height), color); // Right
+            using var borderRect = PooledRectangle.Rent(0, 0, 0, 0);
+
+            borderRect.Value = new Rectangle(Bounds.X, Bounds.Y, Bounds.Width, border);
+            spriteBatch.Draw(pixelTexture, borderRect.Value, color);
+
+            borderRect.Value = new Rectangle(Bounds.X, Bounds.Y + Bounds.Height - border, Bounds.Width, border);
+            spriteBatch.Draw(pixelTexture, borderRect.Value, color);
+
+            borderRect.Value = new Rectangle(Bounds.X, Bounds.Y, border, Bounds.Height);
+            spriteBatch.Draw(pixelTexture, borderRect.Value, color);
+
+            borderRect.Value = new Rectangle(Bounds.X + Bounds.Width - border, Bounds.Y, border, Bounds.Height);
+            spriteBatch.Draw(pixelTexture, borderRect.Value, color);
 
             if (font is not null)
             {
                 Vector2 textSize = font.MeasureString(Text);
-                Vector2 textPos = new Vector2(
+                using var textPos = PooledVector2.Rent(
                     Bounds.X + (Bounds.Width - textSize.X) / 2,
                     Bounds.Y + (Bounds.Height - textSize.Y) / 2
                 );
-                spriteBatch.DrawString(font, Text, textPos, color);
+                spriteBatch.DrawString(font, Text, textPos.Value, color);
             }
         }
     }

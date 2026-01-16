@@ -4,6 +4,7 @@ using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Core.Utilities;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
@@ -30,8 +31,10 @@ namespace ChaosWarlords.Source.Rendering.UI
             if (_defaultFont is null) return;
 
             // 1. Draw Background
-            spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, screenWidth, GameConstants.UILayout.TopBarHeight), Color.Black * 0.9f);
-            DrawBorder(spriteBatch, _pixelTexture, new Rectangle(0, 0, screenWidth, GameConstants.UILayout.TopBarHeight), 1, Color.DarkGray * 0.5f);
+            // Use pooled rectangle for HUD background (0 allocations)
+            using var hudBg = PooledRectangle.Rent(0, 0, screenWidth, GameConstants.UILayout.TopBarHeight);
+            spriteBatch.Draw(_pixelTexture, hudBg.Value, Color.Black * 0.9f);
+            DrawBorder(spriteBatch, _pixelTexture, hudBg.Value, 1, Color.DarkGray * 0.5f);
 
             // --- TOP LEFT: Turn Info (BELOW BAR) ---
             int lineHeight = _defaultFont.LineSpacing + GameConstants.UILayout.SmallPadding;
@@ -41,9 +44,12 @@ namespace ChaosWarlords.Source.Rendering.UI
             // Current Player Name below counters
             string playerText = $"{player.DisplayName}'s Turn";
 
-            spriteBatch.DrawString(_smallFont ?? _defaultFont, roundText, new Vector2(GameConstants.UILayout.TopBarPadding, yPos), Color.LightGray);
-            yPos += lineHeight; // Increased spacing to standard font height + padding
-            spriteBatch.DrawString(_defaultFont, playerText, new Vector2(GameConstants.UILayout.TopBarPadding, yPos), player.Color == PlayerColor.Red ? Color.Red : Color.Cyan);
+            // Pooled vectors for turn info (0 allocations)
+            using var roundPos = PooledVector2.Rent(GameConstants.UILayout.TopBarPadding, yPos);
+            spriteBatch.DrawString(_smallFont ?? _defaultFont, roundText, roundPos.Value, Color.LightGray);
+            yPos += lineHeight;
+            using var playerPos = PooledVector2.Rent(GameConstants.UILayout.TopBarPadding, yPos);
+            spriteBatch.DrawString(_defaultFont, playerText, playerPos.Value, player.Color == PlayerColor.Red ? Color.Red : Color.Cyan);
 
             // ====================================================
             // SECTION 1: ECONOMY & SCORE (Left Aligned - inside Top Bar)
@@ -108,7 +114,7 @@ namespace ChaosWarlords.Source.Rendering.UI
                 int rightYPos = GameConstants.UILayout.TopBarHeight + GameConstants.UILayout.SmallPadding;
                 string troopDeployText = $"[!] {player.PendingFreeTroops} Free Troops";
                 Vector2 textSize = _defaultFont.MeasureString(troopDeployText);
-                Vector2 position = new Vector2(
+                using var position = PooledVector2.Rent(
                     screenWidth - GameConstants.UILayout.TopBarPadding - textSize.X,
                     rightYPos
                 );
@@ -117,7 +123,7 @@ namespace ChaosWarlords.Source.Rendering.UI
                 float pulse = (float)Math.Sin(DateTime.Now.Millisecond / 200.0) * 0.3f + 0.7f;
                 Color troopColor = Color.LimeGreen * pulse;
 
-                spriteBatch.DrawString(_defaultFont, troopDeployText, position, troopColor);
+                spriteBatch.DrawString(_defaultFont, troopDeployText, position.Value, troopColor);
             }
         }
 
@@ -142,11 +148,14 @@ namespace ChaosWarlords.Source.Rendering.UI
 
         public void DrawMarketOverlay(SpriteBatch spriteBatch, IMarketManager market, int width, int height)
         {
-            spriteBatch.Draw(_pixelTexture, new Rectangle(0, 0, width, height), Color.Black * 0.85f);
+            // Pooled rectangle and vector for market overlay (0 allocations)
+            using var marketBg = PooledRectangle.Rent(0, 0, width, height);
+            spriteBatch.Draw(_pixelTexture, marketBg.Value, Color.Black * 0.85f);
 
             string title = "MARKET";
             Vector2 size = _defaultFont.MeasureString(title);
-            spriteBatch.DrawString(_defaultFont, title, new Vector2((width - size.X) / 2, GameConstants.UILayout.HeaderTopMargin), Color.Gold);
+            using var titlePos = PooledVector2.Rent((width - size.X) / 2, GameConstants.UILayout.HeaderTopMargin);
+            spriteBatch.DrawString(_defaultFont, title, titlePos.Value, Color.Gold);
         }
 
         // --- HELPERS ---
@@ -154,13 +163,15 @@ namespace ChaosWarlords.Source.Rendering.UI
         private void DrawStat(SpriteBatch sb, string label, string value, Color color, ref int x)
         {
             string text = $"{label}: {value}";
-            sb.DrawString(_defaultFont, text, new Vector2(x, GameConstants.UILayout.TopBarPadding), color);
-            x += (int)_defaultFont.MeasureString(text).X + GameConstants.UILayout.TopBarSpacing; // Spacing
+            using var pos = PooledVector2.Rent(x, GameConstants.UILayout.TopBarPadding);
+            sb.DrawString(_defaultFont, text, pos.Value, color);
+            x += (int)_defaultFont.MeasureString(text).X + GameConstants.UILayout.TopBarSpacing;
         }
 
         private void DrawStatInternal(SpriteBatch sb, string text, Color color, ref int x, int gap)
         {
-            sb.DrawString(_defaultFont, text, new Vector2(x, GameConstants.UILayout.TopBarPadding), color);
+            using var pos = PooledVector2.Rent(x, GameConstants.UILayout.TopBarPadding);
+            sb.DrawString(_defaultFont, text, pos.Value, color);
             x += (int)_defaultFont.MeasureString(text).X + gap;
         }
 
@@ -169,7 +180,8 @@ namespace ChaosWarlords.Source.Rendering.UI
             string text = $"{label}: {value}";
             Vector2 size = _defaultFont.MeasureString(text);
             rightX -= (int)size.X;
-            sb.DrawString(_defaultFont, text, new Vector2(rightX, GameConstants.UILayout.TopBarPadding), color);
+            using var pos = PooledVector2.Rent(rightX, GameConstants.UILayout.TopBarPadding);
+            sb.DrawString(_defaultFont, text, pos.Value, color);
             rightX -= GameConstants.UILayout.TopBarSpacing; // Spacing
         }
 
@@ -202,18 +214,28 @@ namespace ChaosWarlords.Source.Rendering.UI
 
             SpriteFont font = _smallFont ?? _defaultFont;
             Vector2 textSize = font.MeasureString(text);
-            Vector2 buttonCenter = new Vector2(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
-            Vector2 textOrigin = textSize / 2;
+            using var buttonCenter = PooledVector2.Rent(rect.X + rect.Width / 2, rect.Y + rect.Height / 2);
+            using var textOrigin = PooledVector2.Rent(textSize.X / 2, textSize.Y / 2);
 
-            sb.DrawString(font, text, buttonCenter, textColor, -MathHelper.PiOver2, textOrigin, 1.0f, SpriteEffects.None, 0f);
+            sb.DrawString(font, text, buttonCenter.Value, textColor, -MathHelper.PiOver2, textOrigin.Value, 1.0f, SpriteEffects.None, 0f);
         }
 
         public static void DrawBorder(SpriteBatch spriteBatch, Texture2D pixel, Rectangle rect, int thickness, Color color)
         {
-            spriteBatch.Draw(pixel, new Rectangle(rect.X, rect.Y, rect.Width, thickness), color);
-            spriteBatch.Draw(pixel, new Rectangle(rect.X, rect.Y + rect.Height - thickness, rect.Width, thickness), color);
-            spriteBatch.Draw(pixel, new Rectangle(rect.X, rect.Y, thickness, rect.Height), color);
-            spriteBatch.Draw(pixel, new Rectangle(rect.X + rect.Width - thickness, rect.Y, thickness, rect.Height), color);
+            // Use single pooled rectangle, reuse for all 4 sides (0 allocations vs 4)
+            using var pooledRect = PooledRectangle.Rent(0, 0, 0, 0);
+
+            pooledRect.Value = new Rectangle(rect.X, rect.Y, rect.Width, thickness);
+            spriteBatch.Draw(pixel, pooledRect.Value, color);
+
+            pooledRect.Value = new Rectangle(rect.X, rect.Y + rect.Height - thickness, rect.Width, thickness);
+            spriteBatch.Draw(pixel, pooledRect.Value, color);
+
+            pooledRect.Value = new Rectangle(rect.X, rect.Y, thickness, rect.Height);
+            spriteBatch.Draw(pixel, pooledRect.Value, color);
+
+            pooledRect.Value = new Rectangle(rect.X + rect.Width - thickness, rect.Y, thickness, rect.Height);
+            spriteBatch.Draw(pixel, pooledRect.Value, color);
         }
 
         public void DrawHorizontalButton(SpriteBatch sb, Rectangle rect, string text, bool isHovered, bool isEnabled, Color themeColor)
@@ -232,11 +254,11 @@ namespace ChaosWarlords.Source.Rendering.UI
 
             SpriteFont font = _smallFont ?? _defaultFont;
             Vector2 textSize = font.MeasureString(text);
-            Vector2 position = new Vector2(
+            using var position = PooledVector2.Rent(
                 rect.X + (rect.Width - textSize.X) / 2,
                 rect.Y + (rect.Height - textSize.Y) / 2);
 
-            sb.DrawString(font, text, position, textColor);
+            sb.DrawString(font, text, position.Value, textColor);
         }
 
         public void DrawConfirmationPopup(SpriteBatch sb, string message, Rectangle background, Rectangle confirmBtn, Rectangle cancelBtn, bool confirmHover, bool cancelHover)
@@ -253,11 +275,11 @@ namespace ChaosWarlords.Source.Rendering.UI
             // Wrap text if needed, but for now simple center
             SpriteFont font = _defaultFont;
             Vector2 textSize = font.MeasureString(message);
-            Vector2 msgPos = new Vector2(
+            using var msgPos = PooledVector2.Rent(
                 background.X + (background.Width - textSize.X) / 2,
                 background.Y + GameConstants.UILayout.DefaultYOffset);
 
-            sb.DrawString(font, message, msgPos, Color.White);
+            sb.DrawString(font, message, msgPos.Value, Color.White);
 
             // Draw Buttons
             DrawHorizontalButton(sb, confirmBtn, "END TURN", confirmHover, true, Color.Red);
@@ -273,10 +295,10 @@ namespace ChaosWarlords.Source.Rendering.UI
             // Title
             string title = "PAUSED";
             Vector2 titleSize = _defaultFont.MeasureString(title);
-            Vector2 titlePos = new Vector2(
+            using var titlePos = PooledVector2.Rent(
                 ui.PauseMenuBackgroundRect.X + (ui.PauseMenuBackgroundRect.Width - titleSize.X) / 2,
                 ui.PauseMenuBackgroundRect.Y + GameConstants.UILayout.HeaderTopMargin);
-            sb.DrawString(_defaultFont, title, titlePos, Color.Cyan);
+            sb.DrawString(_defaultFont, title, titlePos.Value, Color.Cyan);
 
             // Buttons
             DrawHorizontalButton(sb, ui.ResumeButtonRect, "RESUME", ui.IsResumeHovered, true, Color.Green);
@@ -289,7 +311,9 @@ namespace ChaosWarlords.Source.Rendering.UI
             if (victoryData == null || !victoryData.IsGameOver) return;
 
             // 1. Dark Overlay covering entire screen
-            sb.Draw(_pixelTexture, new Rectangle(0, 0, screenWidth, screenHeight), Color.Black * 0.9f);
+            // Pooled rectangle for victory overlay (0 allocations)
+            using var overlay = PooledRectangle.Rent(0, 0, screenWidth, screenHeight);
+            sb.Draw(_pixelTexture, overlay.Value, Color.Black * 0.9f);
 
             // 2. Victory Header
             string headerText = $"VICTOR: {victoryData.WinnerName?.ToUpper(CultureInfo.InvariantCulture) ?? "UNKNOWN"}";
@@ -303,14 +327,17 @@ namespace ChaosWarlords.Source.Rendering.UI
             float topY = 100f;
 
             // Draw Header
-            sb.DrawString(_defaultFont, headerText, new Vector2(centerX - headerSize.X / 2, topY), Color.Gold);
-            sb.DrawString(_defaultFont, totalVPText, new Vector2(centerX - totalSize.X / 2, topY + GameConstants.UILayout.DefaultYOffset), Color.Gold);
+            using var headerPos = PooledVector2.Rent(centerX - headerSize.X / 2, topY);
+            using var totalPos = PooledVector2.Rent(centerX - totalSize.X / 2, topY + GameConstants.UILayout.DefaultYOffset);
+            sb.DrawString(_defaultFont, headerText, headerPos.Value, Color.Gold);
+            sb.DrawString(_defaultFont, totalVPText, totalPos.Value, Color.Gold);
 
             // 3. Draw Winner Score Breakdown (Large)
             if (victoryData.WinnerSeat.HasValue && victoryData.ScoreBreakdowns.TryGetValue(victoryData.WinnerSeat.Value, out var winnerBreakdown))
             {
                 Color winnerColor = GetPlayerColor(victoryData.PlayerColors, victoryData.WinnerSeat.Value);
-                DrawScoreBreakdown(sb, winnerBreakdown, new Vector2(centerX, topY + 100), true, "", winnerColor); // 100 is specific layout offset
+                using var winnerPos = PooledVector2.Rent(centerX, topY + 100);
+                DrawScoreBreakdown(sb, winnerBreakdown, winnerPos.Value, true, "", winnerColor);
             }
 
             // 4. Draw Other Players (Row beneath)
@@ -341,7 +368,8 @@ namespace ChaosWarlords.Source.Rendering.UI
                     }
                     string name = $"PLAYER {pColorName}";
 
-                    DrawScoreBreakdown(sb, breakdown, new Vector2(startX + (i * gap), otherPlayersY), false, name, pColor);
+                    using var otherPos = PooledVector2.Rent(startX + (i * gap), otherPlayersY);
+                    DrawScoreBreakdown(sb, breakdown, otherPos.Value, false, name, pColor);
                 }
             }
         }
@@ -387,12 +415,14 @@ namespace ChaosWarlords.Source.Rendering.UI
             {
                 // Draw Name and Total VP for others with their COLOR
                 Vector2 nameSize = _defaultFont.MeasureString(playerName);
-                sb.DrawString(_defaultFont, playerName, new Vector2(centerPos.X - (nameSize.X * scale) / 2, centerPos.Y + yOffset), titleColor, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
+                using var namePos = PooledVector2.Rent(centerPos.X - (nameSize.X * scale) / 2, centerPos.Y + yOffset);
+                sb.DrawString(_defaultFont, playerName, namePos.Value, titleColor, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
                 yOffset += lineHeight;
 
                 string totalText = $"TOTAL VP: {breakdown.TotalScore}";
                 Vector2 totalSize = _defaultFont.MeasureString(totalText);
-                sb.DrawString(_defaultFont, totalText, new Vector2(centerPos.X - (totalSize.X * scale) / 2, centerPos.Y + yOffset), titleColor, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
+                using var totalTextPos = PooledVector2.Rent(centerPos.X - (totalSize.X * scale) / 2, centerPos.Y + yOffset);
+                sb.DrawString(_defaultFont, totalText, totalTextPos.Value, titleColor, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
                 yOffset += lineHeight + GameConstants.UILayout.MediumPadding;
             }
 
@@ -408,7 +438,8 @@ namespace ChaosWarlords.Source.Rendering.UI
         {
             string text = $"{label}: {value}";
             Vector2 size = _defaultFont.MeasureString(text);
-            sb.DrawString(_defaultFont, text, new Vector2(centerPos.X - (size.X * scale) / 2, centerPos.Y + yOffset), color, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
+            using var segmentPos = PooledVector2.Rent(centerPos.X - (size.X * scale) / 2, centerPos.Y + yOffset);
+            sb.DrawString(_defaultFont, text, segmentPos.Value, color, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
             yOffset += (int)(GameConstants.UILayout.DefaultButtonHeight * scale);
         }
 

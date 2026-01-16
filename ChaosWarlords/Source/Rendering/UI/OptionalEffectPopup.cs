@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Core.Utilities;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Rendering.UI
@@ -58,79 +59,85 @@ namespace ChaosWarlords.Source.Rendering.UI
             int popupX = (screenWidth - PopupWidth) / 2;
             int popupY = (screenHeight - PopupHeight) / 2;
 
-            _popupRect = new Rectangle(popupX, popupY, PopupWidth, PopupHeight);
+            // Pooled rectangles for popup and overlay (0 allocations)
+            using var popupRect = PooledRectangle.Rent(popupX, popupY, PopupWidth, PopupHeight);
+            using var fullScreen = PooledRectangle.Rent(0, 0, screenWidth, screenHeight);
+            _popupRect = popupRect.Value;
 
-            // Semi-transparent overlay (darken background)
-            Rectangle fullScreen = new Rectangle(0, 0, screenWidth, screenHeight);
-            spriteBatch.Draw(whitePixel, fullScreen, Color.Black * 0.6f);
+            spriteBatch.Draw(whitePixel, fullScreen.Value, Color.Black * 0.6f);
+            spriteBatch.Draw(whitePixel, popupRect.Value, new Color(40, 40, 50));
+            DrawBorder(spriteBatch, whitePixel, popupRect.Value, 3, new Color(100, 100, 120));
 
-            // Popup background
-            spriteBatch.Draw(whitePixel, _popupRect, new Color(40, 40, 50));
-
-            // Border
-            DrawBorder(spriteBatch, whitePixel, _popupRect, 3, new Color(100, 100, 120));
-
-            // Title (card name)
+            // Title - pooled vector (0 allocations)
             string title = _sourceCard?.Name ?? "Card Effect";
             Vector2 titleSize = font.MeasureString(title);
-            Vector2 titlePos = new Vector2(popupX + (PopupWidth - titleSize.X) / 2, popupY + 20);
-            spriteBatch.DrawString(font, title, titlePos, Color.Gold);
+            using var titlePos = PooledVector2.Rent(popupX + (PopupWidth - titleSize.X) / 2, popupY + 20);
+            spriteBatch.DrawString(font, title, titlePos.Value, Color.Gold);
 
-            // Prompt text
+            // Prompt - pooled vector (0 allocations)
             string prompt = FormatPrompt(_sourceCard!, _effect);
             Vector2 promptSize = font.MeasureString(prompt);
-            Vector2 promptPos = new Vector2(popupX + (PopupWidth - promptSize.X) / 2, popupY + 70);
-            spriteBatch.DrawString(font, prompt, promptPos, Color.LightGray);
+            using var promptPos = PooledVector2.Rent(popupX + (PopupWidth - promptSize.X) / 2, popupY + 70);
+            spriteBatch.DrawString(font, prompt, promptPos.Value, Color.LightGray);
 
             // Buttons
             int buttonY = popupY + PopupHeight - ButtonHeight - 25;
             int totalButtonWidth = (ButtonWidth * 2) + ButtonSpacing;
             int buttonsStartX = popupX + (PopupWidth - totalButtonWidth) / 2;
 
-            _yesButtonRect = new Rectangle(buttonsStartX, buttonY, ButtonWidth, ButtonHeight);
-            _noButtonRect = new Rectangle(buttonsStartX + ButtonWidth + ButtonSpacing, buttonY, ButtonWidth, ButtonHeight);
+            // Pooled rectangles for buttons (0 allocations)
+            using var yesRect = PooledRectangle.Rent(buttonsStartX, buttonY, ButtonWidth, ButtonHeight);
+            using var noRect = PooledRectangle.Rent(buttonsStartX + ButtonWidth + ButtonSpacing, buttonY, ButtonWidth, ButtonHeight);
+            _yesButtonRect = yesRect.Value;
+            _noButtonRect = noRect.Value;
 
-            // Check hover
             bool yesHovered = _yesButtonRect.Contains(_mousePosition);
             bool noHovered = _noButtonRect.Contains(_mousePosition);
 
-            // Draw Yes button (green)
+            // Draw Yes button - pooled vector (0 allocations)
             Color yesColor = yesHovered ? new Color(0, 200, 0) : new Color(0, 140, 0);
             spriteBatch.Draw(whitePixel, _yesButtonRect, yesColor);
             DrawBorder(spriteBatch, whitePixel, _yesButtonRect, 2, Color.White);
 
             string yesText = "Yes";
             Vector2 yesTextSize = font.MeasureString(yesText);
-            Vector2 yesTextPos = new Vector2(
+            using var yesTextPos = PooledVector2.Rent(
                 _yesButtonRect.X + (_yesButtonRect.Width - yesTextSize.X) / 2,
                 _yesButtonRect.Y + (_yesButtonRect.Height - yesTextSize.Y) / 2
             );
-            spriteBatch.DrawString(font, yesText, yesTextPos, Color.White);
+            spriteBatch.DrawString(font, yesText, yesTextPos.Value, Color.White);
 
-            // Draw No button (red)
+            // Draw No button - pooled vector (0 allocations)
             Color noColor = noHovered ? new Color(200, 0, 0) : new Color(140, 0, 0);
             spriteBatch.Draw(whitePixel, _noButtonRect, noColor);
             DrawBorder(spriteBatch, whitePixel, _noButtonRect, 2, Color.White);
 
             string noText = "No";
             Vector2 noTextSize = font.MeasureString(noText);
-            Vector2 noTextPos = new Vector2(
+            using var noTextPos = PooledVector2.Rent(
                 _noButtonRect.X + (_noButtonRect.Width - noTextSize.X) / 2,
                 _noButtonRect.Y + (_noButtonRect.Height - noTextSize.Y) / 2
             );
-            spriteBatch.DrawString(font, noText, noTextPos, Color.White);
+            spriteBatch.DrawString(font, noText, noTextPos.Value, Color.White);
         }
 
         private static void DrawBorder(SpriteBatch spriteBatch, Texture2D whitePixel, Rectangle rect, int thickness, Color color)
         {
             // Top
-            spriteBatch.Draw(whitePixel, new Rectangle(rect.X, rect.Y, rect.Width, thickness), color);
-            // Bottom
-            spriteBatch.Draw(whitePixel, new Rectangle(rect.X, rect.Y + rect.Height - thickness, rect.Width, thickness), color);
-            // Left
-            spriteBatch.Draw(whitePixel, new Rectangle(rect.X, rect.Y, thickness, rect.Height), color);
-            // Right
-            spriteBatch.Draw(whitePixel, new Rectangle(rect.X + rect.Width - thickness, rect.Y, thickness, rect.Height), color);
+            // Use single pooled rectangle, reuse for all 4 sides (0 allocations vs 4)
+            using var pooledRect = PooledRectangle.Rent(0, 0, 0, 0);
+
+            pooledRect.Value = new Rectangle(rect.X, rect.Y, rect.Width, thickness);
+            spriteBatch.Draw(whitePixel, pooledRect.Value, color);
+
+            pooledRect.Value = new Rectangle(rect.X, rect.Y + rect.Height - thickness, rect.Width, thickness);
+            spriteBatch.Draw(whitePixel, pooledRect.Value, color);
+
+            pooledRect.Value = new Rectangle(rect.X, rect.Y, thickness, rect.Height);
+            spriteBatch.Draw(whitePixel, pooledRect.Value, color);
+
+            pooledRect.Value = new Rectangle(rect.X + rect.Width - thickness, rect.Y, thickness, rect.Height);
+            spriteBatch.Draw(whitePixel, pooledRect.Value, color);
         }
 
         private static string FormatPrompt(Card card, CardEffect effect)

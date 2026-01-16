@@ -95,6 +95,9 @@ ChaosWarlords/                   # Project Root
     │       ├── MapGenerationConfig.cs       # Parameters for procedural map generation
     │       ├── MapGeometry.cs               # Deterministic geometry helper (LogicVector2 based)
     │       ├── MapLayoutEngine.cs           # Procedural map generation logic
+    │       ├── ObjectPool.cs                # Generic object pooling implementation
+    │       ├── PooledRectangle.cs           # Disposable wrapper for Rectangles
+    │       ├── PooledVector2.cs             # Disposable wrapper for Vector2s
     │       ├── SeededGameRandom.cs          # Deterministic RNG implementation
     │       ├── TextCache.cs                 # Caches string measurements
     │       └── ValidationResult.cs          # Standardized validation response
@@ -153,6 +156,7 @@ ChaosWarlords/                   # Project Root
     │   ├── MarketStateManager.cs            # Manages logic for market interactions
     │   ├── MatchManager.cs                  # Manages Match & Victory
     │   ├── PlayerStateManager.cs            # Centralized player mutations
+    │   ├── PoolManager.cs                   # Manages object pools and contexts
     │   ├── ReplayManager.cs                 # Replay recording and playback
     │   ├── TurnManager.cs                   # Manages Turn Order and Phase Transitions
     │   ├── UIEventMediator.cs               # Decouples Game Logic from UI Events
@@ -229,10 +233,10 @@ The architecture supports multiplayer by strictly separating Game Logic from Ren
 
 ### 2. Input Coordination System
 Input is handled via a tiered approach:
-1. **InputManager** detects raw key/mouse states.
-2. **PlayerController** translates raw input into high-level intent (e.g., "Player wants to Play Card").
-3. **GameplayInputCoordinator** orchestrates the intent, checking validity and delegating execution.
-4. **IInputMode Strategy** (Normal, Targeting, Market) interprets the specific context of the input (e.g., clicks select targets vs playing cards).
+1.  **InputManager** detects raw key/mouse states.
+2.  **PlayerController** translates raw input into high-level intent (e.g., "Player wants to Play Card").
+3.  **GameplayInputCoordinator** orchestrates the intent, checking validity and delegating execution.
+4.  **IInputMode Strategy** (Normal, Targeting, Market) interprets the specific context of the input (e.g., clicks select targets vs playing cards).
 
 ### 3. Command Pattern (Mechanics/Commands/)
 All significant game actions (Move, Attack, Buy) are encapsulated in `IGameCommand` objects. This ensures traceability, enables replay systems by re-executing commands, and supports multiplayer synchronization.
@@ -248,6 +252,8 @@ To ensure synchronization without shared memory:
 - **Centralized Mutation**: All resource changes flow through `IPlayerStateManager`.
 - **Action Sequencing**: Actions are assigned sequence numbers.
 - **Seeded RNG**: `IGameRandom` ensures identical random number sequences across all clients.
+- **Context Isolation**: `PoolManager` maintains separate object pools for logic (server) and rendering (client) to prevent state leaks.
+- **Separation of Concerns**: Logic never touches UI, allowing headless execution.
 
 ### 7. MatchContext vs IGameplayState: Separation of Concerns
 
@@ -329,3 +335,10 @@ The codebase underwent significant refactoring to reduce cyclomatic complexity a
 - Enhanced readability with reduced nesting depth (5 → 2)
 - Better adherence to SOLID principles (Single Responsibility, Strategy Pattern)
 - Zero regressions (600/600 tests passing)
+
+### Performance & Optimization
+**New standard as of 2026-01**:
+- **Zero-Allocation Rendering**: All "Hot Path" rendering loops (UI, Map, Cards) utilize `ObjectPool<T>` via `PooledRectangle` and `PooledVector2` wrappers.
+- **Allocation Budget**: `UIRenderer`, `MapRenderer`, and `CardRenderer` have a budget of **0 allocations per frame**.
+- **Context Awareness**: The `PoolManager` ensures that pooled objects are not shared between simulation ticks (e.g. server logic) and rendering frames (client view), preventing race conditions in future threaded implementation.
+

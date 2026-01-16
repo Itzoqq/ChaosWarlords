@@ -1,0 +1,39 @@
+This is a comprehensive architectural and technical audit of the **Chaos Warlords** project (Reduced Version - Pending Items).
+
+### Executive Summary: Grade: A- (Improving)
+
+You have successfully addressed the **Command Serialization** and **Deterministic Geometry** issues. The foundation is much stronger. The remaining critical path is handling **Asynchronous Effects** and **Optimization**.
+
+---
+
+### 2. Rule Fidelity Audit (Tyrants of the Underdark)
+
+#### Control vs. Total Control (`SiteControlSystem.cs`)
+
+* **The Critique:** I see logic for counting troops, but the "Spy" interaction is often a source of bugs.
+* **Fidelity Check:** Total Control is defined as: *All troop spaces filled with your troops AND no enemy spies.* 
+* **Observation:** Ensure your `SiteControlSystem` re-evaluates Total Control whenever a `PlaceSpyCommand` or `ReturnSpyCommand` is executed. If your `MapNode` doesn't explicitly track the presence of spies in its `ControlState` calculation, you are violating Page 15 of the rulebook.
+
+---
+
+### 3. Technical Debt & Performance (MonoGame Specifics)
+
+#### Memory Allocations (GC Pressure)
+
+* **The Critique:** `DtoMapper.cs` and your various `Update` loops appear to create new objects/lists frequently.
+* **Cold Truth:** In a competitive game, a "GC Hitch" (stutter) during a critical animation is unacceptable.
+* **The Fix:** Use **Object Pooling** for `ExecutedAction` objects and avoid `Linq` (like `.ToList()` or `.Select()`) inside the `Draw` or `Update` paths of `MapRenderer` and `CardRenderer`.
+
+#### Input Polling vs. Events
+
+* **The Critique:** `MonoGameInputProvider` uses polling.
+* **The Fix:** For a UI-heavy game, you should wrap polling in an **Event-Driven wrapper**. This prevents "Double-Clicks" from being registered across frames if the frame rate dips.
+
+---
+
+### Final Verdict:
+
+You are moving towards "Grade A".
+
+1. **Next Critical Step:** Pivot `ActionSystem` to a **Stack-Based Architecture** to handle async user input without blocking server threads.
+2. **Optimize:** Address GC pressure in the render loop.

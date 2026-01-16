@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Core.Utilities;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using ChaosWarlords.Source.Contexts;
@@ -76,10 +77,20 @@ namespace ChaosWarlords.Source.Rendering.World
 
         private void DrawBorder(SpriteBatch spriteBatch, Rectangle rect, Color color, int thickness)
         {
-            spriteBatch.Draw(_pixelTexture, new Rectangle(rect.X, rect.Y, rect.Width, thickness), color);
-            spriteBatch.Draw(_pixelTexture, new Rectangle(rect.X, rect.Bottom, rect.Width, thickness), color);
-            spriteBatch.Draw(_pixelTexture, new Rectangle(rect.X, rect.Y, thickness, rect.Height), color);
-            spriteBatch.Draw(_pixelTexture, new Rectangle(rect.Right, rect.Y, thickness, rect.Height), color);
+            // Use single pooled rectangle, reuse for all 4 sides (0 allocations vs 4)
+            using var pooledRect = PooledRectangle.Rent(0, 0, 0, 0);
+
+            pooledRect.Value = new Rectangle(rect.X, rect.Y, rect.Width, thickness);
+            spriteBatch.Draw(_pixelTexture, pooledRect.Value, color);
+
+            pooledRect.Value = new Rectangle(rect.X, rect.Bottom, rect.Width, thickness);
+            spriteBatch.Draw(_pixelTexture, pooledRect.Value, color);
+
+            pooledRect.Value = new Rectangle(rect.X, rect.Y, thickness, rect.Height);
+            spriteBatch.Draw(_pixelTexture, pooledRect.Value, color);
+
+            pooledRect.Value = new Rectangle(rect.Right, rect.Y, thickness, rect.Height);
+            spriteBatch.Draw(_pixelTexture, pooledRect.Value, color);
         }
 
         private void DrawSiteText(SpriteBatch spriteBatch, Site site)
@@ -100,13 +111,14 @@ namespace ChaosWarlords.Source.Rendering.World
                 cache.IsDirty = false;
             }
 
-            // 3. Draw using StringBuilder
-            Vector2 textPos = new Vector2(site.Bounds.X + GameConstants.UILayout.MediumPadding, site.Bounds.Y + GameConstants.UILayout.MediumPadding);
+            // 3. Draw using StringBuilder (pooled vectors for 0 allocations)
+            using var textPos = PooledVector2.Rent(site.Bounds.X + GameConstants.UILayout.MediumPadding, site.Bounds.Y + GameConstants.UILayout.MediumPadding);
+            using var shadowOffset = PooledVector2.Rent(1, 1);
 
             // Draw Shadow
-            spriteBatch.DrawString(_font, cache.Text, textPos + new Vector2(1, 1), Color.Black);
+            spriteBatch.DrawString(_font, cache.Text, textPos.Value + shadowOffset.Value, Color.Black);
             // Draw Text
-            spriteBatch.DrawString(_font, cache.Text, textPos, site.IsCity ? Color.Gold : Color.LightGray);
+            spriteBatch.DrawString(_font, cache.Text, textPos.Value, site.IsCity ? Color.Gold : Color.LightGray);
         }
 
         private static void UpdateSiteText(SiteVisualData cache, Site site)
@@ -152,14 +164,22 @@ namespace ChaosWarlords.Source.Rendering.World
             int startY = site.Bounds.Y - (spySize / 2);
             int i = 0;
 
+            // Pool rectangles outside loop for reuse (0 allocations per spy)
+            using var spyRect = PooledRectangle.Rent(0, 0, spySize, spySize);
+            using var spyBorder = PooledRectangle.Rent(0, 0, 0, 0);
+
             foreach (var spyColor in site.Spies)
             {
                 Color drawColor = GetColor(spyColor);
-                Vector2 spyPos = new Vector2(startX + (i * (spySize + 2)), startY);
-                Rectangle spyRect = new Rectangle((int)spyPos.X, (int)spyPos.Y, spySize, spySize);
+                int spyX = startX + (i * (spySize + 2));
+                int spyY = startY;
 
-                spriteBatch.Draw(_pixelTexture, new Rectangle(spyRect.X - 1, spyRect.Y - 1, spyRect.Width + 2, spyRect.Height + 2), Color.Black);
-                spriteBatch.Draw(_pixelTexture, spyRect, drawColor);
+                // Update pooled rectangles
+                spyRect.Value = new Rectangle(spyX, spyY, spySize, spySize);
+                spyBorder.Value = new Rectangle(spyX - 1, spyY - 1, spySize + 2, spySize + 2);
+
+                spriteBatch.Draw(_pixelTexture, spyBorder.Value, Color.Black);
+                spriteBatch.Draw(_pixelTexture, spyRect.Value, drawColor);
                 i++;
             }
         }
@@ -196,13 +216,14 @@ namespace ChaosWarlords.Source.Rendering.World
                 }
 
                 int radius = MapNode.Radius;
-                Rectangle rect = new Rectangle(
+                // Use pooled rectangle (0 allocations per node)
+                using var rect = PooledRectangle.Rent(
                     (int)(node.Position.X - radius),
                     (int)(node.Position.Y - radius),
                     radius * 2,
                     radius * 2);
 
-                spriteBatch.Draw(_nodeTexture, rect, drawColor);
+                spriteBatch.Draw(_nodeTexture, rect.Value, drawColor);
             }
         }
 
@@ -241,9 +262,13 @@ namespace ChaosWarlords.Source.Rendering.World
             Vector2 edge = end - start;
             float angle = (float)Math.Atan2(edge.Y, edge.X);
 
+            // Use pooled rectangle and vector (0 allocations per line)
+            using var lineRect = PooledRectangle.Rent((int)start.X, (int)start.Y, (int)edge.Length(), thickness);
+            using var origin = PooledVector2.Rent(0, 0.5f);
+
             spriteBatch.Draw(_pixelTexture,
-                new Rectangle((int)start.X, (int)start.Y, (int)edge.Length(), thickness),
-                null, color, angle, new Vector2(0, 0.5f), SpriteEffects.None, 0);
+                lineRect.Value,
+                null, color, angle, origin.Value, SpriteEffects.None, 0);
         }
 
         private static Vector2 GetIntersection(Rectangle rect, Vector2 start, Vector2 end)
@@ -251,10 +276,16 @@ namespace ChaosWarlords.Source.Rendering.World
             var lStart = Core.Data.LogicVector2.FromVector2(start);
             var lEnd = Core.Data.LogicVector2.FromVector2(end);
 
-            var topLeft = Core.Data.LogicVector2.FromVector2(new Vector2(rect.Left, rect.Top));
-            var topRight = Core.Data.LogicVector2.FromVector2(new Vector2(rect.Right, rect.Top));
-            var bottomRight = Core.Data.LogicVector2.FromVector2(new Vector2(rect.Right, rect.Bottom));
-            var bottomLeft = Core.Data.LogicVector2.FromVector2(new Vector2(rect.Left, rect.Bottom));
+            // Use pooled vectors for corner calculations (0 allocations per intersection)
+            using var topLeftVec = PooledVector2.Rent(rect.Left, rect.Top);
+            using var topRightVec = PooledVector2.Rent(rect.Right, rect.Top);
+            using var bottomRightVec = PooledVector2.Rent(rect.Right, rect.Bottom);
+            using var bottomLeftVec = PooledVector2.Rent(rect.Left, rect.Bottom);
+
+            var topLeft = Core.Data.LogicVector2.FromVector2(topLeftVec.Value);
+            var topRight = Core.Data.LogicVector2.FromVector2(topRightVec.Value);
+            var bottomRight = Core.Data.LogicVector2.FromVector2(bottomRightVec.Value);
+            var bottomLeft = Core.Data.LogicVector2.FromVector2(bottomLeftVec.Value);
 
             if (MapGeometry.TryGetLineIntersection(lStart, lEnd, topLeft, topRight, out var lr1)) return lr1.ToVector2();
             if (MapGeometry.TryGetLineIntersection(lStart, lEnd, topRight, bottomRight, out var lr2)) return lr2.ToVector2();

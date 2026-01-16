@@ -52,7 +52,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                       var ctx = callInfo.Arg<EffectContext>();
                       if (!ctx.RequiresInput && ctx.SourceCard != null)
                       {
-                          CardEffectProcessor.ApplyEffect(ctx.SourceEffect, ctx.SourceCard, _context, _logger);
+                          CardEffectProcessor.ApplyEffect(ctx.SourceEffect!, ctx.SourceCard, _context, _logger);
                           ctx.OnResolved?.Invoke(true);
                       }
                   });

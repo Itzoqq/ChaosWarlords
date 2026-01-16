@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Rendering.ViewModels;
+using ChaosWarlords.Source.Core.Utilities;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Rendering.UI
@@ -68,12 +69,14 @@ namespace ChaosWarlords.Source.Rendering.UI
             if (!_isVisible) return;
 
             // 1. Draw Full Screen Overlay (Semi-transparent black)
-            spriteBatch.Draw(whitePixel, new Rectangle(0, 0, screenWidth, screenHeight), Color.Black * 0.8f);
+            // Pooled rectangle and vector for overlay and title (0 allocations)
+            using var overlay = PooledRectangle.Rent(0, 0, screenWidth, screenHeight);
+            spriteBatch.Draw(whitePixel, overlay.Value, Color.Black * 0.8f);
 
             // 2. Draw Title
             Vector2 titleSize = font.MeasureString(_title);
-            Vector2 titlePos = new Vector2((screenWidth - titleSize.X) / 2, 40);
-            spriteBatch.DrawString(font, _title, titlePos, Color.Gold);
+            using var titlePos = PooledVector2.Rent((screenWidth - titleSize.X) / 2, 40);
+            spriteBatch.DrawString(font, _title, titlePos.Value, Color.Gold);
 
             // 3. Calculate Grid Layout
             int cardsPerRow = (screenWidth - (SideMargin * 2)) / (Card.Width + CardSpacing);
@@ -81,6 +84,9 @@ namespace ChaosWarlords.Source.Rendering.UI
 
             int startX = SideMargin;
             int startY = TopMargin;
+
+            // Pool vector outside loop for card positioning (0 allocations)
+            using var cardPos = PooledVector2.Rent(0, 0);
 
             for (int i = 0; i < _activeViewModels.Count; i++)
             {
@@ -92,7 +98,8 @@ namespace ChaosWarlords.Source.Rendering.UI
                 int x = startX + (col * (Card.Width + CardSpacing));
                 int y = startY + (row * (Card.Height + CardSpacing));
 
-                vm.Position = new Vector2(x, y);
+                cardPos.Value = new Vector2(x, y);
+                vm.Position = cardPos.Value;
 
                 // 4. Draw Card
                 cardRenderer.Draw(spriteBatch, vm);

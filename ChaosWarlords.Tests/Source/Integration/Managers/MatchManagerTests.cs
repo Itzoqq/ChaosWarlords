@@ -69,7 +69,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
                              if (!ctx.RequiresInput && ctx.SourceCard != null)
                              {
                                  // Execute Logic directly
-                                 CardEffectProcessor.ApplyEffect(ctx.SourceEffect, ctx.SourceCard, _context, Utilities.TestLogger.Instance);
+                                 CardEffectProcessor.ApplyEffect(ctx.SourceEffect!, ctx.SourceCard, _context, Utilities.TestLogger.Instance);
                                  // Simulate Resolution
                                  ctx.OnResolved?.Invoke(true);
                              }

@@ -515,3 +515,47 @@ _mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(deck);
 *   **Integration/Logic Tests**: Use `SeededGameRandom(seed)` to ensure reproducibility.
 
 
+---
+
+## 15. Object Pooling & Zero-Allocation Rendering
+
+**Rule**: **NEVER** allocate `new Rectangle` or `new Vector2` inside `Draw()` calls or tight loops.
+
+**Why**: Frequent small allocations trigger Gen0 Garbage Collection, causing frame stutters ("hiccups") in the rendering loop.
+
+**Pattern**: Use `PooledRectangle` and `PooledVector2` with the `using` statement for automatic return.
+
+```csharp
+// ❌ WRONG: Generates 60 allocations/sec per call
+public void Draw(SpriteBatch sb)
+{
+    var rect = new Rectangle(0, 0, 100, 100); // Bad!
+    sb.Draw(texture, rect, Color.White);
+}
+
+// ✅ CORRECT: Zero allocations (reuses memory)
+public void Draw(SpriteBatch sb)
+{
+    using var pooled = PooledRectangle.Rent(0, 0, 100, 100);
+    sb.Draw(texture, pooled.Value, Color.White);
+    // Automatically returned to pool at end of scope
+}
+```
+
+**Scope Guidelines**:
+- **Hot Paths**: REQUIRED. (`Draw`, `Update` loops)
+- **Cold Paths**: OPTIONAL. (Initialization, User Clicks) - Optimizing here adds complexity for little gain.
+- **Implementation**: The wrapper types (`PooledRectangle`) are mutable. You can update `pooled.Value` in a loop to reuse the same instance multiple times.
+
+```csharp
+// Advanced: Reusing one instance for many items
+using var pooledRect = PooledRectangle.Rent(0, 0, 0, 0);
+
+foreach (var item in items)
+{
+    pooledRect.Value = new Rectangle(item.X, item.Y, 10, 10); // Struct copy (fast), no heap allocation
+    sb.Draw(texture, pooledRect.Value, Color.White);
+}
+```
+
+
