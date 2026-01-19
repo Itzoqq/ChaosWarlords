@@ -13,6 +13,7 @@ using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
+using ChaosWarlords.Source.Core.Events; // Fixed namespace
 
 namespace ChaosWarlords.Tests.Integration.Input.Modes
 {
@@ -82,59 +83,63 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         }
 
         [TestMethod]
-        public void HandleInput_SafetyCheck_IfActionStateIsNormal_ReturnsSwitchCommand()
+        public void HandleInteraction_SafetyCheck_IfActionStateIsNormal_ReturnsSwitchCommand()
         {
             _actionSub.CurrentState.Returns(ActionState.Normal);
-            var result = _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+            // Default event
+            var evt = new InputEventArgs(InputEventType.LeftClick, Vector2.Zero);
+            
+            var result = _inputMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
 
             Assert.IsNotNull(result);
             Assert.IsInstanceOfType(result, typeof(SwitchToNormalModeCommand));
         }
 
         [TestMethod]
-        public void HandleInput_RightClick_CancelsTargeting_AndReturnsSwitchCommand()
+        public void HandleInteraction_RightClick_CancelsTargeting_AndReturnsSwitchCommand()
         {
             _actionSub.CurrentState.Returns(ActionState.TargetingAssassinate);
 
-            InputTestHelpers.SimulateRightClick(_mockInput, _inputManager, 100, 100);
+            var evt = new InputEventArgs(InputEventType.RightClick, new Vector2(100, 100));
 
-            var result = _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+            var result = _inputMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
 
             _actionSub.Received(1).CancelTargeting();
             Assert.IsInstanceOfType(result, typeof(SwitchToNormalModeCommand));
         }
 
         [TestMethod]
-        public void HandleInput_UIBlocking_IfMarketHovered_DoesNothing()
+        public void HandleInteraction_UIBlocking_IfMarketHovered_DoesNothing()
         {
             _actionSub.CurrentState.Returns(ActionState.TargetingPlaceSpy);
             _mockUI.IsMarketHovered.Returns(true);
 
-            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 100, 100);
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(100, 100));
 
-            var result = _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+            var result = _inputMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
 
             Assert.IsNull(result);
             _actionSub.DidNotReceive().HandleTargetClick(Arg.Any<MapNode>(), Arg.Any<Site>());
         }
 
         [TestMethod]
-        public void HandleInput_ValidTargetClick_CallsSystemHandler()
+        public void HandleInteraction_ValidTargetClick_CallsSystemHandler()
         {
             _actionSub.CurrentState.Returns(ActionState.TargetingAssassinate);
 
             var node = TestData.MapNodes.Node1();
-            _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns(node);
+            var clickPos = new Vector2(200, 200);
+            _mapSub.GetNodeAt(clickPos).Returns(node);
 
-            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 200, 200);
+            var evt = new InputEventArgs(InputEventType.LeftClick, clickPos);
 
-            _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+            _inputMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
 
             _actionSub.Received(1).HandleTargetClick(node, null!);
         }
 
         [TestMethod]
-        public void HandleInput_ClickingOutsideSpySelection_CancelsTargeting()
+        public void HandleInteraction_ClickingOutsideSpySelection_CancelsTargeting()
         {
             // 1. Arrange
             _actionSub.CurrentState.Returns(ActionState.SelectingSpyToReturn);
@@ -149,10 +154,10 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             _mapSub.GetEnemySpiesAtSite(site, _activePlayer).Returns(new List<PlayerColor> { PlayerColor.Blue });
 
             // Click FAR AWAY at (800, 600)
-            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 800, 600);
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(800, 600));
 
             // 2. Act
-            _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+            _inputMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
 
             // 3. Assert
             _actionSub.Received(1).CancelTargeting();
@@ -160,17 +165,18 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         }
 
         [TestMethod]
-        public void HandleInput_ClickingSite_PassesSiteToActionSystem()
+        public void HandleInteraction_ClickingSite_PassesSiteToActionSystem()
         {
             _actionSub.CurrentState.Returns(ActionState.TargetingPlaceSpy);
 
             var targetSite = TestData.Sites.NeutralSite();
-            _mapSub.GetSiteAt(Arg.Any<Vector2>()).Returns(targetSite);
-            _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns((MapNode?)null);
+            var clickPos = new Vector2(300, 300);
+            _mapSub.GetSiteAt(clickPos).Returns(targetSite);
+            _mapSub.GetNodeAt(clickPos).Returns((MapNode?)null);
 
-            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 300, 300);
+            var evt = new InputEventArgs(InputEventType.LeftClick, clickPos);
 
-            _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+            _inputMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
 
             _actionSub.Received(1).HandleTargetClick(null!, targetSite);
         }

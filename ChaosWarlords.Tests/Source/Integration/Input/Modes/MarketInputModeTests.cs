@@ -1,16 +1,23 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
+using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Input.Modes;
-using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Entities.Cards; // Added
+using ChaosWarlords.Source.Utilities;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using NSubstitute;
+using ChaosWarlords.Source.Core.Events;
 using ChaosWarlords.Source.Commands;
-using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Tests.Source.Doubles.State;
+using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Core.Interfaces.Data;
+using System.Collections.Generic;
+using System;
 
 namespace ChaosWarlords.Tests.Integration.Input.Modes
 {
@@ -18,68 +25,66 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
     [TestCategory("Integration")]
     public class MarketInputModeTests
     {
-        private MarketInputMode _inputMode = null!;
-        private MockInputProvider _mockInput = null!;
-        private IInputManager _inputManager = null!;
-
-        // Concrete Fake
+        private MarketInputMode _mode = null!;
         private TestGameplayState _stateFake = null!;
-
-        // Substitutes
+        private IInputManager _mockInputManager = null!; // Renamed
+        private IActionSystem _mockActionSystem = null!; // Renamed
         private IMarketManager _marketSub = null!;
-        private IUIManager _mockUI = null!;
-        private Player _activePlayer = null!;
         private IMapManager _mapSub = null!;
-        private IActionSystem _actionSub = null!;
-        private ICardDatabase _cardDbSub = null!;
+        private IUIManager _mockUI = null!; // Renamed
+        private Player _activePlayer = null!;
+        
+        // Context dependencies
+        private ITurnManager _turnManagerSub = null!;
+        private IGameLogger _loggerSub = null!;
 
         [TestInitialize]
         public void Setup()
         {
-            _mockInput = new MockInputProvider();
-            _inputManager = new InputManager(_mockInput);
-
+            _mockInputManager = Substitute.For<IInputManager>();
+            _mockActionSystem = Substitute.For<IActionSystem>();
             _marketSub = Substitute.For<IMarketManager>();
             _mapSub = Substitute.For<IMapManager>();
-            _actionSub = Substitute.For<IActionSystem>();
-            _cardDbSub = Substitute.For<ICardDatabase>();
             _mockUI = Substitute.For<IUIManager>();
+            _loggerSub = Substitute.For<IGameLogger>();
+            _turnManagerSub = Substitute.For<ITurnManager>();
 
-            var turnSub = Substitute.For<ITurnManager>();
-            _activePlayer = TestData.Players.RedPlayer();
+            // Setup MatchContext for State
+            var cardDbMsg = Substitute.For<ICardDatabase>();
+            var psMsg = new PlayerStateManager(_loggerSub);
+            
+            var matchContext = new MatchContext(
+                _turnManagerSub,
+                _mapSub,
+                _marketSub,
+                _mockActionSystem,
+                cardDbMsg,
+                psMsg,
+                null, 
+                _loggerSub
+            );
 
-            // Initialize Fake State
             _stateFake = new TestGameplayState
             {
-                MapManager = _mapSub,
-                TurnManager = turnSub,
-                ActionSystem = _actionSub,
-                MarketManager = _marketSub,
-                UIManager = _mockUI,
-                MatchContext = new MatchContext(
-                    turnSub,
-                    _mapSub,
-                    _marketSub,
-                    _actionSub,
-                    _cardDbSub,
-                    new PlayerStateManager(Utilities.TestLogger.Instance),
-                    null, Utilities.TestLogger.Instance)
+               ActionSystem = _mockActionSystem,
+               MatchContext = matchContext,
+               UIManager = _mockUI
             };
 
-            // Ensure IsMarketOpen starts true for market tests if needed, or default false
-            _stateFake.MarketStateManager.OpenForBrowsing();
-
-            _inputMode = new MarketInputMode(_stateFake, _inputManager, _stateFake.MatchContext);
+            _activePlayer = new Player(PlayerColor.Red);
+            
+            _mode = new MarketInputMode(_stateFake, _mockInputManager, matchContext);
 
             // Pump update loop to clear startup cooldown (COOLDOWN_FRAMES)
             for (int i = 0; i < 10; i++)
             {
-                _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+                // HandleUpdate is responsible for cooldowns in MarketInputMode
+                _mode.HandleUpdate(_mockInputManager, _mapSub, _activePlayer);
             }
         }
 
         [TestMethod]
-        public void HandleInput_ClickingCard_ReturnsBuyCardCommand()
+        public void HandleInteraction_ClickingCard_ReturnsBuyCardCommand()
         {
             // 1. Arrange
             var card = TestData.Cards.PowerCard();
@@ -87,11 +92,13 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // Mock the State to say "Yes, the mouse is hovering this card"
             _stateFake.HoveredMarketCard = card;
 
-            // Simulate Click
-            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 110, 110);
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(110, 110));
 
+            // Force update frame counter 
+            for(int i=0; i<10; i++) _mode.HandleUpdate(_mockInputManager, _mapSub, _activePlayer);
+            
             // 2. Act
-            var result = _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+            var result = _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _mockActionSystem);
 
             // 3. Assert
             Assert.IsNotNull(result, "Clicking a market card should return a command.");
@@ -99,18 +106,19 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         }
 
         [TestMethod]
-        public void HandleInput_ClickingEmptySpace_ClosesMarket()
+        public void HandleInteraction_ClickingEmptySpace_ClosesMarket()
         {
             // 1. Arrange
-            // Mock State to say "Nothing is hovered"
             _stateFake.HoveredMarketCard = null;
             _stateFake.MarketStateManager.OpenForBrowsing(); // Ensure it's open initially
 
-            // Simulate Click
-            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 10, 10);
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(10, 10));
+
+             // Pump
+            for(int i=0; i<10; i++) _mode.HandleUpdate(_mockInputManager, _mapSub, _activePlayer);
 
             // 2. Act
-            var result = _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+            var result = _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _mockActionSystem);
 
             // 3. Assert
             Assert.IsNull(result);
@@ -118,22 +126,24 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         }
 
         [TestMethod]
-        public void HandleInput_ClickingMarketButton_DoesNotCloseMarket()
+        public void HandleInteraction_ClickingMarketButton_DoesNotCloseMarket()
         {
             _mockUI.IsMarketHovered.Returns(true);
             _stateFake.MarketStateManager.OpenForBrowsing();
 
-            // Simulate Click
-            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 10, 10);
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(10, 10));
 
-            var result = _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+             // Pump
+            for(int i=0; i<10; i++) _mode.HandleUpdate(_mockInputManager, _mapSub, _activePlayer);
+
+            var result = _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _mockActionSystem);
 
             Assert.IsNull(result);
             Assert.IsTrue(_stateFake.IsMarketOpen, "Market should remain open if UI button is clicked.");
         }
 
         [TestMethod]
-        public void HandleInput_WithCallback_InvokesCallback_WhenCardClicked()
+        public void HandleInteraction_WithCallback_InvokesCallback_WhenCardClicked()
         {
             // 1. Arrange
             Card? callbackInvokedCard = null;
@@ -143,18 +153,17 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             _stateFake.MarketStateManager.OpenForDevour(onCardSelected);
 
             // Re-initialize (parameterless)
-            // Re-initialize (parameterless)
-            _inputMode = new MarketInputMode(_stateFake, _inputManager, _stateFake.MatchContext);
-            for (int i = 0; i < 10; i++) _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+            _mode = new MarketInputMode(_stateFake, _mockInputManager, _stateFake.MatchContext);
+            // Pump
+            for(int i=0; i<10; i++) _mode.HandleUpdate(_mockInputManager, _mapSub, _activePlayer);
 
             var card = TestData.Cards.PowerCard();
             _stateFake.HoveredMarketCard = card;
 
-            // Simulate Click
-            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 110, 110);
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(110, 110));
 
             // 2. Act
-            var result = _inputMode.HandleInput(_inputManager, _marketSub, _mapSub, _activePlayer, _actionSub);
+            var result = _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _mockActionSystem);
 
             // 3. Assert
             Assert.IsNull(result, "Should return null command when callback is handled.");

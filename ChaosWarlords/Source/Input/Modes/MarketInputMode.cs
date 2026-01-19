@@ -34,41 +34,41 @@ namespace ChaosWarlords.Source.Input.Modes
         private int _updateFrames;
         private const int COOLDOWN_FRAMES = 5;
 
-        public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        public IGameCommand? HandleInteraction(Core.Events.InputEventArgs evt, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
-            _updateFrames++;
             if (_updateFrames < COOLDOWN_FRAMES) return null;
 
-            var mouseState = _inputManager.GetMouseState();
-            var card = _state.GetHoveredMarketCard();
+            if (evt.Type != Core.Events.InputEventType.LeftClick) return null;
 
             // Left Click Handling
-            if (mouseState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed && _inputManager.IsLeftMouseJustClicked())
+            var card = _state.GetHoveredMarketCard();
+
+            // If market button is hovered, do nothing (keep market open)
+            if (_uiManager.IsMarketHovered) return null;
+
+            if (card != null)
             {
-                // If market button is hovered, do nothing (keep market open)
-                if (_uiManager.IsMarketHovered) return null;
-
-                if (card != null)
+                // Check if we are in Devour Mode (Callback exists in Manager)
+                var devourCallback = _state.MarketStateManager.DevourCallback;
+                if (devourCallback != null)
                 {
-                    // Check if we are in Devour Mode (Callback exists in Manager)
-                    var devourCallback = _state.MarketStateManager.DevourCallback;
-                    if (devourCallback != null)
-                    {
-                        return devourCallback.Invoke(card);
-                        // Market logic is handled by the command execution via ActionSystem/MatchManager
-                    }
-                    else
-                    {
-                        return new BuyCardCommand(card);
-                    }
-
+                    return devourCallback.Invoke(card);
                 }
-
-                // Clicked empty space - close market
-                _state.MarketStateManager.Close();
+                else
+                {
+                    return new BuyCardCommand(card);
+                }
             }
 
+            // Clicked empty space - close market
+            _state.MarketStateManager.Close();
+
             return null;
+        }
+
+        public void HandleUpdate(IInputManager inputManager, IMapManager mapManager, Player activePlayer)
+        {
+            _updateFrames++;
         }
     }
 }

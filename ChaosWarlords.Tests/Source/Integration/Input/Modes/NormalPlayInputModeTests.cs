@@ -12,6 +12,7 @@ using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Commands;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
+using ChaosWarlords.Source.Core.Events; // Fixed namespace
 
 namespace ChaosWarlords.Tests.Integration.Input.Modes
 {
@@ -82,7 +83,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         }
 
         [TestMethod]
-        public void HandleInput_ClickOnCard_ReturnsPlayCardCommand()
+        public void HandleInteraction_ClickOnCard_ReturnsPlayCardCommand()
         {
             // 1. Arrange
             var card = TestData.Cards.CheapCard();
@@ -90,12 +91,12 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // Mock State to return this card as hovered
             _stateFake.HoveredHandCard = card;
 
-            // Simulate Click
-            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 110, 110);
+            // Create Event
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(110, 110));
 
             // 2. Act
-            var result = _inputMode.HandleInput(
-                _inputManager,
+            var result = _inputMode.HandleInteraction(
+                evt,
                 _marketSub,
                 _mapSub,
                 _activePlayer,
@@ -109,7 +110,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         }
 
         [TestMethod]
-        public void HandleInput_ClickOnMapNode_DeploysTroop()
+        public void HandleInteraction_ClickOnMapNode_DeploysTroop()
         {
             // 1. Arrange
             // Ensure no card is hovered
@@ -117,15 +118,15 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             // Setup Map Mock to return a node at click location
             var targetNode = TestData.MapNodes.Node1();
-            _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns(targetNode);
+            var clickPos = new Vector2(200, 200);
+            _mapSub.GetNodeAt(clickPos).Returns(targetNode);
             _mapSub.CanDeployAt(targetNode, _activePlayer.Color).Returns(true);
 
-            // Simulate Click at 200,200
-            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 200, 200);
+            var evt = new InputEventArgs(InputEventType.LeftClick, clickPos);
 
             // 2. Act
-            var result = _inputMode.HandleInput(
-                _inputManager,
+            var result = _inputMode.HandleInteraction(
+                evt,
                 _marketSub,
                 _mapSub,
                 _activePlayer,
@@ -144,7 +145,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         }
 
         [TestMethod]
-        public void HandleInput_CardOverlapsNode_CardTakesPriority()
+        public void HandleInteraction_CardOverlapsNode_CardTakesPriority()
         {
             // 1. Arrange
             var card = TestData.Cards.CheapCard();
@@ -153,14 +154,14 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             _stateFake.HoveredHandCard = card;
 
             var node = TestData.MapNodes.Node1();
-            _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns(node);
+            var clickPos = new Vector2(110, 110);
+            _mapSub.GetNodeAt(clickPos).Returns(node);
 
-            // Simulate Click
-            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 110, 110);
+            var evt = new InputEventArgs(InputEventType.LeftClick, clickPos);
 
             // 2. Act
-            var result = _inputMode.HandleInput(
-                _inputManager,
+            var result = _inputMode.HandleInteraction(
+                evt,
                 _marketSub,
                 _mapSub,
                 _activePlayer,
@@ -175,17 +176,18 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         }
 
         [TestMethod]
-        public void HandleInput_ClickEmptySpace_ReturnsNull()
+        public void HandleInteraction_ClickEmptySpace_ReturnsNull()
         {
             // 1. Arrange
             _stateFake.HoveredHandCard = null;
-            _mapSub.GetNodeAt(Arg.Any<Vector2>()).Returns((MapNode?)null);
+            var clickPos = new Vector2(500, 500);
+            _mapSub.GetNodeAt(clickPos).Returns((MapNode?)null);
 
-            InputTestHelpers.SimulateLeftClick(_mockInput, _inputManager, 500, 500);
+            var evt = new InputEventArgs(InputEventType.LeftClick, clickPos);
 
             // 2. Act
-            var result = _inputMode.HandleInput(
-                _inputManager,
+            var result = _inputMode.HandleInteraction(
+                evt,
                 _marketSub,
                 _mapSub,
                 _activePlayer,

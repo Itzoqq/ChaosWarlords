@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.State;
+using ChaosWarlords.Source.Core.Events;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Utilities;
 
@@ -7,8 +8,7 @@ namespace ChaosWarlords.Source.Input.Controllers
 {
     /// <summary>
     /// Handles all local player input and translates it to game commands.
-    /// Extracted from GameplayState to separate input handling from game state management.
-    /// Industry precedent: Unity's PlayerInput, Unreal's PlayerController
+    /// Event-Driven Refactor: Jan 2026
     /// </summary>
     public class PlayerController
     {
@@ -27,71 +27,69 @@ namespace ChaosWarlords.Source.Input.Controllers
             _inputManager = inputManager ?? throw new ArgumentNullException(nameof(inputManager));
             _inputCoordinator = inputCoordinator ?? throw new ArgumentNullException(nameof(inputCoordinator));
             _interactionMapper = interactionMapper;
+
+            _inputManager.OnInputEvent += HandleInputEvent;
         }
 
-        /// <summary>
-        /// Main update loop for player input handling.
-        /// Returns true if input was handled and should block further processing.
-        /// </summary>
-        public bool Update()
+        public void Update()
         {
-            if (HandleGlobalInput()) return true;
-            if (HandleSpySelectionInput()) return true;
+            // Coordinator now handles updates itself via event subscription too, 
+            // OR if it has continuous update logic (HandleUpdate), we call it here.
+            _inputCoordinator.HandleInput(); // This calls HandleUpdate on current mode
+        }
 
-            // Handle optional effect popup clicks (Priority Handling)
-            if (HandleOptionalEffectPopup()) return true;
+        private void HandleInputEvent(object? sender, InputEventArgs e)
+        {
+            // PRIORITY 1: Global Shortcuts (Escape) & Overlays
+            if (HandleGlobalInput(e)) return;
 
-            // CRITICAL: Block all game input when blocking overlays are open
-            // This prevents clicks from passing through UI to the game world
-            // NOTE: Market is handled by InputCoordinator (MarketInputMode), so we MUST NOT block it here.
-            if (_gameState.IsPauseMenuOpen ||
-                _gameState.IsConfirmationPopupOpen ||
-                _gameState.IsOptionalEffectPopupOpen)
+            // PRIORITY 2: Blocking Overlays
+            if (IsInputBlocked()) return;
+
+            // PRIORITY 3: Popups & UI Interactions
+            if (HandlePopupInteractions(e)) return;
+
+            // PRIORITY 4: Specific State Logic (Spy Selection)
+            if (HandleSpySelectionInput(e)) return;
+
+            // Note: Coordinator logic is handled by Coordinator's own subscription to the same event.
+            // We do not need to call _inputCoordinator.HandleEvent(e) because it listens independently.
+            // However, IF blocking was required, the Coordinator should check blocking status or we should have a centralized handler.
+            // currently, the Coordinator is a separate listener. 
+            // Ideally, Coordinator should check "IsPaused" or similar state.
+        }
+
+        private bool IsInputBlocked()
+        {
+            // Market is handled by InputCoordinator, so we don't strictly block it, 
+            // but Pause/Confirmation/OptionalPopup block everything.
+            return _gameState.IsPauseMenuOpen ||
+                   _gameState.IsConfirmationPopupOpen ||
+                   _gameState.IsOptionalEffectPopupOpen;
+        }
+
+        private bool HandleGlobalInput(InputEventArgs e)
+        {
+            if (e.Type == InputEventType.KeyDown && e.Key == Keys.Escape)
             {
-                return true; // Input blocked
+                _gameState.HandleEscapeKeyPress();
+                return true;
             }
-
-            // Delegate to input coordinator for mode-specific input
-            if (_inputCoordinator != null)
+            if (e.Type == InputEventType.KeyDown && e.Key == Keys.Enter)
             {
-                _inputCoordinator.HandleInput();
+                return HandleEnterKey();
+            }
+            if (e.Type == InputEventType.RightClick)
+            {
+                return HandleRightClick();
             }
             return false;
-        }
-
-        private bool HandleGlobalInput()
-        {
-            if (HandleEscapeKey()) return true;
-            if (HandleEnterKey()) return true;
-            if (HandleRightClick()) return true;
-            return false;
-        }
-
-        private bool HandleEscapeKey()
-        {
-            if (!_inputManager.IsKeyJustPressed(Keys.Escape)) return false;
-
-            // Delegate to UIEventMediator via game state
-            // The game state will handle pause menu toggling
-            _gameState.HandleEscapeKeyPress();
-            return true;
         }
 
         private bool HandleEnterKey()
         {
-            if (!_inputManager.IsKeyJustPressed(Keys.Enter)) return false;
+            if (IsInputBlocked() && !_gameState.IsConfirmationPopupOpen) return true;
 
-
-
-            // Block if blocking overlays are open
-            if (_gameState.IsPauseMenuOpen ||
-                _gameState.IsMarketOpen ||
-                _gameState.IsOptionalEffectPopupOpen)
-            {
-                return true;
-            }
-
-            // Priority 2: Check Confirmation Popup
             if (_gameState.IsConfirmationPopupOpen)
             {
                 _gameState.UIManager.TriggerPopupConfirm();
@@ -111,8 +109,6 @@ namespace ChaosWarlords.Source.Input.Controllers
 
         private bool HandleRightClick()
         {
-            if (!_inputManager.IsRightMouseJustClicked()) return false;
-
             if (_gameState.IsMarketOpen)
             {
                 _gameState.MarketStateManager.Close();
@@ -125,50 +121,48 @@ namespace ChaosWarlords.Source.Input.Controllers
                 _gameState.SwitchToNormalMode();
                 return true;
             }
-
             return false;
         }
 
-        private bool HandleSpySelectionInput()
+        private bool HandleSpySelectionInput(InputEventArgs e)
         {
             if (_gameState.MatchContext.ActionSystem.CurrentState != ActionState.SelectingSpyToReturn)
                 return false;
 
-            if (!_inputManager.IsLeftMouseJustClicked()) return false;
+            if (e.Type != InputEventType.LeftClick) return false;
 
             var site = _gameState.MatchContext.ActionSystem.PendingSite;
             if (site is null) return false;
-
             if (_interactionMapper is null) return false;
 
             PlayerColor? clickedSpy = _interactionMapper.GetClickedSpyReturnButton(
-                _inputManager.MousePosition.ToPoint(),
+                e.Position.ToPoint(),
                 site,
                 _gameState.UIManager.ScreenWidth);
 
             if (clickedSpy.HasValue)
             {
                 _gameState.MatchContext.ActionSystem.FinalizeSpyReturn(clickedSpy.Value);
+                return true;
             }
-
-            return true;
+            return false;
         }
 
-        private bool HandleOptionalEffectPopup()
+        private bool HandlePopupInteractions(InputEventArgs e)
         {
-            // Check if optional effect popup is visible and handle clicks
+            // Optional Effect Popup Click
             if (_gameState is GameStates.GameplayState gameplayState &&
                 gameplayState._view is Rendering.Views.GameplayView view)
             {
                 // If popup is visible, handle clicks and block other input
-                if (view.HandViewModels != null) // Just checking if view is initialized
+                if (view.HandViewModels != null && _gameState.IsOptionalEffectPopupOpen)
                 {
-                    if (_inputManager.IsLeftMouseJustClicked())
+                    if (e.Type == InputEventType.LeftClick)
                     {
-                        var mousePos = _inputManager.MousePosition.ToPoint();
+                        var mousePos = e.Position.ToPoint();
                         view.HandleOptionalEffectClick(mousePos.X, mousePos.Y);
                         // Return true to block input if popup was visible
-                        // The popup will handle its own visibility state
+                        return true; 
                     }
                 }
             }

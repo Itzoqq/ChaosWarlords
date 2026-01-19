@@ -3,11 +3,12 @@ using ChaosWarlords.Source.Managers;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using NSubstitute;
+using ChaosWarlords.Source.Core.Events;
+using System;
 
 namespace ChaosWarlords.Tests.Integration.Input.Services
 {
     [TestClass]
-
     [TestCategory("Integration")]
     public class InputManagerTests
     {
@@ -50,69 +51,16 @@ namespace ChaosWarlords.Tests.Integration.Input.Services
         }
 
         [TestMethod]
-        public void IsKeyJustPressed_ReturnsTrueOnRisingEdge()
+        public void Update_FiresLeftClickEvent_OnRisingEdge()
         {
-            // Arrange - Key not pressed initially
-            var initialState = new KeyboardState();
-            _mockProvider.GetKeyboardState().Returns(initialState);
-            _inputManager.Update();
+            // Arrange - Listen for event
+            bool eventFired = false;
+            _inputManager.OnInputEvent += (s, e) => 
+            {
+                if (e.Type == InputEventType.LeftClick) eventFired = true;
+            };
 
-            // Act - Key pressed on next frame
-            var pressedState = new KeyboardState(Keys.Enter);
-            _mockProvider.GetKeyboardState().Returns(pressedState);
-            _inputManager.Update();
-
-            // Assert
-            Assert.IsTrue(_inputManager.IsKeyJustPressed(Keys.Enter));
-        }
-
-        [TestMethod]
-        public void IsKeyJustPressed_ReturnsFalseWhenHeld()
-        {
-            // Arrange - Key pressed
-            var pressedState = new KeyboardState(Keys.Enter);
-            _mockProvider.GetKeyboardState().Returns(pressedState);
-            _inputManager.Update();
-
-            // Act - Key still pressed on next frame
-            _inputManager.Update();
-
-            // Assert
-            Assert.IsFalse(_inputManager.IsKeyJustPressed(Keys.Enter));
-        }
-
-        [TestMethod]
-        public void IsKeyDown_ReturnsTrueWhenPressed()
-        {
-            // Arrange
-            var pressedState = new KeyboardState(Keys.Space);
-            _mockProvider.GetKeyboardState().Returns(pressedState);
-
-            // Act
-            _inputManager.Update();
-
-            // Assert
-            Assert.IsTrue(_inputManager.IsKeyDown(Keys.Space));
-        }
-
-        [TestMethod]
-        public void IsKeyDown_ReturnsFalseWhenNotPressed()
-        {
-            // Arrange
-            var emptyState = new KeyboardState();
-            _mockProvider.GetKeyboardState().Returns(emptyState);
-
-            // Act
-            _inputManager.Update();
-
-            // Assert
-            Assert.IsFalse(_inputManager.IsKeyDown(Keys.Space));
-        }
-
-        [TestMethod]
-        public void IsLeftMouseJustClicked_ReturnsTrueOnClick()
-        {
-            // Arrange - Mouse not clicked initially
+            // Mouse not clicked initially
             var releasedState = new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
             _mockProvider.GetMouseState().Returns(releasedState);
             _inputManager.Update();
@@ -123,39 +71,98 @@ namespace ChaosWarlords.Tests.Integration.Input.Services
             _inputManager.Update();
 
             // Assert
-            Assert.IsTrue(_inputManager.IsLeftMouseJustClicked());
+            Assert.IsTrue(eventFired, "LeftClick event should have fired on rising edge.");
         }
 
         [TestMethod]
-        public void IsLeftMouseJustClicked_ReturnsFalseWhenHeld()
+        public void Update_DoesNotFireLeftClick_WhenHeld()
         {
-            // Arrange - Mouse clicked
+            // Arrange
+            int eventCount = 0;
+            _inputManager.OnInputEvent += (s, e) => { if (e.Type == InputEventType.LeftClick) eventCount++; };
+
+            // Mouse clicked
             var clickedState = new MouseState(0, 0, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
             _mockProvider.GetMouseState().Returns(clickedState);
-            _inputManager.Update();
+            _inputManager.Update(); 
+            // Reset count if it fired for the first update (it might depend on initial state, but typically previous is default/empty)
+            // Initial state of InputManager uses default structs (Released).
+            // So first update WILL fire if we start pressed. 
+            // Let's assume we want to test "Held" meaning 2nd frame.
+            
+            eventCount = 0; // Reset
 
             // Act - Mouse still clicked on next frame
             _inputManager.Update();
 
             // Assert
-            Assert.IsFalse(_inputManager.IsLeftMouseJustClicked());
+            Assert.AreEqual(0, eventCount, "LeftClick event should NOT fire when button is held.");
         }
 
         [TestMethod]
-        public void IsRightMouseJustClicked_ReturnsTrueOnClick()
+        public void Update_FiresRightClickEvent_OnRisingEdge()
         {
-            // Arrange - Mouse not clicked initially
+            // Arrange
+            bool eventFired = false;
+            _inputManager.OnInputEvent += (s, e) => 
+            {
+                if (e.Type == InputEventType.RightClick) eventFired = true;
+            };
+
             var releasedState = new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released);
             _mockProvider.GetMouseState().Returns(releasedState);
             _inputManager.Update();
 
-            // Act - Right mouse clicked on next frame
+            // Act
             var clickedState = new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Pressed, ButtonState.Released, ButtonState.Released);
             _mockProvider.GetMouseState().Returns(clickedState);
             _inputManager.Update();
 
             // Assert
-            Assert.IsTrue(_inputManager.IsRightMouseJustClicked());
+            Assert.IsTrue(eventFired);
+        }
+
+        [TestMethod]
+        public void Update_FiresKeyDownEvent_OnRisingEdge()
+        {
+            // Arrange
+            bool eventFired = false;
+            _inputManager.OnInputEvent += (s, e) => 
+            {
+                if (e.Type == InputEventType.KeyDown && e.Key == Keys.Enter) eventFired = true;
+            };
+
+            var initialState = new KeyboardState();
+            _mockProvider.GetKeyboardState().Returns(initialState);
+            _inputManager.Update();
+
+            // Act
+            var pressedState = new KeyboardState(Keys.Enter);
+            _mockProvider.GetKeyboardState().Returns(pressedState);
+            _inputManager.Update();
+
+            // Assert
+            Assert.IsTrue(eventFired);
+        }
+
+        [TestMethod]
+        public void Update_DoesNotFireKeyDown_WhenHeld()
+        {
+            // Arrange
+            int eventCount = 0;
+            _inputManager.OnInputEvent += (s, e) => { if (e.Type == InputEventType.KeyDown) eventCount++; };
+
+            var pressedState = new KeyboardState(Keys.Enter);
+            _mockProvider.GetKeyboardState().Returns(pressedState);
+            _inputManager.Update();
+            
+            eventCount = 0; // Reset (first update fired it)
+
+            // Act
+            _inputManager.Update();
+
+            // Assert
+            Assert.AreEqual(0, eventCount);
         }
 
         [TestMethod]

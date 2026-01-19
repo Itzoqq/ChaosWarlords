@@ -1,5 +1,7 @@
+using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using ChaosWarlords.Source.Core.Events;
 
 namespace ChaosWarlords.Source.Core.Interfaces.Input
 {
@@ -8,6 +10,9 @@ namespace ChaosWarlords.Source.Core.Interfaces.Input
     /// </summary>
     public interface IInputManager
     {
+        // New Event-Driven API
+        event EventHandler<InputEventArgs> OnInputEvent;
+
         /// <summary>
         /// Gets the current mouse position.
         /// </summary>
@@ -19,34 +24,9 @@ namespace ChaosWarlords.Source.Core.Interfaces.Input
         void Update();
 
         /// <summary>
-        /// Checks if a key was just pressed this frame.
-        /// </summary>
-        bool IsKeyJustPressed(Keys key);
-
-        /// <summary>
-        /// Checks if a key is currently held down.
-        /// </summary>
-        bool IsKeyDown(Keys key);
-
-        /// <summary>
-        /// Checks if the left mouse button was just clicked this frame.
-        /// </summary>
-        bool IsLeftMouseJustClicked();
-
-        /// <summary>
-        /// Checks if the right mouse button was just clicked this frame.
-        /// </summary>
-        bool IsRightMouseJustClicked();
-
-        /// <summary>
         /// Checks if the mouse is currently over a rectangle.
         /// </summary>
         bool IsMouseOver(Rectangle rect);
-
-        /// <summary>
-        /// Gets the current mouse state.
-        /// </summary>
-        MouseState GetMouseState();
     }
 }
 

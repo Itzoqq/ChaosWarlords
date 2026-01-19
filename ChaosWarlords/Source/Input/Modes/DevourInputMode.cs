@@ -39,41 +39,38 @@ namespace ChaosWarlords.Source.Input.Modes
         private int _updateFrames;
         private const int COOLDOWN_FRAMES = 10; // Slightly longer to ensure popup click is fully cleared
 
-        public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        public IGameCommand? HandleInteraction(Core.Events.InputEventArgs evt, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
-            _updateFrames++;
-
             if (_updateFrames < COOLDOWN_FRAMES) return null;
 
-            if (ShouldCancel(inputManager))
+            // Handle Cancellation (Right Click or Escape)
+            if (evt.Type == Core.Events.InputEventType.RightClick || (evt.Type == Core.Events.InputEventType.KeyDown && evt.Key == Keys.Escape))
+            {
                 return HandleCancellation(actionSystem);
+            }
 
-            if (ShouldSkipOptionalCost(inputManager))
+            // Handle Optional Skip (Space)
+            if (evt.Type == Core.Events.InputEventType.KeyDown && evt.Key == Keys.Space)
+            {
                 return HandleSkipOptionalCost(actionSystem);
+            }
 
-            if (inputManager.IsLeftMouseJustClicked())
+            // Handle Selection (Left Click)
+            if (evt.Type == Core.Events.InputEventType.LeftClick)
+            {
                 return HandleCardClick(actionSystem);
+            }
 
             return null;
         }
 
-        private static bool ShouldCancel(IInputManager inputManager)
+        public void HandleUpdate(IInputManager inputManager, IMapManager mapManager, Player activePlayer)
         {
-            return inputManager.IsRightMouseJustClicked() || inputManager.IsKeyJustPressed(Keys.Escape);
+            _updateFrames++;
+            // Could add hover logic here if needed
         }
 
-        private IGameCommand? HandleCancellation(IActionSystem actionSystem)
-        {
-            actionSystem.CancelTargeting();
-            _gameplayState.SwitchToNormalMode();
-            _gameplayState.Logger.Log("Cancelled Devour action.", LogChannel.General);
-            return null;
-        }
 
-        private static bool ShouldSkipOptionalCost(IInputManager inputManager)
-        {
-            return inputManager.IsKeyJustPressed(Keys.Space);
-        }
 
         private Commands.PlayCardCommand? HandleSkipOptionalCost(IActionSystem actionSystem)
         {
@@ -176,6 +173,17 @@ namespace ChaosWarlords.Source.Input.Modes
             }
 
             return cmd;
+        }
+
+        private Commands.SwitchToNormalModeCommand HandleCancellation(IActionSystem actionSystem)
+        {
+            _gameplayState.Logger.Log("Devour cancelled. Card returned to hand.", LogChannel.Info);
+            actionSystem.CancelTargeting();
+            
+            // Explicitly switch state back to avoid stuck states
+            _gameplayState.SwitchToNormalMode();
+
+            return new Commands.SwitchToNormalModeCommand();
         }
     }
 }

@@ -344,22 +344,30 @@ namespace ChaosWarlords.Source.Rendering.UI
             float otherPlayersY = topY + 300f;
             float gap = 250f;
 
-            // Filter out winner
-            var otherPlayers = victoryData.ScoreBreakdowns.Keys
-                .Where(seat => seat != victoryData.WinnerSeat)
-                .OrderBy(seat => seat) // Just stable order
-                .ToList();
+            // Calculate count and total width first (Zero Allocation Iteration)
+            int otherCount = 0;
+            // Assuming max 4 players for standard UI spacing. Iterating fixed range guarantees sorted order (0,1,2,3).
+            for (int i = 0; i < 4; i++)
+            {
+                if (victoryData.WinnerSeat.HasValue && i == victoryData.WinnerSeat.Value) continue;
+                if (victoryData.ScoreBreakdowns.ContainsKey(i)) otherCount++;
+            }
 
-            if (otherPlayers.Count > 0)
+            if (otherCount > 0)
             {
                 // Calculate total width of the row to center it
-                float totalRowWidth = (otherPlayers.Count * 200f) + ((otherPlayers.Count - 1) * 50f);
+                float totalRowWidth = (otherCount * 200f) + ((otherCount - 1) * 50f);
                 float startX = centerX - (totalRowWidth / 2) + 100f; // Adjusted for center origin
+                int drawIndex = 0;
 
-                for (int i = 0; i < otherPlayers.Count; i++)
+                for (int seat = 0; seat < 4; seat++)
                 {
-                    int seat = otherPlayers[i];
-                    var breakdown = victoryData.ScoreBreakdowns[seat];
+                    // Skip Winner
+                    if (victoryData.WinnerSeat.HasValue && seat == victoryData.WinnerSeat.Value) continue;
+                    
+                    // Check if player exists
+                    if (!victoryData.ScoreBreakdowns.TryGetValue(seat, out var breakdown)) continue;
+
                     Color pColor = GetPlayerColor(victoryData.PlayerColors, seat);
                     string pColorName = "UNKNOWN";
                     if (victoryData.PlayerColors != null && victoryData.PlayerColors.TryGetValue(seat, out var mappedName))
@@ -368,8 +376,9 @@ namespace ChaosWarlords.Source.Rendering.UI
                     }
                     string name = $"PLAYER {pColorName}";
 
-                    using var otherPos = PooledVector2.Rent(startX + (i * gap), otherPlayersY);
+                    using var otherPos = PooledVector2.Rent(startX + (drawIndex * gap), otherPlayersY);
                     DrawScoreBreakdown(sb, breakdown, otherPos.Value, false, name, pColor);
+                    drawIndex++;
                 }
             }
         }

@@ -93,12 +93,27 @@ namespace ChaosWarlords.Source.Core.Utilities
         {
             var dto = new MapDto();
             if (mapManager?.Nodes != null)
+            if (mapManager?.Nodes != null)
             {
-                dto.Nodes = mapManager.Nodes.Select(n => ToDto(n)).Where(n => n != null).ToList()!;
+                var list = new List<MapNodeDto>(mapManager.Nodes.Count);
+                foreach (var node in mapManager.Nodes)
+                {
+                    var nodeDto = ToDto(node);
+                    if (nodeDto != null)
+                    {
+                        list.Add(nodeDto);
+                    }
+                }
+                dto.Nodes = list;
             }
             if (mapManager?.Sites != null)
             {
-                dto.Sites = mapManager.Sites.Select(s => new SiteDto(s)).ToList();
+                var list = new List<SiteDto>(mapManager.Sites.Count);
+                foreach (var site in mapManager.Sites)
+                {
+                    list.Add(new SiteDto(site));
+                }
+                dto.Sites = list;
             }
             return dto;
         }

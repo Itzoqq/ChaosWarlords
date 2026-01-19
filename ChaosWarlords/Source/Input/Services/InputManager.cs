@@ -1,4 +1,6 @@
+using System;
 using ChaosWarlords.Source.Core.Interfaces.Input;
+using ChaosWarlords.Source.Core.Events; // Explicitly adding this too just in case
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 
@@ -19,36 +21,56 @@ namespace ChaosWarlords.Source.Managers
             _provider = provider;
         }
 
+        public event EventHandler<InputEventArgs>? OnInputEvent;
+
         public Vector2 MousePosition => _currentMouse.Position.ToVector2();
 
         public void Update()
         {
             _previousKeyboard = _currentKeyboard;
-            // Ask the provider for the state (could be real or fake)
             _currentKeyboard = _provider.GetKeyboardState();
 
             _previousMouse = _currentMouse;
             _currentMouse = _provider.GetMouseState();
+
+            // Detect and Fire Events
+            FireMouseEvents();
+            FireKeyboardEvents();
         }
 
-        public bool IsKeyJustPressed(Keys key)
+        private void FireMouseEvents()
         {
-            return _currentKeyboard.IsKeyDown(key) && !_previousKeyboard.IsKeyDown(key);
+            // Left Click
+            if (_currentMouse.LeftButton == ButtonState.Pressed && _previousMouse.LeftButton == ButtonState.Released)
+            {
+                OnInputEvent?.Invoke(this, new InputEventArgs(InputEventType.LeftClick, MousePosition));
+            }
+
+            // Right Click
+            if (_currentMouse.RightButton == ButtonState.Pressed && _previousMouse.RightButton == ButtonState.Released)
+            {
+                OnInputEvent?.Invoke(this, new InputEventArgs(InputEventType.RightClick, MousePosition));
+            }
+        }
+
+        private void FireKeyboardEvents()
+        {
+            // Optimization: Only iterate if keys are pressed
+            var pressedKeys = _currentKeyboard.GetPressedKeys();
+            if (pressedKeys.Length == 0 && _previousKeyboard.GetPressedKeys().Length == 0) return;
+
+            foreach (var key in pressedKeys)
+            {
+                if (!_previousKeyboard.IsKeyDown(key))
+                {
+                    OnInputEvent?.Invoke(this, new InputEventArgs(InputEventType.KeyDown, MousePosition, key));
+                }
+            }
         }
 
         public bool IsKeyDown(Keys key)
         {
             return _currentKeyboard.IsKeyDown(key);
-        }
-
-        public bool IsLeftMouseJustClicked()
-        {
-            return _currentMouse.LeftButton == ButtonState.Pressed && _previousMouse.LeftButton == ButtonState.Released;
-        }
-
-        public bool IsRightMouseJustClicked()
-        {
-            return _currentMouse.RightButton == ButtonState.Pressed && _previousMouse.RightButton == ButtonState.Released;
         }
 
         public bool IsMouseOver(Rectangle rect)

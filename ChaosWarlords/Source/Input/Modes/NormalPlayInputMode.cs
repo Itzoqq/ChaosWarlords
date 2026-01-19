@@ -7,6 +7,7 @@ using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
+using Microsoft.Xna.Framework;
 
 
 namespace ChaosWarlords.Source.Input.Modes
@@ -30,9 +31,9 @@ namespace ChaosWarlords.Source.Input.Modes
             _actionSystem = actionSystem;
         }
 
-        public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        public IGameCommand? HandleInteraction(Core.Events.InputEventArgs evt, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
-            if (!inputManager.IsLeftMouseJustClicked())
+            if (evt.Type != Core.Events.InputEventType.LeftClick)
             {
                 return null;
             }
@@ -45,7 +46,17 @@ namespace ChaosWarlords.Source.Input.Modes
             }
 
             // 2. Check Map Click
-            return HandleMapClick(inputManager, mapManager, activePlayer);
+            // Note: We use evt.Position instead of polling inputManager.MousePosition if we want precision,
+            // but mapManager.GetNodeAt typically expects global mouse pos. 
+            // The event carries the position of the click, which is safer.
+            return HandleMapClick(evt.Position, mapManager, activePlayer);
+        }
+
+        public void HandleUpdate(IInputManager inputManager, IMapManager mapManager, Player activePlayer)
+        {
+            // Continuous logic (e.g. Map Panning, Hover effects)
+            // Normal mode doesn't explicitly handle panning yet (handled by Camera controller usually)
+            // But we can add hover logic here if needed.
         }
 
         private PlayCardCommand? HandleCardClick(Card clickedCard, IActionSystem actionSystem)
@@ -95,9 +106,9 @@ namespace ChaosWarlords.Source.Input.Modes
             return new PlayCardCommand(clickedCard);
         }
 
-        private static DeployTroopCommand? HandleMapClick(IInputManager inputManager, IMapManager mapManager, Player activePlayer)
+        private static DeployTroopCommand? HandleMapClick(Vector2 clickPosition, IMapManager mapManager, Player activePlayer)
         {
-            var clickedNode = mapManager.GetNodeAt(inputManager.MousePosition);
+            var clickedNode = mapManager.GetNodeAt(clickPosition);
 
             if (clickedNode is not null && mapManager.CanDeployAt(clickedNode, activePlayer.Color))
             {

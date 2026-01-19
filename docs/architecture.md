@@ -44,6 +44,7 @@ ChaosWarlords/                   # Project Root
     │   │   └── LogicVector2.cs              # Deterministic integer vector struct
     │   ├── Events/                          # Event System
     │   │   ├── GameEvent.cs                 # Base record for all game events
+    │   │   ├── InputEventArgs.cs            # Event args for input interactions
     │   │   └── StateChangeEvent.cs          # Event for state mutations
     │   ├── Interfaces/                      # Contracts (API Definitions)
     │   │   ├── Composition/
@@ -229,20 +230,22 @@ ChaosWarlords/                   # Project Root
 
 ## Key Systems Breakdown
 ### 1. Decoupled Rendering System
-The architecture supports multiplayer by strictly separating Game Logic from Rendering. `GameplayState` (Logic) delegates all visualization to the `IGameplayView` interface, ensuring it never depends on `GraphicsDevice` or MonoGame types directly. This allows the server to run with a `NullGameplayView` while clients use full rendering.
+The architecture supports multiplayer by strictly separating Game Logic from Rendering. `GameplayState` (Logic) delegates all visualization to the `IGameplayView` interface, ensuring it never depends on `GraphicsDevice` or MonoGame types directly.
+
+To maintain 60 FPS performance, the rendering layer enforces a **Zero-Allocation** policy using `ObjectPool<T>` (via `PooledRectangle` and `PooledVector2`). This prevents GC spikes during the render loop.
 
 ### 2. Input Coordination System
-Input is handled via a tiered approach:
-1.  **InputManager** detects raw key/mouse states.
-2.  **PlayerController** translates raw input into high-level intent (e.g., "Player wants to Play Card").
-3.  **GameplayInputCoordinator** orchestrates the intent, checking validity and delegating execution.
-4.  **IInputMode Strategy** (Normal, Targeting, Market) interprets the specific context of the input (e.g., clicks select targets vs playing cards).
+Input is handled via a **Event-Driven** tiered approach:
+1.  **InputManager** detects raw key/mouse states and fires `OnInputEvent`.
+2.  **GameplayInputCoordinator** subscribes to events and checks **Blocking Logic** (e.g. `IsInputBlocked()` returns true if Pause/Popup is open).
+3.  **IInputMode Strategy** (Normal, Targeting, Market) interprets the specific context of the input ONLY if not blocked.
+4.  **PlayerController** remains available for high-level global intents (like Toggle Menu) but discrete gameplay interactions flow through the Coordinator.
 
 ### 3. Command Pattern (Mechanics/Commands/)
 All significant game actions (Move, Attack, Buy) are encapsulated in `IGameCommand` objects. This ensures traceability, enables replay systems by re-executing commands, and supports multiplayer synchronization.
 
 ### 4. Transactional Command Execution
-Complex multi-step actions (like Devour mechanics) utilize the `ActionSystem` (and its **Subsystems**) with **Deferred Execution** to support atomic transactions. Targets are buffered until the entire chain is valid, preventing partial state changes. If a user cancels partway through, the transaction is aborted with no state change.
+Complex multi-step actions (like Devour mechanics) utilize the `ActionSystem` with a **Stack-Based Architecture** (`EffectContext` Stack). This allows actions to be paused (e.g., waiting for user input on an optional effect), new actions to be pushed and resolved (nested transactions), and then the original action to resume. Targets are buffered until the entire chain is valid (`Deferred Execution`).
 
 ### 5. Card Rule Engine
 Card logic is validated by a centralized `CardRuleEngine` using a Chain of Responsibility pattern. `EffectCondition` definitions allow data-driven rules (defined in JSON), separating validation logic from effect execution.

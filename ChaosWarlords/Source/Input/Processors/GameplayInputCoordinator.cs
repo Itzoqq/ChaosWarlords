@@ -13,12 +13,12 @@ namespace ChaosWarlords.Source.Input
     {
         private IInputMode _currentMode = null!;
         private readonly IGameplayState _state; // Reference back to main state for context
-        private readonly InputManager _inputManager;
+        private readonly IInputManager _inputManager;
         private readonly MatchContext _context;
 
         public IInputMode CurrentMode => _currentMode;
 
-        public GameplayInputCoordinator(IGameplayState state, InputManager inputManager, MatchContext context)
+        public GameplayInputCoordinator(IGameplayState state, IInputManager inputManager, MatchContext context)
         {
             _state = state;
             _inputManager = inputManager;
@@ -30,7 +30,36 @@ namespace ChaosWarlords.Source.Input
             // Subscribe to market mode changes
             _state.MarketStateManager.ModeChanged += HandleMarketModeChanged;
 
+            // NEW: Subscribe to Input Events
+            _inputManager.OnInputEvent += HandleInputEvent;
+
             SwitchToNormalMode();
+        }
+
+        private void HandleInputEvent(object? sender, Core.Events.InputEventArgs e)
+        {
+            // BLOCKING CHECK: If any overlay/popup is open, do not process gameplay input here.
+            // UI interactions are handled by PlayerController or UIManager.
+            if (_state.IsPauseMenuOpen || _state.IsConfirmationPopupOpen || _state.IsOptionalEffectPopupOpen)
+            {
+                return;
+            }
+
+            if (_currentMode == null) return;
+
+            // Delegate event to current mode
+            IGameCommand? command = _currentMode.HandleInteraction(
+                e,
+                _context.MarketManager,
+                _context.MapManager,
+                _context.ActivePlayer,
+                _context.ActionSystem);
+
+            if (command != null)
+            {
+                _state.Logger.Log($"[Coordinator] Command Generated from {e.Type}: {command.GetType().Name}", LogChannel.Input);
+                _state.RecordAndExecuteCommand(command);
+            }
         }
 
         private void HandleActionStateChanged(object? sender, ActionState newState)
@@ -67,29 +96,24 @@ namespace ChaosWarlords.Source.Input
 
         public void HandleInput()
         {
-            if (_inputManager.IsLeftMouseJustClicked())
+            // "HandleInput" is now effectively "Update" for continuous input (Hover, Drag)
+            // Discrete input is handled by HandleInputEvent
+            
+            if (_currentMode != null)
             {
-                _state.Logger.Log($"[Coordinator] HandleInput Dispatching. Mode: {_currentMode?.GetType().Name}", LogChannel.Input);
-            }
-
-            if (_currentMode == null) return;
-
-            IGameCommand? command = _currentMode.HandleInput(
-              _inputManager,
-              _context.MarketManager,
-              _context.MapManager,
-              _context.ActivePlayer,
-              _context.ActionSystem);
-
-            if (command != null)
-            {
-                // Centralized command recording - ALL player commands flow through here
-                _state.RecordAndExecuteCommand(command);
+                _currentMode.HandleUpdate(_inputManager, _context.MapManager, _context.ActivePlayer);
             }
         }
 
         public void SwitchToNormalMode()
         {
+            if (_state.MarketStateManager.IsOpen)
+            {
+                _state.Logger.Log("[Coordinator] SwitchToNormalMode called, but Market is Open. Enforcing MarketInputMode.", LogChannel.Input);
+                _currentMode = new MarketInputMode(_state, _inputManager, _context);
+                return;
+            }
+
             _currentMode = new NormalPlayInputMode(
                 _state,
                 _inputManager,

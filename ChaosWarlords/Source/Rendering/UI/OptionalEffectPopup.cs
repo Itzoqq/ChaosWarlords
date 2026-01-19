@@ -199,6 +199,11 @@ namespace ChaosWarlords.Source.Rendering.UI
             Close();
         }
 
+        public void ForceClose()
+        {
+            Close();
+        }
+
         private void Close()
         {
             _isVisible = false;

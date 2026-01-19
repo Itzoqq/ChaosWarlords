@@ -5,12 +5,17 @@ using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Utilities; // For LogChannel, PlayerColor
 using ChaosWarlords.Source.Contexts; // For MatchPhase
+using ChaosWarlords.Source.Core.Events;
+using System;
+using System.IO;
+using System.Linq;
 
 namespace ChaosWarlords.Source.Input.Controllers
 {
     /// <summary>
     /// Manages the Replay lifecycle (Load, Save, Playback Loop).
     /// Decouples replay logic from the main GameplayState.
+    /// Event-Driven Refactor: Jan 2026
     /// </summary>
     public class ReplayController
     {
@@ -37,12 +42,14 @@ namespace ChaosWarlords.Source.Input.Controllers
             _inputManager = inputManager ?? throw new ArgumentNullException(nameof(inputManager));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _onReplayRestartRequested = onReplayRestartRequested;
+
+            // Subscribe to Input Events
+            _inputManager.OnInputEvent += HandleInputEvent;
         }
 
         public void Update(GameTime gameTime)
         {
-            HandleSaveInput();
-            HandleLoadInput();
+            // Input is now handled via events
 
             if (_replayManager.IsReplaying)
             {
@@ -50,47 +57,55 @@ namespace ChaosWarlords.Source.Input.Controllers
             }
         }
 
-        private void HandleSaveInput()
+        private void HandleInputEvent(object? sender, InputEventArgs e)
         {
-            if (_inputManager.IsKeyJustPressed(Keys.F5))
+            if (e.Type != InputEventType.KeyDown) return;
+
+            if (e.Key == Keys.F5)
             {
-                // Accessing MatchContext through State interface (assumed exposed or passed)
-                // GameplayState exposes MatchContext
-                if (_gameState.MatchContext.CurrentPhase == MatchPhase.Setup)
-                {
-                    _logger.Log("Cannot save replay during setup phase! Complete initial deployment first.", LogChannel.Warning);
-                }
-                else if (!_replayManager.IsReplaying)
-                {
-                    string json = _replayManager.GetRecordingJson();
-                    File.WriteAllText("last_replay.json", json);
-                    _logger.Log("Replay saved to last_replay.json", LogChannel.Info);
-                }
+                HandleSaveReplay();
+            }
+            else if (e.Key == Keys.F6)
+            {
+                HandleLoadReplay();
             }
         }
 
-        private void HandleLoadInput()
+        private void HandleSaveReplay()
         {
-            if (_inputManager.IsKeyJustPressed(Keys.F6))
+            // Accessing MatchContext through State interface (assumed exposed or passed)
+            // GameplayState exposes MatchContext
+            if (_gameState.MatchContext.CurrentPhase == MatchPhase.Setup)
             {
-                // Check for existing troop presence to prevent mid-game load
-                bool anyTroopsPlaced = _gameState.MatchContext.MapManager.Nodes.Any(n => n.Occupant != PlayerColor.None && n.Occupant != PlayerColor.Neutral);
+                _logger.Log("Cannot save replay during setup phase! Complete initial deployment first.", LogChannel.Warning);
+            }
+            else if (!_replayManager.IsReplaying)
+            {
+                string json = _replayManager.GetRecordingJson();
+                File.WriteAllText("last_replay.json", json);
+                _logger.Log("Replay saved to last_replay.json", LogChannel.Info);
+            }
+        }
 
-                if (anyTroopsPlaced)
-                {
-                    if (_replayManager.IsReplaying || _replayComplete)
-                        _logger.Log("Cannot restart replay mid-game! Exit to main menu and start a new game to replay again.", LogChannel.Warning);
-                    else
-                        _logger.Log("Cannot start replay after troops have been placed! Start a new game first.", LogChannel.Warning);
-                }
-                else if (File.Exists("last_replay.json"))
-                {
-                    StartReplayFromFile("last_replay.json");
-                }
+        private void HandleLoadReplay()
+        {
+            // Check for existing troop presence to prevent mid-game load
+            bool anyTroopsPlaced = _gameState.MatchContext.MapManager.Nodes.Any(n => n.Occupant != PlayerColor.None && n.Occupant != PlayerColor.Neutral);
+
+            if (anyTroopsPlaced)
+            {
+                if (_replayManager.IsReplaying || _replayComplete)
+                    _logger.Log("Cannot restart replay mid-game! Exit to main menu and start a new game to replay again.", LogChannel.Warning);
                 else
-                {
-                    _logger.Log("No replay file found. Play a game and press F5 to save a replay first.", LogChannel.Warning);
-                }
+                    _logger.Log("Cannot start replay after troops have been placed! Start a new game first.", LogChannel.Warning);
+            }
+            else if (File.Exists("last_replay.json"))
+            {
+                StartReplayFromFile("last_replay.json");
+            }
+            else
+            {
+                _logger.Log("No replay file found. Play a game and press F5 to save a replay first.", LogChannel.Warning);
             }
         }
 

@@ -97,8 +97,14 @@ namespace ChaosWarlords.Source.Rendering.Views
             }
         }
 
-        public void Update(MatchContext context, InputManager inputManager, bool isMarketOpen)
+        public void Update(MatchContext context, InputManager inputManager, bool isMarketOpen, bool isOptionalPopupOpen)
         {
+            // Sync Popup State: Logic Authority overrides View State
+            if (!isOptionalPopupOpen && _optionalEffectPopup != null && _optionalEffectPopup.IsVisible)
+            {
+                _optionalEffectPopup.ForceClose();
+            }
+
             SyncHandVisuals(context.ActivePlayer.Hand);
             SyncPlayedVisuals(context.ActivePlayer.PlayedCards);
             SyncMarketVisuals(context.MarketManager.MarketRow);

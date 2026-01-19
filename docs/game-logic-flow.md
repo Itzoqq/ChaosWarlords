@@ -379,21 +379,26 @@ sequenceDiagram
 ## 8. Input Processing Pipeline
 **Concept**: How a user interacts with the running loop. From "Click" to "Command".
 
+
 ```mermaid
 sequenceDiagram
     participant User
     participant InputManager as InputManager
-    participant Controller as PlayerController
     participant Coordinator as InputCoordinator
     participant Mode as NormalInputMode
     participant System as CardPlaySystem
     participant Command as CommandDispatcher
 
     User->>InputManager: Click(Left, X, Y)
-    InputManager->>Controller: GetInputState()
-    Controller->>Coordinator: HandleInput(State)
-    Coordinator->>Mode: HandleInput(State)
+    InputManager->>InputManager: OnInputEvent(LeftClick)
+    InputManager->>Coordinator: HandleInputEvent(e)
     
+    alt Is Blocking Popup Open?
+        Coordinator--xCoordinator: Abort (Blocked)
+    else Input Allowed
+        Coordinator->>Mode: HandleInteraction(e)
+    end
+
     Note over Mode: Hit Test: Screen -> Card
     
     Mode->>System: TryPlayCard(Player, Card)
@@ -406,10 +411,10 @@ sequenceDiagram
     end
 ```
 
-> **Key Takeaway**: Inputs are filtered three times: 
-> 1. **InputManager**: "Did they click?" 
-> 2. **Coordinator**: "Is this a valid UI state?"
-> 3. **InputMode**: "Is the target valid?" 
+> **Key Takeaway**: Inputs are now **Event-Driven**:
+> 1. **InputManager**: Fires `OnInputEvent`.
+> 2. **Coordinator**: Checks `IsInputBlocked` (Popups/Pause).
+> 3. **InputMode**: Contextual handling (Target vs Play).
 > Only then is a **Command** dispatched.
 
 ---
@@ -767,6 +772,40 @@ flowchart LR
 
 ---
 
+## 15. Zero-Allocation Rendering Pipeline
+**Concept**: Optimization. How the visual layer avoids GC spikes by reusing memory for every rectangle and vector drawn.
+
+```mermaid
+stateDiagram-v2
+    classDef pool fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:black;
+    classDef use fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px,color:black;
+    classDef dead fill:#ffebee,stroke:#b71c1c,stroke-width:2px,color:black;
+
+    [*] --> ObjectPool: App Start
+    
+    state RenderLoop {
+        ObjectPool --> Rented: Rent()
+        
+        state Rented {
+            [*] --> Usage
+            Usage --> Usage: Update .Value
+            Usage --> [*]: Dispose()
+        }
+        
+        Rented --> ObjectPool: Return()
+    }
+
+    state Legacy_Avoid {
+        NewObject --> GC_Collect: End of Scope
+        GC_Collect --> [*]
+    }
+    
+    class ObjectPool pool;
+    class Rented use;
+    class GC_Collect dead;
+```
+
+> **Key Takeaway**: Instead of creating `new Rectangle()` 60 times a second (which creates garbage), we **Rent** a wrapper from the **Object Pool**. We use it, modify it, and when the `using` block ends, it is automatically **Returned** to the pool to be used again next frame. **Allocations per frame = 0**.
 
 ---
 
@@ -781,15 +820,19 @@ sequenceDiagram
     participant Sub as DevourSubsystem
 
     Note over Stack: 1. Main Action Starts
-    Stack->>Stack: PlayCard(Source)
+    Stack->>Stack: Push(EffectContext: PlayCard)
     
     Stack->>Stack: 2. Encounter Optional Effect
     Stack->>UI: Request Input (Accept?)
     
-    alt Accepted (Nested Action Pushed)
+    alt Accepted (Push New Context)
         UI-->>Logic: Accept
         Logic->>Sub: StartDevour() 
-        Note right of Logic: PAUSE PlayCard
+        Logic->>Stack: Push(EffectContext: Devour)
+        Note right of Logic: PAUSE PlayCard (Top of Stack is Devour)
+        
+        Sub->>UI: Request Target
+
         
         Sub->>UI: Request Target
         UI-->>Sub: Select Card

@@ -558,4 +558,65 @@ foreach (var item in items)
 }
 ```
 
+---
+
+## 16. Event-Driven Input Implementation
+
+**Rule**: Discrete Gameplay Logic must subscribe to `InputManager` events rather than polling state.
+
+**Why**: Polling (checking `IsKeyDown` every frame) is prone to "Double-Fire" bugs (action executes twice in 2 frames) or "Missed Input" (if framerate dips). Events (`LeftClick`, `KeyDown`) guarantee exactly one execution per physical interaction.
+
+```csharp
+// ❌ WRONG: Polling in Logic Update
+public void Update()
+{
+    if (_inputManager.IsLeftMouseDown())
+    {
+        // Fires every frame button is held! Hard to control.
+        FireWeapon(); 
+    }
+}
+
+// ✅ CORRECT: Subscribing to Event
+public void Initialize()
+{
+    _inputManager.OnInputEvent += HandleInput;
+}
+
+private void HandleInput(object sender, InputEventArgs e)
+{
+    if (e.Type == InputEventType.LeftClick)
+    {
+        // Fires exactly once per click
+        FireWeapon();
+    }
+}
+```
+
+**Exceptions**: 
+- **Continuous Actions**: Camera panning or Dragging items *should* use polling (`IsKeyDown(Keys.W)`), as they happen every frame.
+- **UI Hover State**: Checking mouse position for tooltips consumes polling data.
+
+---
+
+## 17. Deterministic Geometry (Time/Space Independence)
+
+**Rule**: All Game Logic positions must use `LogicVector2` (int-based) instead of `Vector2` (float-based).
+
+**Why**: Floating point arithmetic is non-deterministic across different CPUs/architectures. Multiplayer sync requires identical calculations.
+
+```csharp
+// ❌ WRONG: Float vectors in logic
+public Vector2 Position { get; set; }
+public void Move() { Position += new Vector2(0.5f, 0); } // Precision drift!
+
+// ✅ CORRECT: Logic Vectors
+public LogicVector2 Position { get; set; }
+public void Move() { Position += new LogicVector2(1, 0); } // Exact integer math
+```
+
+**Usage**:
+- **Logic Layer**: Use `LogicVector2`.
+- **View Layer**: Convert to `Vector2` *only* for drawing: `spriteBatch.Draw(..., entity.Position.ToVector2(), ...)`
+
 

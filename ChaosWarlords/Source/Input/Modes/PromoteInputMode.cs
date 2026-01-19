@@ -26,16 +26,19 @@ namespace ChaosWarlords.Source.Input.Modes
             _gameplayState.Logger.Log($"Select {_cardsLeftToPromote} card(s) from your PLAYED pile to Promote.", LogChannel.General);
         }
 
-        public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        public IGameCommand? HandleInteraction(Core.Events.InputEventArgs evt, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
-            if (inputManager.IsRightMouseJustClicked() || inputManager.IsKeyJustPressed(Keys.Escape))
+            // 1. Check Cancellations (Right Click or Escape)
+            // Note: Promote is usually mandatory in Chaos Warlords if triggered, but the original code handled escape/right click as "Mandatory Action" warning log.
+            if (evt.Type == Core.Events.InputEventType.RightClick || (evt.Type == Core.Events.InputEventType.KeyDown && evt.Key == Keys.Escape))
             {
                 // Strict Rule Enforcement:
                 _gameplayState.Logger.Log("Mandatory Action: You must select a card to promote.", LogChannel.Warning);
                 return null;
             }
 
-            if (inputManager.IsLeftMouseJustClicked())
+            // 2. Check Left Click
+            if (evt.Type == Core.Events.InputEventType.LeftClick)
             {
                 Card? targetCard = _gameplayState.GetHoveredPlayedCard();
 
@@ -75,6 +78,11 @@ namespace ChaosWarlords.Source.Input.Modes
             }
 
             return null;
+        }
+
+        public void HandleUpdate(IInputManager inputManager, IMapManager mapManager, Player activePlayer)
+        {
+            // No continuous update needed for now
         }
     }
 }

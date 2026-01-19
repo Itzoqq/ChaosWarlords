@@ -24,14 +24,14 @@ namespace ChaosWarlords.Source.Managers
         // State
         private bool _isConfirmationPopupOpen;
         private bool _isPauseMenuOpen;
+        private bool _isOptionalEffectPopupOpen;
 
-        public bool IsConfirmationPopupOpen
-        {
-            get
-            {
-                return _isConfirmationPopupOpen;
-            }
-        }
+        // Callbacks for Optional Effect
+        private Action? _onOptionalEffectAccept;
+        private Action? _onOptionalEffectDecline;
+
+        public bool IsConfirmationPopupOpen => _isConfirmationPopupOpen;
+        public bool IsOptionalEffectPopupOpen => _isOptionalEffectPopupOpen;
         public bool IsPauseMenuOpen => _isPauseMenuOpen;
 
         public UIEventMediator(
@@ -48,12 +48,39 @@ namespace ChaosWarlords.Source.Managers
             _game = game; // Can be null for testing
         }
 
-        // Optional Effect Event
+        // Optional Effect Event (View listens to this for content)
         public event Action<Entities.Cards.Card, Entities.Cards.CardEffect, Action, Action>? OnOptionalEffectRequested;
 
         public void RequestOptionalEffect(Entities.Cards.Card card, Entities.Cards.CardEffect effect, Action onAccept, Action onDecline)
         {
-            OnOptionalEffectRequested?.Invoke(card, effect, onAccept, onDecline);
+            // Update State
+            _isOptionalEffectPopupOpen = true;
+            _onOptionalEffectAccept = onAccept;
+            _onOptionalEffectDecline = onDecline;
+
+            // Wrap callbacks for the View so that if the View triggers them directly,
+            // we properly clear our internal state.
+            Action wrappedAccept = () => 
+            {
+                ClearOptionalPopupState();
+                onAccept?.Invoke();
+            };
+
+            Action wrappedDecline = () =>
+            {
+                ClearOptionalPopupState();
+                onDecline?.Invoke();
+            };
+
+            // Notify View to gather content
+            OnOptionalEffectRequested?.Invoke(card, effect, wrappedAccept, wrappedDecline);
+        }
+
+        private void ClearOptionalPopupState()
+        {
+            _isOptionalEffectPopupOpen = false;
+            _onOptionalEffectAccept = null;
+            _onOptionalEffectDecline = null;
         }
 
         /// <summary>
@@ -109,7 +136,8 @@ namespace ChaosWarlords.Source.Managers
         public void Update()
         {
             _uiManager.IsPaused = _isPauseMenuOpen;
-            _uiManager.IsPopupVisible = _isConfirmationPopupOpen;
+            // Visible if EITHER popup is open
+            _uiManager.IsPopupVisible = _isConfirmationPopupOpen || _isOptionalEffectPopupOpen;
         }
 
         // --- Public Methods for External Control ---
@@ -142,6 +170,13 @@ namespace ChaosWarlords.Source.Managers
             {
                 _isConfirmationPopupOpen = false;
                 return; // Do NOT open pause menu
+            }
+            
+            // Priority 4: Decline Optional Effect
+            if (_isOptionalEffectPopupOpen)
+            {
+                HandlePopupCancel(this, EventArgs.Empty);
+                return;
             }
 
             // If nothing else to cancel, Open Pause Menu
@@ -227,6 +262,14 @@ namespace ChaosWarlords.Source.Managers
                 _isConfirmationPopupOpen = false;
                 HandleEndTurnWithPromotionCheck();
             }
+            else if (_isOptionalEffectPopupOpen)
+            {
+                _logger.Log("Gameplay: Optional Effect Accepted via Popup", LogChannel.Info);
+                // Invoke original logic callback if triggered via generalized UIManager event (rare but possible)
+                var callback = _onOptionalEffectAccept;
+                ClearOptionalPopupState();
+                callback?.Invoke();
+            }
         }
 
         private void HandlePopupCancel(object? sender, EventArgs e)
@@ -235,6 +278,13 @@ namespace ChaosWarlords.Source.Managers
             {
                 _logger.Log("Gameplay: Popup Cancelled", LogChannel.Info);
                 _isConfirmationPopupOpen = false;
+            }
+            else if (_isOptionalEffectPopupOpen)
+            {
+                _logger.Log("Gameplay: Optional Effect Declined via Popup", LogChannel.Info);
+                var callback = _onOptionalEffectDecline;
+                ClearOptionalPopupState();
+                callback?.Invoke();
             }
         }
 

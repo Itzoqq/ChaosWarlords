@@ -1,13 +1,15 @@
-using ChaosWarlords.Source.Core.Interfaces.Services;
-using ChaosWarlords.Source.Core.Interfaces.Input;
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
+using System;
+using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.State;
+using ChaosWarlords.Source.Core.Interfaces.Input;
+using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Commands;
-using ChaosWarlords.Source.Entities.Map;
+using ChaosWarlords.Source.Core.Events;
 using ChaosWarlords.Source.Entities.Actors;
-using ChaosWarlords.Source.Utilities;
-using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Entities.Map;
 
 namespace ChaosWarlords.Source.Input.Modes
 {
@@ -30,7 +32,7 @@ namespace ChaosWarlords.Source.Input.Modes
             _actionSystem = actionSystem;
         }
 
-        public IGameCommand? HandleInput(IInputManager inputManager, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        public IGameCommand? HandleInteraction(InputEventArgs evt, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             // 1. SAFETY: State Desync Protection
             if (actionSystem.CurrentState == ActionState.Normal)
@@ -44,19 +46,41 @@ namespace ChaosWarlords.Source.Input.Modes
                 return null;
             }
 
-            // 3. Right-Click to Cancel
-            if (inputManager.IsRightMouseJustClicked())
+            // Targeting can be cancellable via Right Click
+            if (evt.Type == InputEventType.RightClick)
             {
+                // Right click cancels targeting
                 return HandleCancellation(actionSystem);
             }
 
-            // 4. Handle Specific Targeting Logic
-            if (inputManager.IsLeftMouseJustClicked())
+            if (evt.Type != InputEventType.LeftClick) return null;
+
+            // 1. Check Card Selection (if targeting cards, e.g. for some spells?)
+            // Currently targeting usually means MAP nodes or SITES.
+
+            // 2. Delegate to ActionSystem to validate the Clicked Target
+            // We pass the Event Position
+            return ConvertClickToCommand(evt.Position, mapManager, activePlayer, actionSystem);
+        }
+
+        public void HandleUpdate(IInputManager inputManager, IMapManager mapManager, Player activePlayer)
+        {
+            // Helper text or hover highlights could be managed here
+        }
+
+        private static IGameCommand? ConvertClickToCommand(Vector2 clickPos, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        {
+            if (actionSystem.CurrentState == ActionState.SelectingSpyToReturn)
             {
-                return HandleLeftClickInternal(inputManager, mapManager, activePlayer, actionSystem);
+                // Return the command from spy selection (ResolveSpyCommand usually)
+                return HandleSpySelection(clickPos, mapManager, activePlayer, actionSystem);
             }
 
-            return null;
+            MapNode? targetNode = mapManager.GetNodeAt(clickPos);
+            Site? targetSite = mapManager.GetSiteAt(clickPos);
+
+            // Return the command if the click resolved an action
+            return HandleTargetingClick(actionSystem, targetNode, targetSite);
         }
 
         private bool IsUIBlocking()
@@ -76,23 +100,7 @@ namespace ChaosWarlords.Source.Input.Modes
             return new SwitchToNormalModeCommand();
         }
 
-        private IGameCommand? HandleLeftClickInternal(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
-        {
-            if (actionSystem.CurrentState == ActionState.SelectingSpyToReturn)
-            {
-                // Return the command from spy selection (ResolveSpyCommand usually)
-                return HandleSpySelection(inputManager, mapManager, activePlayer, actionSystem);
-            }
-
-            Vector2 mousePos = inputManager.MousePosition;
-            MapNode? targetNode = mapManager.GetNodeAt(mousePos);
-            Site? targetSite = mapManager.GetSiteAt(mousePos);
-
-            // Return the command if the click resolved an action
-            return HandleTargetingClick(actionSystem, targetNode, targetSite);
-        }
-
-        private IGameCommand? HandleSpySelection(IInputManager inputManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        private static SwitchToNormalModeCommand? HandleSpySelection(Vector2 mousePos, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
             Site? site = actionSystem.PendingSite;
             if (site is null)
@@ -101,21 +109,26 @@ namespace ChaosWarlords.Source.Input.Modes
                 return null;
             }
 
-            var enemies = mapManager.GetEnemySpiesAtSite(site, activePlayer).Distinct().ToList();
-            Vector2 startPos = new Vector2(site.Bounds.X, site.Bounds.Y - 50);
-
-            for (int i = 0; i < enemies.Count; i++)
-            {
-                Rectangle btnRect = new Rectangle((int)startPos.X + (i * 60), (int)startPos.Y, 50, 40);
-                if (inputManager.IsMouseOver(btnRect))
-                {
-                    // This will return the ResolveSpyCommand
-                    return actionSystem.FinalizeSpyReturn(enemies[i]);
-                }
-            }
-
-            // If clicked outside buttons, maybe cancel?
-            _state.Logger.Log("Cancelled spy selection.", LogChannel.General);
+            // Note: This logic seems redundant if PlayerController handles Spy Selection now?
+            // But if we are in Targeting Mode, maybe we still want to handle valid clicks?
+            // Actually, PlayerController handles it via HandleSpySelectionInput which returns TRUE (consumes).
+            // So this might never be reached if PlayerController consumes it first.
+            // BUT, TargetingInputMode is called by Coordinator. PlayerController calls Coordinator if it didn't consume.
+            // So if PlayerController consumes, Coordinate isn't called.
+            
+            // However, let's keep it robust.
+            
+            // Wait, HandleSpySelection logic in original code used "Rectangles" and hovering.
+            // PlayerController uses InteractionMapper.
+            // We should use InteractionMapper here too if possible, OR just rely on PlayerController to have handled it.
+            // If we are here, PlayerController arguably FAILED to handle it or passed it through?
+            // But PlayerController handles specifically "SelectingSpyToReturn" state.
+            
+            // Let's assume for now we just return null because PlayerController handles UI clicks for spies.
+            // Or we keep the map-logic backup.
+            
+            // If we reached here, PlayerController did not handle the click (clicked outside buttons).
+            // So we cancel the targeting.
             actionSystem.CancelTargeting();
             return new SwitchToNormalModeCommand();
         }
@@ -162,7 +175,3 @@ namespace ChaosWarlords.Source.Input.Modes
         }
     }
 }
-
-
-
-

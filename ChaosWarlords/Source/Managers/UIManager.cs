@@ -3,6 +3,7 @@ using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Core.Events;
 
 namespace ChaosWarlords.Source.Managers
 {
@@ -242,10 +243,16 @@ namespace ChaosWarlords.Source.Managers
         }
 
         // Updated Update Loop to Check Pause Menu
+        public void BindInputManager(IInputManager input)
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            input.OnInputEvent += HandleInputEvent;
+        }
+
         public void Update(IInputManager input)
         {
             UpdateHovers(input);
-            HandleClicks(input);
+            // HandleClicks(input); // Removed polling
         }
 
         private void UpdateHovers(IInputManager input)
@@ -266,11 +273,12 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
-        private void HandleClicks(IInputManager input)
+        private void HandleInputEvent(object? sender, InputEventArgs e)
         {
-            if (!input.IsLeftMouseJustClicked()) return;
+            if (e.Type != InputEventType.LeftClick) return;
 
-            var clickedElement = _elements.FirstOrDefault(e => e.IsActive() && input.IsMouseOver(e.GetBounds()));
+            // We use the position from the event instead of polling
+            var clickedElement = _elements.FirstOrDefault(el => el.IsActive() && el.GetBounds().Contains(e.Position));
             clickedElement?.OnClick?.Invoke();
         }
 

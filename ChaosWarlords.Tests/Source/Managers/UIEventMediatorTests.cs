@@ -239,6 +239,44 @@ namespace ChaosWarlords.Tests.Managers
             // State-Based Assertion
             Assert.AreEqual("Normal", _state.ActiveModeName);
         }
+        [TestMethod]
+        public void RequestOptionalEffect_OpensPopup_AndExecutesAcceptCallback()
+        {
+            _mediator.Initialize();
+            bool callbackExecuted = false;
+            Action onAccept = () => callbackExecuted = true;
+            Action onDecline = () => { };
+
+            _mediator.RequestOptionalEffect(null!, null!, onAccept, onDecline);
+
+            Assert.IsTrue(_mediator.IsOptionalEffectPopupOpen);
+            Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
+
+            // Confirm
+            _mockUIManager.OnPopupConfirm += Raise.Event();
+
+            Assert.IsTrue(callbackExecuted, "Accept callback should be executed");
+            Assert.IsFalse(_mediator.IsOptionalEffectPopupOpen, "Popup should close");
+        }
+
+        [TestMethod]
+        public void RequestOptionalEffect_OpensPopup_AndExecutesDeclineCallback()
+        {
+            _mediator.Initialize();
+            bool callbackExecuted = false;
+            Action onAccept = () => { };
+            Action onDecline = () => callbackExecuted = true;
+
+            _mediator.RequestOptionalEffect(null!, null!, onAccept, onDecline);
+
+            Assert.IsTrue(_mediator.IsOptionalEffectPopupOpen);
+
+            // Decline
+            _mockUIManager.OnPopupCancel += Raise.Event();
+
+            Assert.IsTrue(callbackExecuted, "Decline callback should be executed");
+            Assert.IsFalse(_mediator.IsOptionalEffectPopupOpen, "Popup should close");
+        }
     }
 }
 

@@ -23,6 +23,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Rendering
         Rectangle PopupCancelButtonRect { get; }
 
         // Input Handling
+        void BindInputManager(IInputManager input);
         void Update(IInputManager input);
 
         // Events

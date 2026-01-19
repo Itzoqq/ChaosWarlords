@@ -221,6 +221,9 @@ namespace ChaosWarlords.Source.GameStates
             // UIEventMediator already created in InitializeMatch, just initialize it here
             _uiEventMediator.Initialize();
 
+            // Bind Input to UIManager (Event-Driven)
+            _uiManagerBacking.BindInputManager(_inputManagerBacking);
+
             // Subscribe view to optional effect events
             if (_view is Rendering.Views.GameplayView gameplayView)
             {
@@ -267,12 +270,12 @@ namespace ChaosWarlords.Source.GameStates
 
             if (ShouldSkipGameplayUpdate())
             {
-                _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
+                _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen, _uiEventMediator.IsOptionalEffectPopupOpen);
                 return;
             }
 
             UpdateGameplayLogic(gameTime);
-            _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen);
+            _view?.Update(_matchContext, _inputManagerBacking, IsMarketOpen, _uiEventMediator.IsOptionalEffectPopupOpen);
             CheckAndHandleVictory();
         }
 
@@ -291,7 +294,7 @@ namespace ChaosWarlords.Source.GameStates
         private bool ShouldSkipGameplayUpdate()
         {
             // Skip gameplay updates if blocking UI is open
-            return _uiEventMediator.IsPauseMenuOpen || _uiEventMediator.IsConfirmationPopupOpen;
+            return _uiEventMediator.IsPauseMenuOpen || _uiEventMediator.IsConfirmationPopupOpen || _uiEventMediator.IsOptionalEffectPopupOpen;
         }
 
         private void UpdateGameplayLogic(GameTime gameTime)

@@ -129,6 +129,7 @@ ChaosWarlords.Tests/Source/
 │   ├── Input/
 │   │   ├── Controllers/
 │   │   │   └── PlayerControllerTests.cs
+│   │   ├── InputBlockingTests.cs
 │   │   ├── Modes/
 │   │   │   ├── DevourFromInnerCircleIntegrationTests.cs
 │   │   │   ├── DevourInputModeTests.cs
@@ -150,8 +151,10 @@ ChaosWarlords.Tests/Source/
 │       ├── DevourFromInnerCircleIntegrationTests.cs
 │       ├── DevourMechanicsTests.cs
 │       ├── MarketDevourChainTests.cs
+│       ├── ReturnUnitMechanicsTests.cs
 │       ├── SelfDevourIntegrationTests.cs
-│       └── TransactionalCommandTests.cs
+│       ├── TransactionalCommandTests.cs
+│       └── WightMechanicsTests.cs
 │
 ├── Managers/                    # Unit Tests for Business Logic Managers
 │   ├── CommandDispatcherTests.cs
@@ -366,4 +369,37 @@ All methods return **new instances** with unique IDs.
 
 ---
 
+### Integration Tests Details
 
+**Input Blocking Tests (`InputBlockingTests.cs`)**
+Verifies that blocking popups (Pause Menu, Confirmation, Optional Effects) strictly prevent gameplay interaction.
+- Uses `Substitute.For<IInputManager>()` to fire simulated events.
+- Asserts `DidNotReceive()` on command execution when popups are open.
+
+**Mechanics Verification (`WightMechanicsTests.cs`)**
+The gold standard for complex mechanics. Verifies "Deep Lookahead" logic:
+- Sets up board state (Map, Nodes occupied/unoccupied).
+- Plays a Card with multi-step mechanics (`Wight`).
+- Asserts that Popups ONLY appear if the FULL chain is valid (Lookahead).
+
+---
+
+## 16. Advanced Mocking Patterns
+
+### 16.1 Mocking Input Events
+To test event-driven input, use NSubstitute's `Raise.Event` to trigger the `OnInputEvent` handler.
+
+```csharp
+// Arrange
+var mockInput = Substitute.For<IInputManager>();
+var coordinator = new GameplayInputCoordinator(..., mockInput, ...);
+
+// Act: Simulate User Click
+mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+    this, 
+    new InputEventArgs(InputEventType.LeftClick, new Vector2(100, 100))
+);
+
+// Assert
+// Verify command was executed or state changed
+```
