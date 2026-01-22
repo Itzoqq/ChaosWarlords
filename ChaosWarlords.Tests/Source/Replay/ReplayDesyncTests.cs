@@ -51,7 +51,7 @@ namespace ChaosWarlords.Tests.Source.Replay
             // Execute PlayCard manually (mocking command execution)
             redLive.RemoveFromHand(soldierRed);
             redLive.AddToPlayed(soldierRed);
-            redLive.Power += 1; // Effect
+            redLive.AddPower(1); // Effect
 
             // 2. Deploy
             var cmd1 = new DeployTroopCommand(worldLive.MapManager.NodesInternal.First(n => n.Id == 1), redLive);
@@ -125,7 +125,7 @@ namespace ChaosWarlords.Tests.Source.Replay
                 // Apply Logic
                 redReplay.RemoveFromHand(card);
                 redReplay.AddToPlayed(card);
-                redReplay.Power += 1;
+                redReplay.AddPower(1);
             }
 
             // Exec 2 (RED Deploy)

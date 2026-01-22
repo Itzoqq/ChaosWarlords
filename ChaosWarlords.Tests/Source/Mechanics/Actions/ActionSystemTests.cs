@@ -32,7 +32,12 @@ namespace ChaosWarlords.Tests.Systems
             // ARRANGE
             Utilities.TestLogger.Initialize();
             _player1 = TestData.Players.RedPlayer();
+            _player1.SpendPower(_player1.Power);
+            _player1.SpendInfluence(_player1.Influence);
+
             _player2 = TestData.Players.BluePlayer();
+            _player2.SpendPower(_player2.Power);
+            _player2.SpendInfluence(_player2.Influence);
 
             // Mock the Managers
             _mapManager = Substitute.For<IMapManager>();
@@ -61,8 +66,8 @@ namespace ChaosWarlords.Tests.Systems
                     int amt = (int)x[1];
                     if (p.Power >= amt)
                     {
-                        p.Power -= amt;
-                        return true;
+                        // Use SpendPower instead of direct set
+                        return p.SpendPower(amt); 
                     }
                     return false;
                 });
@@ -77,7 +82,7 @@ namespace ChaosWarlords.Tests.Systems
             _actionSystem.OnAutoExecuteCommand += (cmd) => ExecuteIfNotNull(cmd);
 
             // Reset player defaults
-            _player1.Power = 10;
+            _player1.AddPower(10);
             _player1.TroopsInBarracks = 10;
             _player1.SpiesInBarracks = 5;
         }
@@ -110,7 +115,8 @@ namespace ChaosWarlords.Tests.Systems
             bool shouldSucceed,
             ActionState expectedState)
         {
-            _player1.Power = playerPower;
+            _player1.SpendPower(_player1.Power); // Reset to 0
+            _player1.AddPower(playerPower);
             _eventFailedFired = false; // Reset
 
             // Setup map validation for Return Spy (required after bug fix)
@@ -140,7 +146,7 @@ namespace ChaosWarlords.Tests.Systems
         public void HandleTargetClick_Assassinate_PaysCost_AndCallsMapManager()
         {
             // Arrange
-            _player1.Power = 3;
+            _player1.AddPower(3);
             _actionSystem.TryStartAssassinate();
             _mapManager.CanAssassinate(_node2, _player1).Returns(true);
 
@@ -150,7 +156,7 @@ namespace ChaosWarlords.Tests.Systems
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
-            Assert.AreEqual(0, _player1.Power); // Cost paid
+            Assert.AreEqual(10, _player1.Power); // Cost paid (13 - 3 = 10)
             _mapManager.Received(1).Assassinate(_node2, _player1);
         }
 
@@ -228,7 +234,7 @@ namespace ChaosWarlords.Tests.Systems
         public void HandleTargetClick_ReturnSpy_AutoResolves_SingleFaction()
         {
             // Arrange
-            _player1.Power = 3;
+            _player1.AddPower(3);
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
 
             // Mock: Only Blue spies here
@@ -241,7 +247,7 @@ namespace ChaosWarlords.Tests.Systems
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
-            Assert.AreEqual(0, _player1.Power);
+            Assert.AreEqual(10, _player1.Power);
             _mapManager.Received(1).ReturnSpecificSpy(_siteA, _player1, PlayerColor.Blue);
         }
 
@@ -249,7 +255,7 @@ namespace ChaosWarlords.Tests.Systems
         public void HandleTargetClick_ReturnSpy_DetectsAmbiguity_MultipleFactions()
         {
             // Arrange
-            _player1.Power = 3;
+            _player1.AddPower(3);
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
 
             // Mock: Blue AND Neutral spies here
@@ -271,7 +277,7 @@ namespace ChaosWarlords.Tests.Systems
         public void FinalizeSpyReturn_CompletesAction_AndPaysCost()
         {
             // Arrange
-            _player1.Power = 3;
+            _player1.AddPower(3);
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
 
             // Set up ambiguity to set PendingSite
@@ -286,7 +292,7 @@ namespace ChaosWarlords.Tests.Systems
 
             // Assert
             Assert.IsTrue(_eventCompletedFired);
-            Assert.AreEqual(0, _player1.Power);
+            Assert.AreEqual(10, _player1.Power);
             _mapManager.Received(1).ReturnSpecificSpy(_siteA, _player1, PlayerColor.Neutral);
         }
 
@@ -298,9 +304,14 @@ namespace ChaosWarlords.Tests.Systems
         public void HandleTargetClick_Assassinate_Fails_IfPowerLostDuringTargeting()
         {
             // Arrange
-            _player1.Power = 3;
+            _player1.AddPower(3);
             _actionSystem.TryStartAssassinate();
-            _player1.Power = 0; // Lost power while targeting (e.g. interruption)
+            // We cannot set Power to 0 directly anymore. 
+            // We could spend it or create a new player. 
+            // Assuming SpendPower works even if it drains all? Yes.
+            // Or just new up the player. But dependencies are linked.
+            // _player1.SpendPower(_player1.Power); -> Cleanest way to zero out.
+            _player1.SpendPower(_player1.Power); // Lost power while targeting (e.g. interruption)
 
             _mapManager.CanAssassinate(_node2, _player1).Returns(true);
 
@@ -319,7 +330,7 @@ namespace ChaosWarlords.Tests.Systems
         {
 
             // Arrange
-            _player1.Power = 3;
+            _player1.AddPower(3);
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy);
 
             // Mock: Spies exist, BUT ReturnSpecificSpy returns FALSE (e.g. no presence)
@@ -333,14 +344,14 @@ namespace ChaosWarlords.Tests.Systems
             // Assert
             Assert.IsFalse(_eventCompletedFired, "Action should not complete.");
             Assert.IsTrue(_eventFailedFired, "Action should fail."); // Currently might not fire if logic is flawed
-            Assert.AreEqual(3, _player1.Power, "Power should NOT be spent if action failed.");
+            Assert.AreEqual(13, _player1.Power, "Power should NOT be spent if action failed.");
         }
 
         [TestMethod]
         public void HandleTargetClick_Assassinate_DoesNotSpendPower_IfMapManagerRejects_Regression()
         {
             // Arrange
-            _player1.Power = 3;
+            _player1.AddPower(3);
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate);
 
             // Mock: Invalid target according to Manager (e.g. protected, or logic mismatch)
@@ -352,7 +363,7 @@ namespace ChaosWarlords.Tests.Systems
 
             // Assert
             Assert.IsTrue(_eventFailedFired);
-            Assert.AreEqual(3, _player1.Power, "Power should NOT be spent.");
+            Assert.AreEqual(13, _player1.Power, "Power should NOT be spent.");
         }
 
 
@@ -436,7 +447,9 @@ namespace ChaosWarlords.Tests.Systems
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card);
 
             // Set Power to 0 to ensure it doesn't try to spend any (and doesn't fail)
-            _player1.Power = 0;
+            // _player1.Power = 0; -> Replaced with SpendPower logic if non-zero, or just ensure it starts at 0.
+            if (_player1.Power > 0) _player1.SpendPower(_player1.Power); // Ensure 0
+            // Actually Setup sets it to 10? Yes. So we must clear it.
             _mapManager.CanAssassinate(_node2, _player1).Returns(true);
 
             // Act
@@ -457,7 +470,7 @@ namespace ChaosWarlords.Tests.Systems
             var card = TestData.Cards.CheapCard();
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy, card);
 
-            _player1.Power = 0;
+            if (_player1.Power > 0) _player1.SpendPower(_player1.Power);
             _mapManager.GetEnemySpiesAtSite(_siteA, _player1).Returns(new List<PlayerColor> { PlayerColor.Blue });
             _mapManager.ReturnSpecificSpy(_siteA, _player1, PlayerColor.Blue).Returns(true);
 
@@ -484,7 +497,7 @@ namespace ChaosWarlords.Tests.Systems
             // Initial Click
             var cmd3 = _actionSystem.HandleTargetClick(null!, _siteA);
             ExecuteIfNotNull(cmd3);
-            _player1.Power = 0; // Ensure no power needed for step 2
+            if (_player1.Power > 0) _player1.SpendPower(_player1.Power); // Ensure no power needed for step 2
 
             _mapManager.ReturnSpecificSpy(_siteA, _player1, PlayerColor.Blue).Returns(true);
 

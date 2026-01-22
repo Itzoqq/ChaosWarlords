@@ -37,7 +37,12 @@ namespace ChaosWarlords.Tests.Integration.Managers
         public void Setup()
         {
             _p1 = TestData.Players.RedPlayer();
+            _p1.SpendPower(_p1.Power);
+            _p1.SpendInfluence(_p1.Influence);
+
             _p2 = TestData.Players.BluePlayer();
+            _p2.SpendPower(_p2.Power);
+            _p2.SpendInfluence(_p2.Influence);
 
             _mapManager = Substitute.For<IMapManager>();
             _marketManager = Substitute.For<IMarketManager>();
@@ -95,7 +100,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             _p1.AddToHand(card);
 
             // Act
-            _p1.Power = 0;
+            _p1.AddPower(0);
             _controller.PlayCard(card);
 
             // Assert
@@ -108,7 +113,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
         public void EndTurn_ResetsStateAndSwitchesTurn()
         {
             // Arrange
-            _p1.Power = 5;
+            _p1.AddPower(5);
             _p1.AddToPlayed(TestData.Cards.CheapCard());
 
             // Add filler cards to Deck so DrawCards(5) doesn't force a Reshuffle
@@ -175,7 +180,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
             var card = TestData.Cards.FocusPowerCard();
             _p1.AddToHand(card);
-            _p1.Power = 0;
+            _p1.AddPower(0);
 
             // Act
             _controller.PlayCard(card);
@@ -194,7 +199,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // My FocusPowerCard is Warlord in TestData. I should change it to Shadow if I want it to trigger Focus from SupplantCard.
             // Or use a Shadow card.
 
-            _p1.Power = 0;
+            _p1.AddPower(0);
             _p1.AddToHand(setupCard);
             _p1.AddToHand(focusCard);
 
@@ -211,7 +216,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             var focusCard = TestData.Cards.FocusPowerCard();
             // I'll update TestData FocusPowerCard to be Shadow for consistency with these tests.
 
-            _p1.Power = 0;
+            _p1.AddPower(0);
             _p1.AddToHand(focusCard);
             _p1.AddToHand(revealCard);
 
@@ -610,14 +615,14 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // Simulate the "After Play" state:
             // 1. Card is in PlayedCards
             p1.AddToPlayed(corruptor);
-            p1.Influence = 0;
+            p1.AddInfluence(0);
 
             // Act
             // Call the resume logic directly (as ActionSystem would)
             manager.ResumeDevourChain(corruptor);
 
             // Assert
-            Assert.AreEqual(3, p1.Influence, "Should gain 3 Influence from the resumed chain.");
+            Assert.AreEqual(13, p1.Influence, "Should gain 3 Influence from the resumed chain.");
             CollectionAssert.Contains(p1.PlayedCards.ToList(), corruptor, "Card should remain in PlayedCards.");
         }
 

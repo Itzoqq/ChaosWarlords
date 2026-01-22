@@ -57,7 +57,7 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange
             var card = new CardBuilder().WithCost(cardCost).Build(); // Keep CardBuilder here as it's specifically testing cost variation
             _market.MarketRow.Add(card);
-            _player.Influence = playerInfluence;
+            _player.AddInfluence(playerInfluence);
 
             // Act
             bool result = _market.TryBuyCard(_player, card, _stateManager);

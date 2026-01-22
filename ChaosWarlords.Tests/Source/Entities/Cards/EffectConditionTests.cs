@@ -72,7 +72,7 @@ namespace ChaosWarlords.Tests.Source.Entities.Cards
         [TestMethod]
         public void Evaluate_HasResourceAmount_Power_ReturnsTrueIfThresholdMet()
         {
-            _player.Power = 5;
+            _player.AddPower(5);
             var condition = new EffectCondition(ConditionType.HasResourceAmount, 5, ResourceType.Power);
             Assert.IsTrue(condition.Evaluate(_context, _player));
         }
@@ -80,7 +80,7 @@ namespace ChaosWarlords.Tests.Source.Entities.Cards
         [TestMethod]
         public void Evaluate_HasResourceAmount_Power_ReturnsFalseIfBelow()
         {
-            _player.Power = 4;
+            _player.AddPower(4);
             var condition = new EffectCondition(ConditionType.HasResourceAmount, 5, ResourceType.Power);
             Assert.IsFalse(condition.Evaluate(_context, _player));
         }

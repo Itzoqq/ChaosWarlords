@@ -61,8 +61,8 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             _actionSystem.SetMatchContext(_context);
 
             // Give active player some resources
-            _context.ActivePlayer.Power = 10;
-            _context.ActivePlayer.Influence = 10;
+            _context.ActivePlayer.AddPower(10);
+            _context.ActivePlayer.AddInfluence(10);
         }
 
         [TestMethod]

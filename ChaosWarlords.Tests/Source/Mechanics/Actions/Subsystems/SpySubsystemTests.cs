@@ -31,7 +31,8 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
             _logger = Substitute.For<IGameLogger>();
             _playerStateManager = Substitute.For<IPlayerStateManager>();
 
-            _activePlayer = new Player(PlayerColor.Red) { SpiesInBarracks = 5, Power = 10 };
+            _activePlayer = new Player(PlayerColor.Red) { SpiesInBarracks = 5 };
+            _activePlayer.AddPower(10);
             _turnManager.ActivePlayer.Returns(_activePlayer);
 
             _site = TestData.Sites.NeutralSite();

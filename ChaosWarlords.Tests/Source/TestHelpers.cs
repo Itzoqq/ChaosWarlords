@@ -379,12 +379,12 @@ namespace ChaosWarlords.Tests
             {
                 SeatIndex = _seatIndex,
                 DisplayName = _displayName,
-                Power = _power,
-                Influence = _influence,
                 VictoryPoints = _vp,
                 TroopsInBarracks = _troops,
                 SpiesInBarracks = _spies
             };
+            player.AddPower(_power);
+            player.AddInfluence(_influence);
 
             foreach (var card in _handCards)
             {

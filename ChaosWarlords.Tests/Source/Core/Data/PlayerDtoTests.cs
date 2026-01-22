@@ -14,9 +14,11 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         {
             // Arrange
             var player = TestData.Players.RedPlayer();
+            player.SpendPower(player.Power);
+            player.SpendInfluence(player.Influence);
             player.DisplayName = "TestPlayer";
-            player.Influence = 10;
-            player.Power = 5;
+            player.AddInfluence(10);
+            player.AddPower(5);
 
             // Act
             var dto = PlayerDto.FromEntity(player);

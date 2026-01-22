@@ -31,10 +31,14 @@ namespace ChaosWarlords.Tests.Integration.Managers
         public void Setup()
         {
             _player1 = TestData.Players.RedPlayer();
+            _player1.SpendPower(_player1.Power);
+            _player1.SpendInfluence(_player1.Influence);
             _player1.TroopsInBarracks = 10;
             _player1.SpiesInBarracks = 4;
 
             _player2 = TestData.Players.BluePlayer();
+            _player2.SpendPower(_player2.Power);
+            _player2.SpendInfluence(_player2.Influence);
             _player2.TroopsInBarracks = 10;
             _player2.SpiesInBarracks = 4;
 
@@ -93,7 +97,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
         {
             // Create fresh instances for each DataRow to avoid state pollution
             var testPlayer = TestData.Players.PoorPlayer();
-            testPlayer.Power = playerPower;
+            testPlayer.AddPower(playerPower);
             testPlayer.TroopsInBarracks = playerTroops;
 
             var testNode1 = TestData.MapNodes.Node1();
@@ -135,7 +139,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
             // Arrange
             var testPlayer = TestData.Players.PoorPlayer();
-            testPlayer.Power = 0; // Insufficient for normal deploy
+            testPlayer.AddPower(0); // Insufficient for normal deploy
             testPlayer.TroopsInBarracks = 5;
             testPlayer.PendingFreeTroops = 1;
 
@@ -528,7 +532,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // Expected: Player 1 gains Control (1 Power) + Total Control (2 VP).
 
             // Arrange
-            _player1.Power = 0;
+            _player1.AddPower(0);
             _player1.VictoryPoints = 0;
 
             // Fill nodes (Backdoor access via MapManager list for setup)
@@ -545,7 +549,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             Assert.IsTrue(_siteA.HasTotalControl, "Player 1 should have total control.");
 
             // Reset to isolate End Turn Reward
-            _player1.Power = 0;
+            _player1.SpendPower(_player1.Power);
             _player1.VictoryPoints = 0;
 
             // Act
@@ -577,7 +581,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             Assert.IsFalse(_siteA.HasTotalControl, "Enemy spy prevents Total Control.");
 
             // Reset to isolate End Turn Reward
-            _player1.Power = 0;
+            _player1.SpendPower(_player1.Power);
             _player1.VictoryPoints = 0;
 
             // Act

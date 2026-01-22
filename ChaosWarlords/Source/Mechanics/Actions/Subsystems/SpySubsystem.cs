@@ -184,7 +184,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
                     }
                     else
                     {
-                        CurrentPlayer.Power -= GameConstants.ReturnSpyPowerCost;
+                        CurrentPlayer.SpendPower(GameConstants.ReturnSpyPowerCost);
                     }
                 }
 

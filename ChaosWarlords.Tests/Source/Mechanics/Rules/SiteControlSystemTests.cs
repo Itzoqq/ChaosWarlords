@@ -20,7 +20,12 @@ namespace ChaosWarlords.Tests.Systems
         {
             _system = new SiteControlSystem(Utilities.TestLogger.Instance);
             _player1 = TestData.Players.RedPlayer();
+            _player1.SpendPower(_player1.Power);
+            _player1.SpendInfluence(_player1.Influence);
+
             _player2 = TestData.Players.BluePlayer();
+            _player2.SpendPower(_player2.Power);
+            _player2.SpendInfluence(_player2.Influence);
 
             // Setup Site with 2 nodes
             _node1 = TestData.MapNodes.Node1();
@@ -91,7 +96,7 @@ namespace ChaosWarlords.Tests.Systems
         {
             _siteA.IsCity = true;
             _siteA.Owner = _player1.Color;
-            _player1.Power = 0;
+            _player1.AddPower(0);
 
             var sites = new List<Site> { _siteA };
             _system.DistributeStartOfTurnRewards(sites, _player1);
@@ -104,7 +109,7 @@ namespace ChaosWarlords.Tests.Systems
         {
             _siteA.IsCity = false;
             _siteA.Owner = _player1.Color;
-            _player1.Power = 0;
+            _player1.AddPower(0);
 
             var sites = new List<Site> { _siteA };
             _system.DistributeStartOfTurnRewards(sites, _player1);
@@ -118,7 +123,7 @@ namespace ChaosWarlords.Tests.Systems
             _siteA.IsCity = true;
             _siteA.Owner = _player1.Color;
             _siteA.HasTotalControl = true;
-            _player1.Power = 0;
+            _player1.AddPower(0);
             _player1.VictoryPoints = 0;
 
             // Control = 1 Power, Total = 5 VP (TestData.Sites.CitySite has 1 VP)

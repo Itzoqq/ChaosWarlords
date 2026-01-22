@@ -372,7 +372,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             var targetCard = new Card("market_card", "Market Card", 0, CardAspect.Neutral, 0, 0, 0);
             targetCard.Location = CardLocation.Market;
 
-            _player.Influence = 0;
+            _player.AddInfluence(0);
 
             // Create real MatchManager for this test
             var victoryManager = Substitute.For<IVictoryManager>();
@@ -431,8 +431,8 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             var targetCard = new Card("market_card", "Market Card", 0, CardAspect.Neutral, 0, 0, 0);
             targetCard.Location = CardLocation.Market;
 
-            _player.Influence = 0;
-            _player.Power = 0;
+            _player.AddInfluence(0);
+            _player.AddPower(0);
 
             var victoryManager = Substitute.For<IVictoryManager>();
             var realMatchManager = new MatchManager(_context, _logger, victoryManager);

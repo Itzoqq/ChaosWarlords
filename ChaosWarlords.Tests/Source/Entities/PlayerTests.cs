@@ -74,8 +74,8 @@ namespace ChaosWarlords.Tests.Source.Entities
             _player.AddToHand(_card1);
             _player.AddToHand(_card2);
             _player.AddToPlayed(_card3);
-            _player.Power = 10;
-            _player.Influence = 5;
+            _player.AddPower(10);
+            _player.AddInfluence(5);
 
             _player.CleanUpTurn();
 
@@ -139,17 +139,50 @@ namespace ChaosWarlords.Tests.Source.Entities
         }
 
         [TestMethod]
-        public void Resources_CannotGoNegative()
+        public void Resources_SpendPower_ValidatesFunds()
         {
-            _player.Power = 5;
-            _player.Power -= 10; // Should be clamped
+            _player.AddPower(5);
 
-            Assert.AreEqual(0, _player.Power, "Power should clamp to 0.");
+            // 1. Spend amount <= current (Success)
+            bool result1 = _player.SpendPower(3);
+            Assert.IsTrue(result1);
+            Assert.AreEqual(2, _player.Power);
 
-            _player.Influence = 0;
-            _player.Influence = -1;
+            // 2. Spend amount > current (Failure)
+            bool result2 = _player.SpendPower(10);
+            Assert.IsFalse(result2);
+            Assert.AreEqual(2, _player.Power, "Power should not change on failed spend.");
+        }
 
-            Assert.AreEqual(0, _player.Influence, "Influence should clamp to 0.");
+        [TestMethod]
+        public void Resources_AddPower_ThrowsOnNegative()
+        {
+            bool threw = false;
+            try
+            {
+                _player.AddPower(-5);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                threw = true;
+            }
+            Assert.IsTrue(threw);
+        }
+
+        [TestMethod]
+        public void Resources_SpendInfluence_ValidatesFunds()
+        {
+            _player.AddInfluence(5);
+
+            // 1. Spend amount <= current (Success)
+            bool result1 = _player.SpendInfluence(5);
+            Assert.IsTrue(result1);
+            Assert.AreEqual(0, _player.Influence);
+
+            // 2. Spend amount > current (Failure)
+            bool result2 = _player.SpendInfluence(1);
+            Assert.IsFalse(result2);
+            Assert.AreEqual(0, _player.Influence);
         }
         [TestMethod]
         public void CleanUpTurn_EnsuresListsAreEmpty()

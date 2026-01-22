@@ -41,7 +41,7 @@ namespace ChaosWarlords.Tests.Map
             var node = TestData.MapNodes.Node1();
             var player = TestData.Players.RedPlayer();
             player.TroopsInBarracks = 5;
-            player.Power = 10;
+            player.AddPower(10);
 
             // Act
             _resolver.ExecuteDeploy(node, player);
@@ -61,7 +61,7 @@ namespace ChaosWarlords.Tests.Map
             var player = TestData.Players.PoorPlayer();
             // TestData.Players.PoorPlayer() has Red color and 0 resources.
             player.TroopsInBarracks = 5;
-            player.Power = 0; // No power
+            player.AddPower(0); // No power
 
             // Act
             _resolver.ExecuteDeploy(node, player);
@@ -116,7 +116,7 @@ namespace ChaosWarlords.Tests.Map
             node.Occupant = PlayerColor.Blue;
             var attacker = TestData.Players.RedPlayer();
             attacker.TroopsInBarracks = 5;
-            attacker.Power = 10;
+            attacker.AddPower(10);
             attacker.TrophyHall = 0;
 
             // Act

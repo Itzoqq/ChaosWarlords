@@ -19,35 +19,34 @@ namespace ChaosWarlords.Source.Managers
         public void AddPower(Player player, int amount)
         {
             if (amount <= 0) return;
-            player.Power += amount;
+            player.AddPower(amount);
             _logger.Log($"[State] {player.DisplayName} gained {amount} Power. Total: {player.Power}", LogChannel.Info);
         }
 
         public bool TrySpendPower(Player player, int amount)
         {
             if (amount <= 0) return false;
-            if (player.Power >= amount)
+            // Validation Logic delegated to Domain
+            bool success = player.SpendPower(amount);
+            if (success)
             {
-                player.Power -= amount;
                 _logger.Log($"[State] {player.DisplayName} spent {amount} Power. Remaining: {player.Power}", LogChannel.Info);
-                return true;
             }
-            return false;
+            return success;
         }
 
         public void AddInfluence(Player player, int amount)
         {
             if (amount <= 0) return;
-            player.Influence += amount;
+            player.AddInfluence(amount);
             _logger.Log($"[State] {player.DisplayName} gained {amount} Influence. Total: {player.Influence}", LogChannel.Info);
         }
 
         public bool TrySpendInfluence(Player player, int amount)
         {
             if (amount <= 0) return false;
-            if (player.Influence >= amount)
+            if (player.SpendInfluence(amount))
             {
-                player.Influence -= amount;
                 _logger.Log($"[State] {player.DisplayName} spent {amount} Influence. Remaining: {player.Influence}", LogChannel.Info);
                 return true;
             }

@@ -34,7 +34,7 @@ namespace ChaosWarlords.Tests.Managers
         [TestMethod]
         public void AddPower_IgnoresNegativeAmount()
         {
-            _player.Power = 10;
+            _player.AddPower(10);
             _manager.AddPower(_player, -5);
             Assert.AreEqual(10, _player.Power);
         }
@@ -49,7 +49,7 @@ namespace ChaosWarlords.Tests.Managers
             bool expectedSuccess,
             int expectedFinal)
         {
-            _player.Power = initialPower;
+            _player.AddPower(initialPower);
             bool success = _manager.TrySpendPower(_player, spendAmount);
             Assert.AreEqual(expectedSuccess, success);
             Assert.AreEqual(expectedFinal, _player.Power);
@@ -73,7 +73,7 @@ namespace ChaosWarlords.Tests.Managers
             bool expectedSuccess,
             int expectedFinal)
         {
-            _player.Influence = initialInfluence;
+            _player.AddInfluence(initialInfluence);
             bool success = _manager.TrySpendInfluence(_player, spendAmount);
             Assert.AreEqual(expectedSuccess, success);
             Assert.AreEqual(expectedFinal, _player.Influence);
@@ -203,8 +203,8 @@ namespace ChaosWarlords.Tests.Managers
         [TestMethod]
         public void CleanUpTurn_ResetsResourcesAndDiscardsCards()
         {
-            _player.Power = 10;
-            _player.Influence = 5;
+            _player.AddPower(10);
+            _player.AddInfluence(5);
             var card = TestData.Cards.CheapCard();
             _player.AddToHand(card);
 

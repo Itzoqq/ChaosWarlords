@@ -36,7 +36,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
         {
             // Arrange
             var player = new Player(PlayerColor.Red, Guid.NewGuid(), "Red Player");
-            player.Power = 10;
+            player.AddPower(10);
             player.AddToHand(new Card("c1", "C1", 1, CardAspect.Neutral, 0, 0, 0));
 
             // Act

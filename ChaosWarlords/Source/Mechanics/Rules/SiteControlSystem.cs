@@ -140,8 +140,8 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         {
             if (_stateManager is null)
             {
-                if (type == ResourceType.Power) player.Power += amount;
-                if (type == ResourceType.Influence) player.Influence += amount;
+                if (type == ResourceType.Power) player.AddPower(amount);
+                if (type == ResourceType.Influence) player.AddInfluence(amount);
                 if (type == ResourceType.VictoryPoints) player.VictoryPoints += amount;
                 return;
             }

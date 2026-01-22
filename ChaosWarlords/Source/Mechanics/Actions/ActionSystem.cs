@@ -353,7 +353,7 @@ namespace ChaosWarlords.Source.Managers
             }
             else
             {
-                CurrentPlayer.Power -= ASSASSINATE_COST;
+                CurrentPlayer.SpendPower(ASSASSINATE_COST);
             }
         }
 

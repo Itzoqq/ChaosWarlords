@@ -42,20 +42,62 @@ namespace ChaosWarlords.Source.Entities.Actors
         /// Gets the current Power resource amount.
         /// Power is primarily used for deploying troops and assassinating spies.
         /// </summary>
-        public int Power
-        {
-            get => _power;
-            internal set => _power = value < 0 ? 0 : value;
-        }
+        public int Power => _power;
 
         /// <summary>
         /// Gets the current Influence resource amount.
         /// Influence is primarily used for purchasing cards and placing spies.
         /// </summary>
-        public int Influence
+        public int Influence => _influence;
+
+        // --- Resource Management ---
+
+        /// <summary>
+        /// Adds Power to the player's pool.
+        /// </summary>
+        public void AddPower(int amount)
         {
-            get => _influence;
-            internal set => _influence = value < 0 ? 0 : value;
+            if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount), "Cannot add negative power.");
+            _power += amount;
+        }
+
+        /// <summary>
+        /// Attempts to spend Power.
+        /// </summary>
+        /// <returns>True if successful, false if insufficient funds.</returns>
+        public bool SpendPower(int amount)
+        {
+            if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount), "Cannot spend negative power.");
+            if (_power >= amount)
+            {
+                _power -= amount;
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Adds Influence to the player's pool.
+        /// </summary>
+        public void AddInfluence(int amount)
+        {
+            if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount), "Cannot add negative influence.");
+            _influence += amount;
+        }
+
+        /// <summary>
+        /// Attempts to spend Influence.
+        /// </summary>
+        /// <returns>True if successful, false if insufficient funds.</returns>
+        public bool SpendInfluence(int amount)
+        {
+            if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount), "Cannot spend negative influence.");
+            if (_influence >= amount)
+            {
+                _influence -= amount;
+                return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -220,8 +262,8 @@ namespace ChaosWarlords.Source.Entities.Actors
             _deckManager.AddToDiscard(_hand);
             _hand.Clear();
 
-            Power = 0;
-            Influence = 0;
+            _power = 0;
+            _influence = 0;
         }
     }
 }
