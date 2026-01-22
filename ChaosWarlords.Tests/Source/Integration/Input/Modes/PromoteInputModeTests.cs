@@ -99,7 +99,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         {
             // Arrange
             var card = TestData.Cards.CheapCard();
-            _activePlayer.PlayedCards.Add(card);
+            _activePlayer.AddToPlayed(card);
 
             // Set credit coming ONLY from this card
             _realTurnContext.AddPromotionCredit(card, 1);
@@ -113,7 +113,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
 
             // Assert
-            CollectionAssert.Contains(_activePlayer.PlayedCards, card, "Card should remain in played pile (invalid target).");
+            CollectionAssert.Contains(_activePlayer.PlayedCards.ToList(), card, "Card should remain in played pile (invalid target).");
             Assert.AreEqual(1, _realTurnContext.PendingPromotionsCount, "Credit should not be consumed.");
             Assert.IsFalse(_stateFake.ExecutedCommands.Any(), "No commands should be executed.");
         }
@@ -131,8 +131,8 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
                 typeof(Card).GetProperty("Id")?.SetValue(targetCard, "ID_TARGET");
             } catch { }
 
-            _activePlayer.PlayedCards.Add(sourceCard);
-            _activePlayer.PlayedCards.Add(targetCard);
+            _activePlayer.AddToPlayed(sourceCard);
+            _activePlayer.AddToPlayed(targetCard);
 
             // Credit comes from Source, so Target is valid
             _realTurnContext.AddPromotionCredit(sourceCard, 1);
@@ -152,8 +152,8 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             Assert.AreEqual(targetCard.Id, promoteCmd.CardId, "PromoteCommand should target the correct card.");
 
             // Verify State
-            CollectionAssert.DoesNotContain(_activePlayer.PlayedCards, targetCard, "Target should be removed from Played.");
-            CollectionAssert.Contains(_activePlayer.InnerCircle, targetCard, "Target should be in Inner Circle.");
+            CollectionAssert.DoesNotContain(_activePlayer.PlayedCards.ToList(), targetCard, "Target should be removed from Played.");
+            CollectionAssert.Contains(_activePlayer.InnerCircle.ToList(), targetCard, "Target should be in Inner Circle.");
             Assert.AreEqual(0, _realTurnContext.PendingPromotionsCount, "Credit should be consumed.");
 
             // Verify EndTurn Command is returned

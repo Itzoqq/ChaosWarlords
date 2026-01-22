@@ -140,7 +140,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             var card = TestData.Cards.AssassinCard();
 
             // Add card to hand
-            state.MatchContext.ActivePlayer.Hand.Add(card);
+            state.MatchContext.ActivePlayer.AddToHand(card);
 
             // Setup: Map says valid targets EXIST
             _mapManager.HasValidAssassinationTarget(Arg.Any<Player>()).Returns(true);
@@ -370,7 +370,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             // Add a DIFFERENT card to PlayedCards to satisfy "Cannot promote self" rule
             // Add a DIFFERENT card to PlayedCards to satisfy "Cannot promote self" rule (and matches Aspect)
             var targetCard = TestData.Cards.DrawCard(); // Sorcery matches NobleCard
-            state.MatchContext.ActivePlayer.PlayedCards.Add(targetCard);
+            state.MatchContext.ActivePlayer.AddToPlayed(targetCard);
 
             // 3. Simulate pressing 'Enter'
             _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
@@ -405,7 +405,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             state.MatchContext.CurrentPhase = MatchPhase.Playing;
 
             // Add unplayed card
-            state.MatchContext.ActivePlayer.Hand.Add(TestData.Cards.CheapCard());
+            state.MatchContext.ActivePlayer.AddToHand(TestData.Cards.CheapCard());
 
             // Raise Request (simulating Button Click)
             // We need to access the mock UI system. TestableGameplayState creates a real UIManager, 
@@ -430,7 +430,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             state.MatchContext.CurrentPhase = MatchPhase.Playing;
-            state.MatchContext.ActivePlayer.Hand.Clear();
+            state.MatchContext.ActivePlayer.ClearHand();
 
             _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
             state.Update(new GameTime());
@@ -447,7 +447,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             state.MatchContext.CurrentPhase = MatchPhase.Playing;
 
             // Open Popup
-            state.MatchContext.ActivePlayer.Hand.Add(TestData.Cards.CheapCard());
+            state.MatchContext.ActivePlayer.AddToHand(TestData.Cards.CheapCard());
             _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
             state.Update(new GameTime());
 
@@ -468,7 +468,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             state.MatchContext.CurrentPhase = MatchPhase.Playing;
 
             // Open Popup
-            state.MatchContext.ActivePlayer.Hand.Add(TestData.Cards.CheapCard());
+            state.MatchContext.ActivePlayer.AddToHand(TestData.Cards.CheapCard());
             _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
             state.Update(new GameTime());
 
@@ -512,7 +512,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
             var card = TestData.Cards.CheapCard();
-            state.MatchContext.ActivePlayer.Hand.Add(card);
+            state.MatchContext.ActivePlayer.AddToHand(card);
 
             state.MoveCardToPlayed(card);
 
@@ -528,7 +528,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             state.MatchContext.CurrentPhase = MatchPhase.Setup;
 
             // Should be empty initially
-            state.MatchContext.ActivePlayer.Hand.Clear();
+            state.MatchContext.ActivePlayer.ClearHand();
 
             // Act: Raise UI Request
             state.UIManager.OnEndTurnRequest += Raise.Event();

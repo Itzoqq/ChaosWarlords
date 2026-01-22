@@ -84,7 +84,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             devourSelfDetails.OnSuccess = new CardEffect(EffectType.GainResource, 3, ResourceType.Troops);
             card.Effects.Add(devourSelfDetails);
 
-            player.Hand.Add(card);
+            player.AddToHand(card);
 
             // Configure UI Mediator to ACCEPT (Arg index 2 is onAccept)
             _uiMediator.When(x => x.RequestOptionalEffect(card, devourSelfDetails, Arg.Any<System.Action>(), Arg.Any<System.Action>()))
@@ -100,7 +100,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Assert 2: Card Marked for Devour
             CollectionAssert.Contains(_context.CardsMarkedForTurnEndDevour, card, "Card should be marked for end-of-turn devour.");
             Assert.AreEqual(CardLocation.Played, card.Location, "Card should still be 'Played' (on board) until end of turn.");
-            CollectionAssert.Contains(player.PlayedCards, card, "Card should be in PlayedCards list.");
+            CollectionAssert.Contains(player.PlayedCards.ToList(), card, "Card should be in PlayedCards list.");
 
             // Act 2: End Turn
             _matchManager.EndTurn();
@@ -108,7 +108,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Assert 3: Cleanup Correctness
             Assert.AreEqual(CardLocation.Void, card.Location, "Card should be in Void after turn end.");
             CollectionAssert.Contains(_context.VoidPile, card, "Card should be in the VoidPile.");
-            CollectionAssert.DoesNotContain(player.PlayedCards, card, "Card should NOT be in PlayedCards.");
+            CollectionAssert.DoesNotContain(player.PlayedCards.ToList(), card, "Card should NOT be in PlayedCards.");
             CollectionAssert.DoesNotContain(player.DiscardPile.ToList(), card, "Card should NOT be in DiscardPile.");
         }
 
@@ -130,7 +130,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             devourSelfDetails.OnSuccess = new CardEffect(EffectType.GainResource, 3, ResourceType.Troops);
             card.Effects.Add(devourSelfDetails);
 
-            player.Hand.Add(card);
+            player.AddToHand(card);
 
             // Configure UI Mediator to DECLINE
             _uiMediator.When(x => x.RequestOptionalEffect(card, devourSelfDetails, Arg.Any<System.Action>(), Arg.Any<System.Action>()))
@@ -145,7 +145,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
 
             // Verify it is in PlayedCards
             Assert.AreEqual(CardLocation.Played, card.Location, "Card should be in Played location before EndTurn.");
-            CollectionAssert.Contains(player.PlayedCards, card, "Card should be in player.PlayedCards before EndTurn.");
+            CollectionAssert.Contains(player.PlayedCards.ToList(), card, "Card should be in player.PlayedCards before EndTurn.");
 
             // Act 2: Manually Clean Up (Isolate logic from MatchManager.EndTurn specifics in this test context)
             // Note: MatchManager.EndTurn relies on complex state transitions that may flake in this specific decline scenario in test harness.

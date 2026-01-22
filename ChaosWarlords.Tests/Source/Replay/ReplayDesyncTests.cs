@@ -49,8 +49,8 @@ namespace ChaosWarlords.Tests.Source.Replay
             replayManager.RecordCommand(playCmd, redLive, 1);
 
             // Execute PlayCard manually (mocking command execution)
-            redLive.Hand.Remove(soldierRed);
-            redLive.PlayedCards.Add(soldierRed);
+            redLive.RemoveFromHand(soldierRed);
+            redLive.AddToPlayed(soldierRed);
             redLive.Power += 1; // Effect
 
             // 2. Deploy
@@ -123,8 +123,8 @@ namespace ChaosWarlords.Tests.Source.Replay
                 Assert.IsNotNull(card, "PlayCardCommand Card is null!");
 
                 // Apply Logic
-                redReplay.Hand.Remove(card);
-                redReplay.PlayedCards.Add(card);
+                redReplay.RemoveFromHand(card);
+                redReplay.AddToPlayed(card);
                 redReplay.Power += 1;
             }
 

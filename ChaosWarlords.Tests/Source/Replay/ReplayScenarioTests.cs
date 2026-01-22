@@ -19,8 +19,8 @@ namespace ChaosWarlords.Tests.Replay
 
             var card1 = new CardBuilder().WithName("c1").Build();
             var card2 = new CardBuilder().WithName("c2").Build();
-            player.Hand.Add(card1);
-            player.Hand.Add(card2);
+            player.AddToHand(card1);
+            player.AddToHand(card2);
 
             var cmd1 = new PlayCardCommand(card1);
             var cmd2 = new PlayCardCommand(card2);

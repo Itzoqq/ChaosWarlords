@@ -88,7 +88,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                 ReplaceWithSource = true
             });
             sourceCard.Location = CardLocation.Played;
-            _player.PlayedCards.Add(sourceCard);
+            _player.AddToPlayed(sourceCard);
 
             // 2. Create Target Card in Market
             var targetCard = new Card("m1", "Market Victim", 0, CardAspect.Neutral, 0, 0, 0);
@@ -106,7 +106,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
 
             // Assert
             // Moves card to market (State Check)
-            Assert.DoesNotContain(sourceCard, _player.PlayedCards, "Source card should be moved out of played cards.");
+            CollectionAssert.DoesNotContain(_player.PlayedCards.ToList(), sourceCard, "Source card should be moved out of played cards.");
             // Replaces target
             _marketManager.Received(1).ReplaceCard(targetCard, sourceCard);
             // Clears state
@@ -150,7 +150,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         {
             // Arrange
             var handCard = new Card("h1", "Hand Victim", 0, CardAspect.Neutral, 0, 0, 0) { Location = CardLocation.Hand };
-            _player.Hand.Add(handCard);
+            _player.AddToHand(handCard);
 
             // Act
             // Directly check ActionSystem's handling of specific devours if exposed, 
@@ -169,7 +169,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Assert
             // Used real MatchManager, so check VoidPile and Hand
             Assert.Contains(handCard, _context.VoidPile, "Hand card should be moved to Void.");
-            Assert.DoesNotContain(handCard, _player.Hand, "Hand card should be removed from Hand.");
+            CollectionAssert.DoesNotContain(_player.Hand.ToList(), handCard, "Hand card should be removed from Hand.");
         }
 
         #endregion
@@ -216,7 +216,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             card.Effects.Add(devourEffect);
 
             // Arrange: Player has hand cards (so base Devour is valid)
-            _player.Hand.Add(new Card("h1", "Hand", 0, CardAspect.Neutral, 0, 0, 0));
+            _player.AddToHand(new Card("h1", "Hand", 0, CardAspect.Neutral, 0, 0, 0));
 
             // Arrange: Map has NO valid targets for Supplant
             _mapManager.HasValidAssassinationTarget(_player).Returns(false); // Supplant checks this
@@ -462,7 +462,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Add a card to Inner Circle (Target)
             var innerCard = new Card("inner_victim", "Inner Victim", 1, CardAspect.Neutral, 1, 1, 0);
             innerCard.Location = CardLocation.InnerCircle;
-            player.InnerCircle.Add(innerCard);
+            player.AddToInnerCircle(innerCard);
 
             // Create a generic card with "Devour Inner Circle" effect
             var devourCard = new Card("devourer", "Inner Devourer", 2, CardAspect.Sorcery, 0, 0, 0);
@@ -471,7 +471,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                 TargetLocation = CardLocation.InnerCircle,
                 OnSuccess = new CardEffect(EffectType.GainResource, 3, ResourceType.Influence)
             });
-            player.Hand.Add(devourCard);
+            player.AddToHand(devourCard);
 
             // Act - Trigger devour flow
             var strategy = DevourStrategyFactory.GetStrategy(CardLocation.InnerCircle);
@@ -488,7 +488,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             cmd?.Execute(_context);
 
             // Assert
-            CollectionAssert.DoesNotContain(player.InnerCircle, innerCard, "Inner Circle card should be removed");
+            CollectionAssert.DoesNotContain(player.InnerCircle.ToList(), innerCard, "Inner Circle card should be removed");
             Assert.AreEqual(CardLocation.Void, innerCard.Location, "Inner Circle card should be in Void");
         }
 
@@ -501,7 +501,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         {
             // Arrange
             var player = _context.ActivePlayer;
-            player.InnerCircle.Clear(); // Ensure empty
+            player.ClearInnerCircle(); // Ensure empty
 
             var devourCard = new Card("devourer", "Inner Devourer", 2, CardAspect.Sorcery, 0, 0, 0);
             devourCard.AddEffect(new CardEffect(EffectType.Devour, 0)
@@ -509,7 +509,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                 TargetLocation = CardLocation.InnerCircle,
                 IsOptional = true // CRITICAL: Only optional effects trigger the UI popup check
             });
-            player.Hand.Add(devourCard);
+            player.AddToHand(devourCard);
 
             // Act - Resolve effects (should skip popup due to no valid targets)
             CardEffectProcessor.ResolveEffects(devourCard, _context, false, _logger);

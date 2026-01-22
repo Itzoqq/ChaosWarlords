@@ -211,8 +211,8 @@ namespace ChaosWarlords.Source.Managers
             // This provides a "safety net" for misclicks or strategy changes
             if (PendingCard != null && PendingCard.Location == CardLocation.Played)
             {
-                CurrentPlayer.PlayedCards.Remove(PendingCard);
-                CurrentPlayer.Hand.Add(PendingCard);
+                CurrentPlayer.RemoveFromPlayed(PendingCard);
+                CurrentPlayer.AddToHand(PendingCard);
                 PendingCard.Location = CardLocation.Hand;
                 _logger.Log($"Returned {PendingCard.Name} to hand after targeting cancellation.", LogChannel.Info);
             }

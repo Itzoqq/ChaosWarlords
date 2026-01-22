@@ -47,7 +47,7 @@ namespace ChaosWarlords.Tests.Systems
             _actionSystem.SetPlayerStateManager(psm);
 
             // Give player some cards including a transactional source
-            _player1.Hand.Clear();
+            _player1.ClearHand();
         }
 
         [TestMethod]
@@ -56,7 +56,7 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange
             var sourceCard = TestData.Cards.DevourCard();
             var fodderCard = TestData.Cards.CheapCard();
-            _player1.Hand.Add(fodderCard);
+            _player1.AddToHand(fodderCard);
 
             // Act
             _actionSystem.TryStartDevourHand(sourceCard, null, deferExecution: true);
@@ -99,7 +99,7 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange
             var sourceCard = TestData.Cards.SupplantCard(); // Assume this triggers the chain
             var fodderCard = TestData.Cards.CheapCard();
-            _player1.Hand.Add(fodderCard);
+            _player1.AddToHand(fodderCard);
             _player1.TroopsInBarracks = 5;
 
             // Step 1: Start Devour (Deferred)
@@ -149,7 +149,7 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange
             var sourceCard = TestData.Cards.DevourCard();
             var fodderCard = TestData.Cards.CheapCard();
-            _player1.Hand.Add(fodderCard);
+            _player1.AddToHand(fodderCard);
 
             _actionSystem.TryStartDevourHand(sourceCard, null, deferExecution: true);
             var cmd = _actionSystem.HandleDevourSelection(fodderCard);

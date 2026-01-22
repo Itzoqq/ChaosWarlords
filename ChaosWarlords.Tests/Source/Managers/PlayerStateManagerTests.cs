@@ -155,7 +155,7 @@ namespace ChaosWarlords.Tests.Managers
         public void PlayCard_MovesCardFromHandToPlayed()
         {
             var card = TestData.Cards.CheapCard();
-            _player.Hand.Add(card);
+            _player.AddToHand(card);
             card.Location = CardLocation.Hand;
 
             _manager.PlayCard(_player, card);
@@ -178,7 +178,7 @@ namespace ChaosWarlords.Tests.Managers
         public void TryPromoteCard_DelegatesToPlayer()
         {
             var card = TestData.Cards.CheapCard();
-            _player.Hand.Add(card);
+            _player.AddToHand(card);
 
             bool success = _manager.TryPromoteCard(_player, card, out string error);
 
@@ -191,7 +191,7 @@ namespace ChaosWarlords.Tests.Managers
         public void DevourCard_RemovesFromHandAndSetsLocationToVoid()
         {
             var card = TestData.Cards.CheapCard();
-            _player.Hand.Add(card);
+            _player.AddToHand(card);
             card.Location = CardLocation.Hand;
 
             _manager.DevourCard(_player, card);
@@ -206,7 +206,7 @@ namespace ChaosWarlords.Tests.Managers
             _player.Power = 10;
             _player.Influence = 5;
             var card = TestData.Cards.CheapCard();
-            _player.Hand.Add(card);
+            _player.AddToHand(card);
 
             _manager.CleanUpTurn(_player);
 

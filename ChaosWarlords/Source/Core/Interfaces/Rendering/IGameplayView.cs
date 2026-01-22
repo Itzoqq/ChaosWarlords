@@ -7,6 +7,7 @@ using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Entities.Actors;
 
 using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Core.Interfaces.Input;
 
 namespace ChaosWarlords.Source.Core.Interfaces.Rendering
 {
@@ -21,8 +22,8 @@ namespace ChaosWarlords.Source.Core.Interfaces.Rendering
         List<CardViewModel> BrowserViewModels { get; }
 
         void LoadContent(ContentManager content);
-        void Update(MatchContext context, InputManager inputManager, bool isMarketOpen, bool isOptionalPopupOpen);
-        void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying, IMatchManager matchManager);
+        void Update(MatchContext context, IInputManager inputManager, bool isMarketOpen, bool isOptionalPopupOpen);
+        void Draw(SpriteBatch spriteBatch, MatchContext context, IInputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying, IMatchManager matchManager);
         void DrawSetupPhaseOverlay(SpriteBatch spriteBatch, Player activePlayer);
 
         bool IsOptionalEffectPopupOpen { get; }

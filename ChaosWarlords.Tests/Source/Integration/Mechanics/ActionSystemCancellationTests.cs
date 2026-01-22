@@ -76,11 +76,11 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         {
             // Arrange
             var card = new Card("test_card", "Test Card", 0, CardAspect.Neutral, 0, 0, 0);
-            _player.Hand.Add(card);
+            _player.AddToHand(card);
 
             // Simulate card being moved to PlayedCards during targeting
-            _player.Hand.Remove(card);
-            _player.PlayedCards.Add(card);
+            _player.RemoveFromHand(card);
+            _player.AddToPlayed(card);
             card.Location = CardLocation.Played;
 
             // Set up ActionSystem state as if targeting was initiated
@@ -90,8 +90,8 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             _actionSystem.CancelTargeting();
 
             // Assert
-            Assert.Contains(card, _player.Hand, "Card should be returned to Hand");
-            Assert.DoesNotContain(card, _player.PlayedCards, "Card should be removed from PlayedCards");
+            CollectionAssert.Contains(_player.Hand.ToList(), card, "Card should be returned to Hand");
+            CollectionAssert.DoesNotContain(_player.PlayedCards.ToList(), card, "Card should be removed from PlayedCards");
             Assert.AreEqual(CardLocation.Hand, card.Location, "Card location should be Hand");
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "ActionSystem should return to Normal state");
         }
@@ -101,7 +101,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         {
             // Arrange
             var card = new Card("test_card", "Test Card", 0, CardAspect.Neutral, 0, 0, 0);
-            _player.Hand.Add(card);
+            _player.AddToHand(card);
             card.Location = CardLocation.Hand;
 
             _actionSystem.StartTargeting(ActionState.TargetingAssassinate, card);
@@ -112,7 +112,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
 
             // Assert
             Assert.HasCount(initialHandCount, _player.Hand, "Hand count should not change");
-            Assert.Contains(card, _player.Hand, "Card should still be in Hand");
+            CollectionAssert.Contains(_player.Hand.ToList(), card, "Card should still be in Hand");
         }
 
         [TestMethod]

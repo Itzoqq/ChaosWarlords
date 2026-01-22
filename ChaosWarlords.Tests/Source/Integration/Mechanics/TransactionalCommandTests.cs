@@ -43,7 +43,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             _actionSystem.SetMatchManager(_matchManager);
             _actionSystem.SetPlayerStateManager(Substitute.For<IPlayerStateManager>());
 
-            _player.Hand.Clear();
+            _player.ClearHand();
         }
 
         [TestMethod]
@@ -52,7 +52,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Arrange
             var sourceCard = TestData.Cards.CheapCard();
             var targetCard = TestData.Cards.CheapCard();
-            _player.Hand.Add(targetCard);
+            _player.AddToHand(targetCard);
 
             // Act: Start deferred devour and selecttarget
             _actionSystem.TryStartDevourHand(sourceCard, null, deferExecution: true);
@@ -85,7 +85,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Arrange
             var sourceCard = TestData.Cards.SupplantCard();
             var targetCard = TestData.Cards.CheapCard();
-            _player.Hand.Add(targetCard);
+            _player.AddToHand(targetCard);
             _player.TroopsInBarracks = 5;
 
             // Act 1: Start Devour with callback to Supplant
@@ -131,7 +131,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Arrange
             var sourceCard = TestData.Cards.CheapCard();
             var targetCard = TestData.Cards.CheapCard();
-            _player.Hand.Add(targetCard);
+            _player.AddToHand(targetCard);
 
             _actionSystem.TryStartDevourHand(sourceCard, null, deferExecution: true);
             var cmd = _actionSystem.HandleDevourSelection(targetCard);

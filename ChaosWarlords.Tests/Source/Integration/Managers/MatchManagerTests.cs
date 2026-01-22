@@ -92,7 +92,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
         {
             // Arrange
             var card = TestData.Cards.PowerCard(); // Gain 3 Power
-            _p1.Hand.Add(card);
+            _p1.AddToHand(card);
 
             // Act
             _p1.Power = 0;
@@ -100,8 +100,8 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
             // Assert
             Assert.AreEqual(3, _p1.Power);
-            Assert.DoesNotContain(card, _p1.Hand, "Card should be removed from Hand");
-            Assert.Contains(card, _p1.PlayedCards, "Card should be in PlayedCards");
+            CollectionAssert.DoesNotContain(_p1.Hand.ToList(), card, "Card should be removed from Hand");
+            CollectionAssert.Contains(_p1.PlayedCards.ToList(), card, "Card should be in PlayedCards");
         }
 
         [TestMethod]
@@ -109,7 +109,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
         {
             // Arrange
             _p1.Power = 5;
-            _p1.PlayedCards.Add(TestData.Cards.CheapCard());
+            _p1.AddToPlayed(TestData.Cards.CheapCard());
 
             // Add filler cards to Deck so DrawCards(5) doesn't force a Reshuffle
             for (int i = 0; i < 10; i++)
@@ -138,7 +138,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
         {
             // Arrange
             _context.CurrentPhase = MatchPhase.Playing;
-            _p1.Hand.Add(TestData.Cards.CheapCard());
+            _p1.AddToHand(TestData.Cards.CheapCard());
 
             // Act
             bool result = _controller.CanEndTurn(out string reason);
@@ -153,7 +153,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
         {
             // Arrange
             var cardInHand = TestData.Cards.CheapCard();
-            _p1.Hand.Add(cardInHand);
+            _p1.AddToHand(cardInHand);
 
             // Filler for deck
             for (int i = 0; i < 10; i++) _p1.DeckManager.AddToTop(TestData.Cards.CheapCard());
@@ -163,7 +163,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
             // Assert
             Assert.IsEmpty(_p1.Hand.Where(c => c == cardInHand), "Old hand should be cleared");
-            Assert.Contains(cardInHand, _p1.DiscardPile, "Remaining hand card should be in discard pile");
+            CollectionAssert.Contains(_p1.DiscardPile.ToList(), cardInHand, "Remaining hand card should be in discard pile");
         }
 
         [TestMethod]
@@ -174,7 +174,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // If it snapshots before moving, Focus is FALSE.
 
             var card = TestData.Cards.FocusPowerCard();
-            _p1.Hand.Add(card);
+            _p1.AddToHand(card);
             _p1.Power = 0;
 
             // Act
@@ -195,8 +195,8 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // Or use a Shadow card.
 
             _p1.Power = 0;
-            _p1.Hand.Add(setupCard);
-            _p1.Hand.Add(focusCard);
+            _p1.AddToHand(setupCard);
+            _p1.AddToHand(focusCard);
 
             _controller.PlayCard(setupCard);
             _controller.PlayCard(focusCard);
@@ -212,13 +212,13 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // I'll update TestData FocusPowerCard to be Shadow for consistency with these tests.
 
             _p1.Power = 0;
-            _p1.Hand.Add(focusCard);
-            _p1.Hand.Add(revealCard);
+            _p1.AddToHand(focusCard);
+            _p1.AddToHand(revealCard);
 
             _controller.PlayCard(focusCard);
 
             Assert.AreEqual(3, _p1.Power, "Focus Effect did not trigger using Hand Reveal!");
-            Assert.Contains(revealCard, _p1.Hand);
+            CollectionAssert.Contains(_p1.Hand.ToList(), revealCard);
         }
 
         [TestMethod]
@@ -227,14 +227,14 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // Arrange
             var cardToDevour = TestData.Cards.CheapCard();
             cardToDevour.Location = CardLocation.Hand;
-            _p1.Hand.Add(cardToDevour);
+            _p1.AddToHand(cardToDevour);
 
             // Act
             _controller.DevourCard(cardToDevour);
 
             // Assert
-            Assert.DoesNotContain(cardToDevour, _p1.Hand, "Card should be removed from Hand.");
-            Assert.Contains(cardToDevour, _context.VoidPile, "Card should be added to Void Pile.");
+            CollectionAssert.DoesNotContain(_p1.Hand.ToList(), cardToDevour, "Card should be removed from Hand.");
+            CollectionAssert.Contains(_context.VoidPile.ToList(), cardToDevour, "Card should be added to Void Pile.");
             Assert.AreEqual(CardLocation.Void, cardToDevour.Location, "Card Location property should be updated to Void.");
         }
 
@@ -249,7 +249,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             _controller.DevourCard(cardInDeck);
 
             // Assert
-            Assert.DoesNotContain(cardInDeck, _context.VoidPile, "Should not move card if it wasn't in the expected source (Hand).");
+            CollectionAssert.DoesNotContain(_context.VoidPile.ToList(), cardInDeck, "Should not move card if it wasn't in the expected source (Hand).");
             Assert.IsEmpty(_p1.Hand);
         }
 
@@ -389,14 +389,14 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // This happens if references are leaked or UI targeting is loose.
 
             var alienCard = TestData.Cards.CheapCard();
-            _p2.Hand.Add(alienCard); // Belongs to P2
+            _p2.AddToHand(alienCard); // Belongs to P2
 
             // Act: P1 (Active) tries to play P2's card
             _controller.PlayCard(alienCard);
 
             // Assert
-            Assert.DoesNotContain(alienCard, _p1.PlayedCards, "Should NOT add alien card to PlayedCards");
-            Assert.Contains(alienCard, _p2.Hand, "Card should remain in P2's hand");
+            CollectionAssert.DoesNotContain(_p1.PlayedCards.ToList(), alienCard, "Should NOT add alien card to PlayedCards");
+            CollectionAssert.Contains(_p2.Hand.ToList(), alienCard, "Card should remain in P2's hand");
         }
 
         [TestMethod]
@@ -522,8 +522,8 @@ namespace ChaosWarlords.Tests.Integration.Managers
             var devourCard = TestData.Cards.DevourCard();
             var otherCard = TestData.Cards.CheapCard();
 
-            p1.Hand.Add(devourCard);
-            p1.Hand.Add(otherCard);
+            p1.AddToHand(devourCard);
+            p1.AddToHand(otherCard);
             int startHandCount = p1.Hand.Count;
 
             // Set Pre-Target to SKIP
@@ -534,8 +534,8 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
             // Assert
             Assert.HasCount(startHandCount - 1, p1.Hand, "Hand count should decrease by 1 when skipping Devour.");
-            Assert.Contains(devourCard, p1.PlayedCards, "Devour card should be played.");
-            Assert.Contains(otherCard, p1.Hand, "Other card should remain in hand.");
+            CollectionAssert.Contains(p1.PlayedCards.ToList(), devourCard, "Devour card should be played.");
+            CollectionAssert.Contains(p1.Hand.ToList(), otherCard, "Other card should remain in hand.");
             Assert.IsEmpty(context.VoidPile, "Void pile should be empty.");
         }
 
@@ -548,9 +548,9 @@ namespace ChaosWarlords.Tests.Integration.Managers
             var targetCard = TestData.Cards.CheapCard();
             var otherCard = TestData.Cards.CheapCard();
 
-            p1.Hand.Add(devourCard);
-            p1.Hand.Add(targetCard);
-            p1.Hand.Add(otherCard);
+            p1.AddToHand(devourCard);
+            p1.AddToHand(targetCard);
+            p1.AddToHand(otherCard);
             int startHandCount = p1.Hand.Count;
 
             // Set Pre-Target to TARGET
@@ -561,10 +561,10 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
             // Assert
             Assert.HasCount(startHandCount - 2, p1.Hand, "Hand count should decrease by 2 when devouring.");
-            Assert.Contains(devourCard, p1.PlayedCards, "Devour card should be played.");
-            Assert.Contains(targetCard, context.VoidPile, "Target card should be in Void.");
-            Assert.DoesNotContain(targetCard, p1.Hand, "Target card should be removed from hand.");
-            Assert.Contains(otherCard, p1.Hand, "Other card should remain in hand.");
+            CollectionAssert.Contains(p1.PlayedCards.ToList(), devourCard, "Devour card should be played.");
+            CollectionAssert.Contains(context.VoidPile.ToList(), targetCard, "Target card should be in Void.");
+            CollectionAssert.DoesNotContain(p1.Hand.ToList(), targetCard, "Target card should be removed from hand.");
+            CollectionAssert.Contains(p1.Hand.ToList(), otherCard, "Other card should remain in hand.");
         }
 
         [TestMethod]
@@ -573,15 +573,15 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // Arrange
             var (manager, actionSystem, context, p1) = SetupRealDevourSystem();
             var devourCard = TestData.Cards.DevourCard();
-            p1.Hand.Clear();
-            p1.Hand.Add(devourCard);
+            p1.ClearHand();
+            p1.AddToHand(devourCard);
 
             // Act
             manager.PlayCard(devourCard);
 
             // Assert
             Assert.IsEmpty(p1.Hand, "Hand should be empty after playing last card.");
-            Assert.Contains(devourCard, p1.PlayedCards, "Card should be in played pile.");
+            CollectionAssert.Contains(p1.PlayedCards.ToList(), devourCard, "Card should be in played pile.");
             Assert.IsEmpty(context.VoidPile, "Void pile should be empty (Devour skipped).");
         }
 
@@ -609,7 +609,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
             // Simulate the "After Play" state:
             // 1. Card is in PlayedCards
-            p1.PlayedCards.Add(corruptor);
+            p1.AddToPlayed(corruptor);
             p1.Influence = 0;
 
             // Act
@@ -618,7 +618,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
             // Assert
             Assert.AreEqual(3, p1.Influence, "Should gain 3 Influence from the resumed chain.");
-            Assert.Contains(corruptor, p1.PlayedCards, "Card should remain in PlayedCards.");
+            CollectionAssert.Contains(p1.PlayedCards.ToList(), corruptor, "Card should remain in PlayedCards.");
         }
 
         [TestMethod]
@@ -650,8 +650,8 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // 3. Setup Hand
             var fodder = TestData.Cards.CheapCard();
             fodder.Location = CardLocation.Hand; // Critical: Ensure validation passes
-            p1.Hand.Add(wight);
-            p1.Hand.Add(fodder);
+            p1.AddToHand(wight);
+            p1.AddToHand(fodder);
 
             // 4. Set Pre-Target for Devour to Ensure Flow
             actionSystem.SetPreTarget(wight, ActionState.TargetingDevourHand, fodder);
@@ -666,7 +666,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // Since we are using PreTarget with stack automation, the command executes immediately (Non-Deferred)
             // and the stack advances to Supplant.
             Assert.IsNull(actionSystem.PendingDevourCard, "PendingDevourCard should be null (Devour executed).");
-            Assert.Contains(fodder, context.VoidPile, "Fodder SHOULD be in void (Devour executed).");
+            CollectionAssert.Contains(context.VoidPile.ToList(), fodder, "Fodder SHOULD be in void (Devour executed).");
         }
 
     }

@@ -89,7 +89,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Commands
             // Test that DtoMapper correctly enriches the DTO with hand index
             var player = new Player(ChaosWarlords.Source.Utilities.PlayerColor.Red) { SeatIndex = 0 };
             var card = CreateDummyCard("hand_card");
-            player.Hand.Add(card);
+            player.AddToHand(card);
 
             var cmd = new PlayCardCommand(card);
 

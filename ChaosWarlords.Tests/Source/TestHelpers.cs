@@ -389,7 +389,7 @@ namespace ChaosWarlords.Tests
             foreach (var card in _handCards)
             {
                 card.Location = CardLocation.Hand;
-                player.Hand.Add(card);
+                player.AddToHand(card);
             }
 
             foreach (var card in _deckCards)
@@ -407,7 +407,7 @@ namespace ChaosWarlords.Tests
             foreach (var card in _innerCircleCards)
             {
                 card.Location = CardLocation.InnerCircle;
-                player.InnerCircle.Add(card);
+                player.AddToInnerCircle(card);
             }
 
             return player;

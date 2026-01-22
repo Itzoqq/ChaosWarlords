@@ -102,22 +102,24 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 return false;
             }
 
-            // Player must have NO troops on map (first troop logic)
-            return !PlayerHasTroopsOnMap(player);
+            // Player must have NO presence on map (first unit logic)
+            return !PlayerHasPresenceOnMap(player);
         }
 
         private bool CanDeployDuringPlay(MapNode targetNode, PlayerColor player)
         {
-            // If player has no troops, can deploy anywhere (eliminated - can deploy anywhere)
-            if (!PlayerHasTroopsOnMap(player)) return true;
+            // If player has no presence, can deploy anywhere (eliminated - can deploy anywhere)
+            if (!PlayerHasPresenceOnMap(player)) return true;
 
             // Otherwise, must have presence at target node
             return HasPresence(targetNode, player);
         }
 
-        private bool PlayerHasTroopsOnMap(PlayerColor player)
+        private bool PlayerHasPresenceOnMap(PlayerColor player)
         {
-            return _nodes.Any(n => n.Occupant == player);
+            bool hasTroops = _nodes.Any(n => n.Occupant == player);
+            bool hasSpies = _sites.Any(s => s.Spies.Contains(player));
+            return hasTroops || hasSpies;
         }
 
         private static bool SiteOccupiedByOtherPlayer(Site site, PlayerColor player)

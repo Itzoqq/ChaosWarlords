@@ -297,8 +297,8 @@ namespace ChaosWarlords.Source.Managers
                 _logger.Log($"Processing Turn End Devour: {card.Name} -> Void", LogChannel.Info);
 
                 // Remove from wherever it is (likely Played or Hand)
-                _context.ActivePlayer.PlayedCards.Remove(card);
-                _context.ActivePlayer.Hand.Remove(card);
+                _context.ActivePlayer.RemoveFromPlayed(card);
+                _context.ActivePlayer.RemoveFromHand(card);
 
                 // Move to Void
                 card.Location = CardLocation.Void;

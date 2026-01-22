@@ -74,7 +74,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             // Add a card to Inner Circle (Target)
             var innerCard = new Card("inner_victim", "Inner Victim", 1, CardAspect.Neutral, 1, 1, 0);
             innerCard.Location = CardLocation.InnerCircle;
-            player.InnerCircle.Add(innerCard);
+            player.AddToInnerCircle(innerCard);
 
             // Create a generic card with "Devour Inner Circle" effect
             var devourCard = new Card("devourer", "Inner Devourer", 2, CardAspect.Sorcery, 0, 0, 0);
@@ -83,7 +83,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
                 TargetLocation = CardLocation.InnerCircle,
                 OnSuccess = new CardEffect(EffectType.GainResource, 3, ResourceType.Influence)
             });
-            player.Hand.Add(devourCard);
+            player.AddToHand(devourCard);
 
             // 2. Act - Play the card
             // We simulate the PlayCard flow manually since we don't have the full InputCoordinator here
@@ -107,7 +107,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             cmd?.Execute(testState.MatchContext);
 
             // 3. Assert
-            CollectionAssert.DoesNotContain(player.InnerCircle, innerCard, "Inner Circle card should be removed");
+            CollectionAssert.DoesNotContain(player.InnerCircle.ToList(), innerCard, "Inner Circle card should be removed");
             Assert.AreEqual(CardLocation.Void, innerCard.Location, "Inner Circle card should be in Void");
 
             // Note: OnSuccess effect (Gain Influence) is triggered by the Command execution via MatchManager logic
@@ -121,7 +121,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
         {
             // 1. Arrange
             var player = _context.ActivePlayer;
-            player.InnerCircle.Clear(); // Ensure empty
+            player.ClearInnerCircle(); // Ensure empty
 
             var devourCard = new Card("devourer", "Inner Devourer", 2, CardAspect.Sorcery, 0, 0, 0);
             devourCard.AddEffect(new CardEffect(EffectType.Devour, 0)
@@ -129,7 +129,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
                 TargetLocation = CardLocation.InnerCircle,
                 IsOptional = true // CRITICAL: Only optional effects trigger the UI popup check
             });
-            player.Hand.Add(devourCard);
+            player.AddToHand(devourCard);
 
             // 2. Act
             // Direct execution via Strategy would bypass CardEffectProcessor's optional check logic if we call Execute directly on Strategy?
@@ -162,7 +162,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             // Add a card to Inner Circle (Target)
             var innerCard = new Card("inner_victim", "Inner Victim", 1, CardAspect.Neutral, 1, 1, 0);
             innerCard.Location = CardLocation.InnerCircle;
-            player.InnerCircle.Add(innerCard);
+            player.AddToInnerCircle(innerCard);
 
             // Create Cultist of Myrkul behavior (Devour Inner Circle -> Gain 3 Infl -> Promote 2)
             var cultist = new Card("cultist", "Cultist of Myrkul", 4, CardAspect.Oblivion, 0, 0, 0);
@@ -175,7 +175,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
                     OnSuccess = new CardEffect(EffectType.Promote, 2)
                 }
             });
-            player.Hand.Add(cultist);
+            player.AddToHand(cultist);
 
             // 2. Act - Play and Devour
             var strategy = ChaosWarlords.Source.Mechanics.Rules.DevourStrategyFactory.GetStrategy(CardLocation.InnerCircle);
@@ -192,7 +192,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
 
             // 3. Assert
             // Verify Card Removed
-            CollectionAssert.DoesNotContain(player.InnerCircle, innerCard);
+            CollectionAssert.DoesNotContain(player.InnerCircle.ToList(), innerCard);
             Assert.AreEqual(CardLocation.Void, innerCard.Location);
 
             // Verify Influence Gained (Base 10 + 3 = 13)

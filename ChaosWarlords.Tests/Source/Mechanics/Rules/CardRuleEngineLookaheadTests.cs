@@ -70,7 +70,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             // Arrange: Devour (Cost) -> GainResource (Reward)
             // Note: Devour defaults to true if player has Hand cards (default) or we mock it.
             // Player starts with empty hand, so we add one.
-            _player.Hand.Add(new Card("h1", "Hand", 0, CardAspect.Neutral, 0, 0, 0));
+            _player.AddToHand(new Card("h1", "Hand", 0, CardAspect.Neutral, 0, 0, 0));
 
             var card = new Card("test", "Test", 0, CardAspect.Neutral, 0, 0, 0);
             var effect = new CardEffect(EffectType.Devour, 1)
@@ -89,7 +89,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
         public void IsEffectChainValid_ChainInvalidDeep_ReturnsFalse()
         {
             // Arrange: Devour (Valid) -> Assassinate (Invalid/Impossible)
-            _player.Hand.Add(new Card("h1", "Hand", 0, CardAspect.Neutral, 0, 0, 0));
+            _player.AddToHand(new Card("h1", "Hand", 0, CardAspect.Neutral, 0, 0, 0));
 
             // Mock Assassinate failing
             _mapManager.HasValidAssassinationTarget(_player).Returns(false);
@@ -112,7 +112,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
         {
             // Arrange: Devour (Invalid - No Cards) -> GainResource (Valid)
             // Default setup: Player hand is empty.
-            _player.Hand.Clear();
+            _player.ClearHand();
 
             var card = new Card("test", "Test", 0, CardAspect.Neutral, 0, 0, 0);
             var effect = new CardEffect(EffectType.Devour, 1)
@@ -132,7 +132,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
         public void IsEffectChainValid_NestedRecursion_ReturnsFalse()
         {
             // Arrange: Devour -> Draw -> Assassinate (Fail)
-            _player.Hand.Add(new Card("h1", "Hand", 0, CardAspect.Neutral, 0, 0, 0));
+            _player.AddToHand(new Card("h1", "Hand", 0, CardAspect.Neutral, 0, 0, 0));
             _mapManager.HasValidAssassinationTarget(_player).Returns(false);
 
             var card = new Card("test", "Test", 0, CardAspect.Neutral, 0, 0, 0);

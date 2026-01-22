@@ -243,7 +243,7 @@ namespace ChaosWarlords.Tests.Source.Systems
         {
             var card = TestData.Cards.DevourCard();
 
-            _player.Hand.Add(TestData.Cards.CheapCard());
+            _player.AddToHand(TestData.Cards.CheapCard());
 
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
 
@@ -286,7 +286,7 @@ namespace ChaosWarlords.Tests.Source.Systems
             devourEffect!.IsOptional = true; // Ensure it's optional for this test
 
             // Ensure Hand is empty (source card is explicitly excluded by definition in HasValidTargets)
-            _player.Hand.Clear();
+            _player.ClearHand();
 
             // Act
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true, Tests.Utilities.TestLogger.Instance);
@@ -306,8 +306,8 @@ namespace ChaosWarlords.Tests.Source.Systems
             devourEffect!.IsOptional = true;
 
             // Add another card to make targets valid
-            _player.Hand.Clear();
-            _player.Hand.Add(new Card("dummy", "Dummy", 0, CardAspect.Neutral, 0, 0, 0) { Location = CardLocation.Hand });
+            _player.ClearHand();
+            _player.AddToHand(new Card("dummy", "Dummy", 0, CardAspect.Neutral, 0, 0, 0) { Location = CardLocation.Hand });
 
             // Act
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true, Tests.Utilities.TestLogger.Instance);

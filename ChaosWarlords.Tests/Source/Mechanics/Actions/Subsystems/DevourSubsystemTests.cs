@@ -71,8 +71,8 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
         {
             // Arrange
             var card = CreateTestCard("Devourer", CardLocation.Hand);
-            _activePlayer.Hand.Add(CreateTestCard("Other1"));
-            _activePlayer.Hand.Add(CreateTestCard("Other2")); // Ensure >1 count
+            _activePlayer.AddToHand(CreateTestCard("Other1"));
+            _activePlayer.AddToHand(CreateTestCard("Other2")); // Ensure >1 count
 
             _actionSystem.GetAndClearPreTarget(card, ActionState.TargetingDevourHand).Returns((object?)null);
 

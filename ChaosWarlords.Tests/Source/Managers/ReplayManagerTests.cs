@@ -52,7 +52,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             _manager.InitializeRecording(123);
             var player = new Player(PlayerColor.Red);
             var card = new Card("test_id", "Test", 1, CardAspect.Neutral, 0, 0, 0);
-            player.Hand.Add(card);
+            player.AddToHand(card);
             var command = new PlayCardCommand(card);
 
             // Act
@@ -71,7 +71,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             _manager.InitializeRecording(123);
             var player = new Player(PlayerColor.Red);
             var card = new Card("test_id", "Test", 1, CardAspect.Neutral, 0, 0, 0);
-            player.Hand.Add(card);
+            player.AddToHand(card);
             var command = new PlayCardCommand(card);
 
             // Start replay mode
@@ -111,7 +111,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             // Arrange
             var player = new Player(PlayerColor.Red);
             var card = new Card("test_id", "Test", 1, CardAspect.Neutral, 0, 0, 0);
-            player.Hand.Add(card);
+            player.AddToHand(card);
             var command = new PlayCardCommand(card);
 
             _manager.InitializeRecording(123);
@@ -172,7 +172,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             // Arrange
             var player = new Player(PlayerColor.Red) { SeatIndex = 0 };
             var card = new Card("test_id", "Test", 1, CardAspect.Neutral, 0, 0, 0);
-            player.Hand.Add(card);
+            player.AddToHand(card);
 
             _manager.InitializeRecording(123);
             _manager.RecordCommand(new PlayCardCommand(card), player, 1);
@@ -233,7 +233,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             // Arrange
             var player = new Player(PlayerColor.Red);
             var card = new Card("test_id", "Test", 1, CardAspect.Neutral, 0, 0, 0);
-            player.Hand.Add(card);
+            player.AddToHand(card);
             var command = new PlayCardCommand(card);
 
             // Act
@@ -318,7 +318,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             var player = new Player(PlayerColor.Red);
             var card = new Card("inner_circle_1", "Inner Circle Victim", 1, CardAspect.Neutral, 0, 0, 0);
             card.Location = CardLocation.InnerCircle;
-            player.InnerCircle.Add(card);
+            player.AddToInnerCircle(card);
 
             var command = new DevourCardCommand(card);
 

@@ -610,7 +610,7 @@ namespace ChaosWarlords.Tests.Systems
         {
             // Arrange
             var sourceCard = TestData.Cards.DevourCard();
-            _player1.Hand.Add(TestData.Cards.CheapCard()); // Ensure hand is not empty
+            _player1.AddToHand(TestData.Cards.CheapCard()); // Ensure hand is not empty
 
             // Act
             _actionSystem.TryStartDevourHand(sourceCard);
@@ -625,7 +625,7 @@ namespace ChaosWarlords.Tests.Systems
         {
             // Arrange
             var sourceCard = TestData.Cards.DevourCard();
-            _player1.Hand.Clear(); // Empty hand
+            _player1.ClearHand(); // Empty hand
 
             // Listen for completion
             bool completed = false;

@@ -90,7 +90,7 @@ namespace ChaosWarlords.Tests.Source.Entities.Cards
         {
             // How to add to InnerCircle? It's a public property List<Card> usually?
             // Let's check Player.cs
-            _player.InnerCircle.Add(new Card("1", "Test", 0, CardAspect.Neutral, 0, 0, 0));
+            _player.AddToInnerCircle(new Card("1", "Test", 0, CardAspect.Neutral, 0, 0, 0));
 
             var condition = new EffectCondition(ConditionType.InnerCircleCount, 1);
             Assert.IsTrue(condition.Evaluate(_context, _player));

@@ -92,11 +92,13 @@ namespace ChaosWarlords.Source.Entities.Actors
         private readonly Deck _deckManager = new();
 
         // Standard Collections
-        internal List<Card> Hand { get; private set; } = [];
-        internal List<Card> PlayedCards { get; private set; } = [];
+        private readonly List<Card> _hand = new();
+        private readonly List<Card> _playedCards = new();
+        private readonly List<Card> _innerCircle = new();
 
-        // Distinct list for Promoted cards
-        internal List<Card> InnerCircle { get; private set; } = [];
+        internal IReadOnlyList<Card> Hand => _hand;
+        internal IReadOnlyList<Card> PlayedCards => _playedCards;
+        internal IReadOnlyList<Card> InnerCircle => _innerCircle;
 
         // Expose via read-only lists
         /// <summary>
@@ -110,6 +112,18 @@ namespace ChaosWarlords.Source.Entities.Actors
         internal IReadOnlyList<Card> DiscardPile => _deckManager.DiscardPile;
 
         internal Deck DeckManager => _deckManager; // For Tests/Setup that need write access (e.g. AddToTop)
+
+        // --- Internal State Management (Exposed to PlayerStateManager) ---
+        internal void AddToHand(Card card) => _hand.Add(card);
+        internal bool RemoveFromHand(Card card) => _hand.Remove(card);
+        internal void AddToPlayed(Card card) => _playedCards.Add(card);
+        internal bool RemoveFromPlayed(Card card) => _playedCards.Remove(card);
+        internal void AddToInnerCircle(Card card) => _innerCircle.Add(card);
+        internal bool RemoveFromInnerCircle(Card card) => _innerCircle.Remove(card);
+
+        internal void ClearHand() => _hand.Clear();
+        internal void ClearPlayed() => _playedCards.Clear();
+        internal void ClearInnerCircle() => _innerCircle.Clear();
 
         /// <summary>
         /// Creates a new player with the specified color and optional identity.
@@ -139,7 +153,7 @@ namespace ChaosWarlords.Source.Entities.Actors
             foreach (var card in drawn)
             {
                 card.Location = CardLocation.Hand;
-                Hand.Add(card);
+                _hand.Add(card);
             }
         }
 
@@ -163,20 +177,20 @@ namespace ChaosWarlords.Source.Entities.Actors
             // Use RemoveAll with count check or Find + Remove
 
             // Check Hand
-            var handMatch = Hand.Find(c => c.RuntimeId == card.RuntimeId);
+            var handMatch = Hand.FirstOrDefault(c => c.RuntimeId == card.RuntimeId);
             bool removed = false;
             if (handMatch != null)
             {
-                removed = Hand.Remove(handMatch);
+                removed = _hand.Remove(handMatch);
             }
 
             // Check PlayedCards if not found in Hand
             if (!removed)
             {
-                var playedMatch = PlayedCards.Find(c => c.RuntimeId == card.RuntimeId);
+                var playedMatch = PlayedCards.FirstOrDefault(c => c.RuntimeId == card.RuntimeId);
                 if (playedMatch != null)
                 {
-                    removed = PlayedCards.Remove(playedMatch);
+                    removed = _playedCards.Remove(playedMatch);
                 }
             }
 
@@ -191,7 +205,7 @@ namespace ChaosWarlords.Source.Entities.Actors
 
             // Success path
             card.Location = CardLocation.InnerCircle;
-            InnerCircle.Add(card);
+            _innerCircle.Add(card);
             errorMessage = string.Empty;
             return true;
         }
@@ -199,12 +213,12 @@ namespace ChaosWarlords.Source.Entities.Actors
         internal void CleanUpTurn()
         {
             // Move Played Cards to Discard
-            _deckManager.AddToDiscard(PlayedCards);
-            PlayedCards.Clear();
+            _deckManager.AddToDiscard(_playedCards);
+            _playedCards.Clear();
 
             // Move Hand to Discard
-            _deckManager.AddToDiscard(Hand);
-            Hand.Clear();
+            _deckManager.AddToDiscard(_hand);
+            _hand.Clear();
 
             Power = 0;
             Influence = 0;

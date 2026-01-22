@@ -30,6 +30,9 @@ namespace ChaosWarlords.Source.Managers
                 // Increment Sequence Number (Authority)
                 context.SequenceNumber++;
 
+                // Execute the command via MatchContext (Transaction)
+                command.Execute(context);
+
                 // Record the command for replay (unless we're currently replaying)
                 if (!_replayManager.IsReplaying)
                 {
@@ -38,9 +41,6 @@ namespace ChaosWarlords.Source.Managers
                     // Record to ReplayManager using the authoritative sequence number
                     _replayManager.RecordCommand(command, context.ActivePlayer, (int)context.SequenceNumber);
                 }
-
-                // Execute the command via MatchContext (Transaction)
-                command.Execute(context);
             }
             catch (Exception ex)
             {

@@ -24,7 +24,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             var mockLogger = Substitute.For<IGameLogger>();
             var mockActionSystem = Substitute.For<IActionSystem>();
             var player = new PlayerBuilder().Build();
-            player.Hand.Clear(); // Empty hand
+            player.ClearHand(); // Empty hand
 
             var context = CreateMockContext(mockActionSystem, player);
             var strategy = new DevourFromHandStrategy();
@@ -48,7 +48,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             var mockLogger = Substitute.For<IGameLogger>();
             var mockActionSystem = Substitute.For<IActionSystem>();
             var player = new PlayerBuilder().Build();
-            player.Hand.Add(TestData.Cards.CheapCard());
+            player.AddToHand(TestData.Cards.CheapCard());
 
             var context = CreateMockContext(mockActionSystem, player);
             var strategy = new DevourFromHandStrategy();
@@ -69,7 +69,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             var mockLogger = Substitute.For<IGameLogger>();
             var mockActionSystem = Substitute.For<IActionSystem>();
             var player = new PlayerBuilder().Build();
-            player.Hand.Add(TestData.Cards.CheapCard());
+            player.AddToHand(TestData.Cards.CheapCard());
 
             var context = CreateMockContext(mockActionSystem, player);
             var strategy = new DevourFromHandStrategy();
@@ -90,7 +90,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             var mockLogger = Substitute.For<IGameLogger>();
             var mockActionSystem = Substitute.For<IActionSystem>();
             var player = new PlayerBuilder().Build();
-            player.Hand.Add(TestData.Cards.CheapCard());
+            player.AddToHand(TestData.Cards.CheapCard());
 
             var context = CreateMockContext(mockActionSystem, player);
             var strategy = new DevourFromHandStrategy();

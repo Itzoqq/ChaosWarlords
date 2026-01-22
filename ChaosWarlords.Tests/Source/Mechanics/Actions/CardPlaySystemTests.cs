@@ -109,8 +109,8 @@ namespace ChaosWarlords.Tests.Systems
             var card = TestData.Cards.DevourCard();
 
             var player = _matchContext.ActivePlayer;
-            player.Hand.Add(card);
-            player.Hand.Add(TestData.Cards.CheapCard());
+            player.AddToHand(card);
+            player.AddToHand(TestData.Cards.CheapCard());
 
             _system.PlayCard(card);
 
@@ -123,7 +123,7 @@ namespace ChaosWarlords.Tests.Systems
         {
             var card = TestData.Cards.DevourCard();
 
-            _matchContext.ActivePlayer.Hand.Clear();
+            _matchContext.ActivePlayer.ClearHand();
             // (Logic check: GameplayState tests assumed if Hand.Count > 0. If we pass empty hand here...)
 
             _system.PlayCard(card);
@@ -164,7 +164,7 @@ namespace ChaosWarlords.Tests.Systems
             innerDevourCard.AddEffect(new CardEffect(EffectType.Devour, 0) { TargetLocation = CardLocation.InnerCircle });
 
             // Ensure Inner Circle has cards so it doesn't auto-skip
-            _matchContext.ActivePlayer.InnerCircle.Add(TestData.Cards.CheapCard());
+            _matchContext.ActivePlayer.AddToInnerCircle(TestData.Cards.CheapCard());
 
             _system.PlayCard(innerDevourCard);
 

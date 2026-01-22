@@ -164,7 +164,7 @@ namespace ChaosWarlords.Tests.Managers
         {
             _mediator.Initialize();
             var player = _state.MatchContext.ActivePlayer;
-            player.Hand.Add(TestData.Cards.CheapCard());
+            player.AddToHand(TestData.Cards.CheapCard());
 
             _mockUIManager.OnEndTurnRequest += Raise.Event();
 
@@ -176,7 +176,7 @@ namespace ChaosWarlords.Tests.Managers
         {
             _mediator.Initialize();
             var player = _state.MatchContext.ActivePlayer;
-            player.Hand.Clear();
+            player.ClearHand();
 
             _mockUIManager.OnEndTurnRequest += Raise.Event();
 
@@ -192,7 +192,7 @@ namespace ChaosWarlords.Tests.Managers
         {
             _mediator.Initialize();
             var player = _state.MatchContext.ActivePlayer;
-            player.Hand.Add(new CardBuilder().WithName("test").WithCost(1).WithAspect(CardAspect.Warlord).Build());
+            player.AddToHand(new CardBuilder().WithName("test").WithCost(1).WithAspect(CardAspect.Warlord).Build());
             _mediator.HandleEndTurnKeyPress(); // Open popup
 
             Assert.IsTrue(_mediator.IsConfirmationPopupOpen, "Popup should be open");
@@ -209,7 +209,7 @@ namespace ChaosWarlords.Tests.Managers
         {
             _mediator.Initialize();
             var player = _state.MatchContext.ActivePlayer;
-            player.Hand.Add(new CardBuilder().WithName("test").WithCost(1).WithAspect(CardAspect.Warlord).Build());
+            player.AddToHand(new CardBuilder().WithName("test").WithCost(1).WithAspect(CardAspect.Warlord).Build());
             _mediator.HandleEndTurnKeyPress();
 
             Assert.IsTrue(_mediator.IsConfirmationPopupOpen);

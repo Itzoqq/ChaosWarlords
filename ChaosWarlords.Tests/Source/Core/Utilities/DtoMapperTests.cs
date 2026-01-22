@@ -37,7 +37,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             // Arrange
             var player = new Player(PlayerColor.Red, Guid.NewGuid(), "Red Player");
             player.Power = 10;
-            player.Hand.Add(new Card("c1", "C1", 1, CardAspect.Neutral, 0, 0, 0));
+            player.AddToHand(new Card("c1", "C1", 1, CardAspect.Neutral, 0, 0, 0));
 
             // Act
             var dto = DtoMapper.ToDto(player);
@@ -57,7 +57,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             // Arrange
             var player = new Player(PlayerColor.Blue);
             var card = new Card("c_fireball", "Fireball", 3, CardAspect.Sorcery, 0, 0, 0);
-            player.Hand.Add(card);
+            player.AddToHand(card);
 
             var command = new PlayCardCommand(card);
 
@@ -81,7 +81,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var player = new Player(PlayerColor.Red, Guid.NewGuid());
             player.SeatIndex = 0;
             var card = new Card("c_bolt", "Bolt", 2, CardAspect.Sorcery, 0, 0, 0);
-            player.Hand.Add(card);
+            player.AddToHand(card);
 
             var dto = new PlayCardCommandDto
             {
@@ -237,8 +237,8 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             // Card(string id, string name, int cost, CardAspect aspect, int deckVp, int innerCircleVp, int influence)
             var card1 = new Card("noble_111", "Noble", 0, CardAspect.Neutral, 1, 1, 1);
             var card2 = new Card("soldier_222", "Soldier", 0, CardAspect.Neutral, 1, 1, 0);
-            p.Hand.Add(card1);
-            p.Hand.Add(card2);
+            p.AddToHand(card1);
+            p.AddToHand(card2);
             p.SeatIndex = 0;
 
             var loggerMock = Substitute.For<IGameLogger>();
@@ -265,7 +265,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
         {
             var p = new Player(PlayerColor.Red, Guid.NewGuid());
             var card1 = new Card("noble_111", "Noble", 0, CardAspect.Neutral, 1, 1, 1);
-            p.Hand.Add(card1);
+            p.AddToHand(card1);
             p.SeatIndex = 0;
 
             var loggerMock = Substitute.For<IGameLogger>();
@@ -296,8 +296,8 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var p = new Player(PlayerColor.Red, Guid.NewGuid());
             var card1 = new Card("devour_111", "Devour1", 0, CardAspect.Neutral, 1, 1, 1);
             var card2 = new Card("devour_222", "Devour2", 0, CardAspect.Neutral, 1, 1, 0);
-            p.Hand.Add(card1);
-            p.Hand.Add(card2);
+            p.AddToHand(card1);
+            p.AddToHand(card2);
             p.SeatIndex = 0;
 
             var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
@@ -321,7 +321,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
         {
             var p = new Player(PlayerColor.Red, Guid.NewGuid());
             var card1 = new Card("devour_111", "Devour1", 0, CardAspect.Neutral, 1, 1, 1);
-            p.Hand.Add(card1);
+            p.AddToHand(card1);
             p.SeatIndex = 0;
 
             var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
@@ -345,7 +345,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
         {
             var p = new Player(PlayerColor.Red, Guid.NewGuid());
             var card1 = new Card("devour_111", "Devour1", 0, CardAspect.Neutral, 1, 1, 1);
-            p.Hand.Add(card1);
+            p.AddToHand(card1);
             p.SeatIndex = 0;
 
             var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
@@ -369,7 +369,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var p = new Player(PlayerColor.Red, Guid.NewGuid());
             var card1 = new Card("inner_111", "Inner1", 0, CardAspect.Neutral, 1, 1, 1);
             card1.Location = CardLocation.InnerCircle;
-            p.InnerCircle.Add(card1);
+            p.AddToInnerCircle(card1);
             p.SeatIndex = 0;
 
             var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();

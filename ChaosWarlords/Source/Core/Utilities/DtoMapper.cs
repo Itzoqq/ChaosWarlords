@@ -133,15 +133,24 @@ namespace ChaosWarlords.Source.Core.Utilities
             {
                 if (dto is PlayCardCommandDto playDto && command is PlayCardCommand playCmd && playDto.HandIdx == -1)
                 {
-                    playDto.HandIdx = actor.Hand.IndexOf(playCmd.Card);
+                    playDto.HandIdx = GetCardIndex(actor.Hand, playCmd.Card);
                 }
                 else if (dto is DevourCardCommandDto devourDto && command is DevourCardCommand devourCmd && devourDto.HandIdx == -1)
                 {
-                    devourDto.HandIdx = actor.Hand.IndexOf(devourCmd.CardToDevour);
+                    devourDto.HandIdx = GetCardIndex(actor.Hand, devourCmd.CardToDevour);
                 }
             }
 
             return dto;
+        }
+
+        private static int GetCardIndex(IReadOnlyList<Card> list, Card card)
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i] == card) return i;
+            }
+            return -1;
         }
 
         // --- Hydration (DTO -> Command) ---

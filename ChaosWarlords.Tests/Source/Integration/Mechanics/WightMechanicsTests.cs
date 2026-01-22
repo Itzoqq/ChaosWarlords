@@ -106,8 +106,8 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             var wight = GetWightCard();
             var noble = new Card("noble", "Noble", 3, CardAspect.Blasphemy, 1, 1, 0);
             
-            _p1.Hand.Add(wight);
-            _p1.Hand.Add(noble);
+            _p1.AddToHand(wight);
+            _p1.AddToHand(noble);
             
             bool popupRequested = false;
             _uiEventMediator.When(x => x.RequestOptionalEffect(Arg.Any<Card>(), Arg.Any<CardEffect>(), Arg.Any<Action>(), Arg.Any<Action>()))
@@ -132,8 +132,8 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             var wight = GetWightCard();
             var noble = new Card("noble", "Noble", 3, CardAspect.Blasphemy, 1, 1, 0);
             
-            _p1.Hand.Add(wight);
-            _p1.Hand.Add(noble);
+            _p1.AddToHand(wight);
+            _p1.AddToHand(noble);
 
             bool popupRequested = false;
              _uiEventMediator.When(x => x.RequestOptionalEffect(Arg.Any<Card>(), Arg.Any<CardEffect>(), Arg.Any<Action>(), Arg.Any<Action>()))
@@ -159,8 +159,8 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             var wight = GetWightCard();
             var noble = new Card("noble", "Noble", 3, CardAspect.Blasphemy, 1, 1, 0);
             
-            _p1.Hand.Add(wight);
-            _p1.Hand.Add(noble);
+            _p1.AddToHand(wight);
+            _p1.AddToHand(noble);
 
             bool popupRequested = false;
              _uiEventMediator.When(x => x.RequestOptionalEffect(Arg.Any<Card>(), Arg.Any<CardEffect>(), Arg.Any<Action>(), Arg.Any<Action>()))

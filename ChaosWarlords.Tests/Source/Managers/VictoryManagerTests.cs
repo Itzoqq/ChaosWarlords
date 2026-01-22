@@ -127,7 +127,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             // Setup Inner Circle
             // Card 2: InnerCircleVP = 5
             var card2 = new Card("c2", "Card 2", 1, CardAspect.Neutral, 2, 5, 0);
-            _p1.InnerCircle.Add(card2);
+            _p1.AddToInnerCircle(card2);
 
 
             // Expected Score:

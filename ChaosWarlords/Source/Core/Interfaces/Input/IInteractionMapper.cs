@@ -25,7 +25,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Input
         /// <summary>
         /// Gets the card currently hovered in the played cards area.
         /// </summary>
-        Card? GetHoveredPlayedCard(InputManager input);
+        Card? GetHoveredPlayedCard(IInputManager input);
 
         /// <summary>
         /// Gets the card currently hovered in the browser area.

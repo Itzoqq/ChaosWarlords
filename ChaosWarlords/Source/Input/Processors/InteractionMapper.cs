@@ -32,7 +32,7 @@ namespace ChaosWarlords.Source.Input
             return _view.MarketViewModels.FirstOrDefault(vm => vm.IsHovered)?.Model;
         }
 
-        public Card? GetHoveredPlayedCard(InputManager input)
+        public Card? GetHoveredPlayedCard(IInputManager input)
         {
             // We ask the ViewModels directly instead of recalculating rectangles
             return _view.PlayedViewModels.FirstOrDefault(vm => vm.Bounds.Contains(input.MousePosition))?.Model;

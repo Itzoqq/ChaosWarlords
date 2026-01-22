@@ -51,9 +51,9 @@ namespace ChaosWarlords.Tests.Source.Entities
             Assert.IsEmpty(_player.DiscardPile);
 
             // Since order is shuffled, just check containment
-            CollectionAssert.Contains(_player.Hand, _card1);
-            CollectionAssert.Contains(_player.Hand, _card2);
-            CollectionAssert.Contains(_player.Hand, _card3);
+            CollectionAssert.Contains(_player.Hand.ToList(), _card1);
+            CollectionAssert.Contains(_player.Hand.ToList(), _card2);
+            CollectionAssert.Contains(_player.Hand.ToList(), _card3);
         }
 
         [TestMethod]
@@ -71,8 +71,9 @@ namespace ChaosWarlords.Tests.Source.Entities
         [TestMethod]
         public void CleanUpTurn_MovesCardsToDiscardAndResetsResources()
         {
-            _player.Hand.AddRange(new[] { _card1, _card2 });
-            _player.PlayedCards.Add(_card3);
+            _player.AddToHand(_card1);
+            _player.AddToHand(_card2);
+            _player.AddToPlayed(_card3);
             _player.Power = 10;
             _player.Influence = 5;
 
@@ -96,7 +97,7 @@ namespace ChaosWarlords.Tests.Source.Entities
         public void PromoteCard_MovesCardToInnerCircle()
         {
             // Arrange
-            _player.Hand.Add(_card1);
+            _player.AddToHand(_card1);
             Assert.AreEqual(CardLocation.None, _card1.Location); // Or whatever default is
 
             // Act
@@ -105,8 +106,8 @@ namespace ChaosWarlords.Tests.Source.Entities
             // Assert
             Assert.IsTrue(success, "Promotion should succeed");
             Assert.AreEqual(string.Empty, errorMessage);
-            Assert.Contains(_card1, _player.InnerCircle, "Card should be in Inner Circle list");
-            Assert.DoesNotContain(_card1, _player.Hand, "Card should be removed from Hand");
+            Assert.Contains(_card1, _player.InnerCircle.ToList(), "Card should be in Inner Circle list");
+            Assert.DoesNotContain(_card1, _player.Hand.ToList(), "Card should be removed from Hand");
             Assert.AreEqual(CardLocation.InnerCircle, _card1.Location);
         }
 
@@ -114,9 +115,9 @@ namespace ChaosWarlords.Tests.Source.Entities
         public void PromoteCard_PreventsCardFromGoingToDiscard_OnCleanup()
         {
             // Arrange
-            _player.Hand.Add(_card1); // Will be promoted
-            _player.Hand.Add(_card2); // Will be discarded (unused)
-            _player.PlayedCards.Add(_card3); // Will be discarded (played)
+            _player.AddToHand(_card1); // Will be promoted
+            _player.AddToHand(_card2); // Will be discarded (unused)
+            _player.AddToPlayed(_card3); // Will be discarded (played)
 
             // Act
             bool success = _player.TryPromoteCard(_card1, out string errorMessage); // Action happens
@@ -154,8 +155,8 @@ namespace ChaosWarlords.Tests.Source.Entities
         public void CleanUpTurn_EnsuresListsAreEmpty()
         {
             // Verify strict clearing of lists to prevent "sticky cards"
-            _player.Hand.Add(_card1);
-            _player.PlayedCards.Add(_card2);
+            _player.AddToHand(_card1);
+            _player.AddToPlayed(_card2);
 
             _player.CleanUpTurn();
 
@@ -196,8 +197,8 @@ namespace ChaosWarlords.Tests.Source.Entities
                 for (int j = 0; j < playCount; j++)
                 {
                     var card = _player.Hand[0];
-                    _player.Hand.RemoveAt(0);
-                    _player.PlayedCards.Add(card);
+                    _player.RemoveFromHand(_player.Hand[0]);
+                    _player.AddToPlayed(card);
                 }
 
                 // Check Mass

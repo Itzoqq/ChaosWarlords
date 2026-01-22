@@ -12,6 +12,7 @@ using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Rendering.UI;
 using ChaosWarlords.Source.Rendering.World; // Changed from ChaosWarlords.Source.Views
 using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Core.Interfaces.Input;
 
 using System.Diagnostics.CodeAnalysis;
 using System;
@@ -97,7 +98,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             }
         }
 
-        public void Update(MatchContext context, InputManager inputManager, bool isMarketOpen, bool isOptionalPopupOpen)
+        public void Update(MatchContext context, IInputManager inputManager, bool isMarketOpen, bool isOptionalPopupOpen)
         {
             // Sync Popup State: Logic Authority overrides View State
             if (!isOptionalPopupOpen && _optionalEffectPopup != null && _optionalEffectPopup.IsVisible)
@@ -130,7 +131,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             }
         }
 
-        public void Draw(SpriteBatch spriteBatch, MatchContext context, InputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying, IMatchManager matchManager)
+        public void Draw(SpriteBatch spriteBatch, MatchContext context, IInputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying, IMatchManager matchManager)
         {
             // 1. Draw Map
             MapNode? hoveredNode = context.MapManager.GetNodeAt(inputManager.MousePosition);
@@ -245,7 +246,7 @@ namespace ChaosWarlords.Source.Rendering.Views
 
         // --- Internal Render Logic ---
 
-        private void SyncHandVisuals(List<Card> hand)
+        private void SyncHandVisuals(IReadOnlyList<Card> hand)
         {
             HandViewModels.RemoveAll(vm => !hand.Contains(vm.Model));
             foreach (var card in hand)
@@ -273,7 +274,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             HandViewModels = sortedVMs;
         }
 
-        private void SyncMarketVisuals(List<Card> marketRow)
+        private void SyncMarketVisuals(IReadOnlyList<Card> marketRow)
         {
             MarketViewModels.RemoveAll(vm => !marketRow.Contains(vm.Model));
             foreach (var card in marketRow)
@@ -295,7 +296,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             }
         }
 
-        private void SyncPlayedVisuals(List<Card> played)
+        private void SyncPlayedVisuals(IReadOnlyList<Card> played)
         {
             PlayedViewModels.RemoveAll(vm => !played.Contains(vm.Model));
             foreach (var card in played)
@@ -320,7 +321,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             }
         }
 
-        private static void UpdateVisualsHover(List<CardViewModel> vms, InputManager input)
+        private static void UpdateVisualsHover(List<CardViewModel> vms, IInputManager input)
         {
             Point mousePos = input.MousePosition.ToPoint();
             bool foundHovered = false;

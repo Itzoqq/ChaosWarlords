@@ -35,7 +35,7 @@ namespace ChaosWarlords.Source.GameStates
         internal IGameplayView? _view;
         internal IMatchManager _matchManager = null!;
         internal MatchContext _matchContext = null!;
-        internal InputManager _inputManagerBacking = null!;
+        internal IInputManager _inputManagerBacking = null!;
         internal IUIManager _uiManagerBacking = null!;
         internal IMarketStateManager _marketStateManager = null!;
 
@@ -79,33 +79,7 @@ namespace ChaosWarlords.Source.GameStates
             ArgumentNullException.ThrowIfNull(dependencies);
 
             _game = dependencies.Game;
-            _inputManagerBacking = (InputManager)dependencies.InputManager; // Cast for now as internal usage relies on specific class features if any, or just assign interface
-                                                                            // Actually _inputManagerBacking is defined as InputManager internal field. 
-                                                                            // We should check if we can change that field to IInputManager or if we need the cast.
-                                                                            // Looking at the file, _inputManagerBacking is InputManager. 
-                                                                            // The interface IGameDependencies returns IInputManager.
-                                                                            // If InputManager implementation is required by other internal parts, we cast. 
-                                                                            // Better practice: Change internal fields to interfaces.
-                                                                            // For now, let's cast to keep changes minimal, but ideally we refactor the fields too.
-                                                                            // Wait, dependencies.InputManager comes from Game1 which creates 'new InputManager', so it's safe.
-
-            // To be cleaner, let's try to stick to interfaces. 
-            // However, InputManagerBacking is passed to many internal coordinate systems.
-            // Let's assume strict cast for now or update the field type.
-            // Updating the field type to IInputManager is safer.
-
-            // Re-reading file... 
-            // internal InputManager _inputManagerBacking = null!;
-            // public IInputManager InputManager => _inputManagerBacking;
-
-            // I will update the constructor to Use dependencies. 
-            // I'll keep the logic simple.
-
-            if (dependencies.InputManager is InputManager concretInput)
-                _inputManagerBacking = concretInput;
-            else
-                throw new ArgumentException("GameplayState currently requires concrete InputManager", nameof(dependencies));
-
+            _inputManagerBacking = dependencies.InputManager; 
 
             _cardDatabase = dependencies.CardDatabase;
             _replayManager = dependencies.ReplayManager ?? throw new ArgumentException("ReplayManager must not be null", nameof(dependencies));

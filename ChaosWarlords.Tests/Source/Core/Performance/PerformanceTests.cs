@@ -213,8 +213,8 @@ namespace ChaosWarlords.Tests.Core.Performance
             for (int i = 0; i < 1000; i++)
             {
                 var card = cards[i % cards.Count];
-                player.Hand.Add(card);
-                player.Hand.Remove(card);
+                player.AddToHand(card);
+                player.RemoveFromHand(card);
             }
 
             // Assert

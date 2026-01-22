@@ -67,7 +67,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             {
                 Location = CardLocation.Hand
             };
-            _player.Hand.Add(sourceCard);
+            _player.AddToHand(sourceCard);
 
             // Act
             bool result = _ruleEngine.HasValidTargets(_player, EffectType.Devour, sourceCard);
@@ -88,8 +88,8 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             {
                 Location = CardLocation.Hand
             };
-            _player.Hand.Add(sourceCard);
-            _player.Hand.Add(otherCard);
+            _player.AddToHand(sourceCard);
+            _player.AddToHand(otherCard);
 
             // Act
             bool result = _ruleEngine.HasValidTargets(_player, EffectType.Devour, sourceCard);
@@ -110,7 +110,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             {
                 Location = CardLocation.Hand
             };
-            _player.Hand.Add(otherCard); // Hand count 1
+            _player.AddToHand(otherCard); // Hand count 1
 
             // Act
             bool result = _ruleEngine.HasValidTargets(_player, EffectType.Devour, sourceCard);
@@ -155,6 +155,38 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
 
             // Assert
             Assert.IsFalse(result);
+        }
+        [TestMethod]
+        public void HasValidTargets_NestedSelfDevour_ReturnsTrue()
+        {
+            // Arrange
+            var sourceCard = new Card("c1", "ConditionalSelf", 0, CardAspect.Neutral, 0, 0, 0)
+            {
+                Location = CardLocation.Hand
+            };
+            
+            // Effect Chain: Conditional -> OnSuccess: Devour(Self)
+            var devourSelfEffect = new CardEffect(EffectType.Devour, 1) { TargetLocation = CardLocation.Self };
+            var conditionalEffect = new CardEffect(EffectType.GainResource, 1) // Dummy condition
+            { 
+                 // Condition = null (Default is always true effectively for simple tests if we don't evaluate it)
+                 OnSuccess = devourSelfEffect
+            };
+            sourceCard.Effects.Add(conditionalEffect);
+
+            _player.AddToHand(sourceCard);
+
+            // Act
+            // We ask if we have valid targets for Devour (the inner effect type)
+            // But we pass the sourceCard which wraps it.
+            bool result = _ruleEngine.HasValidTargets(_player, EffectType.Devour, sourceCard);
+
+            // Assert
+            // Current Bug: Logic falls back to HasHandTargets because it doesn't see Devour in root effects.
+            // HasHandTargets sees 1 card (source) and returns false.
+            // Expected Fix: It should find the nested effect, see Target=Self, and return True.
+            // Bug Fixed: Logic deep searches for effect.
+            Assert.IsTrue(result, "Should pass because deep search finds nested Self target");
         }
     }
 }

@@ -325,5 +325,31 @@ namespace ChaosWarlords.Tests.Systems
             // Act & Assert
             Assert.IsFalse(_engine.HasValidReturnTroopTarget(_player1));
         }
+        [TestMethod]
+        public void CanDeployAt_PlayingPhase_False_IfHasSpiesButNoTroops()
+        {
+            // Arrange
+            _engine.SetPhase(ChaosWarlords.Source.Contexts.MatchPhase.Playing);
+
+            // Wiped from board (0 troops)
+            _node1.Occupant = PlayerColor.None;
+            _node2.Occupant = PlayerColor.None;
+            _node3.Occupant = PlayerColor.None;
+
+            // BUT has a spy
+            _siteA.Spies.Add(_player1.Color);
+
+            // Act & Assert
+            // Should NOT be able to deploy anywhere just because they have 0 troops.
+            // Presence rule should still apply.
+            // Node 1 is not adjacent to Site A (Node 3). Node 2 is adjacent. Node 3 is at Site.
+            // Spy gives presence at site.
+            // So can deploy at Node 3 (Presence).
+            // CANNOT deploy at Node 1 (No Presence).
+
+            // This test verifies the "Eliminated Player" check respects Spies.
+            Assert.IsFalse(_engine.CanDeployAt(_node1, _player1.Color), "Player with Spy is not eliminated, so should not deploy at unconnected node.");
+            Assert.IsTrue(_engine.CanDeployAt(_node3, _player1.Color), "Player with Spy should deploy at Spy location.");
+        }
     }
 }

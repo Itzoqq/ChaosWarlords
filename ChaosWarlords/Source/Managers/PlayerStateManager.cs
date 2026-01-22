@@ -135,9 +135,9 @@ namespace ChaosWarlords.Source.Managers
         {
             if (card is null || !player.Hand.Contains(card)) return;
 
-            player.Hand.Remove(card);
+            player.RemoveFromHand(card);
             card.Location = CardLocation.Played;
-            player.PlayedCards.Add(card);
+            player.AddToPlayed(card);
 
             _logger.Log($"[State] {player.DisplayName} played '{card.Name}'", LogChannel.Info);
         }
@@ -169,9 +169,10 @@ namespace ChaosWarlords.Source.Managers
         public void DevourCard(Player player, Card card)
         {
             // Logic to remove card from game
-            bool removed = player.Hand.Remove(card);
-            if (!removed) removed = player.PlayedCards.Remove(card);
-            if (!removed) removed = player.InnerCircle.Remove(card);
+            // Logic to remove card from game
+            bool removed = player.RemoveFromHand(card);
+            if (!removed) removed = player.RemoveFromPlayed(card);
+            if (!removed) removed = player.RemoveFromInnerCircle(card);
 
             // If we found it:
             if (removed)
@@ -184,8 +185,9 @@ namespace ChaosWarlords.Source.Managers
         public void MoveCardToMarket(Player player, Card card)
         {
             // Logic to remove card from player ownership
-            bool removed = player.Hand.Remove(card);
-            if (!removed) removed = player.PlayedCards.Remove(card);
+            // Logic to remove card from player ownership
+            bool removed = player.RemoveFromHand(card);
+            if (!removed) removed = player.RemoveFromPlayed(card);
 
             if (removed)
             {

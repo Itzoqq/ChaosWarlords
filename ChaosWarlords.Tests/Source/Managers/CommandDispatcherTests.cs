@@ -130,5 +130,46 @@ namespace ChaosWarlords.Tests.Source.Managers
             _replayManager.Received().RecordCommand(_command, player, 2);
             Assert.AreEqual(2, matchContext.SequenceNumber);
         }
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void Dispatch_WhenExecutionFails_DoesNotRecord()
+        {
+            // Arrange
+            _replayManager.IsReplaying.Returns(false);
+            var player = new Player(PlayerColor.Red);
+            var turnManager = Substitute.For<ITurnManager>();
+            turnManager.ActivePlayer.Returns(player);
+
+            var matchContext = new MatchContext(
+                turnManager,
+                Substitute.For<IMapManager>(),
+                Substitute.For<IMarketManager>(),
+                Substitute.For<IActionSystem>(),
+                Substitute.For<ICardDatabase>(),
+                Substitute.For<IPlayerStateManager>(),
+                null,
+                _logger,
+                123);
+
+            var failingCommand = Substitute.For<IGameCommand>();
+            failingCommand.Validate(matchContext).Returns(true);
+            failingCommand.When(c => c.Execute(matchContext)).Do(x => { throw new InvalidOperationException("Boom"); });
+
+            // Act
+            try
+            {
+                _dispatcher.Dispatch(failingCommand, matchContext);
+            }
+            catch (InvalidOperationException)
+            {
+                // Expected
+            }
+
+            // Assert
+            // Should NOT have incremented sequence number (rolling back state ideally, but at least not skipping numbers in log)
+            // Or if we increment before execution, we might have a gap. 
+            // The critical thing: ReplayManager should NOT receive the command.
+            _replayManager.DidNotReceive().RecordCommand(Arg.Any<IGameCommand>(), Arg.Any<Player>(), Arg.Any<int>());
+        }
     }
 }

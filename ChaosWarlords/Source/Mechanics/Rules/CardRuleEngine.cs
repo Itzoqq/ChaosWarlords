@@ -103,7 +103,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         {
             if (sourceCard == null) return HasHandTargets(player, sourceCard);
 
-            var devourEffect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.Devour);
+            var devourEffect = FindFirstEffect(sourceCard.Effects, EffectType.Devour);
             if (devourEffect == null) return HasHandTargets(player, sourceCard);
 
             return devourEffect.TargetLocation switch
@@ -114,6 +114,23 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 CardLocation.InnerCircle => HasInnerCircleTargets(player),
                 _ => HasHandTargets(player, sourceCard)
             };
+        }
+
+        private static CardEffect? FindFirstEffect(IEnumerable<CardEffect> effects, EffectType type)
+        {
+            if (effects == null) return null;
+
+            foreach (var effect in effects)
+            {
+                if (effect.Type == type) return effect;
+                
+                if (effect.OnSuccess != null)
+                {
+                    var found = FindFirstEffect(new[] { effect.OnSuccess }, type);
+                    if (found != null) return found;
+                }
+            }
+            return null;
         }
 
         private bool HasMarketTargets()
