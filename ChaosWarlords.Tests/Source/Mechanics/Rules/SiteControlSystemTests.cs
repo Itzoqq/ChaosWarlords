@@ -2,6 +2,9 @@ using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Mechanics.Rules;
 
+using ChaosWarlords.Source.Core.Interfaces.Services;
+using NSubstitute;
+
 namespace ChaosWarlords.Tests.Systems
 {
     [TestClass]
@@ -14,11 +17,13 @@ namespace ChaosWarlords.Tests.Systems
         private Player _player2 = null!;
         private Site _siteA = null!;
         private MapNode _node1 = null!, _node2 = null!;
+        private IPlayerStateManager _stateManager = null!;
 
         [TestInitialize]
         public void Setup()
         {
-            _system = new SiteControlSystem(Utilities.TestLogger.Instance);
+            _stateManager = Substitute.For<IPlayerStateManager>();
+            _system = new SiteControlSystem(_stateManager, Utilities.TestLogger.Instance);
             _player1 = TestData.Players.RedPlayer();
             _player1.SpendPower(_player1.Power);
             _player1.SpendInfluence(_player1.Influence);
@@ -101,7 +106,7 @@ namespace ChaosWarlords.Tests.Systems
             var sites = new List<Site> { _siteA };
             _system.DistributeStartOfTurnRewards(sites, _player1);
 
-            Assert.AreEqual(1, _player1.Power);
+            _stateManager.Received(1).AddPower(_player1, 1);
         }
 
         [TestMethod]
@@ -114,7 +119,7 @@ namespace ChaosWarlords.Tests.Systems
             var sites = new List<Site> { _siteA };
             _system.DistributeStartOfTurnRewards(sites, _player1);
 
-            Assert.AreEqual(0, _player1.Power);
+            _stateManager.DidNotReceive().AddPower(Arg.Any<Player>(), Arg.Any<int>());
         }
 
         [TestMethod]
@@ -130,8 +135,8 @@ namespace ChaosWarlords.Tests.Systems
             var sites = new List<Site> { _siteA };
             _system.DistributeStartOfTurnRewards(sites, _player1);
 
-            Assert.AreEqual(1, _player1.Power);
-            Assert.AreEqual(1, _player1.VictoryPoints);
+            _stateManager.Received(1).AddPower(_player1, 1);
+            _stateManager.Received(1).AddVictoryPoints(_player1, 1);
         }
     }
 }

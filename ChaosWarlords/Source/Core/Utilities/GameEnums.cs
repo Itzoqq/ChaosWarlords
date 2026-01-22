@@ -56,6 +56,7 @@ namespace ChaosWarlords.Source.Utilities
     // The command pattern: what does this card actually DO?
     public enum EffectType
     {
+        None = 0,
         GainResource,
         DeployUnit,
         Assassinate,

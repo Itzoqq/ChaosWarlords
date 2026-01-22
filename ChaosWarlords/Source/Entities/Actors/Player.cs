@@ -138,22 +138,22 @@ namespace ChaosWarlords.Source.Entities.Actors
         private readonly List<Card> _playedCards = new();
         private readonly List<Card> _innerCircle = new();
 
-        internal IReadOnlyList<Card> Hand => _hand;
-        internal IReadOnlyList<Card> PlayedCards => _playedCards;
-        internal IReadOnlyList<Card> InnerCircle => _innerCircle;
+        public IReadOnlyList<Card> Hand => _hand;
+        public IReadOnlyList<Card> PlayedCards => _playedCards;
+        public IReadOnlyList<Card> InnerCircle => _innerCircle;
 
         // Expose via read-only lists
         /// <summary>
         /// Read-only view of the cards currently in the draw pile.
         /// </summary>
-        internal IReadOnlyList<Card> Deck => _deckManager.DrawPile;
+        public IReadOnlyList<Card> Deck => _deckManager.DrawPile;
 
         /// <summary>
         /// Read-only view of the cards currently in the discard pile.
         /// </summary>
-        internal IReadOnlyList<Card> DiscardPile => _deckManager.DiscardPile;
+        public IReadOnlyList<Card> DiscardPile => _deckManager.DiscardPile;
 
-        internal Deck DeckManager => _deckManager; // For Tests/Setup that need write access (e.g. AddToTop)
+        internal Deck DeckManager => _deckManager; // Internal access for Factory/Tests only
 
         // --- Internal State Management (Exposed to PlayerStateManager) ---
         internal void AddToHand(Card card) => _hand.Add(card);

@@ -231,8 +231,8 @@ namespace ChaosWarlords.Source.Managers
 
                 // Push the child effect to the stack
                 var child = devourEffect.OnSuccess;
-                var state = Mechanics.Actions.CardPlaySystem.GetTargetingState(child);
-                bool requiresInput = Mechanics.Actions.CardPlaySystem.IsTargetingEffect(child.Type) || child.IsOptional;
+                var state = _context.CardRuleEngine.GetStrategy(child.Type).GetTargetingState(child);
+                bool requiresInput = _context.CardRuleEngine.GetStrategy(child.Type).IsTargetingEffect || child.IsOptional;
 
                 var childCtx = new Core.Contexts.EffectContext(
                    state,

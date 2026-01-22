@@ -65,7 +65,7 @@ namespace ChaosWarlords.Tests.Integration.Factories
             cityOfGold.Id = 1;
             sites.Add(cityOfGold);
 
-            var mapManager = new MapManager(nodes, sites, Substitute.For<ITurnManager>(), Utilities.TestLogger.Instance);
+            var mapManager = new MapManager(nodes, sites, Substitute.For<ITurnManager>(), Utilities.TestLogger.Instance, Substitute.For<IPlayerStateManager>());
 
             // Act
             MatchFactory.ApplyScenarioRules(mapManager);
@@ -86,7 +86,7 @@ namespace ChaosWarlords.Tests.Integration.Factories
             normalSite.Id = 2;
             sites.Add(normalSite);
 
-            var mapManager = new MapManager(nodes, sites, Substitute.For<ITurnManager>(), Utilities.TestLogger.Instance);
+            var mapManager = new MapManager(nodes, sites, Substitute.For<ITurnManager>(), Utilities.TestLogger.Instance, Substitute.For<IPlayerStateManager>());
 
             // Act
             MatchFactory.ApplyScenarioRules(mapManager);
@@ -101,7 +101,7 @@ namespace ChaosWarlords.Tests.Integration.Factories
             // Arrange
             // We need a map manager with null sites. 
             // MapManager constructor assigns directly.
-            var mapManager = new MapManager(new List<MapNode>(), null!, Substitute.For<ITurnManager>(), Utilities.TestLogger.Instance);
+            var mapManager = new MapManager(new List<MapNode>(), null!, Substitute.For<ITurnManager>(), Utilities.TestLogger.Instance, Substitute.For<IPlayerStateManager>());
 
             // Act
             MatchFactory.ApplyScenarioRules(mapManager);

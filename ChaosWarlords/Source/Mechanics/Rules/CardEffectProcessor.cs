@@ -27,10 +27,10 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             for (int i = effectQueue.Count - 1; i >= 0; i--)
             {
                 var effect = effectQueue[i];
-                var state = Actions.CardPlaySystem.GetTargetingState(effect);
+                var state = context.CardRuleEngine.GetStrategy(effect.Type).GetTargetingState(effect);
 
                 // Determine if this effect requires blocking input
-                bool requiresInput = Actions.CardPlaySystem.IsTargetingEffect(effect.Type) || effect.IsOptional;
+                bool requiresInput = context.CardRuleEngine.GetStrategy(effect.Type).IsTargetingEffect || effect.IsOptional;
 
                 // VALIDATION: If the effect requires targeting, ensure valid targets exist.
                 // If not, we skip pushing it (and thus skip the action), matching legacy behavior.
@@ -70,8 +70,8 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             if (parent.OnSuccess != null)
             {
                 var child = parent.OnSuccess;
-                var state = Actions.CardPlaySystem.GetTargetingState(child);
-                bool requiresInput = Actions.CardPlaySystem.IsTargetingEffect(child.Type) || child.IsOptional;
+                var state = context.CardRuleEngine.GetStrategy(child.Type).GetTargetingState(child);
+                bool requiresInput = context.CardRuleEngine.GetStrategy(child.Type).IsTargetingEffect || child.IsOptional;
 
                 var childCtx = new EffectContext(
                     state,
@@ -132,7 +132,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             Action? onSuccess = null;
 
             bool deferExecution = effect.OnSuccess != null
-                && Actions.CardPlaySystem.IsTargetingEffect(effect.OnSuccess.Type);
+                && context.CardRuleEngine.GetStrategy(effect.OnSuccess.Type).IsTargetingEffect;
 
             ApplyDevour(effect, sourceCard, context, logger, onSuccess, deferExecution);
         }
@@ -260,7 +260,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 return false;
             }
 
-            if (!Actions.CardPlaySystem.IsTargetingEffect(effect.OnSuccess.Type))
+            if (!context.CardRuleEngine.GetStrategy(effect.OnSuccess.Type).IsTargetingEffect)
             {
                 return false;
             }

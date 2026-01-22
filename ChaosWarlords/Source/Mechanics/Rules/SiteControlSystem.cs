@@ -7,18 +7,16 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 {
     public class SiteControlSystem
     {
-        private IPlayerStateManager _stateManager = null!;
+        private readonly IPlayerStateManager _stateManager;
         private readonly IGameLogger _logger;
 
-        public SiteControlSystem(IGameLogger logger)
+        public SiteControlSystem(IPlayerStateManager stateManager, IGameLogger logger)
         {
+            _stateManager = stateManager ?? throw new ArgumentNullException(nameof(stateManager));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public void SetPlayerStateManager(IPlayerStateManager stateManager)
-        {
-            _stateManager = stateManager;
-        }
+        // REMOVED: SetPlayerStateManager. Dependency is now immutable.
 
         public void RecalculateSiteState(Site site, Player activePlayer)
         {
@@ -138,19 +136,12 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         private void ApplyReward(Player player, ResourceType type, int amount)
         {
-            if (_stateManager is null)
-            {
-                if (type == ResourceType.Power) player.AddPower(amount);
-                if (type == ResourceType.Influence) player.AddInfluence(amount);
-                if (type == ResourceType.VictoryPoints) player.VictoryPoints += amount;
-                return;
-            }
-
+            // Delegating to State Manager (Required)
             if (type == ResourceType.Power) _stateManager.AddPower(player, amount);
             if (type == ResourceType.Influence) _stateManager.AddInfluence(player, amount);
             if (type == ResourceType.VictoryPoints) _stateManager.AddVictoryPoints(player, amount);
         }
-    }
+}
 }
 
 

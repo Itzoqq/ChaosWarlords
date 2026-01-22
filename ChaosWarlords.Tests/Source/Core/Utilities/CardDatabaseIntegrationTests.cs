@@ -32,9 +32,9 @@ namespace ChaosWarlords.Tests.Core.Utilities
             Assert.AreEqual(EffectType.Supplant, devourEffect.OnSuccess.Type, "OnSuccess should be Supplant");
 
             // Verify Logic Predicate
-            Assert.IsTrue(ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(EffectType.Devour), "Devour should be considered a Targeting Effect");
-            var isTargeting = ChaosWarlords.Source.Mechanics.Actions.CardPlaySystem.IsTargetingEffect(devourEffect.OnSuccess.Type);
-            Assert.IsTrue(isTargeting, "Supplant should be considered a Targeting Effect");
+            Assert.IsTrue(new ChaosWarlords.Source.Mechanics.Rules.Strategies.DevourStrategy().IsTargetingEffect, "Devour should be considered a Targeting Effect");
+            var supplantStrategy = new ChaosWarlords.Source.Mechanics.Rules.Strategies.SupplantStrategy();
+            Assert.IsTrue(supplantStrategy.IsTargetingEffect, "Supplant should be considered a Targeting Effect");
         }
     }
 }

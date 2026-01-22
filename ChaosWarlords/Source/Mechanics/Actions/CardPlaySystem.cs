@@ -3,6 +3,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Contexts;
 
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Mechanics.Rules.Interfaces;
 
 namespace ChaosWarlords.Source.Mechanics.Actions
 {
@@ -39,7 +40,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions
 
         private bool ShouldSkipPreCommitTargeting(Card card)
         {
-            bool hasOptionalTargeting = card.Effects.Any(e => e.IsOptional && IsTargetingEffect(e.Type));
+            bool hasOptionalTargeting = card.Effects.Any(e => e.IsOptional && _matchContext.CardRuleEngine.GetStrategy(e.Type).IsTargetingEffect);
 
             if (hasOptionalTargeting)
             {
@@ -54,12 +55,14 @@ namespace ChaosWarlords.Source.Mechanics.Actions
         {
             foreach (var effect in card.Effects)
             {
-                if (!IsTargetingEffect(effect.Type))
+                // Use Strategy via RuleEngine
+                var strategy = _matchContext.CardRuleEngine.GetStrategy(effect.Type);
+                if (!strategy.IsTargetingEffect)
                     continue;
 
                 if (ShouldStartTargetingForEffect(card, effect))
                 {
-                    var state = GetTargetingState(effect);
+                    var state = strategy.GetTargetingState(effect);
                     _matchContext.ActionSystem.StartTargeting(state, card);
                     _onTargetingStarted?.Invoke();
                     return true;
@@ -71,7 +74,10 @@ namespace ChaosWarlords.Source.Mechanics.Actions
 
         private bool ShouldStartTargetingForEffect(Card card, CardEffect effect)
         {
-            var state = GetTargetingState(effect);
+            // Use Strategy via RuleEngine
+            var strategy = _matchContext.CardRuleEngine.GetStrategy(effect.Type);
+            var state = strategy.GetTargetingState(effect);
+
             _logger.Log($"[CardPlaySystem] Effect {effect.Type} (Loc: {effect.TargetLocation}) -> State: {state}", LogChannel.Debug);
 
             // Market targeting happens post-play (sequential)
@@ -81,7 +87,8 @@ namespace ChaosWarlords.Source.Mechanics.Actions
                 return false;
             }
 
-            if (!_matchContext.CardRuleEngine.HasValidTargets(_matchContext.ActivePlayer, effect.Type, card))
+            // Delegated validation to Strategy via RuleEngine
+            if (!strategy.HasValidTargets(_matchContext, _matchContext.ActivePlayer, card))
             {
                 _logger.Log($"Skipping targeting for {card.Name}: No valid targets for {effect.Type}.", LogChannel.Info);
                 return false;
@@ -94,19 +101,33 @@ namespace ChaosWarlords.Source.Mechanics.Actions
         {
             if (card is null) return false;
 
-            // Optimization: checking Any directly
-            if (!card.Effects.Any(e => IsTargetingEffect(e.Type))) return true;
-
-            foreach (var effect in card.Effects)
+            // Simple check first
+            // Note: We need strategy to know IsTargetingEffect.
+            // Iterating strategies is slightly slower than static check but cleaner.
+            
+            bool anyTargeting = false;
+            foreach(var effect in card.Effects)
             {
-                if (IsTargetingEffect(effect.Type))
+                var strategy = _matchContext.CardRuleEngine.GetStrategy(effect.Type);
+                if (strategy.IsTargetingEffect)
                 {
-                    if (_matchContext.CardRuleEngine.HasValidTargets(_matchContext.ActivePlayer, effect.Type, card)) return true;
+                    anyTargeting = true;
+                    if (strategy.HasValidTargets(_matchContext, _matchContext.ActivePlayer, card))
+                    {
+                        return true;
+                    }
                 }
             }
+
+            if (!anyTargeting) return true; // If no targeting effects, it's playable/viable (non-targeting)
+            // Wait, original logic: if !card.Effects.Any(Targeting) return true.
+            // If it has targeting loops, and NONE have targets -> return false.
+            // So logic matches.
+
             return false;
         }
 
+        [Obsolete("Use CardRuleEngine.GetStrategy(type).IsTargetingEffect instead.")]
         public static bool IsTargetingEffect(EffectType type)
         {
             return type == EffectType.Assassinate ||
@@ -117,6 +138,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions
                    type == EffectType.Devour;
         }
 
+        [Obsolete("Use CardRuleEngine.GetStrategy(type).GetTargetingState(effect) instead.")]
         public static ActionState GetTargetingState(CardEffect effect)
         {
             return effect.Type switch

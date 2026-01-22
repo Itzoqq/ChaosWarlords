@@ -274,7 +274,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             HandViewModels = sortedVMs;
         }
 
-        private void SyncMarketVisuals(IReadOnlyList<Card> marketRow)
+        private void SyncMarketVisuals(List<Card> marketRow)
         {
             MarketViewModels.RemoveAll(vm => !marketRow.Contains(vm.Model));
             foreach (var card in marketRow)

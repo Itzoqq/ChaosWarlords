@@ -3,6 +3,8 @@ using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Mechanics.Rules.Interfaces;
+using ChaosWarlords.Source.Mechanics.Rules.Strategies;
 
 namespace ChaosWarlords.Source.Mechanics.Rules
 {
@@ -15,11 +17,30 @@ namespace ChaosWarlords.Source.Mechanics.Rules
     {
         private readonly MatchContext _context;
         private readonly IGameLogger _logger;
+        private readonly Dictionary<EffectType, IEffectStrategy> _strategies;
 
         public CardRuleEngine(MatchContext context, IGameLogger logger)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+            _strategies = new Dictionary<EffectType, IEffectStrategy>
+            {
+                { EffectType.Assassinate, new Strategies.AssassinateStrategy() },
+                { EffectType.ReturnUnit, new Strategies.ReturnUnitStrategy() },
+                { EffectType.PlaceSpy, new Strategies.PlaceSpyStrategy() },
+                { EffectType.Supplant, new Strategies.SupplantStrategy() },
+                { EffectType.MoveUnit, new Strategies.MoveUnitStrategy() },
+                { EffectType.Devour, new Strategies.DevourStrategy() },
+                // Add new strategies here
+            };
+        }
+
+        public IEffectStrategy GetStrategy(EffectType type)
+        {
+            if (_strategies.TryGetValue(type, out var strategy))
+                return strategy;
+            return new Strategies.DefaultStrategy();
         }
 
         /// <summary>
@@ -50,22 +71,12 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         /// <summary>
         /// Checks if the player has valid targets for the specific effect type.
-        /// Used to prevent playing cards that would fizzle completely if targets are mandatory.
+        /// Delegated to Strategy Pattern.
         /// </summary>
         public bool HasValidTargets(Player player, EffectType effectType, Card? sourceCard = null)
         {
-            bool isValid = effectType switch
-            {
-                EffectType.PlaceSpy => player.SpiesInBarracks > 0 && _context.MapManager.HasValidPlaceSpyTarget(player),
-                EffectType.ReturnUnit => _context.MapManager.HasValidReturnTroopTarget(player),
-                EffectType.Assassinate => _context.MapManager.HasValidAssassinationTarget(player),
-                EffectType.MoveUnit => _context.MapManager.HasValidMoveSource(player),
-                EffectType.Supplant => player.TroopsInBarracks > 0 && _context.MapManager.HasValidAssassinationTarget(player), // Supplant requires Assassinate target + placing troop
-
-                EffectType.Devour => CheckDevourTargets(player, sourceCard),
-
-                _ => true // Most effects (GainResource, DrawCard) don't need external targets
-            };
+            var strategy = GetStrategy(effectType);
+            bool isValid = strategy.HasValidTargets(_context, player, sourceCard);
 
             if (!isValid)
             {
@@ -82,7 +93,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         public bool IsEffectChainValid(Player player, CardEffect effect, Card? sourceCard)
         {
             // 1. Validate the current effect (if it requires targets)
-            if (Actions.CardPlaySystem.IsTargetingEffect(effect.Type))
+            if (GetStrategy(effect.Type).IsTargetingEffect)
             {
                 if (!HasValidTargets(player, effect.Type, sourceCard))
                 {
@@ -99,68 +110,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             return true;
         }
 
-        private bool CheckDevourTargets(Player player, Card? sourceCard)
-        {
-            if (sourceCard == null) return HasHandTargets(player, sourceCard);
 
-            var devourEffect = FindFirstEffect(sourceCard.Effects, EffectType.Devour);
-            if (devourEffect == null) return HasHandTargets(player, sourceCard);
-
-            return devourEffect.TargetLocation switch
-            {
-                CardLocation.Self => true,
-                CardLocation.Market => HasMarketTargets(),
-                CardLocation.Deck => HasDeckTargets(player),
-                CardLocation.InnerCircle => HasInnerCircleTargets(player),
-                _ => HasHandTargets(player, sourceCard)
-            };
-        }
-
-        private static CardEffect? FindFirstEffect(IEnumerable<CardEffect> effects, EffectType type)
-        {
-            if (effects == null) return null;
-
-            foreach (var effect in effects)
-            {
-                if (effect.Type == type) return effect;
-                
-                if (effect.OnSuccess != null)
-                {
-                    var found = FindFirstEffect(new[] { effect.OnSuccess }, type);
-                    if (found != null) return found;
-                }
-            }
-            return null;
-        }
-
-        private bool HasMarketTargets()
-        {
-            if (_context.MarketManager.MarketRow.Count > 0) return true;
-
-            _logger.Log("[RuleEngine] Market Devour failed: Market is empty.", LogChannel.Warning);
-            return false;
-        }
-
-        private bool HasDeckTargets(Player player)
-        {
-            if (player.Deck.Count > 0) return true;
-
-            _logger.Log("[RuleEngine] Deck Devour failed: Deck is empty.", LogChannel.Warning);
-            return false;
-        }
-
-        private bool HasInnerCircleTargets(Player player)
-        {
-            if (player.InnerCircle.Count > 0) return true;
-
-            _logger.Log("[RuleEngine] Inner Circle Devour failed: Inner Circle is empty.", LogChannel.Warning);
-            return false;
-        }
-
-        private static bool HasHandTargets(Player player, Card? sourceCard)
-        {
-            return player.Hand.Any(c => c != sourceCard);
-        }
 
         // ----------------------------------------------------------------------------------------
         // Specific Condition Checks (Helpers used by Condition.Evaluate or directly)

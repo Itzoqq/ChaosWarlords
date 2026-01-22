@@ -62,18 +62,18 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             _p2.TroopsInBarracks = 10;
 
             _turnManager = Substitute.For<ITurnManager>();
+            _playerStateManager = new PlayerStateManager(_logger); // Moved up
             _turnManager.ActivePlayer.Returns(_p1);
             _turnManager.Players.Returns(new List<Player> { _p1, _p2 });
             _turnManager.CurrentTurnContext.Returns(new TurnContext(_p1, _logger)); 
 
             // Fix MapManager (Error 1)
             // MapManager(nodes, sites, turnManager, logger, playerState)
-            _mapManager = new MapManager(nodes, sites, _turnManager, _logger);
+            _mapManager = new MapManager(nodes, sites, _turnManager, _logger, _playerStateManager);
 
             _actionSystem = new ActionSystem(_turnManager, _mapManager, _logger);
             
             _marketManager = Substitute.For<IMarketManager>();
-            _playerStateManager = new PlayerStateManager(_logger); // Real state manager
             _uiEventMediator = Substitute.For<IUIEventMediator>();
             var cardDb = Substitute.For<ICardDatabase>();
 

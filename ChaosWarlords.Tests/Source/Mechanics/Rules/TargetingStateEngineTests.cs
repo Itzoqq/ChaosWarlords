@@ -1,12 +1,32 @@
 using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Utilities; // For ActionState
 using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Mechanics.Actions;
+using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Core.Interfaces.Data;
+using ChaosWarlords.Source.Managers;
+using NSubstitute;
 
 namespace ChaosWarlords.Tests.Source.Mechanics.Rules
 {
     [TestClass]
     public class TargetingStateEngineTests
     {
+        private CardRuleEngine GetRuleEngine()
+        {
+            var logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance;
+            var turnMgr = Substitute.For<ITurnManager>();
+            var mapMgr = Substitute.For<IMapManager>();
+            var actionSys = new ActionSystem(turnMgr, mapMgr, logger);
+            var marketMgr = Substitute.For<IMarketManager>();
+            var cardDb = Substitute.For<ICardDatabase>();
+            var playerState = Substitute.For<IPlayerStateManager>();
+            var ui = Substitute.For<IUIEventMediator>();
+
+            var context = new MatchContext(turnMgr, mapMgr, marketMgr, actionSys, cardDb, playerState, ui, logger, 0);
+            return new CardRuleEngine(context, logger);
+        }
         [TestMethod]
         public void DetermineNextState_SingleTargetingEffect_ReturnsCorrectState()
         {
@@ -18,7 +38,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
 
             // Act
             // 1. Initial Call (Current = Normal) -> Should find Assassinate
-            var state1 = TargetingStateEngine.DetermineNextState(effects, ActionState.Normal, false);
+            var state1 = TargetingStateEngine.DetermineNextState(effects, ActionState.Normal, false, GetRuleEngine());
 
             // Assert
             Assert.AreEqual(ActionState.TargetingAssassinate, state1);
@@ -35,10 +55,10 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
 
             // Act
             // 2. Second Call (Current = Assassinate) -> Should complete
-            var state2 = TargetingStateEngine.DetermineNextState(effects, ActionState.TargetingAssassinate, false);
+            var nextState = TargetingStateEngine.DetermineNextState(effects, ActionState.TargetingAssassinate, false, GetRuleEngine());
 
             // Assert
-            Assert.AreEqual(ActionState.Normal, state2);
+            Assert.AreEqual(ActionState.Normal, nextState);
         }
 
         [TestMethod]
@@ -52,7 +72,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
 
             // Act
             // 1. Start from Assassinate
-            var nextState = TargetingStateEngine.DetermineNextState(effects, ActionState.TargetingAssassinate, false);
+            var nextState = TargetingStateEngine.DetermineNextState(effects, ActionState.TargetingAssassinate, false, GetRuleEngine());
 
             // Assert
             Assert.AreEqual(ActionState.TargetingPlaceSpy, nextState);
@@ -71,7 +91,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
 
             // Act
             // Start from Assassinate
-            var nextState = TargetingStateEngine.DetermineNextState(effects, ActionState.TargetingAssassinate, false);
+            var nextState = TargetingStateEngine.DetermineNextState(effects, ActionState.TargetingAssassinate, false, GetRuleEngine());
 
             // Assert
             Assert.AreEqual(ActionState.TargetingPlaceSpy, nextState);
@@ -93,7 +113,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
 
             // Act
             // Current = Assassinate, BUT isSkipped = true
-            var nextState = TargetingStateEngine.DetermineNextState(effects, ActionState.TargetingAssassinate, isCurrentStateSkipped: true);
+            var nextState = TargetingStateEngine.DetermineNextState(effects, ActionState.TargetingAssassinate, isCurrentStateSkipped: true, ruleEngine: GetRuleEngine());
 
             // Assert
             Assert.AreEqual(ActionState.TargetingPlaceSpy, nextState);
@@ -113,7 +133,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             var effects = new List<CardEffect> { root };
 
             // Act
-            var nextState = TargetingStateEngine.DetermineNextState(effects, ActionState.TargetingAssassinate, false);
+            var nextState = TargetingStateEngine.DetermineNextState(effects, ActionState.TargetingAssassinate, false, GetRuleEngine());
 
             // Assert
             Assert.AreEqual(ActionState.TargetingPlaceSpy, nextState);

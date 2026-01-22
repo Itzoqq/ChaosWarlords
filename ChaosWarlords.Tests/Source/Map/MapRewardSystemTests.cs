@@ -17,7 +17,7 @@ namespace ChaosWarlords.Tests.Map
         public void Setup()
         {
             Utilities.TestLogger.Initialize();
-            _mockControlSystem = Substitute.For<SiteControlSystem>(Utilities.TestLogger.Instance);
+            _mockControlSystem = Substitute.For<SiteControlSystem>(Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IPlayerStateManager>(), Utilities.TestLogger.Instance);
             _rewardSystem = new MapRewardSystem(_mockControlSystem);
         }
 

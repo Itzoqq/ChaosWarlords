@@ -478,7 +478,7 @@ namespace ChaosWarlords.Source.Managers
             // Determine if the *current* step was skipped by the user, so the Engine knows to skip its children.
             bool isCurrentSkipped = IsPreTargetSkipped(sourceCard, CurrentState);
 
-            var nextState = Mechanics.Rules.TargetingStateEngine.DetermineNextState(sourceCard.Effects, CurrentState, isCurrentSkipped);
+            var nextState = Mechanics.Rules.TargetingStateEngine.DetermineNextState(sourceCard.Effects, CurrentState, isCurrentSkipped, _matchContext!.CardRuleEngine);
 
             if (nextState != ActionState.Normal)
             {
@@ -714,7 +714,9 @@ namespace ChaosWarlords.Source.Managers
                     if (nextEffect.SourceEffect?.OnSuccess != null && _matchContext != null)
                     {
                         var onSuccessEffect = nextEffect.SourceEffect.OnSuccess;
-                        bool onSuccessRequiresTargeting = Mechanics.Actions.CardPlaySystem.IsTargetingEffect(onSuccessEffect.Type);
+                        
+                        // Use Strategy Pattern via RuleEngine
+                        bool onSuccessRequiresTargeting = _matchContext.CardRuleEngine.GetStrategy(onSuccessEffect.Type).IsTargetingEffect;
 
                         if (onSuccessRequiresTargeting)
                         {

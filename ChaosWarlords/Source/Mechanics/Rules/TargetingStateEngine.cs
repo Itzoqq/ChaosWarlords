@@ -1,9 +1,15 @@
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Mechanics.Actions;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Mechanics.Rules.Interfaces;
 
 namespace ChaosWarlords.Source.Mechanics.Rules
 {
+    /// <summary>
+    /// Pure logic engine responsible for determining the sequence of Targeting States
+    /// based on a Card's Effect Tree.
+    /// Extracts complex recursion and state transition logic from ActionSystem to adhere to SRP.
+    /// </summary>
     /// <summary>
     /// Pure logic engine responsible for determining the sequence of Targeting States
     /// based on a Card's Effect Tree.
@@ -18,43 +24,46 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// <param name="effects">The root effects of the card.</param>
         /// <param name="currentState">The state we are currently in (or just finished).</param>
         /// <param name="isCurrentStateSkipped">If true, the current state's children (OnSuccess) will be skipped.</param>
+        /// <param name="ruleEngine">The CardRuleEngine to resolve strategies.</param>
         /// <returns>The next ActionState, or ActionState.Normal if no more targeting is needed.</returns>
-        public static ActionState DetermineNextState(IEnumerable<CardEffect> effects, ActionState currentState, bool isCurrentStateSkipped)
+        public static ActionState DetermineNextState(IEnumerable<CardEffect> effects, ActionState currentState, bool isCurrentStateSkipped, CardRuleEngine ruleEngine)
         {
+            ArgumentNullException.ThrowIfNull(ruleEngine);
+
             // If we are starting fresh (Normal), just find the first targeting state
             if (currentState == ActionState.Normal)
             {
                 // Find first targeting state in the tree
                 foreach (var effect in effects)
                 {
-                    var state = FindTargetingStateRecursive(effect);
+                    var state = FindTargetingStateRecursive(effect, ruleEngine);
                     if (state != ActionState.Normal) return state;
                 }
                 return ActionState.Normal;
             }
 
             bool foundCurrent = false;
-            return TraverseForNext(effects, currentState, isCurrentStateSkipped, ref foundCurrent);
+            return TraverseForNext(effects, currentState, isCurrentStateSkipped, ref foundCurrent, ruleEngine);
         }
 
-        private static ActionState TraverseForNext(IEnumerable<CardEffect> effects, ActionState currentState, bool isCurrentStateSkipped, ref bool foundCurrent)
+        private static ActionState TraverseForNext(IEnumerable<CardEffect> effects, ActionState currentState, bool isCurrentStateSkipped, ref bool foundCurrent, CardRuleEngine ruleEngine)
         {
             if (effects == null) return ActionState.Normal;
 
             foreach (var effect in effects)
             {
-                var effectState = CardPlaySystem.GetTargetingState(effect);
+                var effectState = ruleEngine.GetStrategy(effect.Type).GetTargetingState(effect);
 
                 if (!foundCurrent)
                 {
                     // Still searching for the current state
-                    var result = SearchForCurrentState(effect, effectState, currentState, isCurrentStateSkipped, ref foundCurrent);
+                    var result = SearchForCurrentState(effect, effectState, currentState, isCurrentStateSkipped, ref foundCurrent, ruleEngine);
                     if (result != ActionState.Normal) return result;
                 }
                 else
                 {
                     // Already found current state, looking for next targeting state
-                    var result = FindNextTargetingState(effect, effectState);
+                    var result = FindNextTargetingState(effect, effectState, ruleEngine);
                     if (result != ActionState.Normal) return result;
                 }
             }
@@ -71,19 +80,20 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             ActionState effectState,
             ActionState currentState,
             bool isCurrentStateSkipped,
-            ref bool foundCurrent)
+            ref bool foundCurrent,
+            CardRuleEngine ruleEngine)
         {
             // Case 1: This effect IS the current state
             if (effectState == currentState)
             {
                 foundCurrent = true;
-                return ProcessFoundCurrentState(effect, isCurrentStateSkipped);
+                return ProcessFoundCurrentState(effect, isCurrentStateSkipped, ruleEngine);
             }
 
             // Case 2: Current state might be in children
             if (effect.OnSuccess != null)
             {
-                return SearchInChildTree(effect, currentState, isCurrentStateSkipped, ref foundCurrent);
+                return SearchInChildTree(effect, currentState, isCurrentStateSkipped, ref foundCurrent, ruleEngine);
             }
 
             return ActionState.Normal;
@@ -93,12 +103,12 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// Processes the effect after finding the current state.
         /// Looks for the next targeting state in children (if not skipped).
         /// </summary>
-        private static ActionState ProcessFoundCurrentState(CardEffect effect, bool isCurrentStateSkipped)
+        private static ActionState ProcessFoundCurrentState(CardEffect effect, bool isCurrentStateSkipped, CardRuleEngine ruleEngine)
         {
             // Priority 1: Children (Dependency), unless skipped
             if (!isCurrentStateSkipped && effect.OnSuccess != null)
             {
-                var childState = FindTargetingStateRecursive(effect.OnSuccess);
+                var childState = FindTargetingStateRecursive(effect.OnSuccess, ruleEngine);
                 if (childState != ActionState.Normal) return childState;
             }
 
@@ -114,9 +124,10 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             CardEffect effect,
             ActionState currentState,
             bool isCurrentStateSkipped,
-            ref bool foundCurrent)
+            ref bool foundCurrent,
+            CardRuleEngine ruleEngine)
         {
-            var nextInChild = TraverseForNext(new[] { effect.OnSuccess! }, currentState, isCurrentStateSkipped, ref foundCurrent);
+            var nextInChild = TraverseForNext(new[] { effect.OnSuccess! }, currentState, isCurrentStateSkipped, ref foundCurrent, ruleEngine);
 
             // If we found 'Current' deep in the child tree...
             if (foundCurrent)
@@ -134,10 +145,10 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// Finds the next targeting state after we've already passed the current state.
         /// Looks for ANY valid targeting state in this subtree.
         /// </summary>
-        private static ActionState FindNextTargetingState(CardEffect effect, ActionState effectState)
+        private static ActionState FindNextTargetingState(CardEffect effect, ActionState effectState, CardRuleEngine ruleEngine)
         {
             // Check if this effect itself is a targeting effect
-            if (CardPlaySystem.IsTargetingEffect(effect.Type))
+            if (ruleEngine.GetStrategy(effect.Type).IsTargetingEffect)
             {
                 return effectState;
             }
@@ -145,7 +156,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             // Check children for targeting effects
             if (effect.OnSuccess != null)
             {
-                var childState = FindTargetingStateRecursive(effect.OnSuccess);
+                var childState = FindTargetingStateRecursive(effect.OnSuccess, ruleEngine);
                 if (childState != ActionState.Normal) return childState;
             }
 
@@ -155,18 +166,19 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// <summary>
         /// Finds the first targeting state in an effect subtree.
         /// </summary>
-        private static ActionState FindTargetingStateRecursive(CardEffect? effect)
+        private static ActionState FindTargetingStateRecursive(CardEffect? effect, CardRuleEngine ruleEngine)
         {
             if (effect == null) return ActionState.Normal;
 
-            if (CardPlaySystem.IsTargetingEffect(effect.Type))
+            var strategy = ruleEngine.GetStrategy(effect.Type);
+            if (strategy.IsTargetingEffect)
             {
-                return CardPlaySystem.GetTargetingState(effect);
+                return strategy.GetTargetingState(effect);
             }
 
             if (effect.OnSuccess != null)
             {
-                return FindTargetingStateRecursive(effect.OnSuccess);
+                return FindTargetingStateRecursive(effect.OnSuccess, ruleEngine);
             }
 
             return ActionState.Normal;

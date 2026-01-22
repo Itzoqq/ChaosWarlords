@@ -26,7 +26,8 @@ namespace ChaosWarlords.Source.Managers
         private readonly SpyOperations _spyOps;
 
         private readonly MapRewardSystem _rewards;
-        private IPlayerStateManager? _playerStateManager;
+
+        private readonly IPlayerStateManager _playerStateManager;
         private readonly IGameLogger _logger;
 
         // Events
@@ -36,12 +37,12 @@ namespace ChaosWarlords.Source.Managers
         IReadOnlyList<MapNode> IMapManager.Nodes => NodesInternal;
         IReadOnlyList<Site> IMapManager.Sites => SitesInternal;
 
-        public MapManager(List<MapNode> nodes, List<Site> sites, ITurnManager turnManager, IGameLogger logger, IPlayerStateManager playerState = null!)
+        public MapManager(List<MapNode> nodes, List<Site> sites, ITurnManager turnManager, IGameLogger logger, IPlayerStateManager playerState)
         {
             NodesInternal = nodes;
             SitesInternal = sites;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _playerStateManager = playerState;
+            _playerStateManager = playerState ?? throw new ArgumentNullException(nameof(playerState));
             _nodeSiteLookup = new Dictionary<MapNode, Site>();
 
             // Build Lookup
@@ -57,8 +58,8 @@ namespace ChaosWarlords.Source.Managers
 
             // Initialize Sub-Systems (Composition)
             _ruleEngine = new MapRuleEngine(NodesInternal, SitesInternal, _nodeSiteLookup, _logger);
-            _controlSystem = new SiteControlSystem(_logger);
-            if (_playerStateManager is not null) _controlSystem.SetPlayerStateManager(_playerStateManager);
+            _controlSystem = new SiteControlSystem(_playerStateManager, _logger);
+            // REMOVED: SetPlayerStateManager calls as it is now injected via constructor
 
             // Initialize New Service Classes
             _topology = new MapTopology(NodesInternal, SitesInternal);
@@ -74,13 +75,7 @@ namespace ChaosWarlords.Source.Managers
             _spyOps = new SpyOperations((site, player) => RecalculateSiteState(site, player), _playerStateManager!, _logger);
         }
 
-        public void SetPlayerStateManager(IPlayerStateManager stateManager)
-        {
-            _playerStateManager = stateManager;
-            _controlSystem.SetPlayerStateManager(stateManager);
-            _combat.SetPlayerStateManager(stateManager);
-            _spyOps.SetPlayerStateManager(stateManager);
-        }
+        // REMOVED: SetPlayerStateManager. Dependency is now immutable.
 
         // -------------------------------------------------------------------------
         // FACADE METHODS (Delegating to Sub-Systems)
