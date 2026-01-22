@@ -273,7 +273,7 @@ ChaosWarlords.Tests/Source/
 
 ## Test Categories Breakdown
 
-**Total Test Suite: 715 tests** (417 Unit + 291 Integration + 7 Performance)
+**Total Test Suite: 713 tests** (417 Unit + 289 Integration + 7 Performance)
 
 ### Unit Tests (417 tests)
 **Purpose**: Test single classes in isolation  

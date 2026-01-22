@@ -337,7 +337,13 @@ The codebase underwent significant refactoring to reduce cyclomatic complexity a
 - Improved testability through focused, single-purpose methods
 - Enhanced readability with reduced nesting depth (5 → 2)
 - Better adherence to SOLID principles (Single Responsibility, Strategy Pattern)
-- Zero regressions (600/600 tests passing)
+- Zero regressions (713/713 tests passing)
+
+### Encapsulation Hardening (2026-01)
+To prevent "state leaks" and ensure system stability:
+1. **Player Encapsulation**: Inherently unsafe collections (`List<Card>`) in `Player.cs` were replaced with `IReadOnlyList<Card>`. Helper methods like `AddToHand` were restricted to `internal` scope, accessible only by Managers.
+2. **Match Construction**: The "God Object" anti-pattern in `GameplayState` was resolved by moving complex object graph construction to `MatchFactory`.
+3. **Null Safety**: `SiteControlSystem` and other Managers defined strict constructor contracts, throwing `ArgumentNullException` immediately if dependencies are missing.
 
 ### Performance & Optimization
 **New standard as of 2026-01**:

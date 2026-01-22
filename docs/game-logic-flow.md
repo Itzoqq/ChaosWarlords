@@ -641,43 +641,37 @@ classDiagram
 ---
 
 ### 11.5 Card Effect Processing (Strategy Pattern)
-The `CardEffectProcessor` uses the Strategy Pattern for devour operations to eliminate conditional complexity.
+The `CardRuleEngine` and `CardEffectProcessor` use the Strategy Pattern (`IEffectStrategy`) for ALL effect types, ensuring OCP compliance.
 
 ```mermaid
 classDiagram
-    class CardEffectProcessor {
-        +ProcessNextEffect()
-        +ApplyDevour()
-        -ProcessOptionalEffect()
-        -ShouldSkipDevourChain()
+    class CardRuleEngine {
+        +GetStrategy(EffectType)
+        +IsConditionMet()
     }
-    class DevourStrategyFactory {
-        +GetStrategy(location)
-    }
-    class IDevourStrategy {
+    class IEffectStrategy {
         <<interface>>
-        +Execute(card, context, logger, onComplete, defer)
+        +HasValidTargets()
+        +GetTargetingState()
+        +IsTargetingEffect
     }
-    class DevourFromHandStrategy {
-        +Execute()
+    class AssassinateStrategy {
+        +HasValidTargets()
     }
-    class DevourFromMarketStrategy {
-        +Execute()
+    class DevourStrategy {
+        +HasValidTargets()
     }
-    class DevourFromDeckStrategy {
-        +Execute()
+    class MoveUnitStrategy {
+        +HasValidTargets()
     }
 
-    CardEffectProcessor --> DevourStrategyFactory : Uses
-    DevourStrategyFactory --> IDevourStrategy : Creates
-    IDevourStrategy <|-- DevourFromHandStrategy : Implements
-    IDevourStrategy <|-- DevourFromHandStrategy : Implements
-    IDevourStrategy <|-- DevourFromMarketStrategy : Implements
-    IDevourStrategy <|-- DevourFromDeckStrategy : Implements
-    IDevourStrategy <|-- DevourFromInnerCircleStrategy : Implements
+    CardRuleEngine --> IEffectStrategy : Uses
+    IEffectStrategy <|-- AssassinateStrategy : Implements
+    IEffectStrategy <|-- DevourStrategy : Implements
+    IEffectStrategy <|-- MoveUnitStrategy : Implements
 ```
 
-> **Key Takeaway**: Instead of nested conditionals checking `CardLocation`, the processor uses a **Strategy Pattern**. This reduced `ApplyDevour` complexity from CC 16→6 and makes adding new devour locations trivial.
+> **Key Takeaway**: Instead of giant `switch` statements, the engine resolves a lightweight strategy class for each effect type. This makes the system "Open for Extension, Closed for Modification". Adding "Polymorph" just means adding a `PolymorphStrategy` class.
 
 ---
 

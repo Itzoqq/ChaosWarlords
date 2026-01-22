@@ -620,3 +620,45 @@ public void Move() { Position += new LogicVector2(1, 0); } // Exact integer math
 - **View Layer**: Convert to `Vector2` *only* for drawing: `spriteBatch.Draw(..., entity.Position.ToVector2(), ...)`
 
 
+
+---
+
+## 18. Strict Encapsulation (Collections)
+
+**Rule**: NEVER expose mutable collections (`List<T>`, `Dictionary<T,K>`) directly in public properties. Use `IReadOnlyList<T>` or `IEnumerable<T>`.
+
+**Why**: Prevents consumers from modifying internal state without going through proper methods (bypassing validation and events).
+
+```csharp
+// ❌ WRONG: External code can .Clear() your list!
+public List<Card> Hand { get; private set; }
+
+// ✅ CORRECT: Safe for exposure
+private readonly List<Card> _hand = new();
+public IReadOnlyList<Card> Hand => _hand;
+
+internal void AddCard(Card card) { ... } // Mutation controlled
+```
+
+---
+
+## 19. Fail-Fast Constructor Injection
+
+**Rule**: All constructor arguments must be validated for nullity immediately.
+
+**Why**: Prevents "Silent Failures" where a system runs in a zombie state (e.g., logging disabled because logger was null).
+
+```csharp
+// ❌ WRONG: Silent failure later
+public SiteControlSystem(IGameLogger logger)
+{
+    _logger = logger; // If null, CronJob crashes 10 mins later
+}
+
+// ✅ CORRECT: Fail immediately
+public SiteControlSystem(IGameLogger logger)
+{
+    ArgumentNullException.ThrowIfNull(logger);
+    _logger = logger;
+}
+```
