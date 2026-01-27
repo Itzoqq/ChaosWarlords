@@ -662,3 +662,92 @@ public SiteControlSystem(IGameLogger logger)
     _logger = logger;
 }
 ```
+
+---
+
+## 20. State Hashing for Multiplayer Sync
+
+**Rule**: State hashes MUST be deterministic and culture-invariant.
+
+**Why**: Multiplayer clients must generate identical hashes to detect desyncs. Non-deterministic hashing (locale-dependent formatting, unordered collections) causes false positives.
+
+**Pattern**: Use `InvariantCulture` for all hash string conversions
+
+```csharp
+// ❌ WRONG: Locale-dependent formatting
+return hash.ToString("X");
+
+// ✅ CORRECT: Culture-invariant
+return hash.ToString("X", System.Globalization.CultureInfo.InvariantCult ure);
+```
+
+**Collection Ordering**: Always use `.OrderBy()` when iterating collections for hashing
+
+```csharp
+// ❌ WRONG: Non-deterministic iteration order
+foreach (var node in MapManager.Nodes)
+{
+    hash = hash * 31 + node.Id;
+}
+
+// ✅ CORRECT: Deterministic ordering
+foreach (var node in MapManager.Nodes.OrderBy(n => n.Id))
+{
+    hash = hash * 31 + node.Id;
+}
+```
+
+**Coverage Requirements**:
+- Sequence/turn metadata (turn number, phase, seed)
+- Player resources (Power, Influence, VP, Troops)
+- Map state (node occupancy)
+- Market state (card count, card IDs)
+
+---
+
+## 21. Network Abstraction
+
+**Rule**: Game logic must NEVER depend on concrete network implementations.
+
+**Why**: Allows switching between Local/SignalR/TCP transports without modifying game logic. Supports testing with mock network providers.
+
+**Pattern**: Use `INetworkProvider` interface
+
+```csharp
+// ❌ WRONG: Direct dependency on transport
+public class CommandDispatcher
+{
+    private readonly SignalRConnection _connection;
+    
+    public void SendCommand(GameCommandDto dto)
+    {
+        _connection.InvokeAsync("SendCommand", dto);
+    }
+}
+
+// ✅ CORRECT: Interface-based abstraction
+public class CommandDispatcher
+{
+    private readonly INetworkProvider _network;
+    
+    public async Task SendCommandAsync(GameCommandDto dto)
+    {
+        await _network.SendCommandAsync(dto);
+    }
+}
+```
+
+**Event-Driven Reception**: Subscribe to network events, don't poll
+
+```csharp
+// Setup in initialization
+_network.OnCommandReceived += HandleIncomingCommand;
+_network.OnStateReceived += HandleStateSnapshot;
+```
+
+**Testing**: Mock `INetworkProvider` for unit tests
+
+```csharp
+var mockNetwork = Substitute.For<INetworkProvider>();
+mockNetwork.IsConnected.Returns(true);
+```

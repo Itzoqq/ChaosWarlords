@@ -26,6 +26,7 @@ ChaosWarlords/                   # Project Root
     │   ├── Composition/                     # Dependency Injection composition roots
     │   │   └── GameDependencies.cs          # Concrete dependency container
     │   ├── Contexts/                        # Data Holders (The "Glue")
+    │   │   ├── EffectContext.cs             # Context for stack-based effect execution
     │   │   ├── ExecutedAction.cs            # Record capturing a single game event
     │   │   ├── MatchContext.cs              # Scoped DI container for a single match
     │   │   └── TurnContext.cs               # Transient state for current turn
@@ -33,6 +34,7 @@ ChaosWarlords/                   # Project Root
     │   │   ├── Dtos/                        # Data Transfer Objects
     │   │   │   ├── CardDto.cs               # Serializable card data
     │   │   │   ├── CommandDto.cs            # Serializable command data
+    │   │   │   ├── EffectContextDto.cs      # Serializable effect stack state
     │   │   │   ├── GameStateDto.cs          # Serializable game state snapshot
     │   │   │   ├── MapDto.cs                # Serializable map data
     │   │   │   ├── PlayerDto.cs             # Serializable player data
@@ -77,6 +79,7 @@ ChaosWarlords/                   # Project Root
     │   │   │   ├── IMarketManager.cs
     │   │   │   ├── IMarketStateManager.cs
     │   │   │   ├── IMatchManager.cs
+    │   │   │   ├── INetworkProvider.cs      # Abstraction for network transport
     │   │   │   ├── IPlayerStateManager.cs
     │   │   │   ├── IReplayManager.cs
     │   │   │   ├── ITurnManager.cs
@@ -251,12 +254,32 @@ Complex multi-step actions (like Devour mechanics) utilize the `ActionSystem` wi
 Card logic is validated by a centralized `CardRuleEngine` using a Chain of Responsibility pattern. `EffectCondition` definitions allow data-driven rules (defined in JSON), separating validation logic from effect execution.
 
 ### 6. Multiplayer Readiness
-To ensure synchronization without shared memory:
-- **Centralized Mutation**: All resource changes flow through `IPlayerStateManager`.
-- **Action Sequencing**: Actions are assigned sequence numbers.
-- **Seeded RNG**: `IGameRandom` ensures identical random number sequences across all clients.
-- **Context Isolation**: `PoolManager` maintains separate object pools for logic (server) and rendering (client) to prevent state leaks.
-- **Separation of Concerns**: Logic never touches UI, allowing headless execution.
+
+The architecture now includes concrete infrastructure for network synchronization:
+
+**State Verification:**
+- **State Hashing**: `MatchContext.GetStateHash()` generates deterministic hashes for desync detection
+- **Hash Coverage**: Sequence numbers, turn metadata, map state, player resources, market state
+- **Culture-Invariant**: Uses `InvariantCulture` for consistent formatting across locales
+
+**Network Abstraction:**
+- **INetworkProvider Interface**: Defines contract for command transmission and state sync
+- **Transport Agnostic**: Supports future implementations (Local/SignalR/TCP)
+- **Event-Driven**: Callbacks for `OnCommandReceived` and `OnStateReceived`
+- **Async Operations**: All network calls use `Task` for non-blocking I/O
+
+**Snapshot Serialization:**
+- **Full State Capture**: `DtoMapper.ToGameStateDto()` serializes entire game state
+- **Effect Stack Serialization**: `EffectContextDto` captures mid-action state for reconnection
+- **Transient State Handling**: Marked-for-devour cards and pending effects included
+
+**Existing Infrastructure:**
+- **Centralized Mutation**: All resource changes flow through `IPlayerStateManager`
+- **Action Sequencing**: Commands track sequence numbers for ordering
+- **Seeded RNG**: `IGameRandom` ensures identical random sequences across all clients
+- **Context Isolation**: `PoolManager` maintains separate object pools for logic (server) and rendering (client) to prevent state leaks
+- **Separation of Concerns**: Logic never touches UI, allowing headless execution
+
 
 ### 7. MatchContext vs IGameplayState: Separation of Concerns
 

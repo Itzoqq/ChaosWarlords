@@ -896,6 +896,135 @@ sequenceDiagram
 
 ---
 
+## 16. Multiplayer State Synchronization
+
+**Concept**: How clients verify game state consistency using deterministic hashing.
+
+### 16.1 State Hash Validation Flow
+
+```mermaid
+sequenceDiagram
+    participant Client1 as Client 1
+    participant Server as Server Logic
+    participant Client2 as Client 2
+    
+    Note over Client1,Client2: Both clients execute same command
+    
+    Client1->>Client1: Execute(PlayCardCommand)
+    Client1->>Client1: Increment SequenceNumber
+    Client1->>Client1: hash = GetStateHash()
+    
+    Server->>Server: Execute(PlayCardCommand)
+    Server->>Server: Increment SequenceNumber
+    Server->>Server: hash = GetStateHash()
+    
+    Client2->>Client2: Execute(PlayCardCommand)
+    Client2->>Client2: Increment SequenceNumber
+    Client2->>Client2: hash = GetStateHash()
+    
+    rect rgb(30, 30, 30)
+        Note over Client1,Client2: Hash Comparison
+        Client1->>Server: Report Hash(seq=42)
+        Client2->>Server: Report Hash(seq=42)
+        
+        alt Hashes Match
+            Server-->>Client1: ✅ Sync OK
+            Server-->>Client2: ✅ Sync OK
+        else Desync Detected
+            Server-->>Client1: ❌ Desync! Request Snapshot
+            Server->>Client1: SendStateSnapshot(GameStateDto)
+            Client1->>Client1: Hydrate(GameStateDto)
+        end
+    end
+```
+
+> **Key Takeaway**: After each command execution, all clients generate a **State Hash** using `MatchContext.GetStateHash()`. The server compares hashes. If they mismatch, the drifted client receives a **GameStateDto** snapshot to resynchronize.
+
+### 16.2 Snapshot Serialization (Reconnection)
+
+```mermaid
+flowchart TD
+    Start([Client Disconnects]) --> Reconnect{Reconnect?}
+    Reconnect -- No --> End([Game Over])
+    Reconnect -- Yes --> Request[Request State Snapshot]
+    
+    Request --> Server[Server: ToGameStateDto]
+    Server --> Serialize{Serialize Full State}
+    
+    subgraph Snapshot Contents
+        Serialize --> Players[Players]
+        Serialize --> Map[Map]
+        Serialize --> Market[Market]
+        Serialize --> Stack[EffectStack]
+        Serialize --> Meta[Seed/Turn/Phase]
+    end
+    
+    Players & Map & Market & Stack & Meta --> Send[Send GameStateDto]
+    Send --> Client[Client: Hydrate State]
+    Client --> Restore[Restore MatchContext]
+    Restore --> Resume([Resume Play])
+    
+    style Stack fill:#fff9c4,stroke:#fbc02d,color:black
+    style Restore fill:#c8e6c9,stroke:#1b5e20,color:black
+```
+
+> **Key Takeaway**: `DtoMapper.ToGameStateDto()` captures the **complete game state**, including the **EffectStack** (mid-action context). This allows disconnected clients to rejoin mid-turn without losing targeting state or buffered actions.
+
+**Serialized Components:**
+- **Entities**: Players, Map (nodes/sites), Market cards, Void pile
+- **Metadata**: Seed, turn number, phase, sequence number
+- **Transient State**: Cards marked for turn-end devour
+- **Execution Context**: Effect stack for resuming mid-action state
+
+---
+
+## 17. Network Provider Interface
+
+**Concept**: Abstraction layer for all network operations (not yet implemented).
+
+```mermaid
+classDiagram
+    class INetworkProvider {
+        <<interface>>
+        +SendCommandAsync(dto)
+        +ConnectAsync(endpoint)
+        +DisconnectAsync()
+        +bool IsConnected
+        +event OnCommandReceived
+        +event OnStateReceived
+    }
+    
+    class LocalLoopbackProvider {
+        +SendCommandAsync()
+        +OnCommandReceived
+    }
+    
+    class SignalRProvider {
+        +SendCommandAsync()
+        +ConnectAsync()
+    }
+    
+    class TCPProvider {
+        +SendCommandAsync()
+        +ConnectAsync()
+    }
+    
+    INetworkProvider <|.. LocalLoopbackProvider : Implements
+    INetworkProvider <|.. SignalRProvider : Implements (Future)
+    INetworkProvider <|.. TCPProvider : Implements (Future)
+    
+    class CommandDispatcher {
+        -INetworkProvider network
+        +ExecuteRemote(cmd)
+    }
+    
+    CommandDispatcher --> INetworkProvider : Uses
+```
+
+> **Key Takeaway**: `INetworkProvider` defines the contract for network communication without committing to a transport. Future implementations (SignalR/TCP) will plug in without changing game logic. **Local loopback** can be used for single-player replay/testing.
+
+---
+
 ## Summary
 
 This document visualizes the complete game logic flow from high-level architecture to detailed implementation. The flows demonstrate:
@@ -905,5 +1034,8 @@ This document visualizes the complete game logic flow from high-level architectu
 - Transactional action processing with deferred execution
 - **Stack-based** resolution for nested game actions
 - **Zero-Allocation** pooling for high-performance rendering
+- **State hashing** for multiplayer desync detection
+- **Snapshot serialization** for reconnection support
+- **Network abstraction** for transport-agnostic multiplayer
 
 For implementation details, see [architecture.md](architecture.md). For test coverage, see [testing.md](testing.md).

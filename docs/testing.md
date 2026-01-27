@@ -78,8 +78,11 @@ The test project mirrors the main project structure. Each test file corresponds 
 ```text
 ChaosWarlords.Tests/Source/
 ├── Core/                        # Unit Tests for Core Infrastructure
+│   ├── Contexts/
+│   │   └── MatchContextHashingTests.cs
 │   ├── Data/                    # Unit Tests for Data Structures
-│   │   └── LogicVector2Tests.cs
+│   │   ├── LogicVector2Tests.cs
+│   │   └── SnapshotSerializationTests.cs
 │   ├── Events/
 │   │   └── EventManagerTests.cs
 │   └── Utilities/               # Unit Tests for Utilities
@@ -273,9 +276,9 @@ ChaosWarlords.Tests/Source/
 
 ## Test Categories Breakdown
 
-**Total Test Suite: 713 tests** (417 Unit + 289 Integration + 7 Performance)
+**Total Test Suite: 719 tests** (422 Unit + 290 Integration + 7 Performance)
 
-### Unit Tests (417 tests)
+### Unit Tests (422 tests)
 **Purpose**: Test single classes in isolation  
 **Characteristics**: Fast, no external dependencies, use mocks  
 **Run Time**: ~1.1 seconds
@@ -286,6 +289,11 @@ ChaosWarlords.Tests/Source/
 - **Managers** (10 files): State managers + PoolManager
 - **Core/Utilities** (9 files): Infrastructure (ObjectPool, PooledPrimitives, etc.)
 - **Map Components** (4 files): Map subsystems (Combat, Rewards, Topology, Spies)
+
+**New Test Suites (January 2026)**:
+- **MatchContextHashingTests** (4 tests): Validates deterministic state hash generation. Tests hash changes on state mutations (phase, sequence, map, player). Category: Unit
+- **SnapshotSerializationTests** (1 test): Verifies EffectStack serialization in `ToGameStateDto()`. Tests DTO mapping for mid-action state capture. Category: Unit
+
 
 ### Integration Tests (291 tests)
 **Purpose**: Test component interactions  
