@@ -26,6 +26,9 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         // Transient State (Cards pending destruction at end of turn)
         public List<string> MarkedForTurnEndDevourCardIds { get; set; } = [];
 
+        // Stack State (For mid-action recovery)
+        public List<EffectContextDto> EffectStack { get; set; } = [];
+
         public long SequenceNumber { get; set; }
 
         public GameStateDto() { }

@@ -7,6 +7,7 @@ using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Services;
+using System.Linq; // Required for serialization
 
 namespace ChaosWarlords.Source.Core.Utilities
 {
@@ -300,6 +301,48 @@ namespace ChaosWarlords.Source.Core.Utilities
                 var winner = victoryManager.DetermineWinner(context.TurnManager.Players, context);
                 dto.WinnerSeat = winner.SeatIndex;
                 dto.WinnerName = winner.DisplayName;
+            }
+
+            return dto;
+        }
+        public static GameStateDto ToGameStateDto(Source.Contexts.MatchContext context)
+        {
+            var dto = new GameStateDto();
+            dto.Seed = context.Seed;
+            dto.TurnNumber = context.CurrentTurnNumber;
+            dto.Phase = context.CurrentPhase;
+            dto.SequenceNumber = context.SequenceNumber;
+
+            // Transient
+            dto.MarkedForTurnEndDevourCardIds = context.CardsMarkedForTurnEndDevour.Select(c => c.Id).ToList();
+
+            // Entities
+            dto.Players = context.TurnManager.Players.Select(p => ToDto(p)).Where(d => d != null).ToList()!;
+            dto.Map = ToDto(context.MapManager);
+            dto.Market = ToDtoList(context.MarketManager.MarketRow);
+            dto.VoidPile = ToDtoList(context.VoidPile);
+
+            // Stack Serialization
+            if (context.ActionSystem.ExecutionStack.Count > 0)
+            {
+                var stackList = context.ActionSystem.ExecutionStack.Reverse().ToList(); // Iterating stack is top-down? Stack enumeration is usually LIFO (Top First).
+                                                                                        // We want a list where [0] is bottom or top? 
+                                                                                        // If we just serialize as list, we need to push back in reverse order of List
+                                                                                        // Stack: [Top, Middle, Bottom]
+                                                                                        // List: [Top, Middle, Bottom]
+                                                                                        // Re-push: Push(List[2]), Push(List[1])...
+                
+                foreach (var effect in stackList)
+                {
+                    dto.EffectStack.Add(new EffectContextDto
+                    {
+                        State = effect.EffectType,  // EffectType is ActionState
+                        SourceCardId = effect.SourceCard?.Id,
+                        RequiresInput = effect.RequiresInput,
+                        Description = effect.Description,
+                        EffectType = effect.SourceEffect?.Type ?? EffectType.None  // From CardEffect if available
+                    });
+                }
             }
 
             return dto;

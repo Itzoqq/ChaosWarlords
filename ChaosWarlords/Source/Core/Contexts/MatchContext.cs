@@ -6,6 +6,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Utilities;
+using System.Linq; // Required for OrderBy
 
 namespace ChaosWarlords.Source.Contexts
 {
@@ -118,6 +119,58 @@ namespace ChaosWarlords.Source.Contexts
         {
             // Null check for TurnManager and CurrentTurnContext to prevent crashes in partially mocked tests
             TurnManager?.CurrentTurnContext?.RecordAction(actionType, summary);
+        }
+
+        /// <summary>
+        /// Generates a deterministic hash of the current game state.
+        /// Used for detecting desyncs in multiplayer.
+        /// </summary>
+        public string GetStateHash()
+        {
+            // Use a deterministic accumulation of state values
+            // 1. Sequence and Turn Meta
+            long hash = 17;
+            hash = hash * 31 + SequenceNumber;
+            hash = hash * 31 + CurrentTurnNumber;
+            hash = hash * 31 + (int)CurrentPhase;
+            hash = hash * 31 + (TurnManager?.ActivePlayer?.Color.GetHashCode() ?? 0);
+            hash = hash * 31 + Seed;
+
+            // 2. Map State (Node Ownership)
+            if (MapManager != null)
+            {
+                foreach (var node in MapManager.Nodes.OrderBy(n => n.Id))
+                {
+                    hash = hash * 31 + node.Id;
+                    hash = hash * 31 + node.Occupant.GetHashCode();
+                }
+            }
+
+            // 3. Player Resources
+            if (TurnManager != null && TurnManager.Players != null)
+            {
+                foreach (var player in TurnManager.Players.OrderBy(p => p.Color))
+                {
+                    hash = hash * 31 + player.Power;
+                    hash = hash * 31 + player.Influence;
+                    hash = hash * 31 + player.VictoryPoints;
+                    hash = hash * 31 + player.TroopsInBarracks;
+                    hash = hash * 31 + player.Hand.Count;
+                    hash = hash * 31 + player.InnerCircle.Count;
+                }
+            }
+
+            // 4. Market State
+            if (MarketManager != null)
+            {
+                hash = hash * 31 + MarketManager.MarketRow.Count;
+                foreach (var card in MarketManager.MarketRow.OrderBy(c => c.Id))
+                {
+                    hash = hash * 31 + card.Id.GetHashCode();
+                }
+            }
+
+            return hash.ToString("X", System.Globalization.CultureInfo.InvariantCulture);
         }
     }
 }
