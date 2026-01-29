@@ -51,12 +51,15 @@ namespace ChaosWarlords.Source.GameStates
         public IInputManager InputManager => _inputManagerBacking;
         public IGameLogger Logger => _logger;
         public IUIManager UIManager => _uiManagerBacking;
+        public IGameplayView? View => _view;
         public IMatchManager MatchManager => _matchManager;
 
         // REMOVED: Service Locator properties (MapManager, MarketManager, etc.)
         // Access these via MatchContext if absolutely necessary, or better, inject them where needed.
 
         public MatchContext MatchContext => _matchContext;
+
+        public ChaosWarlords.Source.Core.Interfaces.Logic.IActionSystem ActionSystem => _matchContext?.ActionSystem ?? throw new InvalidOperationException("ActionSystem not initialized");
 
         public IInputMode InputMode => _inputCoordinator.CurrentMode;
 

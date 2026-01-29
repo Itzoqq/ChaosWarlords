@@ -126,37 +126,5 @@ namespace ChaosWarlords.Source.Mechanics.Actions
 
             return false;
         }
-
-        [Obsolete("Use CardRuleEngine.GetStrategy(type).IsTargetingEffect instead.")]
-        public static bool IsTargetingEffect(EffectType type)
-        {
-            return type == EffectType.Assassinate ||
-                   type == EffectType.ReturnUnit ||
-                   type == EffectType.Supplant ||
-                   type == EffectType.PlaceSpy ||
-                   type == EffectType.MoveUnit ||
-                   type == EffectType.Devour;
-        }
-
-        [Obsolete("Use CardRuleEngine.GetStrategy(type).GetTargetingState(effect) instead.")]
-        public static ActionState GetTargetingState(CardEffect effect)
-        {
-            return effect.Type switch
-            {
-                EffectType.Assassinate => ActionState.TargetingAssassinate,
-                EffectType.ReturnUnit => ActionState.TargetingReturn,
-                EffectType.Supplant => ActionState.TargetingSupplant,
-                EffectType.PlaceSpy => ActionState.TargetingPlaceSpy,
-                EffectType.MoveUnit => ActionState.TargetingMoveSource,
-                EffectType.Devour => effect.TargetLocation switch
-                {
-                    CardLocation.Market => ActionState.TargetingDevourMarket,
-                    CardLocation.InnerCircle => ActionState.TargetingDevourInnerCircle,
-                    CardLocation.Self => ActionState.Normal,
-                    _ => ActionState.TargetingDevourHand
-                },
-                _ => ActionState.Normal
-            };
-        }
     }
 }

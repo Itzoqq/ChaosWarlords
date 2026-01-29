@@ -5,6 +5,7 @@ using NSubstitute;
 using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
+using System;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Managers;
@@ -44,7 +45,15 @@ namespace ChaosWarlords.Tests.Source.Systems
                 _uiMediator,
                 Tests.Utilities.TestLogger.Instance
             );
+
+            // Inject Partial Mock (Spy) for CardRuleEngine to allow mocking virtual methods if needed
+            // But verify behavior primarily through Logic and ActionSystem mocks
+            var ruleEngineSpy = Substitute.ForPartsOf<CardRuleEngine>(_context, Tests.Utilities.TestLogger.Instance);
+            
+            // Inject via Reflection (Private Setter)
+            typeof(MatchContext).GetProperty("CardRuleEngine")!.SetValue(_context, ruleEngineSpy);
         }
+
 
         [TestMethod]
         public void ResolveEffects_GainPower_AddsToPlayer()
@@ -316,6 +325,170 @@ namespace ChaosWarlords.Tests.Source.Systems
             // Should Push Effect with RequiresInput = true
             _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.EffectType == ActionState.TargetingDevourHand && c.RequiresInput));
         }
+
+        #region ShouldSkipDevourChain Tests (tested via ApplyEffect)
+
+        [TestMethod]
+        public void ApplyEffect_DevourChain_Proceeds_When_NoChainOrNonTargetingChain()
+        {
+            // Arrange: Devour effect without targeting chain (OnSuccess is null or non-targeting)
+            var card = TestData.Cards.DevourCard();
+            var devourEffect = card.Effects.Find(e => e.Type == EffectType.Devour);
+            Assert.IsNotNull(devourEffect);
+            devourEffect!.OnSuccess = new CardEffect(EffectType.GainResource, 2, ResourceType.Power); // Non-targeting
+
+            _player.AddToHand(TestData.Cards.CheapCard());
+            _player.AddToHand(TestData.Cards.CheapCard());
+            // No manual mocks needed on CardRuleEngine - Logic + MapManager/ActionSystem Mocks handle it.
+            // Since we use ForPartsOf, HasValidTargets executes real logic -> Checks Hand (Populated) -> Returns True.
+            // GetStrategy returns Real DevourStrategy -> Executes ActionSystem.TryStartDevourHand.
+
+            // Act
+            CardEffectProcessor.ApplyEffect(devourEffect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            // Assert: Should proceed -> ActionSystem.TryStartDevourHand called (default implementation)
+            _context.ActionSystem.Received(1).TryStartDevourHand(card, Arg.Any<Action>(), Arg.Any<bool>());
+        }
+
+        [TestMethod]
+        public void ApplyEffect_DevourChain_SkipsWhen_DependentEffectHasNoValidTargets()
+        {
+            // Arrange: Devour with Supplant as OnSuccess, but no valid targets for Supplant
+            var card = TestData.Cards.DevourCard();
+            var devourEffect = card.Effects.Find(e => e.Type == EffectType.Devour);
+            Assert.IsNotNull(devourEffect);
+            devourEffect!.OnSuccess = new CardEffect(EffectType.Supplant, 0);
+
+            _player.AddToHand(TestData.Cards.CheapCard());
+            
+            _player.AddToHand(TestData.Cards.CheapCard());
+            
+            // Mock: Supplant relies on MapManager/Game State.
+            // SupplantStrategy checks player.TroopsInBarracks > 0 && MapManager.HasValidAssassinationTarget.
+            // Setup gives player troops. We mock MapManager to return false.
+            
+            _context.MapManager.HasValidAssassinationTarget(_player).Returns(false);
+
+            // Act
+            CardEffectProcessor.ApplyEffect(devourEffect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            // Assert: Should SKIP -> ActionSystem.TryStartDevourHand NOT called
+            _context.ActionSystem.DidNotReceive().TryStartDevourHand(Arg.Any<Card>(), Arg.Any<Action>(), Arg.Any<bool>());
+        }
+
+        [TestMethod]
+        public void ApplyEffect_DevourChain_Proceeds_When_DependentEffectHasValidTargets()
+        {
+            // Arrange: Devour with Supplant as OnSuccess, WITH valid targets
+            var card = TestData.Cards.DevourCard();
+            var devourEffect = card.Effects.Find(e => e.Type == EffectType.Devour);
+            Assert.IsNotNull(devourEffect);
+            devourEffect!.OnSuccess = new CardEffect(EffectType.Supplant, 0);
+
+            _player.AddToHand(TestData.Cards.CheapCard());
+            
+            _player.AddToHand(TestData.Cards.CheapCard());
+            
+            // Fix: SupplantStrategy checks TroopsInBarracks > 0.
+            // PoorPlayer has 0. We need to inject troops.
+            // Since setter is internal, use reflection or assuming internals visible.
+            // Safest is reflection if we aren't sure about IVT.
+            typeof(Player).GetProperty("TroopsInBarracks")!.SetValue(_player, 5);
+
+            // Mock: Supplant HAS valid targets (MapManager returns true).
+            _context.MapManager.HasValidAssassinationTarget(_player).Returns(true);
+
+            // Act
+            CardEffectProcessor.ApplyEffect(devourEffect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            // Assert: Should proceed -> ActionSystem.TryStartDevourHand called
+            _context.ActionSystem.Received(1).TryStartDevourHand(card, Arg.Any<Action>(), Arg.Any<bool>());
+        }
+
+
+        #endregion
+
+        #region ApplyPlaceSpy Tests (tested via ApplyEffect)
+
+        [TestMethod]
+        public void ApplyEffect_PlaceSpy_StartsTargeting_WhenValidSiteAndSpiesAvailable()
+        {
+            // Arrange
+            var card = TestData.Cards.PlaceSpyCard();
+            var placeSpyEffect = card.Effects.Find(e => e.Type == EffectType.PlaceSpy);
+            Assert.IsNotNull(placeSpyEffect);
+
+            _context.MapManager.HasValidPlaceSpyTarget(_player).Returns(true);
+            _player.SpiesInBarracks = 1;
+
+            // Act
+            CardEffectProcessor.ApplyEffect(placeSpyEffect!, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            // Assert
+            _context.ActionSystem.Received(1).StartTargeting(ActionState.TargetingPlaceSpy, card);
+        }
+
+        [TestMethod]
+        public void ApplyEffect_PlaceSpy_LogsWarning_WhenNoSpiesInBarracks()
+        {
+            // Arrange
+            var card = TestData.Cards.PlaceSpyCard();
+            var placeSpyEffect = card.Effects.Find(e => e.Type == EffectType.PlaceSpy);
+            Assert.IsNotNull(placeSpyEffect);
+
+            _context.MapManager.HasValidPlaceSpyTarget(_player).Returns(true);
+            _player.SpiesInBarracks = 0; // No spies available
+
+            var mockLogger = Substitute.For<IGameLogger>();
+
+            // Act
+            CardEffectProcessor.ApplyEffect(placeSpyEffect!, card, _context, mockLogger);
+
+            // Assert
+            mockLogger.Received().Log(Arg.Is<string>(s => s.Contains("No Spies in Barracks")), LogChannel.Warning);
+            _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
+        }
+
+        [TestMethod]
+        public void ApplyEffect_PlaceSpy_LogsWarning_WhenNoValidSites()
+        {
+            // Arrange
+            var card = TestData.Cards.PlaceSpyCard();
+            var placeSpyEffect = card.Effects.Find(e => e.Type == EffectType.PlaceSpy);
+            Assert.IsNotNull(placeSpyEffect);
+
+            _context.MapManager.HasValidPlaceSpyTarget(_player).Returns(false); // No valid sites
+            _player.SpiesInBarracks = 1;
+
+            var mockLogger = Substitute.For<IGameLogger>();
+
+            // Act
+            CardEffectProcessor.ApplyEffect(placeSpyEffect!, card, _context, mockLogger);
+
+            // Assert
+            mockLogger.Received().Log(Arg.Is<string>(s => s.Contains("No valid sites")), LogChannel.Warning);
+            _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
+        }
+
+        [TestMethod]
+        public void ApplyEffect_PlaceSpy_DoesNotStartTargeting_WhenBothConstraintsFail()
+        {
+            // Arrange
+            var card = TestData.Cards.PlaceSpyCard();
+            var placeSpyEffect = card.Effects.Find(e => e.Type == EffectType.PlaceSpy);
+            Assert.IsNotNull(placeSpyEffect);
+
+            _context.MapManager.HasValidPlaceSpyTarget(_player).Returns(false);
+            _player.SpiesInBarracks = 0;
+
+            // Act
+            CardEffectProcessor.ApplyEffect(placeSpyEffect!, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            // Assert
+            _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
+        }
+
+        #endregion
     }
 }
 

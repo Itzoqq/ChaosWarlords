@@ -34,9 +34,19 @@ namespace ChaosWarlords.Source.Core.Interfaces.State
         IUIManager UIManager { get; }
 
         /// <summary>
+        /// Gets the current gameplay view instance.
+        /// </summary>
+        IGameplayView? View { get; }
+
+        /// <summary>
         /// Gets the composite match context containing all shared data.
         /// </summary>
         MatchContext MatchContext { get; }
+
+        /// <summary>
+        /// Gets the action system responsible for card resolution and effects.
+        /// </summary>
+        IActionSystem ActionSystem { get; }
 
         /// <summary>
         /// Gets the match manager for high-level rules.

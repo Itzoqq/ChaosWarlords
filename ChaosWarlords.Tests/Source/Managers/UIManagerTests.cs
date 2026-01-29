@@ -1,122 +1,142 @@
 using ChaosWarlords.Source.Core.Interfaces.Input;
+using ChaosWarlords.Source.Core.Events;
+using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Utilities;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Xna.Framework;
 using NSubstitute;
+using System;
 
-namespace ChaosWarlords.Tests.Systems
+namespace ChaosWarlords.Tests.Source.Managers
 {
     [TestClass]
-
-    [TestCategory("Unit")]
     public class UIManagerTests
     {
-        private UIManager _ui = null!;
-        private IInputManager _input = null!;
-        private IInputProvider _inputProvider = null!;
-
-        private const int ScreenWidth = 800;
-        private const int ScreenHeight = 600;
+        private IGameLogger _logger = null!;
+        private UIManager _uiManager = null!;
+        private IInputManager _mockInput = null!;
 
         [TestInitialize]
         public void Setup()
         {
-            _ui = new UIManager(ScreenWidth, ScreenHeight, Utilities.TestLogger.Instance);
-
-            // Create the NSubstitute mock
-            _inputProvider = Substitute.For<IInputProvider>();
-
-            // Inject the mock into the concrete InputManager
-            _input = new InputManager(_inputProvider);
-        }
-
-        private void SetMouse(int x, int y)
-        {
-            // Use the new helper to create mouse state
-            var mouseState = InputTestHelpers.CreateReleasedMouseState(x, y);
-
-            // Configure the mock
-            _inputProvider.GetMouseState().Returns(mouseState);
-
-            // Update InputManager so it fetches the new state from our mock
-            _input.Update();
+            _logger = Substitute.For<IGameLogger>();
+            _mockInput = Substitute.For<IInputManager>();
+            
+            // Screen 800x600 for deterministic coordinates
+            _uiManager = new UIManager(800, 600, _logger);
+            _uiManager.BindInputManager(_mockInput);
         }
 
         [TestMethod]
-        public void IsMarketHovered_ReturnsTrue_WhenMouseInside()
+        public void HandleInputEvent_Ignores_NonLeftClick()
         {
-            // Market is at (0, 250) size (40, 100). Point (20, 260) is inside.
-            SetMouse(20, 260);
+            bool eventFired = false;
+            _uiManager.OnMarketToggleRequest += (s, e) => eventFired = true;
 
-            // ACTION: Must call Update to calculate hovers
-            _ui.Update(_input);
+            // Simulate Right Click on Market Button
+            var rect = _uiManager.MarketButtonRect;
+            var center = rect.Center;
+            
+            _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                this, 
+                new InputEventArgs(InputEventType.RightClick, new Vector2(center.X, center.Y), Microsoft.Xna.Framework.Input.Keys.None));
 
-            // ASSERT: Check the property
-            Assert.IsTrue(_ui.IsMarketHovered);
+            Assert.IsFalse(eventFired, "Should ignore non-left click");
         }
 
         [TestMethod]
-        public void IsMarketHovered_ReturnsFalse_WhenMouseOutside()
+        public void HandleInputEvent_Invokes_ActiveElement_MarketButton()
         {
-            SetMouse(50, 260);
+            // Initial State: Not Paused, Not Popup
+            _uiManager.IsPaused = false;
+            _uiManager.IsPopupVisible = false;
 
-            _ui.Update(_input); // Calculate
+            bool eventFired = false;
+            _uiManager.OnMarketToggleRequest += (s, e) => eventFired = true;
 
-            Assert.IsFalse(_ui.IsMarketHovered);
+            var rect = _uiManager.MarketButtonRect;
+            var center = rect.Center;
+
+            _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                this, 
+                new InputEventArgs(InputEventType.LeftClick, new Vector2(center.X, center.Y), Microsoft.Xna.Framework.Input.Keys.None));
+
+            Assert.IsTrue(eventFired, "Market Button click should fire event");
         }
 
         [TestMethod]
-        public void IsAssassinateHovered_ReturnsTrue_WhenMouseInside()
+        public void HandleInputEvent_Ignores_InactiveElement_MarketButton_WhenPaused()
         {
-            // Assassinate is at (760, 188). Point (770, 200) is inside.
-            SetMouse(770, 200);
+            // State: Paused
+            _uiManager.IsPaused = true; 
+            _uiManager.IsPopupVisible = false;
 
-            _ui.Update(_input);
+            bool eventFired = false;
+            _uiManager.OnMarketToggleRequest += (s, e) => eventFired = true;
 
-            Assert.IsTrue(_ui.IsAssassinateHovered);
+            var rect = _uiManager.MarketButtonRect;
+            var center = rect.Center;
+
+            _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                this, 
+                new InputEventArgs(InputEventType.LeftClick, new Vector2(center.X, center.Y), Microsoft.Xna.Framework.Input.Keys.None));
+
+            Assert.IsFalse(eventFired, "Market Button should be inactive when paused");
         }
 
         [TestMethod]
-        public void Buttons_DoNotOverlap_Logically()
+        public void HandleInputEvent_Invokes_PopupConfirm_WhenVisible()
         {
-            // 1. Hover Assassinate
-            // Ensure pause is false (default, but explicit is good)
-            _ui.IsPaused = false;
+            _uiManager.IsPopupVisible = true;
 
-            SetMouse(770, 200);
-            _ui.Update(_input);
+            bool eventFired = false;
+            _uiManager.OnPopupConfirm += (s, e) => eventFired = true;
 
-            Assert.IsTrue(_ui.IsAssassinateHovered);
-            Assert.IsFalse(_ui.IsReturnSpyHovered);
-            Assert.IsFalse(_ui.IsMarketHovered);
-        }
+            var rect = _uiManager.PopupConfirmButtonRect;
+            var center = rect.Center;
 
+            _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                this, 
+                new InputEventArgs(InputEventType.LeftClick, new Vector2(center.X, center.Y), Microsoft.Xna.Framework.Input.Keys.None));
 
-        [TestMethod]
-        public void PauseMenu_Layout_IsCalculated()
-        {
-            // Verify Rects are not empty
-            Assert.AreNotEqual(Rectangle.Empty, _ui.PauseMenuBackgroundRect);
-            Assert.AreNotEqual(Rectangle.Empty, _ui.ResumeButtonRect);
-            Assert.AreNotEqual(Rectangle.Empty, _ui.MainMenuButtonRect);
-            Assert.AreNotEqual(Rectangle.Empty, _ui.ExitButtonRect);
+            Assert.IsTrue(eventFired, "Popup Confirm should fire when visible");
         }
 
         [TestMethod]
-        public void PauseMenu_Hover_IsDetected()
+        public void HandleInputEvent_Ignores_PopupConfirm_WhenNotVisible()
         {
-            // Resume button is top button. 
-            // We need to know where it is exactly or just get the Center.
-            // Also need to set IsPaused = true for it to be active!
-            _ui.IsPaused = true;
+            _uiManager.IsPopupVisible = false;
 
-            var rect = _ui.ResumeButtonRect;
-            SetMouse(rect.Center.X, rect.Center.Y);
+            bool eventFired = false;
+            _uiManager.OnPopupConfirm += (s, e) => eventFired = true;
 
-            _ui.Update(_input);
+            var rect = _uiManager.PopupConfirmButtonRect;
+            var center = rect.Center;
 
-            Assert.IsTrue(_ui.IsResumeHovered);
-            Assert.IsFalse(_ui.IsExitHovered);
+            _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                this, 
+                new InputEventArgs(InputEventType.LeftClick, new Vector2(center.X, center.Y), Microsoft.Xna.Framework.Input.Keys.None));
+
+            Assert.IsFalse(eventFired, "Popup Confirm should be inactive when not visible");
+        }
+
+        [TestMethod]
+        public void HandleInputEvent_Invokes_ResumeButton_WhenPaused()
+        {
+            _uiManager.IsPaused = true;
+
+            bool eventFired = false;
+            _uiManager.OnResumeRequest += (s, e) => eventFired = true;
+
+            var rect = _uiManager.ResumeButtonRect;
+            var center = rect.Center;
+
+            _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                this, 
+                new InputEventArgs(InputEventType.LeftClick, new Vector2(center.X, center.Y), Microsoft.Xna.Framework.Input.Keys.None));
+
+            Assert.IsTrue(eventFired, "Resume should fire when paused");
         }
     }
 }
-

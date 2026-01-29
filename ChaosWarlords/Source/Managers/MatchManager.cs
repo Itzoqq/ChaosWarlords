@@ -1,6 +1,7 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Mechanics.Rules;
 
@@ -70,82 +71,25 @@ namespace ChaosWarlords.Source.Managers
 
         public void DevourCard(Card card, Card? sourceCard = null)
         {
-            // Robustness: Ensure we possess the card instance or find equivalent
             var player = _context.ActivePlayer;
-
-
-            // Generic check for ownership across collections
-            bool isOwned = player.Hand.Contains(card) ||
-                           player.InnerCircle.Contains(card) ||
-                           player.PlayedCards.Contains(card);
-
-            if (!isOwned)
+            var validCard = FindCardInPlayerCollections(card, player);
+            
+            if (validCard == null)
             {
-                // Try finding by ID in Hand as fallback (legacy behavior for UI sync issues)
-                var instance = player.Hand.FirstOrDefault(c => c.Id == card.Id);
-                if (instance != null)
-                {
-                    card = instance;
-                }
-                else
-                {
-                    // Check Inner Circle by ID
-                    instance = player.InnerCircle.FirstOrDefault(c => c.Id == card.Id);
-                    if (instance != null)
-                    {
-                        card = instance;
-                    }
-                    else
-                    {
-                        _logger.Log($"DevourCard Failed: Card {card.Name} ({card.Id}) not found in player's collections.", LogChannel.Warning);
-                        return;
-                    }
-                }
+                _logger.Log($"DevourCard Failed: Card {card.Name} ({card.Id}) not found in player's collections.", LogChannel.Warning);
+                return;
             }
 
-            _context.PlayerStateManager.DevourCard(_context.ActivePlayer, card);
+            _context.PlayerStateManager.DevourCard(_context.ActivePlayer, validCard);
 
-            // If the card was successfully moved to Void location by the state manager,
-            // we track it in the global VoidPile for match history.
-            if (card.Location == CardLocation.Void)
+            if (validCard.Location == CardLocation.Void)
             {
-                _context.VoidPile.Add(card);
+                _context.VoidPile.Add(validCard);
             }
 
-            // Resume chain if source card provided
-            // BUT: Only if we're NOT in a stack-based flow
-            // Check: if the source card is on the stack, the callback will handle the chain
-            // For mocked ActionSystems (tests), always call ResumeDevourChain
-            bool shouldResumeChain = false;
-            if (sourceCard != null)
+            if (sourceCard != null && ShouldResumeDevourChain(sourceCard))
             {
-                if (_context.ActionSystem is ActionSystem realActionSystem)
-                {
-                    // Real ActionSystem - check if source card is on the stack
-                    bool sourceCardOnStack = realActionSystem.ExecutionStack.Count > 0 &&
-                                            realActionSystem.ExecutionStack.Any(ctx => ctx.SourceCard == sourceCard);
-
-                    shouldResumeChain = !sourceCardOnStack;
-                    if (shouldResumeChain)
-                    {
-                        _logger.Log($"DevourCard: Direct API call detected (source card not on stack). Manually resuming chain.", LogChannel.Debug);
-                    }
-                    else
-                    {
-                        _logger.Log($"DevourCard: Stack-based flow detected (source card on stack, size: {realActionSystem.ExecutionStack.Count}). Callback will handle chain.", LogChannel.Debug);
-                    }
-                }
-                else
-                {
-                    // Mocked ActionSystem - always resume chain
-                    shouldResumeChain = true;
-                    _logger.Log($"DevourCard: Mocked ActionSystem detected. Manually resuming chain.", LogChannel.Debug);
-                }
-
-                if (shouldResumeChain)
-                {
-                    ResumeDevourChain(sourceCard);
-                }
+                ResumeDevourChain(sourceCard);
             }
         }
 
@@ -157,6 +101,51 @@ namespace ChaosWarlords.Source.Managers
                 return;
             }
 
+            CheckAndReplaceMarketCard(targetCard, sourceCard);
+
+            if (sourceCard != null && ShouldResumeDevourChain(sourceCard))
+            {
+                ResumeDevourChain(sourceCard);
+            }
+        }
+
+        private static Card? FindCardInPlayerCollections(Card card, Player player)
+        {
+            if (player.Hand.Contains(card) || player.InnerCircle.Contains(card) || player.PlayedCards.Contains(card))
+            {
+                return card;
+            }
+
+            var instance = player.Hand.FirstOrDefault(c => c.Id == card.Id);
+            if (instance != null) return instance;
+
+            instance = player.InnerCircle.FirstOrDefault(c => c.Id == card.Id);
+            return instance;
+        }
+
+        private bool ShouldResumeDevourChain(Card sourceCard)
+        {
+            if (_context.ActionSystem is ActionSystem realActionSystem)
+            {
+                bool sourceCardOnStack = realActionSystem.ExecutionStack.Count > 0 &&
+                                        realActionSystem.ExecutionStack.Any(ctx => ctx.SourceCard == sourceCard);
+
+                if (!sourceCardOnStack)
+                {
+                    _logger.Log($"Direct API call detected (source card not on stack). Manually resuming chain.", LogChannel.Debug);
+                    return true;
+                }
+                
+                _logger.Log($"Stack-based flow detected (source card on stack, size: {realActionSystem.ExecutionStack.Count}). Callback will handle chain.", LogChannel.Debug);
+                return false;
+            }
+
+            _logger.Log($"Mocked ActionSystem detected. Manually resuming chain.", LogChannel.Debug);
+            return true;
+        }
+
+        private void CheckAndReplaceMarketCard(Card targetCard, Card? sourceCard)
+        {
             var currentPlayer = _context.ActivePlayer;
             bool shouldReplace = false;
 
@@ -171,7 +160,7 @@ namespace ChaosWarlords.Source.Managers
                 _logger.Log($"Replacing Market Card {targetCard.Name} with {sourceCard.Name}", LogChannel.Info);
                 _context.PlayerStateManager.MoveCardToMarket(currentPlayer, sourceCard);
                 _context.MarketManager.ReplaceCard(targetCard, sourceCard);
-                targetCard.Location = CardLocation.Void; // Manual voiding as ReplaceCard might just remove it from list
+                targetCard.Location = CardLocation.Void;
                 _context.VoidPile.Add(targetCard);
             }
             else
@@ -179,44 +168,6 @@ namespace ChaosWarlords.Source.Managers
                 _context.MarketManager.RemoveCard(targetCard);
                 targetCard.Location = CardLocation.Void;
                 _context.VoidPile.Add(targetCard);
-            }
-
-
-
-            // Resume chain if source card provided
-            // BUT: Only if we're NOT in a stack-based flow
-            // Check: if the source card is on the stack, the callback will handle the chain
-            // For mocked ActionSystems (tests), always call ResumeDevourChain
-            bool shouldResumeChain = false;
-            if (sourceCard != null)
-            {
-                if (_context.ActionSystem is ActionSystem realActionSystem)
-                {
-                    // Real ActionSystem - check if source card is on the stack
-                    bool sourceCardOnStack = realActionSystem.ExecutionStack.Count > 0 &&
-                                            realActionSystem.ExecutionStack.Any(ctx => ctx.SourceCard == sourceCard);
-
-                    shouldResumeChain = !sourceCardOnStack;
-                    if (shouldResumeChain)
-                    {
-                        _logger.Log($"DevourMarketCard: Direct API call detected (source card not on stack). Manually resuming chain.", LogChannel.Debug);
-                    }
-                    else
-                    {
-                        _logger.Log($"DevourMarketCard: Stack-based flow detected (source card on stack, size: {realActionSystem.ExecutionStack.Count}). Callback will handle chain.", LogChannel.Debug);
-                    }
-                }
-                else
-                {
-                    // Mocked ActionSystem - always resume chain
-                    shouldResumeChain = true;
-                    _logger.Log($"DevourMarketCard: Mocked ActionSystem detected. Manually resuming chain.", LogChannel.Debug);
-                }
-
-                if (shouldResumeChain)
-                {
-                    ResumeDevourChain(sourceCard);
-                }
             }
         }
 

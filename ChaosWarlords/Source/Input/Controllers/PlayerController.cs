@@ -43,11 +43,11 @@ namespace ChaosWarlords.Source.Input.Controllers
             // PRIORITY 1: Global Shortcuts (Escape) & Overlays
             if (HandleGlobalInput(e)) return;
 
-            // PRIORITY 2: Blocking Overlays
-            if (IsInputBlocked()) return;
-
-            // PRIORITY 3: Popups & UI Interactions
+            // PRIORITY 2: Popups & UI Interactions (Must handle before blocking checks!)
             if (HandlePopupInteractions(e)) return;
+
+            // PRIORITY 3: Blocking Overlays (Blocks Map/Game input)
+            if (IsInputBlocked()) return;
 
             // PRIORITY 4: Specific State Logic (Spy Selection)
             if (HandleSpySelectionInput(e)) return;
@@ -115,9 +115,9 @@ namespace ChaosWarlords.Source.Input.Controllers
                 return true;
             }
 
-            if (_gameState.MatchContext.ActionSystem.IsTargeting())
+            if (_gameState.ActionSystem.IsTargeting())
             {
-                _gameState.MatchContext.ActionSystem.CancelTargeting();
+                _gameState.ActionSystem.CancelTargeting();
                 _gameState.SwitchToNormalMode();
                 return true;
             }
@@ -126,12 +126,12 @@ namespace ChaosWarlords.Source.Input.Controllers
 
         private bool HandleSpySelectionInput(InputEventArgs e)
         {
-            if (_gameState.MatchContext.ActionSystem.CurrentState != ActionState.SelectingSpyToReturn)
+            if (_gameState.ActionSystem.CurrentState != ActionState.SelectingSpyToReturn)
                 return false;
 
             if (e.Type != InputEventType.LeftClick) return false;
 
-            var site = _gameState.MatchContext.ActionSystem.PendingSite;
+            var site = _gameState.ActionSystem.PendingSite;
             if (site is null) return false;
             if (_interactionMapper is null) return false;
 
@@ -142,7 +142,7 @@ namespace ChaosWarlords.Source.Input.Controllers
 
             if (clickedSpy.HasValue)
             {
-                _gameState.MatchContext.ActionSystem.FinalizeSpyReturn(clickedSpy.Value);
+                _gameState.ActionSystem.FinalizeSpyReturn(clickedSpy.Value);
                 return true;
             }
             return false;
@@ -151,19 +151,16 @@ namespace ChaosWarlords.Source.Input.Controllers
         private bool HandlePopupInteractions(InputEventArgs e)
         {
             // Optional Effect Popup Click
-            if (_gameState is GameStates.GameplayState gameplayState &&
-                gameplayState._view is Rendering.Views.GameplayView view)
+            // Now uses decoupled interface access
+            if (_gameState.View != null && _gameState.IsOptionalEffectPopupOpen)
             {
-                // If popup is visible, handle clicks and block other input
-                if (view.HandViewModels != null && _gameState.IsOptionalEffectPopupOpen)
+                if (e.Type == InputEventType.LeftClick)
                 {
-                    if (e.Type == InputEventType.LeftClick)
-                    {
-                        var mousePos = e.Position.ToPoint();
-                        view.HandleOptionalEffectClick(mousePos.X, mousePos.Y);
-                        // Return true to block input if popup was visible
-                        return true; 
-                    }
+                    var mousePos = e.Position.ToPoint();
+                    _gameState.View.HandleOptionalEffectClick(mousePos.X, mousePos.Y);
+                    
+                    // Return true to block input if popup was visible
+                    return true;
                 }
             }
             return false;

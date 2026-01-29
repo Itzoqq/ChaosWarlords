@@ -36,7 +36,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             };
         }
 
-        public IEffectStrategy GetStrategy(EffectType type)
+        public virtual IEffectStrategy GetStrategy(EffectType type)
         {
             if (_strategies.TryGetValue(type, out var strategy))
                 return strategy;
@@ -46,7 +46,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// <summary>
         /// Checks if a player can play the given card based on its conditions and costs.
         /// </summary>
-        public bool CanPlayCard(Player player, Card card)
+        public virtual bool CanPlayCard(Player player, Card card)
         {
             // Basic checks could go here (e.g. costs if not already handled)
             _logger.Log($"Checking playability for {card.Name}...", LogChannel.Debug);
@@ -56,7 +56,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// <summary>
         /// Evaluates if an effect's condition is met.
         /// </summary>
-        public bool IsConditionMet(Player player, CardEffect effect)
+        public virtual bool IsConditionMet(Player player, CardEffect effect)
         {
             if (effect.Condition == null) return true;
             bool isMet = effect.Condition.Evaluate(_context, player);
@@ -73,7 +73,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// Checks if the player has valid targets for the specific effect type.
         /// Delegated to Strategy Pattern.
         /// </summary>
-        public bool HasValidTargets(Player player, EffectType effectType, Card? sourceCard = null)
+        public virtual bool HasValidTargets(Player player, EffectType effectType, Card? sourceCard = null)
         {
             var strategy = GetStrategy(effectType);
             bool isValid = strategy.HasValidTargets(_context, player, sourceCard);
@@ -90,7 +90,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// Recursively validates an entire chain of effects.
         /// Useful for optional effects (costs) to ensure the resulting reward/action is actually possible.
         /// </summary>
-        public bool IsEffectChainValid(Player player, CardEffect effect, Card? sourceCard)
+        public virtual bool IsEffectChainValid(Player player, CardEffect effect, Card? sourceCard)
         {
             // 1. Validate the current effect (if it requires targets)
             if (GetStrategy(effect.Type).IsTargetingEffect)

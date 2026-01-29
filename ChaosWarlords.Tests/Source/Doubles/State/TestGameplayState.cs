@@ -19,6 +19,7 @@ namespace ChaosWarlords.Tests.Source.Doubles.State
         public IInputManager InputManager { get; set; } = NSubstitute.Substitute.For<IInputManager>();
         public IGameLogger Logger { get; set; }
         public IUIManager UIManager { get; set; } = NSubstitute.Substitute.For<IUIManager>();
+        public IGameplayView? View { get; set; }
         public IMapManager MapManager { get; set; } = NSubstitute.Substitute.For<IMapManager>();
         public IMarketManager MarketManager { get; set; } = NSubstitute.Substitute.For<IMarketManager, IMarketStateManager>();
         public IActionSystem ActionSystem { get; set; } = NSubstitute.Substitute.For<IActionSystem>();

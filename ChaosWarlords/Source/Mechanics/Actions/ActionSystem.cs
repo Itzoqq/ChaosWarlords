@@ -207,8 +207,28 @@ namespace ChaosWarlords.Source.Managers
 
         public void CancelTargeting()
         {
-            // BUG FIX: Return card to hand if targeting is cancelled
-            // This provides a "safety net" for misclicks or strategy changes
+            TryRestoreCardToHand();
+            ClearPreselectedTargets();
+
+            var cardToClear = PendingCard;
+
+            ClearState();
+            _devourSubsystem.ClearState();
+            _logger.Log("ActionSystem: Targeting Cancelled. State cleared.", LogChannel.Info);
+
+            var cancelledEffects = PopCancelledEffects(cardToClear);
+            InvokeCancellationCallbacks(cancelledEffects);
+
+            // Resume stack processing ONLY if there are remaining effects
+            if (ExecutionStack.Count > 0)
+            {
+                _logger.Log($"ActionSystem: [CANCEL] Cleanup complete. Resuming stack (Size: {ExecutionStack.Count}).", LogChannel.Debug);
+                ProcessStack();
+            }
+        }
+
+        private void TryRestoreCardToHand()
+        {
             if (PendingCard != null && PendingCard.Location == CardLocation.Played)
             {
                 CurrentPlayer.RemoveFromPlayed(PendingCard);
@@ -216,22 +236,19 @@ namespace ChaosWarlords.Source.Managers
                 PendingCard.Location = CardLocation.Hand;
                 _logger.Log($"Returned {PendingCard.Name} to hand after targeting cancellation.", LogChannel.Info);
             }
+        }
 
-            // Clear Pre-Selected targets to prevent "Zombie" executions if we restart
+        private void ClearPreselectedTargets()
+        {
             if (PendingCard != null && _preSelectedTargets.ContainsKey(PendingCard))
             {
                 _preSelectedTargets.Remove(PendingCard);
                 _logger.Log($"Cleared Pre-Targets for {PendingCard.Name} due to Cancellation.", LogChannel.Debug);
             }
+        }
 
-            // NEW: Resolve ALL effects associated with the cancelled card to prevent "Zombie" executions.
-            // We manualy Pop to avoid ResolveCurrentEffect triggering ProcessStack recursively for each item.
-            var cardToClear = PendingCard;
-
-            ClearState();
-            _devourSubsystem.ClearState();
-            _logger.Log("ActionSystem: Targeting Cancelled. State cleared.", LogChannel.Info);
-
+        private List<Core.Contexts.EffectContext> PopCancelledEffects(Card? cardToClear)
+        {
             var cancelledEffects = new List<Core.Contexts.EffectContext>();
 
             if (ExecutionStack.Count > 0)
@@ -249,19 +266,15 @@ namespace ChaosWarlords.Source.Managers
                 }
             }
 
-            // Invoke Cancellation Callbacks (if any)
+            return cancelledEffects;
+        }
+
+        private void InvokeCancellationCallbacks(List<Core.Contexts.EffectContext> cancelledEffects)
+        {
             foreach (var effect in cancelledEffects)
             {
                 _logger.Log($"ActionSystem: [CANCEL] Popped effect [{effect.EffectType}] for {effect.SourceCard?.Name ?? "Unknown"}.", LogChannel.Debug);
                 effect.OnCancelled?.Invoke();
-            }
-
-            // Finally, resume stack processing ONLY if there are remaining effects (from previous cards).
-            // If stack is empty, we are done with cancellation and should NOT trigger OnActionCompleted.
-            if (ExecutionStack.Count > 0)
-            {
-                _logger.Log($"ActionSystem: [CANCEL] Cleanup complete. Resuming stack (Size: {ExecutionStack.Count}).", LogChannel.Debug);
-                ProcessStack();
             }
         }
 
@@ -677,149 +690,189 @@ namespace ChaosWarlords.Source.Managers
             _matchContext = context;
         }
 
+        // --- Extracted Helper Methods for ProcessStack() ---
+
+        /// <summary>
+        /// Processes an optional effect by performing deep lookahead validation
+        /// and requesting user confirmation via UI mediator.
+        /// </summary>
+        /// <returns>True if the effect was handled (user prompt shown or effect skipped), false otherwise</returns>
+        private bool ProcessOptionalEffect(Core.Contexts.EffectContext effect)
+        {
+            if (_uiMediator == null) return false;
+
+            // Deep Lookahead: Check if OnSuccess chain has valid targets
+            if (effect.SourceEffect?.OnSuccess != null && _matchContext != null)
+            {
+                var onSuccessEffect = effect.SourceEffect.OnSuccess;
+                bool onSuccessRequiresTargeting = _matchContext.CardRuleEngine.GetStrategy(onSuccessEffect.Type).IsTargetingEffect;
+
+                if (onSuccessRequiresTargeting)
+                {
+                    bool hasValidTargets = _matchContext.CardRuleEngine.HasValidTargets(
+                        _matchContext.ActivePlayer,
+                        onSuccessEffect.Type,
+                        effect.SourceCard
+                    );
+
+                    if (!hasValidTargets)
+                    {
+                        _logger.Log($"ActionSystem: Skipping optional effect {effect.SourceEffect.Type} - OnSuccess effect {onSuccessEffect.Type} has no valid targets.", LogChannel.Warning);
+                        ResolveCurrentEffect(false);
+                        return true;
+                    }
+                }
+            }
+
+            _logger.Log($"ActionSystem: Requesting optional effect confirmation for {effect.SourceEffect?.Type}...", LogChannel.Input);
+
+            _uiMediator.RequestOptionalEffect(
+                effect.SourceCard,
+                effect.SourceEffect!,
+                onAccept: () => HandleOptionalEffectAccepted(effect),
+                onDecline: () => HandleOptionalEffectDeclined(effect)
+            );
+
+            return true;
+        }
+
+        /// <summary>
+        /// Handles user acceptance of an optional effect.
+        /// </summary>
+        private void HandleOptionalEffectAccepted(Core.Contexts.EffectContext effect)
+        {
+            _logger.Log($"ActionSystem: Optional effect {effect.SourceEffect?.Type} accepted.", LogChannel.Input);
+
+            // User accepted - NOW we set the state to Targeting (if applicable)
+            if (CurrentState == ActionState.Normal && effect.EffectType != ActionState.Normal)
+            {
+                CurrentState = effect.EffectType;
+                _logger.Log($"ActionSystem: [PROCESS] Optional Accepted -> State set to: {CurrentState}", LogChannel.Debug);
+            }
+
+            // User accepted - execute the effect
+            if (effect.SourceEffect?.Type == EffectType.Devour)
+            {
+                var strategy = Mechanics.Rules.DevourStrategyFactory.GetStrategy(effect.SourceEffect.TargetLocation);
+                strategy.Execute(effect.SourceCard, _matchContext!, _logger, () => ResolveCurrentEffect(true), false);
+            }
+            // For other optional effects, continue to normal targeting flow
+        }
+
+        /// <summary>
+        /// Handles user declining of an optional effect.
+        /// </summary>
+        private void HandleOptionalEffectDeclined(Core.Contexts.EffectContext effect)
+        {
+            _logger.Log($"ActionSystem: Optional effect {effect.SourceEffect?.Type} declined.", LogChannel.Input);
+            ResolveCurrentEffect(false);
+        }
+
+        /// <summary>
+        /// Attempts to execute a pre-selected target for an effect (used in replay/testing).
+        /// </summary>
+        /// <returns>True if pre-target was found and executed</returns>
+        private bool TryExecutePreTargetEffect(Core.Contexts.EffectContext effect)
+        {
+            if (effect.SourceCard == null) return false;
+
+            bool executed = _preTargetHandler.TryExecutePreTarget(
+                effect.SourceCard,
+                effect.EffectType,
+                HandleTargetClick,
+                HandleDevourSelection,
+                cmd => OnAutoExecuteCommand?.Invoke(cmd)
+            );
+
+            if (executed)
+            {
+                _logger.Log($"ActionSystem: Pre-Target executed for {effect.EffectType}. Continuing stack...", LogChannel.Debug);
+            }
+
+            return executed;
+        }
+
+        /// <summary>
+        /// Processes an automatic (non-targeting) effect by applying it immediately.
+        /// </summary>
+        private void ProcessAutomaticEffect(Core.Contexts.EffectContext effect)
+        {
+            // Automatic Effect (e.g. GainResource, DrawCard)
+            if (effect.SourceEffect != null && _matchContext != null)
+            {
+                Mechanics.Rules.CardEffectProcessor.ApplyEffect(effect.SourceEffect, effect.SourceCard, _matchContext, _logger);
+            }
+
+            ResolveCurrentEffect(true);
+        }
+
+        /// <summary>
+        /// Sets up the action state for a required (non-optional) targeting effect.
+        /// </summary>
+        private void SetupTargetingForRequiredEffect(Core.Contexts.EffectContext effect)
+        {
+            _logger.Log($"ActionSystem: [PROCESS] Effect requires input. Setting state to [{effect.EffectType}]", LogChannel.Debug);
+            CurrentState = effect.EffectType;
+            _logger.Log($"ActionSystem: [PROCESS] State set to: {CurrentState}", LogChannel.Debug);
+        }
+
         public void ProcessStack()
         {
             _logger.Log($"ActionSystem: [PROCESS] ProcessStack called. Stack size: {ExecutionStack.Count}, Current state: {CurrentState}", LogChannel.Debug);
 
-            if (ExecutionStack.Count == 0)
+            if (HandleStackEmptyState())
             {
-                // Sequence Complete
-                _logger.Log("ActionSystem: [PROCESS] Stack Empty. Sequence Complete.", LogChannel.Debug);
-                OnActionCompleted?.Invoke(this, EventArgs.Empty);
-                ClearState();
                 return;
             }
 
             var nextEffect = ExecutionStack.Peek();
             _logger.Log($"ActionSystem: [PROCESS] Next effect: [{nextEffect.EffectType}] RequiresInput={nextEffect.RequiresInput}, SourceEffect={nextEffect.SourceEffect?.Type}", LogChannel.Debug);
 
-            if (nextEffect.RequiresInput)
+            if (!nextEffect.RequiresInput)
             {
-                // Set PendingCard but DEFER State Change if Optional
-                PendingCard = nextEffect.SourceCard;
-                bool isOptional = nextEffect.SourceEffect?.IsOptional == true;
-
-                if (!isOptional)
-                {
-                    _logger.Log($"ActionSystem: [PROCESS] Effect requires input. Setting state to [{nextEffect.EffectType}]", LogChannel.Debug);
-                    CurrentState = nextEffect.EffectType;
-                    _logger.Log($"ActionSystem: [PROCESS] State set to: {CurrentState}", LogChannel.Debug);
-                }
-
-                // Handle Optional Effects - Show UI Popup
-                if (isOptional && _uiMediator != null)
-                {
-                    // Deep Lookahead: Check if OnSuccess chain has valid targets
-                    // If the OnSuccess effect requires targeting and has no valid targets, skip the popup
-                    if (nextEffect.SourceEffect?.OnSuccess != null && _matchContext != null)
-                    {
-                        var onSuccessEffect = nextEffect.SourceEffect.OnSuccess;
-                        
-                        // Use Strategy Pattern via RuleEngine
-                        bool onSuccessRequiresTargeting = _matchContext.CardRuleEngine.GetStrategy(onSuccessEffect.Type).IsTargetingEffect;
-
-                        if (onSuccessRequiresTargeting)
-                        {
-                            bool hasValidTargets = _matchContext.CardRuleEngine.HasValidTargets(
-                                _matchContext.ActivePlayer,
-                                onSuccessEffect.Type,
-                                nextEffect.SourceCard
-                            );
-
-                            if (!hasValidTargets)
-                            {
-                                _logger.Log($"ActionSystem: Skipping optional effect {nextEffect.SourceEffect.Type} - OnSuccess effect {onSuccessEffect.Type} has no valid targets.", LogChannel.Warning);
-                                // Skip this effect and move to next
-                                ResolveCurrentEffect(false);
-                                return;
-                            }
-                        }
-                    }
-
-                    _logger.Log($"ActionSystem: Requesting optional effect confirmation for {nextEffect.SourceEffect?.Type}...", LogChannel.Input);
-
-                    _uiMediator.RequestOptionalEffect(
-                        nextEffect.SourceCard,
-                        nextEffect.SourceEffect!,
-                        onAccept: () =>
-                        {
-                            _logger.Log($"ActionSystem: Optional effect {nextEffect.SourceEffect?.Type} accepted.", LogChannel.Input);
-
-                            // User accepted - NOW we set the state to Targeting (if applicable)
-                            if (CurrentState == ActionState.Normal && nextEffect.EffectType != ActionState.Normal)
-                            {
-                                CurrentState = nextEffect.EffectType;
-                                _logger.Log($"ActionSystem: [PROCESS] Optional Accepted -> State set to: {CurrentState}", LogChannel.Debug);
-                            }
-
-                            // User accepted - execute the effect
-                            // For Devour Self, execute the strategy directly
-                            if (nextEffect.SourceEffect?.Type == EffectType.Devour && nextEffect.SourceEffect.TargetLocation == CardLocation.Self)
-                            {
-                                var strategy = Mechanics.Rules.DevourStrategyFactory.GetStrategy(CardLocation.Self);
-                                strategy.Execute(nextEffect.SourceCard, _matchContext!, _logger, () =>
-                                {
-                                    // OnComplete callback - resolve the effect
-                                    ResolveCurrentEffect(true);
-                                }, false);
-                            }
-                            // For other optional Devour effects (Market, Hand, InnerCircle), call the strategy
-                            else if (nextEffect.SourceEffect?.Type == EffectType.Devour)
-                            {
-                                var strategy = Mechanics.Rules.DevourStrategyFactory.GetStrategy(nextEffect.SourceEffect.TargetLocation);
-                                strategy.Execute(nextEffect.SourceCard, _matchContext!, _logger, () =>
-                                {
-                                    // OnComplete callback - resolve the effect
-                                    ResolveCurrentEffect(true);
-                                }, false);
-                            }
-                            else
-                            {
-                                // For other optional effects, continue to normal targeting flow
-                                // Don't return - let it fall through
-                            }
-                        },
-                        onDecline: () =>
-                        {
-                            _logger.Log($"ActionSystem: Optional effect {nextEffect.SourceEffect?.Type} declined.", LogChannel.Input);
-                            // Skip this effect and move to next
-                            ResolveCurrentEffect(false);
-                        }
-                    );
-
-                    return; // Wait for user choice (callbacks will handle continuation)
-                }
-
-                // Auto-Execute if Pre-Target exists (Test/Replay support)
-                if (nextEffect.SourceCard != null && _preTargetHandler.TryExecutePreTarget(
-                    nextEffect.SourceCard,
-                    nextEffect.EffectType,
-                    HandleTargetClick,
-                    HandleDevourSelection,
-                    cmd => OnAutoExecuteCommand?.Invoke(cmd)))
-                {
-                    _logger.Log($"ActionSystem: Pre-Target executed for {nextEffect.EffectType}. Continuing stack...", LogChannel.Debug);
-                    // Don't return - the pre-target execution may have resolved the effect?
-                    // TryExecutePreTarget returns true if executed. 
-                    // If executed, we should verify if stack advanced?
-                    // Usually pre-target executes command -> Resolve -> Pop.
-                    // So we should return?
-                    return;
-                }
-
-                _logger.Log($"ActionSystem: Waiting for input for {nextEffect.EffectType}...", LogChannel.Input);
+                ProcessAutomaticEffect(nextEffect);
+                return;
             }
-            else
+
+            HandleInputRequiredEffect(nextEffect);
+        }
+
+        private bool HandleStackEmptyState()
+        {
+            if (ExecutionStack.Count == 0)
             {
-                // Automatic Effect (e.g. GainResource, DrawCard)
-                // Execute immediately via CardEffectProcessor logic
-                if (nextEffect.SourceEffect != null && _matchContext != null)
-                {
-                    Mechanics.Rules.CardEffectProcessor.ApplyEffect(nextEffect.SourceEffect, nextEffect.SourceCard, _matchContext, _logger);
-                }
-
-                ResolveCurrentEffect(true);
+                _logger.Log("ActionSystem: [PROCESS] Stack Empty. Sequence Complete.", LogChannel.Debug);
+                OnActionCompleted?.Invoke(this, EventArgs.Empty);
+                ClearState();
+                return true;
             }
+            return false;
+        }
+
+        private void HandleInputRequiredEffect(Core.Contexts.EffectContext nextEffect)
+        {
+            // Effect requires user input
+            PendingCard = nextEffect.SourceCard;
+            bool isOptional = nextEffect.SourceEffect?.IsOptional == true;
+
+            if (!isOptional)
+            {
+                SetupTargetingForRequiredEffect(nextEffect);
+            }
+
+            // Handle optional effects with UI confirmation
+            if (isOptional && ProcessOptionalEffect(nextEffect))
+            {
+                return; // Wait for user choice
+            }
+
+            // Try to execute pre-selected targets (for replay/testing)
+            if (TryExecutePreTargetEffect(nextEffect))
+            {
+                return; // Pre-target was executed
+            }
+
+            _logger.Log($"ActionSystem: Waiting for input for {nextEffect.EffectType}...", LogChannel.Input);
         }
     }
 }

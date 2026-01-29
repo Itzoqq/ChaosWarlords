@@ -226,6 +226,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             // Stubs
             public IInputManager InputManager => throw new System.NotImplementedException();
             public IUIManager UIManager => throw new System.NotImplementedException();
+            public IGameplayView? View => null;
             public void RecordAndExecuteCommand(IGameCommand command) => command.Execute(MatchContext);
             public void LoadContent() { }
             public void UnloadContent() { }

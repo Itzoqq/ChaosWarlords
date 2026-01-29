@@ -27,6 +27,9 @@ namespace ChaosWarlords.Source.Core.Interfaces.Rendering
         void DrawSetupPhaseOverlay(SpriteBatch spriteBatch, Player activePlayer);
 
         bool IsOptionalEffectPopupOpen { get; }
+
+        void HandleOptionalEffectClick(int mouseX, int mouseY);
+        bool HandleOptionalEffectAccept();
     }
 }
 

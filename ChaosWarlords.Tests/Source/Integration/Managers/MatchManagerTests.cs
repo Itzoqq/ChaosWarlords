@@ -697,6 +697,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
         public IInputManager InputManager => throw new NotImplementedException();
         // Logger already defined above
         public IUIManager UIManager => throw new NotImplementedException();
+        public IGameplayView? View => null;
         public void RecordAndExecuteCommand(IGameCommand command) => throw new NotImplementedException();
         public void LoadContent() => throw new NotImplementedException();
         public void UnloadContent() { }

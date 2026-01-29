@@ -93,10 +93,16 @@ namespace ChaosWarlords.Source.Core.Utilities
         public static MapDto ToDto(IMapManager mapManager)
         {
             var dto = new MapDto();
-            if (mapManager?.Nodes != null)
+            dto.Nodes = ConvertNodesToDto(mapManager);
+            dto.Sites = ConvertSitesToDto(mapManager);
+            return dto;
+        }
+
+        private static List<MapNodeDto> ConvertNodesToDto(IMapManager? mapManager)
+        {
+            var list = new List<MapNodeDto>();
             if (mapManager?.Nodes != null)
             {
-                var list = new List<MapNodeDto>(mapManager.Nodes.Count);
                 foreach (var node in mapManager.Nodes)
                 {
                     var nodeDto = ToDto(node);
@@ -105,18 +111,21 @@ namespace ChaosWarlords.Source.Core.Utilities
                         list.Add(nodeDto);
                     }
                 }
-                dto.Nodes = list;
             }
+            return list;
+        }
+
+        private static List<SiteDto> ConvertSitesToDto(IMapManager? mapManager)
+        {
+            var list = new List<SiteDto>();
             if (mapManager?.Sites != null)
             {
-                var list = new List<SiteDto>(mapManager.Sites.Count);
                 foreach (var site in mapManager.Sites)
                 {
                     list.Add(new SiteDto(site));
                 }
-                dto.Sites = list;
             }
-            return dto;
+            return list;
         }
 
         // --- Command Mapping ---
@@ -132,17 +141,22 @@ namespace ChaosWarlords.Source.Core.Utilities
             // Enrichment for Hand Index (Legacy support until commands carry index)
             if (actor != null)
             {
-                if (dto is PlayCardCommandDto playDto && command is PlayCardCommand playCmd && playDto.HandIdx == -1)
-                {
-                    playDto.HandIdx = GetCardIndex(actor.Hand, playCmd.Card);
-                }
-                else if (dto is DevourCardCommandDto devourDto && command is DevourCardCommand devourCmd && devourDto.HandIdx == -1)
-                {
-                    devourDto.HandIdx = GetCardIndex(actor.Hand, devourCmd.CardToDevour);
-                }
+                EnrichCommandDtoWithHandIndex(dto, command, actor);
             }
 
             return dto;
+        }
+
+        private static void EnrichCommandDtoWithHandIndex(GameCommandDto dto, IGameCommand command, Player actor)
+        {
+            if (dto is PlayCardCommandDto playDto && command is PlayCardCommand playCmd && playDto.HandIdx == -1)
+            {
+                playDto.HandIdx = GetCardIndex(actor.Hand, playCmd.Card);
+            }
+            else if (dto is DevourCardCommandDto devourDto && command is DevourCardCommand devourCmd && devourDto.HandIdx == -1)
+            {
+                devourDto.HandIdx = GetCardIndex(actor.Hand, devourCmd.CardToDevour);
+            }
         }
 
         private static int GetCardIndex(IReadOnlyList<Card> list, Card card)
@@ -323,29 +337,30 @@ namespace ChaosWarlords.Source.Core.Utilities
             dto.VoidPile = ToDtoList(context.VoidPile);
 
             // Stack Serialization
-            if (context.ActionSystem.ExecutionStack.Count > 0)
+            dto.EffectStack = SerializeEffectStack(context.ActionSystem.ExecutionStack);
+
+            return dto;
+        }
+
+        private static List<EffectContextDto> SerializeEffectStack(Stack<Core.Contexts.EffectContext> executionStack)
+        {
+            var effectStack = new List<EffectContextDto>();
+            if (executionStack.Count > 0)
             {
-                var stackList = context.ActionSystem.ExecutionStack.Reverse().ToList(); // Iterating stack is top-down? Stack enumeration is usually LIFO (Top First).
-                                                                                        // We want a list where [0] is bottom or top? 
-                                                                                        // If we just serialize as list, we need to push back in reverse order of List
-                                                                                        // Stack: [Top, Middle, Bottom]
-                                                                                        // List: [Top, Middle, Bottom]
-                                                                                        // Re-push: Push(List[2]), Push(List[1])...
-                
+                var stackList = executionStack.Reverse().ToList();
                 foreach (var effect in stackList)
                 {
-                    dto.EffectStack.Add(new EffectContextDto
+                    effectStack.Add(new EffectContextDto
                     {
-                        State = effect.EffectType,  // EffectType is ActionState
+                        State = effect.EffectType,
                         SourceCardId = effect.SourceCard?.Id,
                         RequiresInput = effect.RequiresInput,
                         Description = effect.Description,
-                        EffectType = effect.SourceEffect?.Type ?? EffectType.None  // From CardEffect if available
+                        EffectType = effect.SourceEffect?.Type ?? EffectType.None
                     });
                 }
             }
-
-            return dto;
+            return effectStack;
         }
     }
 }

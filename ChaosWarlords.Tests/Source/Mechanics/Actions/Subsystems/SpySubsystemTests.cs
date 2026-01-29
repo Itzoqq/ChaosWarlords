@@ -102,5 +102,114 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
             Assert.IsNull(cmd, "Should return null as it transitions state");
             _actionSystem.Received(1).TransitionToSpySelection(_site);
         }
+
+        #region PerformSpyReturn Tests
+
+        [TestMethod]
+        public void PerformSpyReturn_Success_WithPowerCost_UsesPlayerStateManager()
+        {
+            // Arrange
+            _mapManager.ReturnSpecificSpy(_site, _activePlayer, PlayerColor.Blue).Returns(true);
+
+            // Act
+            var result = _subsystem.PerformSpyReturn(_site, PlayerColor.Blue, cardId: null);
+
+            // Assert
+            Assert.IsTrue(result, "Should return true on success");
+            _playerStateManager.Received(1).TrySpendPower(_activePlayer, GameConstants.ReturnSpyPowerCost);
+            _actionSystem.Received(1).CompleteAction();
+        }
+
+        [TestMethod]
+        public void PerformSpyReturn_Success_WithCardPayment_DoesNotSpendPower()
+        {
+            // Arrange
+            _mapManager.ReturnSpecificSpy(_site, _activePlayer, PlayerColor.Blue).Returns(true);
+
+            // Act
+            var result = _subsystem.PerformSpyReturn(_site, PlayerColor.Blue, cardId: "some-card-id");
+
+            // Assert
+            Assert.IsTrue(result, "Should return true on success");
+            _playerStateManager.DidNotReceive().TrySpendPower(Arg.Any<Player>(), Arg.Any<int>());
+            _actionSystem.Received(1).CompleteAction();
+        }
+
+        [TestMethod]
+        public void PerformSpyReturn_MapManagerFailure_ReturnsFalse()
+        {
+            // Arrange
+            _mapManager.ReturnSpecificSpy(_site, _activePlayer, PlayerColor.Blue).Returns(false);
+
+            // Act
+            var result = _subsystem.PerformSpyReturn(_site, PlayerColor.Blue, cardId: null);
+
+            // Assert
+            Assert.IsFalse(result, "Should return false when MapManager fails");
+            _actionSystem.Received(1).NotifyFailure("Map Manager failed to return spy.");
+            _actionSystem.DidNotReceive().CompleteAction();
+        }
+
+        [TestMethod]
+        public void PerformSpyReturn_Failure_DoesNotSpendPower()
+        {
+            // Arrange
+            _mapManager.ReturnSpecificSpy(_site, _activePlayer, PlayerColor.Blue).Returns(false);
+
+            // Act
+            var result = _subsystem.PerformSpyReturn(_site, PlayerColor.Blue, cardId: null);
+
+            // Assert
+            Assert.IsFalse(result);
+            _playerStateManager.DidNotReceive().TrySpendPower(Arg.Any<Player>(), Arg.Any<int>());
+        }
+
+        [TestMethod]
+        public void PerformSpyReturn_FallbackToDirectSpendPower_WhenNoPlayerStateManager()
+        {
+            // Arrange - Create subsystem without PlayerStateManager
+            var subsystemWithoutPSM = new SpySubsystem(_mapManager, _turnManager, _actionSystem, _logger);
+            // Don't call SetPlayerStateManager
+            
+            _mapManager.ReturnSpecificSpy(_site, _activePlayer, PlayerColor.Blue).Returns(true);
+            var initialPower = _activePlayer.Power;
+
+            // Act
+            var result = subsystemWithoutPSM.PerformSpyReturn(_site, PlayerColor.Blue, cardId: null);
+
+            // Assert
+            Assert.IsTrue(result);
+            Assert.AreEqual(initialPower - GameConstants.ReturnSpyPowerCost, _activePlayer.Power, 
+                "Should spend power directly from player when no PlayerStateManager");
+            _actionSystem.Received(1).CompleteAction();
+        }
+
+        [TestMethod]
+        public void PerformSpyReturn_CompletesAction_OnSuccess()
+        {
+            // Arrange
+            _mapManager.ReturnSpecificSpy(_site, _activePlayer, PlayerColor.Blue).Returns(true);
+
+            // Act
+            _subsystem.PerformSpyReturn(_site, PlayerColor.Blue, cardId: "card123");
+
+            // Assert
+            _actionSystem.Received(1).CompleteAction();
+        }
+
+        [TestMethod]
+        public void PerformSpyReturn_NotifiesFailure_WithCorrectMessage()
+        {
+            // Arrange
+            _mapManager.ReturnSpecificSpy(_site, _activePlayer, PlayerColor.Blue).Returns(false);
+
+            // Act
+            _subsystem.PerformSpyReturn(_site, PlayerColor.Blue, cardId: null);
+
+            // Assert
+            _actionSystem.Received(1).NotifyFailure("Map Manager failed to return spy.");
+        }
+
+        #endregion
     }
 }

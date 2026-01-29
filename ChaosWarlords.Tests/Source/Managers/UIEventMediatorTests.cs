@@ -1,284 +1,389 @@
-using ChaosWarlords.Source.Core.Interfaces.Rendering;
-using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Managers;
-using ChaosWarlords.Source.Utilities;
-using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Core.Interfaces.Rendering;
+using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Core.Interfaces.State;
+using ChaosWarlords.Source.Managers;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
+using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Utilities;
+using System.Reflection;
+using ChaosWarlords.Source.Entities.Cards; // For CardBuilder
+using ChaosWarlords.Tests; // For TestData
+using ChaosWarlords.Source.Core.Interfaces.Data;
+using ChaosWarlords.Source.Core.Interfaces.Composition; // For IGameDependencies
+using System.Collections.Generic; // For List<Card>
 
-namespace ChaosWarlords.Tests.Managers
+namespace ChaosWarlords.Tests.Source.Managers
 {
     [TestClass]
-
-    [TestCategory("Unit")]
-
     public class UIEventMediatorTests
     {
-        // Use Fake State
-        private ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState _state = null!;
-        private IUIManager _mockUIManager = null!;
-        private IActionSystem _mockActionSystem = null!;
+        private IGameplayState _gameState = null!;
+        private IUIManager _uiManager = null!;
+        private IActionSystem _actionSystem = null!;
+        private IGameLogger _logger = null!;
         private UIEventMediator _mediator = null!;
+        private IMarketStateManager _marketStateManager = null!;
+        
+        // Deep Mocks for MatchContext
+        private ITurnManager _turnManager = null!;
+        private IMapManager _mapManager = null!;
+        private IMarketManager _marketManager = null!;
+        private IPlayerStateManager _playerStateManager = null!;
+        private MatchContext _matchContext = null!;
+        private ICardDatabase _cardDatabase = null!;
+        private IMatchManager _matchManager = null!;
 
         [TestInitialize]
         public void Setup()
         {
-            _state = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
-            _mockUIManager = Substitute.For<IUIManager>();
-            _mockActionSystem = Substitute.For<IActionSystem>();
+            _gameState = Substitute.For<IGameplayState>();
+            _uiManager = Substitute.For<IUIManager>();
+            _actionSystem = Substitute.For<IActionSystem>();
+            _logger = Substitute.For<IGameLogger>();
+            _marketStateManager = Substitute.For<IMarketStateManager>();
+            
+            // Setup MatchContext Dependencies
+            _turnManager = Substitute.For<ITurnManager>();
+            _mapManager = Substitute.For<IMapManager>();
+            _marketManager = Substitute.For<IMarketManager>();
+            _playerStateManager = Substitute.For<IPlayerStateManager>();
+            _cardDatabase = Substitute.For<ICardDatabase>();
+            _matchManager = Substitute.For<IMatchManager>();
 
-            // Assign ActionSystem to state as well so internal logic works if needed
-            // But Mediator takes ActionSystem separately in ctor.
-            _state.ActionSystem = _mockActionSystem;
+            // Create Real MatchContext with Mocks
+            // Note: MatchContext ctor logic is simple assignment
+            _matchContext = new MatchContext(
+                turn: _turnManager,
+                map: _mapManager,
+                market: _marketManager,
+                action: _actionSystem,
+                cardDb: _cardDatabase,
+                playerState: _playerStateManager,
+                uiMediator: null,
+                logger: _logger,
+                seed: 12345
+            );
 
-            // Additional Mocks for MatchContext (Using defaults from TestGameplayState)
-            var mockTurn = _state.TurnManager;
-            var mockMap = _state.MapManager;
-            var mockMarket = _state.MarketManager;
-            var mockDb = Substitute.For<ICardDatabase>();
+            // Mock GameState properties
+            _gameState.MarketStateManager.Returns(_marketStateManager);
+            _gameState.MatchContext.Returns(_matchContext);
+            _gameState.MatchManager.Returns(_matchManager);
 
-            // Construct concrete MatchContext
-            var matchContext = new MatchContext(
-                mockTurn,
-                mockMap,
-                mockMarket,
-                _mockActionSystem,
-                mockDb,
-                new PlayerStateManager(Utilities.TestLogger.Instance),
-                null, Utilities.TestLogger.Instance);
-
-            matchContext.MatchManager = _state.MatchManager;
-
-            _state.MatchContext = matchContext;
-
-            // Setup ActivePlayer
-            var player = TestData.Players.RedPlayer();
-            mockTurn.ActivePlayer.Returns(player);
-
-            // Mock TurnContext for promotion check
-            var turnContext = new TurnContext(player, Utilities.TestLogger.Instance);
-            mockTurn.CurrentTurnContext.Returns(turnContext);
-
-            _mediator = new UIEventMediator(_state, _mockUIManager, _mockActionSystem, Utilities.TestLogger.Instance, null!);
+            // Construct Mediator
+            _mediator = new UIEventMediator(_gameState, _uiManager, _actionSystem, _logger, game: null);
+            _mediator.Initialize();
         }
 
-        [TestMethod]
-        public void Initialize_CanBeCalledWithoutError()
+        [TestCleanup]
+        public void Cleanup()
         {
-            _mediator.Initialize();
-            Assert.IsNotNull(_mediator);
-        }
-
-        [TestMethod]
-        public void Cleanup_CanBeCalledWithoutError()
-        {
-            _mediator.Initialize();
             _mediator.Cleanup();
-            Assert.IsNotNull(_mediator);
         }
 
-        [TestMethod]
-        public void HandleEscapeKeyPress_WhenClosed_OpensMenu()
-        {
-            _state.IsPauseMenuOpen = false;
-            _mediator.HandleEscapeKeyPress();
-            Assert.IsTrue(_mediator.IsPauseMenuOpen);
-            // The mediator checks state.IsPauseMenuOpen.
-            // Wait, Mediator's property IsPauseMenuOpen usually delegates to state?
-            // "public bool IsPauseMenuOpen => _state.IsPauseMenuOpen;" ??
-            // If so, _mediator.HandleEscapeKeyPress() calls _state.HandleEscapeKeyPress() ?
-            // Let's verify mediator implementation if test fails.
-            // Assuming Mediator reads/writes state or has logic.
-        }
+        // --- Escape Key Priority Tests (Preserved) ---
 
         [TestMethod]
-        public void HandleEscapeKeyPress_WhenOpen_ClosesMenu()
+        public void HandleEscapeKeyPress_Priority1_CancelsTargeting_IfActive()
         {
-            _state.IsPauseMenuOpen = true;  // Fake state
+            _actionSystem.IsTargeting().Returns(true);
+            _gameState.IsMarketOpen.Returns(true);
+            _marketStateManager.IsOpen.Returns(true);
+
             _mediator.HandleEscapeKeyPress();
 
-            // If Mediator toggles local flag AND updates state? 
-            // Assert.IsFalse(_mediator.IsPauseMenuOpen);
-        }
-
-        [TestMethod]
-        public void Update_CanBeCalledWithoutError()
-        {
-            _mediator.Update();
-            Assert.IsNotNull(_mediator);
-        }
-
-        [TestMethod]
-        public void IsConfirmationPopupOpen_InitiallyFalse()
-        {
-            Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
-        }
-
-        [TestMethod]
-        public void IsPauseMenuOpen_InitiallyFalse()
-        {
+            _actionSystem.Received(1).CancelTargeting();
+            _gameState.Received(1).SwitchToNormalMode();
+            _marketStateManager.DidNotReceive().Close();
             Assert.IsFalse(_mediator.IsPauseMenuOpen);
         }
 
         [TestMethod]
-        public void HandleMarketToggle_DelegatesToGameState()
+        public void HandleEscapeKeyPress_Priority2_ClosesMarket_IfOpen()
         {
-            _mediator.Initialize();
-            _state.MarketStateManager.Close();
+            _actionSystem.IsTargeting().Returns(false);
+            _gameState.IsMarketOpen.Returns(true);
+            _marketStateManager.IsOpen.Returns(true);
 
-            _mockUIManager.OnMarketToggleRequest += Raise.Event();
+            _mediator.HandleEscapeKeyPress();
 
-            // State-Based Assertion
-            Assert.IsTrue(_state.IsMarketOpen, "Market should be toggled open");
+            _marketStateManager.Received(1).Close();
+            Assert.IsFalse(_mediator.IsPauseMenuOpen);
         }
 
         [TestMethod]
-        public void HandleAssassinateRequest_StartsTargeting()
+        public void HandleEscapeKeyPress_Priority3_ClosesConfirmationPopup_IfOpen()
         {
-            _mediator.Initialize();
-            _mockActionSystem.IsTargeting().Returns(true);
+            _actionSystem.IsTargeting().Returns(false);
+            _gameState.IsMarketOpen.Returns(false);
 
-            _mockUIManager.OnAssassinateRequest += Raise.Event();
+            SetPrivateField(_mediator, "_isConfirmationPopupOpen", true);
+            Assert.IsTrue(_mediator.IsConfirmationPopupOpen, "Setup failed to set popup open");
 
-            _mockActionSystem.Received(1).TryStartAssassinate();
-            // State-Based Assertion
-            Assert.AreEqual("Targeting", _state.ActiveModeName);
-        }
-
-        [TestMethod]
-        public void HandleReturnSpyRequest_StartsTargeting()
-        {
-            _mediator.Initialize();
-            _mockActionSystem.IsTargeting().Returns(true);
-
-            _mockUIManager.OnReturnSpyRequest += Raise.Event();
-
-            _mockActionSystem.Received(1).TryStartReturnSpy();
-            // State-Based Assertion
-            Assert.AreEqual("Targeting", _state.ActiveModeName);
-        }
-
-        [TestMethod]
-        public void HandleEndTurnRequest_OpensPopup_WhenCardsUnplayed()
-        {
-            _mediator.Initialize();
-            var player = _state.MatchContext.ActivePlayer;
-            player.AddToHand(TestData.Cards.CheapCard());
-
-            _mockUIManager.OnEndTurnRequest += Raise.Event();
-
-            Assert.IsTrue(_mediator.IsConfirmationPopupOpen);
-        }
-
-        [TestMethod]
-        public void HandleEndTurnRequest_EndsTurn_WhenNoCardsUnplayed()
-        {
-            _mediator.Initialize();
-            var player = _state.MatchContext.ActivePlayer;
-            player.ClearHand();
-
-            _mockUIManager.OnEndTurnRequest += Raise.Event();
-
-            // State-Based Assertion: Check if EndTurnCommand was executed
-            Assert.IsNotEmpty(_state.ExecutedCommands);
-            Assert.IsInstanceOfType(_state.ExecutedCommands[0], typeof(EndTurnCommand));
+            _mediator.HandleEscapeKeyPress();
 
             Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
+            Assert.IsFalse(_mediator.IsPauseMenuOpen);
+        }
+
+        [TestMethod]
+        public void HandleEscapeKeyPress_Priority4_DeclinesOptionalEffect_IfOpen()
+        {
+            _actionSystem.IsTargeting().Returns(false);
+            _gameState.IsMarketOpen.Returns(false);
+
+            bool declineCalled = false;
+            _mediator.RequestOptionalEffect(
+                null!, 
+                null!, 
+                () => { }, 
+                () => { declineCalled = true; });
+
+            Assert.IsTrue(_mediator.IsOptionalEffectPopupOpen, "Setup failed to set optional popup open");
+
+            _mediator.HandleEscapeKeyPress();
+
+            Assert.IsTrue(declineCalled, "Decline callback should be invoked");
+            Assert.IsFalse(_mediator.IsOptionalEffectPopupOpen);
+            Assert.IsFalse(_mediator.IsPauseMenuOpen);
+        }
+
+        [TestMethod]
+        public void HandleEscapeKeyPress_Default_OpensPauseMenu_WhenNoOtherState()
+        {
+            _actionSystem.IsTargeting().Returns(false);
+            _gameState.IsMarketOpen.Returns(false);
+
+            _mediator.HandleEscapeKeyPress();
+
+            Assert.IsTrue(_mediator.IsPauseMenuOpen);
+        }
+
+        [TestMethod]
+        public void HandleEscapeKeyPress_ClosesPauseMenu_IfAlreadyOpen()
+        {
+            SetPrivateField(_mediator, "_isPauseMenuOpen", true);
+            _actionSystem.IsTargeting().Returns(true); // Should be ignored
+
+            _mediator.HandleEscapeKeyPress();
+
+            Assert.IsFalse(_mediator.IsPauseMenuOpen);
+            _actionSystem.DidNotReceive().CancelTargeting();
+        }
+
+        // --- Restored Functionality Tests ---
+
+        [TestMethod]
+        public void HandleMarketToggle_WhenOpen_ClosesMarket()
+        {
+            // Arrange
+            _marketStateManager.IsOpen.Returns(true);
+
+            // Act
+            _uiManager.OnMarketToggleRequest += Raise.Event<EventHandler>(this, EventArgs.Empty);
+
+            // Assert
+            _marketStateManager.Received(1).Close();
+        }
+
+        [TestMethod]
+        public void HandleMarketToggle_WhenClosed_OpensMarket()
+        {
+            // Arrange
+            _marketStateManager.IsOpen.Returns(false);
+
+            // Act
+            _uiManager.OnMarketToggleRequest += Raise.Event<EventHandler>(this, EventArgs.Empty);
+
+            // Assert
+            _marketStateManager.Received(1).OpenForBrowsing();
+        }
+
+        [TestMethod]
+        public void HandleAssassinateRequest_TryStartsAndSwitchesMode()
+        {
+            // Arrange
+            _actionSystem.IsTargeting().Returns(true); // Assume start successful
+
+            // Act
+            _uiManager.OnAssassinateRequest += Raise.Event<EventHandler>(this, EventArgs.Empty);
+
+            // Assert
+            _actionSystem.Received(1).TryStartAssassinate();
+            _gameState.Received(1).SwitchToTargetingMode();
+        }
+
+        [TestMethod]
+        public void HandleReturnSpyRequest_TryStartsAndSwitchesMode()
+        {
+            // Arrange
+            _actionSystem.IsTargeting().Returns(true); // Assume start successful
+
+            // Act
+            _uiManager.OnReturnSpyRequest += Raise.Event<EventHandler>(this, EventArgs.Empty);
+
+            // Assert
+            _actionSystem.Received(1).TryStartReturnSpy();
+            _gameState.Received(1).SwitchToTargetingMode();
+        }
+
+        [TestMethod]
+        public void HandleEndTurnRequest_WithUnplayedCards_OpensConfirmationPopup()
+        {
+            // Arrange
+            _gameState.CanEndTurn(out _).Returns(true);
+            
+            // Setup Hand with Cards
+            var player = new Player(PlayerColor.Red);
+            player.AddToHand(new CardBuilder().WithName("Test").WithCost(1).WithAspect(CardAspect.Warlord).Build());
+            _turnManager.ActivePlayer.Returns(player);
+
+            // Act
+            _uiManager.OnEndTurnRequest += Raise.Event<EventHandler>(this, EventArgs.Empty);
+
+            // Assert
+            Assert.IsTrue(_mediator.IsConfirmationPopupOpen);
+            // Should NOT execute end turn command yet
+            _gameState.DidNotReceive().RecordAndExecuteCommand(Arg.Any<EndTurnCommand>());
+        }
+
+        [TestMethod]
+        public void HandleEndTurnRequest_WithoutUnplayedCards_ExecutesEndTurn()
+        {
+            // Arrange
+            _gameState.CanEndTurn(out _).Returns(true);
+            
+            // Setup Hand Empty
+            var player = new Player(PlayerColor.Red);
+            // Hand is empty by default
+            _turnManager.ActivePlayer.Returns(player);
+
+            // Mock TurnContext for promotion check
+            var turnContext = new TurnContext(player, _logger);
+            // turnContext.PendingPromotionsCount is 0 by default
+            _turnManager.CurrentTurnContext.Returns(turnContext);
+
+            // Act
+            _uiManager.OnEndTurnRequest += Raise.Event<EventHandler>(this, EventArgs.Empty);
+
+            // Assert
+            Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
+            _gameState.Received(1).RecordAndExecuteCommand(Arg.Any<EndTurnCommand>());
         }
 
         [TestMethod]
         public void HandlePopupConfirm_EndsTurn()
         {
-            _mediator.Initialize();
-            var player = _state.MatchContext.ActivePlayer;
-            player.AddToHand(new CardBuilder().WithName("test").WithCost(1).WithAspect(CardAspect.Warlord).Build());
-            _mediator.HandleEndTurnKeyPress(); // Open popup
+            // Arrange: Open popup first
+            SetPrivateField(_mediator, "_isConfirmationPopupOpen", true);
 
-            Assert.IsTrue(_mediator.IsConfirmationPopupOpen, "Popup should be open");
+            // Logic calls HandleEndTurnWithPromotionCheck checks promotions
+            var player = new Player(PlayerColor.Red);
+            _turnManager.ActivePlayer.Returns(player);
+            var turnContext = new TurnContext(player, _logger);
+            // turnContext.PendingPromotionsCount is 0 by default
+            _turnManager.CurrentTurnContext.Returns(turnContext);
 
-            _mockUIManager.OnPopupConfirm += Raise.Event();
+            // Act
+            _uiManager.OnPopupConfirm += Raise.Event<EventHandler>(this, EventArgs.Empty);
 
+            // Assert
             Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
-            // State-Based Assertion
-            Assert.IsTrue(_state.ExecutedCommands.Any(c => c is EndTurnCommand));
+            _gameState.Received(1).RecordAndExecuteCommand(Arg.Any<EndTurnCommand>());
         }
 
         [TestMethod]
         public void HandlePopupCancel_ClosesPopup()
         {
-            _mediator.Initialize();
-            var player = _state.MatchContext.ActivePlayer;
-            player.AddToHand(new CardBuilder().WithName("test").WithCost(1).WithAspect(CardAspect.Warlord).Build());
-            _mediator.HandleEndTurnKeyPress();
+            // Arrange
+            SetPrivateField(_mediator, "_isConfirmationPopupOpen", true);
 
-            Assert.IsTrue(_mediator.IsConfirmationPopupOpen);
+            // Act
+            _uiManager.OnPopupCancel += Raise.Event<EventHandler>(this, EventArgs.Empty);
 
-            _mockUIManager.OnPopupCancel += Raise.Event();
-
+            // Assert
             Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
-            // State-Based Assertion
-            Assert.IsFalse(_state.EndTurnCalled); // Fake has this property
-            Assert.IsEmpty(_state.ExecutedCommands);
+            _gameState.DidNotReceive().RecordAndExecuteCommand(Arg.Any<EndTurnCommand>());
+        }
+
+        [TestMethod]
+        public void HandleResumeRequest_ClosesPauseMenu()
+        {
+            // Arrange
+            SetPrivateField(_mediator, "_isPauseMenuOpen", true);
+
+            // Act
+            _uiManager.OnResumeRequest += Raise.Event<EventHandler>(this, EventArgs.Empty);
+
+            // Assert
+            Assert.IsFalse(_mediator.IsPauseMenuOpen);
         }
 
         [TestMethod]
         public void HandleActionCompleted_PlaysPendingCard_AndResetsMode()
         {
-            _mediator.Initialize();
-            var card = TestData.Cards.CheapCard();
-            _mockActionSystem.PendingCard.Returns(card);
+            // Arrange
+            var card = new CardBuilder().WithName("Test").WithCost(1).WithAspect(CardAspect.Warlord).Build();
+            _actionSystem.PendingCard.Returns(card);
+            _gameState.IsMarketOpen.Returns(false); // Should switch to normal
 
-            _mockActionSystem.OnActionCompleted += Raise.Event();
+            // Act
+            _actionSystem.OnActionCompleted += Raise.Event<EventHandler>(this, EventArgs.Empty);
 
-            // MatchManager is a mock inside the fake, so we can verify calls on it
-            _state.MatchManager.Received(1).PlayCard(card);
-
-            _mockActionSystem.DidNotReceive().CancelTargeting();
-
-            // State-Based Assertion
-            Assert.AreEqual("Normal", _state.ActiveModeName);
-        }
-        [TestMethod]
-        public void RequestOptionalEffect_OpensPopup_AndExecutesAcceptCallback()
-        {
-            _mediator.Initialize();
-            bool callbackExecuted = false;
-            Action onAccept = () => callbackExecuted = true;
-            Action onDecline = () => { };
-
-            _mediator.RequestOptionalEffect(null!, null!, onAccept, onDecline);
-
-            Assert.IsTrue(_mediator.IsOptionalEffectPopupOpen);
-            Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
-
-            // Confirm
-            _mockUIManager.OnPopupConfirm += Raise.Event();
-
-            Assert.IsTrue(callbackExecuted, "Accept callback should be executed");
-            Assert.IsFalse(_mediator.IsOptionalEffectPopupOpen, "Popup should close");
+            // Assert
+            _matchManager.Received(1).PlayCard(card);
+            _gameState.Received(1).SwitchToNormalMode();
         }
 
         [TestMethod]
-        public void RequestOptionalEffect_OpensPopup_AndExecutesDeclineCallback()
+        public void HandleActionCompleted_DoesNotResetMode_IfMarketOpen()
         {
-            _mediator.Initialize();
-            bool callbackExecuted = false;
-            Action onAccept = () => { };
-            Action onDecline = () => callbackExecuted = true;
+            // Arrange
+            var card = new CardBuilder().WithName("Test").WithCost(1).WithAspect(CardAspect.Warlord).Build();
+            _actionSystem.PendingCard.Returns(card);
+            _gameState.IsMarketOpen.Returns(true); // Should Stay in Market Mode
 
-            _mediator.RequestOptionalEffect(null!, null!, onAccept, onDecline);
+            // Act
+            _actionSystem.OnActionCompleted += Raise.Event<EventHandler>(this, EventArgs.Empty);
 
-            Assert.IsTrue(_mediator.IsOptionalEffectPopupOpen);
+            // Assert
+            _matchManager.Received(1).PlayCard(card);
+            _gameState.DidNotReceive().SwitchToNormalMode();
+        }
+        
+        [TestMethod]
+        public void RequestOptionalEffect_CallbacksWorkViaPopupEvents()
+        {
+             // Arrange
+            bool acceptCalled = false;
+            bool declineCalled = false;
 
-            // Decline
-            _mockUIManager.OnPopupCancel += Raise.Event();
+            _mediator.RequestOptionalEffect(null!, null!, () => acceptCalled = true, () => declineCalled = true);
+            
+            // Test Accept via Popup Confirm
+            _uiManager.OnPopupConfirm += Raise.Event<EventHandler>(this, EventArgs.Empty);
+            Assert.IsTrue(acceptCalled);
+            Assert.IsFalse(_mediator.IsOptionalEffectPopupOpen);
 
-            Assert.IsTrue(callbackExecuted, "Decline callback should be executed");
-            Assert.IsFalse(_mediator.IsOptionalEffectPopupOpen, "Popup should close");
+            // Reset
+            acceptCalled = false;
+            _mediator.RequestOptionalEffect(null!, null!, () => acceptCalled = true, () => declineCalled = true);
+
+            // Test Decline via Popup Cancel
+            _uiManager.OnPopupCancel += Raise.Event<EventHandler>(this, EventArgs.Empty);
+            Assert.IsTrue(declineCalled);
+            Assert.IsFalse(_mediator.IsOptionalEffectPopupOpen);
+        }
+
+        // Helper
+        private void SetPrivateField(object target, string fieldName, object value)
+        {
+            var field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (field == null) throw new ArgumentException($"Field '{fieldName}' not found");
+            field.SetValue(target, value);
         }
     }
 }
-
-
-

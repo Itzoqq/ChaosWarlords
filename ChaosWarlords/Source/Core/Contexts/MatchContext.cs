@@ -127,8 +127,6 @@ namespace ChaosWarlords.Source.Contexts
         /// </summary>
         public string GetStateHash()
         {
-            // Use a deterministic accumulation of state values
-            // 1. Sequence and Turn Meta
             long hash = 17;
             hash = hash * 31 + SequenceNumber;
             hash = hash * 31 + CurrentTurnNumber;
@@ -136,7 +134,15 @@ namespace ChaosWarlords.Source.Contexts
             hash = hash * 31 + (TurnManager?.ActivePlayer?.Color.GetHashCode() ?? 0);
             hash = hash * 31 + Seed;
 
-            // 2. Map State (Node Ownership)
+            hash = AppendMapHashContributions(hash);
+            hash = AppendPlayerHashContributions(hash);
+            hash = AppendMarketHashContributions(hash);
+
+            return hash.ToString("X", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private long AppendMapHashContributions(long hash)
+        {
             if (MapManager != null)
             {
                 foreach (var node in MapManager.Nodes.OrderBy(n => n.Id))
@@ -145,8 +151,11 @@ namespace ChaosWarlords.Source.Contexts
                     hash = hash * 31 + node.Occupant.GetHashCode();
                 }
             }
+            return hash;
+        }
 
-            // 3. Player Resources
+        private long AppendPlayerHashContributions(long hash)
+        {
             if (TurnManager != null && TurnManager.Players != null)
             {
                 foreach (var player in TurnManager.Players.OrderBy(p => p.Color))
@@ -159,8 +168,11 @@ namespace ChaosWarlords.Source.Contexts
                     hash = hash * 31 + player.InnerCircle.Count;
                 }
             }
+            return hash; 
+        }
 
-            // 4. Market State
+        private long AppendMarketHashContributions(long hash)
+        {
             if (MarketManager != null)
             {
                 hash = hash * 31 + MarketManager.MarketRow.Count;
@@ -169,8 +181,7 @@ namespace ChaosWarlords.Source.Contexts
                     hash = hash * 31 + card.Id.GetHashCode();
                 }
             }
-
-            return hash.ToString("X", System.Globalization.CultureInfo.InvariantCulture);
+            return hash;
         }
     }
 }

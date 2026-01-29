@@ -781,5 +781,121 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         #endregion
+
+        #region 8. PerformAssassinate Tests (CRAP Reduction)
+
+        [TestMethod]
+        public void PerformAssassinate_WithoutCardPayment_SpendsAssassinateCost()
+        {
+            // Arrange
+            _player1.AddPower(GameConstants.AssassinatePowerCost);
+            _node2.Occupant = PlayerColor.Blue; // Enemy target
+            var matchManager = Substitute.For<IMatchManager>();
+            _actionSystem.SetMatchManager(matchManager);
+
+            // Act
+            _actionSystem.PerformAssassinate(_node2, cardId: null, devourCardId: null);
+
+            // Assert
+            Assert.AreEqual(10, _player1.Power, "Should spend assassinate cost");
+            _mapManager.Received(1).Assassinate(_node2, _player1);
+            Assert.IsTrue(_eventCompletedFired, "Should complete action");
+        }
+
+        [TestMethod]
+        public void PerformAssassinate_WithCardPayment_DoesNotSpendPower()
+        {
+            // Arrange
+            var card = TestData.Cards.AssassinCard();
+            _player1.SpendPower(_player1.Power); // Set to 0
+            _node2.Occupant = PlayerColor.Blue;
+
+            // Act
+            _actionSystem.PerformAssassinate(_node2, cardId: card.Id, devourCardId: null);
+
+            // Assert
+            Assert.AreEqual(0, _player1.Power, "Should not spend power when paid with card");
+            _mapManager.Received(1).Assassinate(_node2, _player1);
+            Assert.IsTrue(_eventCompletedFired);
+        }
+
+        [TestMethod]
+        public void PerformAssassinate_WithDevourCard_DevoursCardFirst()
+        {
+            // Arrange
+            var cardToDevour = TestData.Cards.CheapCard();
+            _player1.AddToHand(cardToDevour);
+            _player1.AddPower(GameConstants.AssassinatePowerCost);
+            _node2.Occupant = PlayerColor.Blue;
+            
+            var matchManager = Substitute.For<IMatchManager>();
+            _actionSystem.SetMatchManager(matchManager);
+
+            // Act
+            _actionSystem.PerformAssassinate(_node2, cardId: null, devourCardId: cardToDevour.Id);
+
+            // Assert
+            matchManager.Received(1).DevourCard(cardToDevour);
+            _mapManager.Received(1).Assassinate(_node2, _player1);
+            Assert.IsTrue(_eventCompletedFired);
+        }
+
+        [TestMethod]
+        public void PerformAssassinate_WithBothCardPaymentAndDevour_DevoursAndDoesNotSpendPower()
+        {
+            // Arrange
+            var paymentCard = TestData.Cards.AssassinCard();
+            var devourCard = TestData.Cards.CheapCard();
+            _player1.AddToHand(devourCard);
+            _player1.SpendPower(_player1.Power); // Set to 0
+            _node2.Occupant = PlayerColor.Blue;
+            
+            var matchManager = Substitute.For<IMatchManager>();
+            _actionSystem.SetMatchManager(matchManager);
+
+            // Act
+            _actionSystem.PerformAssassinate(_node2, cardId: paymentCard.Id, devourCardId: devourCard.Id);
+
+            // Assert
+            matchManager.Received(1).DevourCard(devourCard);
+            Assert.AreEqual(0, _player1.Power, "Should not spend power with card payment");
+            _mapManager.Received(1).Assassinate(_node2, _player1);
+            Assert.IsTrue(_eventCompletedFired);
+        }
+
+        [TestMethod]
+        public void PerformAssassinate_CallsMapManagerCorrectly()
+        {
+            // Arrange
+            _player1.AddPower(GameConstants.AssassinatePowerCost);
+            _node2.Occupant = PlayerColor.Blue;
+
+            // Act
+            _actionSystem.PerformAssassinate(_node2, cardId: null, devourCardId: null);
+
+            // Assert
+            _mapManager.Received(1).Assassinate(_node2, _player1);
+            _mapManager.Received(1).Assassinate(
+                Arg.Is<MapNode>(n => n == _node2),
+                Arg.Is<Player>(p => p == _player1));
+        }
+
+        [TestMethod]
+        public void PerformAssassinate_CompletesAction_AfterExecution()
+        {
+            // Arrange
+            _player1.AddPower(GameConstants.AssassinatePowerCost);
+            _node2.Occupant = PlayerColor.Blue;
+            _eventCompletedFired = false;
+
+            // Act
+            _actionSystem.PerformAssassinate(_node2, cardId: null, devourCardId: null);
+
+            // Assert
+            Assert.IsTrue(_eventCompletedFired, "Should fire OnActionCompleted event");
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "Should return to Normal state");
+        }
+
+        #endregion
     }
 }
