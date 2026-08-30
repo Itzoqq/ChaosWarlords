@@ -29,8 +29,14 @@ namespace ChaosWarlords.Source.Commands
             var site = context.MapManager.Sites.FirstOrDefault(s => s.Id == TargetSiteId);
             if (site == null) return false;
 
-            // Check if player has spies to place
-            return context.TurnManager.ActivePlayer.SpiesInBarracks > 0;
+            var player = context.TurnManager.ActivePlayer;
+
+            // Mirrors SpySubsystem.HandlePlaceSpy's checks: must have a spy to place, and can't
+            // stack a second spy of your own on a site you already occupy.
+            if (player.SpiesInBarracks <= 0) return false;
+            if (site.Spies.Contains(player.Color)) return false;
+
+            return true;
         }
 
         public void Execute(MatchContext context)

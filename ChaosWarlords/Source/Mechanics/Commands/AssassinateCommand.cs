@@ -37,23 +37,29 @@ namespace ChaosWarlords.Source.Commands
             // 2. Get Player
             var player = context.TurnManager.ActivePlayer; // Assassinate is usually active player action
 
-            // 3. Delegation
+            // 3. When not fed by a card, this costs Power - enforce that here (not just in the
+            // input layer) so a directly-dispatched command can't grant a free assassination.
+            if (string.IsNullOrEmpty(CardId) && player.Power < GameConstants.AssassinatePowerCost)
+            {
+                return false;
+            }
+
+            // 4. Delegation
             return context.MapManager.CanAssassinate(node, player);
         }
 
         public void Execute(MatchContext context)
         {
             var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
-            var player = context.TurnManager.ActivePlayer;
             if (node != null)
             {
-                if (string.IsNullOrEmpty(CardId))
-                {
-                    context.PlayerStateManager.TrySpendPower(player, GameConstants.AssassinatePowerCost);
-                }
-
-                context.MapManager.Assassinate(node, player);
-                context.ActionSystem.CompleteAction();
+                // Delegates to ActionSystem.PerformAssassinate (Power cost + MapManager +
+                // CompleteAction) rather than duplicating those calls here, because that's
+                // also where the transactional "Devour a card -> Assassinate" handling
+                // lives (DevourCardId) - see planning.txt KNOWN BUGS for why this matters:
+                // duplicating the logic here previously meant a deferred devour never
+                // actually happened.
+                context.ActionSystem.PerformAssassinate(node, CardId, DevourCardId);
             }
         }
     }

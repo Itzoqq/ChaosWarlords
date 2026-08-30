@@ -29,8 +29,15 @@ namespace ChaosWarlords.Source.Commands
             var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
             if (node == null) return false;
 
-            // Check if node has occupant
-            return node.Occupant != Utilities.PlayerColor.None;
+            // Mirrors ActionInputController.HandleReturn's checks: can't return an unoccupied or
+            // Neutral-occupied node, and the requester must have presence to contest it.
+            if (node.Occupant == Utilities.PlayerColor.None || node.Occupant == Utilities.PlayerColor.Neutral)
+            {
+                return false;
+            }
+
+            var player = context.TurnManager.ActivePlayer;
+            return context.MapManager.HasPresence(node, player.Color);
         }
 
         public void Execute(MatchContext context)

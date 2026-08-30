@@ -1,7 +1,10 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
+using Microsoft.Xna.Framework;
 using NSubstitute;
 
 namespace ChaosWarlords.Tests.Mechanics.Actions
@@ -158,6 +161,98 @@ namespace ChaosWarlords.Tests.Mechanics.Actions
             // Assert
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "Should transition to Normal (Next effect is instant)");
             _matchManager.Received(1).ResumeDevourChain(cultist);
+        }
+
+        // --- PerformAssassinate/PerformSupplant devour consumption ---
+        //
+        // These two methods are the intended consumer of a devour deferred earlier in a
+        // chained effect (e.g. a card reading "Devour a card in your hand -> Supplant a
+        // troop"). No shipped card currently reaches them via a live click (see
+        // planning.txt RESOLVED, 2026-08-30, for the full trace of why: the live
+        // optional-effect-accept path in ActionSystem hardcodes its devour as immediate,
+        // not deferred) - but the pre-target/replay flow (TryExecuteSupplantPreTarget) and
+        // ActionSystem.DeferDevour both do exercise this path, and it's exactly the kind
+        // of latent code a future card or a defer-flow fix would land on. Pinning down its
+        // behavior here guards against it silently regressing again.
+
+        [TestMethod]
+        public void PerformSupplant_WithDevourCardId_DevoursCard_AndClearsPendingDevourCard()
+        {
+            // Arrange
+            var player = new Player(PlayerColor.Red);
+            var cardToDevour = new Card("devour_me", "Devour Me", 3, CardAspect.Sorcery, 1, 1, 0);
+            player.AddToHand(cardToDevour);
+            _turnManager.ActivePlayer.Returns(player);
+
+            var node = new MapNode(1, new Vector2(0, 0));
+
+            // Act
+            _actionSystem.PerformSupplant(node, cardId: "wight", devourCardId: "devour_me");
+
+            // Assert
+            _matchManager.Received(1).DevourCard(cardToDevour);
+            _mapManager.Received(1).Supplant(node, player);
+            Assert.IsNull(_actionSystem.PendingDevourCard, "Pending devour should be cleared once consumed, so it can't leak into a later action.");
+        }
+
+        [TestMethod]
+        public void PerformAssassinate_WithDevourCardId_DevoursCard_AndClearsPendingDevourCard()
+        {
+            // Arrange
+            var player = new Player(PlayerColor.Red);
+            var cardToDevour = new Card("devour_me", "Devour Me", 3, CardAspect.Sorcery, 1, 1, 0);
+            player.AddToHand(cardToDevour);
+            _turnManager.ActivePlayer.Returns(player);
+
+            var node = new MapNode(1, new Vector2(0, 0));
+
+            // Act
+            _actionSystem.PerformAssassinate(node, cardId: "some_card", devourCardId: "devour_me");
+
+            // Assert
+            _matchManager.Received(1).DevourCard(cardToDevour);
+            _mapManager.Received(1).Assassinate(node, player);
+            Assert.IsNull(_actionSystem.PendingDevourCard, "Pending devour should be cleared once consumed, so it can't leak into a later action.");
+        }
+
+        [TestMethod]
+        public void PerformSupplant_FallsBackToPendingDevourCard_WhenNoDevourCardIdProvided()
+        {
+            // Arrange: simulates the deferred flow (ActionSystem.DeferDevour), where the
+            // card to devour is buffered on PendingDevourCard rather than threaded through
+            // as an explicit id.
+            var player = new Player(PlayerColor.Red);
+            var cardToDevour = new Card("buffered", "Buffered", 3, CardAspect.Sorcery, 1, 1, 0);
+            player.AddToHand(cardToDevour);
+            _turnManager.ActivePlayer.Returns(player);
+
+            _actionSystem.DeferDevour(cardToDevour);
+            Assert.AreEqual(cardToDevour, _actionSystem.PendingDevourCard, "Sanity check: devour should be buffered before Perform* runs.");
+
+            var node = new MapNode(1, new Vector2(0, 0));
+
+            // Act
+            _actionSystem.PerformSupplant(node, cardId: null, devourCardId: null);
+
+            // Assert
+            _matchManager.Received(1).DevourCard(cardToDevour);
+            Assert.IsNull(_actionSystem.PendingDevourCard, "Pending devour should be cleared once consumed.");
+        }
+
+        [TestMethod]
+        public void PerformSupplant_WithNoDevourPending_DoesNotCallDevourCard()
+        {
+            // Arrange: the ordinary case - a plain Supplant with nothing deferred.
+            var player = new Player(PlayerColor.Red);
+            _turnManager.ActivePlayer.Returns(player);
+
+            var node = new MapNode(1, new Vector2(0, 0));
+
+            // Act
+            _actionSystem.PerformSupplant(node, cardId: "wight", devourCardId: null);
+
+            // Assert
+            _matchManager.DidNotReceiveWithAnyArgs().DevourCard(default!);
         }
     }
 }

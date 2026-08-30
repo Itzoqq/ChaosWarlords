@@ -303,11 +303,7 @@ namespace ChaosWarlords.Source.Managers
         public void PerformAssassinate(MapNode node, string? cardId, string? devourCardId = null)
         {
             // Transactional Devour Handling (Logic Layer)
-            if (!string.IsNullOrEmpty(devourCardId))
-            {
-                var cardToDevour = CurrentPlayer.Hand.FirstOrDefault(c => c.Id == devourCardId);
-                if (cardToDevour != null) _matchManager.DevourCard(cardToDevour);
-            }
+            ConsumePendingDevour(devourCardId);
 
             bool isPaidByCard = !string.IsNullOrEmpty(cardId);
 
@@ -342,22 +338,43 @@ namespace ChaosWarlords.Source.Managers
         public void PerformSupplant(MapNode node, string? cardId, string? devourCardId = null)
         {
             // Transactional Devour Handling (Logic Layer)
-            if (!string.IsNullOrEmpty(devourCardId))
-            {
-                var cardToDevour = CurrentPlayer.Hand.FirstOrDefault(c => c.Id == devourCardId);
-                if (cardToDevour != null) _matchManager.DevourCard(cardToDevour);
-                // Also check PendingDevourCard and clear it if it matches?
-                // CompleteAction will clear state anyway.
-            }
-            else if (PendingDevourCard != null)
-            {
-                // Fallback: If not passed explicitly but exists in state (Deferred flow)
-                _matchManager.DevourCard(PendingDevourCard);
-            }
+            ConsumePendingDevour(devourCardId);
 
             _mapManager.Supplant(node, CurrentPlayer);
             OnActionCompleted?.Invoke(this, EventArgs.Empty);
             ClearState();
+        }
+
+        /// <summary>
+        /// Consumes a devour that was deferred earlier in a chained effect (e.g. Wight's
+        /// "Devour a card in your hand -> Supplant a troop" - see CardEffectProcessor.
+        /// ApplyDevourWithChain / DevourSubsystem's deferExecution flow). Prefers the
+        /// explicit devourCardId (authoritative, carried on the command DTO for replay);
+        /// falls back to PendingDevourCard for the pre-target/replay flow, which doesn't
+        /// thread an id through PerformSupplant's caller.
+        ///
+        /// Always clears the devour subsystem's pending state afterward, whether or not
+        /// there was anything to consume - PendingDevourCard is deliberately NOT cleared
+        /// by ClearState()/CompleteAction() (see the comment on ClearState below) so it
+        /// can survive across the chained targeting steps, but that means it would
+        /// otherwise leak into the next unrelated Assassinate/Supplant the player makes
+        /// this turn (ActionInputController reads PendingDevourCard unconditionally), and
+        /// MatchManager.FindCardInPlayerCollections falls back to matching by Card.Id, so
+        /// a stale reference could wrongly devour an unrelated duplicate-copy card later.
+        /// </summary>
+        private void ConsumePendingDevour(string? devourCardId)
+        {
+            if (!string.IsNullOrEmpty(devourCardId))
+            {
+                var cardToDevour = CurrentPlayer.Hand.FirstOrDefault(c => c.Id == devourCardId);
+                if (cardToDevour != null) _matchManager.DevourCard(cardToDevour);
+                _devourSubsystem.ClearState();
+            }
+            else if (PendingDevourCard != null)
+            {
+                _matchManager.DevourCard(PendingDevourCard);
+                _devourSubsystem.ClearState();
+            }
         }
 
         public void TryStartSupplant(Card sourceCard)

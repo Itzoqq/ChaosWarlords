@@ -25,12 +25,14 @@ namespace ChaosWarlords.Source.Commands
         public bool Validate(MatchContext context)
         {
             var player = context.TurnManager.ActivePlayer;
-            // Check if card exists in Hand/Played
-            // We need to find it first.
+            // Check if card exists in Hand/Played. This must stay a pure read - CommandDispatcher
+            // calls Validate() then Execute() on the same instance, so actually promoting here
+            // (as this used to do via TryPromoteCard) removes the card from Hand/Played as a side
+            // effect of "checking", leaving Execute()'s own TryPromoteCard call to find nothing.
             var card = player.Hand.FirstOrDefault(c => c.Id == CardId) ??
                        player.PlayedCards.FirstOrDefault(c => c.Id == CardId);
 
-            return card != null && context.PlayerStateManager.TryPromoteCard(player, card, out _);
+            return card != null;
         }
 
         public void Execute(MatchContext context)
@@ -45,12 +47,8 @@ namespace ChaosWarlords.Source.Commands
                 {
                     context.RecordAction("Promote", $"Promoted {card.Name} to Inner Circle.");
                 }
-                else
-                {
-                    // If logic fails (e.g. no credits or full), we should at least log it?
-                    // But command execution implies "Do it". 
-                    // However, we rely on the ActionSystem or source to validate preconditions.
-                }
+                // else: card vanished from Hand/Played between Validate() and Execute() (e.g. a
+                // chained effect moved it) - nothing to promote, so this is a silent no-op.
             }
         }
     }
