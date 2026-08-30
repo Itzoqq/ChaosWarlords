@@ -1,6 +1,7 @@
 using NSubstitute;
 using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Core.Contexts;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Entities.Actors;
@@ -24,6 +25,11 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         private IGameLogger _logger = null!;
         private IPlayerStateManager _playerStateManager = null!;
         private IMarketStateManager _marketStateManager = null!;
+
+        // ActionSystem raises OnInteractionRequested instead of calling IUIEventMediator
+        // directly - capture every request here for the "was a popup requested" assertions
+        // below, instead of asserting received calls on the (now-unused-for-this) mediator mock.
+        private readonly List<InteractionRequest> _interactionRequests = [];
 
         [TestInitialize]
         public void Setup()
@@ -63,8 +69,8 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                 12345
             );
 
-            // Set UI Mediator on ActionSystem for optional effect popups
-            _actionSystem.SetUIMediator(_uiMediator);
+            // ActionSystem no longer holds a UI reference; capture what it raises instead.
+            _actionSystem.OnInteractionRequested += req => _interactionRequests.Add(req);
 
             // Set MatchContext on ActionSystem for effect processing
             _actionSystem.SetMatchContext(_context);
@@ -196,7 +202,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, _logger);
 
             // Assert
-            _uiMediator.Received(1).RequestOptionalEffect(card, devourEffect, Arg.Any<System.Action>(), Arg.Any<System.Action>());
+            Assert.AreEqual(1, _interactionRequests.Count(r => r.SourceCard == card && r.SourceEffect == devourEffect));
         }
 
         [TestMethod]
@@ -226,7 +232,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
 
             // Assert
             // The Deep Lookahead should kick in and prevent the popup
-            _uiMediator.DidNotReceive().RequestOptionalEffect(card, devourEffect, Arg.Any<System.Action>(), Arg.Any<System.Action>());
+            Assert.IsFalse(_interactionRequests.Any(r => r.SourceCard == card && r.SourceEffect == devourEffect));
         }
 
         #endregion
@@ -327,22 +333,11 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             marketCard.Location = CardLocation.Market;
             _marketManager.MarketRow.Returns(new List<Card> { marketCard });
 
-            Action? acceptCallback = null;
-            _uiMediator.When(x => x.RequestOptionalEffect(
-                Arg.Any<Card>(),
-                Arg.Any<CardEffect>(),
-                Arg.Any<Action>(),
-                Arg.Any<Action>()))
-                .Do(callInfo =>
-                {
-                    acceptCallback = callInfo.ArgAt<Action>(2); // Capture onAccept
-                });
-
             // Act - Play card and process stack
             CardEffectProcessor.ResolveEffects(sourceCard, _context, false, _logger);
 
             // Simulate user accepting the optional effect
-            acceptCallback?.Invoke();
+            _interactionRequests.LastOrDefault()?.OnResponse(true);
 
             // Assert - Verify OpenForDevour was called (strategy executed)
             _marketStateManager.Received(1).OpenForDevour(Arg.Any<Func<Card, ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand?>>());
@@ -515,12 +510,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             CardEffectProcessor.ResolveEffects(devourCard, _context, false, _logger);
 
             // Assert - Ensure UI was NOT asked for permission
-            _uiMediator.DidNotReceive().RequestOptionalEffect(
-                Arg.Any<Card>(),
-                Arg.Any<CardEffect>(),
-                Arg.Any<Action>(),
-                Arg.Any<Action>()
-            );
+            Assert.AreEqual(0, _interactionRequests.Count);
 
             // Ensure logic remains safe (no targeting state entered)
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "Should NOT enter targeting state if skipped");

@@ -144,8 +144,9 @@ namespace ChaosWarlords.Source.GameStates
                 worldData.Seed
             );
 
-            // Set UI Mediator on ActionSystem for optional effect popups
-            worldData.ActionSystem.SetUIMediator(_uiEventMediator);
+            // NOTE: no SetUIMediator call here anymore - ActionSystem raises
+            // OnInteractionRequested instead of holding a UI reference; UIEventMediator
+            // subscribes to it in its own Initialize() (called below).
 
             // Set MatchContext on ActionSystem for effect processing
             worldData.ActionSystem.SetMatchContext(_matchContext);

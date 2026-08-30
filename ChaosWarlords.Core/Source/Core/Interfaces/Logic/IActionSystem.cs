@@ -28,6 +28,15 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         event Action<IGameCommand> OnAutoExecuteCommand;
 
         /// <summary>
+        /// Fired when the logic layer needs a player decision on an optional card effect
+        /// (e.g. an accept/decline popup). Decouples ActionSystem from the UI layer: it
+        /// raises this plain event instead of calling into IUIEventMediator directly: the
+        /// UI layer (UIEventMediator) subscribes and calls request.OnResponse(bool) with
+        /// the player's answer.
+        /// </summary>
+        event Action<Contexts.InteractionRequest> OnInteractionRequested;
+
+        /// <summary>
         /// Gets the current state of the action state machine (e.g. Normal, SelectingTarget).
         /// </summary>
         ActionState CurrentState { get; }

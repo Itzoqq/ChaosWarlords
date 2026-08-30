@@ -51,6 +51,22 @@ namespace ChaosWarlords.Source.Managers
         // Optional Effect Event (View listens to this for content)
         public event Action<Entities.Cards.Card, Entities.Cards.CardEffect, Action, Action>? OnOptionalEffectRequested;
 
+        /// <summary>
+        /// Subscribed to ActionSystem.OnInteractionRequested (see Initialize/Cleanup). This is
+        /// the only place logic-layer optional-effect requests reach the UI - ActionSystem
+        /// itself never calls into IUIEventMediator directly. Forwards into the existing
+        /// RequestOptionalEffect popup flow, resolving the request via its OnResponse callback
+        /// instead of the separate onAccept/onDecline delegates that flow took directly.
+        /// </summary>
+        private void HandleInteractionRequest(Core.Contexts.InteractionRequest request)
+        {
+            RequestOptionalEffect(
+                request.SourceCard,
+                request.SourceEffect,
+                onAccept: () => request.OnResponse(true),
+                onDecline: () => request.OnResponse(false));
+        }
+
         public void RequestOptionalEffect(Entities.Cards.Card card, Entities.Cards.CardEffect effect, Action onAccept, Action onDecline)
         {
             // Update State
@@ -109,6 +125,7 @@ namespace ChaosWarlords.Source.Managers
             // Action system events
             _actionSystem.OnActionCompleted += HandleActionCompleted;
             _actionSystem.OnActionFailed += HandleActionFailed;
+            _actionSystem.OnInteractionRequested += HandleInteractionRequest;
         }
 
         /// <summary>
@@ -128,6 +145,7 @@ namespace ChaosWarlords.Source.Managers
 
             _actionSystem.OnActionCompleted -= HandleActionCompleted;
             _actionSystem.OnActionFailed -= HandleActionFailed;
+            _actionSystem.OnInteractionRequested -= HandleInteractionRequest;
         }
 
         /// <summary>

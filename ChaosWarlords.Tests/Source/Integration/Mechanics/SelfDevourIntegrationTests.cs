@@ -1,6 +1,8 @@
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Core.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Mechanics.Actions;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Tests.Utilities;
 using NSubstitute;
@@ -15,6 +17,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
     {
         private MatchContext _context = null!;
         private MatchManager _matchManager = null!;
+        private ActionSystem _actionSystem = null!;
         private IUIEventMediator _uiMediator = null!;
         // Remove field instantiation: private readonly TestLogger _logger = new TestLogger();
 
@@ -38,6 +41,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             var mapManager = Substitute.For<IMapManager>();
             var marketManager = Substitute.For<IMarketManager>();
             var actionSystem = new ActionSystem(turnManager, mapManager, TestLogger.Instance);
+            _actionSystem = actionSystem;
             var cardDb = Substitute.For<ChaosWarlords.Source.Core.Interfaces.Data.ICardDatabase>();
             var playerState = new ChaosWarlords.Source.Managers.PlayerStateManager(TestLogger.Instance);
             var victoryManager = Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IVictoryManager>();
@@ -45,7 +49,6 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             // Set up ActionSystem dependencies
             actionSystem.SetPlayerStateManager(playerState);
             actionSystem.SetMarketManager(marketManager);
-            actionSystem.SetUIMediator(_uiMediator);
 
             _context = new MatchContext(
                 turnManager,
@@ -86,9 +89,8 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
 
             player.AddToHand(card);
 
-            // Configure UI Mediator to ACCEPT (Arg index 2 is onAccept)
-            _uiMediator.When(x => x.RequestOptionalEffect(card, devourSelfDetails, Arg.Any<System.Action>(), Arg.Any<System.Action>()))
-                       .Do(x => x.ArgAt<System.Action>(2).Invoke());
+            // Auto-accept the optional effect request as soon as it's raised.
+            _actionSystem.OnInteractionRequested += req => req.OnResponse(true);
 
             // Act 1: Play the Card
             _matchManager.PlayCard(card);
@@ -132,9 +134,8 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
 
             player.AddToHand(card);
 
-            // Configure UI Mediator to DECLINE
-            _uiMediator.When(x => x.RequestOptionalEffect(card, devourSelfDetails, Arg.Any<System.Action>(), Arg.Any<System.Action>()))
-                       .Do(x => x.ArgAt<System.Action>(3).Invoke()); // Arg 3 is onDecline (card, effect, onAccept, onDecline)
+            // Auto-decline the optional effect request as soon as it's raised.
+            _actionSystem.OnInteractionRequested += req => req.OnResponse(false);
 
             // Act 1: Play Card
             _matchManager.PlayCard(card);

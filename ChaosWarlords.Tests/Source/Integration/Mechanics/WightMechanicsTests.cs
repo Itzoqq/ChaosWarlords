@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Core.Contexts;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Data;
@@ -90,8 +91,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             );
             
             _actionSystem.SetMatchContext(_context);
-            _actionSystem.SetUIMediator(_uiEventMediator);
-            
+
             var victoryManager = Substitute.For<IVictoryManager>();
             _matchManager = new MatchManager(_context, _logger, victoryManager);
             _actionSystem.SetMatchManager(_matchManager);
@@ -110,16 +110,15 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             _p1.AddToHand(noble);
             
             bool popupRequested = false;
-            _uiEventMediator.When(x => x.RequestOptionalEffect(Arg.Any<Card>(), Arg.Any<CardEffect>(), Arg.Any<Action>(), Arg.Any<Action>()))
-                .Do(info => {
-                    popupRequested = true;
-                    var decline = info.ArgAt<Action>(3);
-                    decline?.Invoke();
-                });
+            _actionSystem.OnInteractionRequested += req =>
+            {
+                popupRequested = true;
+                req.OnResponse(false); // Decline
+            };
 
             var command = new PlayCardCommand(wight);
             command.Execute(_context);
-            
+
             Assert.IsTrue(popupRequested, "Optional Effect Popup should be requested when valid targets exist.");
         }
 
@@ -136,8 +135,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             _p1.AddToHand(noble);
 
             bool popupRequested = false;
-             _uiEventMediator.When(x => x.RequestOptionalEffect(Arg.Any<Card>(), Arg.Any<CardEffect>(), Arg.Any<Action>(), Arg.Any<Action>()))
-                .Do(info => popupRequested = true);
+            _actionSystem.OnInteractionRequested += req => popupRequested = true;
 
             var command = new PlayCardCommand(wight);
             command.Execute(_context);
@@ -163,8 +161,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             _p1.AddToHand(noble);
 
             bool popupRequested = false;
-             _uiEventMediator.When(x => x.RequestOptionalEffect(Arg.Any<Card>(), Arg.Any<CardEffect>(), Arg.Any<Action>(), Arg.Any<Action>()))
-                .Do(info => popupRequested = true);
+            _actionSystem.OnInteractionRequested += req => popupRequested = true;
 
             var command = new PlayCardCommand(wight);
             command.Execute(_context);
@@ -192,15 +189,14 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             _p1.AddToHand(wight);
             _p1.AddToHand(noble);
 
-            Action? onAccept = null;
-            _uiEventMediator.When(x => x.RequestOptionalEffect(Arg.Any<Card>(), Arg.Any<CardEffect>(), Arg.Any<Action>(), Arg.Any<Action>()))
-                .Do(info => onAccept = info.ArgAt<Action>(2));
+            InteractionRequest? capturedRequest = null;
+            _actionSystem.OnInteractionRequested += req => capturedRequest = req;
 
             var playCommand = new PlayCardCommand(wight);
             playCommand.Execute(_context);
 
-            Assert.IsNotNull(onAccept, "Popup should have been requested with an accept callback.");
-            onAccept!.Invoke();
+            Assert.IsNotNull(capturedRequest, "Popup should have been requested via OnInteractionRequested.");
+            capturedRequest!.OnResponse(true); // Accept
 
             Assert.AreEqual(ActionState.TargetingDevourHand, _actionSystem.CurrentState, "Accepting should enter Devour-Hand targeting.");
 

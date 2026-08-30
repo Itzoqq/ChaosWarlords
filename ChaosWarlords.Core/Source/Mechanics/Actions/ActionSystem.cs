@@ -73,7 +73,13 @@ namespace ChaosWarlords.Source.Managers
         private readonly IMapManager _mapManager;
         private readonly IGameLogger _logger;
         private IPlayerStateManager _playerStateManager = null!;
-        private IUIEventMediator? _uiMediator;
+
+        /// <summary>
+        /// Fired when the logic layer needs a player decision on an optional card effect.
+        /// See IActionSystem.OnInteractionRequested - ActionSystem never holds a reference
+        /// to IUIEventMediator; the UI layer subscribes to this instead.
+        /// </summary>
+        public event Action<Core.Contexts.InteractionRequest>? OnInteractionRequested;
 
         private Player CurrentPlayer => _turnManager.ActivePlayer;
 
@@ -131,11 +137,6 @@ namespace ChaosWarlords.Source.Managers
         {
             _marketStateManager = manager;
             _devourSubsystem.SetMarketStateManager(manager);
-        }
-
-        public void SetUIMediator(IUIEventMediator uiMediator)
-        {
-            _uiMediator = uiMediator;
         }
 
         public void TryStartAssassinate()
@@ -633,13 +634,13 @@ namespace ChaosWarlords.Source.Managers
         // --- Extracted Helper Methods for ProcessStack() ---
 
         /// <summary>
-        /// Processes an optional effect by performing deep lookahead validation
-        /// and requesting user confirmation via UI mediator.
+        /// Processes an optional effect by performing deep lookahead validation and raising
+        /// OnInteractionRequested for the UI layer to present a confirmation prompt.
         /// </summary>
-        /// <returns>True if the effect was handled (user prompt shown or effect skipped), false otherwise</returns>
+        /// <returns>True if the effect was handled (interaction request raised or effect skipped), false otherwise</returns>
         private bool ProcessOptionalEffect(Core.Contexts.EffectContext effect)
         {
-            if (_uiMediator == null) return false;
+            if (OnInteractionRequested == null) return false;
 
             // Deep Lookahead: Check if OnSuccess chain has valid targets
             if (effect.SourceEffect?.OnSuccess != null && _matchContext != null)
@@ -666,12 +667,13 @@ namespace ChaosWarlords.Source.Managers
 
             _logger.Log($"ActionSystem: Requesting optional effect confirmation for {effect.SourceEffect?.Type}...", LogChannel.Input);
 
-            _uiMediator.RequestOptionalEffect(
-                effect.SourceCard,
-                effect.SourceEffect!,
-                onAccept: () => HandleOptionalEffectAccepted(effect),
-                onDecline: () => HandleOptionalEffectDeclined(effect)
-            );
+            var request = new Core.Contexts.InteractionRequest(effect, accepted =>
+            {
+                if (accepted) HandleOptionalEffectAccepted(effect);
+                else HandleOptionalEffectDeclined(effect);
+            });
+
+            OnInteractionRequested.Invoke(request);
 
             return true;
         }

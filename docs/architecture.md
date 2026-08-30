@@ -44,7 +44,7 @@ ChaosWarlords.Core/                 # Logic Project Root (no MonoGame package re
     │   ├── Contexts/                        # Data Holders (The "Glue")
     │   │   ├── EffectContext.cs             # Context for stack-based effect execution
     │   │   ├── ExecutedAction.cs            # Record capturing a single game event
-    │   │   ├── InteractionRequest.cs        # Logic->UI interaction request (unwired - see ARCHITECTURE BACKLOG in planning.txt)
+    │   │   ├── InteractionRequest.cs        # Logic->UI interaction request (see Key Systems #4)
     │   │   ├── MatchContext.cs              # Scoped DI container for a single match
     │   │   └── TurnContext.cs               # Transient state for current turn
     │   ├── Data/
@@ -67,7 +67,7 @@ ChaosWarlords.Core/                 # Logic Project Root (no MonoGame package re
     │   │   │   ├── ICardDatabase.cs         # Contract for retrieving card definitions
     │   │   │   └── IDto.cs                  # Marker interface for DTOs
     │   │   ├── Logic/
-    │   │   │   ├── IActionSystem.cs
+    │   │   │   ├── IActionSystem.cs         # incl. OnInteractionRequested (see Key Systems #4)
     │   │   │   ├── ICommandValidator.cs
     │   │   │   └── IGameCommand.cs
     │   │   └── Services/
@@ -144,7 +144,7 @@ ChaosWarlords.Core/                 # Logic Project Root (no MonoGame package re
         │   ├── Subsystems/                  # Logic Sub-modules
         │   │   ├── DevourSubsystem.cs       # Devour mechanics
         │   │   └── SpySubsystem.cs          # Spy mechanics
-        │   ├── ActionSystem.cs              # Handles targeting logic
+        │   ├── ActionSystem.cs              # Handles targeting logic; raises OnInteractionRequested
         │   ├── CardPlaySystem.cs            # Validates and conducts card plays
         │   └── PreTargetHandler.cs          # Internal helper for pre-target auto-execution
         ├── Commands/                        # Command Pattern Implementations
@@ -230,7 +230,8 @@ ChaosWarlords/                     # Client (Game) Project Root - references Cor
     │
     ├── Managers/                            # UI-Adjacent Services (not headless-safe)
     │   ├── MarketStateManager.cs            # Tracks market popup open/closed UI state
-    │   ├── UIEventMediator.cs               # Decouples Game Logic from UI Events
+    │   ├── UIEventMediator.cs               # Decouples Game Logic from UI Events; subscribes
+    │   │                                    # to ActionSystem.OnInteractionRequested
     │   └── UIManager.cs                     # Manages layout and state of UI widgets
     │
     └── Rendering/                           # Presentation Layer (The "View")
@@ -281,11 +282,12 @@ All significant game actions (Move, Attack, Buy) are encapsulated in `IGameComma
 ### 4. Transactional Command Execution
 Complex multi-step actions (like Devour mechanics) utilize the `ActionSystem` with a **Stack-Based Architecture** (`EffectContext` Stack). This allows actions to be paused (e.g., waiting for user input on an optional effect), new actions to be pushed and resolved (nested transactions), and then the original action to resume. Targets are buffered until the entire chain is valid (`Deferred Execution`).
 
-Optional effects (e.g. an accept/decline popup) currently have `ActionSystem.ProcessOptionalEffect`
-call `IUIEventMediator.RequestOptionalEffect` directly - a logic-layer-calls-UI-layer
-coupling that's the next architecture item on the list (planning.txt: wire the already
-Core-side but unused `InteractionRequest` in its place, so the UI layer subscribes to a
-plain event on `ActionSystem` instead of `ActionSystem` holding a UI reference at all).
+Optional effects (e.g. an accept/decline popup) no longer call the UI layer directly from
+`ActionSystem`: it raises `OnInteractionRequested` with an `InteractionRequest` (card,
+effect, and an `Action<bool> OnResponse` callback), and `UIEventMediator` (client project)
+subscribes to that event in its existing `Initialize()`/`Cleanup()` and drives the actual
+popup, calling `OnResponse` when the player answers. `ActionSystem` has no reference to
+`IUIEventMediator` at all - no field, no `SetUIMediator` method.
 
 ### 5. Card Rule Engine
 Card logic is validated by a centralized `CardRuleEngine` using a Chain of Responsibility pattern. `EffectCondition` definitions allow data-driven rules (defined in JSON), separating validation logic from effect execution.

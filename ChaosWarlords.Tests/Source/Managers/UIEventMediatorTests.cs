@@ -4,6 +4,7 @@ using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Core.Contexts;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NSubstitute;
 using ChaosWarlords.Source.Contexts;
@@ -376,6 +377,52 @@ namespace ChaosWarlords.Tests.Source.Managers
             _uiManager.OnPopupCancel += Raise.Event<EventHandler>(this, EventArgs.Empty);
             Assert.IsTrue(declineCalled);
             Assert.IsFalse(_mediator.IsOptionalEffectPopupOpen);
+        }
+
+        [TestMethod]
+        public void OnInteractionRequested_RaisesOptionalEffectEvent_AndRoutesResponseBack()
+        {
+            // Arrange: ActionSystem never calls IUIEventMediator directly anymore - it raises
+            // OnInteractionRequested, and UIEventMediator.HandleInteractionRequest (subscribed
+            // in Initialize(), above) is what's expected to translate that into the same
+            // OnOptionalEffectRequested popup event RequestOptionalEffect always raised.
+            var card = new CardBuilder().WithName("Test").WithCost(1).WithAspect(CardAspect.Warlord).Build();
+            var effect = new CardEffect(EffectType.Devour, 1) { IsOptional = true };
+            var effectContext = new EffectContext(
+                ActionState.TargetingDevourHand,
+                card,
+                requiresInput: true,
+                description: "test optional effect",
+                onResolved: _ => { },
+                sourceEffect: effect);
+
+            bool? response = null;
+            var request = new InteractionRequest(effectContext, accepted => response = accepted);
+
+            Card? capturedCard = null;
+            CardEffect? capturedEffect = null;
+            Action? capturedAccept = null;
+            Action? capturedDecline = null;
+            _mediator.OnOptionalEffectRequested += (c, e, accept, decline) =>
+            {
+                capturedCard = c;
+                capturedEffect = e;
+                capturedAccept = accept;
+                capturedDecline = decline;
+            };
+
+            // Act
+            _actionSystem.OnInteractionRequested += Raise.Event<Action<InteractionRequest>>(request);
+
+            // Assert: the popup event fired with the request's card/effect...
+            Assert.AreEqual(card, capturedCard);
+            Assert.AreEqual(effect, capturedEffect);
+            Assert.IsNotNull(capturedAccept);
+            Assert.IsNotNull(capturedDecline);
+
+            // ...and invoking the popup's accept action calls back into request.OnResponse.
+            capturedAccept!.Invoke();
+            Assert.IsTrue(response);
         }
 
         // Helper
