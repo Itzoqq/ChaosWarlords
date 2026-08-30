@@ -63,7 +63,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         {
             // Arrange: Player controls a site
             var site = new StartingSite("TestSite", ResourceType.Power, 1, ResourceType.VictoryPoints, 1);
-            var node = new MapNode(1, new Microsoft.Xna.Framework.Vector2(0, 0)) { Occupant = PlayerColor.Red };
+            var node = new MapNode(1, ChaosWarlords.Source.Core.Data.LogicVector2.Zero) { Occupant = PlayerColor.Red };
             site.NodesInternal.Add(node);
             _context.MapManager.Sites.Returns(new List<Site> { site });
 

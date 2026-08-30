@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AnalysisMode>Recommended</AnalysisMode>
+    <RootNamespace>ChaosWarlords</RootNamespace>
+    <!--
+      No MonoGame package references here, deliberately. This project holds the
+      headless-compatible game logic (MatchContext and everything it composes) so it can
+      eventually run on a server with no graphics stack at all. See docs/architecture.md.
+    -->
+  </PropertyGroup>
+
+</Project>

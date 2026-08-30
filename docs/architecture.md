@@ -13,21 +13,38 @@ This document outlines the architecture of the `ChaosWarlords` codebase, a digit
 
 ## Directory Structure & File Listing
 
-The project uses a semantic folder structure. Below is a detailed listing of all files and their responsibilities.
+**Two projects, as of 2026-08-31.** `ChaosWarlords.Core.csproj` holds the headless-compatible
+logic (`MatchContext` and everything it composes) and has **zero MonoGame package
+references** - it can build and run without a graphics stack, which is what "headless
+server support" actually requires (previously this was only a convention enforced by
+coding-guidelines.md's "no `Graphics` types" rule, not a compiled boundary). `ChaosWarlords.csproj`
+(the game) references `ChaosWarlords.Core` and adds the MonoGame-specific
+rendering/input/state-machine layer. `ChaosWarlords.Tests.csproj` is unchanged - it still
+references `ChaosWarlords.csproj` alone, which transitively carries `Core`. Namespaces were
+left as `ChaosWarlords.Source.*` across both projects (unchanged by the split) - the
+project boundary, not the namespace, is what's now enforced.
+
+A few logic-adjacent types that used MonoGame's `Vector2`/`Rectangle` directly (`MapNode`,
+`Site`, `MapTopology`, `MapManager`) now use the existing `LogicVector2` (deterministic,
+fixed-point) and a new `LogicRectangle` instead; conversion to/from MonoGame's types lives
+in `ChaosWarlords/Source/Rendering/LogicVectorExtensions.cs` in the client project. A few
+`internal` members (e.g. `Site.Spies`, `Player.DrawCards`) that used to be visible to
+same-assembly callers only are now exposed to the client project too via
+`ChaosWarlords.Core/AssemblyInfo.cs`'s `[InternalsVisibleTo]`, rather than being loosened
+to `public` just to cross the new assembly boundary.
+
+Below is a detailed listing of all files and their responsibilities, organized by project.
 
 ```text
-ChaosWarlords/                   # Project Root
-├── ChaosWarlords.csproj         # Project File
-├── app.manifest                 # Windows Application Manifest
-├── Program.cs                   # Application Entry Point
-├── Game1.cs                     # MonoGame Main Loop
+ChaosWarlords.Core/                 # Logic Project Root (no MonoGame package reference)
+├── ChaosWarlords.Core.csproj       # Project File
+├── AssemblyInfo.cs                 # InternalsVisibleTo(ChaosWarlords, ChaosWarlords.Tests)
 └── Source/
     ├── Core/
-    │   ├── Composition/                     # Dependency Injection composition roots
-    │   │   └── GameDependencies.cs          # Concrete dependency container
     │   ├── Contexts/                        # Data Holders (The "Glue")
     │   │   ├── EffectContext.cs             # Context for stack-based effect execution
     │   │   ├── ExecutedAction.cs            # Record capturing a single game event
+    │   │   ├── InteractionRequest.cs        # Logic->UI interaction request (unwired - see ARCHITECTURE BACKLOG in planning.txt)
     │   │   ├── MatchContext.cs              # Scoped DI container for a single match
     │   │   └── TurnContext.cs               # Transient state for current turn
     │   ├── Data/
@@ -43,53 +60,31 @@ ChaosWarlords/                   # Project Root
     │   │   │   └── VictoryDto.cs            # Serializable victory state data
     │   │   ├── Enums/                       # New home for Enums
     │   │   │   └── CommandType.cs           # Enum for command identification
-    │   │   └── LogicVector2.cs              # Deterministic integer vector struct
-    │   ├── Events/                          # Event System
-    │   │   ├── GameEvent.cs                 # Base record for all game events
-    │   │   ├── InputEventArgs.cs            # Event args for input interactions
-    │   │   └── StateChangeEvent.cs          # Event for state mutations
+    │   │   ├── LogicVector2.cs              # Deterministic integer vector struct
+    │   │   └── LogicRectangle.cs            # Deterministic integer bounding box (site Bounds)
     │   ├── Interfaces/                      # Contracts (API Definitions)
-    │   │   ├── Composition/
-    │   │   │   └── IGameDependencies.cs     # Service container interface
     │   │   ├── Data/
     │   │   │   ├── ICardDatabase.cs         # Contract for retrieving card definitions
     │   │   │   └── IDto.cs                  # Marker interface for DTOs
-    │   │   ├── Input/
-    │   │   │   ├── IGameplayInputCoordinator.cs
-    │   │   │   ├── IInputManager.cs
-    │   │   │   ├── IInputMode.cs
-    │   │   │   ├── IInputProvider.cs
-    │   │   │   └── IInteractionMapper.cs
     │   │   ├── Logic/
     │   │   │   ├── IActionSystem.cs
     │   │   │   ├── ICommandValidator.cs
     │   │   │   └── IGameCommand.cs
-    │   │   ├── Rendering/
-    │   │   │   ├── IButtonManager.cs
-    │   │   │   ├── IGameplayView.cs
-    │   │   │   ├── IMainMenuView.cs
-    │   │   │   ├── IUIManager.cs
-    │   │   │   └── IVictoryView.cs
-    │   │   ├── Services/
-    │   │   │   ├── ICommandDispatcher.cs
-    │   │   │   ├── IEventManager.cs
-    │   │   │   ├── IGameLogger.cs
-    │   │   │   ├── IGameRandom.cs
-    │   │   │   ├── IMapManager.cs
-    │   │   │   ├── IMarketManager.cs
-    │   │   │   ├── IMarketStateManager.cs
-    │   │   │   ├── IMatchManager.cs
-    │   │   │   ├── INetworkProvider.cs      # Abstraction for network transport
-    │   │   │   ├── IPlayerStateManager.cs
-    │   │   │   ├── IReplayManager.cs
-    │   │   │   ├── ITurnManager.cs
-    │   │   │   ├── IUIEventMediator.cs
-    │   │   │   └── IVictoryManager.cs
-    │   │   └── State/
-    │   │       ├── IDrawableState.cs
-    │   │       ├── IGameplayState.cs
-    │   │       ├── IState.cs
-    │   │       └── IStateManager.cs
+    │   │   └── Services/
+    │   │       ├── ICommandDispatcher.cs
+    │   │       ├── IEventManager.cs
+    │   │       ├── IGameLogger.cs
+    │   │       ├── IGameRandom.cs
+    │   │       ├── IMapManager.cs
+    │   │       ├── IMarketManager.cs
+    │   │       ├── IMarketStateManager.cs
+    │   │       ├── IMatchManager.cs
+    │   │       ├── INetworkProvider.cs      # Abstraction for network transport
+    │   │       ├── IPlayerStateManager.cs
+    │   │       ├── IReplayManager.cs        # GetNextCommand(MatchContext) - no IGameplayState dependency
+    │   │       ├── ITurnManager.cs
+    │   │       ├── IUIEventMediator.cs
+    │   │       └── IVictoryManager.cs
     │   └── Utilities/                       # Infrastructure & Constants
     │       ├── BufferedAsyncLogger.cs       # Async-optimized logging
     │       ├── CardDatabase.cs              # Implementation of card library
@@ -100,8 +95,6 @@ ChaosWarlords/                   # Project Root
     │       ├── MapGeometry.cs               # Deterministic geometry helper (LogicVector2 based)
     │       ├── MapLayoutEngine.cs           # Procedural map generation logic
     │       ├── ObjectPool.cs                # Generic object pooling implementation
-    │       ├── PooledRectangle.cs           # Disposable wrapper for Rectangles
-    │       ├── PooledVector2.cs             # Disposable wrapper for Vector2s
     │       ├── SeededGameRandom.cs          # Deterministic RNG implementation
     │       ├── TextCache.cs                 # Caches string measurements
     │       └── ValidationResult.cs          # Standardized validation response
@@ -116,10 +109,10 @@ ChaosWarlords/                   # Project Root
     │   │   └── EffectCondition.cs           # Condition requirements for effects
     │   └── Map/
     │       ├── CitySite.cs                  # Represents a Capturable City
-    │       ├── MapNode.cs                   # A graph node representing a location
+    │       ├── MapNode.cs                   # A graph node - LogicVector2 position, not Vector2
     │       ├── NonCitySite.cs               # Represents a neutral/resource site
     │       ├── Route.cs                     # A path connection between two MapNodes
-    │       ├── Site.cs                      # Abstract base class for all sites
+    │       ├── Site.cs                      # Abstract base class - LogicRectangle Bounds
     │       └── StartingSite.cs              # Special site where players spawn
     │
     ├── Factories/                           # Object Creation Logic
@@ -128,6 +121,90 @@ ChaosWarlords/                   # Project Root
     │   ├── MatchFactory.cs                  # Assembles all dependencies for a new match
     │   └── WrapperFactory.cs
     │
+    ├── Managers/                            # Business Logic Services
+    │   ├── CommandDispatcher.cs             # Central Command Processor
+    │   ├── EventManager.cs                  # Pub/Sub event system backend
+    │   ├── GameEventLogger.cs               # Logs events for debugging/replay
+    │   ├── MapManager.cs                    # Facade for Board Logic (LogicVector2-based queries)
+    │   ├── MarketManager.cs                 # Manages the Card Market
+    │   ├── MatchManager.cs                  # Manages Match & Victory
+    │   ├── PlayerStateManager.cs            # Centralized player mutations
+    │   ├── PoolManager.cs                   # Manages object pools and contexts
+    │   ├── ReplayManager.cs                 # Replay recording and playback
+    │   └── TurnManager.cs                   # Manages Turn Order and Phase Transitions
+    │
+    ├── Map/                                 # Map-Specific Subsystems
+    │   ├── CombatResolver.cs                # Determines outcomes of battles
+    │   ├── MapRewardSystem.cs               # Calculates resource generation
+    │   ├── MapTopology.cs                   # Pathfinding/hit-testing, LogicVector2-based
+    │   └── SpyOperations.cs                 # Handles spy placement and removal
+    │
+    └── Mechanics/                           # The "Rules" of the Game (100% MonoGame-free)
+        ├── Actions/
+        │   ├── Subsystems/                  # Logic Sub-modules
+        │   │   ├── DevourSubsystem.cs       # Devour mechanics
+        │   │   └── SpySubsystem.cs          # Spy mechanics
+        │   ├── ActionSystem.cs              # Handles targeting logic
+        │   ├── CardPlaySystem.cs            # Validates and conducts card plays
+        │   └── PreTargetHandler.cs          # Internal helper for pre-target auto-execution
+        ├── Commands/                        # Command Pattern Implementations
+        │   ├── ActionCompletedCommand.cs    # Signals action completion
+        │   ├── AssassinateCommand.cs        # Execute assassination
+        │   ├── BuyCardCommand.cs            # Purchase card
+        │   ├── CancelActionCommand.cs       # Cancel targeting
+        │   ├── DeployTroopCommand.cs        # Place unit
+        │   ├── DevourCardCommand.cs         # Trash card
+        │   ├── EndTurnCommand.cs            # End turn
+        │   ├── MoveTroopCommand.cs          # Move unit between nodes
+        │   ├── PlaceSpyCommand.cs           # Place spy on site
+        │   ├── PlayCardCommand.cs           # Play card
+        │   ├── PromoteCommand.cs            # Upgrade unit/site
+        │   ├── ResolveSpyCommand.cs         # Execute spy action
+        │   ├── ReturnTroopCommand.cs        # Return unit to hand
+        │   ├── StartAssassinateCommand.cs   # Initiate assassination
+        │   ├── StartReturnSpyCommand.cs     # Initiate spy return
+        │   ├── SupplantCommand.cs           # Replace enemy unit
+        │   ├── SwitchToNormalModeCommand.cs # Reset input mode
+        │   └── ToggleMarketCommand.cs       # Open/Close market
+        └── Rules/                           # Pure Logic Engines
+            ├── CardEffectProcessor.cs       # Applies card effects
+            ├── CardRuleEngine.cs            # Validates card conditions
+            ├── DevourStrategyFactory.cs     # Strategy pattern for devour operations
+            ├── MapRuleEngine.cs             # Validates map rules
+            ├── SiteControlSystem.cs         # Manages site ownership
+            └── TargetingStateEngine.cs      # Determines targeting state sequences
+
+ChaosWarlords/                     # Client (Game) Project Root - references Core, adds MonoGame
+├── ChaosWarlords.csproj           # Project File (MonoGame.Framework.DesktopGL, Content.Builder.Task)
+├── app.manifest                   # Windows Application Manifest
+├── Program.cs                     # Application Entry Point
+├── Game1.cs                       # MonoGame Main Loop
+└── Source/
+    ├── Core/
+    │   ├── Composition/                     # Dependency Injection composition roots
+    │   │   └── GameDependencies.cs          # Concrete dependency container (holds MonoGame Game)
+    │   ├── Events/
+    │   │   └── InputEventArgs.cs            # Raw input event args (Vector2 position)
+    │   └── Interfaces/
+    │       ├── Composition/
+    │       │   └── IGameDependencies.cs     # Service container interface
+    │       ├── Input/
+    │       │   ├── IGameplayInputCoordinator.cs
+    │       │   ├── IInputManager.cs
+    │       │   ├── IInputMode.cs
+    │       │   ├── IInputProvider.cs
+    │       │   └── IInteractionMapper.cs
+    │       ├── Rendering/
+    │       │   ├── IButtonManager.cs
+    │       │   ├── IGameplayView.cs
+    │       │   ├── IMainMenuView.cs
+    │       │   ├── IUIManager.cs
+    │       │   └── IVictoryView.cs
+    │       └── State/
+    │           ├── IDrawableState.cs
+    │           ├── IGameplayState.cs
+    │           ├── IState.cs
+    │           └── IStateManager.cs
     ├── GameStates/                          # Application State Machine
     │   ├── GameplayState.cs                 # The Core Game Loop (Logic Only)
     │   ├── MainMenuState.cs                 # Entry Point / Composition Root
@@ -151,64 +228,13 @@ ChaosWarlords/                   # Project Root
     │       ├── InputManager.cs              # Raw MonoGame Input Wrapper
     │       └── MonoGameInputProvider.cs     # Concrete provider for MonoGame input
     │
-    ├── Managers/                            # Business Logic Services
-    │   ├── CommandDispatcher.cs             # Central Command Processor
-    │   ├── EventManager.cs                  # Pub/Sub event system backend
-    │   ├── GameEventLogger.cs               # Logs events for debugging/replay
-    │   ├── MapManager.cs                    # Facade for Board Logic
-    │   ├── MarketManager.cs                 # Manages the Card Market
-    │   ├── MarketStateManager.cs            # Manages logic for market interactions
-    │   ├── MatchManager.cs                  # Manages Match & Victory
-    │   ├── PlayerStateManager.cs            # Centralized player mutations
-    │   ├── PoolManager.cs                   # Manages object pools and contexts
-    │   ├── ReplayManager.cs                 # Replay recording and playback
-    │   ├── TurnManager.cs                   # Manages Turn Order and Phase Transitions
+    ├── Managers/                            # UI-Adjacent Services (not headless-safe)
+    │   ├── MarketStateManager.cs            # Tracks market popup open/closed UI state
     │   ├── UIEventMediator.cs               # Decouples Game Logic from UI Events
-    │   ├── UIManager.cs                     # Manages layout and state of UI widgets
-    │   └── VictoryManager.cs                # Manages victory conditions
-    │
-    ├── Map/                                 # Map-Specific Subsystems
-    │   ├── CombatResolver.cs                # Determines outcomes of battles
-    │   ├── MapRewardSystem.cs               # Calculates resource generation
-    │   ├── MapTopology.cs                   # Pathfinding logic
-    │   └── SpyOperations.cs                 # Handles spy placement and removal
-    │
-    ├── Mechanics/                           # The "Rules" of the Game
-    │   ├── Actions/
-    │   │   ├── Subsystems/                  # Logic Sub-modules
-    │   │   │   ├── DevourSubsystem.cs       # Devour mechanics
-    │   │   │   └── SpySubsystem.cs          # Spy mechanics
-    │   │   ├── ActionSystem.cs              # Handles targeting logic
-    │   │   ├── CardPlaySystem.cs            # Validates and conducts card plays
-    │   │   └── PreTargetHandler.cs          # Internal helper for pre-target auto-execution
-    │   ├── Commands/                        # Command Pattern Implementations
-    │   │   ├── ActionCompletedCommand.cs    # Signals action completion
-    │   │   ├── AssassinateCommand.cs        # Execute assassination
-    │   │   ├── BuyCardCommand.cs            # Purchase card
-    │   │   ├── CancelActionCommand.cs       # Cancel targeting
-    │   │   ├── DeployTroopCommand.cs        # Place unit
-    │   │   ├── DevourCardCommand.cs         # Trash card
-    │   │   ├── EndTurnCommand.cs            # End turn
-    │   │   ├── MoveTroopCommand.cs          # Move unit between nodes
-    │   │   ├── PlaceSpyCommand.cs           # Place spy on site
-    │   │   ├── PlayCardCommand.cs           # Play card
-    │   │   ├── PromoteCommand.cs            # Upgrade unit/site
-    │   │   ├── ResolveSpyCommand.cs         # Execute spy action
-    │   │   ├── ReturnTroopCommand.cs        # Return unit to hand
-    │   │   ├── StartAssassinateCommand.cs   # Initiate assassination
-    │   │   ├── StartReturnSpyCommand.cs     # Initiate spy return
-    │   │   ├── SupplantCommand.cs           # Replace enemy unit
-    │   │   ├── SwitchToNormalModeCommand.cs # Reset input mode
-    │   │   └── ToggleMarketCommand.cs       # Open/Close market
-    │   └── Rules/                           # Pure Logic Engines
-    │       ├── CardEffectProcessor.cs       # Applies card effects
-    │       ├── CardRuleEngine.cs            # Validates card conditions
-    │       ├── DevourStrategyFactory.cs     # Strategy pattern for devour operations
-    │       ├── MapRuleEngine.cs             # Validates map rules
-    │       ├── SiteControlSystem.cs         # Manages site ownership
-    │       └── TargetingStateEngine.cs      # Determines targeting state sequences
+    │   └── UIManager.cs                     # Manages layout and state of UI widgets
     │
     └── Rendering/                           # Presentation Layer (The "View")
+        ├── LogicVectorExtensions.cs         # LogicVector2/LogicRectangle <-> Vector2/Rectangle
         ├── UI/                              # UI Components
         │   ├── ButtonManager.cs             # Handles button registration
         │   ├── ButtonRenderer.cs            # Renders buttons
@@ -226,8 +252,13 @@ ChaosWarlords/                   # Project Root
         │   └── VictoryView.cs               # Victory screen renderer
         └── World/                           # In-Game Object Renderers
             ├── CardRenderer.cs              # Draws individual cards to screen
-            └── MapRenderer.cs               # Draws the hex map and units
+            └── MapRenderer.cs               # Draws the hex map and units (Pooled{Vector2,Rectangle} live in Core/Utilities of this project)
 ```
+
+Note: `PooledVector2.cs`/`PooledRectangle.cs` (zero-allocation rendering wrappers) live at
+`ChaosWarlords/Source/Core/Utilities/` in the client project, not in `ChaosWarlords.Core` -
+they're MonoGame-typed rendering helpers despite the shared `Core/Utilities` folder name
+they inherited from before the split.
 
 ---
 
@@ -249,6 +280,12 @@ All significant game actions (Move, Attack, Buy) are encapsulated in `IGameComma
 
 ### 4. Transactional Command Execution
 Complex multi-step actions (like Devour mechanics) utilize the `ActionSystem` with a **Stack-Based Architecture** (`EffectContext` Stack). This allows actions to be paused (e.g., waiting for user input on an optional effect), new actions to be pushed and resolved (nested transactions), and then the original action to resume. Targets are buffered until the entire chain is valid (`Deferred Execution`).
+
+Optional effects (e.g. an accept/decline popup) currently have `ActionSystem.ProcessOptionalEffect`
+call `IUIEventMediator.RequestOptionalEffect` directly - a logic-layer-calls-UI-layer
+coupling that's the next architecture item on the list (planning.txt: wire the already
+Core-side but unused `InteractionRequest` in its place, so the UI layer subscribes to a
+plain event on `ActionSystem` instead of `ActionSystem` holding a UI reference at all).
 
 ### 5. Card Rule Engine
 Card logic is validated by a centralized `CardRuleEngine` using a Chain of Responsibility pattern. `EffectCondition` definitions allow data-driven rules (defined in JSON), separating validation logic from effect execution.
@@ -279,6 +316,7 @@ The architecture now includes concrete infrastructure for network synchronizatio
 - **Seeded RNG**: `IGameRandom` ensures identical random sequences across all clients
 - **Context Isolation**: `PoolManager` maintains separate object pools for logic (server) and rendering (client) to prevent state leaks
 - **Separation of Concerns**: Logic never touches UI, allowing headless execution
+- **Compiled Boundary**: `ChaosWarlords.Core` has zero MonoGame package references, so "headless execution" is now enforced by the build, not just by convention
 
 
 ### 7. MatchContext vs IGameplayState: Separation of Concerns
@@ -291,9 +329,9 @@ The architecture now includes concrete infrastructure for network synchronizatio
 - **Used By**: Game logic, commands, rules engines
 - **Properties**:
   - `TurnManager`, `MapManager`, `MarketManager`, `MatchManager`
-  - `ActionSystem`, `CardRuleEngine`, `PlayerStateManager`
+  - `ActionSystem`, `CardRuleEngine`, `PlayerStateManager`, `Logger`
   - `ActivePlayer`, `VoidPile`, `Random`
-- **Key Enhancement (2026-01)**: Added `MatchManager` property for direct access in commands
+- **Lives in**: `ChaosWarlords.Core` (headless-buildable)
 
 #### IGameplayState (UI State Machine & Input Coordination)
 - **Purpose**: Manages UI state, input modes, and user interaction flow
@@ -304,14 +342,15 @@ The architecture now includes concrete infrastructure for network synchronizatio
   - `UIManager`, `MarketStateManager`, `InputCoordinator`
   - `SwitchToNormalMode()`, `SwitchToTargetingMode()`, `RecordAndExecuteCommand()`
 - **Accesses**: `MatchContext` via `MatchContext` property for game state queries
+- **Lives in**: `ChaosWarlords` (the client project - MonoGame-dependent)
 
 #### Why Both Are Needed
 - **MatchContext**: Headless-compatible, contains no UI dependencies, can run on server
 - **IGameplayState**: Client-only, manages UI state machine and user interaction
-- **Clear Boundary**: Game logic never touches UI state; UI layer accesses game state via MatchContext
+- **Clear Boundary**: Game logic never touches UI state; UI layer accesses game state via MatchContext - now enforced by a compiled assembly boundary, not just convention
 
 This separation enables:
-- ✅ Headless server support (MatchContext only)
+- ✅ Headless server support (MatchContext only) - `ChaosWarlords.Core` builds and runs with no MonoGame package at all
 - ✅ Clean testing (mock MatchContext for logic tests, mock IGameplayState for UI tests)
 - ✅ Single Responsibility Principle (each handles one concern)
 
@@ -373,4 +412,3 @@ To prevent "state leaks" and ensure system stability:
 - **Zero-Allocation Rendering**: All "Hot Path" rendering loops (UI, Map, Cards) utilize `ObjectPool<T>` via `PooledRectangle` and `PooledVector2` wrappers.
 - **Allocation Budget**: `UIRenderer`, `MapRenderer`, and `CardRenderer` have a budget of **0 allocations per frame**.
 - **Context Awareness**: The `PoolManager` ensures that pooled objects are not shared between simulation ticks (e.g. server logic) and rendering frames (client view), preventing race conditions in future threaded implementation.
-

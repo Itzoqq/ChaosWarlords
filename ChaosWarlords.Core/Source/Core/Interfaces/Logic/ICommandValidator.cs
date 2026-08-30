@@ -1,4 +1,3 @@
-using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Utilities;
 
 namespace ChaosWarlords.Source.Core.Interfaces.Logic

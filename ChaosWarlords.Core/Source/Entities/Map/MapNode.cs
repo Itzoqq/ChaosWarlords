@@ -1,4 +1,3 @@
-using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Entities.Map
@@ -18,11 +17,14 @@ namespace ChaosWarlords.Source.Entities.Map
         public Core.Data.LogicVector2 LogicPosition { get; private set; }
 
         /// <summary>
-        /// The interpolated/rendered position of the node (cached for rendering).
-        /// Can be modified by MapTopology for centering (Screen Space).
-        /// Decoupled from LogicPosition to ensure Logic remains deterministic 0,0 based or World based.
+        /// The interpolated/rendered position of the node (cached for rendering), in the
+        /// same scaled fixed-point space as <see cref="LogicPosition"/> - see
+        /// <see cref="Core.Data.LogicVector2.ScaleFactor"/>. Can be shifted by
+        /// MapTopology.ApplyOffset for screen centering; decoupled from LogicPosition so
+        /// that shift never affects deterministic logic. Converted to pixel-space Vector2
+        /// only at the point of rendering (Source/Rendering/LogicVectorExtensions.cs).
         /// </summary>
-        public Vector2 Position { get; internal set; }
+        public Core.Data.LogicVector2 Position { get; internal set; }
 
         /// <summary>
         /// The player currently occupying this node with troops.
@@ -42,14 +44,7 @@ namespace ChaosWarlords.Source.Entities.Map
         {
             Id = id;
             LogicPosition = logicPosition;
-            Position = logicPosition.ToVector2();
-        }
-
-        public MapNode(int id, Vector2 position)
-        {
-            Id = id;
-            LogicPosition = Core.Data.LogicVector2.FromVector2(position);
-            Position = position;
+            Position = logicPosition;
         }
 
         public void AddNeighbor(MapNode node)

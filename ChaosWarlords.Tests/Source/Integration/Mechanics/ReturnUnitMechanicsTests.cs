@@ -40,8 +40,8 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             _turnManager.GetPlayerByColor(PlayerColor.Red).Returns(_player1);
             _turnManager.GetPlayerByColor(PlayerColor.Blue).Returns(_player2);
 
-            var node1 = new MapNode(1, new Microsoft.Xna.Framework.Vector2(0, 0));
-            var node2 = new MapNode(2, new Microsoft.Xna.Framework.Vector2(50, 0));
+            var node1 = new MapNode(1, ChaosWarlords.Source.Core.Data.LogicVector2.Zero);
+            var node2 = new MapNode(2, new ChaosWarlords.Source.Core.Data.LogicVector2(50 * ChaosWarlords.Source.Core.Data.LogicVector2.ScaleFactor, 0));
             node1.AddNeighbor(node2);
             node2.AddNeighbor(node1);
 

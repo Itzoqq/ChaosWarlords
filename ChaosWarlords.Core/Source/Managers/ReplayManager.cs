@@ -57,7 +57,7 @@ namespace ChaosWarlords.Source.Managers
 
         private Queue<GameCommandDto> _playbackQueue = new Queue<GameCommandDto>();
 
-        public Core.Interfaces.Logic.IGameCommand? GetNextCommand(Core.Interfaces.State.IGameplayState state)
+        public Core.Interfaces.Logic.IGameCommand? GetNextCommand(Contexts.MatchContext context)
         {
             if (!_isReplaying) return null;
 
@@ -68,7 +68,7 @@ namespace ChaosWarlords.Source.Managers
             }
 
             var dto = _playbackQueue.Dequeue();
-            var cmd = DtoMapper.HydrateCommand(dto, state);
+            var cmd = DtoMapper.HydrateCommand(dto, context);
             if (cmd == null)
             {
                 _logger.Log($"[Replay Error] Failed to Hydrate Command (Type: {dto.GetType().Name}, Seq: {dto.Seq}). It will be SKIPPED.", LogChannel.Error);

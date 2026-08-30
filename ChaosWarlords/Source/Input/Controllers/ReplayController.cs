@@ -133,7 +133,7 @@ namespace ChaosWarlords.Source.Input.Controllers
             {
                 _replayTimer = 0f;
 
-                var cmd = _replayManager.GetNextCommand(_gameState);
+                var cmd = _replayManager.GetNextCommand(_gameState.MatchContext);
                 if (cmd != null)
                 {
                     // Execute command directly

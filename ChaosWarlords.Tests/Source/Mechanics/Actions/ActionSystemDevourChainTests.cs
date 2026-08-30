@@ -4,7 +4,6 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
-using Microsoft.Xna.Framework;
 using NSubstitute;
 
 namespace ChaosWarlords.Tests.Mechanics.Actions
@@ -184,7 +183,7 @@ namespace ChaosWarlords.Tests.Mechanics.Actions
             player.AddToHand(cardToDevour);
             _turnManager.ActivePlayer.Returns(player);
 
-            var node = new MapNode(1, new Vector2(0, 0));
+            var node = new MapNode(1, ChaosWarlords.Source.Core.Data.LogicVector2.Zero);
 
             // Act
             _actionSystem.PerformSupplant(node, cardId: "wight", devourCardId: "devour_me");
@@ -204,7 +203,7 @@ namespace ChaosWarlords.Tests.Mechanics.Actions
             player.AddToHand(cardToDevour);
             _turnManager.ActivePlayer.Returns(player);
 
-            var node = new MapNode(1, new Vector2(0, 0));
+            var node = new MapNode(1, ChaosWarlords.Source.Core.Data.LogicVector2.Zero);
 
             // Act
             _actionSystem.PerformAssassinate(node, cardId: "some_card", devourCardId: "devour_me");
@@ -229,7 +228,7 @@ namespace ChaosWarlords.Tests.Mechanics.Actions
             _actionSystem.DeferDevour(cardToDevour);
             Assert.AreEqual(cardToDevour, _actionSystem.PendingDevourCard, "Sanity check: devour should be buffered before Perform* runs.");
 
-            var node = new MapNode(1, new Vector2(0, 0));
+            var node = new MapNode(1, ChaosWarlords.Source.Core.Data.LogicVector2.Zero);
 
             // Act
             _actionSystem.PerformSupplant(node, cardId: null, devourCardId: null);
@@ -246,7 +245,7 @@ namespace ChaosWarlords.Tests.Mechanics.Actions
             var player = new Player(PlayerColor.Red);
             _turnManager.ActivePlayer.Returns(player);
 
-            var node = new MapNode(1, new Vector2(0, 0));
+            var node = new MapNode(1, ChaosWarlords.Source.Core.Data.LogicVector2.Zero);
 
             // Act
             _actionSystem.PerformSupplant(node, cardId: "wight", devourCardId: null);

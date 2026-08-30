@@ -5,6 +5,7 @@ using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Contexts;
 using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Rendering;
 using ChaosWarlords.Source.Input.Modes;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Entities.Map;
@@ -119,7 +120,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // Setup Map Mock to return a node at click location
             var targetNode = TestData.MapNodes.Node1();
             var clickPos = new Vector2(200, 200);
-            _mapSub.GetNodeAt(clickPos).Returns(targetNode);
+            _mapSub.GetNodeAt(clickPos.ToLogicVector2()).Returns(targetNode);
             _mapSub.CanDeployAt(targetNode, _activePlayer.Color).Returns(true);
 
             var evt = new InputEventArgs(InputEventType.LeftClick, clickPos);
@@ -155,7 +156,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             var node = TestData.MapNodes.Node1();
             var clickPos = new Vector2(110, 110);
-            _mapSub.GetNodeAt(clickPos).Returns(node);
+            _mapSub.GetNodeAt(clickPos.ToLogicVector2()).Returns(node);
 
             var evt = new InputEventArgs(InputEventType.LeftClick, clickPos);
 
@@ -181,7 +182,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // 1. Arrange
             _stateFake.HoveredHandCard = null;
             var clickPos = new Vector2(500, 500);
-            _mapSub.GetNodeAt(clickPos).Returns((MapNode?)null);
+            _mapSub.GetNodeAt(clickPos.ToLogicVector2()).Returns((MapNode?)null);
 
             var evt = new InputEventArgs(InputEventType.LeftClick, clickPos);
 

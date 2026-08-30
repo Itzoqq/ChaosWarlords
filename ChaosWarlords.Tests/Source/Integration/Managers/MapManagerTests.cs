@@ -1,3 +1,4 @@
+using ChaosWarlords.Source.Core.Data;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
@@ -386,9 +387,9 @@ namespace ChaosWarlords.Tests.Integration.Managers
         [TestMethod]
         public void GetNodeAt_ReturnsCorrectNode()
         {
-            _node1.Position = new Vector2(100, 100);
-            var insidePoint = new Vector2(105, 105);
-            var outsidePoint = new Vector2(200, 200);
+            _node1.Position = new LogicVector2(100 * LogicVector2.ScaleFactor, 100 * LogicVector2.ScaleFactor);
+            var insidePoint = new LogicVector2(105 * LogicVector2.ScaleFactor, 105 * LogicVector2.ScaleFactor);
+            var outsidePoint = new LogicVector2(200 * LogicVector2.ScaleFactor, 200 * LogicVector2.ScaleFactor);
 
             Assert.AreSame(_node1, _mapManager.GetNodeAt(insidePoint));
             Assert.IsNull(_mapManager.GetNodeAt(outsidePoint));

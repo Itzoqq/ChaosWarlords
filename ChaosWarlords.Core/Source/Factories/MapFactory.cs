@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Map;
 using System.Diagnostics.CodeAnalysis;
@@ -82,7 +81,7 @@ namespace ChaosWarlords.Source.Utilities
             foreach (var n in nodeDataList)
             {
                 // No texture passed here anymore
-                var newNode = new MapNode(n.Id, new Vector2(n.X, n.Y));
+                var newNode = new MapNode(n.Id, new Core.Data.LogicVector2(n.X * Core.Data.LogicVector2.ScaleFactor, n.Y * Core.Data.LogicVector2.ScaleFactor));
 
                 if (!string.IsNullOrEmpty(n.Occupant) &&
                     Enum.TryParse(n.Occupant, out PlayerColor color))
@@ -167,7 +166,7 @@ namespace ChaosWarlords.Source.Utilities
                 Name = "Crystal Cave",
                 IsCity = false,
                 IsStartingSite = true,
-                Position = Core.Data.LogicVector2.FromVector2(new Vector2(250, 100)),
+                Position = new Core.Data.LogicVector2(250 * Core.Data.LogicVector2.ScaleFactor, 100 * Core.Data.LogicVector2.ScaleFactor),
                 NodeCount = 2,
                 ControlResource = ResourceType.Power,
                 ControlAmount = 0,
@@ -181,7 +180,7 @@ namespace ChaosWarlords.Source.Utilities
             {
                 Name = "Void Portal",
                 IsCity = false,
-                Position = Core.Data.LogicVector2.FromVector2(new Vector2(250, 400)),
+                Position = new Core.Data.LogicVector2(250 * Core.Data.LogicVector2.ScaleFactor, 400 * Core.Data.LogicVector2.ScaleFactor),
                 NodeCount = 3,
                 ControlResource = ResourceType.Power,
                 ControlAmount = 0,
@@ -196,7 +195,7 @@ namespace ChaosWarlords.Source.Utilities
                 Name = "Shadow Market",
                 IsCity = false,
                 IsStartingSite = true,
-                Position = Core.Data.LogicVector2.FromVector2(new Vector2(250, 700)),
+                Position = new Core.Data.LogicVector2(250 * Core.Data.LogicVector2.ScaleFactor, 700 * Core.Data.LogicVector2.ScaleFactor),
                 NodeCount = 2,
                 ControlResource = ResourceType.Power,
                 ControlAmount = 0,
@@ -210,7 +209,7 @@ namespace ChaosWarlords.Source.Utilities
             {
                 Name = "City of Gold",
                 IsCity = true,
-                Position = Core.Data.LogicVector2.FromVector2(new Vector2(600, 400)),
+                Position = new Core.Data.LogicVector2(600 * Core.Data.LogicVector2.ScaleFactor, 400 * Core.Data.LogicVector2.ScaleFactor),
                 NodeCount = 4,
                 ControlResource = ResourceType.Influence,
                 ControlAmount = 1,
@@ -224,7 +223,7 @@ namespace ChaosWarlords.Source.Utilities
             {
                 Name = "Obsidian Fortress",
                 IsCity = true,
-                Position = Core.Data.LogicVector2.FromVector2(new Vector2(1000, 400)),
+                Position = new Core.Data.LogicVector2(1000 * Core.Data.LogicVector2.ScaleFactor, 400 * Core.Data.LogicVector2.ScaleFactor),
                 NodeCount = 6,
                 ControlResource = ResourceType.Influence,
                 ControlAmount = 1,

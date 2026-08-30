@@ -1,31 +1,13 @@
 using ChaosWarlords.Source.Core.Data;
-using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Tests.Source.Core.Data
 {
     [TestClass]
     public class LogicVector2Tests
     {
-        [TestMethod]
-        public void Conversion_Vector2_To_Logic_IsAccurate()
-        {
-            var worldPos = new Vector2(123.456f, 789.012f);
-            var logic = LogicVector2.FromVector2(worldPos);
-
-            // 123.456 * 1000 = 123456
-            Assert.AreEqual(123456, logic.X);
-            Assert.AreEqual(789012, logic.Y);
-        }
-
-        [TestMethod]
-        public void Conversion_Logic_To_Vector2_IsAccurate()
-        {
-            var logic = new LogicVector2(123456, 789012);
-            var world = logic.ToVector2();
-
-            Assert.AreEqual(123.456f, world.X, 0.0001f);
-            Assert.AreEqual(789.012f, world.Y, 0.0001f);
-        }
+        // Vector2 <-> LogicVector2 conversion (ToVector2()/FromVector2()) moved to
+        // LogicVectorExtensions in the client project - see LogicVectorExtensionsTests.cs -
+        // so this Core-focused suite doesn't need a MonoGame reference.
 
         [TestMethod]
         public void DistanceSquared_IsDeterministic()

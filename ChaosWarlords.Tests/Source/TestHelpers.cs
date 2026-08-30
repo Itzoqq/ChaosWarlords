@@ -1,3 +1,4 @@
+using ChaosWarlords.Source.Core.Data;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
@@ -420,14 +421,16 @@ namespace ChaosWarlords.Tests
     /// </summary>
     public class MapNodeBuilder
     {
-        private Vector2 _position = Vector2.Zero;
+        private LogicVector2 _position = LogicVector2.Zero;
         private int _id = 0;
         private PlayerColor _occupant = PlayerColor.None;
         private readonly List<MapNode> _neighbors = [];
 
         public MapNodeBuilder At(float x, float y)
         {
-            _position = new Vector2(x, y);
+            _position = new LogicVector2(
+                (int)Math.Round(x * LogicVector2.ScaleFactor),
+                (int)Math.Round(y * LogicVector2.ScaleFactor));
             return this;
         }
 

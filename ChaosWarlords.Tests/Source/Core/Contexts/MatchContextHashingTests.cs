@@ -137,7 +137,7 @@ namespace ChaosWarlords.Tests.Source.Core.Contexts
         public void GetStateHash_ChangesWhenMapNodeOccupantChanges()
         {
             // Arrange
-            var node = new MapNode(1, new Microsoft.Xna.Framework.Vector2(10, 10));
+            var node = new MapNode(1, new ChaosWarlords.Source.Core.Data.LogicVector2(10 * ChaosWarlords.Source.Core.Data.LogicVector2.ScaleFactor, 10 * ChaosWarlords.Source.Core.Data.LogicVector2.ScaleFactor));
             _mapManager.Nodes.Returns(new List<MapNode> { node });
             var hash1 = _context.GetStateHash();
 

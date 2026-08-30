@@ -44,8 +44,8 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
         {
             _logger = Substitute.For<IGameLogger>();
             
-            _nodeA = new MapNode(1, new Vector2(0, 0));
-            _nodeB = new MapNode(2, new Vector2(100, 0));
+            _nodeA = new MapNode(1, ChaosWarlords.Source.Core.Data.LogicVector2.Zero);
+            _nodeB = new MapNode(2, new ChaosWarlords.Source.Core.Data.LogicVector2(100 * ChaosWarlords.Source.Core.Data.LogicVector2.ScaleFactor, 0));
             _nodeA.AddNeighbor(_nodeB);
             
             var nodes = new List<MapNode> { _nodeA, _nodeB };

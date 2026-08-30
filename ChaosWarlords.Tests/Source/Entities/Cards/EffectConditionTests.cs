@@ -47,7 +47,7 @@ namespace ChaosWarlords.Tests.Source.Entities.Cards
         public void Evaluate_ControlsSite_WhenControllingSite_ReturnsTrue()
         {
             // Arrange
-            var node = new MapNode(0, new Microsoft.Xna.Framework.Vector2(0, 0)) { Occupant = PlayerColor.Red };
+            var node = new MapNode(0, ChaosWarlords.Source.Core.Data.LogicVector2.Zero) { Occupant = PlayerColor.Red };
             // Constructor: name, controlRes, controlAmt, totalRes, totalAmt
             var site = new StartingSite("TestSite", ResourceType.Power, 1, ResourceType.VictoryPoints, 2);
             site.NodesInternal.Add(node);
@@ -62,7 +62,7 @@ namespace ChaosWarlords.Tests.Source.Entities.Cards
         [TestMethod]
         public void Evaluate_HasTroopsDeployed_WhenHasTroop_ReturnsTrue()
         {
-            var node = new MapNode(0, new Microsoft.Xna.Framework.Vector2(0, 0)) { Occupant = PlayerColor.Red };
+            var node = new MapNode(0, ChaosWarlords.Source.Core.Data.LogicVector2.Zero) { Occupant = PlayerColor.Red };
             _mapManager.Nodes.Returns(new List<MapNode> { node });
 
             var condition = new EffectCondition(ConditionType.HasTroopsDeployed);

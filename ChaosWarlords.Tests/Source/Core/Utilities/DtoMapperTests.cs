@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Core.Utilities;
+using ChaosWarlords.Source.Core.Data;
 using ChaosWarlords.Source.Core.Data.Dtos;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
@@ -95,7 +96,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             state.TurnManager.Players.Returns(new List<Player> { player });
 
             // Act
-            var resultCommand = DtoMapper.HydrateCommand(dto, state);
+            var resultCommand = DtoMapper.HydrateCommand(dto, state.MatchContext);
 
             // Assert
             Assert.IsInstanceOfType(resultCommand, typeof(PlayCardCommand));
@@ -119,7 +120,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
         [TestMethod]
         public void ToDto_DeployTroopCommand_ReturnsCorrectDto()
         {
-            var node = new MapNode(99, Microsoft.Xna.Framework.Vector2.Zero);
+            var node = new MapNode(99, LogicVector2.Zero);
             var player = new Player(PlayerColor.Red);
             var command = new DeployTroopCommand(node, player);
             var dto = DtoMapper.ToDto(command, 11, player);
@@ -151,7 +152,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             // state.TurnManager is auto-initialized in fake, but we can override or configure it
             state.TurnManager.Players.Returns(new List<Player>()); // Fix for HydrateCommand accessing Players
 
-            var cmd = DtoMapper.HydrateCommand(dto, state) as BuyCardCommand;
+            var cmd = DtoMapper.HydrateCommand(dto, state.MatchContext) as BuyCardCommand;
 
             Assert.IsNotNull(cmd);
             Assert.AreEqual("market_c1", cmd.Card.Id);
@@ -164,10 +165,10 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var state = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
             var player = new Player(PlayerColor.Blue) { SeatIndex = 1 };
 
-            state.MapManager.Nodes.Returns(new List<MapNode> { new MapNode(50, Microsoft.Xna.Framework.Vector2.Zero) });
+            state.MapManager.Nodes.Returns(new List<MapNode> { new MapNode(50, LogicVector2.Zero) });
             state.TurnManager.Players.Returns(new List<Player> { player });
 
-            var cmd = DtoMapper.HydrateCommand(dto, state) as DeployTroopCommand;
+            var cmd = DtoMapper.HydrateCommand(dto, state.MatchContext) as DeployTroopCommand;
 
             Assert.IsNotNull(cmd);
             Assert.AreEqual(50, cmd!.Node.Id);
@@ -207,7 +208,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var state = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
             state.TurnManager.Players.Returns(new List<Player>()); // Fix for HydrateCommand accessing Players
 
-            var cmd = DtoMapper.HydrateCommand(dto, state) as AssassinateCommand;
+            var cmd = DtoMapper.HydrateCommand(dto, state.MatchContext) as AssassinateCommand;
 
             Assert.IsNotNull(cmd);
             Assert.AreEqual(303, cmd.TargetNodeId);
@@ -222,7 +223,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var state = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
             state.TurnManager.Players.Returns(new List<Player>()); // Fix for HydrateCommand accessing Players
 
-            var cmd = DtoMapper.HydrateCommand(dto, state) as ResolveSpyCommand;
+            var cmd = DtoMapper.HydrateCommand(dto, state.MatchContext) as ResolveSpyCommand;
 
             Assert.IsNotNull(cmd);
             Assert.AreEqual(404, cmd.SiteId);
@@ -254,7 +255,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
                 Seat = 0
             };
 
-            var result = DtoMapper.HydrateCommand(dto, stateMock) as PlayCardCommand;
+            var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as PlayCardCommand;
 
             Assert.IsNotNull(result);
             Assert.AreEqual("noble_111", result.Card.Id, "Hydration should prefer ID over Index!");
@@ -271,6 +272,11 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var loggerMock = Substitute.For<IGameLogger>();
             var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
             stateMock.Logger = loggerMock;
+            // TestGameplayState.MatchContext is wired up once at construction time (see its
+            // own comment), so it still holds the pre-reassignment Logger unless we rebuild
+            // it - matters now that HydrateCommand reads the logger via MatchContext.Logger
+            // rather than IGameplayState.Logger directly.
+            stateMock.InitializeMatchContext();
 
             stateMock.TurnManager.Players.Returns(new List<Player> { p });
 
@@ -281,7 +287,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
                 Seat = 0
             };
 
-            var result = DtoMapper.HydrateCommand(dto, stateMock) as PlayCardCommand;
+            var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as PlayCardCommand;
 
             Assert.IsNotNull(result);
             Assert.AreEqual("noble_111", result.Card.Id, "Hydration should fallback to index if ID not found.");
@@ -310,7 +316,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
                 Seat = 0
             };
 
-            var result = DtoMapper.HydrateCommand(dto, stateMock) as DevourCardCommand;
+            var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as DevourCardCommand;
 
             Assert.IsNotNull(result);
             Assert.AreEqual("devour_111", result.CardToDevour.Id, "Hydration should prefer ID over Index!");
@@ -334,7 +340,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
                 Seat = 0
             };
 
-            var result = DtoMapper.HydrateCommand(dto, stateMock) as DevourCardCommand;
+            var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as DevourCardCommand;
 
             Assert.IsNotNull(result);
             Assert.AreEqual("devour_111", result.CardToDevour.Id, "Hydration should fallback to index if ID not found.");
@@ -358,7 +364,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
                 Seat = 0
             };
 
-            var result = DtoMapper.HydrateCommand(dto, stateMock) as DevourCardCommand;
+            var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as DevourCardCommand;
 
             Assert.IsNotNull(result);
             Assert.AreEqual("devour_111", result.CardToDevour.Id);
@@ -382,7 +388,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
                 Seat = 0
             };
 
-            var result = DtoMapper.HydrateCommand(dto, stateMock) as DevourCardCommand;
+            var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as DevourCardCommand;
 
             Assert.IsNotNull(result);
             Assert.AreEqual("inner_111", result.CardToDevour.Id);

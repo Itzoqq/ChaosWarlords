@@ -34,4 +34,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ChaosWarlords.Core\ChaosWarlords.Core.csproj" />
+  </ItemGroup>
 </Project>

@@ -1,4 +1,4 @@
-using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Core.Data;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
 
@@ -21,6 +21,9 @@ namespace ChaosWarlords.Source.Map
 
         /// <summary>
         /// Centers the map on screen by calculating bounds and applying offset.
+        /// screenWidth/screenHeight are pixel units; everything else here stays in
+        /// LogicVector2's scaled fixed-point space (see LogicVector2.ScaleFactor) so the
+        /// centering math is pure deterministic integer arithmetic, not float.
         /// </summary>
         public void CenterMap(int screenWidth, int screenHeight)
         {
@@ -28,18 +31,18 @@ namespace ChaosWarlords.Source.Map
 
             var (MinX, MinY, MaxX, MaxY) = MapGeometry.CalculateBounds(_nodes);
 
-            // Logic Bounds are scaled up (x1000). We need to convert to Screen/World Units for centering.
-            float scale = Core.Data.LogicVector2.ScaleFactor;
-            Vector2 mapCenter = new((MinX + MaxX) / (2f * scale), (MinY + MaxY) / (2f * scale));
+            var mapCenter = new LogicVector2((MinX + MaxX) / 2, (MinY + MaxY) / 2);
+            var screenCenter = new LogicVector2(
+                screenWidth / 2 * LogicVector2.ScaleFactor,
+                screenHeight / 2 * LogicVector2.ScaleFactor);
 
-            Vector2 screenCenter = new(screenWidth / 2f, screenHeight / 2f);
             ApplyOffset(screenCenter - mapCenter);
         }
 
         /// <summary>
         /// Applies a position offset to all nodes and recalculates site bounds.
         /// </summary>
-        public void ApplyOffset(Vector2 offset)
+        public void ApplyOffset(LogicVector2 offset)
         {
             foreach (var node in _nodes)
             {
@@ -58,15 +61,16 @@ namespace ChaosWarlords.Source.Map
         /// <summary>
         /// Finds the node at the given screen position (within click radius).
         /// </summary>
-        public MapNode? GetNodeAt(Vector2 position)
+        public MapNode? GetNodeAt(LogicVector2 position)
         {
-            return _nodes.FirstOrDefault(n => Vector2.Distance(position, n.Position) <= MapNode.Radius);
+            long radiusScaled = (long)MapNode.Radius * LogicVector2.ScaleFactor;
+            return _nodes.FirstOrDefault(n => LogicVector2.DistanceSquared(position, n.Position) <= radiusScaled * radiusScaled);
         }
 
         /// <summary>
         /// Finds the site containing the given screen position.
         /// </summary>
-        public Site? GetSiteAt(Vector2 position)
+        public Site? GetSiteAt(LogicVector2 position)
         {
             return _sites?.FirstOrDefault(s => s.Bounds.Contains(position));
         }

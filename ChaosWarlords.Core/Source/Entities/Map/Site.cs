@@ -1,4 +1,4 @@
-using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Core.Data;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Entities.Map
@@ -26,8 +26,9 @@ namespace ChaosWarlords.Source.Entities.Map
         internal List<PlayerColor> Spies { get; private set; } = [];
         public bool HasTotalControl { get; internal set; }
 
-        // Visual Bounds (Kept in Model for Hit-Testing logic)
-        public Rectangle Bounds { get; protected set; }
+        // Visual Bounds (Kept in Model for Hit-Testing logic), in the same scaled
+        // fixed-point space as MapNode.Position/LogicPosition - see LogicVector2.ScaleFactor.
+        public LogicRectangle Bounds { get; protected set; }
 
         public Site(string name,
                     ResourceType controlType, int controlAmt,
@@ -53,8 +54,8 @@ namespace ChaosWarlords.Source.Entities.Map
         {
             if (NodesInternal.Count == 0) return;
 
-            float minX = float.MaxValue, minY = float.MaxValue;
-            float maxX = float.MinValue, maxY = float.MinValue;
+            int minX = int.MaxValue, minY = int.MaxValue;
+            int maxX = int.MinValue, maxY = int.MinValue;
 
             foreach (var node in NodesInternal)
             {
@@ -64,15 +65,16 @@ namespace ChaosWarlords.Source.Entities.Map
                 if (node.Position.Y > maxY) maxY = node.Position.Y;
             }
 
-            // Logic Padding for "Hit Box"
-            int sidePadding = GameConstants.SiteVisuals.SidePadding;
-            int topPadding = GameConstants.SiteVisuals.TopPadding;
-            int bottomPadding = GameConstants.SiteVisuals.BottomPadding;
+            // Logic Padding for "Hit Box" - pixel-space constants, scaled up to match
+            // node.Position's fixed-point space.
+            int sidePadding = GameConstants.SiteVisuals.SidePadding * LogicVector2.ScaleFactor;
+            int topPadding = GameConstants.SiteVisuals.TopPadding * LogicVector2.ScaleFactor;
+            int bottomPadding = GameConstants.SiteVisuals.BottomPadding * LogicVector2.ScaleFactor;
 
-            int width = (int)(maxX - minX) + (sidePadding * 2);
-            int height = (int)(maxY - minY) + topPadding + bottomPadding;
+            int width = (maxX - minX) + (sidePadding * 2);
+            int height = (maxY - minY) + topPadding + bottomPadding;
 
-            Bounds = new Rectangle((int)minX - sidePadding, (int)minY - topPadding, width, height);
+            Bounds = new LogicRectangle(minX - sidePadding, minY - topPadding, width, height);
         }
 
         public int GetTroopCount(PlayerColor color)

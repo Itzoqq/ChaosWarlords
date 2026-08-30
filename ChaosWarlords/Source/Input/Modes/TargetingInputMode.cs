@@ -10,6 +10,7 @@ using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Core.Events;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Map;
+using ChaosWarlords.Source.Rendering;
 
 namespace ChaosWarlords.Source.Input.Modes
 {
@@ -76,8 +77,9 @@ namespace ChaosWarlords.Source.Input.Modes
                 return HandleSpySelection(clickPos, mapManager, activePlayer, actionSystem);
             }
 
-            MapNode? targetNode = mapManager.GetNodeAt(clickPos);
-            Site? targetSite = mapManager.GetSiteAt(clickPos);
+            var clickLogicPos = clickPos.ToLogicVector2();
+            MapNode? targetNode = mapManager.GetNodeAt(clickLogicPos);
+            Site? targetSite = mapManager.GetSiteAt(clickLogicPos);
 
             // Return the command if the click resolved an action
             return HandleTargetingClick(actionSystem, targetNode, targetSite);

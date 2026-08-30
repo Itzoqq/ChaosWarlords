@@ -57,8 +57,8 @@ namespace ChaosWarlords.Tests.Source.Integration.Input
             );
             
             // Setup Valid Map Interaction
-            var node = new ChaosWarlords.Source.Entities.Map.MapNode(1, new Vector2(100, 100)); // Using real node, its safe
-            mapManager.GetNodeAt(Arg.Any<Vector2>()).Returns(node);
+            var node = new ChaosWarlords.Source.Entities.Map.MapNode(1, new ChaosWarlords.Source.Core.Data.LogicVector2(100 * ChaosWarlords.Source.Core.Data.LogicVector2.ScaleFactor, 100 * ChaosWarlords.Source.Core.Data.LogicVector2.ScaleFactor)); // Using real node, its safe
+            mapManager.GetNodeAt(Arg.Any<ChaosWarlords.Source.Core.Data.LogicVector2>()).Returns(node);
             mapManager.CanDeployAt(node, Arg.Any<PlayerColor>()).Returns(true);
             
             _context.TurnManager.ActivePlayer.Returns(new Player(PlayerColor.Red));

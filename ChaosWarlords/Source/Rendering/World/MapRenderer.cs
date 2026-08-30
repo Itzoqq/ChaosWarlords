@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using ChaosWarlords.Source.Contexts;
 using System.Globalization;
+using ChaosWarlords.Source.Rendering;
 
 namespace ChaosWarlords.Source.Rendering.World
 {
@@ -52,7 +53,7 @@ namespace ChaosWarlords.Source.Rendering.World
             foreach (var site in sites)
             {
                 // Background
-                spriteBatch.Draw(_pixelTexture, site.Bounds, Color.Black * 0.5f);
+                spriteBatch.Draw(_pixelTexture, site.Bounds.ToRectangle(), Color.Black * 0.5f);
 
                 // Border
                 Color borderColor = (site.Owner == PlayerColor.None) ? Color.Gray : GetColor(site.Owner);
@@ -65,7 +66,7 @@ namespace ChaosWarlords.Source.Rendering.World
                     thickness = 4;
                 }
 
-                DrawBorder(spriteBatch, site.Bounds, borderColor, thickness);
+                DrawBorder(spriteBatch, site.Bounds.ToRectangle(), borderColor, thickness);
 
                 // Text
                 DrawSiteText(spriteBatch, site);
@@ -112,7 +113,8 @@ namespace ChaosWarlords.Source.Rendering.World
             }
 
             // 3. Draw using StringBuilder (pooled vectors for 0 allocations)
-            using var textPos = PooledVector2.Rent(site.Bounds.X + GameConstants.UILayout.MediumPadding, site.Bounds.Y + GameConstants.UILayout.MediumPadding);
+            var siteScreenBounds = site.Bounds.ToRectangle();
+            using var textPos = PooledVector2.Rent(siteScreenBounds.X + GameConstants.UILayout.MediumPadding, siteScreenBounds.Y + GameConstants.UILayout.MediumPadding);
             using var shadowOffset = PooledVector2.Rent(1, 1);
 
             // Draw Shadow
@@ -160,8 +162,9 @@ namespace ChaosWarlords.Source.Rendering.World
         private void DrawSpies(SpriteBatch spriteBatch, Site site)
         {
             int spySize = 12;
-            int startX = site.Bounds.X - (spySize / 2);
-            int startY = site.Bounds.Y - (spySize / 2);
+            var siteScreenBounds = site.Bounds.ToRectangle();
+            int startX = siteScreenBounds.X - (spySize / 2);
+            int startY = siteScreenBounds.Y - (spySize / 2);
             int i = 0;
 
             // Pool rectangles outside loop for reuse (0 allocations per spy)
@@ -216,10 +219,11 @@ namespace ChaosWarlords.Source.Rendering.World
                 }
 
                 int radius = MapNode.Radius;
+                var nodeScreenPos = node.Position.ToVector2();
                 // Use pooled rectangle (0 allocations per node)
                 using var rect = PooledRectangle.Rent(
-                    (int)(node.Position.X - radius),
-                    (int)(node.Position.Y - radius),
+                    (int)(nodeScreenPos.X - radius),
+                    (int)(nodeScreenPos.Y - radius),
                     radius * 2,
                     radius * 2);
 
@@ -248,8 +252,8 @@ namespace ChaosWarlords.Source.Rendering.World
 
             if (startSite is not null && startSite == endSite) return;
 
-            Vector2 p1 = startSite is not null ? startSite.Bounds.Center.ToVector2() : node.Position;
-            Vector2 p2 = endSite is not null ? endSite.Bounds.Center.ToVector2() : neighbor.Position;
+            Vector2 p1 = startSite is not null ? startSite.Bounds.Center.ToVector2() : node.Position.ToVector2();
+            Vector2 p2 = endSite is not null ? endSite.Bounds.Center.ToVector2() : neighbor.Position.ToVector2();
 
             if (startSite is not null) p1 = GetIntersection(startSite.Bounds, p2, p1);
             if (endSite is not null) p2 = GetIntersection(endSite.Bounds, p1, p2);
@@ -271,21 +275,18 @@ namespace ChaosWarlords.Source.Rendering.World
                 null, color, angle, origin.Value, SpriteEffects.None, 0);
         }
 
-        private static Vector2 GetIntersection(Rectangle rect, Vector2 start, Vector2 end)
+        private static Vector2 GetIntersection(Core.Data.LogicRectangle rect, Vector2 start, Vector2 end)
         {
-            var lStart = Core.Data.LogicVector2.FromVector2(start);
-            var lEnd = Core.Data.LogicVector2.FromVector2(end);
+            // rect is already in LogicVector2's scaled fixed-point space (Site.Bounds),
+            // so its corners need no pixel round-trip - only start/end (screen-space
+            // Vector2, from node positions) get converted in.
+            var lStart = start.ToLogicVector2();
+            var lEnd = end.ToLogicVector2();
 
-            // Use pooled vectors for corner calculations (0 allocations per intersection)
-            using var topLeftVec = PooledVector2.Rent(rect.Left, rect.Top);
-            using var topRightVec = PooledVector2.Rent(rect.Right, rect.Top);
-            using var bottomRightVec = PooledVector2.Rent(rect.Right, rect.Bottom);
-            using var bottomLeftVec = PooledVector2.Rent(rect.Left, rect.Bottom);
-
-            var topLeft = Core.Data.LogicVector2.FromVector2(topLeftVec.Value);
-            var topRight = Core.Data.LogicVector2.FromVector2(topRightVec.Value);
-            var bottomRight = Core.Data.LogicVector2.FromVector2(bottomRightVec.Value);
-            var bottomLeft = Core.Data.LogicVector2.FromVector2(bottomLeftVec.Value);
+            var topLeft = new Core.Data.LogicVector2(rect.Left, rect.Top);
+            var topRight = new Core.Data.LogicVector2(rect.Right, rect.Top);
+            var bottomRight = new Core.Data.LogicVector2(rect.Right, rect.Bottom);
+            var bottomLeft = new Core.Data.LogicVector2(rect.Left, rect.Bottom);
 
             if (MapGeometry.TryGetLineIntersection(lStart, lEnd, topLeft, topRight, out var lr1)) return lr1.ToVector2();
             if (MapGeometry.TryGetLineIntersection(lStart, lEnd, topRight, bottomRight, out var lr2)) return lr2.ToVector2();

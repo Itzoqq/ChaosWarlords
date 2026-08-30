@@ -114,7 +114,7 @@ namespace ChaosWarlords.Tests.Source.Replay
             }
 
             // Exec 1 (RED PlayCard)
-            var fetchedCmd1 = replayManager.GetNextCommand(fakeState);
+            var fetchedCmd1 = replayManager.GetNextCommand(fakeState.MatchContext);
             Assert.IsNotNull(fetchedCmd1, "Failed to switch PlayCard Command");
             if (fetchedCmd1 is PlayCardCommand playCmdReplay)
             {
@@ -129,7 +129,7 @@ namespace ChaosWarlords.Tests.Source.Replay
             }
 
             // Exec 2 (RED Deploy)
-            var fetchedCmd2 = replayManager.GetNextCommand(fakeState);
+            var fetchedCmd2 = replayManager.GetNextCommand(fakeState.MatchContext);
             Assert.IsNotNull(fetchedCmd2, "Failed to switch Deploy Command (Red)");
             if (fetchedCmd2 is DeployTroopCommand deployCmd1)
             {
@@ -145,7 +145,7 @@ namespace ChaosWarlords.Tests.Source.Replay
 
             // Exec 3 (BLUE)
             // Exec 3 (BLUE)
-            var fetchedCmd3 = replayManager.GetNextCommand(fakeState);
+            var fetchedCmd3 = replayManager.GetNextCommand(fakeState.MatchContext);
             Assert.IsNotNull(fetchedCmd3, "Failed to switch Deploy Command (Blue)");
 
             if (fetchedCmd3 is DeployTroopCommand deployCmd2)

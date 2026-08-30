@@ -132,7 +132,7 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
             // Arrange
             _replayManagerMock.IsReplaying.Returns(true);
             var mockCommand = Substitute.For<IGameCommand>();
-            _replayManagerMock.GetNextCommand(_stateFake).Returns(mockCommand); // Passed fake state
+            _replayManagerMock.GetNextCommand(_stateFake.MatchContext).Returns(mockCommand); // Passed fake state
             var activePlayer = new Player(PlayerColor.Red);
             _turnManagerMock.ActivePlayer.Returns(activePlayer);
             
@@ -155,7 +155,7 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
         {
             // Arrange
             _replayManagerMock.IsReplaying.Returns(true);
-            _replayManagerMock.GetNextCommand(_stateFake).Returns((IGameCommand?)null);
+            _replayManagerMock.GetNextCommand(_stateFake.MatchContext).Returns((IGameCommand?)null);
 
             // Act - First completion
             _controller.Update(new GameTime(TimeSpan.Zero, TimeSpan.FromSeconds(0.3)));

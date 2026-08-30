@@ -144,7 +144,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             var stateFake = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
 
             // Act
-            var result = _manager.GetNextCommand(stateFake);
+            var result = _manager.GetNextCommand(stateFake.MatchContext);
 
             // Assert
             Assert.IsNull(result);
@@ -159,7 +159,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             var stateFake = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
 
             // Act
-            var result = _manager.GetNextCommand(stateFake);
+            var result = _manager.GetNextCommand(stateFake.MatchContext);
 
             // Assert
             Assert.IsNull(result);
@@ -186,7 +186,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             stateFake.Logger = _loggerMock; // Fake allows setter
 
             // Act
-            var result = newManager.GetNextCommand(stateFake);
+            var result = newManager.GetNextCommand(stateFake.MatchContext);
 
             // Assert
             Assert.IsNotNull(result);

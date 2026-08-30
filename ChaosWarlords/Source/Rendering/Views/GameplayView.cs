@@ -11,6 +11,7 @@ using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Rendering.UI;
 using ChaosWarlords.Source.Rendering.World; // Changed from ChaosWarlords.Source.Views
+using ChaosWarlords.Source.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 
@@ -134,8 +135,9 @@ namespace ChaosWarlords.Source.Rendering.Views
         public void Draw(SpriteBatch spriteBatch, MatchContext context, IInputManager inputManager, IUIManager uiManager, bool isMarketOpen, string targetingText, bool isPopupOpen, bool isPauseMenuOpen, bool isReplaying, IMatchManager matchManager)
         {
             // 1. Draw Map
-            MapNode? hoveredNode = context.MapManager.GetNodeAt(inputManager.MousePosition);
-            Site? hoveredSite = context.MapManager.GetSiteAt(inputManager.MousePosition);
+            var mouseLogicPos = inputManager.MousePosition.ToLogicVector2();
+            MapNode? hoveredNode = context.MapManager.GetNodeAt(mouseLogicPos);
+            Site? hoveredSite = context.MapManager.GetSiteAt(mouseLogicPos);
             _mapRenderer.Draw(spriteBatch, context.MapManager, hoveredNode, hoveredSite);
 
             // 2. Draw Cards (Hand & Played) - Skip hand during Setup

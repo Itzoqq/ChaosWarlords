@@ -50,6 +50,7 @@ namespace ChaosWarlords.Source.Contexts
         /// Nullable for test scenarios where UI interactions aren't needed.
         /// </summary>
         public IUIEventMediator? UIEventMediator { get; private set; }
+        public IGameLogger Logger { get; private set; }
 
         /// <summary>
         /// The seed used to initialize the random number generator.
@@ -106,6 +107,7 @@ namespace ChaosWarlords.Source.Contexts
             CardDatabase = cardDb ?? throw new ArgumentNullException(nameof(cardDb));
             PlayerStateManager = playerState ?? throw new ArgumentNullException(nameof(playerState));
             UIEventMediator = uiMediator; // Nullable for tests
+            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             // Initialize seeded RNG
             Seed = seed ?? Environment.TickCount;

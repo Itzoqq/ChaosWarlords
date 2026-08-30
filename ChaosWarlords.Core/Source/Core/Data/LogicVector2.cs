@@ -1,5 +1,3 @@
-using Microsoft.Xna.Framework;
-
 namespace ChaosWarlords.Source.Core.Data
 {
     /// <summary>
@@ -23,27 +21,10 @@ namespace ChaosWarlords.Source.Core.Data
 
         public static LogicVector2 Zero => new LogicVector2(0, 0);
 
-        /// <summary>
-        /// Converts a floating-point world position to logic position.
-        /// </summary>
-        public static LogicVector2 FromVector2(Vector2 vector)
-        {
-            return new LogicVector2(
-                (int)Math.Round(vector.X * ScaleFactor),
-                (int)Math.Round(vector.Y * ScaleFactor)
-            );
-        }
-
-        /// <summary>
-        /// Converts logic position back to floating-point world position for rendering.
-        /// </summary>
-        public Vector2 ToVector2()
-        {
-            return new Vector2(
-                (float)X / ScaleFactor,
-                (float)Y / ScaleFactor
-            );
-        }
+        // Conversion to/from MonoGame's Vector2 (ToVector2()/FromVector2()) lives in the
+        // client project as extension methods (Source/Rendering/LogicVectorExtensions.cs),
+        // not here - this type must stay free of any MonoGame package reference so the
+        // logic layer can build/run headless. Same scale-factor math, just relocated.
 
         /// <summary>
         /// Calculates the determininstic squared distance between two points.

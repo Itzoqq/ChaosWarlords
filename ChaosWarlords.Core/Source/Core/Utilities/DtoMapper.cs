@@ -3,7 +3,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Core.Interfaces.State;
+using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Services;
@@ -17,16 +17,16 @@ namespace ChaosWarlords.Source.Core.Utilities
     /// </summary>
     public static class DtoMapper
     {
-        private static readonly Dictionary<Type, Func<GameCommandDto, IGameplayState, IGameCommand?>> _dtoToCommandMap;
+        private static readonly Dictionary<Type, Func<GameCommandDto, MatchContext, IGameCommand?>> _dtoToCommandMap;
 
         static DtoMapper()
         {
-            _dtoToCommandMap = new Dictionary<Type, Func<GameCommandDto, IGameplayState, IGameCommand?>>
+            _dtoToCommandMap = new Dictionary<Type, Func<GameCommandDto, MatchContext, IGameCommand?>>
             {
-                { typeof(PlayCardCommandDto), (d, s) => HydratePlayCard((PlayCardCommandDto)d, GetSeatPlayer(d, s), s.Logger) },
-                { typeof(BuyCardCommandDto), (d, s) => HydrateBuyCard((BuyCardCommandDto)d, s) },
-                { typeof(DeployTroopCommandDto), (d, s) => HydrateDeploy((DeployTroopCommandDto)d, s, GetSeatPlayer(d, s)) },
-                { typeof(DevourCardCommandDto), (d, s) => HydrateDevour((DevourCardCommandDto)d, GetSeatPlayer(d, s), s) },
+                { typeof(PlayCardCommandDto), (d, c) => HydratePlayCard((PlayCardCommandDto)d, GetSeatPlayer(d, c), c.Logger) },
+                { typeof(BuyCardCommandDto), (d, c) => HydrateBuyCard((BuyCardCommandDto)d, c) },
+                { typeof(DeployTroopCommandDto), (d, c) => HydrateDeploy((DeployTroopCommandDto)d, c, GetSeatPlayer(d, c)) },
+                { typeof(DevourCardCommandDto), (d, c) => HydrateDevour((DevourCardCommandDto)d, GetSeatPlayer(d, c), c) },
                 { typeof(EndTurnCommandDto), (d, s) => new EndTurnCommand() },
                 { typeof(CancelActionCommandDto), (d, s) => new CancelActionCommand() },
                 { typeof(ToggleMarketCommandDto), (d, s) => new ToggleMarketCommand() },
@@ -49,9 +49,9 @@ namespace ChaosWarlords.Source.Core.Utilities
             };
         }
 
-        private static Player? GetSeatPlayer(GameCommandDto dto, IGameplayState state)
+        private static Player? GetSeatPlayer(GameCommandDto dto, MatchContext context)
         {
-            return state.MatchContext.TurnManager?.Players.FirstOrDefault(p => p.SeatIndex == dto.Seat);
+            return context.TurnManager?.Players.FirstOrDefault(p => p.SeatIndex == dto.Seat);
         }
 
         // --- Card Mapping ---
@@ -170,13 +170,13 @@ namespace ChaosWarlords.Source.Core.Utilities
 
         // --- Hydration (DTO -> Command) ---
 
-        public static IGameCommand? HydrateCommand(GameCommandDto dto, IGameplayState state)
+        public static IGameCommand? HydrateCommand(GameCommandDto dto, MatchContext context)
         {
             if (dto == null) return null;
 
             if (_dtoToCommandMap.TryGetValue(dto.GetType(), out var factory))
             {
-                return factory(dto, state);
+                return factory(dto, context);
             }
 
             return null;
@@ -232,25 +232,25 @@ namespace ChaosWarlords.Source.Core.Utilities
         }
 
 
-        private static BuyCardCommand? HydrateBuyCard(BuyCardCommandDto dto, IGameplayState state)
+        private static BuyCardCommand? HydrateBuyCard(BuyCardCommandDto dto, MatchContext context)
         {
-            var card = state.MatchContext.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardId);
+            var card = context.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardId);
             return card != null ? new BuyCardCommand(card) : null;
         }
 
-        private static DeployTroopCommand? HydrateDeploy(DeployTroopCommandDto dto, IGameplayState state, Player? player)
+        private static DeployTroopCommand? HydrateDeploy(DeployTroopCommandDto dto, MatchContext context, Player? player)
         {
-            var node = state.MatchContext.MapManager.Nodes.FirstOrDefault(n => n.Id == dto.NodeId);
+            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == dto.NodeId);
             if (node != null && player != null)
                 return new DeployTroopCommand(node, player);
             return null;
         }
 
-        private static DevourCardCommand? HydrateDevour(DevourCardCommandDto dto, Player? player, IGameplayState? state = null)
+        private static DevourCardCommand? HydrateDevour(DevourCardCommandDto dto, Player? player, MatchContext? context = null)
         {
             if (player == null) return null;
 
-            var card = FindDevourTargetCard(dto, player, state);
+            var card = FindDevourTargetCard(dto, player, context);
             var sourceCard = FindDevourSourceCard(dto, player);
 
             var cmd = card != null ? new DevourCardCommand(card) : null;
@@ -258,11 +258,11 @@ namespace ChaosWarlords.Source.Core.Utilities
             return cmd;
         }
 
-        private static Card? FindDevourTargetCard(DevourCardCommandDto dto, Player player, IGameplayState? state)
+        private static Card? FindDevourTargetCard(DevourCardCommandDto dto, Player player, MatchContext? context)
         {
-            if (string.Equals(dto.Location, "Market", StringComparison.OrdinalIgnoreCase) && state != null)
+            if (string.Equals(dto.Location, "Market", StringComparison.OrdinalIgnoreCase) && context != null)
             {
-                return state.MatchContext.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardId);
+                return context.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardId);
             }
 
             if (string.Equals(dto.Location, "InnerCircle", StringComparison.OrdinalIgnoreCase))

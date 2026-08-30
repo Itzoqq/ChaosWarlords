@@ -7,6 +7,7 @@ using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Rendering;
 using Microsoft.Xna.Framework;
 
 
@@ -108,7 +109,7 @@ namespace ChaosWarlords.Source.Input.Modes
 
         private static DeployTroopCommand? HandleMapClick(Vector2 clickPosition, IMapManager mapManager, Player activePlayer)
         {
-            var clickedNode = mapManager.GetNodeAt(clickPosition);
+            var clickedNode = mapManager.GetNodeAt(clickPosition.ToLogicVector2());
 
             if (clickedNode is not null && mapManager.CanDeployAt(clickedNode, activePlayer.Color))
             {

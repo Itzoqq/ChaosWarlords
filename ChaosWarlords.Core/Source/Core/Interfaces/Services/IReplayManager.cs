@@ -43,6 +43,6 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// <summary>
         /// Retrieves the next command from the replay queue, if available.
         /// </summary>
-        Logic.IGameCommand? GetNextCommand(State.IGameplayState state);
+        Logic.IGameCommand? GetNextCommand(Source.Contexts.MatchContext context);
     }
 }

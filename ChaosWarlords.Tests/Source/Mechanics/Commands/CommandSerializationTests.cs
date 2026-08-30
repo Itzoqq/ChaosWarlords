@@ -24,7 +24,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Commands
             {
                 new PlayCardCommand(CreateDummyCard("c1")),
                 new BuyCardCommand(CreateDummyCard("c2")),
-                new DeployTroopCommand(new MapNode(1, Microsoft.Xna.Framework.Vector2.Zero)),
+                new DeployTroopCommand(new MapNode(1, ChaosWarlords.Source.Core.Data.LogicVector2.Zero)),
                 new EndTurnCommand(),
                 new CancelActionCommand(),
                 new ActionCompletedCommand(),
@@ -63,7 +63,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Commands
         [TestMethod]
         public void Verify_DeployTroopCommand_Serialization()
         {
-            var node = new MapNode(99, Microsoft.Xna.Framework.Vector2.Zero);
+            var node = new MapNode(99, ChaosWarlords.Source.Core.Data.LogicVector2.Zero);
             var cmd = new DeployTroopCommand(node);
 
             var dto = (DeployTroopCommandDto)cmd.ToDto();

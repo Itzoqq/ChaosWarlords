@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Rendering;
 using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Tests.Integration.Factories
@@ -46,7 +47,7 @@ namespace ChaosWarlords.Tests.Integration.Factories
       var node2 = nodes.FirstOrDefault(n => n.Id == 2);
       Assert.IsNotNull(node1);
       Assert.IsNotNull(node2);
-      Assert.AreEqual(new Vector2(10, 10), node1.Position);
+      Assert.AreEqual(new Vector2(10, 10), node1.Position.ToVector2());
 
       // ASSERT - Routes (Connections)
       Assert.Contains(node2, node1.Neighbors, "Node 1 should be connected to Node 2.");

@@ -5,6 +5,8 @@ using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Contexts;
 using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Core.Data;
+using ChaosWarlords.Source.Rendering;
 using ChaosWarlords.Source.Input.Modes;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Entities.Map;
@@ -129,7 +131,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             var node = TestData.MapNodes.Node1();
             var clickPos = new Vector2(200, 200);
-            _mapSub.GetNodeAt(clickPos).Returns(node);
+            _mapSub.GetNodeAt(clickPos.ToLogicVector2()).Returns(node);
 
             var evt = new InputEventArgs(InputEventType.LeftClick, clickPos);
 
@@ -146,7 +148,9 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             var site = TestData.Sites.NeutralSite();
             // Use Reflection to set bounds if needed, or rely on defaults
-            typeof(Site).GetProperty("Bounds")?.SetValue(site, new Rectangle(100, 100, 100, 100));
+            typeof(Site).GetProperty("Bounds")?.SetValue(site, new LogicRectangle(
+                100 * LogicVector2.ScaleFactor, 100 * LogicVector2.ScaleFactor,
+                100 * LogicVector2.ScaleFactor, 100 * LogicVector2.ScaleFactor));
 
             _actionSub.PendingSite.Returns(site);
 
@@ -171,8 +175,8 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             var targetSite = TestData.Sites.NeutralSite();
             var clickPos = new Vector2(300, 300);
-            _mapSub.GetSiteAt(clickPos).Returns(targetSite);
-            _mapSub.GetNodeAt(clickPos).Returns((MapNode?)null);
+            _mapSub.GetSiteAt(clickPos.ToLogicVector2()).Returns(targetSite);
+            _mapSub.GetNodeAt(clickPos.ToLogicVector2()).Returns((MapNode?)null);
 
             var evt = new InputEventArgs(InputEventType.LeftClick, clickPos);
 

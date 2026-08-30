@@ -36,8 +36,8 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
 
         // Navigation / Queries
         Site? GetSiteForNode(MapNode node);
-        MapNode? GetNodeAt(Microsoft.Xna.Framework.Vector2 position);
-        Site? GetSiteAt(Microsoft.Xna.Framework.Vector2 position);
+        MapNode? GetNodeAt(Core.Data.LogicVector2 position);
+        Site? GetSiteAt(Core.Data.LogicVector2 position);
         List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer);
 
         // Actions

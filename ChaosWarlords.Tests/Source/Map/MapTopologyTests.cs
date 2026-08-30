@@ -1,6 +1,6 @@
 using ChaosWarlords.Source.Map;
 using ChaosWarlords.Source.Entities.Map;
-using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Core.Data;
 
 namespace ChaosWarlords.Tests.Map
 {
@@ -12,6 +12,8 @@ namespace ChaosWarlords.Tests.Map
         private List<MapNode> _nodes = null!;
         private List<Site> _sites = null!;
         private MapTopology _topology = null!;
+
+        private static LogicVector2 Scaled(int x, int y) => new(x * LogicVector2.ScaleFactor, y * LogicVector2.ScaleFactor);
 
         [TestInitialize]
         public void Setup()
@@ -39,7 +41,7 @@ namespace ChaosWarlords.Tests.Map
         public void GetNodeAt_ReturnsNodeWithinRadius()
         {
             // Arrange
-            var searchPosition = new Vector2(12, 12); // Node 1 is at (10,10)
+            var searchPosition = Scaled(12, 12); // Node 1 is at (10,10)
 
             // Act
             var result = _topology.GetNodeAt(searchPosition);
@@ -53,7 +55,7 @@ namespace ChaosWarlords.Tests.Map
         public void GetNodeAt_ReturnsNullWhenNoNodeNearby()
         {
             // Arrange
-            var searchPosition = new Vector2(1000, 1000); // Far from all nodes
+            var searchPosition = Scaled(1000, 1000); // Far from all nodes
 
             // Act
             var result = _topology.GetNodeAt(searchPosition);
@@ -66,7 +68,7 @@ namespace ChaosWarlords.Tests.Map
         public void GetSiteAt_ReturnsSiteContainingPosition()
         {
             // Arrange - position within site bounds (Node1 is at 10,10, Node2 at 20,10)
-            var searchPosition = new Vector2(15, 10);
+            var searchPosition = Scaled(15, 10);
 
             // Act
             var result = _topology.GetSiteAt(searchPosition);
@@ -80,7 +82,7 @@ namespace ChaosWarlords.Tests.Map
         public void ApplyOffset_MovesAllNodes()
         {
             // Arrange
-            var offset = new Vector2(50, 50);
+            var offset = Scaled(50, 50);
             var originalPosition = _nodes[0].Position;
 
             // Act
@@ -101,10 +103,7 @@ namespace ChaosWarlords.Tests.Map
             _topology.CenterMap(screenWidth, screenHeight);
 
             // Assert - verify nodes have been moved (exact position depends on bounds calculation)
-            Assert.AreNotEqual(new Vector2(100, 100), _nodes[0].Position);
+            Assert.AreNotEqual(Scaled(100, 100), _nodes[0].Position);
         }
     }
 }
-
-
-
