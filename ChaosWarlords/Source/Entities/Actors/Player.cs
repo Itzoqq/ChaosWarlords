@@ -77,6 +77,18 @@ namespace ChaosWarlords.Source.Entities.Actors
         }
 
         /// <summary>
+        /// Sets Power to an absolute value, bypassing Add/Spend validation.
+        /// Internal access for state restoration (e.g. transactional rollback) only.
+        /// </summary>
+        internal void SetPower(int amount) => _power = amount;
+
+        /// <summary>
+        /// Sets Influence to an absolute value, bypassing Add/Spend validation.
+        /// Internal access for state restoration (e.g. transactional rollback) only.
+        /// </summary>
+        internal void SetInfluence(int amount) => _influence = amount;
+
+        /// <summary>
         /// Adds Influence to the player's pool.
         /// </summary>
         public void AddInfluence(int amount)

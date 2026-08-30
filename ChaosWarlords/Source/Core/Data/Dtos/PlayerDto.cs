@@ -13,6 +13,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         public Guid PlayerId { get; set; }
         public required string DisplayName { get; set; }
         public PlayerColor Color { get; set; }
+        public int SeatIndex { get; set; }
 
         public int Power { get; set; }
         public int Influence { get; set; }
@@ -37,6 +38,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
                 PlayerId = player.PlayerId,
                 DisplayName = player.DisplayName,
                 Color = player.Color,
+                SeatIndex = player.SeatIndex,
                 Power = player.Power,
                 Influence = player.Influence,
                 VictoryPoints = player.VictoryPoints,

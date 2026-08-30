@@ -71,9 +71,23 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         void TransitionToSpySelection(Site site);
 
         /// <summary>
-        /// Notifies the system that an action has failed validation or execution.
+        /// Notifies the system that an action has failed validation or execution,
+        /// and cancels the current targeting sequence.
         /// </summary>
         void NotifyFailure(string reason);
+
+        /// <summary>
+        /// Raises the <see cref="OnActionFailed"/> event without cancelling the current targeting
+        /// sequence. Use for retryable validation failures (e.g. "invalid target, pick another"),
+        /// as opposed to <see cref="NotifyFailure"/> which cancels.
+        /// </summary>
+        void RaiseActionFailed(string reason);
+
+        /// <summary>
+        /// Sets the source node for a Move Troop action sequence and transitions to the
+        /// destination-targeting state.
+        /// </summary>
+        void SetMoveSource(MapNode? node);
 
         /// <summary>
         /// Cancels the current targeting sequence and returns to Normal state.

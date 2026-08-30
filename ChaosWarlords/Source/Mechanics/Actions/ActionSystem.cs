@@ -83,6 +83,7 @@ namespace ChaosWarlords.Source.Managers
         private readonly DevourSubsystem _devourSubsystem;
         private readonly SpySubsystem _spySubsystem;
         private readonly PreTargetHandler _preTargetHandler;
+        private readonly ActionInputController _inputController;
 
         public ActionSystem(ITurnManager turnManager, IMapManager mapManager, IGameLogger logger)
         {
@@ -95,8 +96,9 @@ namespace ChaosWarlords.Source.Managers
             _spySubsystem = new SpySubsystem(_mapManager, _turnManager, this, _logger);
             _preTargetHandler = new PreTargetHandler(_logger, _preSelectedTargets);
 
-            _actionHandlers = new Dictionary<ActionState, Func<MapNode?, Site?, IGameCommand?>>();
-            InitializeHandlers();
+            // Click-to-command routing lives in its own class (SRP); ActionSystem stays the
+            // logic/state engine and delegates HandleTargetClick to it.
+            _inputController = new ActionInputController(this, _mapManager, _spySubsystem, _turnManager, _logger);
         }
 
         public void SetPlayerStateManager(IPlayerStateManager stateManager)
@@ -198,10 +200,13 @@ namespace ChaosWarlords.Source.Managers
         public void NotifyFailure(string reason)
         {
             _logger.Log($"Action Failed: {reason}", LogChannel.Warning);
-            // Verify if we should CancelTargeting here or just notify?
-            // Usually failure implies resetting state or at least notifying UI.
-            // CancelTargeting() clears state.
             CancelTargeting();
+            OnActionFailed?.Invoke(this, reason);
+        }
+
+        public void RaiseActionFailed(string reason)
+        {
+            _logger.Log($"Action Failed (retryable): {reason}", LogChannel.Warning);
             OnActionFailed?.Invoke(this, reason);
         }
 
@@ -283,38 +288,17 @@ namespace ChaosWarlords.Source.Managers
             return CurrentState != ActionState.Normal;
         }
 
-        private readonly Dictionary<ActionState, Func<MapNode?, Site?, IGameCommand?>> _actionHandlers;
-
-        private void InitializeHandlers()
-        {
-            _actionHandlers.Add(ActionState.TargetingAssassinate, (n, s) => n != null ? HandleAssassinate(n) : null);
-            _actionHandlers.Add(ActionState.TargetingReturn, (n, s) => n != null ? HandleReturn(n) : null);
-            _actionHandlers.Add(ActionState.TargetingSupplant, (n, s) => n != null ? HandleSupplant(n) : null);
-            _actionHandlers.Add(ActionState.TargetingPlaceSpy, (n, s) => s != null ? _spySubsystem.HandlePlaceSpy(s, PendingCard?.Id) : null);
-            _actionHandlers.Add(ActionState.TargetingReturnSpy, (n, s) => s != null ? _spySubsystem.HandleReturnSpyInitialClick(s, PendingCard?.Id) : null);
-            _actionHandlers.Add(ActionState.TargetingMoveSource, (n, s) => n != null ? HandleMoveSource(n) : null);
-            _actionHandlers.Add(ActionState.TargetingMoveDestination, (n, s) => n != null ? HandleMoveDestination(n) : null);
-        }
-
+        /// <summary>
+        /// Handles a click on a map node/site, delegating to the ActionInputController to
+        /// translate it into a command based on the current targeting state.
+        /// </summary>
         public IGameCommand? HandleTargetClick(MapNode? targetNode, Site? targetSite)
         {
-            if (_actionHandlers.TryGetValue(CurrentState, out var handler))
-            {
-                return handler(targetNode, targetSite);
-            }
-            return null;
+            return _inputController.HandleTargetClick(targetNode, targetSite);
         }
 
 
         // --- Commands Implementation ---
-
-        private AssassinateCommand? HandleAssassinate(MapNode targetNode)
-        {
-            if (targetNode is null) return null;
-            if (!ValidateAssassinate(targetNode)) return null;
-
-            return new AssassinateCommand(targetNode.Id, PendingCard?.Id, PendingDevourCard?.Id);
-        }
 
         public void PerformAssassinate(MapNode node, string? cardId, string? devourCardId = null)
         {
@@ -336,28 +320,6 @@ namespace ChaosWarlords.Source.Managers
             CompleteAction();
         }
 
-        // Renaming/Refactoring done. Removed old ExecuteAssassinate to avoid confusion.
-
-        private bool ValidateAssassinate(MapNode targetNode)
-        {
-            if (!_mapManager.CanAssassinate(targetNode, CurrentPlayer))
-            {
-                OnActionFailed?.Invoke(this, "Invalid Target!");
-                return false;
-            }
-
-            if (PendingCard is null && CurrentPlayer.Power < ASSASSINATE_COST)
-            {
-                CancelTargeting();
-                OnActionFailed?.Invoke(this, $"Not enough Power to execute Assassinate! (Need {ASSASSINATE_COST})");
-                return false;
-            }
-
-            return true;
-        }
-
-
-
         private void SpendAssassinateCost()
         {
             if (_playerStateManager is not null)
@@ -370,32 +332,11 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
-        private ReturnTroopCommand? HandleReturn(MapNode targetNode)
-        {
-            if (targetNode is null) return null;
-            if (targetNode.Occupant != PlayerColor.None && _mapManager.HasPresence(targetNode, CurrentPlayer.Color))
-            {
-                if (targetNode.Occupant == PlayerColor.Neutral) return null;
-
-                return new ReturnTroopCommand(targetNode.Id, PendingCard?.Id);
-            }
-            return null;
-        }
-
         public void PerformReturnTroop(MapNode node, string? cardId)
         {
             _mapManager.ReturnTroop(node, CurrentPlayer);
             OnActionCompleted?.Invoke(this, EventArgs.Empty);
             ClearState();
-        }
-
-        private SupplantCommand? HandleSupplant(MapNode targetNode)
-        {
-            if (targetNode is null) return null;
-            if (!_mapManager.CanAssassinate(targetNode, CurrentPlayer)) return null;
-            if (CurrentPlayer.TroopsInBarracks <= 0) return null;
-
-            return new SupplantCommand(targetNode.Id, PendingCard?.Id, PendingDevourCard?.Id);
         }
 
         public void PerformSupplant(MapNode node, string? cardId, string? devourCardId = null)
@@ -543,33 +484,15 @@ namespace ChaosWarlords.Source.Managers
             CurrentState = ActionState.SelectingSpyToReturn;
         }
 
-        private IGameCommand? HandleMoveSource(MapNode targetNode)
+        /// <summary>
+        /// Sets the source node for a Move Troop sequence and transitions to destination-targeting.
+        /// Called by ActionInputController once it has validated the source node.
+        /// </summary>
+        public void SetMoveSource(MapNode? node)
         {
-            if (targetNode is null) return null;
-
-            if (!_mapManager.CanMoveSource(targetNode, CurrentPlayer))
-            {
-                OnActionFailed?.Invoke(this, "Invalid Target: Must be an enemy troop where you have presence.");
-                return null;
-            }
-
-            PendingMoveSource = targetNode;
+            PendingMoveSource = node;
             CurrentState = ActionState.TargetingMoveDestination;
             _logger.Log("Select an empty destination space anywhere on the board.", LogChannel.General);
-            return null;
-        }
-
-        private MoveTroopCommand? HandleMoveDestination(MapNode targetNode)
-        {
-            if (targetNode is null || PendingMoveSource is null) return null;
-
-            if (!_mapManager.CanMoveDestination(targetNode))
-            {
-                OnActionFailed?.Invoke(this, "Invalid Destination: Space must be empty.");
-                return null;
-            }
-
-            return new MoveTroopCommand(PendingMoveSource.Id, targetNode.Id, PendingCard?.Id);
         }
 
         public void PerformMoveTroop(MapNode source, MapNode dest, string? cardId)

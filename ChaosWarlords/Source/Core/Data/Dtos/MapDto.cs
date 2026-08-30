@@ -36,6 +36,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     public class SiteDto : IDto<Site>
     {
         public int Id { get; set; }
+        public PlayerColor Owner { get; set; }
         public List<string> Spies { get; set; } = new List<string>();
 
         public SiteDto() { }
@@ -44,6 +45,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         {
             if (site is null) return;
             Id = site.Id;
+            Owner = site.Owner;
             Spies = site.Spies.Select(s => s.ToString()).ToList();
         }
 

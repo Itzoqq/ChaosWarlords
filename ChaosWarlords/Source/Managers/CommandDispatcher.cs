@@ -1,5 +1,7 @@
+using ChaosWarlords.Source.Core.Data.Dtos;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
+using ChaosWarlords.Source.Core.Utilities;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Managers
@@ -18,6 +20,12 @@ namespace ChaosWarlords.Source.Managers
 
         public void Dispatch(IGameCommand command, Contexts.MatchContext context)
         {
+            // Snapshot before execution so a failure partway through can be rolled back,
+            // leaving MatchContext consistent instead of partially mutated. Best-effort:
+            // if the context can't be fully snapshotted (e.g. a partial test double), we
+            // simply proceed without rollback capability rather than failing the dispatch.
+            var snapshot = TryCreateSnapshot(context);
+
             try
             {
                 // Validate (Strict Server-Side Validation)
@@ -45,7 +53,27 @@ namespace ChaosWarlords.Source.Managers
             catch (Exception ex)
             {
                 _logger.Log($"Error executing/recording command {command.GetType().Name}: {ex}", LogChannel.Error);
+
+                if (snapshot != null)
+                {
+                    _logger.Log($"Rolling back MatchContext to pre-command snapshot (Seq {snapshot.SequenceNumber}).", LogChannel.Warning);
+                    StateRestorer.RestoreState(context, snapshot);
+                }
+
                 throw;
+            }
+        }
+
+        private GameStateDto? TryCreateSnapshot(Contexts.MatchContext context)
+        {
+            try
+            {
+                return DtoMapper.ToGameStateDto(context);
+            }
+            catch (Exception ex)
+            {
+                _logger.Log($"CommandDispatcher: Could not snapshot state for rollback ({ex.Message}). Proceeding without rollback capability.", LogChannel.Warning);
+                return null;
             }
         }
     }

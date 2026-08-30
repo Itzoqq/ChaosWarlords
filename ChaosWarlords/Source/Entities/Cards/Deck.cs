@@ -66,6 +66,36 @@ namespace ChaosWarlords.Source.Entities.Cards
             }
         }
 
+        /// <summary>
+        /// Adds a card directly to the draw pile without preserving normal placement rules.
+        /// Used for restoring deck state from a snapshot (e.g. transactional rollback).
+        /// </summary>
+        /// <param name="card">The card to add.</param>
+        public void ForceAdd(Card card)
+        {
+            if (card is not null)
+            {
+                card.Location = CardLocation.Deck;
+                _drawPile.Add(card);
+            }
+        }
+
+        /// <summary>
+        /// Removes all cards from the draw pile.
+        /// </summary>
+        public void Clear()
+        {
+            _drawPile.Clear();
+        }
+
+        /// <summary>
+        /// Removes all cards from the discard pile.
+        /// </summary>
+        public void ClearDiscard()
+        {
+            _discardPile.Clear();
+        }
+
         public List<Card> Draw(int count, IGameRandom random)
         {
             var drawnCards = new List<Card>();
