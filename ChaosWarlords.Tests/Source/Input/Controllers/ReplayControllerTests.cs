@@ -44,24 +44,16 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
 
             // Setup minimalistic MatchContext
             _turnManagerMock = Substitute.For<ITurnManager>();
-            var mapManagerMsg = Substitute.For<IMapManager>();
-            var marketManagerMsg = Substitute.For<IMarketManager>();
-            var actionSystemMsg = Substitute.For<IActionSystem>();
-            var cardDbMsg = Substitute.For<ICardDatabase>();
             var psMsg = new PlayerStateManager(_loggerMock);
 
             var p1 = TestData.Players.RedPlayer();
             _turnManagerMock.ActivePlayer.Returns(p1);
-            
-            _matchContext = new MatchContext(
-                _turnManagerMock,
-                mapManagerMsg,
-                marketManagerMsg,
-                actionSystemMsg,
-                cardDbMsg,
-                psMsg,
-                _loggerMock
-            );
+
+            _matchContext = new MatchContextBuilder()
+                .WithTurnManager(_turnManagerMock)
+                .WithPlayerStateManager(psMsg)
+                .WithLogger(_loggerMock)
+                .Build();
 
              _stateFake = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState
             {

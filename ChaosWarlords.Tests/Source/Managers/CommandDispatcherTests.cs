@@ -52,15 +52,11 @@ namespace ChaosWarlords.Tests.Source.Managers
             var player = new Player(PlayerColor.Red);
             var turnManager = Substitute.For<ITurnManager>();
             turnManager.ActivePlayer.Returns(player);
-            var matchContext = new MatchContext(
-                turnManager,
-                Substitute.For<IMapManager>(),
-                Substitute.For<IMarketManager>(),
-                Substitute.For<IActionSystem>(),
-                Substitute.For<ICardDatabase>(),
-                Substitute.For<IPlayerStateManager>(),
-                _logger,
-                123);
+            var matchContext = new MatchContextBuilder()
+                .WithTurnManager(turnManager)
+                .WithLogger(_logger)
+                .WithSeed(123)
+                .Build();
 
             // Act
             _dispatcher.Dispatch(_command, matchContext);
@@ -85,15 +81,10 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             _replayManager.IsReplaying.Returns(true);
-            var matchContext = new MatchContext(
-                Substitute.For<ITurnManager>(),
-                Substitute.For<IMapManager>(),
-                Substitute.For<IMarketManager>(),
-                Substitute.For<IActionSystem>(),
-                Substitute.For<ICardDatabase>(),
-                Substitute.For<IPlayerStateManager>(),
-                _logger,
-                123);
+            var matchContext = new MatchContextBuilder()
+                .WithLogger(_logger)
+                .WithSeed(123)
+                .Build();
 
             // Act
             _dispatcher.Dispatch(_command, matchContext);
@@ -113,16 +104,11 @@ namespace ChaosWarlords.Tests.Source.Managers
             var player = new Player(PlayerColor.Red);
             var turnManager = Substitute.For<ITurnManager>();
             turnManager.ActivePlayer.Returns(player);
-            var matchContext = new MatchContext(
-                turnManager,
-                Substitute.For<IMapManager>(),
-                Substitute.For<IMarketManager>(),
-                Substitute.For<IActionSystem>(),
-                Substitute.For<ICardDatabase>(),
-                Substitute.For<IPlayerStateManager>(),
-                _logger,
-                123);
-
+            var matchContext = new MatchContextBuilder()
+                .WithTurnManager(turnManager)
+                .WithLogger(_logger)
+                .WithSeed(123)
+                .Build();
 
             // Act
             _dispatcher.Dispatch(_command, matchContext); // seq 1
@@ -144,15 +130,11 @@ namespace ChaosWarlords.Tests.Source.Managers
             var turnManager = Substitute.For<ITurnManager>();
             turnManager.ActivePlayer.Returns(player);
 
-            var matchContext = new MatchContext(
-                turnManager,
-                Substitute.For<IMapManager>(),
-                Substitute.For<IMarketManager>(),
-                Substitute.For<IActionSystem>(),
-                Substitute.For<ICardDatabase>(),
-                Substitute.For<IPlayerStateManager>(),
-                _logger,
-                123);
+            var matchContext = new MatchContextBuilder()
+                .WithTurnManager(turnManager)
+                .WithLogger(_logger)
+                .WithSeed(123)
+                .Build();
 
             var failingCommand = Substitute.For<IGameCommand>();
             failingCommand.Validate(matchContext).Returns(true);

@@ -34,15 +34,11 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             mockTurnManager.ActivePlayer.Returns(mockPlayer);
 
             // 2. Setup MatchContext (because BuyCardCommand might access state.MatchContext.MarketManager)
-            var context = new MatchContext(
-                mockTurnManager,
-                Substitute.For<IMapManager>(),
-                mockMarketManager,
-                Substitute.For<IActionSystem>(),
-                Substitute.For<ICardDatabase>(),
-                mockStateManager,
-                Utilities.TestLogger.Instance
-            );
+            var context = new MatchContextBuilder()
+                .WithTurnManager(mockTurnManager)
+                .WithMarketManager(mockMarketManager)
+                .WithPlayerStateManager(mockStateManager)
+                .Build();
             stateFake.MatchContext = context;
 
             var card = TestData.Cards.PowerCard();

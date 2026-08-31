@@ -1,11 +1,16 @@
+using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Core.Data;
+using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.Input;
+using ChaosWarlords.Source.Core.Interfaces.Logic;
+using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using NSubstitute;
 
 namespace ChaosWarlords.Tests
 {
@@ -465,6 +470,83 @@ namespace ChaosWarlords.Tests
             }
 
             return node;
+        }
+    }
+
+    /// <summary>
+    /// Fluent builder for creating MatchContext instances in tests. MatchContext is the
+    /// single most-constructed object across the test suite (~40 call sites hand-rolled the
+    /// same 8-positional-argument constructor call before this existed) and the most
+    /// fragile-to-extend one - every new dependency added to its constructor meant editing
+    /// all ~40 of them, each a chance to put the wrong value in the wrong positional slot
+    /// with no compiler help. Mirrors CardBuilder/PlayerBuilder/MapNodeBuilder's own style:
+    /// every dependency defaults to a fresh NSubstitute mock (matching what most call sites
+    /// already did), overridable one at a time via With...() for the tests that need a real
+    /// implementation or a specifically-configured mock for one particular dependency. See
+    /// planning.txt.
+    /// </summary>
+    public class MatchContextBuilder
+    {
+        private ITurnManager _turnManager = Substitute.For<ITurnManager>();
+        private IMapManager _mapManager = Substitute.For<IMapManager>();
+        private IMarketManager _marketManager = Substitute.For<IMarketManager>();
+        private IActionSystem _actionSystem = Substitute.For<IActionSystem>();
+        private ICardDatabase _cardDatabase = Substitute.For<ICardDatabase>();
+        private IPlayerStateManager _playerStateManager = Substitute.For<IPlayerStateManager>();
+        private IGameLogger _logger = Tests.Utilities.TestLogger.Instance;
+        private int? _seed = 12345;
+
+        public MatchContextBuilder WithTurnManager(ITurnManager turnManager)
+        {
+            _turnManager = turnManager;
+            return this;
+        }
+
+        public MatchContextBuilder WithMapManager(IMapManager mapManager)
+        {
+            _mapManager = mapManager;
+            return this;
+        }
+
+        public MatchContextBuilder WithMarketManager(IMarketManager marketManager)
+        {
+            _marketManager = marketManager;
+            return this;
+        }
+
+        public MatchContextBuilder WithActionSystem(IActionSystem actionSystem)
+        {
+            _actionSystem = actionSystem;
+            return this;
+        }
+
+        public MatchContextBuilder WithCardDatabase(ICardDatabase cardDatabase)
+        {
+            _cardDatabase = cardDatabase;
+            return this;
+        }
+
+        public MatchContextBuilder WithPlayerStateManager(IPlayerStateManager playerStateManager)
+        {
+            _playerStateManager = playerStateManager;
+            return this;
+        }
+
+        public MatchContextBuilder WithLogger(IGameLogger logger)
+        {
+            _logger = logger;
+            return this;
+        }
+
+        public MatchContextBuilder WithSeed(int? seed)
+        {
+            _seed = seed;
+            return this;
+        }
+
+        public MatchContext Build()
+        {
+            return new MatchContext(_turnManager, _mapManager, _marketManager, _actionSystem, _cardDatabase, _playerStateManager, _logger, _seed);
         }
     }
 }
