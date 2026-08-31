@@ -83,8 +83,11 @@ namespace ChaosWarlords.Source.Commands
 
         public bool Validate(MatchContext context)
         {
-            // Complex to fully validate without finding the card again, but assuming CardToDevour is valid instance:
-            return true;
+            // Mirrors PlayCardCommand/BuyCardCommand's own Validate(): resolve the same way
+            // Execute() will and reject if the card can't be found (already devoured, already
+            // moved, or simply never existed - matters once an untrusted client can send this
+            // command directly to a server, not just a trusted single-process replay).
+            return ResolveCard(context, CardRuntimeId) != null;
         }
 
         public void Execute(MatchContext context)

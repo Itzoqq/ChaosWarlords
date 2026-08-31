@@ -25,6 +25,47 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         }
 
         [TestMethod]
+        public void Validate_CardInHand_ReturnsTrue()
+        {
+            // Arrange
+            var stateFake = new TestGameplayState();
+            var player = new Player(PlayerColor.Red);
+            stateFake.TurnManager.ActivePlayer.Returns(player);
+
+            var card = TestData.Cards.CheapCard();
+            player.AddToHand(card);
+            var command = new DevourCardCommand(card);
+
+            // Act
+            bool result = command.Validate(stateFake.MatchContext);
+
+            // Assert
+            Assert.IsTrue(result);
+        }
+
+        [TestMethod]
+        public void Validate_CardNotFoundAnywhere_ReturnsFalse()
+        {
+            // Arrange: card was never added to the active player's Hand/InnerCircle/
+            // PlayedCards or the market row - e.g. already devoured, or a bogus/stale
+            // RuntimeId - so ResolveCard() (the same lookup Execute() itself uses) finds
+            // nothing. A server must be able to reject this via Validate() alone, without
+            // relying on Execute()'s own silent no-op.
+            var stateFake = new TestGameplayState();
+            var player = new Player(PlayerColor.Red);
+            stateFake.TurnManager.ActivePlayer.Returns(player);
+
+            var card = TestData.Cards.CheapCard();
+            var command = new DevourCardCommand(card); // never added anywhere
+
+            // Act
+            bool result = command.Validate(stateFake.MatchContext);
+
+            // Assert
+            Assert.IsFalse(result);
+        }
+
+        [TestMethod]
         public void Execute_CallsMatchManagerDevour()
         {
             // Arrange

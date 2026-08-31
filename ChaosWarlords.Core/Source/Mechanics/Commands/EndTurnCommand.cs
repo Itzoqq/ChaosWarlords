@@ -13,7 +13,8 @@ namespace ChaosWarlords.Source.Commands
         }
         public bool Validate(MatchContext context)
         {
-            // Check if can end turn (ActionPoints, etc)
+            // Always legal: per the rules a player may end their turn early at any time -
+            // there's no "must spend everything first" requirement to check.
             return true;
         }
 
