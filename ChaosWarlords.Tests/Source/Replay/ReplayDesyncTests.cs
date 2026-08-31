@@ -10,6 +10,7 @@ using ChaosWarlords.Source.Contexts;
 namespace ChaosWarlords.Tests.Source.Replay
 {
     [TestClass]
+    [TestCategory("Integration")]
     public class ReplayDesyncTests
     {
         [TestMethod]

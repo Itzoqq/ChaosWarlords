@@ -9,6 +9,7 @@ using ChaosWarlords.Source.Entities.Actors;
 namespace ChaosWarlords.Tests.Source.Mechanics.Commands
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class CommandSerializationTests
     {
         private Card CreateDummyCard(string id)

@@ -11,6 +11,7 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Source.Entities.Cards
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class EffectConditionTests
     {
         private MatchContext _context = null!;

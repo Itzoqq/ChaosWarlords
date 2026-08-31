@@ -3,6 +3,7 @@ using ChaosWarlords.Source.Core.Data;
 namespace ChaosWarlords.Tests.Source.Core.Data
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class LogicRectangleTests
     {
         [TestMethod]

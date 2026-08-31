@@ -14,6 +14,7 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Source.Integration.Mechanics
 {
     [TestClass]
+    [TestCategory("Integration")]
     public class DevourFromInnerCircleIntegrationTests
     {
         private MatchContext _context = null!;

@@ -6,6 +6,7 @@ using ChaosWarlords.Source.Core.Interfaces.Services;
 namespace ChaosWarlords.Tests.Replay
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class ReplayScenarioTests
     {
         private IGameLogger _logger = new NullLogger();

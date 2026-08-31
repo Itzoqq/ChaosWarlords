@@ -15,6 +15,7 @@ namespace ChaosWarlords.Tests.Replay
     }
 
     [TestClass]
+    [TestCategory("Unit")]
     public class ReplaySystemTests
     {
         private IGameLogger _logger = new NullLogger();

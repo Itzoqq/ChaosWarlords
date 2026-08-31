@@ -21,6 +21,7 @@ using ChaosWarlords.Source.Entities.Actors;
 namespace ChaosWarlords.Tests.Source.Integration.Input
 {
     [TestClass]
+    [TestCategory("Integration")]
     public class InputBlockingTests
     {
         private IGameplayState _gameState = null!;

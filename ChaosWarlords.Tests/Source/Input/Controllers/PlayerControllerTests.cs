@@ -15,6 +15,7 @@ using System;
 namespace ChaosWarlords.Tests.Source.Input.Controllers
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class PlayerControllerTests
     {
         private PlayerController _controller = null!;

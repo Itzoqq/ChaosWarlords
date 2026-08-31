@@ -23,6 +23,7 @@ using System;
 namespace ChaosWarlords.Tests.Source.Integration.Mechanics
 {
     [TestClass]
+    [TestCategory("Integration")]
     public class WightMechanicsTests
     {
         private MatchContext _context = null!;

@@ -11,6 +11,7 @@ using NSubstitute;
 namespace ChaosWarlords.Tests.Source.Mechanics.Rules
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class TargetingStateEngineTests
     {
         private CardRuleEngine GetRuleEngine()

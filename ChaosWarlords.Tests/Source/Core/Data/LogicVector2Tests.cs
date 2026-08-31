@@ -3,6 +3,7 @@ using ChaosWarlords.Source.Core.Data;
 namespace ChaosWarlords.Tests.Source.Core.Data
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class LogicVector2Tests
     {
         // Vector2 <-> LogicVector2 conversion (ToVector2()/FromVector2()) moved to

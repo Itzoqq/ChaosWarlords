@@ -11,6 +11,7 @@ using System;
 namespace ChaosWarlords.Tests.Source.Managers
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class UIManagerTests
     {
         private IGameLogger _logger = null!;

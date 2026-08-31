@@ -20,6 +20,7 @@ using System.Collections.Generic; // For List<Card>
 namespace ChaosWarlords.Tests.Source.Managers
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class UIEventMediatorTests
     {
         private IGameplayState _gameState = null!;

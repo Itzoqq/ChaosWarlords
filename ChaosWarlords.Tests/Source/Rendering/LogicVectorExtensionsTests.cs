@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 namespace ChaosWarlords.Tests.Source.Rendering
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class LogicVectorExtensionsTests
     {
         [TestMethod]

@@ -3,6 +3,7 @@ using ChaosWarlords.Source.Utilities;
 namespace ChaosWarlords.Tests.Source.Core.Utilities
 {
     [TestClass]
+    [TestCategory("Unit")]
     public class BufferedAsyncLoggerTests
     {
         private string _testLogPath = null!;
