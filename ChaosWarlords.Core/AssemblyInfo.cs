@@ -10,3 +10,4 @@ using System.Runtime.CompilerServices;
 // than loosening these members to public just to cross the new assembly boundary.
 [assembly: InternalsVisibleTo("ChaosWarlords")]
 [assembly: InternalsVisibleTo("ChaosWarlords.Tests")]
+[assembly: InternalsVisibleTo("ChaosWarlords.Core.Tests")]

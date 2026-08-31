@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!--
+      References ChaosWarlords.Core ONLY - deliberately never ChaosWarlords (the client
+      project, which pulls in MonoGame.Framework.DesktopGL). This is what makes the
+      "headless" split actually load-bearing rather than just a convention: if a MonoGame
+      type (or anything else client-only) ever leaked into Core, this project simply
+      wouldn't build. ChaosWarlords.Tests remains the much larger suite covering
+      everything, including the client/UI/input layers - this project holds only the
+      subset that can run on a machine with zero MonoGame/graphics presence at all. See
+      docs/architecture.md and planning.txt.
+    -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="MSTest" Version="4.0.1" />
+    <PackageReference Include="NSubstitute" Version="5.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ChaosWarlords.Core\ChaosWarlords.Core.csproj" />
+  </ItemGroup>
+
+  <Target Name="CleanTestReports" BeforeTargets="VSTest">
+    <Message Text="Cleaning old coverage and test reports..." Importance="high" />
+    <RemoveDir Directories="$(MSBuildProjectDirectory)/TestResults" />
+  </Target>
+
+</Project>

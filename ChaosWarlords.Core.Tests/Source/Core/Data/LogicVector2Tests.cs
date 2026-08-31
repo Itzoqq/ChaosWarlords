@@ -1,6 +1,6 @@
 using ChaosWarlords.Source.Core.Data;
 
-namespace ChaosWarlords.Tests.Source.Core.Data
+namespace ChaosWarlords.Core.Tests.Source.Core.Data
 {
     [TestClass]
     [TestCategory("Unit")]

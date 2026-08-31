@@ -1,6 +1,6 @@
 using ChaosWarlords.Source.Core.Utilities;
 
-namespace ChaosWarlords.Tests.Source.Core.Utilities
+namespace ChaosWarlords.Core.Tests.Source.Core.Utilities
 {
     /// <summary>
     /// Pcg32 replaced System.Random as SeededGameRandom's underlying engine (see planning.txt

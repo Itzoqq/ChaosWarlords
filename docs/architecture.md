@@ -13,16 +13,31 @@ This document outlines the architecture of the `ChaosWarlords` codebase, a digit
 
 ## Directory Structure & File Listing
 
-**Two projects, as of 2026-08-31.** `ChaosWarlords.Core.csproj` holds the headless-compatible
-logic (`MatchContext` and everything it composes) and has **zero MonoGame package
-references** - it can build and run without a graphics stack, which is what "headless
-server support" actually requires (previously this was only a convention enforced by
-coding-guidelines.md's "no `Graphics` types" rule, not a compiled boundary). `ChaosWarlords.csproj`
-(the game) references `ChaosWarlords.Core` and adds the MonoGame-specific
-rendering/input/state-machine layer. `ChaosWarlords.Tests.csproj` is unchanged - it still
-references `ChaosWarlords.csproj` alone, which transitively carries `Core`. Namespaces were
-left as `ChaosWarlords.Source.*` across both projects (unchanged by the split) - the
-project boundary, not the namespace, is what's now enforced.
+**Two logic/client projects, as of 2026-08-31, plus a headless-only test project added
+2026-08-31.** `ChaosWarlords.Core.csproj` holds the headless-compatible logic (`MatchContext`
+and everything it composes) and has **zero MonoGame package references** - it can build and
+run without a graphics stack, which is what "headless server support" actually requires
+(previously this was only a convention enforced by coding-guidelines.md's "no `Graphics`
+types" rule, not a compiled boundary). `ChaosWarlords.csproj` (the game) references
+`ChaosWarlords.Core` and adds the MonoGame-specific rendering/input/state-machine layer.
+`ChaosWarlords.Tests.csproj` is unchanged - it still references `ChaosWarlords.csproj` alone,
+which transitively carries `Core`, and remains the primary, much larger test suite covering
+everything including the client/UI/input layers. Namespaces were left as
+`ChaosWarlords.Source.*` across both projects (unchanged by the split) - the project
+boundary, not the namespace, is what's now enforced.
+
+`ChaosWarlords.Core.Tests.csproj` is a separate, smaller test project that references
+`ChaosWarlords.Core.csproj` ONLY - never the client project, so never MonoGame. It exists
+because the two-project split above proved Core *can* be headless but didn't prove the test
+suite actually exercises that in isolation (`ChaosWarlords.Tests` builds and runs fine, but
+only because it happens to also carry MonoGame along for the ride) - this project makes that
+a compiled guarantee instead of an assumption: if a MonoGame-dependent type ever leaked into
+Core, this project simply wouldn't build. It holds a deliberately small slice - a handful of
+already-headless unit tests moved over from `ChaosWarlords.Tests` (`Pcg32Tests`,
+`SeededGameRandomTests`, `LogicVector2Tests`, `LogicRectangleTests`) plus one integration-style
+smoke test that builds a match via `MatchFactory` and runs real commands through a real
+`CommandDispatcher` - not a full migration of every Core-only test in the main suite (see
+planning.txt for why that wasn't done wholesale).
 
 A few logic-adjacent types that used MonoGame's `Vector2`/`Rectangle` directly (`MapNode`,
 `Site`, `MapTopology`, `MapManager`) now use the existing `LogicVector2` (deterministic,
@@ -38,7 +53,7 @@ Below is a detailed listing of all files and their responsibilities, organized b
 ```text
 ChaosWarlords.Core/                 # Logic Project Root (no MonoGame package reference)
 ├── ChaosWarlords.Core.csproj       # Project File
-├── AssemblyInfo.cs                 # InternalsVisibleTo(ChaosWarlords, ChaosWarlords.Tests)
+├── AssemblyInfo.cs                 # InternalsVisibleTo(ChaosWarlords, ChaosWarlords.Tests, ChaosWarlords.Core.Tests)
 └── Source/
     ├── Core/
     │   ├── Contexts/                        # Data Holders (The "Glue")
