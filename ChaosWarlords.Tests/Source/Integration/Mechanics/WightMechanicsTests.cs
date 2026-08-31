@@ -139,6 +139,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             command.Execute(_context);
 
             Assert.IsFalse(popupRequested, "Optional Effect Popup should be SKIPPED when NO valid supplant targets exist.");
+            Assert.AreEqual(2, _p1.Power, "Choose-one: with the Devour->Supplant half impossible, the +2 Power Alternative should fire instead - not silently nothing.");
         }
 
 
@@ -165,6 +166,30 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             command.Execute(_context);
 
             Assert.IsFalse(popupRequested, "Optional Effect Popup should be SKIPPED when NO troops in barracks (Supplant impossible).");
+            Assert.AreEqual(2, _p1.Power, "Choose-one: with the Devour->Supplant half impossible, the +2 Power Alternative should fire instead - not silently nothing.");
+        }
+
+        [TestMethod]
+        public void PlayWight_WithEmptyHand_ShouldGrantPowerFallback()
+        {
+            // Regression test for the top-level HasValidTargets pre-check fix (see planning.txt
+            // RESOLVED): before, playing Wight with nothing else in hand skipped the Devour
+            // effect (no valid Hand target) and granted NOTHING - not even the +2 Power
+            // fallback, since the old JSON had no Alternative wiring at all.
+            _nodeA.Occupant = PlayerColor.Red;
+            _nodeB.Occupant = PlayerColor.Blue; // Valid Supplant target - irrelevant here, the hand itself is empty
+
+            var wight = GetWightCard();
+            _p1.AddToHand(wight); // Only card in hand
+
+            bool popupRequested = false;
+            _actionSystem.OnInteractionRequested += req => popupRequested = true;
+
+            var command = new PlayCardCommand(wight);
+            command.Execute(_context);
+
+            Assert.IsFalse(popupRequested, "No valid Devour target (empty hand) means no popup - the Alternative fires directly.");
+            Assert.AreEqual(2, _p1.Power, "Empty-hand fallback should still grant the +2 Power Alternative.");
         }
 
         [TestMethod]
@@ -229,6 +254,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             Assert.IsFalse(_p1.Hand.Contains(noble));
             Assert.AreEqual(CardLocation.Void, noble.Location);
             Assert.IsNull(_actionSystem.PendingDevourCard, "No pending devour should be left dangling after the chain completes.");
+            Assert.AreEqual(0, _p1.Power, "Choose-one mutual exclusivity: accepting the Devour->Supplant half must NOT also grant the +2 Power Alternative.");
 
             // Regression assertion for the same bug: the double-processed stack left a second,
             // un-consumed TargetingSupplant effect buried underneath, which would resurface
@@ -238,15 +264,18 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
 
         private Card GetWightCard()
         {
-            var card = new Card("wight", "Wight", 3, CardAspect.Sorcery, 1, 3, 0);
-            
-            card.AddEffect(new CardEffect(EffectType.GainResource, 2, ResourceType.Power));
-            
+            // Matches the real card's "Choose one: +2 Power. Or, devour a card in your hand
+            // to Supplant a troop." - a single mutually-exclusive effect via Alternative, not
+            // an unconditional Power gain plus a separate optional add-on (see planning.txt
+            // RESOLVED for the bug this replaced).
+            var card = new Card("wight", "Wight", 3, CardAspect.Oblivion, 1, 3, 0);
+
             var devour = new CardEffect(EffectType.Devour, 1)
             {
                 TargetLocation = CardLocation.Hand,
                 IsOptional = true,
-                OnSuccess = new CardEffect(EffectType.Supplant, 1)
+                OnSuccess = new CardEffect(EffectType.Supplant, 1),
+                Alternative = new CardEffect(EffectType.GainResource, 2, ResourceType.Power)
             };
             card.AddEffect(devour);
 
