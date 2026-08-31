@@ -848,6 +848,22 @@ namespace ChaosWarlords.Source.Managers
 
             _logger.Log($"ActionSystem: Waiting for input for {nextEffect.EffectType}...", LogChannel.Input);
         }
+
+        /// <summary>
+        /// See IActionSystem.RestorePendingState - restore-only, StateRestorer's exclusive
+        /// caller. Bypasses CurrentState's normal OnStateChanged-raising setter path
+        /// deliberately: a rollback isn't a real state transition any UI/subscriber should
+        /// react to, it's undoing one that (from their perspective) never should have
+        /// happened. Setting the backing field directly, not the property, is what skips that.
+        /// </summary>
+        public void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard)
+        {
+            _currentState = state;
+            PendingCard = pendingCard;
+            PendingSite = pendingSite;
+            PendingMoveSource = pendingMoveSource;
+            _devourSubsystem.RestorePendingDevourCard(pendingDevourCard);
+        }
     }
 }
 

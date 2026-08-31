@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Core.Data.Dtos
 {
@@ -28,6 +29,28 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
 
         // Stack State (For mid-action recovery)
         public List<EffectContextDto> EffectStack { get; set; } = [];
+
+        /// <summary>
+        /// ActionSystem's targeting state machine at snapshot time - CurrentState plus its
+        /// Pending* fields (PendingCard/PendingSite/PendingMoveSource/PendingDevourCard).
+        /// Added alongside EffectStack so a rollback (StateRestorer, on a command that throws
+        /// mid-execution) restores the FULL mid-action picture, not just the execution stack -
+        /// before this, a failed command could roll the map/players/market back to before it
+        /// ran while leaving ActionSystem still pointing at Pending* state from the failed
+        /// attempt (or from whatever ran just before it). Card/Site/MapNode are stored as IDs,
+        /// not embedded objects, and re-resolved on restore - cards via CardDatabase.GetCardById
+        /// (matching RestoreEffect's existing SourceCard resolution, so a restored PendingCard
+        /// is a fresh instance rather than the original reference, same known limitation as the
+        /// rest of rollback's Card handling), sites/nodes via MapManager.Sites/Nodes lookup
+        /// (matching RestoreMap, which mutates the existing Site/MapNode instances in place
+        /// rather than recreating them, so these DO resolve to the same reference other restored
+        /// state already points at). See planning.txt.
+        /// </summary>
+        public ActionState ActionSystemState { get; set; } = ActionState.Normal;
+        public string? PendingCardId { get; set; }
+        public int? PendingSiteId { get; set; }
+        public int? PendingMoveSourceNodeId { get; set; }
+        public string? PendingDevourCardId { get; set; }
 
         public long SequenceNumber { get; set; }
 

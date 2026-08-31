@@ -369,6 +369,14 @@ namespace ChaosWarlords.Source.Core.Utilities
             // Stack Serialization
             dto.EffectStack = SerializeEffectStack(context.ActionSystem.ExecutionStack);
 
+            // ActionSystem's targeting state machine - see GameStateDto.ActionSystemState's
+            // doc comment for why this travels alongside EffectStack.
+            dto.ActionSystemState = context.ActionSystem.CurrentState;
+            dto.PendingCardId = context.ActionSystem.PendingCard?.Id;
+            dto.PendingSiteId = context.ActionSystem.PendingSite?.Id;
+            dto.PendingMoveSourceNodeId = context.ActionSystem.PendingMoveSource?.Id;
+            dto.PendingDevourCardId = context.ActionSystem.PendingDevourCard?.Id;
+
             // Computed from the live context, not recomputed independently on the DTO later -
             // see GameStateDto.StateHash's doc comment for why.
             dto.StateHash = context.GetStateHash();

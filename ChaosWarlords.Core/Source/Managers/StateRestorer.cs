@@ -71,6 +71,15 @@ namespace ChaosWarlords.Source.Managers
                      RestoreEffect(context, effectDto);
                 }
             }
+
+            // 7. ActionSystem's targeting state machine (CurrentState + Pending* fields) - see
+            // GameStateDto.ActionSystemState's doc comment for why this travels separately
+            // from EffectStack and how Card/Site/MapNode are re-resolved here.
+            var pendingCard = dto.PendingCardId != null ? context.CardDatabase.GetCardById(dto.PendingCardId) : null;
+            var pendingSite = dto.PendingSiteId is int siteId ? context.MapManager.Sites.FirstOrDefault(s => s.Id == siteId) : null;
+            var pendingMoveSource = dto.PendingMoveSourceNodeId is int nodeId ? context.MapManager.Nodes.FirstOrDefault(n => n.Id == nodeId) : null;
+            var pendingDevourCard = dto.PendingDevourCardId != null ? context.CardDatabase.GetCardById(dto.PendingDevourCardId) : null;
+            context.ActionSystem.RestorePendingState(dto.ActionSystemState, pendingCard, pendingSite, pendingMoveSource, pendingDevourCard);
         }
 
         private static void RestoreMap(IMapManager mapManager, MapDto mapDto)

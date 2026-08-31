@@ -175,6 +175,65 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         [TestMethod]
+        public void RestoreState_RevertsActionSystemCurrentStateAndPendingMoveSource()
+        {
+            // Real API, not RestorePendingState directly - exercises the same path a genuine
+            // in-progress Move Troop targeting sequence would.
+            _context.ActionSystem.SetMoveSource(_node);
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+
+            // Mutate further, as a failing command that changed targeting state would.
+            _context.ActionSystem.RestorePendingState(ActionState.Normal, null, null, null, null);
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.AreEqual(ActionState.TargetingMoveDestination, _context.ActionSystem.CurrentState);
+            Assert.AreSame(_node, _context.ActionSystem.PendingMoveSource,
+                "Restored PendingMoveSource should resolve to the SAME MapNode instance MapManager " +
+                "already holds - RestoreMap mutates nodes in place rather than recreating them.");
+        }
+
+        [TestMethod]
+        public void RestoreState_RevertsActionSystemPendingSite()
+        {
+            var site = new NonCitySite("Test Site", ResourceType.Power, 0, ResourceType.Power, 0) { Id = 7 };
+            _mapManager.Sites.Returns(new List<Site> { site });
+
+            _context.ActionSystem.TransitionToSpySelection(site);
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+
+            _context.ActionSystem.RestorePendingState(ActionState.Normal, null, null, null, null);
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.AreEqual(ActionState.SelectingSpyToReturn, _context.ActionSystem.CurrentState);
+            Assert.AreSame(site, _context.ActionSystem.PendingSite,
+                "Restored PendingSite should resolve to the SAME Site instance MapManager already holds.");
+        }
+
+        [TestMethod]
+        public void RestoreState_RevertsActionSystemPendingCardAndPendingDevourCard()
+        {
+            var pendingCard = RegisterCard("wight", CardLocation.Hand);
+            var devourCard = RegisterCard("victim", CardLocation.Hand);
+
+            // No side-effect-free public API sets PendingCard/PendingDevourCard in isolation
+            // (they're set as part of larger targeting/devour flows) - RestorePendingState is
+            // the documented restore-only entry point, so using it to arrange the "before"
+            // state here exercises exactly what StateRestorer itself calls, just earlier.
+            _context.ActionSystem.RestorePendingState(ActionState.TargetingAssassinate, pendingCard, null, null, devourCard);
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+
+            _context.ActionSystem.RestorePendingState(ActionState.Normal, null, null, null, null);
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.AreEqual(ActionState.TargetingAssassinate, _context.ActionSystem.CurrentState);
+            Assert.AreEqual("wight", _context.ActionSystem.PendingCard?.Id);
+            Assert.AreEqual("victim", _context.ActionSystem.PendingDevourCard?.Id);
+        }
+
+        [TestMethod]
         public void RestoreState_RevertsMarketRow()
         {
             var marketRow = new List<Card>();

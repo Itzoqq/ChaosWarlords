@@ -200,6 +200,17 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             TriggerCompletion();
         }
 
+        /// <summary>
+        /// Restore-only: sets PendingDevourCard directly, with none of DeferDevour's side
+        /// effects (logging, TriggerCompletion). Exists solely for
+        /// ActionSystem.RestorePendingState / StateRestorer.RestoreState - see their doc
+        /// comments.
+        /// </summary>
+        public void RestorePendingDevourCard(Card? card)
+        {
+            PendingDevourCard = card;
+        }
+
         public Commands.DevourCardCommand? HandleDevourSelection(Card? targetCard)
         {
             if (targetCard is null) return null;

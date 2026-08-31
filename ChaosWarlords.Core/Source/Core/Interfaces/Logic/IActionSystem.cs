@@ -242,6 +242,16 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// </summary>
         /// <param name="success">Whether the effect resolved successfully.</param>
         void ResolveCurrentEffect(bool success);
+
+        /// <summary>
+        /// Restore-only: overwrites CurrentState and the Pending* fields directly, bypassing
+        /// the normal targeting-flow mutators (StartAssassinate, HandleReturnSpyInitialClick,
+        /// etc.) and the side effects some of those carry. Exists solely for
+        /// StateRestorer.RestoreState to put ActionSystem's targeting state machine back to a
+        /// pre-command snapshot on rollback - not a general-purpose setter, and not something
+        /// game logic outside StateRestorer should call. See GameStateDto.ActionSystemState.
+        /// </summary>
+        void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard);
     }
 }
 
