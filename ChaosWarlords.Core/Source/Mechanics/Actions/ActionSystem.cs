@@ -90,6 +90,7 @@ namespace ChaosWarlords.Source.Managers
         private readonly SpySubsystem _spySubsystem;
         private readonly PreTargetHandler _preTargetHandler;
         private readonly ActionInputController _inputController;
+        private readonly ActionExecutionEngine _executionEngine;
 
         public ActionSystem(ITurnManager turnManager, IMapManager mapManager, IGameLogger logger)
         {
@@ -105,6 +106,17 @@ namespace ChaosWarlords.Source.Managers
             // Click-to-command routing lives in its own class (SRP); ActionSystem stays the
             // logic/state engine and delegates HandleTargetClick to it.
             _inputController = new ActionInputController(this, _mapManager, _spySubsystem, _turnManager, _logger);
+
+            // Execution-stack management (PushEffect/ResolveCurrentEffect/ProcessStack and
+            // everything ProcessStack calls into) lives in its own class too, extracted
+            // 2026-08-31 - see ActionExecutionEngine's doc comment and planning.txt. Forward
+            // its three events as ActionSystem's own public events (C# events can only be
+            // raised by their declaring type, so this can't just be "the engine invokes
+            // ActionSystem's event directly" even through the shared IActionSystem reference).
+            _executionEngine = new ActionExecutionEngine(this, _logger, _preTargetHandler);
+            _executionEngine.OnActionCompleted += (sender, args) => OnActionCompleted?.Invoke(this, args);
+            _executionEngine.OnInteractionRequested += request => OnInteractionRequested?.Invoke(request);
+            _executionEngine.OnAutoExecuteCommand += command => OnAutoExecuteCommand?.Invoke(command);
         }
 
         public void SetPlayerStateManager(IPlayerStateManager stateManager)
@@ -171,8 +183,51 @@ namespace ChaosWarlords.Source.Managers
             _logger.Log($"Select a SITE to remove Enemy Spy (Cost: {RETURN_SPY_COST} Power)...", LogChannel.General);
         }
 
+        /// <summary>
+        /// Full-state snapshot taken exactly once per targeting SEQUENCE (not once per step),
+        /// so CancelTargeting() can revert whatever mutated during the sequence instead of
+        /// hand-coding a per-mechanic undo step (the "imperative undo trap" - see
+        /// CancelTargeting's own doc comment and planning.txt). Captured only when actually
+        /// leaving Normal state: AdvancePreCommitTargeting calls StartTargeting repeatedly for
+        /// a single multi-step card (e.g. Wight's Devour -> Supplant chain), and re-snapshotting
+        /// at every step would only let a later cancel undo back to the START OF THAT STEP, not
+        /// the whole play attempt - cancelling ANY step of a chain has always meant "undo the
+        /// whole thing" (see TryRestoreCardToHand, unaffected by which step triggered the
+        /// cancel). Null whenever there's no MatchContext wired (SetMatchContext never called)
+        /// or no sequence in flight - CancelTargeting falls back to the original field-by-field
+        /// clear in that case.
+        /// </summary>
+        private Core.Data.Dtos.GameStateDto? _targetingSequenceSnapshot;
+
+        /// <summary>
+        /// Best-effort, matching CommandDispatcher.TryCreateSnapshot's exact precedent for the
+        /// same underlying operation (DtoMapper.ToGameStateDto): a lightly-mocked test double
+        /// (e.g. an IMarketManager substitute with MarketRow left unconfigured, defaulting to
+        /// null) can make the full state-graph traversal throw. Falling back to "no snapshot"
+        /// (CancelTargeting then uses its own field-by-field fallback) is strictly better than
+        /// letting an ordinary StartTargeting call crash the whole test/game over a snapshot
+        /// this specific cancel might not even need.
+        /// </summary>
+        private Core.Data.Dtos.GameStateDto? TryCreateTargetingSnapshot()
+        {
+            try
+            {
+                return Core.Utilities.DtoMapper.ToGameStateDto(_matchContext!);
+            }
+            catch (Exception ex)
+            {
+                _logger.Log($"ActionSystem: Could not snapshot state for targeting cancellation ({ex.Message}). CancelTargeting will fall back to field-by-field clearing.", LogChannel.Warning);
+                return null;
+            }
+        }
+
         public void StartTargeting(ActionState state, Card? card = null)
         {
+            if (CurrentState == ActionState.Normal && _matchContext != null)
+            {
+                _targetingSequenceSnapshot = TryCreateTargetingSnapshot();
+            }
+
             CurrentState = state;
             PendingCard = card;
 
@@ -195,7 +250,7 @@ namespace ChaosWarlords.Source.Managers
                 cmd => OnAutoExecuteCommand?.Invoke(cmd),
                 () =>
                 {
-                    if (ExecutionStack.Count > 0) ResolveCurrentEffect(false);
+                    if (_executionEngine.ExecutionStack.Count > 0) _executionEngine.ResolveCurrentEffect(false);
                     else CompleteAction();
                 }))
             {
@@ -211,6 +266,13 @@ namespace ChaosWarlords.Source.Managers
             PendingSite = null;
             PendingMoveSource = null;
             // Note: PendingDevourCard is NOT cleared here to allow transactional persistence across chained actions.
+
+            // Whenever we return to Normal - whether the sequence completed successfully or
+            // was cancelled via the fallback (no-snapshot) path - any snapshot taken for it is
+            // stale. CancelTargeting's own snapshot-restore path already nulls this out
+            // itself; this covers every other path back to Normal so a later cancel never
+            // reuses a snapshot from a sequence that already finished.
+            _targetingSequenceSnapshot = null;
         }
 
         public void NotifyFailure(string reason)
@@ -226,36 +288,71 @@ namespace ChaosWarlords.Source.Managers
             OnActionFailed?.Invoke(this, reason);
         }
 
+        /// <summary>
+        /// Cancels the current targeting sequence and reverts to Normal. Two mechanisms work
+        /// together here, covering different parts of the timeline:
+        ///
+        /// 1. A full-state snapshot/restore (see _targetingSequenceSnapshot), taken at the
+        ///    moment the sequence actually started. This is the "real fix" planning.txt asked
+        ///    for: instead of every mechanic that mutates state during targeting needing its
+        ///    own bespoke undo step, ANY such mutation (map, player resources, market, void,
+        ///    the effect stack, ActionSystem's own Pending*/CurrentState) reverts automatically.
+        ///
+        /// 2. TryRestoreCardToHand, kept from before this refactor. The snapshot above CANNOT
+        ///    undo the played-card's move from Hand to Played: MatchManager.PlayCard moves a
+        ///    card to Played and pays its cost BEFORE pushing its effects onto the stack (see
+        ///    MatchManager.PlayCard), so even a snapshot taken at the true start of THIS
+        ///    targeting sequence is already post-play. This runs by card ID, not by object
+        ///    reference, and AFTER the snapshot restore (not before) - the restore replaces
+        ///    the player's Hand/Played collections wholesale with freshly-resolved Card
+        ///    instances (see StateRestorer's own doc comments on Card identity across a
+        ///    restore), so the pre-cancel PendingCard reference may no longer be the same
+        ///    object the restored PlayedCards collection holds; running before the restore
+        ///    would just have its own fix immediately overwritten by it.
+        /// </summary>
         public void CancelTargeting()
         {
-            TryRestoreCardToHand();
+            string? cardToClearId = PendingCard?.Id;
+
             ClearPreselectedTargets();
 
-            var cardToClear = PendingCard;
-
-            ClearState();
-            _devourSubsystem.ClearState();
-            _logger.Log("ActionSystem: Targeting Cancelled. State cleared.", LogChannel.Info);
-
-            var cancelledEffects = PopCancelledEffects(cardToClear);
+            var cancelledEffects = PopCancelledEffects(PendingCard);
             InvokeCancellationCallbacks(cancelledEffects);
 
-            // Resume stack processing ONLY if there are remaining effects
-            if (ExecutionStack.Count > 0)
+            if (_matchContext != null && _targetingSequenceSnapshot != null)
             {
-                _logger.Log($"ActionSystem: [CANCEL] Cleanup complete. Resuming stack (Size: {ExecutionStack.Count}).", LogChannel.Debug);
-                ProcessStack();
+                Managers.StateRestorer.RestoreState(_matchContext, _targetingSequenceSnapshot);
+                _targetingSequenceSnapshot = null;
+                _logger.Log("ActionSystem: Targeting Cancelled. Full pre-sequence state restored.", LogChannel.Info);
+            }
+            else
+            {
+                ClearState();
+                _devourSubsystem.ClearState();
+                _logger.Log("ActionSystem: Targeting Cancelled (no snapshot available - state cleared directly).", LogChannel.Info);
+            }
+
+            TryRestoreCardToHand(cardToClearId);
+
+            // Resume stack processing ONLY if there are remaining effects
+            if (_executionEngine.ExecutionStack.Count > 0)
+            {
+                _logger.Log($"ActionSystem: [CANCEL] Cleanup complete. Resuming stack (Size: {_executionEngine.ExecutionStack.Count}).", LogChannel.Debug);
+                _executionEngine.ProcessStack();
             }
         }
 
-        private void TryRestoreCardToHand()
+        private void TryRestoreCardToHand(string? cardId)
         {
-            if (PendingCard != null && PendingCard.Location == CardLocation.Played)
+            if (string.IsNullOrEmpty(cardId)) return;
+
+            var card = CurrentPlayer.PlayedCards.FirstOrDefault(c => c.Id == cardId);
+            if (card != null)
             {
-                CurrentPlayer.RemoveFromPlayed(PendingCard);
-                CurrentPlayer.AddToHand(PendingCard);
-                PendingCard.Location = CardLocation.Hand;
-                _logger.Log($"Returned {PendingCard.Name} to hand after targeting cancellation.", LogChannel.Info);
+                CurrentPlayer.RemoveFromPlayed(card);
+                CurrentPlayer.AddToHand(card);
+                card.Location = CardLocation.Hand;
+                _logger.Log($"Returned {card.Name} to hand after targeting cancellation.", LogChannel.Info);
             }
         }
 
@@ -271,18 +368,19 @@ namespace ChaosWarlords.Source.Managers
         private List<Core.Contexts.EffectContext> PopCancelledEffects(Card? cardToClear)
         {
             var cancelledEffects = new List<Core.Contexts.EffectContext>();
+            var executionStack = _executionEngine.ExecutionStack;
 
-            if (ExecutionStack.Count > 0)
+            if (executionStack.Count > 0)
             {
                 // Always pop the top effect (current targeting effect being cancelled)
-                cancelledEffects.Add(ExecutionStack.Pop());
+                cancelledEffects.Add(executionStack.Pop());
 
                 // Continue popping if subsequent effects belong to the same card
                 if (cardToClear != null)
                 {
-                    while (ExecutionStack.Count > 0 && ExecutionStack.Peek().SourceCard == cardToClear)
+                    while (executionStack.Count > 0 && executionStack.Peek().SourceCard == cardToClear)
                     {
-                        cancelledEffects.Add(ExecutionStack.Pop());
+                        cancelledEffects.Add(executionStack.Pop());
                     }
                 }
             }
@@ -594,10 +692,10 @@ namespace ChaosWarlords.Source.Managers
             // Completing an action (like Assassinate or Return Spy) implies the current "Blocking" effect on the stack is resolved.
             // We resolve it with Success=true.
 
-            if (ExecutionStack.Count > 0)
+            if (_executionEngine.ExecutionStack.Count > 0)
             {
                 _logger.Log("ActionSystem: CompleteAction invoked. Resolving current stack effect...", LogChannel.Debug);
-                ResolveCurrentEffect(true);
+                _executionEngine.ResolveCurrentEffect(true);
             }
             else
             {
@@ -609,244 +707,26 @@ namespace ChaosWarlords.Source.Managers
         }
 
         // --- Stack-Based Architecture ---
+        // Delegates straight through to ActionExecutionEngine - see its doc comment and
+        // planning.txt for why this moved out of ActionSystem itself. Kept here, not removed
+        // from IActionSystem, so every existing caller (input modes, commands, tests) is
+        // completely unaffected by the extraction.
 
-        public Stack<Core.Contexts.EffectContext> ExecutionStack { get; } = new();
+        public Stack<Core.Contexts.EffectContext> ExecutionStack => _executionEngine.ExecutionStack;
 
-        public Core.Contexts.EffectContext? CurrentEffect => ExecutionStack.Count > 0 ? ExecutionStack.Peek() : null;
+        public Core.Contexts.EffectContext? CurrentEffect => _executionEngine.CurrentEffect;
 
-        public void PushEffect(Core.Contexts.EffectContext context)
-        {
-            ExecutionStack.Push(context);
-            _logger.Log($"ActionSystem: Pushed Effect [{context.EffectType}] from {context.SourceCard?.Name}. Stack Size: {ExecutionStack.Count}", LogChannel.Debug);
-        }
+        public void PushEffect(Core.Contexts.EffectContext context) => _executionEngine.PushEffect(context);
 
-        public void ResolveCurrentEffect(bool success)
-        {
-            if (ExecutionStack.Count == 0)
-            {
-                _logger.Log("ActionSystem: ResolveCurrentEffect called but stack is empty!", LogChannel.Warning);
-                return;
-            }
+        public void ResolveCurrentEffect(bool success) => _executionEngine.ResolveCurrentEffect(success);
 
-            var effect = ExecutionStack.Pop();
-            _logger.Log($"ActionSystem: [RESOLVE] Popped effect [{effect.EffectType}] Success={success}. Remaining Stack: {ExecutionStack.Count}", LogChannel.Debug);
-            _logger.Log($"ActionSystem: [RESOLVE] Effect has callback: {effect.OnResolved != null}, SourceEffect: {effect.SourceEffect?.Type}", LogChannel.Debug);
-
-            if (success)
-            {
-                if (effect.OnResolved != null)
-                {
-                    _logger.Log($"ActionSystem: [RESOLVE] Invoking OnResolved callback for [{effect.EffectType}]...", LogChannel.Debug);
-                    effect.OnResolved.Invoke(true);
-                    _logger.Log($"ActionSystem: [RESOLVE] OnResolved callback completed. Stack now has {ExecutionStack.Count} items.", LogChannel.Debug);
-                }
-                else
-                {
-                    _logger.Log($"ActionSystem: [RESOLVE] No OnResolved callback for [{effect.EffectType}]", LogChannel.Debug);
-                }
-            }
-            else
-            {
-                effect.OnCancelled?.Invoke();
-            }
-
-            // After popping, process the next item
-            _logger.Log($"ActionSystem: [RESOLVE] Calling ProcessStack to continue. Stack size: {ExecutionStack.Count}", LogChannel.Debug);
-            ProcessStack();
-            _logger.Log($"ActionSystem: [RESOLVE] ProcessStack returned. Current state: {CurrentState}", LogChannel.Debug);
-        }
+        public void ProcessStack() => _executionEngine.ProcessStack();
 
         private Contexts.MatchContext? _matchContext;
         public void SetMatchContext(Contexts.MatchContext context)
         {
             _matchContext = context;
-        }
-
-        // --- Extracted Helper Methods for ProcessStack() ---
-
-        /// <summary>
-        /// Processes an optional effect by performing deep lookahead validation and raising
-        /// OnInteractionRequested for the UI layer to present a confirmation prompt.
-        /// </summary>
-        /// <returns>True if the effect was handled (interaction request raised or effect skipped), false otherwise</returns>
-        private bool ProcessOptionalEffect(Core.Contexts.EffectContext effect)
-        {
-            if (OnInteractionRequested == null) return false;
-
-            // Deep Lookahead: Check if OnSuccess chain has valid targets
-            if (effect.SourceEffect?.OnSuccess != null && _matchContext != null)
-            {
-                var onSuccessEffect = effect.SourceEffect.OnSuccess;
-                bool onSuccessRequiresTargeting = _matchContext.CardRuleEngine.GetStrategy(onSuccessEffect.Type).IsTargetingEffect;
-
-                if (onSuccessRequiresTargeting)
-                {
-                    bool hasValidTargets = _matchContext.CardRuleEngine.HasValidTargets(
-                        _matchContext.ActivePlayer,
-                        onSuccessEffect.Type,
-                        effect.SourceCard
-                    );
-
-                    if (!hasValidTargets)
-                    {
-                        _logger.Log($"ActionSystem: Skipping optional effect {effect.SourceEffect.Type} - OnSuccess effect {onSuccessEffect.Type} has no valid targets.", LogChannel.Warning);
-                        ResolveCurrentEffect(false);
-                        return true;
-                    }
-                }
-            }
-
-            _logger.Log($"ActionSystem: Requesting optional effect confirmation for {effect.SourceEffect?.Type}...", LogChannel.Input);
-
-            var request = new Core.Contexts.InteractionRequest(effect, accepted =>
-            {
-                if (accepted) HandleOptionalEffectAccepted(effect);
-                else HandleOptionalEffectDeclined(effect);
-            });
-
-            OnInteractionRequested.Invoke(request);
-
-            return true;
-        }
-
-        /// <summary>
-        /// Handles user acceptance of an optional effect.
-        /// </summary>
-        private void HandleOptionalEffectAccepted(Core.Contexts.EffectContext effect)
-        {
-            _logger.Log($"ActionSystem: Optional effect {effect.SourceEffect?.Type} accepted.", LogChannel.Input);
-
-            // User accepted - NOW we set the state to Targeting (if applicable)
-            if (CurrentState == ActionState.Normal && effect.EffectType != ActionState.Normal)
-            {
-                CurrentState = effect.EffectType;
-                _logger.Log($"ActionSystem: [PROCESS] Optional Accepted -> State set to: {CurrentState}", LogChannel.Debug);
-            }
-
-            // User accepted - execute the effect
-            if (effect.SourceEffect?.Type == EffectType.Devour)
-            {
-                var strategy = Mechanics.Rules.DevourStrategyFactory.GetStrategy(effect.SourceEffect.TargetLocation);
-                strategy.Execute(effect.SourceCard, _matchContext!, _logger, () => ResolveCurrentEffect(true), false);
-            }
-            // For other optional effects, continue to normal targeting flow
-        }
-
-        /// <summary>
-        /// Handles user declining of an optional effect.
-        /// </summary>
-        private void HandleOptionalEffectDeclined(Core.Contexts.EffectContext effect)
-        {
-            _logger.Log($"ActionSystem: Optional effect {effect.SourceEffect?.Type} declined.", LogChannel.Input);
-            ResolveCurrentEffect(false);
-        }
-
-        /// <summary>
-        /// Attempts to execute a pre-selected target for an effect (used in replay/testing).
-        /// </summary>
-        /// <returns>True if pre-target was found and executed</returns>
-        private bool TryExecutePreTargetEffect(Core.Contexts.EffectContext effect)
-        {
-            if (effect.SourceCard == null) return false;
-
-            bool executed = _preTargetHandler.TryExecutePreTarget(
-                effect.SourceCard,
-                effect.EffectType,
-                HandleTargetClick,
-                HandleDevourSelection,
-                cmd => OnAutoExecuteCommand?.Invoke(cmd),
-                () => ResolveCurrentEffect(false)
-            );
-
-            if (executed)
-            {
-                _logger.Log($"ActionSystem: Pre-Target executed for {effect.EffectType}. Continuing stack...", LogChannel.Debug);
-            }
-
-            return executed;
-        }
-
-        /// <summary>
-        /// Processes an automatic (non-targeting) effect by applying it immediately.
-        /// </summary>
-        private void ProcessAutomaticEffect(Core.Contexts.EffectContext effect)
-        {
-            // Automatic Effect (e.g. GainResource, DrawCard)
-            if (effect.SourceEffect != null && _matchContext != null)
-            {
-                Mechanics.Rules.CardEffectProcessor.ApplyEffect(effect.SourceEffect, effect.SourceCard, _matchContext, _logger);
-            }
-
-            ResolveCurrentEffect(true);
-        }
-
-        /// <summary>
-        /// Sets up the action state for a required (non-optional) targeting effect.
-        /// </summary>
-        private void SetupTargetingForRequiredEffect(Core.Contexts.EffectContext effect)
-        {
-            _logger.Log($"ActionSystem: [PROCESS] Effect requires input. Setting state to [{effect.EffectType}]", LogChannel.Debug);
-            CurrentState = effect.EffectType;
-            _logger.Log($"ActionSystem: [PROCESS] State set to: {CurrentState}", LogChannel.Debug);
-        }
-
-        public void ProcessStack()
-        {
-            _logger.Log($"ActionSystem: [PROCESS] ProcessStack called. Stack size: {ExecutionStack.Count}, Current state: {CurrentState}", LogChannel.Debug);
-
-            if (HandleStackEmptyState())
-            {
-                return;
-            }
-
-            var nextEffect = ExecutionStack.Peek();
-            _logger.Log($"ActionSystem: [PROCESS] Next effect: [{nextEffect.EffectType}] RequiresInput={nextEffect.RequiresInput}, SourceEffect={nextEffect.SourceEffect?.Type}", LogChannel.Debug);
-
-            if (!nextEffect.RequiresInput)
-            {
-                ProcessAutomaticEffect(nextEffect);
-                return;
-            }
-
-            HandleInputRequiredEffect(nextEffect);
-        }
-
-        private bool HandleStackEmptyState()
-        {
-            if (ExecutionStack.Count == 0)
-            {
-                _logger.Log("ActionSystem: [PROCESS] Stack Empty. Sequence Complete.", LogChannel.Debug);
-                OnActionCompleted?.Invoke(this, EventArgs.Empty);
-                ClearState();
-                return true;
-            }
-            return false;
-        }
-
-        private void HandleInputRequiredEffect(Core.Contexts.EffectContext nextEffect)
-        {
-            // Effect requires user input
-            PendingCard = nextEffect.SourceCard;
-            bool isOptional = nextEffect.SourceEffect?.IsOptional == true;
-
-            if (!isOptional)
-            {
-                SetupTargetingForRequiredEffect(nextEffect);
-            }
-
-            // Handle optional effects with UI confirmation
-            if (isOptional && ProcessOptionalEffect(nextEffect))
-            {
-                return; // Wait for user choice
-            }
-
-            // Try to execute pre-selected targets (for replay/testing)
-            if (TryExecutePreTargetEffect(nextEffect))
-            {
-                return; // Pre-target was executed
-            }
-
-            _logger.Log($"ActionSystem: Waiting for input for {nextEffect.EffectType}...", LogChannel.Input);
+            _executionEngine.SetMatchContext(context);
         }
 
         /// <summary>
@@ -855,6 +735,13 @@ namespace ChaosWarlords.Source.Managers
         /// deliberately: a rollback isn't a real state transition any UI/subscriber should
         /// react to, it's undoing one that (from their perspective) never should have
         /// happened. Setting the backing field directly, not the property, is what skips that.
+        ///
+        /// Also invalidates _targetingSequenceSnapshot unconditionally: this method means an
+        /// external authority (StateRestorer, via CancelTargeting's own restore OR
+        /// CommandDispatcher's separate rollback-on-exception path) just overwrote CurrentState/
+        /// Pending* directly, bypassing ClearState() entirely - so any locally-cached snapshot
+        /// for tracking "the start of the sequence that WAS in progress" is stale regardless of
+        /// which path got here or what state is being restored to.
         /// </summary>
         public void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard)
         {
@@ -863,7 +750,23 @@ namespace ChaosWarlords.Source.Managers
             PendingSite = pendingSite;
             PendingMoveSource = pendingMoveSource;
             _devourSubsystem.RestorePendingDevourCard(pendingDevourCard);
+            _targetingSequenceSnapshot = null;
         }
+
+        // --- IActionSystem "engine-only" methods - ActionExecutionEngine's exclusive
+        // callers. See their doc comments on IActionSystem. ---
+
+        public void EnterTargetingState(ActionState state)
+        {
+            CurrentState = state;
+        }
+
+        public void SetPendingCard(Card? card)
+        {
+            PendingCard = card;
+        }
+
+        public void ResetTargetingToNormal() => ClearState();
     }
 }
 

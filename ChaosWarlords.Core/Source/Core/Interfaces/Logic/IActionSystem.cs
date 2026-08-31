@@ -252,6 +252,28 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// game logic outside StateRestorer should call. See GameStateDto.ActionSystemState.
         /// </summary>
         void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard);
+
+        // --- Engine-only methods (ActionExecutionEngine's exclusive callers) ---
+        // Narrow, single-purpose targeting-state mutators that stack-processing needs to
+        // trigger now that it lives in a separate class (ActionExecutionEngine) from the
+        // targeting state machine itself. Same convention RestorePendingState already
+        // established: not intended for external callers (UI, commands, tests driving real
+        // gameplay) - StartTargeting/CancelTargeting/TryStart* are the real public entry
+        // points for player-initiated targeting. See ActionExecutionEngine's doc comment
+        // and planning.txt.
+
+        /// <summary>Sets CurrentState directly, with none of StartTargeting's pre-target
+        /// auto-execution side effects.</summary>
+        void EnterTargetingState(ActionState state);
+
+        /// <summary>Sets PendingCard directly, without touching CurrentState.</summary>
+        void SetPendingCard(Card? card);
+
+        /// <summary>Equivalent to ActionSystem's own ClearState() - resets CurrentState to
+        /// Normal and clears PendingCard/PendingSite/PendingMoveSource (not PendingDevourCard,
+        /// which deliberately survives across chained actions - see ClearState's own doc
+        /// comment).</summary>
+        void ResetTargetingToNormal();
     }
 }
 
