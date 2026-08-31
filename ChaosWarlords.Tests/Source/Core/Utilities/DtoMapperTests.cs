@@ -8,6 +8,8 @@ using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using NSubstitute;
 using ChaosWarlords.Source.Entities.Map;
+using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Tests.Utilities;
 
 namespace ChaosWarlords.Tests.Source.Core.Utilities
 {
@@ -15,6 +17,49 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
     [TestCategory("Unit")]
     public class DtoMapperTests
     {
+        [TestMethod]
+        public void ToGameStateDto_StateHash_MatchesMatchContextGetStateHash()
+        {
+            // GameStateDto.StateHash must be populated FROM MatchContext.GetStateHash(), not
+            // computed independently - see both types' doc comments for why (this used to be
+            // two separate, unequally-thorough hash implementations: GameStateDto had its own
+            // CalculateChecksum() covering only Seed/TurnNumber/Phase/SequenceNumber, while
+            // GetStateHash() also covered map/players/market - so a desync outside those four
+            // fields would never have shown up in the DTO that would actually travel over the
+            // wire). Verify the single remaining implementation is what actually lands on the
+            // DTO, and that it's sensitive to a field GetStateHash covers but the old
+            // CalculateChecksum() never did (map node occupant).
+            var player = new ChaosWarlords.Source.Entities.Actors.Player(PlayerColor.Red);
+            var turnManager = Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.ITurnManager>();
+            turnManager.Players.Returns(new List<ChaosWarlords.Source.Entities.Actors.Player> { player });
+            var mapManager = Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IMapManager>();
+            var node = new MapNode(1, new LogicVector2(0, 0));
+            mapManager.Nodes.Returns(new List<MapNode> { node });
+            var marketManager = Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IMarketManager>();
+            marketManager.MarketRow.Returns(new List<Card>());
+            var actionSystem = new ActionSystem(turnManager, mapManager, TestLogger.Instance);
+
+            var context = new ChaosWarlords.Source.Contexts.MatchContext(
+                turnManager,
+                mapManager,
+                marketManager,
+                actionSystem,
+                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Data.ICardDatabase>(),
+                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IPlayerStateManager>(),
+                null,
+                TestLogger.Instance,
+                42);
+            actionSystem.SetMatchContext(context);
+
+            var dto1 = DtoMapper.ToGameStateDto(context);
+            Assert.AreEqual(context.GetStateHash(), dto1.StateHash);
+
+            node.Occupant = PlayerColor.Red;
+            var dto2 = DtoMapper.ToGameStateDto(context);
+            Assert.AreEqual(context.GetStateHash(), dto2.StateHash);
+            Assert.AreNotEqual(dto1.StateHash, dto2.StateHash, "A map change GetStateHash() covers must change the DTO's StateHash too.");
+        }
+
         [TestMethod]
         public void ToDto_Card_ReturnsCorrectDto()
         {

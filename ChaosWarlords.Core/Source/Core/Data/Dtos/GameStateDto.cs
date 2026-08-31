@@ -1,5 +1,4 @@
 using ChaosWarlords.Source.Contexts;
-using ChaosWarlords.Source.Core.Utilities;
 
 namespace ChaosWarlords.Source.Core.Data.Dtos
 {
@@ -32,18 +31,18 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
 
         public long SequenceNumber { get; set; }
 
-        public GameStateDto() { }
+        /// <summary>
+        /// Deterministic hash of the full game state at snapshot time, for desync detection
+        /// (e.g. comparing a server's and a client's state after the same sequence of
+        /// commands). Populated by DtoMapper.ToGameStateDto from MatchContext.GetStateHash() -
+        /// this DTO does NOT compute its own hash. It used to (a `CalculateChecksum()` method
+        /// using StateHasher.ComputeHash directly), but that mixed only Seed/TurnNumber/
+        /// Phase/SequenceNumber - no map, player, or market state - so it could not actually
+        /// have caught a desync outside of those four fields, despite living on exactly the
+        /// object that would travel over the wire for that purpose. See planning.txt.
+        /// </summary>
+        public string StateHash { get; set; } = string.Empty;
 
-        public string CalculateChecksum()
-        {
-            // Simple checksum for strict state verification.
-            // Uses StateHasher (FNV-1a) rather than GetHashCode(), which is not guaranteed
-            // stable across .NET versions/platforms and would cause spurious desyncs between
-            // a server and client running different runtimes.
-            // In a real production scenario this would hash the entire object graph via a
-            // deterministic serialization; for now we mix the top-level state indicators.
-            int hash = StateHasher.ComputeHash(Seed, TurnNumber, Phase, SequenceNumber);
-            return hash.ToString("X", System.Globalization.CultureInfo.InvariantCulture);
-        }
+        public GameStateDto() { }
     }
 }

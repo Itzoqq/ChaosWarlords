@@ -369,6 +369,10 @@ namespace ChaosWarlords.Source.Core.Utilities
             // Stack Serialization
             dto.EffectStack = SerializeEffectStack(context.ActionSystem.ExecutionStack);
 
+            // Computed from the live context, not recomputed independently on the DTO later -
+            // see GameStateDto.StateHash's doc comment for why.
+            dto.StateHash = context.GetStateHash();
+
             return dto;
         }
 

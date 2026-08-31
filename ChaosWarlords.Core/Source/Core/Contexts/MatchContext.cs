@@ -126,15 +126,30 @@ namespace ChaosWarlords.Source.Contexts
         /// <summary>
         /// Generates a deterministic hash of the current game state.
         /// Used for detecting desyncs in multiplayer.
+        ///
+        /// Built entirely from StateHasher.Mix (FNV-1a), not the *31/GetHashCode() pattern
+        /// this used to use directly. That mattered for two concrete reasons, not just
+        /// hygiene: (1) string.GetHashCode() is randomized per-process by default in modern
+        /// .NET (a DoS mitigation) - the old `card.Id.GetHashCode()` in
+        /// AppendMarketHashContributions meant two processes with an IDENTICAL market row
+        /// (e.g. a server and a client) would still get different hashes, defeating desync
+        /// detection the moment the market had any cards in it; (2) Enum.GetHashCode() (used
+        /// for CurrentPhase/PlayerColor/node.Occupant) isn't part of the enum's documented
+        /// contract, unlike StateHasher's explicit Convert.ToInt32 handling. This is also now
+        /// the ONLY state-hash implementation in the codebase - see GameStateDto.StateHash,
+        /// which used to compute an independent, much narrower checksum via
+        /// StateHasher.ComputeHash directly (Seed/TurnNumber/Phase/SequenceNumber only - no
+        /// map/players/market) and has been consolidated to just carry this method's result
+        /// instead. See planning.txt.
         /// </summary>
         public string GetStateHash()
         {
-            long hash = 17;
-            hash = hash * 31 + SequenceNumber;
-            hash = hash * 31 + CurrentTurnNumber;
-            hash = hash * 31 + (int)CurrentPhase;
-            hash = hash * 31 + (TurnManager?.ActivePlayer?.Color.GetHashCode() ?? 0);
-            hash = hash * 31 + Seed;
+            int hash = StateHasher.Init();
+            hash = StateHasher.Mix(hash, SequenceNumber);
+            hash = StateHasher.Mix(hash, CurrentTurnNumber);
+            hash = StateHasher.Mix(hash, CurrentPhase);
+            hash = StateHasher.Mix(hash, TurnManager?.ActivePlayer?.Color);
+            hash = StateHasher.Mix(hash, Seed);
 
             hash = AppendMapHashContributions(hash);
             hash = AppendPlayerHashContributions(hash);
@@ -143,44 +158,44 @@ namespace ChaosWarlords.Source.Contexts
             return hash.ToString("X", System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        private long AppendMapHashContributions(long hash)
+        private int AppendMapHashContributions(int hash)
         {
             if (MapManager != null)
             {
                 foreach (var node in MapManager.Nodes.OrderBy(n => n.Id))
                 {
-                    hash = hash * 31 + node.Id;
-                    hash = hash * 31 + node.Occupant.GetHashCode();
+                    hash = StateHasher.Mix(hash, node.Id);
+                    hash = StateHasher.Mix(hash, node.Occupant);
                 }
             }
             return hash;
         }
 
-        private long AppendPlayerHashContributions(long hash)
+        private int AppendPlayerHashContributions(int hash)
         {
             if (TurnManager != null && TurnManager.Players != null)
             {
                 foreach (var player in TurnManager.Players.OrderBy(p => p.Color))
                 {
-                    hash = hash * 31 + player.Power;
-                    hash = hash * 31 + player.Influence;
-                    hash = hash * 31 + player.VictoryPoints;
-                    hash = hash * 31 + player.TroopsInBarracks;
-                    hash = hash * 31 + player.Hand.Count;
-                    hash = hash * 31 + player.InnerCircle.Count;
+                    hash = StateHasher.Mix(hash, player.Power);
+                    hash = StateHasher.Mix(hash, player.Influence);
+                    hash = StateHasher.Mix(hash, player.VictoryPoints);
+                    hash = StateHasher.Mix(hash, player.TroopsInBarracks);
+                    hash = StateHasher.Mix(hash, player.Hand.Count);
+                    hash = StateHasher.Mix(hash, player.InnerCircle.Count);
                 }
             }
-            return hash; 
+            return hash;
         }
 
-        private long AppendMarketHashContributions(long hash)
+        private int AppendMarketHashContributions(int hash)
         {
             if (MarketManager != null)
             {
-                hash = hash * 31 + MarketManager.MarketRow.Count;
+                hash = StateHasher.Mix(hash, MarketManager.MarketRow.Count);
                 foreach (var card in MarketManager.MarketRow.OrderBy(c => c.Id))
                 {
-                    hash = hash * 31 + card.Id.GetHashCode();
+                    hash = StateHasher.Mix(hash, card.Id);
                 }
             }
             return hash;
