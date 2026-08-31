@@ -603,7 +603,7 @@ sequenceDiagram
 ---
 
 ### 11.4 Action Delegation (Subsystems & Helpers)
-The `ActionSystem` acts as a coordinator, delegating specific complex mechanics to dedicated subsystems and helper classes to maintain low cyclomatic complexity.
+The `ActionSystem` acts as a coordinator, delegating specific complex mechanics to dedicated subsystems and helper classes to maintain low cyclomatic complexity. As of 2026-08, this includes delegating the execution-stack engine itself to `ActionExecutionEngine` - `ActionSystem` kept the targeting state machine (`CurrentState`/`Pending*`/`CancelTargeting`) and every `Perform*`/`TryStart*` method, since that's the half every other caller here actually calls into.
 
 ```mermaid
 classDiagram
@@ -611,6 +611,13 @@ classDiagram
         +StartTargeting()
         +HandleTargetClick()
         +TryStartSupplant()
+        +CancelTargeting()
+    }
+    class ActionExecutionEngine {
+        +ExecutionStack
+        +PushEffect()
+        +ResolveCurrentEffect()
+        +ProcessStack()
     }
     class PreTargetHandler {
         +TryExecutePreTarget()
@@ -628,13 +635,17 @@ classDiagram
         +PerformSpyReturn()
     }
 
+    ActionSystem --> ActionExecutionEngine : Delegates ExecutionStack/ProcessStack/ResolveCurrentEffect
+    ActionExecutionEngine --> ActionSystem : Calls back for targeting-state transitions (IActionSystem)
     ActionSystem --> PreTargetHandler : Uses for pre-target auto-execution
+    ActionExecutionEngine --> PreTargetHandler : Also uses (shared instance)
     ActionSystem --> DevourSubsystem : Delegates Devour Logic
     ActionSystem --> SpySubsystem : Delegates Spy Logic
 ```
 
-> **Key Takeaway**: To keep complexity low (CC ≤ 10), `ActionSystem` delegates to specialized helpers:
-> - **PreTargetHandler** - Handles pre-selected target execution (extracted to reduce CC 26→6)
+> **Key Takeaway**: To keep complexity low (CC ≤ 10) and responsibilities single-purpose, `ActionSystem` delegates to specialized helpers:
+> - **ActionExecutionEngine** - Owns the execution-stack engine (ExecutionStack, PushEffect, ResolveCurrentEffect, ProcessStack); calls back into `ActionSystem` (via `IActionSystem`) for the handful of targeting-state transitions it needs to trigger
+> - **PreTargetHandler** - Handles pre-selected target execution (extracted to reduce CC 26→6); shared by both `ActionSystem` and `ActionExecutionEngine`
 > - **DevourSubsystem** - Manages devour mechanics
 > - **SpySubsystem** - Handles spy placement and removal
 
@@ -704,6 +715,8 @@ sequenceDiagram
 ```
 
 > **Key Takeaway**: For multi-step actions, the **ActionSystem** receives the input but passes it to the **Subsystem**. The Subsystem decides whether to execute immediately (commit) or buffer the data (validating state) for the next step in the transaction.
+
+**Cancellation (as of 2026-08)**: If the player cancels instead of completing the transaction, `ActionSystem.CancelTargeting()` doesn't clear state field-by-field any more. `StartTargeting` takes a full `GameStateDto` snapshot (via `DtoMapper`/`StateRestorer` - see section 13.1 and section 16) exactly once per targeting *sequence* - not per step, since a chain like Wight's Devour→Supplant calls `StartTargeting` again for each step, and cancelling any step has always meant undoing the whole attempt. `CancelTargeting` restores from that snapshot, so map state, player resources, market, void, the effect stack, and `ActionSystem`'s own targeting state all revert together. This reuses the exact same snapshot/restore machinery `CommandDispatcher` already uses for rollback-on-exception (section 16.2), rather than a second, parallel implementation.
 
 ---
 

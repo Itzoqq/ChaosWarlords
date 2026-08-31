@@ -1,7 +1,7 @@
 # Coding Guidelines
 
 **Status**: Established Patterns (Mandatory)  
-**Last Updated**: 2025-12-31
+**Last Updated**: 2026-08-31
 
 These are **established patterns** that all contributors must follow. Violations will cause multiplayer desyncs, test failures, or architectural degradation.
 
@@ -389,7 +389,17 @@ ActionSystem.HandleDevourSelection(targetCard);
 // ONLY NOW does the entire transaction execute atomically
 ```
 
-**Cancellation**: `ActionSystem.CancelTargeting()` clears the buffer, restoring the hand state as if nothing happened.
+**Cancellation (as of 2026-08)**: `ActionSystem.StartTargeting` takes a full `GameStateDto`
+snapshot exactly once per targeting sequence (not once per step of a multi-step chain -
+cancelling any step has always meant undoing the whole attempt). `CancelTargeting()` restores
+from that snapshot - reverting map state, player resources, market, void, the effect stack,
+and `ActionSystem`'s own targeting state all at once - instead of clearing fields one at a
+time. This means a future mechanic that mutates state mid-targeting does **not** need its own
+bespoke undo step here; the snapshot/restore covers it automatically. The one thing the
+snapshot can't reach is a played card's move from Hand to Played (that happens before
+targeting starts), which `TryRestoreCardToHand` still handles separately, by card ID. See
+`ActionSystem.CancelTargeting`'s own doc comment for the full breakdown, and
+[architecture.md](architecture.md#4-actionsystem-targeting-state-machine-and-execution-stack-engine).
 
 ---
 
@@ -498,8 +508,8 @@ public void CanDeploy_ValidatesCapabilities(int power, int troops, bool expected
 
 ### 14.3 Test Data Usage
 *   **Use `TestData` helper**: For common, standard scenarios (e.g., `TestData.Players.RedPlayer()`).
-*   **Use Builders**: For specific edge cases or unique configurations (e.g., `new PlayerBuilder().WithPower(0).Build()`).
-*   **Avoid**: Raw constructors in tests, as they are brittle to change.
+*   **Use Builders**: For specific edge cases or unique configurations (e.g., `new PlayerBuilder().WithPower(0).Build()`, or `new MatchContextBuilder().WithTurnManager(turnManager).WithSeed(999).Build()` - every dependency defaults to a fresh mock, override only what the test needs).
+*   **Avoid**: Raw constructors in tests, as they are brittle to change - except where a builder wouldn't actually reduce anything (e.g. a test that overrides most of `MatchContext`'s 7 dependencies with real, specifically-configured instances anyway; see `MatchContextBuilder`'s own doc comment in `TestHelpers.cs`).
 
 ### 14.4 Mocking with NSubstitute
 Always substitute interfaces, not concrete classes.

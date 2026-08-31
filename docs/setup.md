@@ -54,7 +54,7 @@ Expected output: `Build succeeded`
 dotnet test
 ```
 
-Expected output: `Test summary: total: 516, failed: 0`
+Expected output (two test projects run, one summary each): `Test summary: total: 19, failed: 0` (`ChaosWarlords.Core.Tests`) followed by `Test summary: total: 844, failed: 0` (`ChaosWarlords.Tests`) - 863 total.
 
 ### 5. Run the Game
 
@@ -133,6 +133,14 @@ dotnet test --filter "FullyQualifiedName~SeededGameRandom"
 dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 ```
 
+### Headless-Only Subset
+```bash
+# Runs only ChaosWarlords.Core.Tests - the project that references
+# ChaosWarlords.Core alone, never the MonoGame client. Useful for
+# verifying a Core change didn't accidentally pull in a client dependency.
+dotnet test ChaosWarlords.Core.Tests/ChaosWarlords.Core.Tests.csproj
+```
+
 ## Common Issues
 
 ### Build Errors
@@ -197,15 +205,23 @@ dotnet build
 
 ## Project Structure
 
+Four projects total - see [Architecture Guide](architecture.md#the-four-projects) for why the split exists:
+
 ```
 ChaosWarlords/
-├── ChaosWarlords/              # Main game project
-│   ├── Source/                 # C# source code
-│   ├── Content/                # Game assets
-│   └── ChaosWarlords.csproj    # Project file
-├── ChaosWarlords.Tests/        # Test project
-│   ├── Source/                 # Test source code
+├── ChaosWarlords.Core/              # Headless game logic - zero MonoGame package references
+│   ├── Source/                      # Entities, Managers, Mechanics, Factories, DTOs, Interfaces
+│   └── ChaosWarlords.Core.csproj
+├── ChaosWarlords/                   # Main game project (MonoGame client)
+│   ├── Source/                      # C# source code (references ChaosWarlords.Core)
+│   ├── Content/                     # Game assets
+│   └── ChaosWarlords.csproj         # Project file
+├── ChaosWarlords.Tests/              # Primary test project (references the client project)
+│   ├── Source/                       # Test source code
 │   └── ChaosWarlords.Tests.csproj
+├── ChaosWarlords.Core.Tests/         # Headless-only test project (references Core only)
+│   ├── Source/
+│   └── ChaosWarlords.Core.Tests.csproj
 ├── docs/                       # Documentation
 ├── README.md                   # Project overview
 └── CONTRIBUTING.md             # Contribution guide

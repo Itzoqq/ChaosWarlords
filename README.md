@@ -3,16 +3,16 @@
 A digital adaptation of the board game *Tyrants of the Underdark*, built with MonoGame and C#. Features a clean architecture designed for testability, multiplayer support, and deterministic gameplay.
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Tests](https://img.shields.io/badge/tests-516%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-863%20passing-brightgreen)
 ![.NET](https://img.shields.io/badge/.NET-10.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## Features
 
-- **Deterministic Gameplay**: Seeded RNG ensures reproducible games for multiplayer and replay
-- **Test-Driven Development**: 516 unit, integration, and performance tests
-- **Multiplayer-Ready Architecture**: Logic separated from rendering for headless server support
-- **Command Pattern**: All actions are replayable and undoable
+- **Deterministic Gameplay**: A from-scratch PCG32 RNG (no `System.Random`) ensures reproducible games for multiplayer and replay, independent of .NET version
+- **Test-Driven Development**: 863 unit, integration, and performance tests across two test projects
+- **Multiplayer-Ready Architecture**: Logic lives in a separate `ChaosWarlords.Core` project with zero MonoGame references - a compiled headless boundary, not just a convention - and `ChaosWarlords.Core.Tests` proves the test suite is headless-runnable too
+- **Command Pattern**: All actions are replayable and undoable, with transactional rollback (snapshot/restore) on both command failure and targeting cancellation
 - **Event-Driven**: Decoupled systems communicate via events
 
 ## Quick Start
@@ -52,19 +52,23 @@ dotnet test
 
 ## Project Structure
 
+Four projects - see [Architecture Guide](docs/architecture.md#the-four-projects) for the full breakdown of why:
+
 ```
 ChaosWarlords/
-├── ChaosWarlords/           # Main game project
+├── ChaosWarlords.Core/          # Headless game logic - ZERO MonoGame package references
+│   └── Source/                  # Entities, Managers, Mechanics, Factories, DTOs, Interfaces
+├── ChaosWarlords/                # Main game project (MonoGame client)
 │   ├── Source/
-│   │   ├── Core/            # Core systems (DI, events, interfaces)
-│   │   ├── Entities/        # Domain models (Player, Card, MapNode)
-│   │   ├── Managers/        # Business logic services
-│   │   ├── Mechanics/       # Game rules and commands
-│   │   ├── Rendering/       # MonoGame rendering layer
-│   │   └── Factories/       # Object creation and DI wiring
-│   └── Content/             # Game assets (sprites, fonts)
-├── ChaosWarlords.Tests/     # Test suite (516 tests)
-└── docs/                    # Documentation
+│   │   ├── Core/                # Client-only composition, input/rendering/state interfaces
+│   │   ├── GameStates/           # Application state machine
+│   │   ├── Input/                # Input pipeline (Manager -> Coordinator -> InputMode)
+│   │   ├── Managers/             # UI-adjacent services (UIEventMediator, UIManager)
+│   │   └── Rendering/            # MonoGame rendering layer
+│   └── Content/                  # Game assets (sprites, fonts)
+├── ChaosWarlords.Tests/          # Primary test suite (844 tests) - references the client project
+├── ChaosWarlords.Core.Tests/     # Headless-only test suite (19 tests) - references Core ONLY
+└── docs/                         # Documentation
 ```
 
 ## Documentation
@@ -131,6 +135,13 @@ var state = new GameplayState(mockManager);  // Easy to test
  
  # Run specific test method
  dotnet test --filter "Name=AddPower_WithPositiveAmount"
+ ```
+
+ ### 4. Headless-only subset
+ ```bash
+ # Runs only ChaosWarlords.Core.Tests - proves the logic layer's own tests
+ # build and run with zero MonoGame in the dependency graph
+ dotnet test ChaosWarlords.Core.Tests/ChaosWarlords.Core.Tests.csproj
  ```
 
 ## Contributing

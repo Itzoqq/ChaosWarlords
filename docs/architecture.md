@@ -1,7 +1,7 @@
 # ChaosWarlords Architecture & Organization
 
 ## Overview
-This document outlines the architecture of the `ChaosWarlords` codebase, a digital adaptation of the board game *Chaos Warlords*. The design utilizes **Dependency Injection**, **Event-Driven Architecture**, and **Interface-Based Abstraction** to ensure testability, maintainability, and support for a future Multiplayer (Headless) port.
+This document outlines the architecture of the `ChaosWarlords` codebase, a digital adaptation of the board game *Tyrants of the Underdark*. The design utilizes **Dependency Injection**, **Event-Driven Architecture**, and **Interface-Based Abstraction** to ensure testability, maintainability, and support for a future Multiplayer (Headless) port.
 
 **Key Design Goals**:
 - **Testability**: All components can be unit tested in isolation
@@ -11,47 +11,29 @@ This document outlines the architecture of the `ChaosWarlords` codebase, a digit
 
 ---
 
-## Directory Structure & File Listing
+## The Four Projects
 
-**Two logic/client projects, as of 2026-08-31, plus a headless-only test project added
-2026-08-31.** `ChaosWarlords.Core.csproj` holds the headless-compatible logic (`MatchContext`
-and everything it composes) and has **zero MonoGame package references** - it can build and
-run without a graphics stack, which is what "headless server support" actually requires
-(previously this was only a convention enforced by coding-guidelines.md's "no `Graphics`
-types" rule, not a compiled boundary). `ChaosWarlords.csproj` (the game) references
-`ChaosWarlords.Core` and adds the MonoGame-specific rendering/input/state-machine layer.
-`ChaosWarlords.Tests.csproj` is unchanged - it still references `ChaosWarlords.csproj` alone,
-which transitively carries `Core`, and remains the primary, much larger test suite covering
-everything including the client/UI/input layers. Namespaces were left as
-`ChaosWarlords.Source.*` across both projects (unchanged by the split) - the project
-boundary, not the namespace, is what's now enforced.
+The solution is four projects, each with a specific role in keeping the "headless server" goal real rather than aspirational:
 
-`ChaosWarlords.Core.Tests.csproj` is a separate, smaller test project that references
-`ChaosWarlords.Core.csproj` ONLY - never the client project, so never MonoGame. It exists
-because the two-project split above proved Core *can* be headless but didn't prove the test
-suite actually exercises that in isolation (`ChaosWarlords.Tests` builds and runs fine, but
-only because it happens to also carry MonoGame along for the ride) - this project makes that
-a compiled guarantee instead of an assumption: if a MonoGame-dependent type ever leaked into
-Core, this project simply wouldn't build. It holds a deliberately small slice - a handful of
-already-headless unit tests moved over from `ChaosWarlords.Tests` (`Pcg32Tests`,
-`SeededGameRandomTests`, `LogicVector2Tests`, `LogicRectangleTests`) plus one integration-style
-smoke test that builds a match via `MatchFactory` and runs real commands through a real
-`CommandDispatcher` - not a full migration of every Core-only test in the main suite (see
-planning.txt for why that wasn't done wholesale).
+| Project | Holds | MonoGame? | References |
+|---|---|---|---|
+| `ChaosWarlords.Core` | All game logic - `MatchContext` and everything it composes (entities, managers, mechanics, factories, DTOs) | **Zero** package references | (none - the leaf project) |
+| `ChaosWarlords` | The MonoGame client - rendering, input, UI, state machine | `MonoGame.Framework.DesktopGL` | `ChaosWarlords.Core` |
+| `ChaosWarlords.Tests` | The main test suite - covers everything, including the client/UI/input layers | Transitively, via the client | `ChaosWarlords` (and so, transitively, `Core`) |
+| `ChaosWarlords.Core.Tests` | A smaller, headless-only test suite | **Never** | `ChaosWarlords.Core` **only** |
 
-A few logic-adjacent types that used MonoGame's `Vector2`/`Rectangle` directly (`MapNode`,
-`Site`, `MapTopology`, `MapManager`) now use the existing `LogicVector2` (deterministic,
-fixed-point) and a new `LogicRectangle` instead; conversion to/from MonoGame's types lives
-in `ChaosWarlords/Source/Rendering/LogicVectorExtensions.cs` in the client project. A few
-`internal` members (e.g. `Site.Spies`, `Player.DrawCards`) that used to be visible to
-same-assembly callers only are now exposed to the client project too via
-`ChaosWarlords.Core/AssemblyInfo.cs`'s `[InternalsVisibleTo]`, rather than being loosened
-to `public` just to cross the new assembly boundary.
+`ChaosWarlords.Core` having zero MonoGame package references is what makes "headless server support" a compiled property rather than a convention enforced only by coding-guidelines.md's "no `Graphics` types" rule - if a MonoGame-dependent type ever leaked in, the project simply wouldn't build.
+
+`ChaosWarlords.Core.Tests` exists for the same reason, one layer up: `ChaosWarlords.Tests` builds and runs fine today, but only because it also happens to carry MonoGame along for the ride via its reference to the client project - nothing structurally proved the *test suite itself* could run in isolation on a machine with no graphics stack at all. `ChaosWarlords.Core.Tests` references `ChaosWarlords.Core` and nothing else, so that gap is now closed the same way: a compiler error, not an assumption. It deliberately holds a small, curated slice rather than a full migration of every Core-only test in the main suite - a handful of already-fully-headless unit tests (`Pcg32Tests`, `SeededGameRandomTests`, `LogicVector2Tests`, `LogicRectangleTests`) plus one integration-style smoke test (`HeadlessCompositionSmokeTests`) that builds a real match via `MatchFactory` and runs real commands through a real `CommandDispatcher` - proving the whole composition root works standalone, not just that individual leaf types happen to compile in isolation. `ChaosWarlords.Tests` remains the primary, much larger suite; migrating more of its Core-only tests into `ChaosWarlords.Core.Tests` is optional future cleanup, not something either project depends on.
+
+Namespaces are `ChaosWarlords.Source.*` across `Core` and the client (physical project boundary, not namespace, is what's enforced), and `ChaosWarlords.Core.Tests.*` / `ChaosWarlords.Tests.*` for the two test projects respectively.
+
+A few logic-adjacent types that used to take MonoGame's `Vector2`/`Rectangle` directly (`MapNode`, `Site`, `MapTopology`, `MapManager`) use the deterministic, fixed-point `LogicVector2`/`LogicRectangle` instead; conversion to/from MonoGame's types lives in `ChaosWarlords/Source/Rendering/LogicVectorExtensions.cs` in the client project, at the rendering boundary. A few `internal` members (e.g. `Site.Spies`, `Player.DrawCards`) that used to be visible to same-assembly callers only are exposed to the client and both test projects via `ChaosWarlords.Core/AssemblyInfo.cs`'s `[InternalsVisibleTo]`, rather than being loosened to `public` just to cross the assembly boundaries.
 
 Below is a detailed listing of all files and their responsibilities, organized by project.
 
 ```text
-ChaosWarlords.Core/                 # Logic Project Root (no MonoGame package reference)
+ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package references)
 ├── ChaosWarlords.Core.csproj       # Project File
 ├── AssemblyInfo.cs                 # InternalsVisibleTo(ChaosWarlords, ChaosWarlords.Tests, ChaosWarlords.Core.Tests)
 └── Source/
@@ -67,7 +49,7 @@ ChaosWarlords.Core/                 # Logic Project Root (no MonoGame package re
     │   │   │   ├── CardDto.cs               # Serializable card data
     │   │   │   ├── CommandDto.cs            # Serializable command data
     │   │   │   ├── EffectContextDto.cs      # Serializable effect stack state
-    │   │   │   ├── GameStateDto.cs          # Serializable game state snapshot
+    │   │   │   ├── GameStateDto.cs          # Serializable game state snapshot (incl. ActionSystem's targeting state - see Key Systems #4)
     │   │   │   ├── MapDto.cs                # Serializable map data
     │   │   │   ├── PlayerDto.cs             # Serializable player data
     │   │   │   ├── ReplayDataDto.cs         # Serializable replay container
@@ -77,14 +59,19 @@ ChaosWarlords.Core/                 # Logic Project Root (no MonoGame package re
     │   │   │   └── CommandType.cs           # Enum for command identification
     │   │   ├── LogicVector2.cs              # Deterministic integer vector struct
     │   │   └── LogicRectangle.cs            # Deterministic integer bounding box (site Bounds)
+    │   ├── Events/
+    │   │   ├── GameEvent.cs                 # Pub/Sub event payload base
+    │   │   └── StateChangeEvent.cs          # Pub/Sub event for state transitions
     │   ├── Interfaces/                      # Contracts (API Definitions)
     │   │   ├── Data/
     │   │   │   ├── ICardDatabase.cs         # Contract for retrieving card definitions
     │   │   │   └── IDto.cs                  # Marker interface for DTOs
     │   │   ├── Logic/
-    │   │   │   ├── IActionSystem.cs         # incl. OnInteractionRequested (see Key Systems #4)
+    │   │   │   ├── IActionSystem.cs         # incl. OnInteractionRequested (Key Systems #4) + 3 engine-only methods ActionExecutionEngine calls back through
     │   │   │   ├── ICommandValidator.cs
-    │   │   │   └── IGameCommand.cs
+    │   │   │   ├── IDevourSubsystem.cs
+    │   │   │   ├── IGameCommand.cs
+    │   │   │   └── ISpySubsystem.cs
     │   │   └── Services/
     │   │       ├── ICommandDispatcher.cs
     │   │       ├── IEventManager.cs
@@ -98,19 +85,23 @@ ChaosWarlords.Core/                 # Logic Project Root (no MonoGame package re
     │   │       ├── IPlayerStateManager.cs
     │   │       ├── IReplayManager.cs        # GetNextCommand(MatchContext) - no IGameplayState dependency
     │   │       ├── ITurnManager.cs
-    │   │       ├── IUIEventMediator.cs
     │   │       └── IVictoryManager.cs
+    │   │       # IUIEventMediator.cs lives in the CLIENT project (ChaosWarlords/Source/Core/
+    │   │       # Interfaces/Services/) - moved out of Core once ActionSystem stopped calling
+    │   │       # it directly (see Key Systems #4). Nothing in Core references it any more.
     │   └── Utilities/                       # Infrastructure & Constants
     │       ├── BufferedAsyncLogger.cs       # Async-optimized logging
     │       ├── CardDatabase.cs              # Implementation of card library
     │       ├── DtoMapper.cs                 # Mapping logic between Entities and DTOs
     │       ├── GameConstants.cs             # Global configuration values
-    │       ├── GameEnums.cs                 # Enums (PlayerColor, ResourceType, etc.)
+    │       ├── GameEnums.cs                 # Enums (PlayerColor, ResourceType, ActionState, etc.)
     │       ├── MapGenerationConfig.cs       # Parameters for procedural map generation
     │       ├── MapGeometry.cs               # Deterministic geometry helper (LogicVector2 based)
     │       ├── MapLayoutEngine.cs           # Procedural map generation logic
     │       ├── ObjectPool.cs                # Generic object pooling implementation
-    │       ├── SeededGameRandom.cs          # Deterministic RNG implementation
+    │       ├── Pcg32.cs                     # From-scratch PCG32 RNG algorithm (see Key Systems #6)
+    │       ├── SeededGameRandom.cs          # Deterministic RNG - implements IGameRandom on top of Pcg32
+    │       ├── StateHasher.cs               # FNV-1a mixing used by MatchContext.GetStateHash()
     │       ├── TextCache.cs                 # Caches string measurements
     │       └── ValidationResult.cs          # Standardized validation response
     │
@@ -137,7 +128,8 @@ ChaosWarlords.Core/                 # Logic Project Root (no MonoGame package re
     │   └── WrapperFactory.cs
     │
     ├── Managers/                            # Business Logic Services
-    │   ├── CommandDispatcher.cs             # Central Command Processor
+    │   ├── ActionInputController.cs         # Click-to-command routing for targeting (extracted from ActionSystem)
+    │   ├── CommandDispatcher.cs             # Central Command Processor - snapshots before Execute(), rolls back on exception
     │   ├── EventManager.cs                  # Pub/Sub event system backend
     │   ├── GameEventLogger.cs               # Logs events for debugging/replay
     │   ├── MapManager.cs                    # Facade for Board Logic (LogicVector2-based queries)
@@ -146,7 +138,9 @@ ChaosWarlords.Core/                 # Logic Project Root (no MonoGame package re
     │   ├── PlayerStateManager.cs            # Centralized player mutations
     │   ├── PoolManager.cs                   # Manages object pools and contexts
     │   ├── ReplayManager.cs                 # Replay recording and playback
-    │   └── TurnManager.cs                   # Manages Turn Order and Phase Transitions
+    │   ├── StateRestorer.cs                 # Rebuilds MatchContext (incl. ActionSystem's targeting state) in-place from a GameStateDto snapshot
+    │   ├── TurnManager.cs                   # Manages Turn Order and Phase Transitions
+    │   └── VictoryManager.cs                # Calculates final scores and determines the winner
     │
     ├── Map/                                 # Map-Specific Subsystems
     │   ├── CombatResolver.cs                # Determines outcomes of battles
@@ -157,11 +151,12 @@ ChaosWarlords.Core/                 # Logic Project Root (no MonoGame package re
     └── Mechanics/                           # The "Rules" of the Game (100% MonoGame-free)
         ├── Actions/
         │   ├── Subsystems/                  # Logic Sub-modules
+        │   │   ├── ActionExecutionEngine.cs # Execution-stack engine (ExecutionStack/PushEffect/ResolveCurrentEffect/ProcessStack) - see Key Systems #4
         │   │   ├── DevourSubsystem.cs       # Devour mechanics
         │   │   └── SpySubsystem.cs          # Spy mechanics
-        │   ├── ActionSystem.cs              # Handles targeting logic; raises OnInteractionRequested
+        │   ├── ActionSystem.cs              # Targeting state machine; delegates stack management to ActionExecutionEngine; raises OnInteractionRequested
         │   ├── CardPlaySystem.cs            # Validates and conducts card plays
-        │   └── PreTargetHandler.cs          # Internal helper for pre-target auto-execution
+        │   └── PreTargetHandler.cs          # Internal helper for pre-target auto-execution (shared by ActionSystem and ActionExecutionEngine)
         ├── Commands/                        # Command Pattern Implementations
         │   ├── ActionCompletedCommand.cs    # Signals action completion
         │   ├── AssassinateCommand.cs        # Execute assassination
@@ -182,11 +177,21 @@ ChaosWarlords.Core/                 # Logic Project Root (no MonoGame package re
         │   ├── SwitchToNormalModeCommand.cs # Reset input mode
         │   └── ToggleMarketCommand.cs       # Open/Close market
         └── Rules/                           # Pure Logic Engines
+            ├── Interfaces/
+            │   └── IEffectStrategy.cs       # Strategy contract for per-effect-type validation
+            ├── Strategies/                  # IEffectStrategy implementations (one per EffectType)
+            │   ├── AssassinateStrategy.cs
+            │   ├── DefaultStrategy.cs
+            │   ├── DevourStrategy.cs
+            │   ├── MoveUnitStrategy.cs
+            │   ├── PlaceSpyStrategy.cs
+            │   ├── ReturnUnitStrategy.cs
+            │   └── SupplantStrategy.cs
             ├── CardEffectProcessor.cs       # Applies card effects
-            ├── CardRuleEngine.cs            # Validates card conditions
-            ├── DevourStrategyFactory.cs     # Strategy pattern for devour operations
+            ├── CardRuleEngine.cs            # Validates card conditions, resolves IEffectStrategy per EffectType
+            ├── DevourStrategyFactory.cs     # Strategy pattern for devour operations (by TargetLocation)
             ├── MapRuleEngine.cs             # Validates map rules
-            ├── SiteControlSystem.cs         # Manages site ownership
+            ├── SiteControlSystem.cs         # Manages site ownership, control/total-control rewards
             └── TargetingStateEngine.cs      # Determines targeting state sequences
 
 ChaosWarlords/                     # Client (Game) Project Root - references Core, adds MonoGame
@@ -200,26 +205,31 @@ ChaosWarlords/                     # Client (Game) Project Root - references Cor
     │   │   └── GameDependencies.cs          # Concrete dependency container (holds MonoGame Game)
     │   ├── Events/
     │   │   └── InputEventArgs.cs            # Raw input event args (Vector2 position)
-    │   └── Interfaces/
-    │       ├── Composition/
-    │       │   └── IGameDependencies.cs     # Service container interface
-    │       ├── Input/
-    │       │   ├── IGameplayInputCoordinator.cs
-    │       │   ├── IInputManager.cs
-    │       │   ├── IInputMode.cs
-    │       │   ├── IInputProvider.cs
-    │       │   └── IInteractionMapper.cs
-    │       ├── Rendering/
-    │       │   ├── IButtonManager.cs
-    │       │   ├── IGameplayView.cs
-    │       │   ├── IMainMenuView.cs
-    │       │   ├── IUIManager.cs
-    │       │   └── IVictoryView.cs
-    │       └── State/
-    │           ├── IDrawableState.cs
-    │           ├── IGameplayState.cs
-    │           ├── IState.cs
-    │           └── IStateManager.cs
+    │   ├── Interfaces/
+    │   │   ├── Composition/
+    │   │   │   └── IGameDependencies.cs     # Service container interface
+    │   │   ├── Input/
+    │   │   │   ├── IGameplayInputCoordinator.cs
+    │   │   │   ├── IInputManager.cs
+    │   │   │   ├── IInputMode.cs
+    │   │   │   ├── IInputProvider.cs
+    │   │   │   └── IInteractionMapper.cs
+    │   │   ├── Rendering/
+    │   │   │   ├── IButtonManager.cs
+    │   │   │   ├── IGameplayView.cs
+    │   │   │   ├── IMainMenuView.cs
+    │   │   │   ├── IUIManager.cs
+    │   │   │   └── IVictoryView.cs
+    │   │   ├── Services/
+    │   │   │   └── IUIEventMediator.cs      # Client-only - see Core/Interfaces/Services note above
+    │   │   └── State/
+    │   │       ├── IDrawableState.cs
+    │   │       ├── IGameplayState.cs
+    │   │       ├── IState.cs
+    │   │       └── IStateManager.cs
+    │   └── Utilities/
+    │       ├── PooledRectangle.cs           # Zero-allocation rendering wrapper (see Key Systems #1)
+    │       └── PooledVector2.cs             # Zero-allocation rendering wrapper (see Key Systems #1)
     ├── GameStates/                          # Application State Machine
     │   ├── GameplayState.cs                 # The Core Game Loop (Logic Only)
     │   ├── MainMenuState.cs                 # Entry Point / Composition Root
@@ -229,7 +239,7 @@ ChaosWarlords/                     # Client (Game) Project Root - references Cor
     ├── Input/                               # Human Interface Layer
     │   ├── Controllers/
     │   │   ├── PlayerController.cs          # High-Level Intent Parser
-    │   │   └── ReplayController.cs          # Replay Workflow Orchestrator
+    │   │   └── ReplayController.cs          # Replay Workflow Orchestrator - increments MatchContext.SequenceNumber per replayed command (see Key Systems #6)
     │   ├── Modes/                           # Input State Machine
     │   │   ├── DevourInputMode.cs           # Input mode for trashing a card
     │   │   ├── MarketInputMode.cs           # Input mode for interacting with market
@@ -245,8 +255,8 @@ ChaosWarlords/                     # Client (Game) Project Root - references Cor
     │
     ├── Managers/                            # UI-Adjacent Services (not headless-safe)
     │   ├── MarketStateManager.cs            # Tracks market popup open/closed UI state
-    │   ├── UIEventMediator.cs               # Decouples Game Logic from UI Events; subscribes
-    │   │                                    # to ActionSystem.OnInteractionRequested
+    │   ├── UIEventMediator.cs               # Implements IUIEventMediator; subscribes to
+    │   │                                    # ActionSystem.OnInteractionRequested
     │   └── UIManager.cs                     # Manages layout and state of UI widgets
     │
     └── Rendering/                           # Presentation Layer (The "View")
@@ -268,13 +278,10 @@ ChaosWarlords/                     # Client (Game) Project Root - references Cor
         │   └── VictoryView.cs               # Victory screen renderer
         └── World/                           # In-Game Object Renderers
             ├── CardRenderer.cs              # Draws individual cards to screen
-            └── MapRenderer.cs               # Draws the hex map and units (Pooled{Vector2,Rectangle} live in Core/Utilities of this project)
+            └── MapRenderer.cs               # Draws the hex map and units
 ```
 
-Note: `PooledVector2.cs`/`PooledRectangle.cs` (zero-allocation rendering wrappers) live at
-`ChaosWarlords/Source/Core/Utilities/` in the client project, not in `ChaosWarlords.Core` -
-they're MonoGame-typed rendering helpers despite the shared `Core/Utilities` folder name
-they inherited from before the split.
+`ChaosWarlords.Tests/` and `ChaosWarlords.Core.Tests/` mirror the source trees above one-to-one (one test file per production file, plus `Integration/` subtrees for multi-component tests) - see [testing.md](testing.md) for the full test-project listing and test-category breakdown.
 
 ---
 
@@ -294,11 +301,21 @@ Input is handled via a **Event-Driven** tiered approach:
 ### 3. Command Pattern (Mechanics/Commands/)
 All significant game actions (Move, Attack, Buy) are encapsulated in `IGameCommand` objects. This ensures traceability, enables replay systems by re-executing commands, and supports multiplayer synchronization.
 
-### 4. Transactional Command Execution
-Complex multi-step actions (like Devour mechanics) utilize the `ActionSystem` with a **Stack-Based Architecture** (`EffectContext` Stack). This allows actions to be paused (e.g., waiting for user input on an optional effect), new actions to be pushed and resolved (nested transactions), and then the original action to resume. Targets are buffered until the entire chain is valid (`Deferred Execution`).
+### 4. ActionSystem: Targeting State Machine and Execution-Stack Engine
 
-Optional effects (e.g. an accept/decline popup) no longer call the UI layer directly from
-`ActionSystem`: it raises `OnInteractionRequested` with an `InteractionRequest` (card,
+`ActionSystem` used to be one 871-line class doing two jobs at once. As of 2026-08-31 it's split into two collaborating classes, following the same composition pattern already established for `DevourSubsystem`/`SpySubsystem`/`ActionInputController`/`PreTargetHandler`:
+
+- **`ActionSystem`** owns the **targeting state machine**: `CurrentState`, `PendingCard`/`PendingSite`/`PendingMoveSource`/`PendingDevourCard`, `StartTargeting`/`CancelTargeting`, and every `TryStart*`/`Perform*` command-facing method. This is the half external callers (input modes, commands, tests) actually query and react to, and it still implements the full `IActionSystem` interface.
+- **`ActionExecutionEngine`** (`Mechanics/Actions/Subsystems/`) owns the **execution-stack engine**: `ExecutionStack`, `PushEffect`, `ResolveCurrentEffect`, `ProcessStack`, and everything `ProcessStack` calls into - optional-effect confirmation, automatic-effect application, pre-target auto-execution. It takes `IActionSystem` as a collaborator (not the concrete class) and calls back into it through three narrow, engine-only interface methods (`EnterTargetingState`, `SetPendingCard`, `ResetTargetingToNormal`) for the handful of targeting-state transitions stack-processing needs to trigger.
+
+`ActionSystem` delegates `ExecutionStack`/`PushEffect`/`CurrentEffect`/`ProcessStack`/`ResolveCurrentEffect` straight through to its own `ActionExecutionEngine` instance, so `IActionSystem`'s public contract - and every existing caller - is completely unchanged. The engine's own `OnActionCompleted`/`OnInteractionRequested`/`OnAutoExecuteCommand` events are forwarded by `ActionSystem`'s constructor as its own public events (C# events can only be raised by their declaring type, even through a shared interface reference, so this can't be a direct pass-through).
+
+This allows actions to be paused (e.g., waiting for user input on an optional effect), new actions to be pushed and resolved (nested transactions), and then the original action to resume. Targets are buffered until the entire chain is valid (`Deferred Execution`).
+
+**Cancellation - snapshot/reload, not field-by-field undo.** `StartTargeting` takes a full `GameStateDto` snapshot (the same `DtoMapper`/`StateRestorer` machinery `CommandDispatcher`'s rollback-on-exception uses - see Key Systems #6) exactly once per targeting *sequence*, not once per step (a multi-step chain like Wight's Devour → Supplant calls `StartTargeting` again for each step via `AdvancePreCommitTargeting`, and cancelling any step has always meant undoing the whole attempt, not just the latest step). `CancelTargeting` restores from that snapshot instead of clearing fields one at a time, so map state, player resources, market, void, the effect stack, and `ActionSystem`'s own targeting state all revert automatically - no per-mechanic undo code needed for future mechanics. It's best-effort: if the snapshot itself can't be taken (e.g. a lightly-mocked test double), `CancelTargeting` falls back to the original field-by-field clear rather than crashing. One thing the snapshot genuinely can't reach: a played card's move from Hand to Played, since `MatchManager.PlayCard` moves the card and pays its cost *before* pushing its effects onto the stack - `TryRestoreCardToHand` (now ID-based, not reference-based, and run *after* the snapshot restore) still handles that one piece of the timeline.
+
+Optional effects (e.g. an accept/decline popup) don't call the UI layer directly from
+`ActionSystem`/`ActionExecutionEngine`: it raises `OnInteractionRequested` with an `InteractionRequest` (card,
 effect, and an `Action<bool> OnResponse` callback), and `UIEventMediator` (client project)
 subscribes to that event in its existing `Initialize()`/`Cleanup()` and drives the actual
 popup, calling `OnResponse` when the player answers. `ActionSystem` has no reference to
@@ -309,12 +326,21 @@ Card logic is validated by a centralized `CardRuleEngine` using a Chain of Respo
 
 ### 6. Multiplayer Readiness
 
-The architecture now includes concrete infrastructure for network synchronization:
+The architecture includes concrete infrastructure for network synchronization:
 
 **State Verification:**
-- **State Hashing**: `MatchContext.GetStateHash()` generates deterministic hashes for desync detection
+- **State Hashing**: `MatchContext.GetStateHash()` generates deterministic hashes for desync detection (built on `StateHasher`, FNV-1a based)
 - **Hash Coverage**: Sequence numbers, turn metadata, map state, player resources, market state
 - **Culture-Invariant**: Uses `InvariantCulture` for consistent formatting across locales
+
+**Deterministic RNG:**
+- **`SeededGameRandom`** implements `IGameRandom` on top of **`Pcg32`** - a from-scratch, ~15-line implementation of the PCG32 algorithm (public domain, O'Neill's pcg-random.org). This replaced a direct `System.Random` wrapper: .NET does not guarantee `Random`'s algorithm/output stays identical across .NET versions, only that it stays deterministic *within* a fixed one - a real risk for a project whose entire replay/multiplayer story depends on "same seed → same sequence, forever, everywhere". `Pcg32` has no runtime dependency at all, so a seed's sequence is stable regardless of .NET version or OS.
+- Bounded value generation uses the "Debiased Modulo (Once)" rejection scheme (the same approach OpenBSD's `arc4random_uniform` uses) to avoid modulo bias.
+
+**Snapshot / Rollback Machinery:**
+- **`DtoMapper.ToGameStateDto()`**: serializes the entire game state - map, players, market, void pile, transient marked-for-devour cards, the effect stack, and `ActionSystem`'s own targeting state (`CurrentState` + `Pending*`) - into a `GameStateDto`.
+- **`StateRestorer.RestoreState()`**: rebuilds a live `MatchContext` in-place from a `GameStateDto`, mutating existing Map/Site/Node instances (so references other code holds stay valid) while re-resolving Card references fresh via `ICardDatabase.GetCardById` (a known, documented limitation - a restored card is a new instance with the same `Id`, not the original reference).
+- Two independent callers use this machinery today: **`CommandDispatcher`** snapshots before every command's `Execute()` and rolls back on an unhandled exception (best-effort - proceeds without rollback capability if the snapshot itself can't be taken), and **`ActionSystem.CancelTargeting`** snapshots at the start of a targeting sequence and restores on cancel (see Key Systems #4). Both share the same DTO/restore code, not parallel implementations.
 
 **Network Abstraction:**
 - **INetworkProvider Interface**: Defines contract for command transmission and state sync
@@ -322,18 +348,12 @@ The architecture now includes concrete infrastructure for network synchronizatio
 - **Event-Driven**: Callbacks for `OnCommandReceived` and `OnStateReceived`
 - **Async Operations**: All network calls use `Task` for non-blocking I/O
 
-**Snapshot Serialization:**
-- **Full State Capture**: `DtoMapper.ToGameStateDto()` serializes entire game state
-- **Effect Stack Serialization**: `EffectContextDto` captures mid-action state for reconnection
-- **Transient State Handling**: Marked-for-devour cards and pending effects included
-
 **Existing Infrastructure:**
 - **Centralized Mutation**: All resource changes flow through `IPlayerStateManager`
-- **Action Sequencing**: Commands track sequence numbers for ordering
-- **Seeded RNG**: `IGameRandom` ensures identical random sequences across all clients
+- **Action Sequencing**: Commands track sequence numbers for ordering (incremented by `CommandDispatcher` before every live `Execute()`, and explicitly by `ReplayController.UpdatePlayback` for every replayed command too - replay bypasses `CommandDispatcher` entirely, so nothing else advances it)
 - **Context Isolation**: `PoolManager` maintains separate object pools for logic (server) and rendering (client) to prevent state leaks
 - **Separation of Concerns**: Logic never touches UI, allowing headless execution
-- **Compiled Boundary**: `ChaosWarlords.Core` has zero MonoGame package references, so "headless execution" is now enforced by the build, not just by convention
+- **Compiled Boundary**: `ChaosWarlords.Core` has zero MonoGame package references, and `ChaosWarlords.Core.Tests` proves that boundary is exercised in test isolation too - see "The Four Projects" above
 
 
 ### 7. MatchContext vs IGameplayState: Separation of Concerns
@@ -348,7 +368,7 @@ The architecture now includes concrete infrastructure for network synchronizatio
   - `TurnManager`, `MapManager`, `MarketManager`, `MatchManager`
   - `ActionSystem`, `CardRuleEngine`, `PlayerStateManager`, `Logger`
   - `ActivePlayer`, `VoidPile`, `Random`
-- **Lives in**: `ChaosWarlords.Core` (headless-buildable)
+- **Lives in**: `ChaosWarlords.Core` (headless-buildable and headless-testable)
 
 #### IGameplayState (UI State Machine & Input Coordination)
 - **Purpose**: Manages UI state, input modes, and user interaction flow
@@ -364,11 +384,11 @@ The architecture now includes concrete infrastructure for network synchronizatio
 #### Why Both Are Needed
 - **MatchContext**: Headless-compatible, contains no UI dependencies, can run on server
 - **IGameplayState**: Client-only, manages UI state machine and user interaction
-- **Clear Boundary**: Game logic never touches UI state; UI layer accesses game state via MatchContext - now enforced by a compiled assembly boundary, not just convention
+- **Clear Boundary**: Game logic never touches UI state; UI layer accesses game state via MatchContext - enforced by a compiled assembly boundary, not just convention
 
 This separation enables:
-- ✅ Headless server support (MatchContext only) - `ChaosWarlords.Core` builds and runs with no MonoGame package at all
-- ✅ Clean testing (mock MatchContext for logic tests, mock IGameplayState for UI tests)
+- ✅ Headless server support (`MatchContext` only) - `ChaosWarlords.Core` builds and runs with no MonoGame package at all, and `ChaosWarlords.Core.Tests` proves the test suite does too
+- ✅ Clean testing (mock `MatchContext` for logic tests, mock `IGameplayState` for UI tests)
 - ✅ Single Responsibility Principle (each handles one concern)
 
 ---
@@ -379,7 +399,7 @@ This separation enables:
 Used throughout the codebase to ensure testability and decoupling. Dependencies are strictly constructor-injected.
 
 ### 2. Strategy Pattern
-Used in Input Modes (`IInputMode`) to handle different interaction contexts (Normal vs Targeting) effectively.
+Used in Input Modes (`IInputMode`) to handle different interaction contexts (Normal vs Targeting), and in `CardRuleEngine`/`DevourStrategyFactory` (`Mechanics/Rules/Strategies/`, `IEffectStrategy`) to resolve per-effect-type validation and devour-location logic without a giant `switch`.
 
 ### 3. Command Pattern
 Used for all game actions (`IGameCommand`) to support replay capabilities, undo functionality, and network serialization.
@@ -390,6 +410,14 @@ The `IGameDependencies` object groups core services to simplify composition root
 ---
 
 ## Code Quality & Maintainability
+
+### ActionSystem Decomposition & Transactional Cancellation (2026-08)
+See Key Systems #4 above for the full description. Summary:
+- Extracted the execution-stack engine into `ActionExecutionEngine`, following the codebase's own established subsystem-composition pattern. `ActionSystem.cs`: 871 → 680 lines.
+- Replaced `CancelTargeting`'s field-by-field imperative undo with a full-state snapshot/restore, reusing `CommandDispatcher`'s existing rollback machinery instead of a parallel implementation.
+- Added `ChaosWarlords.Core.Tests` so "Core is headless" is provable at the test level, not just the build level.
+- Replaced `SeededGameRandom`'s `System.Random` engine with a from-scratch `Pcg32` implementation for cross-.NET-version determinism.
+- `StateRestorer` now also restores `ActionSystem`'s own targeting state (`CurrentState`/`Pending*`), not just Map/Player/Market/Void/EffectStack.
 
 ### Cyclomatic Complexity Reduction (2026-01)
 The codebase underwent significant refactoring to reduce cyclomatic complexity and improve maintainability:
@@ -416,7 +444,6 @@ The codebase underwent significant refactoring to reduce cyclomatic complexity a
 - Improved testability through focused, single-purpose methods
 - Enhanced readability with reduced nesting depth (5 → 2)
 - Better adherence to SOLID principles (Single Responsibility, Strategy Pattern)
-- Zero regressions (713/713 tests passing)
 
 ### Encapsulation Hardening (2026-01)
 To prevent "state leaks" and ensure system stability:

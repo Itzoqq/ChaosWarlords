@@ -1,7 +1,7 @@
 # ChaosWarlords Test Architecture & Organization
 
 ## Overview
-This document outlines the architecture of the `ChaosWarlords.Tests` test suite. The test design follows **AAA Pattern** (Arrange-Act-Assert), uses **Test Data Builders** for readability, and implements **Test Categories** for efficient filtering. The suite ensures code quality, prevents regressions, and validates both unit-level logic and integration between components.
+This document outlines the architecture of the test suite, split across two projects: `ChaosWarlords.Tests` (the primary suite - everything, including the client/UI/input layers) and `ChaosWarlords.Core.Tests` (a smaller, headless-only suite that references `ChaosWarlords.Core` alone, proving the logic layer is testable in isolation from MonoGame, not just buildable - see [architecture.md](architecture.md#the-four-projects)). Both follow the same conventions: **AAA Pattern** (Arrange-Act-Assert), **Test Data Builders** for readability, and **Test Categories** for efficient filtering.
 
 ## Test Organization Principles
 
@@ -12,11 +12,14 @@ Tests are categorized by scope and dependencies:
 - **Integration Tests** (`[TestCategory("Integration")]`): Test multiple components working together. May use real implementations.
 - **Performance Tests** (`[TestCategory("Performance")]`): Benchmark critical operations with time thresholds.
 
+Every test class in both projects carries a category - this is enforced by convention, not the compiler, so a newly-added test class that forgets the attribute will silently be excluded from category-filtered runs until someone notices. Check for this before adding a new test file.
+
 **Usage**:
 ```bash
 dotnet test --filter "TestCategory=Unit"        # Run only unit tests (fast)
 dotnet test --filter "TestCategory=Integration" # Run integration tests
 dotnet test --filter "TestCategory=Performance" # Run performance benchmarks
+dotnet test ChaosWarlords.Core.Tests/ChaosWarlords.Core.Tests.csproj  # Headless-only subset
 ```
 
 ### 2. Test Structure (AAA Pattern)
@@ -28,10 +31,10 @@ public void MethodName_Scenario_ExpectedBehavior()
 {
     // Arrange: Set up test data and dependencies
     var player = new PlayerBuilder().WithPower(10).Build();
-    
+
     // Act: Execute the method under test
     var result = player.CanAfford(5);
-    
+
     // Assert: Verify the outcome
     Assert.IsTrue(result);
 }
@@ -59,10 +62,18 @@ var card = new CardBuilder()
     .WithName("expensive_card")
     .WithCost(99)
     .Build();
+
+// ✅ Also good: MatchContext is the single most-constructed object in the suite
+// (7 dependencies + optional seed) - default everything to a mock, override only
+// what this test actually needs.
+var context = new MatchContextBuilder()
+    .WithTurnManager(turnManager)
+    .WithSeed(999)
+    .Build();
 ```
 
 **3. Avoid: Raw Constructors**
-Avoid `new ClassName(...)` unless creating DTOs or simple value objects. Raw constructors are brittle and hard to read.
+Avoid `new ClassName(...)` unless creating DTOs or simple value objects, or unless a builder would need to override MOST of the constructor's arguments anyway (at that point the builder buys nothing - see `MatchContextBuilder`'s own doc comment for real examples of when raw construction is still the pragmatic choice). Raw constructors are otherwise brittle and hard to read.
 
 ```csharp
 // ❌ Bad: Hard to read, breaks if constructor signature changes
@@ -73,255 +84,233 @@ var card = new Card("id", "name", 5, CardAspect.Warlord, 1, 2, 0);
 
 ## Directory Structure & Test Listing
 
-The test project mirrors the main project structure. Each test file corresponds to a production file.
+Both test projects mirror their corresponding source tree. Each test file generally corresponds to one production file; `Integration/` subtrees hold multi-component tests instead.
+
+### ChaosWarlords.Tests/ (primary suite)
 
 ```text
-ChaosWarlords.Tests/Source/
-├── Core/                        # Unit Tests for Core Infrastructure
-│   ├── Contexts/
-│   │   └── MatchContextHashingTests.cs
-│   ├── Data/                    # Unit Tests for Data Structures
-│   │   ├── LogicVector2Tests.cs
-│   │   └── SnapshotSerializationTests.cs
-│   ├── Events/
-│   │   └── EventManagerTests.cs
-│   └── Utilities/               # Unit Tests for Utilities
-│       ├── BufferedAsyncLoggerTests.cs
-│       ├── CachedIntTextTests.cs
-│       ├── CardDatabaseIntegrationTests.cs
-│       ├── CardDatabaseTests.cs
-│       ├── DtoMapperTests.cs
-│       ├── MapGeometryTest.cs
-│       ├── MapLayoutEngineTests.cs
-│       ├── ObjectPoolTests.cs
-│       ├── PooledPrimitivesTests.cs
-│       ├── SeededGameRandomTests.cs
-│       └── TestLogger.cs
-│
-├── Doubles/                     # Test Doubles & Mocks
-│   └── State/
-│       └── TestGameplayState.cs
-│
-├── Entities/                    # Unit Tests for Domain Entities
-│   ├── Cards/
-│   │   └── EffectConditionTests.cs
-│   ├── CardTests.cs
-│   ├── DeckTests.cs
-│   ├── MapNodeTests.cs
-│   ├── PlayerTests.cs
-│   ├── SiteTests.cs
-│   └── StartingSiteTests.cs
-│
-├── Input/                       # Unit Tests for Input Logic
-│   └── Controllers/
-│       └── ReplayControllerTests.cs
-│
-├── Integration/                 # Integration Tests (Component Interaction)
-│   ├── Core/
-│   │   └── Events/
-│   │       └── EventManagerTests.cs
-│   ├── Factories/
-│   │   ├── CardFactoryTests.cs
-│   │   ├── MapFactoryTests.cs
-│   │   └── MatchFactoryTests.cs
-│   ├── GameStates/
-│   │   ├── GameplayStateTests.cs
-│   │   ├── MainMenuStateTests.cs
-│   │   ├── StateManagerTests.cs
-│   │   └── VictoryStateTests.cs
-│   ├── Input/
-│   │   ├── Controllers/
-│   │   │   └── PlayerControllerTests.cs
-│   │   ├── InputBlockingTests.cs
-│   │   ├── Modes/
-│   │   │   ├── DevourFromInnerCircleIntegrationTests.cs
-│   │   │   ├── DevourInputModeTests.cs
-│   │   │   ├── MarketInputModeTests.cs
-│   │   │   ├── NormalPlayInputModeTests.cs
-│   │   │   ├── PromoteInputModeTests.cs
-│   │   │   └── TargetingInputModeTests.cs
-│   │   ├── Processors/
-│   │   │   ├── GameplayInputCoordinatorTests.cs
-│   │   │   └── InteractionMapperTests.cs
-│   │   └── Services/
-│   │       └── InputManagerTests.cs
-│   ├── Managers/
-│   │   ├── MapManagerTests.cs
-│   │   └── MatchManagerTests.cs
-│   └── Mechanics/
-│       ├── ActionSystemCancellationTests.cs
-│       ├── ConditionalEffectTests.cs
-│       ├── DevourFromInnerCircleIntegrationTests.cs
-│       ├── DevourMechanicsTests.cs
-│       ├── MarketDevourChainTests.cs
-│       ├── ReturnUnitMechanicsTests.cs
-│       ├── SelfDevourIntegrationTests.cs
-│       ├── TransactionalCommandTests.cs
-│       └── WightMechanicsTests.cs
-│
-├── Managers/                    # Unit Tests for Business Logic Managers
-│   ├── CommandDispatcherTests.cs
-│   ├── GameEventLoggerTests.cs
-│   ├── MarketManagerTests.cs
-│   ├── MarketStateManagerTests.cs
-│   ├── PlayerStateManagerTests.cs
-│   ├── PoolManagerTests.cs
-│   ├── ReplayManagerTests.cs
-│   ├── TurnManagerTests.cs
-│   ├── UIEventMediatorTests.cs
-│   ├── UIManagerTests.cs
-│   └── VictoryManagerTests.cs
-│
-├── Map/                         # Unit Tests for Map Subsystems
-│   ├── CombatResolverTests.cs
-│   ├── MapRewardSystemTests.cs
-│   ├── MapTopologyTests.cs
-│   └── SpyOperationsTests.cs
-│
-├── Mechanics/                   # Unit Tests for Game Mechanics
-│   ├── Actions/
-│   │   ├── Subsystems/
-│   │   │   ├── DevourSubsystemTests.cs
-│   │   │   └── SpySubsystemTests.cs
-│   │   ├── ActionSystemTests.cs
-│   │   ├── ActionSystemDevourChainTests.cs
-│   │   ├── ActionSystemTransactionTests.cs
-│   │   └── CardPlaySystemTests.cs
-│   ├── Commands/
-│   │   ├── ActionCompletedCommandTests.cs
-│   │   ├── BuyCardCommandTests.cs
-│   │   ├── CancelActionCommandTests.cs
-│   │   ├── CommandSerializationTests.cs
-│   │   ├── DeployTroopCommandTests.cs
-│   │   ├── DevourCardCommandTests.cs
-│   │   ├── EndTurnCommandTests.cs
-│   │   ├── PlayCardCommandTests.cs
-│   │   ├── ResolveSpyCommandTests.cs
-│   │   ├── StartAssassinateCommandTests.cs
-│   │   ├── StartReturnSpyCommandTests.cs
-│   │   ├── SwitchToNormalModeCommandTests.cs
-│   │   └── ToggleMarketCommandTests.cs
-│   └── Rules/
-│       ├── CardEffectProcessorTests.cs
-│       ├── CardEffectTests.cs
-│       ├── CardRuleEngineLookaheadTests.cs
-│       ├── CardRuleEngineTests.cs
-│       ├── MapRuleEngineTests.cs
-│       ├── SiteControlSystemTests.cs
-│       └── TargetingStateEngineTests.cs
-│
-├── Rendering/                   # Unit Tests for Rendering Components
-│   └── UI/
-│       └── PopupBuilderTests.cs
-│
-├── Replay/                      # Unit Tests for Replay System
-│   └── ReplayManagerTests.cs
-│
-└── Utilities/                   # Unit Tests for Utilities
-    # TestLogger.cs moved to Core/Utilities
-├── TestData.cs                          # Centralized test data factory
-│   ├── TestData.Cards                   # Pre-configured card instances
-│   │   ├── CheapCard()                  # Low-cost card (2 cost)
-│   │   ├── ExpensiveCard()              # High-cost card (10 cost)
-│   │   ├── FreeCard()                   # Zero-cost card
-│   │   ├── AssassinCard()               # Card with Assassinate effect
-│   │   ├── PowerCard()                  # Generates Power resource
-│   │   ├── InfluenceCard()              # Generates Influence resource
-│   │   ├── DrawCard()                   # Draws additional cards
-│   │   ├── MoveUnitCard()               # Moves units on map
-│   │   └── SupplantCard()               # Replaces enemy units
-│   ├── TestData.Players                 # Pre-configured player instances
-│   │   ├── RedPlayer()                  # Standard red player (10/10/10/5 resources)
-│   │   ├── BluePlayer()                 # Standard blue player
-│   │   ├── PoorPlayer()                 # Player with no resources
-│   │   └── RichPlayer()                 # Player with abundant resources (100/100/50/20)
-│   ├── TestData.MapNodes                # Pre-configured map nodes
-│   │   ├── Node1(), Node2(), Node3()    # Generic nodes for testing
-│   │   ├── RedNode()                    # Node occupied by red player
-│   │   ├── BlueNode()                   # Node occupied by blue player
-│   │   └── EmptyNode()                  # Unoccupied node
-│   └── TestData.Sites                   # Pre-configured sites
-│       ├── PowerCity()                  # City that generates Power
-│       ├── InfluenceSite()              # Site that generates Influence
-│       └── NeutralSite()                # Generic neutral site
-│
-└── TestHelpers.cs                       # Test utility functions and builders
-    ├── CardBuilder                      # Fluent builder for Card instances
-    │   ├── WithName(string)             # Sets card ID
-    │   ├── WithDescription(string)      # Sets card name (display)
-    │   ├── WithCost(int)                # Sets resource cost
-    │   ├── WithAspect(CardAspect)       # Sets card aspect
-    │   ├── WithEffect(...)              # Adds card effect
-    │   ├── InHand()                     # Sets location to Hand
-    │   ├── InDeck()                     # Sets location to Deck
-    │   ├── InDiscard()                  # Sets location to DiscardPile
-    │   ├── InInnerCircle()              # Sets location to InnerCircle
-    │   └── Build()                      # Creates Card instance
-    ├── PlayerBuilder                    # Fluent builder for Player instances
-    │   ├── WithColor(PlayerColor)       # Sets player color
-    │   ├── WithPower(int)               # Sets Power resource
-    │   ├── WithInfluence(int)           # Sets Influence resource
-    │   ├── WithVictoryPoints(int)       # Sets Victory Points
-    │   ├── WithTroops(int)              # Sets troops in barracks
-    │   ├── WithSpies(int)               # Sets spies in barracks
-    │   └── Build()                      # Creates Player instance
-    └── MapNodeBuilder                   # Fluent builder for MapNode instances
-        ├── WithId(int)                  # Sets node ID
-        ├── At(int x, int y)             # Sets node position
-        ├── OccupiedBy(PlayerColor)      # Sets occupant
-        └── Build()                      # Creates MapNode instance
+ChaosWarlords.Tests/
+├── ChaosWarlords.Tests.csproj
+├── MSTestSettings.cs                    # [assembly: DoNotParallelize]
+└── Source/
+    ├── TestData.cs                          # Centralized test data factory (Cards/Players/MapNodes/Sites)
+    ├── TestHelpers.cs                       # Fluent builders - see "Builders Reference" below
+    ├── MatchContextBuilderTests.cs          # Tests for MatchContextBuilder itself
+    │
+    ├── Core/
+    │   ├── Contexts/
+    │   │   ├── MatchContextHashingTests.cs      # GetStateHash() determinism
+    │   │   └── TurnContextTests.cs
+    │   ├── Data/
+    │   │   ├── CardDtoTests.cs
+    │   │   ├── Dtos/
+    │   │   │   └── CommandDtoTests.cs
+    │   │   ├── GameStateDtoTests.cs
+    │   │   ├── MapDtoTests.cs
+    │   │   ├── MapNodeDtoTests.cs
+    │   │   ├── PlayerDtoTests.cs
+    │   │   └── SnapshotSerializationTests.cs    # EffectStack + ActionSystem targeting-state serialization
+    │   ├── Events/
+    │   │   └── StateChangeEventTests.cs
+    │   ├── Logic/
+    │   │   └── CommandValidatorTests.cs
+    │   ├── Performance/
+    │   │   └── PerformanceTests.cs              # All [TestCategory("Performance")] benchmarks live here
+    │   └── Utilities/
+    │       ├── BufferedAsyncLoggerTests.cs
+    │       ├── CachedIntTextTests.cs
+    │       ├── CardDatabaseIntegrationTests.cs
+    │       ├── CardDatabaseTests.cs
+    │       ├── DtoMapperTests.cs
+    │       ├── MapGeometryTest.cs
+    │       ├── MapLayoutEngineTests.cs
+    │       ├── ObjectPoolTests.cs
+    │       ├── PooledPrimitivesTests.cs
+    │       └── StateHasherTests.cs
+    │
+    ├── Doubles/State/
+    │   └── TestGameplayState.cs             # Hand-rolled IGameplayState fake (auto-wires its own MatchContext)
+    │
+    ├── Entities/
+    │   ├── CardTests.cs
+    │   ├── Cards/
+    │   │   └── EffectConditionTests.cs
+    │   ├── DeckTests.cs
+    │   ├── MapNodeTests.cs
+    │   ├── PlayerTests.cs
+    │   ├── SiteTests.cs
+    │   └── StartingSiteTests.cs
+    │
+    ├── Input/Controllers/
+    │   ├── PlayerControllerTests.cs
+    │   └── ReplayControllerTests.cs
+    │
+    ├── Integration/                         # Multi-component tests, real implementations where it matters
+    │   ├── Core/Events/
+    │   │   └── EventManagerTests.cs
+    │   ├── Factories/
+    │   │   ├── CardFactoryTests.cs
+    │   │   ├── MapFactoryTests.cs
+    │   │   └── MatchFactoryTests.cs
+    │   ├── GameStates/
+    │   │   ├── GameplayStateTests.cs
+    │   │   ├── MainMenuStateTests.cs
+    │   │   ├── StateManagerTests.cs
+    │   │   └── VictoryStateTests.cs
+    │   ├── Input/
+    │   │   ├── Controllers/
+    │   │   │   └── PlayerControllerTests.cs
+    │   │   ├── InputBlockingTests.cs
+    │   │   ├── Modes/
+    │   │   │   ├── DevourInputModePreCommitFlowIntegrationTests.cs
+    │   │   │   ├── DevourInputModeTests.cs
+    │   │   │   ├── MarketInputModeTests.cs
+    │   │   │   ├── NormalPlayInputModeTests.cs
+    │   │   │   ├── PromoteInputModeTests.cs
+    │   │   │   └── TargetingInputModeTests.cs
+    │   │   ├── Processors/
+    │   │   │   ├── GameplayInputCoordinatorTests.cs
+    │   │   │   └── InteractionMapperTests.cs
+    │   │   └── Services/
+    │   │       └── InputManagerTests.cs
+    │   ├── Managers/
+    │   │   ├── MapManagerTests.cs
+    │   │   └── MatchManagerTests.cs
+    │   └── Mechanics/
+    │       ├── ActionSystemCancelTargetingSnapshotTests.cs  # CancelTargeting's snapshot/restore path specifically (MatchContext wired)
+    │       ├── ActionSystemCancellationTests.cs             # CancelTargeting's fallback path (no MatchContext wired)
+    │       ├── ActionSystemCompletionTests.cs
+    │       ├── ConditionalEffectTests.cs
+    │       ├── DevourFromInnerCircleIntegrationTests.cs
+    │       ├── DevourIntegrationTests.cs
+    │       ├── MandatoryInnerCircleDevourIntegrationTests.cs
+    │       ├── ReturnUnitMechanicsTests.cs
+    │       ├── SelfDevourIntegrationTests.cs
+    │       ├── TransactionalCommandTests.cs
+    │       └── WightMechanicsTests.cs
+    │
+    ├── Managers/
+    │   ├── CommandDispatcherTests.cs
+    │   ├── GameEventLoggerTests.cs
+    │   ├── MarketManagerTests.cs
+    │   ├── MarketStateManagerTests.cs
+    │   ├── PlayerStateManagerTests.cs
+    │   ├── PoolManagerTests.cs
+    │   ├── ReplayManagerTests.cs
+    │   ├── StateRestorerTests.cs             # Rollback coverage incl. ActionSystem's own Pending*/CurrentState
+    │   ├── TurnManagerTests.cs
+    │   ├── UIEventMediatorTests.cs
+    │   ├── UIManagerTests.cs
+    │   └── VictoryManagerTests.cs
+    │
+    ├── Map/
+    │   ├── CombatResolverTests.cs
+    │   ├── MapRewardSystemTests.cs
+    │   ├── MapTopologyTests.cs
+    │   └── SpyOperationsTests.cs
+    │
+    ├── Mechanics/
+    │   ├── Actions/
+    │   │   ├── Subsystems/
+    │   │   │   ├── DevourSubsystemTests.cs
+    │   │   │   └── SpySubsystemTests.cs
+    │   │   ├── ActionSystemDevourChainTests.cs
+    │   │   ├── ActionSystemTests.cs
+    │   │   ├── ActionSystemTransactionTests.cs
+    │   │   ├── CardPlaySystemTests.cs
+    │   │   ├── ObsoleteMethodRemovalTests.cs
+    │   │   └── PreTargetHandlerTests.cs
+    │   ├── Commands/                        # One file per IGameCommand, plus:
+    │   │   ├── ActionCompletedCommandTests.cs
+    │   │   ├── AssassinateCommandTests.cs
+    │   │   ├── BuyCardCommandTests.cs
+    │   │   ├── CancelActionCommandTests.cs
+    │   │   ├── CommandSerializationTests.cs
+    │   │   ├── DeployTroopCommandTests.cs
+    │   │   ├── DevourCardCommandTests.cs     # incl. Validate() rejecting an unresolvable RuntimeId
+    │   │   ├── EndTurnCommandTests.cs
+    │   │   ├── MoveTroopCommandTests.cs
+    │   │   ├── PlaceSpyCommandTests.cs
+    │   │   ├── PlayCardCommandTests.cs
+    │   │   ├── PromoteCommandTests.cs
+    │   │   ├── ResolveSpyCommandTests.cs
+    │   │   ├── ReturnTroopCommandTests.cs
+    │   │   ├── StartAssassinateCommandTests.cs
+    │   │   ├── StartReturnSpyCommandTests.cs
+    │   │   ├── SupplantCommandTests.cs
+    │   │   ├── SwitchToNormalModeCommandTests.cs
+    │   │   └── ToggleMarketCommandTests.cs
+    │   └── Rules/
+    │       ├── CardEffectProcessorTests.cs
+    │       ├── CardEffectTests.cs
+    │       ├── CardRuleEngineLookaheadTests.cs
+    │       ├── CardRuleEngineTests.cs
+    │       ├── DevourStrategyFactoryTests.cs
+    │       ├── MapRuleEngineTests.cs
+    │       ├── SiteControlSystemTests.cs
+    │       └── TargetingStateEngineTests.cs
+    │
+    ├── Rendering/
+    │   ├── LogicVectorExtensionsTests.cs
+    │   └── UI/
+    │       └── PopupBuilderTests.cs
+    │
+    ├── Replay/
+    │   ├── ReplayDesyncTests.cs             # RNG call-count parity between a live run and its replay
+    │   ├── ReplayFidelityTests.cs           # Full scripted game through CommandDispatcher; live vs. replayed GetStateHash() match after EVERY command
+    │   ├── ReplayScenarioTests.cs
+    │   └── ReplaySystemTests.cs
+    │
+    └── Utilities/
+        └── TestLogger.cs                     # Shared IGameLogger for tests (BufferedAsyncLogger-backed)
+```
+
+### ChaosWarlords.Core.Tests/ (headless-only suite)
+
+```text
+ChaosWarlords.Core.Tests/
+├── ChaosWarlords.Core.Tests.csproj      # References ChaosWarlords.Core ONLY - never the client project
+├── MSTestSettings.cs                    # [assembly: DoNotParallelize]
+└── Source/
+    ├── NullTestLogger.cs                    # Minimal IGameLogger - doesn't depend on ChaosWarlords.Tests.Utilities.TestLogger
+    ├── Core/
+    │   ├── Data/
+    │   │   ├── LogicRectangleTests.cs
+    │   │   └── LogicVector2Tests.cs
+    │   └── Utilities/
+    │       ├── Pcg32Tests.cs                # The RNG algorithm itself: determinism, non-constant output, bounded range, coarse distribution check
+    │       └── SeededGameRandomTests.cs
+    └── Integration/
+        └── HeadlessCompositionSmokeTests.cs # Builds a real match via MatchFactory, runs real commands through a real CommandDispatcher - proves the whole composition root works with zero MonoGame in this project's dependency graph
 ```
 
 ---
 
-## Test Categories Breakdown
+## Builders Reference (`TestHelpers.cs`)
 
-**Total Test Suite: 719 tests** (422 Unit + 290 Integration + 7 Performance)
+| Builder | For | Key methods |
+|---|---|---|
+| `CardBuilder` | `Card` | `WithName`, `WithDescription`, `WithCost`, `WithAspect`, `WithPower`/`WithInfluence`/`WithVP`, `WithEffect`, `WithFocusEffect`, `InHand`/`InDeck`/`InDiscard`/`InInnerCircle`/`InPlayed`, `Build()` |
+| `PlayerBuilder` | `Player` | `WithColor`, `WithSeatIndex`, `WithName`, `WithPower`/`WithInfluence`/`WithVP`, `WithTroops`, `WithSpies`, `WithCardsInHand`/`InDeck`/`InDiscard`/`InInnerCircle`, `Build()` |
+| `MapNodeBuilder` | `MapNode` | `At(x, y)`, `WithId`, `OccupiedBy`, `ConnectedTo`, `Build()` |
+| `MatchContextBuilder` | `MatchContext` | `WithTurnManager`, `WithMapManager`, `WithMarketManager`, `WithActionSystem`, `WithCardDatabase`, `WithPlayerStateManager`, `WithLogger`, `WithSeed`, `Build()` - every dependency defaults to a fresh `Substitute.For<T>()`, overridable one at a time |
 
-### Unit Tests (422 tests)
-**Purpose**: Test single classes in isolation  
-**Characteristics**: Fast, no external dependencies, use mocks  
-**Run Time**: ~1.1 seconds
+`MockInputProvider` and `InputTestHelpers` (also in `TestHelpers.cs`) provide raw MonoGame `MouseState`/`KeyboardState` simulation for input-pipeline tests - client-project-only concerns, so they live in `ChaosWarlords.Tests`, not `ChaosWarlords.Core.Tests`.
 
-**Categories**:
-- **Entities** (7 files): Domain models (Card, Deck, Player, EffectCondition, etc.)
-- **Mechanics** (18 files): Game rules, commands, actions, effects
-- **Managers** (10 files): State managers + PoolManager
-- **Core/Utilities** (9 files): Infrastructure (ObjectPool, PooledPrimitives, etc.)
-- **Map Components** (4 files): Map subsystems (Combat, Rewards, Topology, Spies)
+---
 
-**New Test Suites (January 2026)**:
-- **MatchContextHashingTests** (4 tests): Validates deterministic state hash generation. Tests hash changes on state mutations (phase, sequence, map, player). Category: Unit
-- **SnapshotSerializationTests** (1 test): Verifies EffectStack serialization in `ToGameStateDto()`. Tests DTO mapping for mid-action state capture. Category: Unit
+## Test Counts (as of 2026-08-31)
 
+**Total: 863 tests** across both projects, all passing.
 
-### Integration Tests (291 tests)
-**Purpose**: Test component interactions  
-**Characteristics**: Slower, use real implementations, test coordination  
-**Run Time**: ~4.7 seconds
+| | `ChaosWarlords.Tests` | `ChaosWarlords.Core.Tests` | Combined |
+|---|---:|---:|---:|
+| Unit | 586 | 18 | 604 |
+| Integration | 247 | 1 | 248 |
+| Performance | 7 | 0 | 7 |
+| **Total** | **844** | **19** | **863** |
 
-**Organization**: All integration tests now in dedicated `Integration/` folder
-
-**Categories**:
-- **Mechanics** (2 files): Transactional commands & Conditional effects
-- **Managers** (2 files): Complex managers (Map, Match)
-- **Factories** (3 files): Object creation with dependencies (Card, Map, Match)
-- **Game States** (4 files): State machine and coordination (Gameplay, Menu, Victory, StateManager)
-- **Input** (9 files): Input handling pipeline (Controllers, Modes, Processors, Services)
-- **Core/Events** (1 file): Event publishing and subscriptions
-
-### Performance Tests (7 tests)
-**Purpose**: Benchmark critical operations  
-**Characteristics**: Time-based assertions, measure execution speed  
-**Run Time**: ~0.7 seconds
-
-**Benchmarks**:
-- Deck operations (shuffle, draw)
-- Resource management (1000 updates)
-- Effect resolution (100 cards)
-- Map queries (neighbor lookup)
-- Random generation (10000 calls)
-- Hand manipulation (1000 operations)
+Run `dotnet test` for the combined total; see the `--filter` commands above to break it down. These counts drift as tests are added - treat them as "order of magnitude and how to check", not a value to keep manually in sync here.
 
 ---
 
@@ -390,11 +379,17 @@ The gold standard for complex mechanics. Verifies "Deep Lookahead" logic:
 - Plays a Card with multi-step mechanics (`Wight`).
 - Asserts that Popups ONLY appear if the FULL chain is valid (Lookahead).
 
+**Replay Fidelity (`ReplayFidelityTests.cs`)**
+Plays a real multi-turn game through the actual `CommandDispatcher`, records it, replays the recording into a completely separate, independently-constructed `MatchContext` (same seed), and asserts `GetStateHash()` matches after *every* command - not just at the end, so a divergence points at exactly which command caused it.
+
+**CancelTargeting Snapshot Path (`ActionSystemCancelTargetingSnapshotTests.cs`)**
+`ActionSystemCancellationTests.cs` never wires a `MatchContext` into its `ActionSystem`, so its own tests only exercise `CancelTargeting`'s no-snapshot fallback. This file wires a real `MatchContext` (mirroring `StateRestorerTests.cs`'s setup) so the actual snapshot/restore path gets exercised too - including a case proving a resource spent mid-targeting correctly reverts, and a case proving a cancel mid-way through a multi-step chain reverts the *whole* sequence, not just the latest step.
+
 ---
 
-## 16. Advanced Mocking Patterns
+## Advanced Mocking Patterns
 
-### 16.1 Mocking Input Events
+### Mocking Input Events
 To test event-driven input, use NSubstitute's `Raise.Event` to trigger the `OnInputEvent` handler.
 
 ```csharp
@@ -404,7 +399,7 @@ var coordinator = new GameplayInputCoordinator(..., mockInput, ...);
 
 // Act: Simulate User Click
 mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
-    this, 
+    this,
     new InputEventArgs(InputEventType.LeftClick, new Vector2(100, 100))
 );
 
