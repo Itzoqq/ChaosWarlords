@@ -331,9 +331,16 @@ namespace ChaosWarlords.Source.Managers
 
         public void PerformReturnTroop(MapNode node, string? cardId)
         {
+            // CompleteAction(), not a manual OnActionCompleted+ClearState() - see
+            // PerformSupplant's comment (same fix, same reasoning: a manual clear never pops
+            // ExecutionStack, so it would strand an EffectContext there if this were ever
+            // reached via a chained effect). Confirmed via grep this method is currently
+            // unreachable from any live path (no command or test calls it - see planning.txt
+            // RESOLVED) - fixed anyway so it isn't a landmine for whatever wires it up next,
+            // matching this file's PerformAssassinate/PerformSupplant precedent from earlier
+            // this session.
             _mapManager.ReturnTroop(node, CurrentPlayer);
-            OnActionCompleted?.Invoke(this, EventArgs.Empty);
-            ClearState();
+            CompleteAction();
         }
 
         public void PerformSupplant(MapNode node, string? cardId, string? devourCardId = null)
