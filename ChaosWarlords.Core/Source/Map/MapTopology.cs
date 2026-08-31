@@ -58,22 +58,10 @@ namespace ChaosWarlords.Source.Map
             }
         }
 
-        /// <summary>
-        /// Finds the node at the given screen position (within click radius).
-        /// </summary>
-        public MapNode? GetNodeAt(LogicVector2 position)
-        {
-            long radiusScaled = (long)MapNode.Radius * LogicVector2.ScaleFactor;
-            return _nodes.FirstOrDefault(n => LogicVector2.DistanceSquared(position, n.Position) <= radiusScaled * radiusScaled);
-        }
-
-        /// <summary>
-        /// Finds the site containing the given screen position.
-        /// </summary>
-        public Site? GetSiteAt(LogicVector2 position)
-        {
-            return _sites?.FirstOrDefault(s => s.Bounds.Contains(position));
-        }
+        // Screen-space hit-testing (GetNodeAt/GetSiteAt) deliberately lives outside this
+        // class now - see ChaosWarlords/Source/Input/MapHitTestExtensions.cs. It's an
+        // Input-layer concern (a headless server never needs it), and the math only needs
+        // the already-public Nodes/Sites collections, so no seam was needed here.
     }
 }
 

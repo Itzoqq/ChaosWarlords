@@ -11,6 +11,7 @@ using ChaosWarlords.Source.Core.Events;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Rendering;
+using ChaosWarlords.Source.Input;
 
 namespace ChaosWarlords.Source.Input.Modes
 {

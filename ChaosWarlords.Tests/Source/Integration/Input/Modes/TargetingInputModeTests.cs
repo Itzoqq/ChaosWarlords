@@ -45,6 +45,11 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             _inputManager = new InputManager(_mockInput);
 
             _mapSub = Substitute.For<IMapManager>();
+            // GetNodeAt/GetSiteAt are now extension methods over Nodes/Sites (see
+            // MapHitTestExtensions.cs), not mockable interface members - back them with real
+            // (empty, by default) collections so the real hit-test math runs safely.
+            _mapSub.Nodes.Returns(new List<MapNode>());
+            _mapSub.Sites.Returns(new List<Site>());
             _actionSub = Substitute.For<IActionSystem>();
             _marketSub = Substitute.For<IMarketManager>();
             _mockUI = Substitute.For<IUIManager>();
@@ -131,7 +136,8 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             var node = TestData.MapNodes.Node1();
             var clickPos = new Vector2(200, 200);
-            _mapSub.GetNodeAt(clickPos.ToLogicVector2()).Returns(node);
+            node.Position = clickPos.ToLogicVector2(); // so the real GetNodeAt hit-test math finds it
+            _mapSub.Nodes.Returns(new List<MapNode> { node });
 
             var evt = new InputEventArgs(InputEventType.LeftClick, clickPos);
 
@@ -175,8 +181,12 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             var targetSite = TestData.Sites.NeutralSite();
             var clickPos = new Vector2(300, 300);
-            _mapSub.GetSiteAt(clickPos.ToLogicVector2()).Returns(targetSite);
-            _mapSub.GetNodeAt(clickPos.ToLogicVector2()).Returns((MapNode?)null);
+            // Real GetSiteAt hit-test needs the site's Bounds to actually contain clickPos.
+            typeof(Site).GetProperty("Bounds")?.SetValue(targetSite, new LogicRectangle(
+                250 * LogicVector2.ScaleFactor, 250 * LogicVector2.ScaleFactor,
+                100 * LogicVector2.ScaleFactor, 100 * LogicVector2.ScaleFactor));
+            _mapSub.Sites.Returns(new List<Site> { targetSite });
+            // _mapSub.Nodes stays empty (Setup default) - real GetNodeAt hit-test finds nothing.
 
             var evt = new InputEventArgs(InputEventType.LeftClick, clickPos);
 

@@ -8,6 +8,7 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Rendering;
+using ChaosWarlords.Source.Input;
 using Microsoft.Xna.Framework;
 
 

@@ -47,6 +47,11 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             // Substitutes
             _mapSub = Substitute.For<IMapManager>();
+            // GetNodeAt/GetSiteAt are now extension methods over Nodes/Sites (see
+            // MapHitTestExtensions.cs), not mockable interface members - back them with real
+            // (empty, by default) collections so the real hit-test math runs safely.
+            _mapSub.Nodes.Returns(new List<MapNode>());
+            _mapSub.Sites.Returns(new List<Site>());
             _actionSub = Substitute.For<IActionSystem>();
             _marketSub = Substitute.For<IMarketManager>();
             _mockUI = Substitute.For<IUIManager>();
@@ -148,7 +153,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // Setup Map Mock to return a node at click location
             var targetNode = TestData.MapNodes.Node1();
             var clickPos = new Vector2(200, 200);
-            _mapSub.GetNodeAt(clickPos.ToLogicVector2()).Returns(targetNode);
+            targetNode.Position = clickPos.ToLogicVector2(); // so the real GetNodeAt hit-test math finds it
             _mapSub.CanDeployAt(targetNode, _activePlayer.Color).Returns(true);
             _mapSub.Nodes.Returns(new List<MapNode> { targetNode });
 
@@ -183,9 +188,10 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // Both Card and Map Node are "active" under the mouse
             _stateFake.HoveredHandCard = card;
 
-            var node = TestData.MapNodes.Node1();
+            // Note: NormalPlayInputMode checks HoveredHandCard before ever consulting the
+            // map, so GetNodeAt is never called in this scenario - no map setup needed to
+            // prove the card takes priority.
             var clickPos = new Vector2(110, 110);
-            _mapSub.GetNodeAt(clickPos.ToLogicVector2()).Returns(node);
 
             var evt = new InputEventArgs(InputEventType.LeftClick, clickPos);
 
@@ -211,7 +217,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // 1. Arrange
             _stateFake.HoveredHandCard = null;
             var clickPos = new Vector2(500, 500);
-            _mapSub.GetNodeAt(clickPos.ToLogicVector2()).Returns((MapNode?)null);
+            // _mapSub.Nodes is empty (Setup default) - real GetNodeAt hit-test finds nothing.
 
             var evt = new InputEventArgs(InputEventType.LeftClick, clickPos);
 

@@ -439,20 +439,9 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
         #endregion
 
-        #region 6. Hit Testing (Utility)
-
-        [TestMethod]
-        public void GetNodeAt_ReturnsCorrectNode()
-        {
-            _node1.Position = new LogicVector2(100 * LogicVector2.ScaleFactor, 100 * LogicVector2.ScaleFactor);
-            var insidePoint = new LogicVector2(105 * LogicVector2.ScaleFactor, 105 * LogicVector2.ScaleFactor);
-            var outsidePoint = new LogicVector2(200 * LogicVector2.ScaleFactor, 200 * LogicVector2.ScaleFactor);
-
-            Assert.AreSame(_node1, _mapManager.GetNodeAt(insidePoint));
-            Assert.IsNull(_mapManager.GetNodeAt(outsidePoint));
-        }
-
-        #endregion
+        // GetNodeAt/GetSiteAt hit-testing moved out of MapManager (Core) to
+        // ChaosWarlords/Source/Input/MapHitTestExtensions.cs (client Input layer) - see
+        // ChaosWarlords.Tests/Source/Input/MapHitTestExtensionsTests.cs for their coverage now.
 
         [TestMethod]
         public void PlaceSpy_Fails_IfSpyAlreadyPresent()

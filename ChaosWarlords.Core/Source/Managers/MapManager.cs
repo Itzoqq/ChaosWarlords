@@ -106,8 +106,6 @@ namespace ChaosWarlords.Source.Managers
 
         public void CenterMap(int screenWidth, int screenHeight) => _topology.CenterMap(screenWidth, screenHeight);
         public void ApplyOffset(LogicVector2 offset) => _topology.ApplyOffset(offset);
-        public MapNode? GetNodeAt(LogicVector2 position) => _topology.GetNodeAt(position);
-        public Site? GetSiteAt(LogicVector2 position) => _topology.GetSiteAt(position);
         public List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer) => SpyOperations.GetEnemySpiesAtSite(site, activePlayer);
 
         // -------------------------------------------------------------------------

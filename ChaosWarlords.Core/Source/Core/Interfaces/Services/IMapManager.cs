@@ -35,9 +35,11 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         // ---------------------------------------
 
         // Navigation / Queries
+        // Note: screen-space hit-testing (GetNodeAt/GetSiteAt) is deliberately NOT on this
+        // facade - it's an Input-layer concern (a headless server never needs it; network
+        // clients always send resolved node/site IDs). See
+        // ChaosWarlords/Source/Input/MapHitTestExtensions.cs.
         Site? GetSiteForNode(MapNode node);
-        MapNode? GetNodeAt(Core.Data.LogicVector2 position);
-        Site? GetSiteAt(Core.Data.LogicVector2 position);
         List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer);
 
         // Actions

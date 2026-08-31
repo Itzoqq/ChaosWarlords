@@ -14,6 +14,7 @@ using ChaosWarlords.Source.Rendering.World; // Changed from ChaosWarlords.Source
 using ChaosWarlords.Source.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
+using ChaosWarlords.Source.Input;
 
 using System.Diagnostics.CodeAnalysis;
 using System;

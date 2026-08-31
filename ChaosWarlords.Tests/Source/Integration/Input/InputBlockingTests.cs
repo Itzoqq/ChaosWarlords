@@ -58,7 +58,10 @@ namespace ChaosWarlords.Tests.Source.Integration.Input
             
             // Setup Valid Map Interaction
             var node = new ChaosWarlords.Source.Entities.Map.MapNode(1, new ChaosWarlords.Source.Core.Data.LogicVector2(100 * ChaosWarlords.Source.Core.Data.LogicVector2.ScaleFactor, 100 * ChaosWarlords.Source.Core.Data.LogicVector2.ScaleFactor)); // Using real node, its safe
-            mapManager.GetNodeAt(Arg.Any<ChaosWarlords.Source.Core.Data.LogicVector2>()).Returns(node);
+            // GetNodeAt is now an extension method over Nodes (see MapHitTestExtensions.cs),
+            // not a mockable interface member - back it with real data instead. The test's
+            // click position below is (100,100), exactly matching this node's position.
+            mapManager.Nodes.Returns(new List<ChaosWarlords.Source.Entities.Map.MapNode> { node });
             mapManager.CanDeployAt(node, Arg.Any<PlayerColor>()).Returns(true);
             
             _context.TurnManager.ActivePlayer.Returns(new Player(PlayerColor.Red));

@@ -37,46 +37,9 @@ namespace ChaosWarlords.Tests.Map
             _topology = new MapTopology(_nodes, _sites);
         }
 
-        [TestMethod]
-        public void GetNodeAt_ReturnsNodeWithinRadius()
-        {
-            // Arrange
-            var searchPosition = Scaled(12, 12); // Node 1 is at (10,10)
-
-            // Act
-            var result = _topology.GetNodeAt(searchPosition);
-
-            // Assert
-            Assert.IsNotNull(result);
-            Assert.AreEqual(1, result.Id);
-        }
-
-        [TestMethod]
-        public void GetNodeAt_ReturnsNullWhenNoNodeNearby()
-        {
-            // Arrange
-            var searchPosition = Scaled(1000, 1000); // Far from all nodes
-
-            // Act
-            var result = _topology.GetNodeAt(searchPosition);
-
-            // Assert
-            Assert.IsNull(result);
-        }
-
-        [TestMethod]
-        public void GetSiteAt_ReturnsSiteContainingPosition()
-        {
-            // Arrange - position within site bounds (Node1 is at 10,10, Node2 at 20,10)
-            var searchPosition = Scaled(15, 10);
-
-            // Act
-            var result = _topology.GetSiteAt(searchPosition);
-
-            // Assert
-            Assert.IsNotNull(result);
-            Assert.AreEqual("Neutral Site", result.Name);
-        }
+        // GetNodeAt/GetSiteAt moved out of MapTopology (Core) to
+        // ChaosWarlords/Source/Input/MapHitTestExtensions.cs (client Input layer) - see
+        // ChaosWarlords.Tests/Source/Input/MapHitTestExtensionsTests.cs for their coverage now.
 
         [TestMethod]
         public void ApplyOffset_MovesAllNodes()
