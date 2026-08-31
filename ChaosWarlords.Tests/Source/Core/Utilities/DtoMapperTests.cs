@@ -102,8 +102,8 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             Assert.IsInstanceOfType(resultCommand, typeof(PlayCardCommand));
             var playCmd = resultCommand as PlayCardCommand;
             Assert.IsNotNull(playCmd);
-            Assert.AreEqual(card.Id, playCmd.Card.Id);
-            Assert.AreEqual(card.Name, playCmd.Card.Name);
+            Assert.AreEqual(card.RuntimeId, playCmd.CardRuntimeId);
+            Assert.AreEqual(card.Id, playCmd.CardId);
         }
         [TestMethod]
         public void ToDto_BuyCardCommand_ReturnsCorrectDto()
@@ -122,7 +122,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
         {
             var node = new MapNode(99, LogicVector2.Zero);
             var player = new Player(PlayerColor.Red);
-            var command = new DeployTroopCommand(node, player);
+            var command = new DeployTroopCommand(node);
             var dto = DtoMapper.ToDto(command, 11, player);
 
             Assert.IsInstanceOfType(dto, typeof(DeployTroopCommandDto));
@@ -155,7 +155,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var cmd = DtoMapper.HydrateCommand(dto, state.MatchContext) as BuyCardCommand;
 
             Assert.IsNotNull(cmd);
-            Assert.AreEqual("market_c1", cmd.Card.Id);
+            Assert.AreEqual("market_c1", cmd.CardId);
         }
 
         [TestMethod]
@@ -171,8 +171,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var cmd = DtoMapper.HydrateCommand(dto, state.MatchContext) as DeployTroopCommand;
 
             Assert.IsNotNull(cmd);
-            Assert.AreEqual(50, cmd!.Node.Id);
-            Assert.AreEqual(PlayerColor.Blue, cmd!.Player!.Color);
+            Assert.AreEqual(50, cmd!.NodeId);
         }
 
         [TestMethod]
@@ -258,7 +257,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as PlayCardCommand;
 
             Assert.IsNotNull(result);
-            Assert.AreEqual("noble_111", result.Card.Id, "Hydration should prefer ID over Index!");
+            Assert.AreEqual("noble_111", result.CardId, "Hydration should prefer ID over Index!");
         }
 
         [TestMethod]
@@ -290,7 +289,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as PlayCardCommand;
 
             Assert.IsNotNull(result);
-            Assert.AreEqual("noble_111", result.Card.Id, "Hydration should fallback to index if ID not found.");
+            Assert.AreEqual("noble_111", result.CardId, "Hydration should fallback to index if ID not found.");
 
             // Verify warning logged
             loggerMock.Received().Log(Arg.Is<string>(s => s.Contains("Fell back to Index")), LogChannel.Warning);
@@ -319,7 +318,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as DevourCardCommand;
 
             Assert.IsNotNull(result);
-            Assert.AreEqual("devour_111", result.CardToDevour.Id, "Hydration should prefer ID over Index!");
+            Assert.AreEqual("devour_111", result.CardId, "Hydration should prefer ID over Index!");
         }
 
         [TestMethod]
@@ -343,7 +342,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as DevourCardCommand;
 
             Assert.IsNotNull(result);
-            Assert.AreEqual("devour_111", result.CardToDevour.Id, "Hydration should fallback to index if ID not found.");
+            Assert.AreEqual("devour_111", result.CardId, "Hydration should fallback to index if ID not found.");
         }
 
         [TestMethod]
@@ -367,7 +366,7 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as DevourCardCommand;
 
             Assert.IsNotNull(result);
-            Assert.AreEqual("devour_111", result.CardToDevour.Id);
+            Assert.AreEqual("devour_111", result.CardId);
         }
         [TestMethod]
         public void HydrateCommand_Devour_FromInnerCircle()
@@ -391,8 +390,8 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as DevourCardCommand;
 
             Assert.IsNotNull(result);
-            Assert.AreEqual("inner_111", result.CardToDevour.Id);
-            Assert.AreEqual(CardLocation.InnerCircle, result.CardToDevour.Location);
+            Assert.AreEqual("inner_111", result.CardId);
+            Assert.AreEqual(CardLocation.InnerCircle, result.LocationAtConstruction);
         }
     }
 }

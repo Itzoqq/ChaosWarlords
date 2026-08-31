@@ -122,6 +122,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             var clickPos = new Vector2(200, 200);
             _mapSub.GetNodeAt(clickPos.ToLogicVector2()).Returns(targetNode);
             _mapSub.CanDeployAt(targetNode, _activePlayer.Color).Returns(true);
+            _mapSub.Nodes.Returns(new List<MapNode> { targetNode });
 
             var evt = new InputEventArgs(InputEventType.LeftClick, clickPos);
 

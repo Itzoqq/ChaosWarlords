@@ -1,4 +1,6 @@
 using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
 
@@ -16,7 +18,11 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // Mock MatchManager to verify the delegate call from State -> Manager
             var matchManagerSub = stateFake.MatchManager;
 
+            var player = new Player(PlayerColor.Red);
+            stateFake.TurnManager.ActivePlayer.Returns(player);
+
             var card = TestData.Cards.AssassinCard();
+            player.AddToHand(card);
             var command = new PlayCardCommand(card);
 
             // Act
@@ -35,7 +41,11 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var stateFake = new TestGameplayState();
             var matchManagerSub = stateFake.MatchManager;
 
+            var player = new Player(PlayerColor.Red);
+            stateFake.TurnManager.ActivePlayer.Returns(player);
+
             var card = TestData.Cards.AssassinCard();
+            player.AddToHand(card);
             var command = new PlayCardCommand(card, true);
 
             // Act
@@ -50,7 +60,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // the result is the same: MatchManager.PlayCard is called.
             // The distinction is whether flow went through state.PlayCard or state.MatchManager.PlayCard.
             // Given the original test:
-            // command.Execute implementation likely checks 'bypass' -> matchManager.PlayCard 
+            // command.Execute implementation likely checks 'bypass' -> matchManager.PlayCard
             // vs no bypass -> state.PlayCard.
         }
     }

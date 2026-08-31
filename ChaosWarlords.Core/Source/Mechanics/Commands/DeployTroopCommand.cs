@@ -1,6 +1,4 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
-using ChaosWarlords.Source.Entities.Map;
-using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Contexts;
 
 namespace ChaosWarlords.Source.Commands
@@ -13,37 +11,37 @@ namespace ChaosWarlords.Source.Commands
         {
             return new Core.Data.Dtos.DeployTroopCommandDto
             {
-                NodeId = Node.Id
+                NodeId = NodeId
             };
         }
-        public MapNode Node { get; }
-        public Player? Player { get; }
 
-        // Constructor for normal gameplay (uses ActivePlayer)
-        public DeployTroopCommand(MapNode node)
+        public int NodeId { get; }
+
+        public DeployTroopCommand(int nodeId)
         {
-            Node = node;
-            Player = null; // Will use ActivePlayer during execution
+            NodeId = nodeId;
         }
 
-        // Constructor for replay (uses specific player)
-        public DeployTroopCommand(MapNode node, Player player)
-        {
-            Node = node;
-            Player = player;
-        }
+        public DeployTroopCommand(Entities.Map.MapNode node) : this(node.Id) { }
 
         public bool Validate(MatchContext context)
         {
-            var p = Player ?? context.TurnManager.ActivePlayer;
-            return context.MapManager.CanDeployAt(Node, p.Color);
+            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == NodeId);
+            if (node == null) return false;
+
+            // Deploy is always the active player's own action (there's no "deploy for someone
+            // else" in the rules), matching AssassinateCommand/SupplantCommand/etc.'s pattern.
+            var player = context.TurnManager.ActivePlayer;
+            return context.MapManager.CanDeployAt(node, player.Color);
         }
 
         public void Execute(MatchContext context)
         {
-            var p = Player ?? context.TurnManager.ActivePlayer;
-            context.MapManager.TryDeploy(p, Node);
+            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == NodeId);
+            if (node != null)
+            {
+                context.MapManager.TryDeploy(context.TurnManager.ActivePlayer, node);
+            }
         }
     }
 }
-

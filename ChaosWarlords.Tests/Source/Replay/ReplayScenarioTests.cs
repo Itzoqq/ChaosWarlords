@@ -49,7 +49,7 @@ namespace ChaosWarlords.Tests.Replay
             var cmds = new List<(ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand, Player)>
             {
                 (new PlayCardCommand(new CardBuilder().WithName("p1_c1").Build()), p1),
-                (new DeployTroopCommand(node, p1), p1),
+                (new DeployTroopCommand(node), p1),
                 (new EndTurnCommand(), p1),
                 (new PlayCardCommand(new CardBuilder().WithName("p2_c1").Build()), p2),
                 (new EndTurnCommand(), p2)

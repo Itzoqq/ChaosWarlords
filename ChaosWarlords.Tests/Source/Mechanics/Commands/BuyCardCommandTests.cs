@@ -47,6 +47,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             stateFake.MatchContext = context;
 
             var card = TestData.Cards.PowerCard();
+            mockMarketManager.MarketRow.Returns(new List<ChaosWarlords.Source.Entities.Cards.Card> { card });
             var command = new BuyCardCommand(card);
 
             // Act

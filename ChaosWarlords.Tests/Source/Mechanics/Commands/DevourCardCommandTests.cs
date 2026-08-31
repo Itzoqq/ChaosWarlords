@@ -1,5 +1,7 @@
 using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
 
@@ -31,7 +33,11 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var mockMatchManager = stateFake.MatchManager;
             var mockActionSystem = stateFake.ActionSystem;
 
+            var player = new Player(PlayerColor.Red);
+            stateFake.TurnManager.ActivePlayer.Returns(player);
+
             var card = TestData.Cards.CheapCard();
+            player.AddToHand(card);
             var command = new DevourCardCommand(card);
 
             // Act
@@ -50,7 +56,11 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var mockMatchManager = stateFake.MatchManager;
             var mockActionSystem = stateFake.ActionSystem;
 
+            var player = new Player(PlayerColor.Red);
+            stateFake.TurnManager.ActivePlayer.Returns(player);
+
             var card = TestData.Cards.CheapCard();
+            player.AddToHand(card);
             var command = new DevourCardCommand(card);
 
             // Act
@@ -69,7 +79,11 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var mockMatchManager = stateFake.MatchManager;
             var mockActionSystem = stateFake.ActionSystem;
 
+            var player = new Player(PlayerColor.Red);
+            stateFake.TurnManager.ActivePlayer.Returns(player);
+
             var card = TestData.Cards.CheapCard();
+            player.AddToHand(card);
             var command = new DevourCardCommand(card);
 
             var callOrder = new System.Collections.Generic.List<string>();

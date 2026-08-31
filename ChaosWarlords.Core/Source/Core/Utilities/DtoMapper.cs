@@ -25,7 +25,7 @@ namespace ChaosWarlords.Source.Core.Utilities
             {
                 { typeof(PlayCardCommandDto), (d, c) => HydratePlayCard((PlayCardCommandDto)d, GetSeatPlayer(d, c), c.Logger) },
                 { typeof(BuyCardCommandDto), (d, c) => HydrateBuyCard((BuyCardCommandDto)d, c) },
-                { typeof(DeployTroopCommandDto), (d, c) => HydrateDeploy((DeployTroopCommandDto)d, c, GetSeatPlayer(d, c)) },
+                { typeof(DeployTroopCommandDto), (d, c) => HydrateDeploy((DeployTroopCommandDto)d, c) },
                 { typeof(DevourCardCommandDto), (d, c) => HydrateDevour((DevourCardCommandDto)d, GetSeatPlayer(d, c), c) },
                 { typeof(EndTurnCommandDto), (d, s) => new EndTurnCommand() },
                 { typeof(CancelActionCommandDto), (d, s) => new CancelActionCommand() },
@@ -151,19 +151,19 @@ namespace ChaosWarlords.Source.Core.Utilities
         {
             if (dto is PlayCardCommandDto playDto && command is PlayCardCommand playCmd && playDto.HandIdx == -1)
             {
-                playDto.HandIdx = GetCardIndex(actor.Hand, playCmd.Card);
+                playDto.HandIdx = GetCardIndex(actor.Hand, playCmd.CardRuntimeId);
             }
             else if (dto is DevourCardCommandDto devourDto && command is DevourCardCommand devourCmd && devourDto.HandIdx == -1)
             {
-                devourDto.HandIdx = GetCardIndex(actor.Hand, devourCmd.CardToDevour);
+                devourDto.HandIdx = GetCardIndex(actor.Hand, devourCmd.CardRuntimeId);
             }
         }
 
-        private static int GetCardIndex(IReadOnlyList<Card> list, Card card)
+        private static int GetCardIndex(IReadOnlyList<Card> list, Guid runtimeId)
         {
             for (int i = 0; i < list.Count; i++)
             {
-                if (list[i] == card) return i;
+                if (list[i].RuntimeId == runtimeId) return i;
             }
             return -1;
         }
@@ -192,7 +192,15 @@ namespace ChaosWarlords.Source.Core.Utilities
 
         private static Card? FindCardForPlayCommand(PlayCardCommandDto dto, Player player, IGameLogger? logger)
         {
-            // Try to find by CardId first
+            // Try RuntimeId first - unambiguous even when the player holds two copies of the
+            // same card definition. Falls back to CardId-then-index for replay data recorded
+            // before CardRuntimeId existed.
+            if (dto.CardRuntimeId is Guid runtimeId)
+            {
+                var byRuntimeId = player.Hand.FirstOrDefault(c => c.RuntimeId == runtimeId);
+                if (byRuntimeId != null) return byRuntimeId;
+            }
+
             var card = TryFindCardById(dto.CardId, player, logger);
 
             // Fallback to index if ID lookup failed
@@ -234,16 +242,20 @@ namespace ChaosWarlords.Source.Core.Utilities
 
         private static BuyCardCommand? HydrateBuyCard(BuyCardCommandDto dto, MatchContext context)
         {
-            var card = context.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardId);
+            if (dto.CardRuntimeId is Guid runtimeId)
+            {
+                var byRuntimeId = context.MarketManager.MarketRow?.FirstOrDefault(c => c.RuntimeId == runtimeId);
+                if (byRuntimeId != null) return new BuyCardCommand(byRuntimeId);
+            }
+
+            var card = context.MarketManager.MarketRow?.FirstOrDefault(c => c.Id == dto.CardId);
             return card != null ? new BuyCardCommand(card) : null;
         }
 
-        private static DeployTroopCommand? HydrateDeploy(DeployTroopCommandDto dto, MatchContext context, Player? player)
+        private static DeployTroopCommand? HydrateDeploy(DeployTroopCommandDto dto, MatchContext context)
         {
             var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == dto.NodeId);
-            if (node != null && player != null)
-                return new DeployTroopCommand(node, player);
-            return null;
+            return node != null ? new DeployTroopCommand(dto.NodeId) : null;
         }
 
         private static DevourCardCommand? HydrateDevour(DevourCardCommandDto dto, Player? player, MatchContext? context = null)
@@ -260,9 +272,21 @@ namespace ChaosWarlords.Source.Core.Utilities
 
         private static Card? FindDevourTargetCard(DevourCardCommandDto dto, Player player, MatchContext? context)
         {
+            // Try RuntimeId first, searching everywhere a devour target can live - unambiguous
+            // even with duplicate-copy cards. Falls back to the Location-directed CardId/index
+            // lookup below for replay data recorded before CardRuntimeId existed.
+            if (dto.CardRuntimeId is Guid runtimeId)
+            {
+                var byRuntimeId = player.Hand.FirstOrDefault(c => c.RuntimeId == runtimeId)
+                    ?? player.InnerCircle.FirstOrDefault(c => c.RuntimeId == runtimeId)
+                    ?? player.PlayedCards.FirstOrDefault(c => c.RuntimeId == runtimeId)
+                    ?? context?.MarketManager.MarketRow?.FirstOrDefault(c => c.RuntimeId == runtimeId);
+                if (byRuntimeId != null) return byRuntimeId;
+            }
+
             if (string.Equals(dto.Location, "Market", StringComparison.OrdinalIgnoreCase) && context != null)
             {
-                return context.MarketManager.MarketRow.FirstOrDefault(c => c.Id == dto.CardId);
+                return context.MarketManager.MarketRow?.FirstOrDefault(c => c.Id == dto.CardId);
             }
 
             if (string.Equals(dto.Location, "InnerCircle", StringComparison.OrdinalIgnoreCase))
@@ -287,6 +311,12 @@ namespace ChaosWarlords.Source.Core.Utilities
 
         private static Card? FindDevourSourceCard(DevourCardCommandDto dto, Player player)
         {
+            if (dto.SourceCardRuntimeId is Guid sourceRuntimeId)
+            {
+                var byRuntimeId = player.Hand.FirstOrDefault(c => c.RuntimeId == sourceRuntimeId);
+                if (byRuntimeId != null) return byRuntimeId;
+            }
+
             if (dto.SourceCardId == null) return null;
             return player.Hand.FirstOrDefault(c => c.Id == dto.SourceCardId);
         }

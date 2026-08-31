@@ -54,9 +54,10 @@ namespace ChaosWarlords.Tests.Source.Replay
             redLive.AddPower(1); // Effect
 
             // 2. Deploy
-            var cmd1 = new DeployTroopCommand(worldLive.MapManager.NodesInternal.First(n => n.Id == 1), redLive);
+            var deployNode1 = worldLive.MapManager.NodesInternal.First(n => n.Id == 1);
+            var cmd1 = new DeployTroopCommand(deployNode1);
             replayManager.RecordCommand(cmd1, redLive, 2);
-            worldLive.MapManager.TryDeploy(redLive, cmd1.Node);
+            worldLive.MapManager.TryDeploy(redLive, deployNode1);
 
             redLive.CleanUpTurn();
             redLive.DrawCards(5, worldLive.GameRandom);
@@ -68,9 +69,10 @@ namespace ChaosWarlords.Tests.Source.Replay
             // ---------------------------------------------------------
             // BLUE TURN
             // ---------------------------------------------------------
-            var cmd2 = new DeployTroopCommand(worldLive.MapManager.NodesInternal.First(n => n.Id == 7), blueLive);
+            var deployNode2 = worldLive.MapManager.NodesInternal.First(n => n.Id == 7);
+            var cmd2 = new DeployTroopCommand(deployNode2);
             replayManager.RecordCommand(cmd2, blueLive, 3);
-            worldLive.MapManager.TryDeploy(blueLive, cmd2.Node);
+            worldLive.MapManager.TryDeploy(blueLive, deployNode2);
 
             blueLive.CleanUpTurn();
             blueLive.DrawCards(5, worldLive.GameRandom);
@@ -119,7 +121,7 @@ namespace ChaosWarlords.Tests.Source.Replay
             if (fetchedCmd1 is PlayCardCommand playCmdReplay)
             {
                 // Simulate Execution of PlayCard
-                var card = playCmdReplay.Card;
+                var card = redReplay.Hand.FirstOrDefault(c => c.RuntimeId == playCmdReplay.CardRuntimeId);
                 Assert.IsNotNull(card, "PlayCardCommand Card is null!");
 
                 // Apply Logic
@@ -133,7 +135,8 @@ namespace ChaosWarlords.Tests.Source.Replay
             Assert.IsNotNull(fetchedCmd2, "Failed to switch Deploy Command (Red)");
             if (fetchedCmd2 is DeployTroopCommand deployCmd1)
             {
-                worldReplay.MapManager.TryDeploy(deployCmd1.Player!, deployCmd1.Node);
+                var node = worldReplay.MapManager.NodesInternal.First(n => n.Id == deployCmd1.NodeId);
+                worldReplay.MapManager.TryDeploy(worldReplay.TurnManager.ActivePlayer, node);
             }
 
             redReplay.CleanUpTurn();
@@ -150,7 +153,8 @@ namespace ChaosWarlords.Tests.Source.Replay
 
             if (fetchedCmd3 is DeployTroopCommand deployCmd2)
             {
-                worldReplay.MapManager.TryDeploy(deployCmd2.Player!, deployCmd2.Node);
+                var node = worldReplay.MapManager.NodesInternal.First(n => n.Id == deployCmd2.NodeId);
+                worldReplay.MapManager.TryDeploy(worldReplay.TurnManager.ActivePlayer, node);
             }
             blueReplay.CleanUpTurn();
             blueReplay.DrawCards(5, worldReplay.GameRandom);

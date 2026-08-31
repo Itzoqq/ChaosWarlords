@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Entities.Map;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
 
@@ -21,6 +22,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             mockTurnManager.ActivePlayer.Returns(mockPlayer);
 
             var node = TestData.MapNodes.Node1();
+            mockMapManager.Nodes.Returns(new List<MapNode> { node });
             var command = new DeployTroopCommand(node);
 
             // Act

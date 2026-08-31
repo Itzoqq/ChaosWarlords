@@ -94,7 +94,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
 
             // Assert
             Assert.IsNotNull(cmd);
-            Assert.AreEqual(target.Id, cmd.CardToDevour.Id);
+            Assert.AreEqual(target.RuntimeId, cmd.CardRuntimeId);
             // We no longer trigger execution or completion directly in the subsystem for manual selection
             // _matchManager.Received(1).DevourCard(target); 
             // _actionSystem.Received(1).CompleteAction();

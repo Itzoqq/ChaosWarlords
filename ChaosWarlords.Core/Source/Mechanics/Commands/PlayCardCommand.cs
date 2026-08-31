@@ -12,29 +12,61 @@ namespace ChaosWarlords.Source.Commands
         {
             return new Core.Data.Dtos.PlayCardCommandDto
             {
-                CardId = Card.Id,
+                CardId = CardId,
+                CardRuntimeId = CardRuntimeId,
                 HandIdx = -1 // Cannot determine without context, relying on ID
             };
         }
-        public Card Card { get; }
+
+        /// <summary>
+        /// The specific card copy to play. Resolved against the active player's hand in
+        /// Validate()/Execute() - the command itself carries only IDs (network/replay-safe),
+        /// matching AssassinateCommand et al.'s pattern.
+        /// </summary>
+        public System.Guid CardRuntimeId { get; }
+
+        /// <summary>
+        /// The card's shared definition id, kept alongside CardRuntimeId for DTO
+        /// serialization/logging and as a fallback when hydrating older replay data that
+        /// predates CardRuntimeId.
+        /// </summary>
+        public string CardId { get; }
+
         public bool BypassChecks { get; }
 
         public PlayCardCommand(Card card, bool bypassChecks = false)
         {
-            Card = card;
+            CardRuntimeId = card.RuntimeId;
+            CardId = card.Id;
             BypassChecks = bypassChecks;
+        }
+
+        public PlayCardCommand(System.Guid cardRuntimeId, string cardId, bool bypassChecks = false)
+        {
+            CardRuntimeId = cardRuntimeId;
+            CardId = cardId;
+            BypassChecks = bypassChecks;
+        }
+
+        private Card? ResolveCard(MatchContext context)
+        {
+            var player = context.TurnManager.ActivePlayer;
+            return player.Hand.FirstOrDefault(c => c.RuntimeId == CardRuntimeId);
         }
 
         public bool Validate(MatchContext context)
         {
             // Can Play if in hand
-            var player = context.TurnManager.ActivePlayer;
-            return player.Hand.Contains(Card);
+            return ResolveCard(context) != null;
         }
 
         public void Execute(MatchContext context)
         {
-            context.MatchManager.PlayCard(Card);
+            var card = ResolveCard(context);
+            if (card != null)
+            {
+                context.MatchManager.PlayCard(card);
+            }
         }
     }
 }

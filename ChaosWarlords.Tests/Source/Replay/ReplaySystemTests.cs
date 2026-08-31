@@ -33,7 +33,7 @@ namespace ChaosWarlords.Tests.Replay
                 .WithId(1)
                 .At(100, 100)
                 .Build();
-            var cmd1 = new DeployTroopCommand(node, player);
+            var cmd1 = new DeployTroopCommand(node);
             var cmd2 = new EndTurnCommand();
 
             // Act
@@ -74,7 +74,7 @@ namespace ChaosWarlords.Tests.Replay
             var node = new MapNodeBuilder()
                 .WithId(15)
                 .Build();
-            var cmd = new DeployTroopCommand(node, player);
+            var cmd = new DeployTroopCommand(node);
 
             // Act
             var dto = DtoMapper.ToDto(cmd, 1, player) as DeployTroopCommandDto;

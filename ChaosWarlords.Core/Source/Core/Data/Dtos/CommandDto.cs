@@ -30,12 +30,18 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     public class PlayCardCommandDto : GameCommandDto
     {
         public string? CardId { get; set; }
+        // Identifies the specific card copy (Card.RuntimeId), disambiguating duplicate
+        // copies of the same card definition - CardId alone can't. Additive alongside
+        // CardId/HandIdx so older replay JSON without it still loads (falls back to the
+        // CardId-then-HandIdx chain below).
+        public Guid? CardRuntimeId { get; set; }
         public int HandIdx { get; set; }
     }
 
     public class BuyCardCommandDto : GameCommandDto
     {
         public string? CardId { get; set; }
+        public Guid? CardRuntimeId { get; set; }
     }
 
     public class DeployTroopCommandDto : GameCommandDto
@@ -46,9 +52,11 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     public class DevourCardCommandDto : GameCommandDto
     {
         public string? CardId { get; set; }
+        public Guid? CardRuntimeId { get; set; }
         public int HandIdx { get; set; }
         public string? Location { get; set; } // "Hand", "Market"
         public string? SourceCardId { get; set; }
+        public Guid? SourceCardRuntimeId { get; set; }
     }
 
     public class EndTurnCommandDto : GameCommandDto { }
