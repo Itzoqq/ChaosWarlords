@@ -190,11 +190,19 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             _p1.AddToHand(noble);
 
             InteractionRequest? capturedRequest = null;
-            _actionSystem.OnInteractionRequested += req => capturedRequest = req;
+            int requestCount = 0;
+            _actionSystem.OnInteractionRequested += req => { capturedRequest = req; requestCount++; };
 
             var playCommand = new PlayCardCommand(wight);
             playCommand.Execute(_context);
 
+            // Regression test for a real bug found via manual playtesting (2026-08-31, see
+            // planning.txt RESOLVED): MatchManager.PlayCard called ActionSystem.ProcessStack()
+            // a second, redundant time right after CardEffectProcessor.ResolveEffects already
+            // did so internally. For a blocking/optional effect (like Wight's Devour), that
+            // meant the still-pending top-of-stack effect got processed twice per single card
+            // play, firing the interaction request twice for one player action.
+            Assert.AreEqual(1, requestCount, "Playing Wight once should raise OnInteractionRequested exactly once, not twice.");
             Assert.IsNotNull(capturedRequest, "Popup should have been requested via OnInteractionRequested.");
             capturedRequest!.OnResponse(true); // Accept
 
@@ -223,6 +231,11 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             Assert.IsFalse(_p1.Hand.Contains(noble));
             Assert.AreEqual(CardLocation.Void, noble.Location);
             Assert.IsNull(_actionSystem.PendingDevourCard, "No pending devour should be left dangling after the chain completes.");
+
+            // Regression assertion for the same bug: the double-processed stack left a second,
+            // un-consumed TargetingSupplant effect buried underneath, which would resurface
+            // and force Supplant targeting on the next unrelated card played this turn.
+            Assert.AreEqual(0, _actionSystem.ExecutionStack.Count, "Execution stack should be fully empty after the chain completes - no leftover effects to ambush the next card played.");
         }
 
         private Card GetWightCard()

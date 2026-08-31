@@ -342,8 +342,17 @@ namespace ChaosWarlords.Source.Managers
             ConsumePendingDevour(devourCardId);
 
             _mapManager.Supplant(node, CurrentPlayer);
-            OnActionCompleted?.Invoke(this, EventArgs.Empty);
-            ClearState();
+            // CompleteAction(), not a manual OnActionCompleted+ClearState() - matches
+            // PerformAssassinate's pattern. When Supplant was reached via a chained effect
+            // (e.g. Wight's Devour -> Supplant), its TargetingSupplant EffectContext is still
+            // sitting on ExecutionStack; CompleteAction() pops it via ResolveCurrentEffect,
+            // which is what actually fires OnActionCompleted once the stack is genuinely
+            // empty (see HandleStackEmptyState). The manual raise+clear this replaced left
+            // that effect stuck on the stack forever when Supplant came from a chain - it
+            // would resurface and force Supplant targeting on the next unrelated card played
+            // (see planning.txt RESOLVED). For a direct, non-chained Supplant (stack already
+            // empty), CompleteAction()'s fallback branch does exactly what this used to do.
+            CompleteAction();
         }
 
         /// <summary>

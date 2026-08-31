@@ -59,10 +59,16 @@ namespace ChaosWarlords.Source.Managers
             // --- 3. RESOLVE EFFECTS (The Missing Link) ---
             // Now that the card is "played", we trigger its game logic.
             // We pass the 'hasFocus' snapshot we calculated earlier.
+            // ResolveEffects pushes the card's effects AND processes the stack itself (see its
+            // own "Start Stack Processing" step) - do NOT also call ProcessStack() here. Doing
+            // so was a real, pre-existing bug (predates this session - see planning.txt): the
+            // second call re-processed the same still-pending top-of-stack effect a second
+            // time, which for an optional/blocking effect meant ProcessOptionalEffect fired
+            // twice per single card play - doubling the interaction-request/popup-accept flow
+            // and, for Devour->Supplant chains, leaving an extra un-consumed TargetingSupplant
+            // effect buried in the stack that would resurface and force Supplant targeting on
+            // an unrelated later card play.
             CardEffectProcessor.ResolveEffects(card, _context, hasFocus, _logger);
-
-            // Trigger automatic processing of the stack (e.g. for instant effects like GainResource)
-            _context.ActionSystem.ProcessStack();
 
             // --- 4. UPDATE STATS ---
             // Finally, register the card with the turn manager to update Aspect counts for future Focus checks.

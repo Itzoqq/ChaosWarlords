@@ -72,7 +72,7 @@ namespace ChaosWarlords.Source.Commands
             LocationAtConstruction = locationAtConstruction;
         }
 
-        private Card? ResolveCard(MatchContext context, System.Guid runtimeId)
+        private static Card? ResolveCard(MatchContext context, System.Guid runtimeId)
         {
             Player player = context.TurnManager.ActivePlayer;
             return player.Hand.FirstOrDefault(c => c.RuntimeId == runtimeId)
