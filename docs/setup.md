@@ -54,7 +54,7 @@ Expected output: `Build succeeded`
 dotnet test
 ```
 
-Expected output (two test projects run, one summary each): `Test summary: total: 19, failed: 0` (`ChaosWarlords.Core.Tests`) followed by `Test summary: total: 844, failed: 0` (`ChaosWarlords.Tests`) - 863 total.
+Expected output (two test projects run, one summary each): `Test summary: total: 19, failed: 0` (`ChaosWarlords.Core.Tests`) followed by `Test summary: total: 899, failed: 0` (`ChaosWarlords.Tests`) - 918 total.
 
 ### 5. Run the Game
 

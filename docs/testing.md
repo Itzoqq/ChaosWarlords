@@ -110,8 +110,6 @@ ChaosWarlords.Tests/
     │   │   ├── MapNodeDtoTests.cs
     │   │   ├── PlayerDtoTests.cs
     │   │   └── SnapshotSerializationTests.cs    # EffectStack + ActionSystem targeting-state serialization
-    │   ├── Events/
-    │   │   └── StateChangeEventTests.cs
     │   ├── Logic/
     │   │   └── CommandValidatorTests.cs
     │   ├── Performance/
@@ -146,8 +144,6 @@ ChaosWarlords.Tests/
     │   └── ReplayControllerTests.cs
     │
     ├── Integration/                         # Multi-component tests, real implementations where it matters
-    │   ├── Core/Events/
-    │   │   └── EventManagerTests.cs
     │   ├── Factories/
     │   │   ├── CardFactoryTests.cs
     │   │   ├── MapFactoryTests.cs
@@ -190,8 +186,8 @@ ChaosWarlords.Tests/
     │       └── WightMechanicsTests.cs
     │
     ├── Managers/
+    │   ├── ActionInputControllerTests.cs     # Direct branch-level coverage of all 7 targeting-state click routes
     │   ├── CommandDispatcherTests.cs
-    │   ├── GameEventLoggerTests.cs
     │   ├── MarketManagerTests.cs
     │   ├── MarketStateManagerTests.cs
     │   ├── PlayerStateManagerTests.cs
@@ -245,9 +241,11 @@ ChaosWarlords.Tests/
     │       ├── CardEffectTests.cs
     │       ├── CardRuleEngineLookaheadTests.cs
     │       ├── CardRuleEngineTests.cs
-    │       ├── DevourStrategyFactoryTests.cs
+    │       ├── DevourStrategyFactoryTests.cs      # IDevourStrategy (target-location) implementations
     │       ├── MapRuleEngineTests.cs
     │       ├── SiteControlSystemTests.cs
+    │       ├── Strategies/
+    │       │   └── EffectStrategiesTests.cs      # All 7 IEffectStrategy implementations directly (Assassinate/Default/Devour/MoveUnit/PlaceSpy/ReturnUnit/Supplant)
     │       └── TargetingStateEngineTests.cs
     │
     ├── Rendering/
@@ -301,14 +299,14 @@ ChaosWarlords.Core.Tests/
 
 ## Test Counts (as of 2026-08-31)
 
-**Total: 863 tests** across both projects, all passing.
+**Total: 918 tests** across both projects, all passing.
 
 | | `ChaosWarlords.Tests` | `ChaosWarlords.Core.Tests` | Combined |
 |---|---:|---:|---:|
-| Unit | 586 | 18 | 604 |
-| Integration | 247 | 1 | 248 |
+| Unit | 644 | 18 | 662 |
+| Integration | 244 | 1 | 245 |
 | Performance | 7 | 0 | 7 |
-| **Total** | **844** | **19** | **863** |
+| **Total** | **899** | **19** | **918** |
 
 Run `dotnet test` for the combined total; see the `--filter` commands above to break it down. These counts drift as tests are added - treat them as "order of magnitude and how to check", not a value to keep manually in sync here.
 

@@ -59,9 +59,6 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   │   │   └── CommandType.cs           # Enum for command identification
     │   │   ├── LogicVector2.cs              # Deterministic integer vector struct
     │   │   └── LogicRectangle.cs            # Deterministic integer bounding box (site Bounds)
-    │   ├── Events/
-    │   │   ├── GameEvent.cs                 # Pub/Sub event payload base
-    │   │   └── StateChangeEvent.cs          # Pub/Sub event for state transitions
     │   ├── Interfaces/                      # Contracts (API Definitions)
     │   │   ├── Data/
     │   │   │   ├── ICardDatabase.cs         # Contract for retrieving card definitions
@@ -74,7 +71,6 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   │   │   └── ISpySubsystem.cs
     │   │   └── Services/
     │   │       ├── ICommandDispatcher.cs
-    │   │       ├── IEventManager.cs
     │   │       ├── IGameLogger.cs
     │   │       ├── IGameRandom.cs
     │   │       ├── IMapManager.cs
@@ -130,8 +126,6 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     ├── Managers/                            # Business Logic Services
     │   ├── ActionInputController.cs         # Click-to-command routing for targeting (extracted from ActionSystem)
     │   ├── CommandDispatcher.cs             # Central Command Processor - snapshots before Execute(), rolls back on exception
-    │   ├── EventManager.cs                  # Pub/Sub event system backend
-    │   ├── GameEventLogger.cs               # Logs events for debugging/replay
     │   ├── MapManager.cs                    # Facade for Board Logic (LogicVector2-based queries)
     │   ├── MarketManager.cs                 # Manages the Card Market
     │   ├── MatchManager.cs                  # Manages Match & Victory

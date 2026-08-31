@@ -3,14 +3,14 @@
 A digital adaptation of the board game *Tyrants of the Underdark*, built with MonoGame and C#. Features a clean architecture designed for testability, multiplayer support, and deterministic gameplay.
 
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
-![Tests](https://img.shields.io/badge/tests-863%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-918%20passing-brightgreen)
 ![.NET](https://img.shields.io/badge/.NET-10.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## Features
 
 - **Deterministic Gameplay**: A from-scratch PCG32 RNG (no `System.Random`) ensures reproducible games for multiplayer and replay, independent of .NET version
-- **Test-Driven Development**: 863 unit, integration, and performance tests across two test projects
+- **Test-Driven Development**: 918 unit, integration, and performance tests across two test projects
 - **Multiplayer-Ready Architecture**: Logic lives in a separate `ChaosWarlords.Core` project with zero MonoGame references - a compiled headless boundary, not just a convention - and `ChaosWarlords.Core.Tests` proves the test suite is headless-runnable too
 - **Command Pattern**: All actions are replayable and undoable, with transactional rollback (snapshot/restore) on both command failure and targeting cancellation
 - **Event-Driven**: Decoupled systems communicate via events
@@ -66,7 +66,7 @@ ChaosWarlords/
 │   │   ├── Managers/             # UI-adjacent services (UIEventMediator, UIManager)
 │   │   └── Rendering/            # MonoGame rendering layer
 │   └── Content/                  # Game assets (sprites, fonts)
-├── ChaosWarlords.Tests/          # Primary test suite (844 tests) - references the client project
+├── ChaosWarlords.Tests/          # Primary test suite (899 tests) - references the client project
 ├── ChaosWarlords.Core.Tests/     # Headless-only test suite (19 tests) - references Core ONLY
 └── docs/                         # Documentation
 ```

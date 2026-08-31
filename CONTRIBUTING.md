@@ -82,7 +82,7 @@ _playerStateManager.AddPower(player, 5);
 ### All PRs Must:
 - Include tests for new features
 - Maintain or improve code coverage
-- Pass all existing tests (863 tests across `ChaosWarlords.Tests` and `ChaosWarlords.Core.Tests` must pass)
+- Pass all existing tests (918 tests across `ChaosWarlords.Tests` and `ChaosWarlords.Core.Tests` must pass)
 - Follow AAA pattern (Arrange-Act-Assert)
 - If the change touches `ChaosWarlords.Core`: consider whether it belongs in `ChaosWarlords.Core.Tests` too (see [Architecture Guide](docs/architecture.md#the-four-projects)) - not required for every Core change, but worth a look for anything testing Core in isolation
 

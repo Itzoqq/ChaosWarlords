@@ -419,42 +419,6 @@ sequenceDiagram
 
 ---
 
-## 9. Event System Flow
-**Concept**: How components communicate without tight coupling using the Pub/Sub pattern.
-
-```mermaid
-sequenceDiagram
-    participant Publisher as PlayerStateManager
-    participant EventMgr as EventManager
-    participant Sub1 as UIManager (Subscriber)
-    participant Sub2 as GameEventLogger (Subscriber)
-    participant Sub3 as ReplayManager (Subscriber)
-    
-    Note over EventMgr: Initialization
-    Sub1->>EventMgr: Subscribe(ResourceChanged)
-    Sub2->>EventMgr: Subscribe(ResourceChanged)
-    Sub3->>EventMgr: Subscribe(ResourceChanged)
-    
-    Note over Publisher: Game Event Occurs
-    Publisher->>Publisher: AddPower(player, 5)
-    Publisher->>EventMgr: Publish(ResourceChanged Event)
-    
-    rect rgb(30, 30, 30)
-        Note over EventMgr: Event Distribution
-        EventMgr->>Sub1: OnResourceChanged(event)
-        EventMgr->>Sub2: OnResourceChanged(event)
-        EventMgr->>Sub3: OnResourceChanged(event)
-    end
-    
-    Sub1->>Sub1: Update UI Display
-    Sub2->>Sub2: Log Event
-    Sub3->>Sub3: Record for Replay
-```
-
-> **Key Takeaway**: `EventManager` implements Pub/Sub to decouple components. Publishers (like `PlayerStateManager`) emit events without knowing who's listening. Subscribers (like `UIManager`, `GameEventLogger`) react independently. This enables features like replay recording and UI updates without modifying game logic.
-
----
-
 ## 10. UI Event Mediation
 **Concept**: How UI button clicks trigger game logic without creating tight coupling between View and Logic layers.
 
@@ -508,7 +472,7 @@ sequenceDiagram
     participant Processor as CardEffectProcessor
     participant PlayerState as PlayerStateManager
     participant MapMgr as MapManager
-    participant Log as GameEventLogger
+    participant Log as IGameLogger
 
     PlaySys->>RuleEng: ValidatePlay(Card, Player)
     RuleEng-->>PlaySys: Valid
@@ -519,12 +483,12 @@ sequenceDiagram
         
         alt Resource Effect (Gain Power)
             Processor->>PlayerState: AddPower(Amount)
-            PlayerState->>Log: LogEvent(GainResource)
+            PlayerState->>Log: Log("AddPower...")
         else Map Effect (Assassinate)
             Processor->>MapMgr: GetMapContext()
             MapMgr-->>Processor: Context
             Processor->>MapMgr: ExecuteAssassinate(Target)
-            MapMgr->>Log: LogEvent(UnitKilled)
+            MapMgr->>Log: Log("Assassinate...")
         else Card Effect (Draw)
             Processor->>PlayerState: DrawCards(Amount)
         end
