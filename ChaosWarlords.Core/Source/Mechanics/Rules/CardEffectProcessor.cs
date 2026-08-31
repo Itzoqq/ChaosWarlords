@@ -33,10 +33,18 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 bool requiresInput = context.CardRuleEngine.GetStrategy(effect.Type).IsTargetingEffect || effect.IsOptional;
 
                 // VALIDATION: If the effect requires targeting, ensure valid targets exist.
-                // If not, we skip pushing it (and thus skip the action), matching legacy behavior.
+                // If not, we skip pushing it (and thus skip the action) - UNLESS it carries an
+                // Alternative ("Choose one"), in which case the alternative fires instead of
+                // just granting nothing. (This closes a real bug: e.g. Wight played with an
+                // empty hand used to skip Devour and get nothing, not even the +2 Power
+                // fallback - see planning.txt.)
                 if (requiresInput && !context.CardRuleEngine.HasValidTargets(context.ActivePlayer, effect.Type, card))
                 {
                     logger.Log($"{card.Name}: No valid targets for {effect.Type}. Effect skipped.", LogChannel.Warning);
+                    if (effect.Alternative != null)
+                    {
+                        PushEffectNode(effect.Alternative, card, context);
+                    }
                     continue;
                 }
 
@@ -52,10 +60,13 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                         // because ApplyEffect is NOT called for them (they are handled by input)
                         if (success)
                         {
-                            PushChildEffect(effect, card, context);
+                            PushEffectNode(effect.OnSuccess, card, context);
                         }
                     },
-                    effect
+                    effect,
+                    onCancelled: effect.Alternative != null
+                        ? () => PushEffectNode(effect.Alternative, card, context)
+                        : null
                 );
 
                 context.ActionSystem.PushEffect(ctx);
@@ -65,27 +76,35 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             context.ActionSystem.ProcessStack();
         }
 
-        private static void PushChildEffect(CardEffect parent, Card card, MatchContext context)
+        // Pushes a single effect node (an OnSuccess continuation, an Alternative fallback, or
+        // recursively either of those node's own OnSuccess/Alternative) onto the execution
+        // stack. Nullable so callers (PushEffectNode itself, via effect.OnSuccess) can pass
+        // "there is no next node" without a separate null check at every call site.
+        private static void PushEffectNode(CardEffect? effect, Card card, MatchContext context)
         {
-            if (parent.OnSuccess != null)
+            if (effect == null)
             {
-                var child = parent.OnSuccess;
-                var state = context.CardRuleEngine.GetStrategy(child.Type).GetTargetingState(child);
-                bool requiresInput = context.CardRuleEngine.GetStrategy(child.Type).IsTargetingEffect || child.IsOptional;
-
-                var childCtx = new EffectContext(
-                    state,
-                    card,
-                    requiresInput,
-                    $"Child Effect: {child.Type}",
-                    (success) =>
-                    {
-                        if (success) PushChildEffect(child, card, context);
-                    },
-                    child
-                );
-                context.ActionSystem.PushEffect(childCtx); // Push to Top
+                return;
             }
+
+            var state = context.CardRuleEngine.GetStrategy(effect.Type).GetTargetingState(effect);
+            bool requiresInput = context.CardRuleEngine.GetStrategy(effect.Type).IsTargetingEffect || effect.IsOptional;
+
+            var ctx = new EffectContext(
+                state,
+                card,
+                requiresInput,
+                $"Effect Node: {effect.Type}",
+                (success) =>
+                {
+                    if (success) PushEffectNode(effect.OnSuccess, card, context);
+                },
+                effect,
+                onCancelled: effect.Alternative != null
+                    ? () => PushEffectNode(effect.Alternative, card, context)
+                    : null
+            );
+            context.ActionSystem.PushEffect(ctx); // Push to Top
         }
 
         // Restored public ApplyEffect method

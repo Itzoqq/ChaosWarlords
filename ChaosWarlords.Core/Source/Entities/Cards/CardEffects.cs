@@ -12,6 +12,11 @@ namespace ChaosWarlords.Source.Entities.Cards
         public bool RequiresFocus { get; set; }
         public CardEffect? OnSuccess { get; set; }
 
+        // "Choose one" support: sibling to OnSuccess, not nested under it. OnSuccess means
+        // "and then, if this succeeded"; Alternative means "instead, if this was declined or
+        // impossible". See CardEffectProcessor.ResolveEffects/PushEffectNode.
+        public CardEffect? Alternative { get; set; }
+
         // Conditional Logic Support
         public EffectCondition? Condition { get; set; }          // "If you control a Site"
         public bool IsOptional { get; set; }                     // "You may..."

@@ -29,6 +29,7 @@ namespace ChaosWarlords.Source.Utilities
         public string? TargetLocation { get; set; } // Where to target (Market, Deck, Hand, etc.)
         public bool RequiresFocus { get; set; }
         public CardEffectData? OnSuccess { get; set; }
+        public CardEffectData? Alternative { get; set; }
 
         public string? ConditionType { get; set; }
         public int ConditionThreshold { get; set; }

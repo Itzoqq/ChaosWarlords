@@ -323,6 +323,86 @@ namespace ChaosWarlords.Tests.Source.Systems
             _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.EffectType == ActionState.TargetingDevourHand && c.RequiresInput));
         }
 
+        #region Alternative (Choose-one) Effect Tests
+
+        [TestMethod]
+        public void ResolveEffects_WithAlternative_NoValidTargets_PushesAlternativeInstead()
+        {
+            // Arrange: a mandatory Devour(Hand) effect with an Alternative fallback, but the
+            // hand is empty (no valid Devour targets) - the top-level HasValidTargets
+            // pre-check must push the Alternative instead of silently skipping (the bug this
+            // primitive fixes: Wight played with an empty hand used to grant nothing at all).
+            var card = TestData.Cards.DevourCard();
+            var devourEffect = card.Effects.Find(e => e.Type == EffectType.Devour);
+            Assert.IsNotNull(devourEffect);
+            devourEffect!.Alternative = new CardEffect(EffectType.GainResource, 2, ResourceType.Power);
+            _player.ClearHand();
+
+            // Act
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
+
+            // Assert
+            _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(
+                c => c.SourceEffect != null && c.SourceEffect.Type == EffectType.GainResource));
+        }
+
+        [TestMethod]
+        public void ResolveEffects_WithAlternative_DeclinedViaCallback_PushesAlternative()
+        {
+            // Arrange: an optional Devour(Hand) effect with an Alternative, valid targets
+            // present. Simulates the "player declined the popup" (or ActionExecutionEngine's
+            // own no-valid-OnSuccess-target auto-decline) route, which both funnel through
+            // ResolveCurrentEffect(false) -> EffectContext.OnCancelled.
+            var card = TestData.Cards.DevourCard();
+            var devourEffect = card.Effects.Find(e => e.Type == EffectType.Devour);
+            Assert.IsNotNull(devourEffect);
+            devourEffect!.IsOptional = true;
+            devourEffect.Alternative = new CardEffect(EffectType.GainResource, 2, ResourceType.Power);
+            _player.AddToHand(TestData.Cards.CheapCard());
+
+            ChaosWarlords.Source.Core.Contexts.EffectContext? captured = null;
+            _context.ActionSystem
+                .When(a => a.PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>()))
+                .Do(call => captured ??= call.Arg<ChaosWarlords.Source.Core.Contexts.EffectContext>());
+
+            // Act
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true, Tests.Utilities.TestLogger.Instance);
+            Assert.IsNotNull(captured);
+            captured!.OnCancelled?.Invoke(); // Simulate decline
+
+            // Assert: a second PushEffect call for the Alternative
+            _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(
+                c => c.SourceEffect != null && c.SourceEffect.Type == EffectType.GainResource));
+        }
+
+        [TestMethod]
+        public void ResolveEffects_WithAlternative_AcceptedViaCallback_DoesNotPushAlternative()
+        {
+            // Arrange: same shape as above, but simulates accepting instead - proves mutual
+            // exclusivity (the original Wight/Cultist of Myrkul bug was both firing).
+            var card = TestData.Cards.DevourCard();
+            var devourEffect = card.Effects.Find(e => e.Type == EffectType.Devour);
+            Assert.IsNotNull(devourEffect);
+            devourEffect!.IsOptional = true;
+            devourEffect.Alternative = new CardEffect(EffectType.GainResource, 2, ResourceType.Power);
+            _player.AddToHand(TestData.Cards.CheapCard());
+
+            ChaosWarlords.Source.Core.Contexts.EffectContext? captured = null;
+            _context.ActionSystem
+                .When(a => a.PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>()))
+                .Do(call => captured ??= call.Arg<ChaosWarlords.Source.Core.Contexts.EffectContext>());
+
+            // Act
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: true, Tests.Utilities.TestLogger.Instance);
+            Assert.IsNotNull(captured);
+            captured!.OnResolved.Invoke(true); // Simulate accept (no OnSuccess here, so no further push)
+
+            // Assert: still only the one initial push - the Alternative never fired
+            _context.ActionSystem.Received(1).PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>());
+        }
+
+        #endregion
+
         #region ShouldSkipDevourChain Tests (tested via ApplyEffect)
 
         [TestMethod]

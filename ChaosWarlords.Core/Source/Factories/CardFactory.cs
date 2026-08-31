@@ -101,6 +101,11 @@ namespace ChaosWarlords.Source.Utilities
             {
                 effect.OnSuccess = CreateEffect(data.OnSuccess);
             }
+
+            if (data.Alternative != null)
+            {
+                effect.Alternative = CreateEffect(data.Alternative);
+            }
         }
 
         private static void ParseCondition(CardEffectData data, CardEffect effect)
