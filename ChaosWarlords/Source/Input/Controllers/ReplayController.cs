@@ -136,7 +136,21 @@ namespace ChaosWarlords.Source.Input.Controllers
                 var cmd = _replayManager.GetNextCommand(_gameState.MatchContext);
                 if (cmd != null)
                 {
-                    // Execute command directly
+                    // Execute command directly (bypassing CommandDispatcher.Dispatch - we
+                    // trust the recorded stream and don't want to re-Validate or re-record
+                    // during replay). But Dispatch normally increments MatchContext.
+                    // SequenceNumber for every command BEFORE executing it, and nothing else
+                    // in the replay path does that - so without this line, SequenceNumber
+                    // would sit frozen at whatever it was when replay started, for the
+                    // entire replay, no matter how many commands run. That's a real replay-
+                    // fidelity bug (found via ReplayFidelityTests.cs): GetStateHash() folds
+                    // SequenceNumber in, so a replayed game's hash would never match the live
+                    // game that produced the recording, and any future networking code that
+                    // uses SequenceNumber for ordering/reconciliation would see it stuck.
+                    // Mirror Dispatch's own ordering (increment before Execute) so a command
+                    // whose Execute() raises an event another command reacts to synchronously
+                    // still sees a consistent count. See planning.txt.
+                    _gameState.MatchContext.SequenceNumber++;
                     cmd.Execute(_gameState.MatchContext);
                     _logger.Log($"Replay Executed: {cmd.GetType().Name} (ActivePlayer: {_gameState.MatchContext.TurnManager.ActivePlayer.Color})", LogChannel.Info);
 

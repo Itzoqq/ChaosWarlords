@@ -11,7 +11,6 @@ namespace ChaosWarlords.Source.Managers
         private readonly IReplayManager _replayManager;
         private readonly IGameLogger _logger;
 
-
         public CommandDispatcher(IReplayManager replayManager, IGameLogger logger)
         {
             _replayManager = replayManager ?? throw new ArgumentNullException(nameof(replayManager));
@@ -35,19 +34,38 @@ namespace ChaosWarlords.Source.Managers
                     return;
                 }
 
-                // Increment Sequence Number (Authority)
+                // Increment Sequence Number (Authority) and capture THIS command's own
+                // number and actor, and reserve its position in the recording, all BEFORE
+                // Execute() runs - not after. This matters whenever Execute() synchronously
+                // triggers a NESTED Dispatch() call (e.g. MapManager.OnSetupDeploymentComplete
+                // auto-issuing an EndTurnCommand from inside a DeployTroopCommand's own
+                // Execute()): reading SequenceNumber/ActivePlayer or appending to the
+                // recording AFTER Execute() returns picks up whatever the NESTED command
+                // already changed them to, not this command's own values. Confirmed this was
+                // a real, not just theoretical, bug via ReplayFidelityTests.cs: the recorded
+                // JSON for exactly this scenario showed the nested EndTurnCommand recorded
+                // BEFORE the DeployTroopCommand that triggered it, both sharing the SAME
+                // (wrong, LATER) sequence number, and both attributed to the WRONG actor
+                // (whoever ActivePlayer became AFTER EndTurn switched it, not whoever
+                // actually issued either command) - replay would then execute EndTurn before
+                // the map even had the deploying player's troop on it. See planning.txt.
                 context.SequenceNumber++;
+                int mySequenceNumber = (int)context.SequenceNumber;
+                var actor = context.ActivePlayer;
+                int recordingSlot = _replayManager.IsReplaying ? -1 : _replayManager.RecordingCount;
 
                 // Execute the command via MatchContext (Transaction)
                 command.Execute(context);
 
-                // Record the command for replay (unless we're currently replaying)
+                // Record the command for replay (unless we're currently replaying). Inserted
+                // at the slot reserved above (not appended) so a nested Dispatch() triggered
+                // during Execute() - which reserves ITS OWN slot at the same snapshot and
+                // therefore inserts before this command finishes recording - ends up placed
+                // AFTER this command once this insert shifts it, not before.
                 if (!_replayManager.IsReplaying)
                 {
                     context.RecordAction(command.GetType().Name, command.ToString() ?? "Command");
-
-                    // Record to ReplayManager using the authoritative sequence number
-                    _replayManager.RecordCommand(command, context.ActivePlayer, (int)context.SequenceNumber);
+                    _replayManager.InsertCommand(recordingSlot, command, actor, mySequenceNumber);
                 }
             }
             catch (Exception ex)

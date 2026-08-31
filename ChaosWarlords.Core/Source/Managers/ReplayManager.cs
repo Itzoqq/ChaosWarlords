@@ -94,6 +94,14 @@ namespace ChaosWarlords.Source.Managers
 
         public void RecordCommand(Core.Interfaces.Logic.IGameCommand command, Entities.Actors.Player actor, int sequenceNumber)
         {
+            // A plain append is just an insert at the current end.
+            InsertCommand(_recording.Count, command, actor, sequenceNumber);
+        }
+
+        public int RecordingCount => _recording.Count;
+
+        public void InsertCommand(int index, Core.Interfaces.Logic.IGameCommand command, Entities.Actors.Player actor, int sequenceNumber)
+        {
             if (_isReplaying) return;
             if (command == null) return;
 
@@ -103,8 +111,9 @@ namespace ChaosWarlords.Source.Managers
                 var dto = DtoMapper.ToDto(command, sequenceNumber, actor);
                 if (dto != null)
                 {
-                    _recording.Add(dto);
-                    _logger.Log($"[ReplayManager] Recorded {dto.GetType().Name} (Seq: {dto.Seq}, Seat: {dto.Seat})", LogChannel.Info);
+                    int clampedIndex = Math.Clamp(index, 0, _recording.Count);
+                    _recording.Insert(clampedIndex, dto);
+                    _logger.Log($"[ReplayManager] Recorded {dto.GetType().Name} (Seq: {dto.Seq}, Seat: {dto.Seat}) at index {clampedIndex}", LogChannel.Info);
                 }
                 else
                 {

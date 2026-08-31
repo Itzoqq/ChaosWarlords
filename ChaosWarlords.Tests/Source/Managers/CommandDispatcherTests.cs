@@ -67,8 +67,11 @@ namespace ChaosWarlords.Tests.Source.Managers
             _dispatcher.Dispatch(_command, matchContext);
 
             // Assert
-            // 1. Verifies Recording (Sequence Number starts at 0, increments to 1)
-            _replayManager.Received(1).RecordCommand(_command, player, 1);
+            // 1. Verifies Recording (Sequence Number starts at 0, increments to 1). Dispatch
+            // now reserves its recording slot via RecordingCount/InsertCommand rather than
+            // calling RecordCommand directly - see CommandDispatcher.Dispatch's own comment
+            // on why (nested-dispatch ordering). The mock's RecordingCount defaults to 0.
+            _replayManager.Received(1).InsertCommand(0, _command, player, 1);
 
             // 2. Verifies Execution
             _command.Received(1).Execute(matchContext);
@@ -98,7 +101,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             _dispatcher.Dispatch(_command, matchContext);
 
             // Assert
-            _replayManager.DidNotReceive().RecordCommand(Arg.Any<IGameCommand>(), Arg.Any<Player>(), Arg.Any<int>());
+            _replayManager.DidNotReceive().InsertCommand(Arg.Any<int>(), Arg.Any<IGameCommand>(), Arg.Any<Player>(), Arg.Any<int>());
             _command.Received(1).Execute(matchContext);
             Assert.AreEqual(1, matchContext.SequenceNumber); // Still increments sequence logic
         }
@@ -128,9 +131,10 @@ namespace ChaosWarlords.Tests.Source.Managers
             _dispatcher.Dispatch(_command, matchContext); // seq 1
             _dispatcher.Dispatch(_command, matchContext); // seq 2
 
-            // Assert
-            _replayManager.Received().RecordCommand(_command, player, 1);
-            _replayManager.Received().RecordCommand(_command, player, 2);
+            // Assert (mock's RecordingCount always reads back 0, so both dispatches reserve
+            // slot 0 - that's fine, this test only cares about the sequence numbers passed)
+            _replayManager.Received().InsertCommand(0, _command, player, 1);
+            _replayManager.Received().InsertCommand(0, _command, player, 2);
             Assert.AreEqual(2, matchContext.SequenceNumber);
         }
         [TestMethod]
@@ -172,7 +176,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             // Should NOT have incremented sequence number (rolling back state ideally, but at least not skipping numbers in log)
             // Or if we increment before execution, we might have a gap.
             // The critical thing: ReplayManager should NOT receive the command.
-            _replayManager.DidNotReceive().RecordCommand(Arg.Any<IGameCommand>(), Arg.Any<Player>(), Arg.Any<int>());
+            _replayManager.DidNotReceive().InsertCommand(Arg.Any<int>(), Arg.Any<IGameCommand>(), Arg.Any<Player>(), Arg.Any<int>());
         }
 
         [TestMethod]

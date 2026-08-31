@@ -108,10 +108,20 @@ namespace ChaosWarlords.Source.Factories
             for (int i = 0; i < 7; i++) player.DeckManager.AddToTop(CardFactory.CreateNoble(random));
 
             // TESTING: Add all devour cards to starting deck
-            player.DeckManager.AddToTop(cardDatabase.GetCardById("wight")!);
-            player.DeckManager.AddToTop(cardDatabase.GetCardById("market_corruptor")!);
-            player.DeckManager.AddToTop(cardDatabase.GetCardById("skeletal_horde")!);
-            player.DeckManager.AddToTop(cardDatabase.GetCardById("cultist_of_myrkul")!);
+            // NOTE: random must be passed through here, same as CreateSoldier/CreateNoble
+            // above - GetCardById(id) without it falls back to CardFactory.GenerateUniqueId's
+            // Guid.NewGuid() branch (see CardFactory.cs), making these 4 cards' Card.Id
+            // non-deterministic even with an identical seed. That broke exactly what the
+            // "Deterministic ID generation for Replay compatibility" comment a few lines up
+            // is about - confirmed via ReplayFidelityTests.cs, which failed to hydrate a
+            // PlayCardCommand for one of these cards on replay (its recorded CardId no
+            // longer matched the freshly-rebuilt hand's CardId, since the ID is regenerated
+            // from scratch - via a NEW random Guid suffix each time - on every MatchFactory.
+            // Build() call, live or replay, regardless of seed). See planning.txt.
+            player.DeckManager.AddToTop(cardDatabase.GetCardById("wight", random)!);
+            player.DeckManager.AddToTop(cardDatabase.GetCardById("market_corruptor", random)!);
+            player.DeckManager.AddToTop(cardDatabase.GetCardById("skeletal_horde", random)!);
+            player.DeckManager.AddToTop(cardDatabase.GetCardById("cultist_of_myrkul", random)!);
 
             logger.Log($"[RNG] Shuffling Deck for {color}: {(random as SeededGameRandom)?.CallCount ?? -1}", LogChannel.Debug);
             player.DeckManager.Shuffle(random);

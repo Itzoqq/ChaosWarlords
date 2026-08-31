@@ -30,6 +30,23 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         void RecordCommand(Logic.IGameCommand command, Entities.Actors.Player actor, int sequenceNumber);
 
         /// <summary>
+        /// Number of commands recorded so far in the current session. Combined with
+        /// InsertCommand, lets a caller "reserve" the position a command will occupy in the
+        /// recording BEFORE executing it, so a command whose Execute() synchronously
+        /// triggers a nested dispatch (e.g. CommandDispatcher.Dispatch recursing) still ends
+        /// up recorded BEFORE whatever it triggered, not after. See CommandDispatcher.Dispatch
+        /// and planning.txt for the ordering bug this exists to prevent.
+        /// </summary>
+        int RecordingCount { get; }
+
+        /// <summary>
+        /// Records a command at a specific position in the recording, rather than appending
+        /// (see RecordingCount's doc comment for why). RecordCommand is equivalent to
+        /// InsertCommand(RecordingCount, ...) - a plain append.
+        /// </summary>
+        void InsertCommand(int index, Logic.IGameCommand command, Entities.Actors.Player actor, int sequenceNumber);
+
+        /// <summary>
         /// Gets the seed used for the recorded session.
         /// Only valid after StartReplay or during recording.
         /// </summary>
