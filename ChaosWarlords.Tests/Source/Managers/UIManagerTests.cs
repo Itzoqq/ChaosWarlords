@@ -86,9 +86,9 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         [TestMethod]
-        public void HandleInputEvent_Invokes_PopupConfirm_WhenVisible()
+        public void HandleInputEvent_Invokes_PopupConfirm_WhenConfirmationPopupVisible()
         {
-            _uiManager.IsPopupVisible = true;
+            _uiManager.IsConfirmationPopupVisible = true;
 
             bool eventFired = false;
             _uiManager.OnPopupConfirm += (s, e) => eventFired = true;
@@ -97,16 +97,16 @@ namespace ChaosWarlords.Tests.Source.Managers
             var center = rect.Center;
 
             _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
-                this, 
+                this,
                 new InputEventArgs(InputEventType.LeftClick, new Vector2(center.X, center.Y), Microsoft.Xna.Framework.Input.Keys.None));
 
-            Assert.IsTrue(eventFired, "Popup Confirm should fire when visible");
+            Assert.IsTrue(eventFired, "Popup Confirm should fire when the confirmation popup is visible");
         }
 
         [TestMethod]
         public void HandleInputEvent_Ignores_PopupConfirm_WhenNotVisible()
         {
-            _uiManager.IsPopupVisible = false;
+            _uiManager.IsConfirmationPopupVisible = false;
 
             bool eventFired = false;
             _uiManager.OnPopupConfirm += (s, e) => eventFired = true;
@@ -115,10 +115,35 @@ namespace ChaosWarlords.Tests.Source.Managers
             var center = rect.Center;
 
             _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
-                this, 
+                this,
                 new InputEventArgs(InputEventType.LeftClick, new Vector2(center.X, center.Y), Microsoft.Xna.Framework.Input.Keys.None));
 
             Assert.IsFalse(eventFired, "Popup Confirm should be inactive when not visible");
+        }
+
+        [TestMethod]
+        public void HandleInputEvent_Ignores_PopupConfirm_WhenOnlyOptionalEffectPopupVisible()
+        {
+            // Regression test: the optional-effect popup sets the combined IsPopupVisible
+            // flag (it gates the Main Game UI buttons too) but must NOT also activate
+            // UIManager's generic PopupConfirmButtonRect - that button's screen bounds
+            // overlap OptionalEffectPopup's own dedicated Yes button, and both used to be
+            // wired active off the same combined flag, so a single click on "Yes" fired
+            // BOTH handlers and double-invoked optional-effect accept (see planning.txt).
+            _uiManager.IsPopupVisible = true;
+            _uiManager.IsConfirmationPopupVisible = false;
+
+            bool eventFired = false;
+            _uiManager.OnPopupConfirm += (s, e) => eventFired = true;
+
+            var rect = _uiManager.PopupConfirmButtonRect;
+            var center = rect.Center;
+
+            _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                this,
+                new InputEventArgs(InputEventType.LeftClick, new Vector2(center.X, center.Y), Microsoft.Xna.Framework.Input.Keys.None));
+
+            Assert.IsFalse(eventFired, "Popup Confirm should stay inactive while only the optional-effect popup is open");
         }
 
         [TestMethod]

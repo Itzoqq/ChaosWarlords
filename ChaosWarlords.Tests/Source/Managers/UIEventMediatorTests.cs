@@ -425,6 +425,37 @@ namespace ChaosWarlords.Tests.Source.Managers
             Assert.IsTrue(response);
         }
 
+        [TestMethod]
+        public void Update_SetsConfirmationPopupVisible_OnlyForConfirmationPopup_NotOptionalEffectPopup()
+        {
+            // Regression test for the Skeletal Horde double-accept bug: IsPopupVisible
+            // (combined) must stay true for either popup - it gates the Main Game UI buttons -
+            // but IsConfirmationPopupVisible, which gates UIManager's generic PopupConfirmButtonRect,
+            // must be true ONLY for the confirmation popup. The optional-effect popup has its
+            // own dedicated Yes/No buttons whose screen bounds overlap PopupConfirmButtonRect;
+            // if both were gated on the combined flag, a single click fired both handlers.
+
+            // Only the optional-effect popup is open.
+            _mediator.RequestOptionalEffect(null!, null!, () => { }, () => { });
+            Assert.IsTrue(_mediator.IsOptionalEffectPopupOpen);
+            Assert.IsFalse(_mediator.IsConfirmationPopupOpen);
+
+            _mediator.Update();
+
+            _uiManager.Received(1).IsPopupVisible = true;
+            _uiManager.Received(1).IsConfirmationPopupVisible = false;
+
+            // Now only the confirmation popup is open.
+            _uiManager.ClearReceivedCalls();
+            SetPrivateField(_mediator, "_isOptionalEffectPopupOpen", false);
+            SetPrivateField(_mediator, "_isConfirmationPopupOpen", true);
+
+            _mediator.Update();
+
+            _uiManager.Received(1).IsPopupVisible = true;
+            _uiManager.Received(1).IsConfirmationPopupVisible = true;
+        }
+
         // Helper
         private void SetPrivateField(object target, string fieldName, object value)
         {

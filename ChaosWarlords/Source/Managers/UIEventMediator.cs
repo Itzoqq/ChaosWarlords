@@ -154,8 +154,14 @@ namespace ChaosWarlords.Source.Managers
         public void Update()
         {
             _uiManager.IsPaused = _isPauseMenuOpen;
-            // Visible if EITHER popup is open
+            // Visible if EITHER popup is open - gates the Main Game UI buttons (Market/
+            // Assassinate/ReturnSpy/EndTurn), which must stay disabled for both popup types.
             _uiManager.IsPopupVisible = _isConfirmationPopupOpen || _isOptionalEffectPopupOpen;
+            // Confirmation-popup-ONLY - gates UIManager's generic PopupConfirmButtonRect/
+            // PopupCancelButtonRect, which must NOT also activate while the optional-effect
+            // popup is open (it has its own dedicated Yes/No buttons - see IUIManager's doc
+            // comment on this property).
+            _uiManager.IsConfirmationPopupVisible = _isConfirmationPopupOpen;
         }
 
         // --- Public Methods for External Control ---
@@ -282,8 +288,14 @@ namespace ChaosWarlords.Source.Managers
             }
             else if (_isOptionalEffectPopupOpen)
             {
+                // Not reachable via mouse click today: UIManager's generic popup-confirm
+                // button is gated on IsConfirmationPopupVisible, not the combined
+                // IsPopupVisible, specifically so it stays inactive while only the
+                // optional-effect popup is open (see IUIManager.IsConfirmationPopupVisible's
+                // doc comment - this used to double-fire alongside OptionalEffectPopup's own
+                // Yes/No buttons on the same click). Kept as a defensive fallback in case
+                // OnPopupConfirm ever gets triggered another way (e.g. a future keybind).
                 _logger.Log("Gameplay: Optional Effect Accepted via Popup", LogChannel.Info);
-                // Invoke original logic callback if triggered via generalized UIManager event (rare but possible)
                 var callback = _onOptionalEffectAccept;
                 ClearOptionalPopupState();
                 callback?.Invoke();

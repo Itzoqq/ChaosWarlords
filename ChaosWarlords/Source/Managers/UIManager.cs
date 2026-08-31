@@ -15,6 +15,7 @@ namespace ChaosWarlords.Source.Managers
         // State Control
         public bool IsPaused { get; set; }
         public bool IsPopupVisible { get; set; }
+        public bool IsConfirmationPopupVisible { get; set; }
 
         // Internals (encapsulated)
         private class InteractiveElement
@@ -97,19 +98,25 @@ namespace ChaosWarlords.Source.Managers
                 },
 
                 // Popups (High Priority)
+                // IsActive gates on IsConfirmationPopupVisible, NOT the combined IsPopupVisible -
+                // these generic buttons are only for the simple "Confirm End Turn" popup. The
+                // optional-effect popup has its own dedicated Yes/No buttons/click handling
+                // (OptionalEffectPopup.HandleClick via PlayerController) whose screen bounds
+                // overlap these; gating on IsPopupVisible let one click fire both handlers and
+                // double-invoke optional-effect accept/decline (see planning.txt).
                 new InteractiveElement
                 {
                     GetBounds = () => _popupConfirmButtonRect,
                     SetHover = (v) => IsPopupConfirmHovered = v,
                     OnClick = () => { _logger.Log("UI: Popup Confirm Clicked", LogChannel.Info); OnPopupConfirm?.Invoke(this, EventArgs.Empty); },
-                    IsActive = () => IsPopupVisible
+                    IsActive = () => IsConfirmationPopupVisible
                 },
                 new InteractiveElement
                 {
                     GetBounds = () => _popupCancelButtonRect,
                     SetHover = (v) => IsPopupCancelHovered = v,
                     OnClick = () => { _logger.Log("UI: Popup Cancel Clicked", LogChannel.Info); OnPopupCancel?.Invoke(this, EventArgs.Empty); },
-                    IsActive = () => IsPopupVisible
+                    IsActive = () => IsConfirmationPopupVisible
                 },
 
                 // Main Game UI (Lowest Priority)

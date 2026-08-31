@@ -61,6 +61,18 @@ namespace ChaosWarlords.Source.Core.Interfaces.Rendering
         bool IsPaused { get; set; }
         bool IsPopupVisible { get; set; }
 
+        /// <summary>
+        /// True only while the simple yes/no "Confirm End Turn"-style popup is open - NOT
+        /// while the optional-effect popup is open. Gates the generic PopupConfirmButtonRect/
+        /// PopupCancelButtonRect (see UIManager.InitializeInteractiveElements). The optional-
+        /// effect popup has its own dedicated Yes/No buttons and click handling
+        /// (OptionalEffectPopup.HandleClick, routed via PlayerController) with screen bounds
+        /// that happen to overlap this generic popup's buttons; gating these buttons on the
+        /// combined IsPopupVisible let a single click fire both handlers and double-invoke
+        /// optional-effect accept/decline (see planning.txt).
+        /// </summary>
+        bool IsConfirmationPopupVisible { get; set; }
+
         bool IsResumeHovered { get; }
         bool IsMainMenuHovered { get; }
         bool IsExitHovered { get; }

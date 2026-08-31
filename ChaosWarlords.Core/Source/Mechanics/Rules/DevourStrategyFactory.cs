@@ -49,6 +49,19 @@ namespace ChaosWarlords.Source.Mechanics.Rules
     {
         public void Execute(Card sourceCard, MatchContext context, IGameLogger logger, Action? onComplete, bool defer)
         {
+            // Guard against being invoked twice for the same card (e.g. a stray duplicate
+            // accept-click reaching this a second time) - CardsMarkedForTurnEndDevour is a
+            // plain List<Card>, and MatchManager.EndTurn's cleanup loop isn't itself
+            // duplicate-safe: a second entry for the same card would add it to VoidPile
+            // twice. See UIManager.IsConfirmationPopupVisible's doc comment for the double-
+            // click bug this was actually observed under (now fixed at the source), kept
+            // here as defense in depth.
+            if (context.CardsMarkedForTurnEndDevour.Contains(sourceCard))
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
             logger.Log($"{sourceCard.Name}: Marked for self-devour at end of turn.", LogChannel.Info);
 
             // Mark for end-of-turn destruction
