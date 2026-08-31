@@ -36,5 +36,36 @@ namespace ChaosWarlords.Tests.Core.Utilities
             var supplantStrategy = new ChaosWarlords.Source.Mechanics.Rules.Strategies.SupplantStrategy();
             Assert.IsTrue(supplantStrategy.IsTargetingEffect, "Supplant should be considered a Targeting Effect");
         }
+
+        [TestMethod]
+        public void LoadRealCardsJson_VerifyCarrionCrawler_HasPowerGainAndMarketDevour()
+        {
+            // Regression test: the real card is "+3 Power. Devour a card in the market and
+            // replace it with this card." - the shipped JSON was missing the +3 Power effect
+            // entirely (found by cross-checking against the real card image, see planning.txt
+            // RESOLVED).
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
+            if (!File.Exists(path)) Assert.Inconclusive("cards.json not found at " + path);
+
+            var database = new CardDatabase();
+            using (var stream = File.OpenRead(path))
+            {
+                database.Load(stream);
+            }
+
+            var card = database.GetCardById("carrion_crawler");
+
+            Assert.IsNotNull(card, "Carrion Crawler card should exist");
+
+            var gainEffect = card.Effects.FirstOrDefault(e => e.Type == EffectType.GainResource);
+            Assert.IsNotNull(gainEffect, "Carrion Crawler should have a GainResource effect");
+            Assert.AreEqual(ResourceType.Power, gainEffect.TargetResource);
+            Assert.AreEqual(3, gainEffect.Amount);
+
+            var devourEffect = card.Effects.FirstOrDefault(e => e.Type == EffectType.Devour);
+            Assert.IsNotNull(devourEffect, "Carrion Crawler should have a Devour effect");
+            Assert.AreEqual(CardLocation.Market, devourEffect.TargetLocation);
+            Assert.IsTrue(devourEffect.ReplaceWithSource, "Carrion Crawler devour should replace the market slot with itself, not the deck top.");
+        }
     }
 }
