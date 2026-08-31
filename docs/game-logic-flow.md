@@ -795,8 +795,8 @@ stateDiagram-v2
         
         state Rented {
             [*] --> Usage
-            Usage --> Usage: Update .Value
             Usage --> [*]: Dispose()
+            note right of Usage: Update .Value (repeated, mutable struct)
         }
         
         Rented --> ObjectPool: Return()
