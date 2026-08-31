@@ -82,13 +82,28 @@ namespace ChaosWarlords.Source.Input.Modes
                 return false;
             }
 
-            // Skip pre-commit for Market devour (happens post-play)
-            if (devourEffect.TargetLocation == CardLocation.Market)
+            // Pre-commit (select the target BEFORE the card is played) only makes sense for
+            // Hand-targeted devour: clicking a card in your own hand to devour it is exactly
+            // the same UI gesture as this method already intercepts, so it can resolve before
+            // PlayCardCommand ever dispatches. Market and InnerCircle devour targets are
+            // Browse/Market-panel selections, not hand clicks - handling them "pre-commit" via
+            // this method would call TryStartDevourInnerCircle/TryStartDevourMarket on a card
+            // that was never Play()'d (never pushed onto ExecutionStack via ResolveEffects),
+            // and MatchManager.ShouldResumeDevourChain's "source card not on stack -> manually
+            // resume the OnSuccess chain" fallback would then resume the chain WITHOUT ever
+            // actually playing the base card (moving it to Played, applying its non-devour
+            // effects) - silently worse than doing nothing, not better. Both already correctly
+            // fall through to normal play here, exactly like they always have; a MANDATORY
+            // InnerCircle devour still works correctly today via the existing post-play
+            // required-input path (ResolveEffects pushes it onto ExecutionStack, so it
+            // naturally becomes TargetingDevourInnerCircle after PlayCardCommand runs, with the
+            // card genuinely on the stack for ShouldResumeDevourChain to find) - it just can't
+            // be pre-selected by clicking the source card in Hand. See planning.txt.
+            if (devourEffect.TargetLocation != CardLocation.Hand)
             {
                 return false;
             }
 
-            // Handle pre-commit for mandatory Hand devour
             return true;
         }
 

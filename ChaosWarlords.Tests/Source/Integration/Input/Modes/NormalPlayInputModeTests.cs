@@ -14,6 +14,9 @@ using ChaosWarlords.Source.Commands;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
 using ChaosWarlords.Source.Core.Events; // Fixed namespace
+using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Utilities;
+using System.Linq;
 
 namespace ChaosWarlords.Tests.Integration.Input.Modes
 {
@@ -108,6 +111,31 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             Assert.IsNotNull(result, "Input should handle the Card, returning a command.");
             Assert.IsInstanceOfType(result, typeof(PlayCardCommand));
             _mapSub.DidNotReceive().TryDeploy(Arg.Any<Player>(), Arg.Any<MapNode>());
+        }
+
+        [TestMethod]
+        public void HandleInteraction_ClickOnMandatoryInnerCircleDevourCard_ReturnsPlayCardCommand_NotPreCommit()
+        {
+            // Regression test: ShouldHandleDevourPreCommit used to pre-commit ANY mandatory,
+            // non-Market devour effect - including InnerCircle - by calling TryStartDevourHand
+            // unconditionally. That's wrong for InnerCircle: it isn't selected by clicking a
+            // Hand card, and pre-committing it before the card is Play()'d would leave the
+            // card unplayed while MatchManager.ShouldResumeDevourChain's "not on stack, resume
+            // manually" fallback ran the OnSuccess chain anyway. This must fall through to
+            // normal play instead - InnerCircle devour already works correctly post-play (see
+            // MandatoryInnerCircleDevourIntegrationTests.cs), it just can't be pre-selected by
+            // a hand click. See planning.txt.
+            var card = TestData.Cards.DevourCard(); // mandatory (IsOptional defaults false), TargetLocation defaults to Hand - set explicitly below
+            card.Effects.Single(e => e.Type == EffectType.Devour).TargetLocation = CardLocation.InnerCircle;
+
+            _stateFake.HoveredHandCard = card;
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(110, 110));
+
+            var result = _inputMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
+
+            Assert.IsInstanceOfType(result, typeof(PlayCardCommand));
+            _actionSub.DidNotReceive().TryStartDevourInnerCircle(Arg.Any<Card>(), Arg.Any<System.Action>(), Arg.Any<bool>());
+            _actionSub.DidNotReceive().TryStartDevourHand(Arg.Any<Card>(), Arg.Any<System.Action>(), Arg.Any<bool>());
         }
 
         [TestMethod]
