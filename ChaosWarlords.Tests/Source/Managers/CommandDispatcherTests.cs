@@ -59,7 +59,6 @@ namespace ChaosWarlords.Tests.Source.Managers
                 Substitute.For<IActionSystem>(),
                 Substitute.For<ICardDatabase>(),
                 Substitute.For<IPlayerStateManager>(),
-                null,
                 _logger,
                 123);
 
@@ -93,7 +92,6 @@ namespace ChaosWarlords.Tests.Source.Managers
                 Substitute.For<IActionSystem>(),
                 Substitute.For<ICardDatabase>(),
                 Substitute.For<IPlayerStateManager>(),
-                null,
                 _logger,
                 123);
 
@@ -122,7 +120,6 @@ namespace ChaosWarlords.Tests.Source.Managers
                 Substitute.For<IActionSystem>(),
                 Substitute.For<ICardDatabase>(),
                 Substitute.For<IPlayerStateManager>(),
-                null,
                 _logger,
                 123);
 
@@ -154,7 +151,6 @@ namespace ChaosWarlords.Tests.Source.Managers
                 Substitute.For<IActionSystem>(),
                 Substitute.For<ICardDatabase>(),
                 Substitute.For<IPlayerStateManager>(),
-                null,
                 _logger,
                 123);
 
@@ -221,7 +217,6 @@ namespace ChaosWarlords.Tests.Source.Managers
                 actionSystem,
                 Substitute.For<ICardDatabase>(),
                 playerState,
-                null,
                 _logger,
                 123);
             actionSystem.SetMatchContext(matchContext);

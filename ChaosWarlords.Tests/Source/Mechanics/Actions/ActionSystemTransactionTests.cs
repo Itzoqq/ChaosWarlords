@@ -73,7 +73,6 @@ namespace ChaosWarlords.Tests.Systems
                 _actionSystem,
                 Substitute.For<ICardDatabase>(),
                 Substitute.For<IPlayerStateManager>(),
-                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
                 Utilities.TestLogger.Instance)
             { MatchManager = _matchManager };
 
@@ -118,7 +117,6 @@ namespace ChaosWarlords.Tests.Systems
                 _actionSystem,
                 Substitute.For<ICardDatabase>(),
                 Substitute.For<IPlayerStateManager>(),
-                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
                 Utilities.TestLogger.Instance)
             { MatchManager = _matchManager };
             Assert.IsNotNull(cmd);
@@ -160,7 +158,6 @@ namespace ChaosWarlords.Tests.Systems
                 _actionSystem,
                 Substitute.For<ICardDatabase>(),
                 Substitute.For<IPlayerStateManager>(),
-                Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
                 Utilities.TestLogger.Instance)
             { MatchManager = _matchManager };
             Assert.IsNotNull(cmd);

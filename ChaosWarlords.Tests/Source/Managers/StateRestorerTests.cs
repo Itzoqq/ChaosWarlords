@@ -65,7 +65,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             actionSystem.SetPlayerStateManager(playerState);
             actionSystem.SetMarketManager(_marketManager);
 
-            _context = new MatchContext(turnManager, _mapManager, _marketManager, actionSystem, cardDb, playerState, null, logger, seed: 999);
+            _context = new MatchContext(turnManager, _mapManager, _marketManager, actionSystem, cardDb, playerState, logger, seed: 999);
             actionSystem.SetMatchContext(_context);
 
             var matchManager = new MatchManager(_context, logger, Substitute.For<IVictoryManager>());

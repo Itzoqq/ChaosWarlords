@@ -67,7 +67,6 @@ namespace ChaosWarlords.Tests.Source.Doubles.State
                 ActionSystem,
                 NSubstitute.Substitute.For<ICardDatabase>(),
                 playerState,
-                NSubstitute.Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
                 Logger
             );
             MatchContext.MatchManager = MatchManager;

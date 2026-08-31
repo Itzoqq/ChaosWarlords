@@ -46,7 +46,6 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
                 actionSystem,
                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Data.ICardDatabase>(),
                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IPlayerStateManager>(),
-                null,
                 TestLogger.Instance,
                 42);
             actionSystem.SetMatchContext(context);

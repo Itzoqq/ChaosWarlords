@@ -258,7 +258,6 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             var marketManager = Substitute.For<IMarketManager>();
             var cardDb = Substitute.For<ICardDatabase>();
             var playerState = Substitute.For<IPlayerStateManager>();
-            var uiMediator = Substitute.For<IUIEventMediator>();
             var logger = Substitute.For<IGameLogger>();
 
             return new MatchContext(
@@ -268,7 +267,6 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
                 actionSystem,
                 cardDb,
                 playerState,
-                uiMediator,
                 logger,
                 12345
             );

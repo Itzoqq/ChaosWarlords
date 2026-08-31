@@ -133,7 +133,6 @@ namespace ChaosWarlords.Tests.Source.Replay
                 world.ActionSystem,
                 cardDatabase,
                 world.PlayerStateManager,
-                null,
                 logger,
                 world.Seed);
 

@@ -55,7 +55,6 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             _actionSystem.SetPlayerStateManager(_playerStateManager);
 
             var cardDb = Substitute.For<ICardDatabase>();
-            var uiMediator = Substitute.For<IUIEventMediator>();
 
             _context = new MatchContext(
                 turnManager,
@@ -64,7 +63,6 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                 _actionSystem,
                 cardDb,
                 _playerStateManager,
-                uiMediator,
                 _logger
             );
         }

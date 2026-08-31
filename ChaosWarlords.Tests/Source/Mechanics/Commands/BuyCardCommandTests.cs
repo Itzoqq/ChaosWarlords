@@ -41,7 +41,6 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
                 Substitute.For<IActionSystem>(),
                 Substitute.For<ICardDatabase>(),
                 mockStateManager,
-                null,
                 Utilities.TestLogger.Instance
             );
             stateFake.MatchContext = context;

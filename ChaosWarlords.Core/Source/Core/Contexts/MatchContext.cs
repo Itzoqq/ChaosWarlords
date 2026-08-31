@@ -45,11 +45,6 @@ namespace ChaosWarlords.Source.Contexts
         /// </summary>
         public IPlayerStateManager PlayerStateManager { get; private set; }
 
-        /// <summary>
-        /// UI event mediator for requesting player choices (e.g., optional effects).
-        /// Nullable for test scenarios where UI interactions aren't needed.
-        /// </summary>
-        public IUIEventMediator? UIEventMediator { get; private set; }
         public IGameLogger Logger { get; private set; }
 
         /// <summary>
@@ -96,7 +91,6 @@ namespace ChaosWarlords.Source.Contexts
             IActionSystem action,
             ICardDatabase cardDb,
             IPlayerStateManager playerState,
-            IUIEventMediator? uiMediator,
             IGameLogger logger,
             int? seed = null)
         {
@@ -106,7 +100,6 @@ namespace ChaosWarlords.Source.Contexts
             ActionSystem = action ?? throw new ArgumentNullException(nameof(action));
             CardDatabase = cardDb ?? throw new ArgumentNullException(nameof(cardDb));
             PlayerStateManager = playerState ?? throw new ArgumentNullException(nameof(playerState));
-            UIEventMediator = uiMediator; // Nullable for tests
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
             // Initialize seeded RNG

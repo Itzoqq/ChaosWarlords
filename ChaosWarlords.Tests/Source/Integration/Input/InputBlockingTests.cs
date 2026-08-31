@@ -51,7 +51,6 @@ namespace ChaosWarlords.Tests.Source.Integration.Input
                 actionSystem,
                 Substitute.For<ICardDatabase>(),
                 Substitute.For<IPlayerStateManager>(),
-                Substitute.For<IUIEventMediator>(),
                 logger,
                 123
             );

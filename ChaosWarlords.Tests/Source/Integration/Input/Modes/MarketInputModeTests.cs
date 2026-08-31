@@ -60,7 +60,6 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
                 _mockActionSystem,
                 cardDbMsg,
                 psMsg,
-                null, 
                 _loggerSub
             );
 

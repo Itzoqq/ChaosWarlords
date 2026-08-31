@@ -19,14 +19,12 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
         private MatchContext _context = null!;
         private MatchManager _matchManager = null!;
         private ActionSystem _actionSystem = null!;
-        private IUIEventMediator _uiMediator = null!;
         private IGameLogger _logger = null!;
 
         [TestInitialize]
         public void Setup()
         {
             _logger = Substitute.For<IGameLogger>();
-            _uiMediator = Substitute.For<IUIEventMediator>();
             var database = Substitute.For<ICardDatabase>();
             database.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new System.Collections.Generic.List<Card>());
             var replayManager = Substitute.For<IReplayManager>();
@@ -51,7 +49,6 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
                 worldData.ActionSystem!,
                 database!,
                 worldData.PlayerStateManager!,
-                _uiMediator,
                 _logger!
             );
 
@@ -133,21 +130,21 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
 
             // 2. Act
             // Direct execution via Strategy would bypass CardEffectProcessor's optional check logic if we call Execute directly on Strategy?
-            // NO. Strategy.Execute is for the ACTION part (Targeting). 
+            // NO. Strategy.Execute is for the ACTION part (Targeting).
             // The POPUP happens in CardEffectProcessor BEFORE Strategy.Execute is called.
             // So we must test CardEffectProcessor logic here, or just simulate the flow.
+
+            // Ensure UI was NOT asked for permission. ActionSystem no longer calls
+            // IUIEventMediator directly (see planning.txt) - it raises OnInteractionRequested
+            // instead, which is what a subscriber (the UI layer) would react to.
+            bool interactionRequested = false;
+            _actionSystem.OnInteractionRequested += _ => interactionRequested = true;
 
             // To test "Skipping Popup", we must invoke CardEffectProcessor.ResolveEffects
             ChaosWarlords.Source.Mechanics.Rules.CardEffectProcessor.ResolveEffects(devourCard, _context, false, _logger);
 
             // 3. Assert
-            // Ensure UI was NOT asked for permission
-            _uiMediator.DidNotReceive().RequestOptionalEffect(
-                Arg.Any<Card>(),
-                Arg.Any<CardEffect>(),
-                Arg.Any<Action>(),
-                Arg.Any<Action>()
-            );
+            Assert.IsFalse(interactionRequested, "OnInteractionRequested should NOT fire if the optional-effect popup was correctly skipped.");
 
             // Ensure logic remains safe (no targeting state entered)
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "Should NOT enter targeting state if skipped");

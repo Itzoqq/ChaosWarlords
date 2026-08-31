@@ -61,8 +61,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
                 _actionSystem,
                 _cardDatabase,
                 playerState,
-
-                null, Utilities.TestLogger.Instance);
+                Utilities.TestLogger.Instance);
 
             // Fix for Legacy Tests: Configure Mock ActionSystem to execute "Instant" effects immediately
             // This mimics the real ActionSystem.ProcessStack() behavior for non-blocking effects.
@@ -502,8 +501,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
                 actionSystem,
                 cardDatabase,
                 playerState,
-
-                null, logger);
+                logger);
 
             var manager = new MatchManager(context, logger, victoryManager);
             actionSystem.SetMatchManager(manager);

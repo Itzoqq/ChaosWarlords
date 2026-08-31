@@ -294,7 +294,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
                 var ps = new PlayerStateManager(Utilities.TestLogger.Instance);
 
                 // B. Create MatchContext (Passing the NEW Mediator)
-                _matchContext = new MatchContext(tm, map, market, action, _testDb, ps, _uiEventMediator, Utilities.TestLogger.Instance);
+                _matchContext = new MatchContext(tm, map, market, action, _testDb, ps, Utilities.TestLogger.Instance);
 
                 var victoryManager = Substitute.For<IVictoryManager>();
                 _matchManager = new MatchManager(_matchContext, Utilities.TestLogger.Instance, victoryManager);

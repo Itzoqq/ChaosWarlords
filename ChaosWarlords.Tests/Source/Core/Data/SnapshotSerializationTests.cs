@@ -69,7 +69,6 @@ namespace ChaosWarlords.Tests.Source.Core.Data
                 _actionSystem,
                 _cardDatabase,
                 _playerStateManager,
-                null,
                 TestLogger.Instance,
                 999
             );

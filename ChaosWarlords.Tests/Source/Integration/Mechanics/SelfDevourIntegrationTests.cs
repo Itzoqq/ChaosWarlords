@@ -18,7 +18,6 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         private MatchContext _context = null!;
         private MatchManager _matchManager = null!;
         private ActionSystem _actionSystem = null!;
-        private IUIEventMediator _uiMediator = null!;
         // Remove field instantiation: private readonly TestLogger _logger = new TestLogger();
 
         [TestInitialize]
@@ -32,9 +31,6 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                 new ChaosWarlords.Source.Entities.Actors.Player(PlayerColor.Red, displayName: "Player 1"),
                 new ChaosWarlords.Source.Entities.Actors.Player(PlayerColor.Blue, displayName: "Player 2")
             };
-
-            // Mock UI Mediator
-            _uiMediator = Substitute.For<IUIEventMediator>();
 
             // Create Context via Factory
             var turnManager = new TurnManager(players, new SeededGameRandom(12345, TestLogger.Instance), TestLogger.Instance);
@@ -57,7 +53,6 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                 actionSystem,
                 cardDb,
                 playerState,
-                _uiMediator,
                 TestLogger.Instance
             );
 

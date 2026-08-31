@@ -31,7 +31,6 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
         private ActionSystem _actionSystem = null!;
         private Player _p1 = null!;
         private Player _p2 = null!;
-        private IUIEventMediator _uiEventMediator = null!;
         private ITurnManager _turnManager = null!;
         private IMarketManager _marketManager = null!;
         private MatchManager _matchManager = null!; 
@@ -75,7 +74,6 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             _actionSystem = new ActionSystem(_turnManager, _mapManager, _logger);
             
             _marketManager = Substitute.For<IMarketManager>();
-            _uiEventMediator = Substitute.For<IUIEventMediator>();
             var cardDb = Substitute.For<ICardDatabase>();
 
             _context = new MatchContext(
@@ -85,7 +83,6 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
                 _actionSystem,
                 cardDb,
                 _playerStateManager,
-                _uiEventMediator,
                 _logger,
                 123
             );

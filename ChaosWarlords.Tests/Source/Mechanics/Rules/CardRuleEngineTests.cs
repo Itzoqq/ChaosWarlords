@@ -31,7 +31,6 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             var actionSystem = Substitute.For<IActionSystem>();
             var cardDb = Substitute.For<ICardDatabase>();
             var playerState = Substitute.For<IPlayerStateManager>();
-            var uiMediator = Substitute.For<IUIEventMediator>();
 
             _context = new MatchContext(
                 turnManager,
@@ -40,7 +39,6 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
                 actionSystem,
                 cardDb,
                 playerState,
-                uiMediator,
                 _logger,
                 12345
             );

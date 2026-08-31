@@ -60,7 +60,6 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
                 actionSystemMsg,
                 cardDbMsg,
                 psMsg,
-                null,
                 _loggerMock
             );
 

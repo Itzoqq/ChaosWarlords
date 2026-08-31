@@ -20,7 +20,6 @@ namespace ChaosWarlords.Tests.Source.Systems
         private CardEffectProcessor _processor = null!;
         private MatchContext _context = null!;
         private Player _player = null!;
-        private IUIEventMediator _uiMediator = null!;
 
         [TestInitialize]
         public void Setup()
@@ -28,7 +27,6 @@ namespace ChaosWarlords.Tests.Source.Systems
             Tests.Utilities.TestLogger.Initialize();
             _processor = new CardEffectProcessor();
             _player = TestData.Players.PoorPlayer();
-            _uiMediator = Substitute.For<IUIEventMediator>();
 
             var turnSub = Substitute.For<ITurnManager>();
             turnSub.ActivePlayer.Returns(_player);
@@ -42,7 +40,6 @@ namespace ChaosWarlords.Tests.Source.Systems
                 Substitute.For<IActionSystem>(),
                 Substitute.For<ICardDatabase>(),
                 new PlayerStateManager(Tests.Utilities.TestLogger.Instance), // <--- Use real StateManager for logic testing
-                _uiMediator,
                 Tests.Utilities.TestLogger.Instance
             );
 

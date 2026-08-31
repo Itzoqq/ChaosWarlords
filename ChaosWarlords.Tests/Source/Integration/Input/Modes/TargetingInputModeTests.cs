@@ -70,7 +70,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
                      _actionSub,
                      Substitute.For<ICardDatabase>(),
                      new PlayerStateManager(Utilities.TestLogger.Instance),
-                     null, Utilities.TestLogger.Instance
+                     Utilities.TestLogger.Instance
                 )
             };
 

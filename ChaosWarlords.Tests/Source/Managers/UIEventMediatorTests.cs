@@ -64,7 +64,6 @@ namespace ChaosWarlords.Tests.Source.Managers
                 action: _actionSystem,
                 cardDb: _cardDatabase,
                 playerState: _playerStateManager,
-                uiMediator: null,
                 logger: _logger,
                 seed: 12345
             );

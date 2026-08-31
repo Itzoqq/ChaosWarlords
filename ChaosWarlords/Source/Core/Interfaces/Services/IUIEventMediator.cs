@@ -6,6 +6,15 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
     /// <summary>
     /// Interface for UI event mediation between game logic and UI layer.
     /// Allows game logic to request UI interactions without direct coupling.
+    ///
+    /// Lives in the CLIENT project, not ChaosWarlords.Core - it moved here 2026-08-31 once
+    /// grep confirmed nothing in Core reads a MatchContext.UIEventMediator anymore (that
+    /// property/constructor parameter was removed the same day). ActionSystem talks to the
+    /// UI layer via IActionSystem.OnInteractionRequested (a plain event carrying
+    /// InteractionRequest) instead of calling into this interface directly - see
+    /// ActionSystem.cs and planning.txt. This interface is purely the client-side contract
+    /// UIEventMediator implements to answer that event; headless logic has no reason to
+    /// know it exists.
     /// </summary>
     public interface IUIEventMediator
     {

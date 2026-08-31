@@ -67,7 +67,6 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                  _actionSystem,
                  Substitute.For<ICardDatabase>(),
                  Substitute.For<IPlayerStateManager>(),
-                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
                  Utilities.TestLogger.Instance);
 
             Assert.IsNotNull(cmd);
@@ -104,7 +103,6 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                  _actionSystem,
                  Substitute.For<ICardDatabase>(),
                  Substitute.For<IPlayerStateManager>(),
-                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
                  Utilities.TestLogger.Instance);
 
             Assert.IsNotNull(cmd);
@@ -143,7 +141,6 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                  _actionSystem,
                  Substitute.For<ICardDatabase>(),
                  Substitute.For<IPlayerStateManager>(),
-                 Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IUIEventMediator>(),
                  Utilities.TestLogger.Instance);
 
             Assert.IsNotNull(cmd);

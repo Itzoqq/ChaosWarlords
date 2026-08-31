@@ -107,7 +107,7 @@ namespace ChaosWarlords.Tests.Source.Replay
             {
                 var ctx = new MatchContext(
                     worldReplay.TurnManager, worldReplay.MapManager, worldReplay.MarketManager,
-                    worldReplay.ActionSystem, cardDb, worldReplay.PlayerStateManager, null, logger, seed);
+                    worldReplay.ActionSystem, cardDb, worldReplay.PlayerStateManager, logger, seed);
                 fakeState.MatchContext = ctx;
             }
             catch (System.Exception ex)

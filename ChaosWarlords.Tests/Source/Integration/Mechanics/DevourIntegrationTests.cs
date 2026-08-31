@@ -21,7 +21,6 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         private IMarketManager _marketManager = null!;
         private IMapManager _mapManager = null!;
         private IMatchManager _matchManager = null!;
-        private IUIEventMediator _uiMediator = null!;
         private IGameLogger _logger = null!;
         private IPlayerStateManager _playerStateManager = null!;
         private IMarketStateManager _marketStateManager = null!;
@@ -55,8 +54,6 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             _actionSystem.SetMarketStateManager(_marketStateManager);
             _actionSystem.SetPlayerStateManager(_playerStateManager);
 
-            _uiMediator = Substitute.For<IUIEventMediator>();
-
             _context = new MatchContext(
                 turnManager,
                 _mapManager,
@@ -64,7 +61,6 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                 _actionSystem,
                 Substitute.For<ICardDatabase>(),
                 _playerStateManager,
-                _uiMediator,
                 _logger,
                 12345
             );

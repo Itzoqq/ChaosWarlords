@@ -22,9 +22,8 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             var marketMgr = Substitute.For<IMarketManager>();
             var cardDb = Substitute.For<ICardDatabase>();
             var playerState = Substitute.For<IPlayerStateManager>();
-            var ui = Substitute.For<IUIEventMediator>();
 
-            var context = new MatchContext(turnMgr, mapMgr, marketMgr, actionSys, cardDb, playerState, ui, logger, 0);
+            var context = new MatchContext(turnMgr, mapMgr, marketMgr, actionSys, cardDb, playerState, logger, 0);
             return new CardRuleEngine(context, logger);
         }
         [TestMethod]

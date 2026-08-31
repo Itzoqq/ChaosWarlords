@@ -676,7 +676,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
                 worldData.ActionSystem,
                 cardDbMock,
                 worldData.PlayerStateManager,
-                null, loggerMock,
+                loggerMock,
                 12345
             );
 

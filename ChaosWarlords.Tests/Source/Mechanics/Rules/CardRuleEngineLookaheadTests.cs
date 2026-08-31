@@ -37,7 +37,6 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
                 Substitute.For<IActionSystem>(),
                 Substitute.For<ICardDatabase>(),
                 Substitute.For<IPlayerStateManager>(),
-                Substitute.For<IUIEventMediator>(),
                 _logger,
                 12345
             );

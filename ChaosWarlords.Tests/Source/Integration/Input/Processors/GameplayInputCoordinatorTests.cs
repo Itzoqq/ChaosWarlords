@@ -45,7 +45,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Processors
             var cardDb = Substitute.For<ICardDatabase>();
 
             var ps = new PlayerStateManager(Utilities.TestLogger.Instance);
-            _context = new MatchContext(tm, mapManager, marketManager, _actionSub, cardDb, ps, null, Utilities.TestLogger.Instance);
+            _context = new MatchContext(tm, mapManager, marketManager, _actionSub, cardDb, ps, Utilities.TestLogger.Instance);
 
             // 3. Setup InputManager with Mock Provider
             _mockInputProvider = Substitute.For<IInputProvider>();

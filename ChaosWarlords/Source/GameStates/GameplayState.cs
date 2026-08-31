@@ -139,7 +139,6 @@ namespace ChaosWarlords.Source.GameStates
                 worldData.ActionSystem,
                 _cardDatabase,
                 worldData.PlayerStateManager,
-                _uiEventMediator,
                 _logger,
                 worldData.Seed
             );

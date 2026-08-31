@@ -60,7 +60,6 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
                 _actionSub,
                 cardDb,
                 ps,
-                null, 
                 Utilities.TestLogger.Instance
             );
 
