@@ -314,6 +314,29 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         [TestMethod]
+        public void HasValidReturnTroopTarget_True_IfOnlyOwnTroop_NoEnemyOrPresenceElsewhere()
+        {
+            // Isolated own troop, no adjacency to any other friendly troop, no spy anywhere -
+            // node1 has no neighbors with a friendly occupant besides itself. Written to probe
+            // whether "requires Presence unconditionally" (the shape of bug this session fixed
+            // three other times) actually changes this outcome - see the comment on the
+            // assertion below.
+            _node1.Occupant = _player1.Color; // P1's own troop
+            _node2.Occupant = PlayerColor.None;
+            _node3.Occupant = PlayerColor.None;
+
+            Assert.IsTrue(_engine.HasValidReturnTroopTarget(_player1),
+                "P1 should be able to return their own troop from node1 - but note HasPresence's own first check " +
+                "is `targetNode.Occupant == player`, so occupying a node always grants Presence there trivially. " +
+                "This means the unconditional-Presence-check version of this method (see planning.txt - CanReturnTroop's " +
+                "prior version) ALSO returns true here: there is no MapNode state where a player occupies their own " +
+                "troop's node without HasPresence already being true for that exact node. This test therefore " +
+                "verifies correct behavior, not a behavior CHANGE from the fix - see planning.txt for why the fix " +
+                "still has value (explicit rules-intent, and removing 3x duplicated Presence-check logic) despite " +
+                "not being observable via this specific scenario.");
+        }
+
+        [TestMethod]
         public void HasValidReturnTroopTarget_False_IfOnlyNeutral()
         {
             // Arrange: P1 has spy at site, granting presence to Node 3.

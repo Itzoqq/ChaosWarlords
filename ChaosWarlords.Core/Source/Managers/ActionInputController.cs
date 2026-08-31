@@ -75,12 +75,9 @@ namespace ChaosWarlords.Source.Managers
 
         private ReturnTroopCommand? HandleReturn(MapNode targetNode, string? cardId)
         {
-            if (targetNode.Occupant == PlayerColor.None || targetNode.Occupant == PlayerColor.Neutral)
-            {
-                return null;
-            }
-
-            if (!_mapManager.HasPresence(targetNode, ActivePlayer().Color))
+            // Delegates to MapManager.CanReturnTroop - see ReturnTroopCommand.Validate's
+            // comment for why this used to reimplement the same checks independently.
+            if (!_mapManager.CanReturnTroop(targetNode, ActivePlayer()))
             {
                 return null;
             }

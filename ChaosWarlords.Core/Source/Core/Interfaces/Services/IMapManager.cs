@@ -44,6 +44,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         bool CanAssassinate(MapNode target, Player attacker);
         void Assassinate(MapNode node, Player attacker);
         void Supplant(MapNode node, Player attacker);
+        bool CanReturnTroop(MapNode node, Player requestingPlayer);
         void ReturnTroop(MapNode node, Player requestingPlayer);
 
         // Spy Actions

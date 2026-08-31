@@ -165,10 +165,16 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         public bool HasValidReturnTroopTarget(Player activePlayer)
         {
+            // See MapManager.CanReturnTroop's comment: Presence is only required to return
+            // an ENEMY troop, not the player's own - matching that check here too, or a
+            // player with only their own troops on the board (and no enemy Presence
+            // anywhere) would see "Return a Troop" card effects report no valid targets at
+            // all, even though they could legally return one of their own troops from
+            // anywhere. See planning.txt.
             return _nodes?.Any(n =>
                 n.Occupant != PlayerColor.None &&
                 n.Occupant != PlayerColor.Neutral &&
-                HasPresence(n, activePlayer.Color)) ?? false;
+                (n.Occupant == activePlayer.Color || HasPresence(n, activePlayer.Color))) ?? false;
         }
 
         public bool HasValidPlaceSpyTarget(Player activePlayer)

@@ -215,7 +215,10 @@ namespace ChaosWarlords.Tests.Systems
             // Arrange
             _actionSystem.StartTargeting(ActionState.TargetingReturn);
             _node1.Occupant = _player1.Color;
-            _mapManager.HasPresence(_node1, _player1.Color).Returns(true);
+            // ActionInputController.HandleReturn now delegates to MapManager.CanReturnTroop
+            // (the single authoritative check) rather than reimplementing the Occupant/
+            // Presence checks itself - see planning.txt.
+            _mapManager.CanReturnTroop(_node1, _player1).Returns(true);
 
             // Act
             var cmd = _actionSystem.HandleTargetClick(_node1, null!);
@@ -417,12 +420,18 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         [TestMethod]
-        public void HandleTargetClick_Return_Fails_IfTroopNeutral()
+        public void HandleTargetClick_Return_Fails_WhenMapManagerRejectsIt()
         {
-            // Arrange
+            // ActionInputController.HandleReturn now delegates the Neutral/unoccupied/
+            // Presence checks entirely to MapManager.CanReturnTroop (see planning.txt) -
+            // that logic is tested directly against a real MapManager in MapManagerTests.cs.
+            // This test only confirms HandleTargetClick correctly propagates a false
+            // CanReturnTroop result into "no command, action not completed" - configuring
+            // CanReturnTroop explicitly (rather than relying on the mock's default false) so
+            // it can't be confused with a test that just happens to pass either way.
             _actionSystem.StartTargeting(ActionState.TargetingReturn);
-            _node1.Occupant = PlayerColor.Neutral; // Cannot return white troops
-            _mapManager.HasPresence(_node1, _player1.Color).Returns(true);
+            _node1.Occupant = PlayerColor.Neutral;
+            _mapManager.CanReturnTroop(_node1, _player1).Returns(false);
 
             // Act
             var cmd = _actionSystem.HandleTargetClick(_node1, null!);

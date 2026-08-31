@@ -29,15 +29,12 @@ namespace ChaosWarlords.Source.Commands
             var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
             if (node == null) return false;
 
-            // Mirrors ActionInputController.HandleReturn's checks: can't return an unoccupied or
-            // Neutral-occupied node, and the requester must have presence to contest it.
-            if (node.Occupant == Utilities.PlayerColor.None || node.Occupant == Utilities.PlayerColor.Neutral)
-            {
-                return false;
-            }
-
-            var player = context.TurnManager.ActivePlayer;
-            return context.MapManager.HasPresence(node, player.Color);
+            // Delegates to MapManager.CanReturnTroop - the single authoritative check
+            // (occupied, not Neutral, and Presence required only for an enemy troop, not the
+            // requester's own). This used to reimplement those conditions independently,
+            // which is exactly how the Presence-for-own-troops bug (see CanReturnTroop's
+            // comment) could have been fixed in one of the two places and not the other.
+            return context.MapManager.CanReturnTroop(node, context.TurnManager.ActivePlayer);
         }
 
         public void Execute(MatchContext context)

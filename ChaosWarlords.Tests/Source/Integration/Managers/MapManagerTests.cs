@@ -271,6 +271,63 @@ namespace ChaosWarlords.Tests.Integration.Managers
         #region 4. Movement & Returns
 
         [TestMethod]
+        public void CanReturnTroop_True_ForEnemyTroop_WithPresence()
+        {
+            _node1.Occupant = _player1.Color; // P1 presence (adjacent to node2)
+            _node2.Occupant = _player2.Color; // P2's troop, the target
+
+            Assert.IsTrue(_mapManager.CanReturnTroop(_node2, _player1));
+        }
+
+        [TestMethod]
+        public void CanReturnTroop_False_ForEnemyTroop_WithoutPresence()
+        {
+            // No node occupied by P1 anywhere, no spy - P1 has no Presence at node4 (not
+            // adjacent to anything P1 controls).
+            _node4.Occupant = _player2.Color;
+
+            Assert.IsFalse(_mapManager.CanReturnTroop(_node4, _player1));
+        }
+
+        [TestMethod]
+        public void CanReturnTroop_True_ForOwnTroop_EvenWithoutAdjacentPresenceElsewhere()
+        {
+            // Rulebook, "Return a Troop or Spy": Presence is required only for an ENEMY
+            // troop - "To return one of your troops or spies, return it from a troop space
+            // or site ANYWHERE on the board to your barracks." node4 is isolated from every
+            // other node P1 occupies (there are none), so the ONLY reason this can return
+            // true is the explicit own-troop branch in CanReturnTroop - not adjacency-based
+            // Presence. (Note: HasPresence's own first check is `targetNode.Occupant ==
+            // player`, so a player always trivially has Presence at their own troop's exact
+            // node anyway - this specific scenario can't distinguish "own troop is exempt
+            // from Presence" from "occupying a node always grants Presence there". Both
+            // MapRuleEngine.HasValidReturnTroopTarget's tests and this one exist mainly to
+            // document that distinction rather than prove a behavior change - see
+            // planning.txt.)
+            _node4.Occupant = _player1.Color;
+
+            Assert.IsTrue(_mapManager.CanReturnTroop(_node4, _player1));
+        }
+
+        [TestMethod]
+        public void CanReturnTroop_False_ForNeutralOccupant()
+        {
+            _node1.Occupant = _player1.Color;
+            _node2.Occupant = PlayerColor.Neutral;
+
+            Assert.IsFalse(_mapManager.CanReturnTroop(_node2, _player1));
+        }
+
+        [TestMethod]
+        public void CanReturnTroop_False_ForUnoccupiedNode()
+        {
+            _node1.Occupant = _player1.Color;
+            _node2.Occupant = PlayerColor.None;
+
+            Assert.IsFalse(_mapManager.CanReturnTroop(_node2, _player1));
+        }
+
+        [TestMethod]
         public void ReturnTroop_ReturnsOwnTroopToBarracks()
         {
             _node1.Occupant = _player1.Color;

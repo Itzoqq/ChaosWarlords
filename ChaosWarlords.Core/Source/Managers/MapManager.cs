@@ -185,14 +185,22 @@ namespace ChaosWarlords.Source.Managers
         public bool CanReturnTroop(MapNode node, Player requestingPlayer)
         {
             if (node is null) return false;
-            // Must have presence at the node (direct or adjacent)
-            if (!HasPresence(node, requestingPlayer.Color)) return false;
             // Cannot return Neutral
             if (node.Occupant == PlayerColor.Neutral) return false;
             // Must be occupied
             if (node.Occupant == PlayerColor.None) return false;
 
-            return true;
+            // Rulebook, "Return a Troop or Spy": Presence is required only when returning an
+            // ENEMY troop or spy ("You may return an enemy troop or spy only from where you
+            // have Presence"). Returning your OWN troop needs no Presence at all ("To return
+            // one of your troops or spies, return it from a troop space or site ANYWHERE on
+            // the board to your barracks"). This used to require Presence unconditionally,
+            // under-restricting nothing shipped today caught it on (no card returns the
+            // acting player's own troop yet), but was a real rules violation waiting for the
+            // first one that does. See planning.txt.
+            if (node.Occupant == requestingPlayer.Color) return true;
+
+            return HasPresence(node, requestingPlayer.Color);
         }
 
         public void ReturnTroop(MapNode node, Player requestingPlayer)

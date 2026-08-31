@@ -35,76 +35,39 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         }
 
         [TestMethod]
-        public void Validate_Returns_False_When_NodeUnoccupied()
+        public void Validate_DelegatesTo_MapManagerCanReturnTroop_AndReturnsItsResult_True()
         {
-            // Arrange
-            var node = TestData.MapNodes.EmptyNode(); // Occupant == None
-            SetNodes(node);
-            var command = new ReturnTroopCommand(node.Id);
-
-            // Act
-            var result = command.Validate(_state.MatchContext);
-
-            // Assert
-            Assert.IsFalse(result);
-        }
-
-        [TestMethod]
-        public void Validate_Returns_False_When_NodeOccupiedByNeutral()
-        {
-            // Arrange: Neutral (white) troops cannot be "returned" via this action.
-            var node = new MapNodeBuilder().WithId(1).OccupiedBy(PlayerColor.Neutral).Build();
-            SetNodes(node);
-            var player = TestData.Players.RedPlayer();
-            _state.TurnManager.ActivePlayer.Returns(player);
-            _state.MapManager.HasPresence(node, player.Color).Returns(true);
-
-            var command = new ReturnTroopCommand(node.Id);
-
-            // Act
-            var result = command.Validate(_state.MatchContext);
-
-            // Assert
-            Assert.IsFalse(result, "Should reject returning a Neutral-occupied node");
-        }
-
-        [TestMethod]
-        public void Validate_Returns_False_When_RequesterHasNoPresence()
-        {
-            // Arrange: mirrors ActionInputController.HandleReturn - contesting a node requires
-            // presence there (directly or adjacent).
+            // Validate() delegates entirely to MapManager.CanReturnTroop (the single
+            // authoritative check - see CanReturnTroop's own doc comment for the actual rules
+            // logic, tested directly against a real MapManager in MapManagerTests.cs). These
+            // tests below verify only the delegation itself - with a bare mocked IMapManager,
+            // an unconfigured CanReturnTroop() call returns false by default, so a test
+            // asserting Validate() == false without configuring CanReturnTroop can't actually
+            // tell correct delegation from "the mock happened to default to false" - configure
+            // it explicitly both ways instead.
             var node = TestData.MapNodes.BlueNode();
             SetNodes(node);
             var player = TestData.Players.RedPlayer();
             _state.TurnManager.ActivePlayer.Returns(player);
-            _state.MapManager.HasPresence(node, player.Color).Returns(false);
+            _state.MapManager.CanReturnTroop(node, player).Returns(true);
 
             var command = new ReturnTroopCommand(node.Id);
 
-            // Act
-            var result = command.Validate(_state.MatchContext);
-
-            // Assert
-            Assert.IsFalse(result);
+            Assert.IsTrue(command.Validate(_state.MatchContext));
         }
 
         [TestMethod]
-        public void Validate_Returns_True_When_OccupiedByEnemy_AndRequesterHasPresence()
+        public void Validate_DelegatesTo_MapManagerCanReturnTroop_AndReturnsItsResult_False()
         {
-            // Arrange
             var node = TestData.MapNodes.BlueNode();
             SetNodes(node);
             var player = TestData.Players.RedPlayer();
             _state.TurnManager.ActivePlayer.Returns(player);
-            _state.MapManager.HasPresence(node, player.Color).Returns(true);
+            _state.MapManager.CanReturnTroop(node, player).Returns(false);
 
             var command = new ReturnTroopCommand(node.Id);
 
-            // Act
-            var result = command.Validate(_state.MatchContext);
-
-            // Assert
-            Assert.IsTrue(result);
+            Assert.IsFalse(command.Validate(_state.MatchContext));
         }
 
         [TestMethod]
