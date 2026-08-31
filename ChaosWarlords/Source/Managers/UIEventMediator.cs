@@ -366,11 +366,24 @@ namespace ChaosWarlords.Source.Managers
 
         private void HandleActionCompleted(object? sender, EventArgs e)
         {
-            if (_actionSystem.PendingCard is not null)
-            {
-                _gameState.MatchManager.PlayCard(_actionSystem.PendingCard);
-            }
-            // FIX: Do NOT call CancelTargeting here. 
+            // Historically this re-invoked MatchManager.PlayCard(_actionSystem.PendingCard)
+            // here - a leftover from before PlayCardCommand.Execute existed as the one real
+            // call site. By the time OnActionCompleted fires for any effect that sets
+            // PendingCard (see ActionSystem.HandleInputRequiredEffect), the card has ALWAYS
+            // already been moved out of Hand: PendingCard is only ever set while processing
+            // effects pushed by CardEffectProcessor.ResolveEffects, and ResolveEffects only
+            // ever runs from inside MatchManager.PlayCard, which moves the card to Played as
+            // its very first step. So this call was always a no-op (MatchManager.PlayCard's
+            // own Hand.Contains guard silently swallowed it) - except for the mandatory
+            // devour-from-hand pre-commit flow (DevourInputMode.HandlePreCommitSelection),
+            // which used to call ActionSystem.CompleteAction() before the card was played,
+            // making this reentrant call briefly load-bearing (and fragile) for that one
+            // flow. That premature CompleteAction() call is gone now (see DevourInputMode's
+            // comment), so this call is unconditionally dead weight - removed. It used to
+            // also log a spurious "Attempted to play card X which is NOT in active player's
+            // hand" Error on every targeting/optional card's completion (see planning.txt).
+
+            // FIX: Do NOT call CancelTargeting here.
             // 1. It wipes PendingDevourCard, breaking chained transactions.
             // 2. ActionSystem.CompleteAction() already calls ClearState(), which is safer.
             // _actionSystem.CancelTargeting();

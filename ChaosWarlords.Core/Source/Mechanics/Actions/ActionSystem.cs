@@ -176,13 +176,28 @@ namespace ChaosWarlords.Source.Managers
             CurrentState = state;
             PendingCard = card;
 
-            // Auto-Execute if Pre-Target exists (Transactional/Replay Flow)
+            // Auto-Execute if Pre-Target exists (Transactional/Replay Flow).
+            // onSkipped: currently unreachable specifically for the devour states this
+            // targets - TryStartDevourHand/Market/InnerCircle each already intercept and
+            // consume a SkippedTarget pre-target themselves (DevourSubsystem's own
+            // HandlePreTargetSkipped) before ever calling StartTargeting, so by the time
+            // execution reaches here any pre-target for this exact state was already
+            // consumed. Handled anyway, matching TryExecutePreTargetEffect's fix - a
+            // reachable ExecutionStack must resolve as failure (false), not success, so an
+            // OnSuccess child never gets pushed for something that was skipped; falls back
+            // to CompleteAction() for the legacy/direct (no stack context) case. See
+            // planning.txt.
             if (card != null && _preTargetHandler.TryExecutePreTarget(
                 card,
                 state,
                 HandleTargetClick,
                 HandleDevourSelection,
-                cmd => OnAutoExecuteCommand?.Invoke(cmd)))
+                cmd => OnAutoExecuteCommand?.Invoke(cmd),
+                () =>
+                {
+                    if (ExecutionStack.Count > 0) ResolveCurrentEffect(false);
+                    else CompleteAction();
+                }))
             {
                 // Pre-target was found and executed
                 return;
@@ -739,7 +754,8 @@ namespace ChaosWarlords.Source.Managers
                 effect.EffectType,
                 HandleTargetClick,
                 HandleDevourSelection,
-                cmd => OnAutoExecuteCommand?.Invoke(cmd)
+                cmd => OnAutoExecuteCommand?.Invoke(cmd),
+                () => ResolveCurrentEffect(false)
             );
 
             if (executed)

@@ -34,7 +34,8 @@ namespace ChaosWarlords.Source.Managers
             ActionState state,
             Func<MapNode?, Site?, IGameCommand?> handleTargetClick,
             Func<Card?, IGameCommand?> handleDevourSelection,
-            Action<IGameCommand> onAutoExecuteCommand)
+            Action<IGameCommand> onAutoExecuteCommand,
+            Action onSkipped)
         {
             if (!_preSelectedTargets.TryGetValue(card, out var stateTargets))
             {
@@ -52,7 +53,7 @@ namespace ChaosWarlords.Source.Managers
             ConsumePreTarget(card, state, stateTargets);
 
             // Execute based on target type
-            ExecutePreTargetByType(target, state, handleTargetClick, handleDevourSelection, onAutoExecuteCommand);
+            ExecutePreTargetByType(target, state, handleTargetClick, handleDevourSelection, onAutoExecuteCommand, onSkipped);
 
             return true;
         }
@@ -71,12 +72,13 @@ namespace ChaosWarlords.Source.Managers
             ActionState state,
             Func<MapNode?, Site?, IGameCommand?> handleTargetClick,
             Func<Card?, IGameCommand?> handleDevourSelection,
-            Action<IGameCommand> onAutoExecuteCommand)
+            Action<IGameCommand> onAutoExecuteCommand,
+            Action onSkipped)
         {
             // Special case: Devour targeting
             if (state == ActionState.TargetingDevourHand)
             {
-                ExecuteDevourPreTarget(target, handleDevourSelection, onAutoExecuteCommand);
+                ExecuteDevourPreTarget(target, handleDevourSelection, onAutoExecuteCommand, onSkipped);
                 return;
             }
 
@@ -100,17 +102,27 @@ namespace ChaosWarlords.Source.Managers
         private void ExecuteDevourPreTarget(
             object target,
             Func<Card?, IGameCommand?> handleDevourSelection,
-            Action<IGameCommand> onAutoExecuteCommand)
+            Action<IGameCommand> onAutoExecuteCommand,
+            Action onSkipped)
         {
+            if (target == ActionSystem.SkippedTarget)
+            {
+                // A skip has no command to dispatch - handleDevourSelection(null) always
+                // returns null for it (DevourSubsystem.HandleDevourSelection's null guard),
+                // so there is nothing for onAutoExecuteCommand to run. Without resolving the
+                // effect here explicitly, the pending Devour EffectContext was left stuck on
+                // ExecutionStack forever (CurrentState frozen at TargetingDevourHand) - the
+                // pre-target was already consumed above, so nothing would ever retry it. See
+                // planning.txt.
+                onSkipped();
+                return;
+            }
+
             IGameCommand? cmd = null;
 
             if (target is Card card)
             {
                 cmd = handleDevourSelection(card);
-            }
-            else if (target == ActionSystem.SkippedTarget)
-            {
-                cmd = handleDevourSelection(null);
             }
             else
             {

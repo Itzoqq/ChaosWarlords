@@ -78,6 +78,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
             var mockHandleClick = Substitute.For<Func<MapNode?, Site?, IGameCommand?>>();
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
+            var mockOnSkipped = Substitute.For<Action>();
 
             // Act
             var result = _handler.TryExecutePreTarget(
@@ -85,7 +86,8 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
                 ActionState.TargetingSupplant,
                 mockHandleClick,
                 mockHandleDevour,
-                mockOnExecute);
+                mockOnExecute,
+                mockOnSkipped);
 
             // Assert
             Assert.IsFalse(result);
@@ -106,6 +108,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
             var mockHandleClick = Substitute.For<Func<MapNode?, Site?, IGameCommand?>>();
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
+            var mockOnSkipped = Substitute.For<Action>();
 
             // Act
             var result = _handler.TryExecutePreTarget(
@@ -113,7 +116,8 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
                 ActionState.TargetingAssassinate, // Different state
                 mockHandleClick,
                 mockHandleDevour,
-                mockOnExecute);
+                mockOnExecute,
+                mockOnSkipped);
 
             // Assert
             Assert.IsFalse(result);
@@ -140,6 +144,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
 
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
+            var mockOnSkipped = Substitute.For<Action>();
 
             // Act
             var result = _handler.TryExecutePreTarget(
@@ -147,7 +152,8 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
                 ActionState.TargetingSupplant,
                 mockHandleClick,
                 mockHandleDevour,
-                mockOnExecute);
+                mockOnExecute,
+                mockOnSkipped);
 
             // Assert
             Assert.IsTrue(result);
@@ -173,9 +179,10 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
 
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
+            var mockOnSkipped = Substitute.For<Action>();
 
             // Act
-            _handler.TryExecutePreTarget(card, ActionState.TargetingSupplant, mockHandleClick, mockHandleDevour, mockOnExecute);
+            _handler.TryExecutePreTarget(card, ActionState.TargetingSupplant, mockHandleClick, mockHandleDevour, mockOnExecute, mockOnSkipped);
 
             // Assert - Pre-target should be consumed
             Assert.IsFalse(_preTargets.ContainsKey(card));
@@ -202,6 +209,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
 
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
+            var mockOnSkipped = Substitute.For<Action>();
 
             // Act
             var result = _handler.TryExecutePreTarget(
@@ -209,7 +217,8 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
                 ActionState.TargetingAssassinate,
                 mockHandleClick,
                 mockHandleDevour,
-                mockOnExecute);
+                mockOnExecute,
+                mockOnSkipped);
 
             // Assert
             Assert.IsTrue(result);
@@ -237,6 +246,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             mockHandleDevour.Invoke(targetCard).Returns(mockCommand);
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
+            var mockOnSkipped = Substitute.For<Action>();
 
             // Act
             var result = _handler.TryExecutePreTarget(
@@ -244,7 +254,8 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
                 ActionState.TargetingDevourHand,
                 mockHandleClick,
                 mockHandleDevour,
-                mockOnExecute);
+                mockOnExecute,
+                mockOnSkipped);
 
             // Assert
             Assert.IsTrue(result);
@@ -254,9 +265,14 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
         }
 
         [TestMethod]
-        public void TryExecutePreTarget_WithDevourSkippedTarget_ExecutesHandleDevourSelectionWithNull()
+        public void TryExecutePreTarget_WithDevourSkippedTarget_InvokesOnSkipped()
         {
-            // Arrange
+            // Regression test: skip used to call handleDevourSelection(null), which always
+            // returns null (DevourSubsystem.HandleDevourSelection's null guard) - meaning
+            // nothing ever resolved the pending EffectContext, leaving ActionSystem's
+            // ExecutionStack/CurrentState stuck on TargetingDevourHand forever (the
+            // pre-target was already consumed, so nothing would ever retry it). Skip must
+            // resolve via onSkipped instead - never call handleDevourSelection at all.
             var sourceCard = new CardBuilder().WithName("wight").Build();
             _preTargets[sourceCard] = new Dictionary<ActionState, object>
             {
@@ -266,6 +282,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
             var mockHandleClick = Substitute.For<Func<MapNode?, Site?, IGameCommand?>>();
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
+            var mockOnSkipped = Substitute.For<Action>();
 
             // Act
             var result = _handler.TryExecutePreTarget(
@@ -273,11 +290,14 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
                 ActionState.TargetingDevourHand,
                 mockHandleClick,
                 mockHandleDevour,
-                mockOnExecute);
+                mockOnExecute,
+                mockOnSkipped);
 
             // Assert
             Assert.IsTrue(result);
-            mockHandleDevour.Received(1).Invoke(null);
+            mockOnSkipped.Received(1).Invoke();
+            mockHandleDevour.DidNotReceive().Invoke(Arg.Any<Card?>());
+            mockOnExecute.DidNotReceive().Invoke(Arg.Any<IGameCommand>());
         }
 
         [TestMethod]
@@ -293,6 +313,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
             var mockHandleClick = Substitute.For<Func<MapNode?, Site?, IGameCommand?>>();
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
+            var mockOnSkipped = Substitute.For<Action>();
 
             // Act
             var result = _handler.TryExecutePreTarget(
@@ -300,7 +321,8 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
                 ActionState.TargetingDevourHand,
                 mockHandleClick,
                 mockHandleDevour,
-                mockOnExecute);
+                mockOnExecute,
+                mockOnSkipped);
 
             // Assert
             Assert.IsTrue(result);
@@ -324,6 +346,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
             var mockHandleClick = Substitute.For<Func<MapNode?, Site?, IGameCommand?>>();
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
+            var mockOnSkipped = Substitute.For<Action>();
 
             // Act
             var result = _handler.TryExecutePreTarget(
@@ -331,7 +354,8 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
                 ActionState.TargetingSupplant,
                 mockHandleClick,
                 mockHandleDevour,
-                mockOnExecute);
+                mockOnExecute,
+                mockOnSkipped);
 
             // Assert
             Assert.IsTrue(result);
@@ -362,9 +386,10 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
 
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
+            var mockOnSkipped = Substitute.For<Action>();
 
             // Act
-            _handler.TryExecutePreTarget(card, ActionState.TargetingSupplant, mockHandleClick, mockHandleDevour, mockOnExecute);
+            _handler.TryExecutePreTarget(card, ActionState.TargetingSupplant, mockHandleClick, mockHandleDevour, mockOnExecute, mockOnSkipped);
 
             // Assert
             Assert.IsTrue(_preTargets.ContainsKey(card));
@@ -389,9 +414,10 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions
 
             var mockHandleDevour = Substitute.For<Func<Card?, IGameCommand?>>();
             var mockOnExecute = Substitute.For<Action<IGameCommand>>();
+            var mockOnSkipped = Substitute.For<Action>();
 
             // Act
-            _handler.TryExecutePreTarget(card, ActionState.TargetingSupplant, mockHandleClick, mockHandleDevour, mockOnExecute);
+            _handler.TryExecutePreTarget(card, ActionState.TargetingSupplant, mockHandleClick, mockHandleDevour, mockOnExecute, mockOnSkipped);
 
             // Assert - Card should be completely removed
             Assert.IsFalse(_preTargets.ContainsKey(card));

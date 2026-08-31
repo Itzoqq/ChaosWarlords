@@ -145,8 +145,12 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // 1. Check SkippedTarget was set
             _mockActionSystem.Received(1).SetPreTarget(sourceCard, ActionState.TargetingDevourHand, ActionSystem.SkippedTarget);
 
-            // 2. Check Action Completed (Exit Targeting)
-            _mockActionSystem.Received(1).CompleteAction();
+            // 2. Must NOT call CompleteAction() here - the card is still in Hand at this
+            // point (nothing has pushed it onto ExecutionStack yet), so CompleteAction()
+            // would hit its "no stack context" fallback and fire OnActionCompleted
+            // prematurely. The returned PlayCardCommand below is the real, single commit
+            // path (see DevourInputMode.HandleSkipOptionalCost's comment).
+            _mockActionSystem.DidNotReceive().CompleteAction();
 
             // 3. Check Mode Switch
             Assert.AreEqual("Normal", _stateFake.ActiveModeName);
@@ -187,8 +191,8 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // 1. Check Target was set
             _mockActionSystem.Received(1).SetPreTarget(sourceCard, ActionState.TargetingDevourHand, targetCard);
 
-            // 2. Check Action Completed
-            _mockActionSystem.Received(1).CompleteAction();
+            // 2. Must NOT call CompleteAction() here - see the Spacebar test above for why.
+            _mockActionSystem.DidNotReceive().CompleteAction();
 
             // 3. Check Mode Switch
             Assert.AreEqual("Normal", _stateFake.ActiveModeName);

@@ -324,7 +324,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         [TestMethod]
-        public void HandleActionCompleted_PlaysPendingCard_AndResetsMode()
+        public void HandleActionCompleted_ResetsMode_WhenMarketNotOpen()
         {
             // Arrange
             var card = new CardBuilder().WithName("Test").WithCost(1).WithAspect(CardAspect.Warlord).Build();
@@ -335,7 +335,10 @@ namespace ChaosWarlords.Tests.Source.Managers
             _actionSystem.OnActionCompleted += Raise.Event<EventHandler>(this, EventArgs.Empty);
 
             // Assert
-            _matchManager.Received(1).PlayCard(card);
+            // No longer re-invokes MatchManager.PlayCard here - that reentrant call was
+            // always a no-op in production (see UIEventMediator.HandleActionCompleted's
+            // comment) and has been removed.
+            _matchManager.DidNotReceive().PlayCard(Arg.Any<Card>());
             _gameState.Received(1).SwitchToNormalMode();
         }
 
@@ -351,7 +354,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             _actionSystem.OnActionCompleted += Raise.Event<EventHandler>(this, EventArgs.Empty);
 
             // Assert
-            _matchManager.Received(1).PlayCard(card);
+            _matchManager.DidNotReceive().PlayCard(Arg.Any<Card>());
             _gameState.DidNotReceive().SwitchToNormalMode();
         }
         

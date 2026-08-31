@@ -24,8 +24,6 @@ namespace ChaosWarlords.Source.Input.Modes
             _actionSystem = actionSystem;
             _sourceCard = actionSystem.PendingCard; // Capture which card triggered this
 
-            _sourceCard = actionSystem.PendingCard; // Capture which card triggered this
-
             if (actionSystem.CurrentState == ActionState.TargetingDevourInnerCircle)
             {
                 _gameplayState.Logger.Log("Select a card from your INNER CIRCLE to Devour.", LogChannel.General);
@@ -87,8 +85,18 @@ namespace ChaosWarlords.Source.Input.Modes
                 return null;
             }
 
-            // No more targeting needed, commit the play
-            actionSystem.CompleteAction();
+            // No more pre-commit targeting needed. Do NOT call CompleteAction() here - the
+            // card hasn't been played yet (still sits in Hand; AdvancePreCommitTargeting only
+            // clears DevourSubsystem's own state, never touches ExecutionStack), so
+            // CompleteAction() would hit its "no stack context" fallback and fire
+            // OnActionCompleted prematurely, before the card is even played. That used to
+            // work by accident, via UIEventMediator.HandleActionCompleted's PendingCard
+            // re-entrant PlayCard call, but only because the card was still genuinely in Hand
+            // at that moment - a landmine masquerading as a feature. The PlayCardCommand
+            // below is the real, single commit path: it runs the card's effects fresh
+            // (ResolveEffects), and TryExecutePreTargetEffect picks up the pre-targets set
+            // above to auto-resolve them without re-prompting. OnActionCompleted then fires
+            // naturally once that real chain empties the stack (see planning.txt).
             _gameplayState.SwitchToNormalMode();
             return new Commands.PlayCardCommand(_sourceCard!, true);
         }
@@ -153,8 +161,8 @@ namespace ChaosWarlords.Source.Input.Modes
                 return null;
             }
 
-            // Chain complete, commit the play
-            actionSystem.CompleteAction();
+            // Chain complete, commit the play. See HandleSkipOptionalCost's comment above for
+            // why this deliberately does NOT call actionSystem.CompleteAction() first.
             _gameplayState.SwitchToNormalMode();
             return new Commands.PlayCardCommand(_sourceCard!, true);
         }
