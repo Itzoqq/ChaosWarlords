@@ -235,7 +235,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             // Regression assertion for the same bug: the double-processed stack left a second,
             // un-consumed TargetingSupplant effect buried underneath, which would resurface
             // and force Supplant targeting on the next unrelated card played this turn.
-            Assert.AreEqual(0, _actionSystem.ExecutionStack.Count, "Execution stack should be fully empty after the chain completes - no leftover effects to ambush the next card played.");
+            Assert.IsEmpty(_actionSystem.ExecutionStack, "Execution stack should be fully empty after the chain completes - no leftover effects to ambush the next card played.");
         }
 
         private Card GetWightCard()

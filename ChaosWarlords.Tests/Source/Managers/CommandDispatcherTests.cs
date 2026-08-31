@@ -6,6 +6,9 @@ using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Core.Utilities;
+using ChaosWarlords.Source.Entities.Cards;
+using System.Linq;
 using NSubstitute;
 
 namespace ChaosWarlords.Tests.Source.Managers
@@ -167,9 +170,87 @@ namespace ChaosWarlords.Tests.Source.Managers
 
             // Assert
             // Should NOT have incremented sequence number (rolling back state ideally, but at least not skipping numbers in log)
-            // Or if we increment before execution, we might have a gap. 
+            // Or if we increment before execution, we might have a gap.
             // The critical thing: ReplayManager should NOT receive the command.
             _replayManager.DidNotReceive().RecordCommand(Arg.Any<IGameCommand>(), Arg.Any<Player>(), Arg.Any<int>());
+        }
+
+        [TestMethod]
+        [TestCategory("Integration")]
+        public void Dispatch_WhenExecutionFailsPartway_RollsBackMutationsAlreadyApplied()
+        {
+            // The test above (Dispatch_WhenExecutionFails_DoesNotRecord) only checks that a
+            // failed command wasn't recorded to replay - it never checks that anything was
+            // actually restored. This is the gap: verify the rollback CommandDispatcher's own
+            // doc comment promises (StateRestorer.RestoreState on the pre-command snapshot)
+            // actually reverts state a command already mutated before it threw. Uses a real
+            // PlayerStateManager (not mocked) so the Power mutation - and its rollback - are
+            // both real, not just "was this method called".
+
+            // Arrange
+            _replayManager.IsReplaying.Returns(false);
+            var player = new Player(PlayerColor.Red);
+            var turnManager = new TurnManager(
+                new List<Player> { player },
+                new SeededGameRandom(123, _logger),
+                _logger);
+            var mapManager = Substitute.For<IMapManager>();
+            mapManager.Nodes.Returns(new List<ChaosWarlords.Source.Entities.Map.MapNode>());
+            mapManager.Sites.Returns(new List<ChaosWarlords.Source.Entities.Map.Site>());
+            var marketManager = Substitute.For<IMarketManager>();
+            marketManager.MarketRow.Returns(new List<Card>());
+            var playerState = new PlayerStateManager(_logger);
+            // Unlike the other tests in this file, this one needs a REAL ActionSystem (not a
+            // bare Substitute): DtoMapper.ToGameStateDto reads ActionSystem.ExecutionStack,
+            // and an unconfigured IActionSystem mock returns null for it (SerializeEffectStack
+            // has no null-guard), which makes the pre-command snapshot throw and silently
+            // disables rollback (CommandDispatcher.TryCreateSnapshot's documented best-effort
+            // fallback) instead of exercising it - a real ActionSystem's ExecutionStack is
+            // never null, so this is a test-double gap, not a production one.
+            var actionSystem = new ActionSystem(turnManager, mapManager, _logger);
+            actionSystem.SetPlayerStateManager(playerState);
+
+            var matchContext = new MatchContext(
+                turnManager,
+                mapManager,
+                marketManager,
+                actionSystem,
+                Substitute.For<ICardDatabase>(),
+                playerState,
+                null,
+                _logger,
+                123);
+            actionSystem.SetMatchContext(matchContext);
+
+            int powerBeforeCommand = player.Power;
+            bool mutationRan = false;
+
+            var partiallyMutatingCommand = Substitute.For<IGameCommand>();
+            partiallyMutatingCommand.Validate(matchContext).Returns(true);
+            partiallyMutatingCommand.When(c => c.Execute(matchContext)).Do(x =>
+            {
+                // Simulate a command that mutates state, THEN fails before finishing -
+                // exactly the scenario the pre-execution snapshot/rollback exists for.
+                playerState.AddPower(player, 5);
+                mutationRan = true;
+                throw new InvalidOperationException("Boom");
+            });
+
+            // Act
+            try
+            {
+                _dispatcher.Dispatch(partiallyMutatingCommand, matchContext);
+                Assert.Fail("Expected the command's exception to propagate.");
+            }
+            catch (InvalidOperationException)
+            {
+                // Expected
+            }
+
+            // Assert
+            Assert.IsTrue(mutationRan, "Setup check: the mutation must actually have run before the throw, or the assertion below would be trivially true.");
+            var logCalls = string.Join(" | ", _logger.ReceivedCalls().Select(c => string.Join(",", c.GetArguments())));
+            Assert.AreEqual(powerBeforeCommand, player.Power, $"Power gained before the command threw must be rolled back, not left applied. Log calls: {logCalls}");
         }
     }
 }

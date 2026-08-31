@@ -139,7 +139,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // Assert: the whole card played exactly once.
             Assert.AreEqual(CardLocation.Played, sourceCard.Location, "Source card should be Played.");
             CollectionAssert.Contains(_player.PlayedCards.ToList(), sourceCard);
-            Assert.AreEqual(startingHandCount - 2, _player.Hand.Count, "Hand should shrink by exactly 2 (source card + devoured target), not more.");
+            Assert.HasCount(startingHandCount - 2, _player.Hand, "Hand should shrink by exactly 2 (source card + devoured target), not more.");
             CollectionAssert.DoesNotContain(_player.Hand.ToList(), targetCard, "Target card should have been devoured out of hand.");
             CollectionAssert.Contains(_player.Hand.ToList(), otherCard, "Uninvolved hand card should be untouched.");
             CollectionAssert.Contains(_context.VoidPile.ToList(), targetCard, "Devoured target should be in the Void pile exactly once.");
@@ -184,7 +184,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // Assert: card played exactly once, no devour occurred (mandatory effect skipped
             // via Space, matching "no valid/desired target" - only the base effect applies).
             Assert.AreEqual(CardLocation.Played, sourceCard.Location);
-            Assert.AreEqual(startingHandCount - 1, _player.Hand.Count, "Hand should shrink by exactly 1 (source card only).");
+            Assert.HasCount(startingHandCount - 1, _player.Hand, "Hand should shrink by exactly 1 (source card only).");
             CollectionAssert.Contains(_player.Hand.ToList(), otherCard);
             Assert.AreEqual(2, _player.Power, "Base effect should still apply exactly once.");
             Assert.AreEqual(0, _player.Influence, "OnSuccess effect should NOT apply when devour is skipped.");

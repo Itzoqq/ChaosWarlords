@@ -510,7 +510,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             CardEffectProcessor.ResolveEffects(devourCard, _context, false, _logger);
 
             // Assert - Ensure UI was NOT asked for permission
-            Assert.AreEqual(0, _interactionRequests.Count);
+            Assert.IsEmpty(_interactionRequests);
 
             // Ensure logic remains safe (no targeting state entered)
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "Should NOT enter targeting state if skipped");
