@@ -38,8 +38,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
             _site = TestData.Sites.NeutralSite();
             _site.Id = 1;
 
-            _subsystem = new SpySubsystem(_mapManager, _turnManager, _actionSystem, _logger);
-            _subsystem.SetPlayerStateManager(_playerStateManager);
+            _subsystem = new SpySubsystem(_mapManager, _turnManager, _actionSystem, _logger, _playerStateManager);
         }
 
         [TestMethod]
@@ -162,26 +161,6 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
             // Assert
             Assert.IsFalse(result);
             _playerStateManager.DidNotReceive().TrySpendPower(Arg.Any<Player>(), Arg.Any<int>());
-        }
-
-        [TestMethod]
-        public void PerformSpyReturn_FallbackToDirectSpendPower_WhenNoPlayerStateManager()
-        {
-            // Arrange - Create subsystem without PlayerStateManager
-            var subsystemWithoutPSM = new SpySubsystem(_mapManager, _turnManager, _actionSystem, _logger);
-            // Don't call SetPlayerStateManager
-            
-            _mapManager.ReturnSpecificSpy(_site, _activePlayer, PlayerColor.Blue).Returns(true);
-            var initialPower = _activePlayer.Power;
-
-            // Act
-            var result = subsystemWithoutPSM.PerformSpyReturn(_site, PlayerColor.Blue, cardId: null);
-
-            // Assert
-            Assert.IsTrue(result);
-            Assert.AreEqual(initialPower - GameConstants.ReturnSpyPowerCost, _activePlayer.Power, 
-                "Should spend power directly from player when no PlayerStateManager");
-            _actionSystem.Received(1).CompleteAction();
         }
 
         [TestMethod]

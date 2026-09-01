@@ -72,7 +72,8 @@ namespace ChaosWarlords.Source.Managers
         private readonly ITurnManager _turnManager;
         private readonly IMapManager _mapManager;
         private readonly IGameLogger _logger;
-        private IPlayerStateManager _playerStateManager = null!;
+        private readonly IPlayerStateManager _playerStateManager;
+        private readonly IMarketManager _marketManager;
 
         /// <summary>
         /// Fired when the logic layer needs a player decision on an optional card effect.
@@ -92,15 +93,24 @@ namespace ChaosWarlords.Source.Managers
         private readonly ActionInputController _inputController;
         private readonly ActionExecutionEngine _executionEngine;
 
-        public ActionSystem(ITurnManager turnManager, IMapManager mapManager, IGameLogger logger)
+        // IPlayerStateManager/IMarketManager are both available at construction time in the
+        // real composition root (see MatchFactory.SetupActionSystem) - required constructor
+        // params rather than the setters they used to be, matching MapManager/
+        // SiteControlSystem's own already-fixed precedent ("Dependency is now immutable").
+        // Also removes the dead branch this used to force on SpendAssassinateCost/
+        // SpySubsystem.PerformSpyReturn (falling back to Player.SpendPower() directly,
+        // bypassing IPlayerStateManager, whenever the setter hadn't been called yet).
+        public ActionSystem(ITurnManager turnManager, IMapManager mapManager, IGameLogger logger, IPlayerStateManager playerStateManager, IMarketManager marketManager)
         {
             _turnManager = turnManager;
             _mapManager = mapManager;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _playerStateManager = playerStateManager ?? throw new ArgumentNullException(nameof(playerStateManager));
+            _marketManager = marketManager ?? throw new ArgumentNullException(nameof(marketManager));
 
             // Initialize Subsystems
-            _devourSubsystem = new DevourSubsystem(_turnManager, this, _logger);
-            _spySubsystem = new SpySubsystem(_mapManager, _turnManager, this, _logger);
+            _devourSubsystem = new DevourSubsystem(_turnManager, this, _logger, _marketManager);
+            _spySubsystem = new SpySubsystem(_mapManager, _turnManager, this, _logger, _playerStateManager);
             _preTargetHandler = new PreTargetHandler(_logger, _preSelectedTargets);
 
             // Click-to-command routing lives in its own class (SRP); ActionSystem stays the
@@ -119,29 +129,16 @@ namespace ChaosWarlords.Source.Managers
             _executionEngine.OnAutoExecuteCommand += command => OnAutoExecuteCommand?.Invoke(command);
         }
 
-        public void SetPlayerStateManager(IPlayerStateManager stateManager)
-        {
-            _playerStateManager = stateManager;
-            _devourSubsystem.SetPlayerStateManager(stateManager);
-            // SpySubsystem uses PlayerStateManager via ActionSystem? No, it has its own logic that might need it?
-            // Checking SpySubsystem: It has SetPlayerStateManager.
-            if (_spySubsystem is SpySubsystem concreteSpy)
-                concreteSpy.SetPlayerStateManager(stateManager);
-        }
-
+        // MatchManager/MarketStateManager stay setter-injected - genuine circular dependency,
+        // not an oversight: both arrive later, from the client layer (GameplayState.cs), only
+        // after MatchContext/MatchManager/MarketStateManager exist, which themselves need
+        // ActionSystem to already exist first. See IDevourSubsystem's matching doc comment.
         private IMatchManager _matchManager = null!;
-        private IMarketManager _marketManager = null!;
 
         public void SetMatchManager(IMatchManager matchManager)
         {
             _matchManager = matchManager;
             _devourSubsystem.SetMatchManager(matchManager);
-        }
-
-        public void SetMarketManager(IMarketManager marketManager)
-        {
-            _marketManager = marketManager;
-            _devourSubsystem.SetMarketManager(marketManager);
         }
 
         private IMarketStateManager _marketStateManager = null!;
@@ -432,14 +429,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void SpendAssassinateCost()
         {
-            if (_playerStateManager is not null)
-            {
-                _playerStateManager.TrySpendPower(CurrentPlayer, ASSASSINATE_COST);
-            }
-            else
-            {
-                CurrentPlayer.SpendPower(ASSASSINATE_COST);
-            }
+            _playerStateManager.TrySpendPower(CurrentPlayer, ASSASSINATE_COST);
         }
 
         public void PerformReturnTroop(MapNode node, string? cardId)
@@ -673,7 +663,7 @@ namespace ChaosWarlords.Source.Managers
 
         public void TryStartPlayFromMarket(Card sourceCard, int maxCost)
         {
-            if (_marketManager == null || !_marketManager.MarketRow.Any(c => c.Cost <= maxCost))
+            if (!_marketManager.MarketRow.Any(c => c.Cost <= maxCost))
             {
                 _logger.Log($"{sourceCard.Name}: No market card costing {maxCost} or less to play.", LogChannel.Warning);
                 CompleteAction();

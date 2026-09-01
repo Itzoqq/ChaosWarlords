@@ -16,13 +16,8 @@ namespace ChaosWarlords.Source.Map
         private readonly Action<Site, Player> _recalculateSiteState;
         private readonly Func<MatchPhase> _getCurrentPhase;
         private readonly Func<PlayerColor, Player?> _getPlayerByColor;
-        private IPlayerStateManager _stateManager;
+        private readonly IPlayerStateManager _stateManager;
         private readonly IGameLogger _logger;
-
-        public void SetPlayerStateManager(IPlayerStateManager stateManager)
-        {
-            _stateManager = stateManager;
-        }
 
         public CombatResolver(
             Func<MapNode, Site> getSiteForNode,

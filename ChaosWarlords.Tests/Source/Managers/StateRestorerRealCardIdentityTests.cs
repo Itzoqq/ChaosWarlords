@@ -70,10 +70,8 @@ namespace ChaosWarlords.Tests.Source.Managers
             var marketManager = Substitute.For<IMarketManager>();
             marketManager.MarketRow.Returns(new List<Card>());
 
-            var actionSystem = new ActionSystem(turnManager, mapManager, logger);
             var playerState = new PlayerStateManager(logger);
-            actionSystem.SetPlayerStateManager(playerState);
-            actionSystem.SetMarketManager(marketManager);
+            var actionSystem = new ActionSystem(turnManager, mapManager, logger, playerState, marketManager);
 
             _context = new MatchContext(turnManager, mapManager, marketManager, actionSystem, _cardDb, playerState, logger, seed: 999);
             actionSystem.SetMatchContext(_context);

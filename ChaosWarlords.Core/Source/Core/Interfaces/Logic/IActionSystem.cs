@@ -139,13 +139,14 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
 
 
         /// <summary>
-        /// Injects the PlayerStateManager dependency.
-        /// Use to break circular dependencies between Managers and ActionSystem.
+        /// SetMatchManager/SetMarketStateManager exist to break a genuine circular dependency:
+        /// both arrive later, from the client layer (GameplayState.cs), only after
+        /// MatchContext/MatchManager/MarketStateManager exist, which themselves need
+        /// ActionSystem to already exist first. IPlayerStateManager/IMarketManager used to be
+        /// setters here too, but both are actually available at construction time (see
+        /// MatchFactory.SetupActionSystem) - required ActionSystem constructor params instead.
         /// </summary>
-        /// <param name="stateManager">The manager instance.</param>
-        void SetPlayerStateManager(IPlayerStateManager stateManager);
         void SetMatchManager(IMatchManager matchManager);
-        void SetMarketManager(IMarketManager marketManager);
         void SetMarketStateManager(IMarketStateManager manager);
 
         /// <summary>

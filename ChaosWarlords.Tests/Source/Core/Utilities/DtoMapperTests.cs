@@ -37,7 +37,8 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             mapManager.Nodes.Returns(new List<MapNode> { node });
             var marketManager = Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IMarketManager>();
             marketManager.MarketRow.Returns(new List<Card>());
-            var actionSystem = new ActionSystem(turnManager, mapManager, TestLogger.Instance);
+            var playerStateManager = Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IPlayerStateManager>();
+            var actionSystem = new ActionSystem(turnManager, mapManager, TestLogger.Instance, playerStateManager, marketManager);
 
             var context = new ChaosWarlords.Source.Contexts.MatchContext(
                 turnManager,

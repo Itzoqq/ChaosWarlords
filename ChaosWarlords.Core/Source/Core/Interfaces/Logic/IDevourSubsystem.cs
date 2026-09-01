@@ -43,9 +43,14 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// </summary>
         void ClearState();
 
+        // SetMatchManager/SetMarketStateManager stay setter-injected rather than constructor
+        // params - genuine circular dependency, not an oversight: both arrive later, from the
+        // CLIENT layer (GameplayState.cs), only after MatchContext/MatchManager/
+        // MarketStateManager exist, which themselves need ActionSystem (and therefore this
+        // subsystem) to already exist first. IPlayerStateManager/IMarketManager used to be
+        // setters here too, but both are actually available at construction time (see
+        // MatchFactory.SetupActionSystem) - promoted to required constructor params instead.
         void SetMatchManager(IMatchManager matchManager);
-        void SetMarketManager(IMarketManager marketManager);
-        void SetPlayerStateManager(IPlayerStateManager stateManager);
         void SetMarketStateManager(IMarketStateManager stateManager);
     }
 }

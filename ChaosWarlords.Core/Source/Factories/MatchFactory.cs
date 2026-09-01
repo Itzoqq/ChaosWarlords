@@ -152,10 +152,7 @@ namespace ChaosWarlords.Source.Factories
 
         private static ActionSystem SetupActionSystem(ITurnManager turnManager, IMapManager mapManager, IMarketManager marketManager, IPlayerStateManager playerStateManager, IGameLogger logger)
         {
-            var actionSystem = new ActionSystem(turnManager, mapManager, logger);
-            actionSystem.SetPlayerStateManager(playerStateManager);
-            actionSystem.SetMarketManager(marketManager);
-            return actionSystem;
+            return new ActionSystem(turnManager, mapManager, logger, playerStateManager, marketManager);
         }
 
         internal static void ApplyScenarioRules(MapManager mapManager)

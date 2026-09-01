@@ -57,7 +57,6 @@ namespace ChaosWarlords.Tests.Systems
             _mapManager.Sites.Returns(new List<Site> { _siteA });
 
             // Inject the mock
-            _actionSystem = new ActionSystem(_turnManager, _mapManager, Utilities.TestLogger.Instance);
             var playerStateManager = Substitute.For<IPlayerStateManager>();
             playerStateManager.TrySpendPower(Arg.Any<Player>(), Arg.Any<int>())
                 .Returns(x =>
@@ -67,11 +66,11 @@ namespace ChaosWarlords.Tests.Systems
                     if (p.Power >= amt)
                     {
                         // Use SpendPower instead of direct set
-                        return p.SpendPower(amt); 
+                        return p.SpendPower(amt);
                     }
                     return false;
                 });
-            _actionSystem.SetPlayerStateManager(playerStateManager);
+            _actionSystem = new ActionSystem(_turnManager, _mapManager, Utilities.TestLogger.Instance, playerStateManager, Substitute.For<IMarketManager>());
 
             // Subscribe to events for every test
             _eventCompletedFired = false;

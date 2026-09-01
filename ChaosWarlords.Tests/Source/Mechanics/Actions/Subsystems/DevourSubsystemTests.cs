@@ -18,7 +18,6 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
         private IGameLogger _logger = null!;
         private IMatchManager _matchManager = null!;
         private IMarketManager _marketManager = null!;
-        private IPlayerStateManager _playerStateManager = null!;
 
         private Player _activePlayer = null!;
 
@@ -30,15 +29,12 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
             _logger = Substitute.For<IGameLogger>();
             _matchManager = Substitute.For<IMatchManager>();
             _marketManager = Substitute.For<IMarketManager>();
-            _playerStateManager = Substitute.For<IPlayerStateManager>();
 
             _activePlayer = new Player(PlayerColor.Red);
             _turnManager.ActivePlayer.Returns(_activePlayer);
 
-            _subsystem = new DevourSubsystem(_turnManager, _actionSystem, _logger);
+            _subsystem = new DevourSubsystem(_turnManager, _actionSystem, _logger, _marketManager);
             _subsystem.SetMatchManager(_matchManager);
-            _subsystem.SetMarketManager(_marketManager);
-            _subsystem.SetPlayerStateManager(_playerStateManager);
         }
 
         private Card CreateTestCard(string name, CardLocation location = CardLocation.Hand)

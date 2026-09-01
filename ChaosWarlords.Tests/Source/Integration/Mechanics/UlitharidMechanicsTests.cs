@@ -58,12 +58,13 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             _turnManager.When(t => t.PlayCard(Arg.Any<Card>())).Do(call => turnContext.RecordPlayedCard(call.Arg<Card>().Aspect));
 
             _mapManager = new MapManager(nodes, sites, _turnManager, _logger, _playerStateManager);
-            _actionSystem = new ActionSystem(_turnManager, _mapManager, _logger);
 
             _marketRow = new List<Card>();
             _marketManager = Substitute.For<IMarketManager>();
             _marketManager.MarketRow.Returns(_ => _marketRow);
             _marketManager.When(m => m.RemoveCard(Arg.Any<Card>())).Do(call => _marketRow.Remove(call.Arg<Card>()));
+
+            _actionSystem = new ActionSystem(_turnManager, _mapManager, _logger, _playerStateManager, _marketManager);
 
             _marketStateManager = new MarketStateManager(_logger);
 
@@ -81,8 +82,6 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             );
 
             _actionSystem.SetMatchContext(_context);
-            _actionSystem.SetPlayerStateManager(_playerStateManager);
-            _actionSystem.SetMarketManager(_marketManager);
             _actionSystem.SetMarketStateManager(_marketStateManager);
 
             var victoryManager = Substitute.For<IVictoryManager>();

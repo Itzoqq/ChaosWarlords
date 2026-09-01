@@ -48,11 +48,9 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             _playerStateManager = new PlayerStateManager(_logger);
 
             // Create ActionSystem first (before MatchContext)
-            _actionSystem = new ActionSystem(turnManager, _mapManager, _logger);
+            _actionSystem = new ActionSystem(turnManager, _mapManager, _logger, _playerStateManager, _marketManager);
             _actionSystem.SetMatchManager(_matchManager);
-            _actionSystem.SetMarketManager(_marketManager);
             _actionSystem.SetMarketStateManager(_marketStateManager);
-            _actionSystem.SetPlayerStateManager(_playerStateManager);
 
             var cardDb = Substitute.For<ICardDatabase>();
 

@@ -19,10 +19,10 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules
             var logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance;
             var turnMgr = Substitute.For<ITurnManager>();
             var mapMgr = Substitute.For<IMapManager>();
-            var actionSys = new ActionSystem(turnMgr, mapMgr, logger);
             var marketMgr = Substitute.For<IMarketManager>();
-            var cardDb = Substitute.For<ICardDatabase>();
             var playerState = Substitute.For<IPlayerStateManager>();
+            var actionSys = new ActionSystem(turnMgr, mapMgr, logger, playerState, marketMgr);
+            var cardDb = Substitute.For<ICardDatabase>();
 
             var context = new MatchContext(turnMgr, mapMgr, marketMgr, actionSys, cardDb, playerState, logger, 0);
             return new CardRuleEngine(context, logger);

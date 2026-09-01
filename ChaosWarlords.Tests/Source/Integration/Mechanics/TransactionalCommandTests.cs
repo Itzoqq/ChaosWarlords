@@ -39,9 +39,8 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             _node1 = TestData.MapNodes.Node1();
             _mapManager.Nodes.Returns(new List<MapNode> { _node1 });
 
-            _actionSystem = new ActionSystem(_turnManager, _mapManager, Utilities.TestLogger.Instance);
+            _actionSystem = new ActionSystem(_turnManager, _mapManager, Utilities.TestLogger.Instance, Substitute.For<IPlayerStateManager>(), Substitute.For<IMarketManager>());
             _actionSystem.SetMatchManager(_matchManager);
-            _actionSystem.SetPlayerStateManager(Substitute.For<IPlayerStateManager>());
 
             _player.ClearHand();
         }

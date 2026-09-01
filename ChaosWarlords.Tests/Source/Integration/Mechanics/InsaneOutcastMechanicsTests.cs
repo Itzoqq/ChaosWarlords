@@ -50,9 +50,9 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             _turnManager.CurrentTurnContext.Returns(new TurnContext(_p1, _logger));
 
             _mapManager = new MapManager(nodes, sites, _turnManager, _logger, _playerStateManager);
-            _actionSystem = new ActionSystem(_turnManager, _mapManager, _logger);
-
             _marketManager = Substitute.For<IMarketManager>();
+            _actionSystem = new ActionSystem(_turnManager, _mapManager, _logger, _playerStateManager, _marketManager);
+
             var cardDb = Substitute.For<ICardDatabase>();
 
             _context = new MatchContext(

@@ -65,10 +65,8 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             cardDb.GetCardById(Arg.Any<string>(), Arg.Any<IGameRandom?>())
                 .Returns(ci => _cardsById.TryGetValue((string)ci[0], out var c) ? c : null);
 
-            _actionSystem = new ActionSystem(turnManager, _mapManager, _logger);
             _playerStateManager = new PlayerStateManager(_logger);
-            _actionSystem.SetPlayerStateManager(_playerStateManager);
-            _actionSystem.SetMarketManager(_marketManager);
+            _actionSystem = new ActionSystem(turnManager, _mapManager, _logger, _playerStateManager, _marketManager);
 
             _context = new MatchContext(turnManager, _mapManager, _marketManager, _actionSystem, cardDb, _playerStateManager, _logger, seed: 20260901);
 

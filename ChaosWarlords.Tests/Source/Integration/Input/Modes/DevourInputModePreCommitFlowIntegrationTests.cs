@@ -60,10 +60,8 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // is still ActivePlayer - use whichever player actually ended up active.
             _player = turnManager.ActivePlayer;
 
-            _actionSystem = new ActionSystem(turnManager, mapManager, logger);
             var playerState = new PlayerStateManager(logger);
-            _actionSystem.SetPlayerStateManager(playerState);
-            _actionSystem.SetMarketManager(marketManager);
+            _actionSystem = new ActionSystem(turnManager, mapManager, logger, playerState, marketManager);
 
             _context = new MatchContext(turnManager, mapManager, marketManager, _actionSystem, cardDatabase, playerState, logger);
             _actionSystem.SetMatchContext(_context);

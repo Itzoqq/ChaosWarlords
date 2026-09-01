@@ -7,13 +7,15 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
 {
     public class DevourSubsystem : IDevourSubsystem
     {
+        // MatchManager/MarketStateManager stay setter-injected - see IDevourSubsystem's doc
+        // comment for why (genuine circular dependency: both arrive later, from the client
+        // layer, after this subsystem already exists).
         private IMatchManager? _matchManager;
-        private IMarketManager? _marketManager;
+        private IMarketStateManager? _marketStateManager;
+        private readonly IMarketManager _marketManager;
         private readonly ITurnManager _turnManager;
         private readonly IGameLogger _logger;
         private readonly IActionSystem _actionSystem;
-        private IPlayerStateManager? _playerStateManager;
-        private IMarketStateManager? _marketStateManager;
 
         // Exposed State
         public Card? PendingDevourCard { get; private set; }
@@ -25,26 +27,18 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
         public DevourSubsystem(
             ITurnManager turnManager,
             IActionSystem actionSystem,
-            IGameLogger logger)
+            IGameLogger logger,
+            IMarketManager marketManager)
         {
             _turnManager = turnManager ?? throw new ArgumentNullException(nameof(turnManager));
             _actionSystem = actionSystem ?? throw new ArgumentNullException(nameof(actionSystem));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _marketManager = marketManager ?? throw new ArgumentNullException(nameof(marketManager));
         }
 
         public void SetMatchManager(IMatchManager matchManager)
         {
             _matchManager = matchManager;
-        }
-
-        public void SetMarketManager(IMarketManager marketManager)
-        {
-            _marketManager = marketManager;
-        }
-
-        public void SetPlayerStateManager(IPlayerStateManager stateManager)
-        {
-            _playerStateManager = stateManager;
         }
 
         public void SetMarketStateManager(IMarketStateManager stateManager)
@@ -181,7 +175,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
 
         private bool HasValidMarketTargets()
         {
-            return _marketManager != null && _marketManager.MarketRow.Any(c => c != null);
+            return _marketManager.MarketRow.Any(c => c != null);
         }
 
         private void StartDevourTargeting(ActionState state, Card sourceCard, Action? onComplete, bool deferExecution)

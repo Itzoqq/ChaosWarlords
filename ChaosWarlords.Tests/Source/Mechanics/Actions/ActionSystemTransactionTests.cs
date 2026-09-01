@@ -38,13 +38,12 @@ namespace ChaosWarlords.Tests.Systems
             _node1 = TestData.MapNodes.Node1();
             _mapManager.Nodes.Returns(new List<MapNode> { _node1 });
 
-            // Create System
-            _actionSystem = new ActionSystem(_turnManager, _mapManager, Utilities.TestLogger.Instance);
-            _actionSystem.SetMatchManager(_matchManager);
-
             // Mock PlayerStateManager
             var psm = Substitute.For<IPlayerStateManager>();
-            _actionSystem.SetPlayerStateManager(psm);
+
+            // Create System
+            _actionSystem = new ActionSystem(_turnManager, _mapManager, Utilities.TestLogger.Instance, psm, Substitute.For<IMarketManager>());
+            _actionSystem.SetMatchManager(_matchManager);
 
             // Give player some cards including a transactional source
             _player1.ClearHand();

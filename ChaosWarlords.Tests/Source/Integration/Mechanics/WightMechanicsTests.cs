@@ -72,9 +72,9 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             // MapManager(nodes, sites, turnManager, logger, playerState)
             _mapManager = new MapManager(nodes, sites, _turnManager, _logger, _playerStateManager);
 
-            _actionSystem = new ActionSystem(_turnManager, _mapManager, _logger);
-            
             _marketManager = Substitute.For<IMarketManager>();
+            _actionSystem = new ActionSystem(_turnManager, _mapManager, _logger, _playerStateManager, _marketManager);
+
             var cardDb = Substitute.For<ICardDatabase>();
 
             _context = new MatchContext(

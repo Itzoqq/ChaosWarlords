@@ -12,13 +12,8 @@ namespace ChaosWarlords.Source.Map
     public class SpyOperations
     {
         private readonly Action<Site, Player> _recalculateSiteState;
-        private IPlayerStateManager _stateManager;
+        private readonly IPlayerStateManager _stateManager;
         private readonly IGameLogger _logger;
-
-        public void SetPlayerStateManager(IPlayerStateManager stateManager)
-        {
-            _stateManager = stateManager;
-        }
 
         public SpyOperations(Action<Site, Player> recalculateSiteState, IPlayerStateManager stateManager, IGameLogger logger)
         {

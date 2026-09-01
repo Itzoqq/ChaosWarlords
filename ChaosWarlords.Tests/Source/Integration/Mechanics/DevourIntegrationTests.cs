@@ -48,11 +48,9 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             _marketStateManager = Substitute.For<IMarketStateManager>();
             _playerStateManager = new PlayerStateManager(_logger); // Real State Manager for Integration
 
-            _actionSystem = new ActionSystem(turnManager, _mapManager, _logger);
+            _actionSystem = new ActionSystem(turnManager, _mapManager, _logger, _playerStateManager, _marketManager);
             _actionSystem.SetMatchManager(_matchManager);
-            _actionSystem.SetMarketManager(_marketManager);
             _actionSystem.SetMarketStateManager(_marketStateManager);
-            _actionSystem.SetPlayerStateManager(_playerStateManager);
 
             _context = new MatchContext(
                 turnManager,

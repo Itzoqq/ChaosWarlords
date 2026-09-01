@@ -25,7 +25,7 @@ namespace ChaosWarlords.Tests.Mechanics.Actions
             _mapManager = Substitute.For<IMapManager>();
             _matchManager = Substitute.For<IMatchManager>();
 
-            _actionSystem = new ActionSystem(_turnManager, _mapManager, Utilities.TestLogger.Instance);
+            _actionSystem = new ActionSystem(_turnManager, _mapManager, Utilities.TestLogger.Instance, Substitute.For<IPlayerStateManager>(), Substitute.For<IMarketManager>());
             _actionSystem.SetMatchManager(_matchManager);
         }
 

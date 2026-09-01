@@ -189,8 +189,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             // disables rollback (CommandDispatcher.TryCreateSnapshot's documented best-effort
             // fallback) instead of exercising it - a real ActionSystem's ExecutionStack is
             // never null, so this is a test-double gap, not a production one.
-            var actionSystem = new ActionSystem(turnManager, mapManager, _logger);
-            actionSystem.SetPlayerStateManager(playerState);
+            var actionSystem = new ActionSystem(turnManager, mapManager, _logger, playerState, marketManager);
 
             var matchContext = new MatchContext(
                 turnManager,

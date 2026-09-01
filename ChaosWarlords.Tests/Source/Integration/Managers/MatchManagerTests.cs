@@ -488,11 +488,8 @@ namespace ChaosWarlords.Tests.Integration.Managers
             turnManager.CurrentTurnContext.Returns(turnContext);
 
             // Real Systems
-            var actionSystem = new ActionSystem(turnManager, mapManager, logger);
             var playerState = new PlayerStateManager(logger);
-
-            // Wiring
-            actionSystem.SetPlayerStateManager(playerState);
+            var actionSystem = new ActionSystem(turnManager, mapManager, logger, playerState, marketManager);
 
             var context = new MatchContext(
                 turnManager,

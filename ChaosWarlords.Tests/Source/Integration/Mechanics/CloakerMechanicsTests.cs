@@ -82,9 +82,9 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             _turnManager.CurrentTurnContext.Returns(new TurnContext(_p1, _logger));
 
             _mapManager = new MapManager(nodes, sites, _turnManager, _logger, _playerStateManager);
-            _actionSystem = new ActionSystem(_turnManager, _mapManager, _logger);
-
             _marketManager = Substitute.For<IMarketManager>();
+            _actionSystem = new ActionSystem(_turnManager, _mapManager, _logger, _playerStateManager, _marketManager);
+
             var cardDb = Substitute.For<ICardDatabase>();
 
             _context = new MatchContext(
@@ -99,8 +99,6 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             );
 
             _actionSystem.SetMatchContext(_context);
-            _actionSystem.SetPlayerStateManager(_playerStateManager);
-            _actionSystem.SetMarketManager(_marketManager);
 
             var victoryManager = Substitute.For<IVictoryManager>();
             _matchManager = new MatchManager(_context, _logger, victoryManager);

@@ -36,15 +36,11 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
             var turnManager = new TurnManager(players, new SeededGameRandom(12345, TestLogger.Instance), TestLogger.Instance);
             var mapManager = Substitute.For<IMapManager>();
             var marketManager = Substitute.For<IMarketManager>();
-            var actionSystem = new ActionSystem(turnManager, mapManager, TestLogger.Instance);
+            var playerState = new ChaosWarlords.Source.Managers.PlayerStateManager(TestLogger.Instance);
+            var actionSystem = new ActionSystem(turnManager, mapManager, TestLogger.Instance, playerState, marketManager);
             _actionSystem = actionSystem;
             var cardDb = Substitute.For<ChaosWarlords.Source.Core.Interfaces.Data.ICardDatabase>();
-            var playerState = new ChaosWarlords.Source.Managers.PlayerStateManager(TestLogger.Instance);
             var victoryManager = Substitute.For<ChaosWarlords.Source.Core.Interfaces.Services.IVictoryManager>();
-
-            // Set up ActionSystem dependencies
-            actionSystem.SetPlayerStateManager(playerState);
-            actionSystem.SetMarketManager(marketManager);
 
             _context = new MatchContext(
                 turnManager,
