@@ -216,10 +216,10 @@
     "Id": "skeletal_horde",
     "Name": "Skeletal Horde",
     "Description": "Deploy 2 troops. Optional: Devour this card -> Deploy 3 additional troops.",
-    "Cost": 3,
+    "Cost": 2,
     "Aspect": "Oblivion",
     "DeckVP": 1,
-    "InnerCircleVP": 3,
+    "InnerCircleVP": 2,
     "Effects": [
       {
         "Type": "GainResource",
