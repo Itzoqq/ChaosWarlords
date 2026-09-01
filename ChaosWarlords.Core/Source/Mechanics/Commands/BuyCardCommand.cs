@@ -41,10 +41,17 @@ namespace ChaosWarlords.Source.Commands
 
         public bool Validate(MatchContext context)
         {
-            // Valid if card is in market and player checks out
-            // NOTE: Simple validation here. Deep validation logic is inside MarketManager.TryBuyCard usually.
-            // But we can check basic state.
-            return ResolveCard(context) != null;
+            var card = ResolveCard(context);
+            if (card == null) return false;
+
+            // Every other resource-gated command enforces its own cost precondition
+            // directly in Validate() (AssassinateCommand's Power, PlaceSpyCommand's
+            // SpiesInBarracks, SupplantCommand's TroopsInBarracks) - this used to be the
+            // one exception, letting an insufficient-funds purchase pass Validate()
+            // (advancing SequenceNumber, getting recorded) and rely entirely on
+            // MarketManager.TryBuyCard's own internal guard to silently no-op it. See
+            // planning.txt TIER 1 (test hardening audit, 2026-09-01).
+            return context.TurnManager.ActivePlayer.Influence >= card.Cost;
         }
 
         public void Execute(MatchContext context)
