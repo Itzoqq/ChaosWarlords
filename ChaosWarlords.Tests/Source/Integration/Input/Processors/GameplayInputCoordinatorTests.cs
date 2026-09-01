@@ -91,6 +91,59 @@ namespace ChaosWarlords.Tests.Integration.Input.Processors
             Assert.IsInstanceOfType(_coordinator.CurrentMode, typeof(DevourInputMode));
         }
 
+        // Coverage for planning.txt TIER 1 item 3 (risk-hotspot remediation, 2026-09-01):
+        // SwitchToTargetingMode grew 2 new branches this session (TargetingDiscard,
+        // TargetingDevourMarket/TargetingPlayFromMarket) and a Promote zero-amount fallback,
+        // none of which any existing test called SwitchToTargetingMode directly for.
+
+        [TestMethod]
+        public void SwitchToTargetingMode_SelectsDiscard_IfStateIsTargetingDiscard()
+        {
+            _actionSub.CurrentState.Returns(ActionState.TargetingDiscard);
+
+            _coordinator.SwitchToTargetingMode();
+
+            Assert.IsInstanceOfType(_coordinator.CurrentMode, typeof(DiscardInputMode));
+        }
+
+        [TestMethod]
+        public void SwitchToTargetingMode_SelectsTargeting_IfStateIsDevourMarket()
+        {
+            _actionSub.CurrentState.Returns(ActionState.TargetingDevourMarket);
+
+            _coordinator.SwitchToTargetingMode();
+
+            Assert.IsInstanceOfType(_coordinator.CurrentMode, typeof(TargetingInputMode));
+        }
+
+        [TestMethod]
+        public void SwitchToTargetingMode_SelectsTargeting_IfStateIsPlayFromMarket()
+        {
+            // Ulitharid's "play a market card as if in hand" - same shape as
+            // TargetingDevourMarket (both wait for IMarketStateManager to open, see the
+            // coordinator's own comment).
+            _actionSub.CurrentState.Returns(ActionState.TargetingPlayFromMarket);
+
+            _coordinator.SwitchToTargetingMode();
+
+            Assert.IsInstanceOfType(_coordinator.CurrentMode, typeof(TargetingInputMode));
+        }
+
+        [TestMethod]
+        public void SwitchToTargetingMode_SelectingCardToPromote_WithZeroPendingCreditsButAPendingCard_FallsBackToAmountOne()
+        {
+            // "Fallback to card effect if context is 0 (direct play)" branch - CurrentTurnContext
+            // starts with PendingPromotionsCount == 0 by default (no promotion credit banked),
+            // but a card was played directly for its own single Promote effect (PendingCard set).
+            _actionSub.CurrentState.Returns(ActionState.SelectingCardToPromote);
+            _actionSub.PendingCard.Returns(TestData.Cards.CheapCard());
+            Assert.AreEqual(0, _context.TurnManager.CurrentTurnContext.PendingPromotionsCount);
+
+            _coordinator.SwitchToTargetingMode();
+
+            Assert.IsInstanceOfType(_coordinator.CurrentMode, typeof(PromoteInputMode));
+        }
+
         [TestMethod]
         public void HandleActionStateChanged_NormalStateWithMarketClosed_SwitchesToNormalMode()
         {

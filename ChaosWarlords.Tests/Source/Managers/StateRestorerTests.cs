@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Core.Data.Dtos;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Utilities;
@@ -263,6 +264,83 @@ namespace ChaosWarlords.Tests.Source.Managers
             StateRestorer.RestoreState(_context, snapshot);
 
             Assert.IsEmpty(_marketManager.MarketRow, "A card added to the market row after the snapshot must not survive rollback.");
+        }
+
+        // --- RestoreEffect coverage (planning.txt TIER 1 item 1 - risk-hotspot remediation:
+        // StateRestorer.RestoreEffect was flagged with Crap 42 / cyclomatic 6, a coverage gap
+        // (nothing above exercises restoring a genuinely non-empty ExecutionStack) rather than
+        // a complexity problem. These construct the snapshot's EffectStack list directly,
+        // rather than pushing a real EffectContext first, to isolate each of RestoreEffect's
+        // own guard branches. ---
+
+        [TestMethod]
+        public void RestoreState_EffectStackEntry_WithNoSourceCardId_IsSkipped()
+        {
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+            snapshot.EffectStack = new List<EffectContextDto>
+            {
+                new() { State = ActionState.TargetingAssassinate, SourceCardId = null, RequiresInput = true }
+            };
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.IsEmpty(_context.ActionSystem.ExecutionStack, "An effect entry with no SourceCardId can't be reconstructed - it should be dropped, not throw.");
+        }
+
+        [TestMethod]
+        public void RestoreState_EffectStackEntry_WhoseSourceCardNoLongerExists_IsSkipped()
+        {
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+            snapshot.EffectStack = new List<EffectContextDto>
+            {
+                new() { State = ActionState.TargetingAssassinate, SourceCardId = "card_that_does_not_exist", RequiresInput = true }
+            };
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.IsEmpty(_context.ActionSystem.ExecutionStack, "A SourceCardId the CardDatabase can't resolve should be dropped, not throw.");
+        }
+
+        [TestMethod]
+        public void RestoreState_EffectStackEntry_WithTargetingState_ReattachesTheMatchingCardEffect()
+        {
+            var sourceCard = RegisterCard("wight", CardLocation.Played);
+            var devourEffect = new CardEffect(EffectType.Devour, 1) { TargetLocation = CardLocation.Hand };
+            sourceCard.AddEffect(devourEffect);
+
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+            snapshot.EffectStack = new List<EffectContextDto>
+            {
+                new() { State = ActionState.TargetingDevourHand, SourceCardId = "wight", RequiresInput = true, EffectType = EffectType.Devour }
+            };
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.HasCount(1, _context.ActionSystem.ExecutionStack);
+            var restored = _context.ActionSystem.ExecutionStack.Peek();
+            Assert.AreSame(devourEffect, restored.SourceEffect, "A non-Normal state should re-resolve SourceEffect from the card's own Effects, matched by EffectType.");
+        }
+
+        [TestMethod]
+        public void RestoreState_EffectStackEntry_WithNormalState_LeavesSourceEffectNull()
+        {
+            // Mirrors ResolveOpponentDiscard-style bookkeeping entries (see GameStateDto.
+            // ActionSystemState's own doc comment) - State==Normal is a valid, real shape for
+            // an EffectContext, and RestoreEffect deliberately does NOT look up a CardEffect
+            // for it (there's nothing to target).
+            var sourceCard = RegisterCard("wight", CardLocation.Played);
+            sourceCard.AddEffect(new CardEffect(EffectType.Devour, 1) { TargetLocation = CardLocation.Hand });
+
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+            snapshot.EffectStack = new List<EffectContextDto>
+            {
+                new() { State = ActionState.Normal, SourceCardId = "wight", RequiresInput = false, EffectType = EffectType.Devour }
+            };
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.HasCount(1, _context.ActionSystem.ExecutionStack);
+            Assert.IsNull(_context.ActionSystem.ExecutionStack.Peek().SourceEffect);
         }
     }
 }
