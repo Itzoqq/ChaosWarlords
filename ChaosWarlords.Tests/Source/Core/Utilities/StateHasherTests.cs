@@ -116,6 +116,31 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
         }
 
         [TestMethod]
+        public void Mix_PinnedRegressionValue_ForAFixedMultiTypeSequence()
+        {
+            // Characterization test, added BEFORE refactoring Mix's type-dispatch shape
+            // (planning.txt risk-hotspot remediation) - pins the EXACT hash StateHasher
+            // produces today for a fixed sequence exercising every supported type (int, long,
+            // bool, enum, string, null). Every other test in this file only checks relative
+            // properties (determinism, inequality for different inputs) - none would catch a
+            // refactor that's internally consistent but numerically DIFFERENT from today's
+            // output, which would silently desync a live game against an already-recorded
+            // replay. This value must never change unless the hashing algorithm itself is
+            // deliberately changed (in which case every existing replay recording breaks too -
+            // treat a failure here as a five-alarm fire, not a value to casually update).
+            int hash = StateHasher.Init();
+            hash = StateHasher.Mix(hash, 42);
+            hash = StateHasher.Mix(hash, 123456789012345L);
+            hash = StateHasher.Mix(hash, true);
+            hash = StateHasher.Mix(hash, false);
+            hash = StateHasher.Mix(hash, LogChannel.Warning);
+            hash = StateHasher.Mix(hash, "cultist_of_myrkul");
+            hash = StateHasher.Mix(hash, (object?)null);
+
+            Assert.AreEqual(2127304511, hash);
+        }
+
+        [TestMethod]
         public void Mix_ComplexObjectFallback_IsDocumentedAsZero_NotAsError()
         {
             // KNOWN LIMITATION (see StateHasher.Mix's own comment): a component that isn't

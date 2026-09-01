@@ -30,44 +30,31 @@ namespace ChaosWarlords.Source.Core.Utilities
         {
             unchecked
             {
-                int valueToMix = 0;
-
-                if (component == null)
-                {
-                    valueToMix = 0;
-                }
-                else if (component is int i)
-                {
-                    valueToMix = i;
-                }
-                else if (component is long l)
-                {
-                    valueToMix = (int)(l ^ (l >> 32));
-                }
-                else if (component is bool b)
-                {
-                    valueToMix = b ? 1 : 0;
-                }
-                else if (component is Enum e)
-                {
-                    valueToMix = Convert.ToInt32(e, System.Globalization.CultureInfo.InvariantCulture);
-                }
-                else if (component is string s)
-                {
-                    valueToMix = HashString(s);
-                }
-                else
-                {
-                    // Fallback for complex objects - ideally shouldn't happen in strict mode
-                    // But we can recurse or use a specific interface if we had one i.e IDeterministicHashable
-                    valueToMix = 0; 
-                }
-
-                hash ^= valueToMix;
+                hash ^= ToMixableInt(component);
                 hash *= FnvPrime;
                 return hash;
             }
         }
+
+        /// <summary>
+        /// Reduces a component to the single int Mix actually folds into the running hash -
+        /// split out of Mix itself so the FNV-1a mixing arithmetic (the part that must never
+        /// change without breaking every existing replay recording) sits apart from the type
+        /// dispatch (which can safely gain a new case, e.g. a future numeric type, without
+        /// touching the arithmetic at all).
+        /// </summary>
+        private static int ToMixableInt(object? component) => component switch
+        {
+            null => 0,
+            int i => i,
+            long l => (int)(l ^ (l >> 32)),
+            bool b => b ? 1 : 0,
+            Enum e => Convert.ToInt32(e, System.Globalization.CultureInfo.InvariantCulture),
+            string s => HashString(s),
+            // Fallback for complex objects - ideally shouldn't happen in strict mode. But we
+            // can recurse or use a specific interface if we had one, i.e. IDeterministicHashable.
+            _ => 0,
+        };
 
         private static int HashString(string s)
         {
