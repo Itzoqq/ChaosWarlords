@@ -63,6 +63,14 @@ namespace ChaosWarlords.Source.Contexts
         /// </summary>
         public List<Card> CardsMarkedForTurnEndDevour { get; private set; } = new List<Card>();
 
+        /// <summary>
+        /// One entry per card played this turn that forces "each opponent discards a card"
+        /// at end of turn (e.g. Neogi) - stacks, so 2 such cards played the same turn means
+        /// every opponent owes 2 discards. Consumed and cleared by MatchManager.EndTurn's
+        /// opponent-discard phase, mirroring CardsMarkedForTurnEndDevour's shape.
+        /// </summary>
+        public List<Card> PendingOpponentDiscardTriggers { get; private set; } = new List<Card>();
+
         // 2. Convenience Properties (Shortcuts)
         public Player ActivePlayer => TurnManager.ActivePlayer;
 

@@ -175,6 +175,23 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         [TestMethod]
+        public void RestoreState_RevertsPendingOpponentDiscardTriggers()
+        {
+            // Same shape as RestoreState_RevertsCardsMarkedForTurnEndDevour - Neogi's
+            // "each opponent discards at end of turn" trigger list needs the same rollback
+            // safety (see MatchManager.EndTurn's opponent-discard phase / planning.txt).
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+            Assert.IsEmpty(_context.PendingOpponentDiscardTriggers);
+
+            var neogi = RegisterCard("neogi", CardLocation.Played);
+            _context.PendingOpponentDiscardTriggers.Add(neogi);
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.IsEmpty(_context.PendingOpponentDiscardTriggers, "A Neogi-style discard trigger added after the snapshot must not survive rollback.");
+        }
+
+        [TestMethod]
         public void RestoreState_RevertsActionSystemCurrentStateAndPendingMoveSource()
         {
             // Real API, not RestorePendingState directly - exercises the same path a genuine

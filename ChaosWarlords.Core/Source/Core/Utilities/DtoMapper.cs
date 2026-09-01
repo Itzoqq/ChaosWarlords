@@ -367,6 +367,7 @@ namespace ChaosWarlords.Source.Core.Utilities
 
             // Transient
             dto.MarkedForTurnEndDevourCardIds = context.CardsMarkedForTurnEndDevour.Select(c => c.Id).ToList();
+            dto.PendingOpponentDiscardTriggerCardIds = context.PendingOpponentDiscardTriggers.Select(c => c.Id).ToList();
 
             // Entities
             dto.Players = context.TurnManager.Players.Select(p => ToDto(p)).Where(d => d != null).ToList()!;

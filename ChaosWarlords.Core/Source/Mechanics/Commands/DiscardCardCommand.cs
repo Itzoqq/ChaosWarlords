@@ -56,11 +56,24 @@ namespace ChaosWarlords.Source.Commands
             context.PlayerStateManager.DiscardCard(player, card);
             context.RecordAction("DiscardCard", $"{player.DisplayName} discarded {card.Name}.");
 
-            // Neogi's cross-player forced-discard sequencing (MatchManager.ResolveOpponentDiscard)
-            // needs to know a discard just resolved so it can advance to the next opponent -
-            // it reacts to CompleteAction() the same way every other blocking targeting
-            // command signals "done" (see ReturnTroopCommand etc.).
-            context.ActionSystem.CompleteAction();
+            if (context.MatchManager.IsResolvingOpponentDiscard)
+            {
+                // Neogi's cross-player forced-discard sequence is in progress - this discard
+                // has NOTHING on ActionSystem's ExecutionStack (MarkOpponentDiscardAtEndOfTurn
+                // already resolved, long ago, during Neogi's own play), so
+                // ActionSystem.CompleteAction() would hit its no-stack-context fallback and
+                // incorrectly reset CurrentState to Normal after just one opponent. Advance
+                // the sequence instead - MatchManager.ResolveOpponentDiscard moves to the next
+                // opponent or completes the deferred end-of-turn player-switch.
+                context.MatchManager.ResolveOpponentDiscard(card);
+            }
+            else
+            {
+                // Normal chain-continuation path (e.g. Insane Outcast's own "discard -> devour
+                // self" chain) - the DiscardCard EffectContext is genuinely sitting on
+                // ExecutionStack, so CompleteAction() resolves it and pushes its OnSuccess.
+                context.ActionSystem.CompleteAction();
+            }
         }
     }
 }

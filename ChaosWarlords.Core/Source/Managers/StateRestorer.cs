@@ -57,6 +57,16 @@ namespace ChaosWarlords.Source.Managers
                 }
             }
 
+            context.PendingOpponentDiscardTriggers.Clear();
+            if (dto.PendingOpponentDiscardTriggerCardIds != null)
+            {
+                foreach (var id in dto.PendingOpponentDiscardTriggerCardIds)
+                {
+                    var card = context.CardDatabase.GetCardById(id);
+                    if (card != null) context.PendingOpponentDiscardTriggers.Add(card);
+                }
+            }
+
             // 6. Action Stack
             // EffectContext carries runtime delegates (OnResolved/OnCancelled) that can't be
             // serialized, so restored effects get no-op callbacks - sufficient for a rollback,

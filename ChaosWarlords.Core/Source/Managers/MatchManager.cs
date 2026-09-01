@@ -244,6 +244,22 @@ namespace ChaosWarlords.Source.Managers
         private bool _endGamePending;
         private string _pendingVictoryReason = string.Empty;
 
+        // Ephemeral orchestration state for Neogi's cross-player forced-discard sequencing -
+        // deliberately NOT on MatchContext/DTO-backed. It only needs to survive across frames
+        // within a single still-in-progress "end turn" gesture, not across a save/replay
+        // boundary. A mid-sequence rollback (CommandDispatcher's rollback-on-exception) would
+        // restore MatchContext.PendingOpponentDiscardTriggers and ActionSystem's own state
+        // correctly via StateRestorer, but NOT this field - the same category of gap the DTO
+        // snapshot already has for _endGamePending/_pendingVictoryReason below, both also
+        // plain private fields. Acceptable for now: nothing in this codebase rolls back
+        // mid-multi-frame-sequence today.
+        // One entry per discard OWED - a player who owes 2 (stacking, e.g. 2 Neogis played
+        // the same turn) appears twice in a row, so they're asked again immediately rather
+        // than cycling through every other opponent first.
+        private readonly Queue<Player> _pendingDiscardQueue = new();
+
+        public bool IsResolvingOpponentDiscard => _pendingDiscardQueue.Count > 0;
+
         public void EndTurn()
         {
             // 1. Map Rewards - REMOVED (Now Start of Turn)
@@ -269,6 +285,86 @@ namespace ChaosWarlords.Source.Managers
             // 3. Draw New Hand
             _context.PlayerStateManager.DrawCards(_context.ActivePlayer, GameConstants.HandSize, _context.Random);
 
+            // 3b. Opponent-forced-discard triggers (e.g. Neogi's "at end of turn, each
+            // opponent must discard a card") - resolved before the real player switch, since
+            // they're framed as happening at the end of THIS (still-active) player's turn.
+            // Both prior steps only ever touch the ending player, so they're unaffected by
+            // this deferral.
+            if (_context.PendingOpponentDiscardTriggers.Count > 0)
+            {
+                BeginOpponentDiscardPhase();
+                return; // Player-switch deferred - see AdvanceOpponentDiscard/ResolveOpponentDiscard.
+            }
+
+            CompleteEndTurnSwitch();
+        }
+
+        private void BeginOpponentDiscardPhase()
+        {
+            int owedPerOpponent = _context.PendingOpponentDiscardTriggers.Count;
+            var endingPlayer = _context.ActivePlayer;
+            var players = _context.TurnManager.Players;
+
+            // Seat order starting right after the ending player, wrapping around.
+            var opponentsInSeatOrder = players
+                .SkipWhile(p => p != endingPlayer).Skip(1)
+                .Concat(players.TakeWhile(p => p != endingPlayer));
+
+            foreach (var opponent in opponentsInSeatOrder)
+            {
+                for (int i = 0; i < owedPerOpponent; i++)
+                {
+                    _pendingDiscardQueue.Enqueue(opponent);
+                }
+            }
+
+            _context.PendingOpponentDiscardTriggers.Clear();
+            _logger.Log($"Opponent-discard phase starting: {_pendingDiscardQueue.Count} opponent(s) queued, {owedPerOpponent} discard(s) each.", LogChannel.Info);
+
+            AdvanceOpponentDiscard();
+        }
+
+        private void AdvanceOpponentDiscard()
+        {
+            // Skip any opponent with nothing left to discard - matches DiscardStrategy's own
+            // HasValidTargets check for the same-player case. Also correctly handles a
+            // stacked opponent running out of cards partway through their owed discards
+            // (their remaining queued entries all skip too, one at a time).
+            while (_pendingDiscardQueue.Count > 0 && _pendingDiscardQueue.Peek().Hand.Count == 0)
+            {
+                var skipped = _pendingDiscardQueue.Dequeue();
+                _logger.Log($"{skipped.DisplayName} has no cards to discard - skipped.", LogChannel.Info);
+            }
+
+            if (_pendingDiscardQueue.Count == 0)
+            {
+                _context.TurnManager.EndForcedActingPlayer();
+                CompleteEndTurnSwitch();
+                return;
+            }
+
+            var next = _pendingDiscardQueue.Peek();
+            _context.TurnManager.BeginForcedActingPlayer(next);
+            _context.ActionSystem.StartTargeting(ActionState.TargetingDiscard);
+            _logger.Log($"{next.DisplayName} must discard a card.", LogChannel.Info);
+        }
+
+        public void ResolveOpponentDiscard(Card discardedCard)
+        {
+            if (_pendingDiscardQueue.Count == 0)
+            {
+                _logger.Log("ResolveOpponentDiscard called with no opponent-discard sequence in progress.", LogChannel.Warning);
+                return;
+            }
+
+            var player = _pendingDiscardQueue.Dequeue();
+            _logger.Log($"{player.DisplayName} discarded {discardedCard.Name}.", LogChannel.Info);
+
+            AdvanceOpponentDiscard();
+        }
+
+        private void CompleteEndTurnSwitch()
+        {
             // --- Check Round / Turn Status BEFORE switching ---
             // We need to know if the CURRENT active player is the last one in the cycle.
             // TurnManager doesn't expose Index directly, but we know the list order.

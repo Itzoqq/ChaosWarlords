@@ -71,6 +71,7 @@ namespace ChaosWarlords.Source.Utilities
         PlaceSpy,
         MoveUnit,
         DiscardCard,
+        MarkOpponentDiscardAtEndOfTurn, // Non-targeting: just banks a MatchContext.PendingOpponentDiscardTriggers entry, resolved by MatchManager.EndTurn's opponent-discard phase
     }
 
     /// <summary>

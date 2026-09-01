@@ -46,9 +46,29 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         bool CanEndTurn(out string reason);
 
         /// <summary>
-        /// Formally ends the current turn, performing cleanup and passing control.
+        /// Formally ends the current turn, performing cleanup and passing control. If any
+        /// card played this turn forces opponents to discard (e.g. Neogi), this instead
+        /// begins that sequence and defers the actual player-switch until it completes -
+        /// see IsResolvingOpponentDiscard/ResolveOpponentDiscard.
         /// </summary>
         void EndTurn();
+
+        /// <summary>
+        /// True while a cross-player forced-discard sequence (Neogi) is in progress - i.e.
+        /// between EndTurn() beginning that sequence and the last opponent's discard
+        /// resolving. DiscardCardCommand checks this to route a resolved discard back into
+        /// ResolveOpponentDiscard instead of the normal ActionSystem.CompleteAction() chain-
+        /// continuation path.
+        /// </summary>
+        bool IsResolvingOpponentDiscard { get; }
+
+        /// <summary>
+        /// Advances the in-progress opponent-discard sequence with the card just discarded -
+        /// dequeues, discards, and either moves to the next opponent or (queue empty)
+        /// completes the deferred end-of-turn player-switch. Only meaningful while
+        /// IsResolvingOpponentDiscard is true.
+        /// </summary>
+        void ResolveOpponentDiscard(Card discardedCard);
 
         /// <summary>
         /// Checks if the game has ended due to victory conditions.

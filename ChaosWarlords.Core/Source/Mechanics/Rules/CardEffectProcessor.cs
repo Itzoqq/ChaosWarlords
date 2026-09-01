@@ -141,8 +141,15 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             [EffectType.PlaceSpy] = (effect, card, ctx, log) => ApplyPlaceSpy(card, ctx, log),
             [EffectType.ReturnUnit] = (effect, card, ctx, log) => ApplyReturnUnit(card, ctx, log),
             [EffectType.Devour] = (effect, card, ctx, log) => ApplyDevourWithChain(effect, card, ctx, log),
-            [EffectType.DiscardCard] = (effect, card, ctx, log) => ApplyDiscardCard(card, ctx, log)
+            [EffectType.DiscardCard] = (effect, card, ctx, log) => ApplyDiscardCard(card, ctx, log),
+            [EffectType.MarkOpponentDiscardAtEndOfTurn] = (effect, card, ctx, log) => ApplyMarkOpponentDiscardAtEndOfTurn(card, ctx, log)
         };
+
+        private static void ApplyMarkOpponentDiscardAtEndOfTurn(Card sourceCard, MatchContext context, IGameLogger logger)
+        {
+            context.PendingOpponentDiscardTriggers.Add(sourceCard);
+            logger.Log($"{sourceCard.Name}: Each opponent will discard a card at end of turn.", LogChannel.Info);
+        }
 
         private static void ApplyDiscardCard(Card sourceCard, MatchContext context, IGameLogger logger)
         {

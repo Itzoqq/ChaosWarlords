@@ -16,7 +16,24 @@ namespace ChaosWarlords.Source.Managers
         public TurnContext CurrentTurnContext { get; private set; } = null!;
 
         // Convenience property
-        public Player ActivePlayer => CurrentTurnContext?.ActivePlayer ?? Players[_currentPlayerIndex];
+        public Player ActivePlayer => ForcedActingPlayer ?? (CurrentTurnContext?.ActivePlayer ?? Players[_currentPlayerIndex]);
+
+        /// <summary>
+        /// See ITurnManager.ForcedActingPlayer - narrow, MatchManager-only override for
+        /// cross-player forced-discard sequencing (Neogi). Deliberately does NOT touch
+        /// CurrentTurnContext.
+        /// </summary>
+        public Player? ForcedActingPlayer { get; private set; }
+
+        public void BeginForcedActingPlayer(Player player)
+        {
+            ForcedActingPlayer = player;
+        }
+
+        public void EndForcedActingPlayer()
+        {
+            ForcedActingPlayer = null;
+        }
 
         /// <summary>
         /// Creates a new TurnManager with randomized player order.

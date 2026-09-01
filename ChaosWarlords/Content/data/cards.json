@@ -264,6 +264,26 @@
     ]
   },
   {
+    "Id": "neogi",
+    "Name": "Neogi",
+    "Description": "Deploy 4 troops. At end of turn, each opponent must discard a card.",
+    "Cost": 7,
+    "Aspect": "Warlord",
+    "DeckVP": 4,
+    "InnerCircleVP": 8,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 4,
+        "TargetResource": "Troops"
+      },
+      {
+        "Type": "MarkOpponentDiscardAtEndOfTurn",
+        "Amount": 1
+      }
+    ]
+  },
+  {
     "Id": "insane_outcast",
     "Name": "Insane Outcast",
     "Description": "Discard a card from your hand to return Insane Outcast to the supply. If Insane Outcast would be devoured or promoted, return it to the supply instead.",
