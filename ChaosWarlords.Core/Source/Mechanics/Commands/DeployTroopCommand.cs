@@ -26,7 +26,7 @@ namespace ChaosWarlords.Source.Commands
 
         public bool Validate(MatchContext context)
         {
-            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == NodeId);
+            var node = context.MapManager.GetNodeById(NodeId);
             if (node == null) return false;
 
             // Deploy is always the active player's own action (there's no "deploy for someone
@@ -37,7 +37,7 @@ namespace ChaosWarlords.Source.Commands
 
         public void Execute(MatchContext context)
         {
-            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == NodeId);
+            var node = context.MapManager.GetNodeById(NodeId);
             if (node != null)
             {
                 context.MapManager.TryDeploy(context.TurnManager.ActivePlayer, node);

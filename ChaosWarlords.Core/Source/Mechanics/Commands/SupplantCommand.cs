@@ -35,7 +35,7 @@ namespace ChaosWarlords.Source.Commands
             // empty barracks doesn't invalidate the command - the deploy half grants 1 VP
             // instead (rulebook p.12/22), handled by MapManager.Supplant/ExecuteSupplant -
             // only the assassinate half's target requirement gates this.
-            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
+            var node = context.MapManager.GetNodeById(TargetNodeId);
             var player = context.TurnManager.ActivePlayer;
 
             if (node == null) return false;
@@ -45,7 +45,7 @@ namespace ChaosWarlords.Source.Commands
 
         public void Execute(MatchContext context)
         {
-            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
+            var node = context.MapManager.GetNodeById(TargetNodeId);
             if (node != null)
             {
                 // Delegates to ActionSystem.PerformSupplant rather than duplicating the

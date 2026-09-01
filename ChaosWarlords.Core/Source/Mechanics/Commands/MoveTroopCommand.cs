@@ -30,8 +30,8 @@ namespace ChaosWarlords.Source.Commands
         public bool Validate(MatchContext context)
         {
             // 1. Get Nodes
-            var src = context.MapManager.Nodes.FirstOrDefault(n => n.Id == SourceNodeId);
-            var dest = context.MapManager.Nodes.FirstOrDefault(n => n.Id == DestinationNodeId);
+            var src = context.MapManager.GetNodeById(SourceNodeId);
+            var dest = context.MapManager.GetNodeById(DestinationNodeId);
 
             if (src == null || dest == null) return false;
 
@@ -43,8 +43,8 @@ namespace ChaosWarlords.Source.Commands
 
         public void Execute(MatchContext context)
         {
-            var src = context.MapManager.Nodes.FirstOrDefault(n => n.Id == SourceNodeId);
-            var dest = context.MapManager.Nodes.FirstOrDefault(n => n.Id == DestinationNodeId);
+            var src = context.MapManager.GetNodeById(SourceNodeId);
+            var dest = context.MapManager.GetNodeById(DestinationNodeId);
             var player = context.TurnManager.ActivePlayer;
 
             if (src != null && dest != null)

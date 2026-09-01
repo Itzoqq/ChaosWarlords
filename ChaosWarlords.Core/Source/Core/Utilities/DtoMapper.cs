@@ -264,7 +264,7 @@ namespace ChaosWarlords.Source.Core.Utilities
 
         private static DeployTroopCommand? HydrateDeploy(DeployTroopCommandDto dto, MatchContext context)
         {
-            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == dto.NodeId);
+            var node = context.MapManager.GetNodeById(dto.NodeId);
             return node != null ? new DeployTroopCommand(dto.NodeId) : null;
         }
 

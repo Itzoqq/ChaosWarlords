@@ -31,7 +31,7 @@ namespace ChaosWarlords.Source.Commands
         public bool Validate(MatchContext context)
         {
             // 1. Get Node
-            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
+            var node = context.MapManager.GetNodeById(TargetNodeId);
             if (node == null) return false;
 
             // 2. Get Player
@@ -50,7 +50,7 @@ namespace ChaosWarlords.Source.Commands
 
         public void Execute(MatchContext context)
         {
-            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
+            var node = context.MapManager.GetNodeById(TargetNodeId);
             if (node != null)
             {
                 // Delegates to ActionSystem.PerformAssassinate (Power cost + MapManager +

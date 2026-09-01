@@ -528,7 +528,7 @@ namespace ChaosWarlords.Source.Managers
 
             MapNode? targetNode = preTarget switch
             {
-                int nodeId => _mapManager.Nodes.FirstOrDefault(n => n.Id == nodeId),
+                int nodeId => _mapManager.GetNodeById(nodeId),
                 MapNode node => node,
                 _ => null
             };

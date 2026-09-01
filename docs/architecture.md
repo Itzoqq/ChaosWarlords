@@ -66,7 +66,6 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   │   │   └── IDto.cs                  # Marker interface for DTOs
     │   │   ├── Logic/
     │   │   │   ├── IActionSystem.cs         # incl. OnInteractionRequested (Key Systems #4) + 3 engine-only methods ActionExecutionEngine calls back through
-    │   │   │   ├── ICommandValidator.cs
     │   │   │   ├── IDevourSubsystem.cs
     │   │   │   ├── IGameCommand.cs
     │   │   │   └── ISpySubsystem.cs
@@ -100,8 +99,7 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │       ├── Pcg32.cs                     # From-scratch PCG32 RNG algorithm (see Key Systems #6)
     │       ├── SeededGameRandom.cs          # Deterministic RNG - implements IGameRandom on top of Pcg32
     │       ├── StateHasher.cs               # FNV-1a mixing used by MatchContext.GetStateHash()
-    │       ├── TextCache.cs                 # Caches string measurements
-    │       └── ValidationResult.cs          # Standardized validation response
+    │       └── TextCache.cs                 # Caches string measurements
     │
     ├── Entities/                            # Domain Models (Pure Data + Behavior)
     │   ├── Actors/
@@ -132,7 +130,6 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   ├── MarketManager.cs                 # Manages the Card Market
     │   ├── MatchManager.cs                  # Manages Match & Victory
     │   ├── PlayerStateManager.cs            # Centralized player mutations
-    │   ├── PoolManager.cs                   # Manages object pools and contexts
     │   ├── ReplayManager.cs                 # Replay recording and playback
     │   ├── StateRestorer.cs                 # Rebuilds MatchContext (incl. ActionSystem's targeting state) in-place from a GameStateDto snapshot
     │   ├── TurnManager.cs                   # Manages Turn Order and Phase Transitions
@@ -347,7 +344,6 @@ The architecture includes concrete infrastructure for network synchronization:
 **Existing Infrastructure:**
 - **Centralized Mutation**: All resource changes flow through `IPlayerStateManager`
 - **Action Sequencing**: Commands track sequence numbers for ordering (incremented by `CommandDispatcher` before every live `Execute()`, and explicitly by `ReplayController.UpdatePlayback` for every replayed command too - replay bypasses `CommandDispatcher` entirely, so nothing else advances it)
-- **Context Isolation**: `PoolManager` maintains separate object pools for logic (server) and rendering (client) to prevent state leaks
 - **Separation of Concerns**: Logic never touches UI, allowing headless execution
 - **Compiled Boundary**: `ChaosWarlords.Core` has zero MonoGame package references, and `ChaosWarlords.Core.Tests` proves that boundary is exercised in test isolation too - see "The Four Projects" above
 
@@ -449,6 +445,6 @@ To prevent "state leaks" and ensure system stability:
 
 ### Performance & Optimization
 **New standard as of 2026-01**:
-- **Zero-Allocation Rendering**: All "Hot Path" rendering loops (UI, Map, Cards) utilize `ObjectPool<T>` via `PooledRectangle` and `PooledVector2` wrappers.
+- **Zero-Allocation Rendering**: All "Hot Path" rendering loops (UI, Map, Cards) utilize `ObjectPool<T>` via `PooledRectangle` and `PooledVector2` wrappers - currently one shared static pool per type, fine for today's single-process/single-match client.
 - **Allocation Budget**: `UIRenderer`, `MapRenderer`, and `CardRenderer` have a budget of **0 allocations per frame**.
-- **Context Awareness**: The `PoolManager` ensures that pooled objects are not shared between simulation ticks (e.g. server logic) and rendering frames (client view), preventing race conditions in future threaded implementation.
+- **Not yet built**: a multiplayer server hosting several concurrent matches will need per-context pools instead of the single shared one, so pooled objects from one match's simulation/rendering can't leak into another's. A `PoolManager`-style keyed-pool registry existed for this but was removed 2026-09-01 (unwired anywhere, unvalidated by a real second caller) - revisit designing it once there's an actual second context to isolate. See planning.txt.

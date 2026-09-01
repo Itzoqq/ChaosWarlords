@@ -42,6 +42,15 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         Site? GetSiteForNode(MapNode node);
         List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer);
 
+        /// <summary>
+        /// Looks up a node by id, or null if it doesn't exist. Every command's Validate()/
+        /// Execute() used to do this same `Nodes.FirstOrDefault(n => n.Id == id)` scan
+        /// independently (DeployTroopCommand, MoveTroopCommand, AssassinateCommand,
+        /// SupplantCommand, ReturnTroopCommand, StateRestorer, DtoMapper, ActionSystem) - one
+        /// shared lookup instead of ~15 copies of the same line.
+        /// </summary>
+        MapNode? GetNodeById(int id);
+
         // Actions
         bool CanAssassinate(MapNode target, Player attacker);
         void Assassinate(MapNode node, Player attacker);

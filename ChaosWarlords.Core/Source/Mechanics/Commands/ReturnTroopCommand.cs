@@ -26,7 +26,7 @@ namespace ChaosWarlords.Source.Commands
 
         public bool Validate(MatchContext context)
         {
-            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
+            var node = context.MapManager.GetNodeById(TargetNodeId);
             if (node == null) return false;
 
             // Delegates to MapManager.CanReturnTroop - the single authoritative check
@@ -39,7 +39,7 @@ namespace ChaosWarlords.Source.Commands
 
         public void Execute(MatchContext context)
         {
-            var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
+            var node = context.MapManager.GetNodeById(TargetNodeId);
             if (node != null)
             {
                 context.MapManager.ReturnTroop(node, context.TurnManager.ActivePlayer);

@@ -9,7 +9,6 @@ namespace ChaosWarlords.Source.Core.Utilities
     /// </summary>
     /// <remarks>
     /// This class follows SRP by only managing Rectangle pooling.
-    /// The pool instance is managed by PoolManager for multiplayer context isolation.
     /// </remarks>
     /// <example>
     /// using var rect = PooledRectangle.Rent(10, 20, 100, 50);
@@ -18,8 +17,10 @@ namespace ChaosWarlords.Source.Core.Utilities
     /// </example>
     public sealed class PooledRectangle : IDisposable
     {
-        // Static pool for single-player/client rendering
-        // In multiplayer, use PoolManager.GetRectanglePool() for context-specific pools
+        // Single static pool - fine for today's single-process/single-match client. A
+        // multiplayer server hosting several concurrent matches would need per-context pools
+        // instead of this shared one (a PoolManager-style keyed-pool registry used to exist
+        // for exactly that, but was removed unwired/unvalidated - see planning.txt).
         private static readonly ObjectPool<PooledRectangle> _defaultPool = new ObjectPool<PooledRectangle>(64, 256);
 
         /// <summary>

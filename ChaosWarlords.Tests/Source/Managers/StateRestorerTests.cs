@@ -52,6 +52,11 @@ namespace ChaosWarlords.Tests.Source.Managers
             _node = new MapNode(1, new ChaosWarlords.Source.Core.Data.LogicVector2(0, 0));
             _mapManager.Nodes.Returns(new List<MapNode> { _node });
             _mapManager.Sites.Returns(new List<Site>());
+            // Production code now goes through IMapManager.GetNodeById(id) instead of scanning
+            // .Nodes itself - derive it from whatever .Nodes is configured to, same fix as
+            // TestGameplayState's constructor.
+            _mapManager.GetNodeById(Arg.Any<int>())
+                .Returns(ci => _mapManager.Nodes.FirstOrDefault(n => n.Id == (int)ci[0]));
 
             _marketManager = Substitute.For<IMarketManager>();
             _marketManager.MarketRow.Returns(new List<Card>());

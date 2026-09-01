@@ -52,6 +52,11 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // (empty, by default) collections so the real hit-test math runs safely.
             _mapSub.Nodes.Returns(new List<MapNode>());
             _mapSub.Sites.Returns(new List<Site>());
+            // Production code now goes through IMapManager.GetNodeById(id) instead of scanning
+            // .Nodes itself - derive it from whatever .Nodes is configured to (including the
+            // per-test override below), same fix as TestGameplayState's constructor.
+            _mapSub.GetNodeById(Arg.Any<int>())
+                .Returns(ci => _mapSub.Nodes.FirstOrDefault(n => n.Id == (int)ci[0]));
             _actionSub = Substitute.For<IActionSystem>();
             _marketSub = Substitute.For<IMarketManager>();
             _mockUI = Substitute.For<IUIManager>();

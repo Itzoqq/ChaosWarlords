@@ -66,7 +66,7 @@ namespace ChaosWarlords.Source.Managers
             // from EffectStack and how Card/Site/MapNode are re-resolved here.
             var pendingCard = dto.PendingCardId != null ? context.CardDatabase.GetCardById(dto.PendingCardId) : null;
             var pendingSite = dto.PendingSiteId is int siteId ? context.MapManager.Sites.FirstOrDefault(s => s.Id == siteId) : null;
-            var pendingMoveSource = dto.PendingMoveSourceNodeId is int nodeId ? context.MapManager.Nodes.FirstOrDefault(n => n.Id == nodeId) : null;
+            var pendingMoveSource = dto.PendingMoveSourceNodeId is int nodeId ? context.MapManager.GetNodeById(nodeId) : null;
             var pendingDevourCard = dto.PendingDevourCardId != null ? context.CardDatabase.GetCardById(dto.PendingDevourCardId) : null;
             context.ActionSystem.RestorePendingState(dto.ActionSystemState, pendingCard, pendingSite, pendingMoveSource, pendingDevourCard);
         }
@@ -137,7 +137,7 @@ namespace ChaosWarlords.Source.Managers
             {
                 foreach (var nodeDto in mapDto.Nodes)
                 {
-                    var node = mapManager.Nodes.FirstOrDefault(n => n.Id == nodeDto.Id);
+                    var node = mapManager.GetNodeById(nodeDto.Id);
                     if (node != null)
                     {
                         node.Occupant = nodeDto.Occupant;

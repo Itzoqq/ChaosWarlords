@@ -9,6 +9,7 @@ using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Managers;
 using Microsoft.Xna.Framework;
 using ChaosWarlords.Source.Core.Interfaces.Data;
+using NSubstitute;
 
 namespace ChaosWarlords.Tests.Source.Doubles.State
 {
@@ -44,6 +45,15 @@ namespace ChaosWarlords.Tests.Source.Doubles.State
         {
             // Defaults to avoid null refs if not set
             Logger = Tests.Utilities.TestLogger.Instance;
+
+            // Derive GetNodeById from whatever .Nodes a test configures on MapManager later -
+            // production code (commands, StateRestorer, DtoMapper, ActionSystem) now calls
+            // IMapManager.GetNodeById(id) instead of each doing its own Nodes.FirstOrDefault
+            // scan, so a bare Substitute.For<IMapManager>() with only .Nodes configured would
+            // otherwise return null here. The callback re-reads MapManager.Nodes on every call,
+            // so it picks up whatever a test's own [TestInitialize] configures afterward.
+            MapManager.GetNodeById(Arg.Any<int>())
+                .Returns(ci => MapManager.Nodes.FirstOrDefault(n => n.Id == (int)ci[0]));
 
             // Auto-wire MatchContext with current mocks
             // Note: If tests replace mocks later, they might need to update MatchContext or we use lazy properties

@@ -93,6 +93,8 @@ namespace ChaosWarlords.Source.Managers
         public bool HasValidPlaceSpyTarget(Player activePlayer) => _ruleEngine.HasValidPlaceSpyTarget(activePlayer);
         public bool HasValidMoveSource(Player activePlayer) => _ruleEngine.HasValidMoveSource(activePlayer);
 
+        public MapNode? GetNodeById(int id) => NodesInternal.FirstOrDefault(n => n.Id == id);
+
         public Site? GetSiteForNode(MapNode node) => _ruleEngine.GetSiteForNode(node);
         public void RecalculateSiteState(Site site, Player activePlayer) => _rewards.RecalculateSiteState(site, activePlayer);
         public void DistributeStartOfTurnRewards(Player activePlayer) => _rewards.DistributeStartOfTurnRewards(SitesInternal, activePlayer);

@@ -55,6 +55,11 @@ namespace ChaosWarlords.Tests.Systems
             // Mock Nodes and Sites collections
             _mapManager.Nodes.Returns(new List<MapNode> { _node1, _node2 });
             _mapManager.Sites.Returns(new List<Site> { _siteA });
+            // Production code now goes through IMapManager.GetNodeById(id) instead of scanning
+            // .Nodes itself - derive it from whatever .Nodes is configured to, same fix as
+            // TestGameplayState's constructor.
+            _mapManager.GetNodeById(Arg.Any<int>())
+                .Returns(ci => _mapManager.Nodes.FirstOrDefault(n => n.Id == (int)ci[0]));
 
             // Inject the mock
             var playerStateManager = Substitute.For<IPlayerStateManager>();
