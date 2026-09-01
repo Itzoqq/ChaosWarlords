@@ -35,17 +35,39 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             HandleTotalControlChange(site, activePlayer, previousTotal, newTotalControl, newOwner);
         }
 
+        // Every color a troop space can be occupied by, excluding PlayerColor.None (which
+        // means "empty," not "a competing faction"). Rulebook p.10's own worked example
+        // ("red has 2... black has 1, and there is 1 white [Neutral] troop") counts Neutral
+        // alongside every player color - this used to only count Red/Blue, which meant Black/
+        // Orange troops (3-4 player games, per PlayerColor's own 4-color range) could never
+        // win or contribute to a majority at all. See planning.txt.
+        private static readonly PlayerColor[] ControlContestingColors =
+        {
+            PlayerColor.Red, PlayerColor.Blue, PlayerColor.Black, PlayerColor.Orange, PlayerColor.Neutral
+        };
+
         private static PlayerColor CalculateSiteOwner(Site site)
         {
-            // RULE: Control is determined by TROOPS ONLY (Spies do not count for majority)
-            int redCount = site.NodesInternal.Count(n => n.Occupant == PlayerColor.Red);
-            int blueCount = site.NodesInternal.Count(n => n.Occupant == PlayerColor.Blue);
-            int neutralCount = site.NodesInternal.Count(n => n.Occupant == PlayerColor.Neutral);
+            // RULE: Control is determined by TROOPS ONLY (Spies do not count for majority).
+            // "You control a site when there are more troops of your color there than troops
+            // of any other single color" (rulebook p.10) - the single highest count, as long
+            // as no other color ties it.
+            var counts = ControlContestingColors.ToDictionary(
+                color => color,
+                color => site.NodesInternal.Count(n => n.Occupant == color));
 
-            if (redCount > blueCount && redCount > neutralCount) return PlayerColor.Red;
-            if (blueCount > redCount && blueCount > neutralCount) return PlayerColor.Blue;
+            int maxCount = counts.Values.Max();
+            if (maxCount == 0) return PlayerColor.None;
 
-            return PlayerColor.None;
+            var leaders = counts.Where(kv => kv.Value == maxCount).ToList();
+            if (leaders.Count != 1) return PlayerColor.None;
+
+            // Neutral (white/unaligned) troops only ever block a majority, same as the
+            // pre-fix Red/Blue-only version's behavior - they're not a player and can never
+            // themselves "control" a site for scoring purposes, even holding the outright
+            // majority (matches the original code never returning Neutral here either).
+            var leader = leaders[0].Key;
+            return leader == PlayerColor.Neutral ? PlayerColor.None : leader;
         }
 
         private static bool CalculateTotalControl(Site site, PlayerColor owner)

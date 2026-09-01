@@ -97,6 +97,78 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         [TestMethod]
+        public void Recalculate_AssignsOwner_ToBlackPlayer_WhenBlackHasMajority()
+        {
+            // Regression test: CalculateSiteOwner used to only count Red/Blue troops, so a
+            // Black or Orange player's troops were never counted toward majority at all -
+            // silently unreachable in 3-4 player matches (once those exist - see
+            // MatchFactory.Build's playerColors parameter). See planning.txt.
+            var black = TestData.Players.BlackPlayer();
+            _node1.Occupant = black.Color;
+            _node2.Occupant = _player1.Color; // 1 Red vs 1 Black at a 2-node site: no majority yet
+
+            var node3 = TestData.MapNodes.Node3();
+            node3.Occupant = black.Color;
+            _siteA.AddNode(node3);
+
+            _system.RecalculateSiteState(_siteA, black);
+
+            Assert.AreEqual(black.Color, _siteA.Owner, "Black should control the site with 2 troops vs Red's 1.");
+        }
+
+        [TestMethod]
+        public void Recalculate_AssignsOwner_ToOrangePlayer_WhenOrangeHasMajority()
+        {
+            var orange = TestData.Players.OrangePlayer();
+            _node1.Occupant = orange.Color;
+            _node2.Occupant = _player1.Color;
+
+            var node3 = TestData.MapNodes.Node3();
+            node3.Occupant = orange.Color;
+            _siteA.AddNode(node3);
+
+            _system.RecalculateSiteState(_siteA, orange);
+
+            Assert.AreEqual(orange.Color, _siteA.Owner, "Orange should control the site with 2 troops vs Red's 1.");
+        }
+
+        [TestMethod]
+        public void Recalculate_NoOwner_WhenFourColorsAreAllTied()
+        {
+            var black = TestData.Players.BlackPlayer();
+            var orange = TestData.Players.OrangePlayer();
+
+            _node1.Occupant = _player1.Color; // Red
+            _node2.Occupant = _player2.Color; // Blue
+            var node3 = TestData.MapNodes.Node3();
+            node3.Occupant = black.Color;
+            _siteA.AddNode(node3);
+            var node4 = TestData.MapNodes.Node4();
+            node4.Occupant = orange.Color;
+            _siteA.AddNode(node4);
+
+            _system.RecalculateSiteState(_siteA, _player1);
+
+            Assert.AreEqual(ChaosWarlords.Source.Utilities.PlayerColor.None, _siteA.Owner, "A 4-way tie should have no owner.");
+        }
+
+        [TestMethod]
+        public void Recalculate_NoOwner_WhenNeutralHoldsTheOutrightMajority()
+        {
+            // Rulebook: white/unaligned (Neutral) troops block a majority but never themselves
+            // "control" a site - matches the pre-fix behavior of never returning Neutral.
+            _node1.Occupant = ChaosWarlords.Source.Utilities.PlayerColor.Neutral;
+            _node2.Occupant = _player1.Color;
+            var node3 = TestData.MapNodes.Node3();
+            node3.Occupant = ChaosWarlords.Source.Utilities.PlayerColor.Neutral;
+            _siteA.AddNode(node3);
+
+            _system.RecalculateSiteState(_siteA, _player1);
+
+            Assert.AreEqual(ChaosWarlords.Source.Utilities.PlayerColor.None, _siteA.Owner, "Neutral holding the majority should mean no player controls the site.");
+        }
+
+        [TestMethod]
         public void DistributeRewards_City_GivesIncome()
         {
             _siteA.IsCity = true;

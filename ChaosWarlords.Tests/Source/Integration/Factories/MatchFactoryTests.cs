@@ -55,6 +55,83 @@ namespace ChaosWarlords.Tests.Integration.Factories
             Assert.AreNotEqual(p1_red.SeatIndex, p1_blue.SeatIndex);
         }
         [TestMethod]
+        public void Build_WithFourPlayerColors_CreatesAllFourPlayers()
+        {
+            // Regression test: MatchFactory used to hardcode exactly Red/Blue - no path in the
+            // codebase had ever built a 3-4 player match despite PlayerColor supporting 4 seats
+            // (rulebook p.4: 2-4 players). See planning.txt.
+            var mockDb = Substitute.For<ICardDatabase>();
+            mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
+
+            var factory = new MatchFactory(mockDb, Utilities.TestLogger.Instance);
+            var replayManagerMock = Substitute.For<IReplayManager>();
+            var colors = new[] { PlayerColor.Red, PlayerColor.Blue, PlayerColor.Black, PlayerColor.Orange };
+
+            var world = factory.Build(replayManagerMock, seed: 555, playerColors: colors);
+
+            Assert.HasCount(4, world.TurnManager.Players);
+            for (int i = 0; i < colors.Length; i++)
+            {
+                var player = world.TurnManager.Players.Single(p => p.Color == colors[i]);
+                Assert.AreEqual(i, player.SeatIndex);
+            }
+        }
+
+        [TestMethod]
+        public void Build_WithThreePlayerColors_CreatesAllThreePlayers()
+        {
+            var mockDb = Substitute.For<ICardDatabase>();
+            mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
+
+            var factory = new MatchFactory(mockDb, Utilities.TestLogger.Instance);
+            var replayManagerMock = Substitute.For<IReplayManager>();
+            var colors = new[] { PlayerColor.Red, PlayerColor.Blue, PlayerColor.Black };
+
+            var world = factory.Build(replayManagerMock, seed: 555, playerColors: colors);
+
+            Assert.HasCount(3, world.TurnManager.Players);
+        }
+
+        [TestMethod]
+        public void Build_WithoutPlayerColors_DefaultsToRedBlue_UnchangedFromBefore()
+        {
+            var mockDb = Substitute.For<ICardDatabase>();
+            mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
+
+            var factory = new MatchFactory(mockDb, Utilities.TestLogger.Instance);
+            var replayManagerMock = Substitute.For<IReplayManager>();
+
+            var world = factory.Build(replayManagerMock, seed: 555);
+
+            Assert.HasCount(2, world.TurnManager.Players);
+            Assert.IsTrue(world.TurnManager.Players.Any(p => p.Color == PlayerColor.Red));
+            Assert.IsTrue(world.TurnManager.Players.Any(p => p.Color == PlayerColor.Blue));
+        }
+
+        [TestMethod]
+        public void Build_WithOnePlayerColor_ThrowsArgumentException()
+        {
+            var mockDb = Substitute.For<ICardDatabase>();
+            var factory = new MatchFactory(mockDb, Utilities.TestLogger.Instance);
+            var replayManagerMock = Substitute.For<IReplayManager>();
+
+            Assert.ThrowsExactly<ArgumentException>(() =>
+                factory.Build(replayManagerMock, playerColors: new[] { PlayerColor.Red }));
+        }
+
+        [TestMethod]
+        public void Build_WithFivePlayerColors_ThrowsArgumentException()
+        {
+            var mockDb = Substitute.For<ICardDatabase>();
+            var factory = new MatchFactory(mockDb, Utilities.TestLogger.Instance);
+            var replayManagerMock = Substitute.For<IReplayManager>();
+            var colors = new[] { PlayerColor.Red, PlayerColor.Blue, PlayerColor.Black, PlayerColor.Orange, PlayerColor.Red };
+
+            Assert.ThrowsExactly<ArgumentException>(() =>
+                factory.Build(replayManagerMock, playerColors: colors));
+        }
+
+        [TestMethod]
         public void ApplyScenarioRules_AddsSpies_ToCityOfGold()
         {
             // Arrange
