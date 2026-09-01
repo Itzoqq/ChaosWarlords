@@ -139,38 +139,8 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             _actionSystem.SetPendingCard(nextEffect.SourceCard);
             bool isOptional = nextEffect.SourceEffect?.IsOptional == true;
 
-            // A mandatory (non-optional) Devour effect needs its strategy's own Execute()
-            // called, not just a bare state change - SetupTargetingForRequiredEffect only
-            // sets CurrentState, but Devour(Market) also needs
-            // IMarketStateManager.OpenForDevour called (the UI's market picker never opens
-            // otherwise), and Devour(Self) needs to resolve immediately (no real target to
-            // pick - DevourStrategy.GetTargetingState even returns ActionState.Normal for it,
-            // not a real targeting state). The optional case already reaches the identical
-            // DevourStrategyFactory call via HandleOptionalEffectAccepted below; this is the
-            // same call for the MANDATORY case (e.g. Carrion Crawler's Devour(Market) - found
-            // to be completely unplayable without this, the market never opened; Insane
-            // Outcast's own "discard -> devour self" chain), which would otherwise sit in
-            // "waiting for input" forever with nothing to click. For Market/Hand/InnerCircle,
-            // strategy.Execute() itself calls StartTargeting (and, for Market, opens the
-            // market) and the pushed EffectContext stays on the stack, resolved later by
-            // whatever command the eventual click produces calling CompleteAction() - the
-            // onComplete callback here only matters for Self, which resolves synchronously
-            // with no click at all.
-            if (!isOptional && nextEffect.SourceEffect?.Type == EffectType.Devour)
+            if (!isOptional && TryHandleSpecialMandatoryEffect(nextEffect))
             {
-                var strategy = Mechanics.Rules.DevourStrategyFactory.GetStrategy(nextEffect.SourceEffect.TargetLocation);
-                strategy.Execute(nextEffect.SourceCard, _matchContext!, _logger, () => ResolveCurrentEffect(true), false);
-                return;
-            }
-
-            // Same shape, for "play a market card as if in hand" (Ulitharid): needs
-            // IMarketStateManager.OpenForDevour called too, so it can't rely on a bare state
-            // change either. Always needs a click (which market card), so - like Market/Hand/
-            // InnerCircle Devour above - no onComplete callback here; the pushed EffectContext
-            // stays on the stack until the eventual PlayFromMarketCommand calls CompleteAction().
-            if (!isOptional && nextEffect.SourceEffect?.Type == EffectType.PlayFromMarket)
-            {
-                _actionSystem.TryStartPlayFromMarket(nextEffect.SourceCard, nextEffect.SourceEffect.Amount);
                 return;
             }
 
@@ -192,6 +162,51 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             }
 
             _logger.Log($"ActionExecutionEngine: Waiting for input for {nextEffect.EffectType}...", LogChannel.Input);
+        }
+
+        /// <summary>
+        /// Some MANDATORY (non-optional) targeting effects need more than a bare CurrentState
+        /// change to actually start - SetupTargetingForRequiredEffect alone only sets state and
+        /// does nothing else. Devour (any location) needs its strategy's own Execute() called:
+        /// Devour(Market) needs IMarketStateManager.OpenForDevour called (the market picker
+        /// never opens otherwise), and Devour(Self) needs to resolve immediately (no real
+        /// target to pick - DevourStrategy.GetTargetingState even returns ActionState.Normal
+        /// for it, not a real targeting state). PlayFromMarket ("play a market card as if in
+        /// hand", e.g. Ulitharid) needs the same market UI opened. Both used to be copy-pasted
+        /// inline branches here - found via Carrion Crawler's Devour(Market), which was
+        /// completely unplayable without this (the market never opened; every existing test
+        /// bypassed PlayCardCommand and called ActionSystem.TryStartDevourMarket directly, so
+        /// nothing caught it - see planning.txt RESOLVED). ANY NEW EffectType with this same
+        /// shape needs its own case added here too (the optional case reaches the identical
+        /// DevourStrategyFactory call via HandleOptionalEffectAccepted below independently).
+        /// </summary>
+        /// <returns>True if this effect was fully handled by a special case (the caller should
+        /// stop processing it); false if it should fall through to the generic targeting
+        /// path.</returns>
+        private bool TryHandleSpecialMandatoryEffect(Core.Contexts.EffectContext nextEffect)
+        {
+            switch (nextEffect.SourceEffect?.Type)
+            {
+                case EffectType.Devour:
+                    // strategy.Execute() itself calls StartTargeting (and, for Market, opens
+                    // the market) and the pushed EffectContext stays on the stack, resolved
+                    // later by whatever command the eventual click produces calling
+                    // CompleteAction() - the onComplete callback here only matters for Self,
+                    // which resolves synchronously with no click at all.
+                    var strategy = Mechanics.Rules.DevourStrategyFactory.GetStrategy(nextEffect.SourceEffect.TargetLocation);
+                    strategy.Execute(nextEffect.SourceCard, _matchContext!, _logger, () => ResolveCurrentEffect(true), false);
+                    return true;
+
+                case EffectType.PlayFromMarket:
+                    // Always needs a click (which market card), so - like Devour above - no
+                    // onComplete callback here; the pushed EffectContext stays on the stack
+                    // until the eventual PlayFromMarketCommand calls CompleteAction().
+                    _actionSystem.TryStartPlayFromMarket(nextEffect.SourceCard, nextEffect.SourceEffect.Amount);
+                    return true;
+
+                default:
+                    return false;
+            }
         }
 
         /// <summary>
