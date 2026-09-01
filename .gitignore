@@ -39,6 +39,7 @@ session_log.txt
 
 # --- Planning File ---
 planning.txt
+RESOLVED.txt
 
 # --- Extracted OG Cards ---
 extracted_og_cards/
