@@ -136,8 +136,9 @@ namespace ChaosWarlords.Source.Managers
 
         private SupplantCommand? HandleSupplant(MapNode targetNode, string? cardId, string? devourCardId)
         {
+            // Empty barracks doesn't block Supplant - the deploy half grants 1 VP instead
+            // (rulebook p.12/22). See SupplantCommand.Validate/ActionSystem.CanStartSupplant.
             if (!_mapManager.CanAssassinate(targetNode, ActivePlayer())) return null;
-            if (ActivePlayer().TroopsInBarracks <= 0) return null;
 
             return new SupplantCommand(targetNode.Id, cardId, devourCardId);
         }

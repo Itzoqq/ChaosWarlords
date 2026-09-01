@@ -31,13 +31,14 @@ namespace ChaosWarlords.Source.Commands
         public bool Validate(MatchContext context)
         {
             // Supplant = Assassinate + Deploy: "Recall an enemy troop, then place one of your
-            // troops at that site." Mirrors ActionInputController.HandleSupplant's checks so a
-            // directly-dispatched command can't grant a supplant with no troop to place.
+            // troops at that site." Mirrors ActionInputController.HandleSupplant's checks. An
+            // empty barracks doesn't invalidate the command - the deploy half grants 1 VP
+            // instead (rulebook p.12/22), handled by MapManager.Supplant/ExecuteSupplant -
+            // only the assassinate half's target requirement gates this.
             var node = context.MapManager.Nodes.FirstOrDefault(n => n.Id == TargetNodeId);
             var player = context.TurnManager.ActivePlayer;
 
             if (node == null) return false;
-            if (player.TroopsInBarracks <= 0) return false;
 
             return context.MapManager.CanAssassinate(node, player);
         }

@@ -403,8 +403,11 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         [TestMethod]
-        public void HandleTargetClick_Supplant_Fails_IfNoTroopsInBarracks()
+        public void HandleTargetClick_Supplant_Succeeds_IfNoTroopsInBarracks()
         {
+            // Rulebook p.12/22 ("Deploy a Troop," cross-referenced by "Supplant a Troop,"
+            // p.14): an empty barracks doesn't block Supplant - the assassinate half still
+            // happens and the deploy half grants 1 VP instead of failing outright.
             // Arrange
             _actionSystem.StartTargeting(ActionState.TargetingSupplant);
             _player1.TroopsInBarracks = 0;
@@ -415,8 +418,8 @@ namespace ChaosWarlords.Tests.Systems
             ExecuteIfNotNull(cmd);
 
             // Assert
-            Assert.IsFalse(_eventCompletedFired);
-            _mapManager.DidNotReceive().Supplant(Arg.Any<MapNode>(), Arg.Any<Player>());
+            Assert.IsTrue(_eventCompletedFired);
+            _mapManager.Received(1).Supplant(_node2, _player1);
         }
 
         [TestMethod]

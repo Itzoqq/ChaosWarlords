@@ -144,29 +144,37 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
 
 
         [TestMethod]
-        public void PlayWight_WithNoTroopsInBarracks_ShouldSkipPopup()
+        public void PlayWight_WithNoTroopsInBarracks_StillRequestsPopup()
         {
+            // Rulebook p.12/22 ("Deploy a Troop," cross-referenced by "Supplant a Troop,"
+            // p.14): an empty barracks doesn't make Supplant impossible - the assassinate
+            // half is still legal and the deploy half grants 1 VP instead of placing a
+            // troop, so the Devour->Supplant alternative is still available; it should NOT
+            // fall back to the +2 Power alternative.
             // Valid Target situation
             _nodeA.Occupant = PlayerColor.Red;
             _nodeB.Occupant = PlayerColor.Blue;
-            
-            // BUT No troops in barracks
+
+            // No troops in barracks - Supplant is still legal (grants 1 VP instead of deploying)
             _p1.TroopsInBarracks = 0;
 
             var wight = GetWightCard();
             var noble = new Card("noble", "Noble", 3, CardAspect.Blasphemy, 1, 1, 0);
-            
+
             _p1.AddToHand(wight);
             _p1.AddToHand(noble);
 
             bool popupRequested = false;
-            _actionSystem.OnInteractionRequested += req => popupRequested = true;
+            _actionSystem.OnInteractionRequested += req =>
+            {
+                popupRequested = true;
+                req.OnResponse(false); // Decline
+            };
 
             var command = new PlayCardCommand(wight);
             command.Execute(_context);
 
-            Assert.IsFalse(popupRequested, "Optional Effect Popup should be SKIPPED when NO troops in barracks (Supplant impossible).");
-            Assert.AreEqual(2, _p1.Power, "Choose-one: with the Devour->Supplant half impossible, the +2 Power Alternative should fire instead - not silently nothing.");
+            Assert.IsTrue(popupRequested, "Optional Effect Popup should still be requested - Supplant remains legal with an empty barracks.");
         }
 
         [TestMethod]

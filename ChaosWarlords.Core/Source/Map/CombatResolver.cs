@@ -153,17 +153,26 @@ namespace ChaosWarlords.Source.Map
             {
                 attacker.PendingFreeTroops--;
                 _logger.Log($"Supplanted with FREE troop from card effect. Remaining free: {attacker.PendingFreeTroops}", LogChannel.Combat);
+                node.Occupant = attacker.Color;
             }
             // Priority 2: Use barracks troops (also free for Supplant)
-            else
+            else if (attacker.TroopsInBarracks > 0)
             {
                 _stateManager.RemoveTroops(attacker, 1);
                 _logger.Log($"Supplanted with troop from barracks (FREE as part of Supplant action). Supply: {attacker.TroopsInBarracks}", LogChannel.Combat);
+                node.Occupant = attacker.Color;
+            }
+            // Priority 3: Barracks empty - rulebook p.12/22 ("Deploy a Troop," cross-
+            // referenced by "Supplant a Troop," p.14): gain 1 VP instead of the deploy
+            // half. The assassinate half already happened above; the vacated space stays
+            // empty (node.Occupant is already PlayerColor.None from above).
+            else
+            {
+                _stateManager.AddVictoryPoints(attacker, 1);
+                _logger.Log($"{attacker.DisplayName}'s barracks is empty - gained 1 VP instead of the Supplant deploy.", LogChannel.General);
             }
 
-            node.Occupant = attacker.Color;
-
-            _logger.Log($"Supplanted enemy at Node {node.Id} (Added to Trophy Hall) and Deployed.", LogChannel.Combat);
+            _logger.Log($"Supplanted enemy at Node {node.Id} (Added to Trophy Hall).", LogChannel.Combat);
             _recalculateSiteState(_getSiteForNode(node), attacker);
         }
     }

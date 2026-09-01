@@ -51,10 +51,12 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         }
 
         [TestMethod]
-        public void Validate_Returns_False_When_NoTroopsInBarracks()
+        public void Validate_Returns_True_When_NoTroopsInBarracks()
         {
-            // Arrange: Supplant = Assassinate + Deploy - with no troop to deploy there is nothing
-            // left to place after the recall, regardless of whether the assassinate half is legal.
+            // Arrange: Supplant = Assassinate + Deploy - rulebook p.12/22's "gain 1 VP
+            // instead" clause (cross-referenced by "Supplant a Troop," p.14) means an empty
+            // barracks doesn't invalidate the command; the assassinate half still happens
+            // and the deploy half grants 1 VP instead of placing a troop.
             var player = TestData.Players.PoorPlayer(); // 0 troops in barracks
             _state.TurnManager.ActivePlayer.Returns(player);
             _state.MapManager.CanAssassinate(_targetNode, player).Returns(true);
@@ -65,7 +67,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var result = command.Validate(_state.MatchContext);
 
             // Assert
-            Assert.IsFalse(result, "Should reject a supplant with no troop left to deploy");
+            Assert.IsTrue(result, "Should accept a supplant with no troops in barracks - deploy half grants 1 VP instead");
         }
 
         [TestMethod]

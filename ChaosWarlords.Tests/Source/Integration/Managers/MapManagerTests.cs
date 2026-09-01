@@ -87,7 +87,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
 
         [TestMethod]
         [DataRow(0, 1, false, PlayerColor.None, 1)] // No power - validation fails, troop NOT consumed
-        [DataRow(1, 0, false, PlayerColor.None, 0)]  // No troops - validation fails, remains 0
+        [DataRow(1, 0, true, PlayerColor.None, 0)]  // No troops - rulebook p.12/22: gain 1 VP instead (see TryDeploy_WithEmptyBarracks_GrantsVPInstead below)
         [DataRow(1, 1, true, PlayerColor.Red, 0)]    // Valid conditions - troop consumed
         public void TryDeploy_ValidatesRequirements(
             int playerPower,
@@ -164,6 +164,41 @@ namespace ChaosWarlords.Tests.Integration.Managers
             Assert.AreEqual(0, testPlayer.PendingFreeTroops, "Free troop should be consumed.");
             Assert.AreEqual(0, testPlayer.Power, "Power should remain 0.");
             Assert.AreEqual(5, testPlayer.TroopsInBarracks, "Barracks troops should NOT be consumed.");
+        }
+
+        [TestMethod]
+        public void TryDeploy_WithEmptyBarracks_GrantsVPInstead()
+        {
+            // Rulebook p.12/22: "Each time you take this [Deploy] action while you have no
+            // troops remaining in your barracks, gain 1 VP instead." No troop is placed, but
+            // the action still succeeds and still costs 1 Power (it's the same action, just
+            // a different outcome) since we're outside Setup and have no PendingFreeTroops.
+
+            // Arrange
+            var testPlayer = TestData.Players.PoorPlayer();
+            testPlayer.AddPower(1);
+            testPlayer.TroopsInBarracks = 0;
+            int initialVP = testPlayer.VictoryPoints;
+
+            var testNode1 = TestData.MapNodes.Node1();
+            var testNode2 = TestData.MapNodes.Node2();
+            testNode1.Occupant = testPlayer.Color; // Establish presence
+
+            var testNodes = new List<MapNode> { testNode1, testNode2 };
+            testNode1.AddNeighbor(testNode2);
+            testNode2.AddNeighbor(testNode1);
+
+            var testManager = new MapManager(testNodes, new List<Site>(), _turnManager, Utilities.TestLogger.Instance, _stateManager);
+            testManager.SetPhase(MatchPhase.Playing);
+
+            // Act
+            bool result = testManager.TryDeploy(testPlayer, testNode2);
+
+            // Assert
+            Assert.IsTrue(result, "Deploy should succeed (as a VP grant) even with an empty barracks.");
+            Assert.AreEqual(PlayerColor.None, testNode2.Occupant, "No troop should be placed - barracks was empty.");
+            Assert.AreEqual(initialVP + 1, testPlayer.VictoryPoints, "Should gain 1 VP instead of deploying.");
+            Assert.AreEqual(0, testPlayer.Power, "Power should still be spent for the action.");
         }
 
         #region 2. Assassination Actions (State Mutation)

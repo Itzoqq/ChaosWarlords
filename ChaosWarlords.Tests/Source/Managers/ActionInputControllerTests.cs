@@ -195,8 +195,11 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         [TestMethod]
-        public void HandleTargetClick_TargetingSupplant_NoTroopsInBarracks_ReturnsNull()
+        public void HandleTargetClick_TargetingSupplant_NoTroopsInBarracks_ReturnsSupplantCommand()
         {
+            // Rulebook p.12/22 ("Deploy a Troop," cross-referenced by "Supplant a Troop,"
+            // p.14): an empty barracks doesn't block Supplant - the deploy half grants 1 VP
+            // instead of placing a troop, so the command still goes through.
             _actionSystem.CurrentState.Returns(ActionState.TargetingSupplant);
             var node = Node();
             _mapManager.CanAssassinate(node, _player).Returns(true);
@@ -204,7 +207,8 @@ namespace ChaosWarlords.Tests.Source.Managers
 
             var result = _controller.HandleTargetClick(node, null);
 
-            Assert.IsNull(result);
+            Assert.IsNotNull(result);
+            Assert.IsInstanceOfType(result, typeof(SupplantCommand));
         }
 
         [TestMethod]

@@ -555,14 +555,10 @@ namespace ChaosWarlords.Source.Managers
 
         private bool CanStartSupplant(Card sourceCard, out string? failureReason)
         {
+            // Empty barracks doesn't block Supplant - the deploy half grants 1 VP instead
+            // (rulebook p.12/22, same as the plain Deploy action). Only the assassinate
+            // half's target requirement gates this.
             bool canAssassinate = _mapManager.HasValidAssassinationTarget(CurrentPlayer);
-            bool hasTroops = CurrentPlayer.TroopsInBarracks > 0;
-
-            if (!hasTroops)
-            {
-                failureReason = "Cannot Supplant (No Troops in Barracks).";
-                return false;
-            }
 
             if (!canAssassinate)
             {

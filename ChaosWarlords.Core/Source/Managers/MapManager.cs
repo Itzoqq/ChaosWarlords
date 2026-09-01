@@ -126,6 +126,25 @@ namespace ChaosWarlords.Source.Managers
                 return false;
             }
 
+            // Rulebook p.12/22: "Each time you take this action while you have no
+            // troops remaining in your barracks, gain 1 VP instead." Doesn't apply to
+            // card-granted free deploys (PendingFreeTroops) - those still place a troop
+            // as normal, matching CombatResolver.ExecuteDeploy's own priority order.
+            if (currentPlayer.TroopsInBarracks <= 0 && currentPlayer.PendingFreeTroops <= 0)
+            {
+                // Setup phase deploys are always free and can't reach an empty barracks
+                // (each player only places 1 of their 10+ starting troops), but guard it
+                // the same way CombatResolver.ExecuteDeploy's real-troop branch does.
+                if (CurrentPhase != MatchPhase.Setup)
+                {
+                    _playerStateManager.TrySpendPower(currentPlayer, GameConstants.DeployPowerCost);
+                }
+
+                _playerStateManager.AddVictoryPoints(currentPlayer, 1);
+                _logger.Log($"{currentPlayer.DisplayName}'s barracks is empty - gained 1 VP instead of deploying.", LogChannel.General);
+                return true;
+            }
+
             // Step 3: Execution (Delegated to CombatResolver)
             _combat.ExecuteDeploy(targetNode, currentPlayer);
 
@@ -143,12 +162,8 @@ namespace ChaosWarlords.Source.Managers
                 return false;
             }
 
-            // Step 2: Resource Checks (Business Logic)
-            if (currentPlayer.TroopsInBarracks <= 0)
-            {
-                _logger.Log($"Cannot Deploy at {targetNode.Id}: Barracks Empty! (Troops: {currentPlayer.TroopsInBarracks})", LogChannel.Error);
-                return false;
-            }
+            // NOTE: an empty barracks (with no PendingFreeTroops) is NOT a validation
+            // failure - see TryDeploy's "gain 1 VP instead" branch above.
 
             // Power Check skipped in Setup Phase OR if we have free (pending) troops from cards
             bool costBypassed = CurrentPhase == MatchPhase.Setup || currentPlayer.PendingFreeTroops > 0;

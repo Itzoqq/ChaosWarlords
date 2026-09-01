@@ -140,14 +140,17 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules.Strategies
         }
 
         [TestMethod]
-        public void SupplantStrategy_HasValidTargets_NoTroopsInBarracks_ReturnsFalse()
+        public void SupplantStrategy_HasValidTargets_NoTroopsInBarracks_ReturnsTrue()
         {
+            // Rulebook p.12/22 ("Deploy a Troop," cross-referenced by "Supplant a Troop,"
+            // p.14): an empty barracks doesn't block Supplant - the deploy half grants 1 VP
+            // instead, so only the assassinate half's target requirement gates this.
             var mapManager = Substitute.For<IMapManager>();
             var player = new PlayerBuilder().WithTroops(0).Build();
             mapManager.HasValidAssassinationTarget(player).Returns(true);
             var context = new MatchContextBuilder().WithMapManager(mapManager).Build();
 
-            Assert.IsFalse(new SupplantStrategy().HasValidTargets(context, player, null));
+            Assert.IsTrue(new SupplantStrategy().HasValidTargets(context, player, null));
         }
 
         [TestMethod]

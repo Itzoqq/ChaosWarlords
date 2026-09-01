@@ -20,8 +20,10 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Strategies
 
         public bool HasValidTargets(MatchContext context, Player player, Card? sourceCard)
         {
-            // Supplant requires Assassinate target + placing troop
-            return player.TroopsInBarracks > 0 && context.MapManager.HasValidAssassinationTarget(player);
+            // Supplant = Assassinate + Deploy. An empty barracks doesn't block it - the
+            // deploy half grants 1 VP instead (rulebook p.12/22, same as the plain Deploy
+            // action), so only the assassinate half's target requirement gates this.
+            return context.MapManager.HasValidAssassinationTarget(player);
         }
     }
 }
