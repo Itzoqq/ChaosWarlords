@@ -73,13 +73,25 @@ namespace ChaosWarlords.Tests.Source.Functional
             scenario.PlayCard(insaneOutcast);
             Assert.AreEqual(ActionState.TargetingDiscard, scenario.Context.ActionSystem.CurrentState);
 
-            long sequenceBefore = scenario.Context.SequenceNumber;
             var forgedCommand = new DiscardCardCommand(red.Color, "card_that_does_not_exist");
-            scenario.Dispatch(forgedCommand);
+            scenario.AssertRejected(forgedCommand);
 
             Assert.Contains(noble, red.Hand, "The real hand card must be untouched.");
-            Assert.AreEqual(sequenceBefore, scenario.Context.SequenceNumber, "A rejected command must not advance SequenceNumber.");
             Assert.AreEqual(ActionState.TargetingDiscard, scenario.Context.ActionSystem.CurrentState, "Still waiting for a real discard.");
+        }
+
+        [TestMethod]
+        public void PlayInsaneOutcastCommand_DispatchedTwice_SecondDispatchIsRejected()
+        {
+            // TIER 1 matrix row 7 (double-dispatch/replay - see planning.txt section 6.C.2).
+            var scenario = MatchScenario.Build();
+            scenario.AsActivePlayer(PlayerColor.Red);
+            var insaneOutcast = scenario.GiveCard(PlayerColor.Red, "insane_outcast");
+            scenario.GiveCard(PlayerColor.Red, "core_noble"); // Something to discard.
+
+            scenario.DispatchTwice(new PlayCardCommand(insaneOutcast));
+
+            Assert.AreEqual(ActionState.TargetingDiscard, scenario.Context.ActionSystem.CurrentState, "Should still be waiting for exactly the one discard the first play triggered.");
         }
     }
 }

@@ -78,17 +78,31 @@ namespace ChaosWarlords.Tests.Source.Functional
             // must be rejected by Validate(), with no state mutated at all - this is the exact
             // shape an untrusted client sending a forged command would produce.
             var scenario = MatchScenario.Build();
-            var red = scenario.AsActivePlayer(PlayerColor.Red);
+            scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
 
             var wight = scenario.GiveCard(PlayerColor.Blue, "wight"); // Belongs to Blue, not the active player.
-            long sequenceBefore = scenario.Context.SequenceNumber;
 
-            scenario.PlayCard(wight);
+            scenario.AssertRejected(new PlayCardCommand(wight));
 
-            Assert.IsTrue(blue.Hand.Contains(wight), "Wight should still be in Blue's hand - the command must not have executed.");
-            Assert.AreEqual(0, red.Power, "No effect should have resolved for anyone.");
-            Assert.AreEqual(sequenceBefore, scenario.Context.SequenceNumber, "A rejected command must not advance SequenceNumber.");
+            Assert.Contains(wight, blue.Hand, "Wight should still be in Blue's hand - the command must not have executed.");
+        }
+
+        [TestMethod]
+        public void PlayWightCommand_DispatchedTwice_SecondDispatchIsRejected()
+        {
+            // TIER 1 matrix row 7 (double-dispatch/replay - see planning.txt section 6.C.2,
+            // verified ZERO coverage anywhere in the suite before this audit): re-sending the
+            // exact same PlayCardCommand after it already resolved once must not play Wight a
+            // second time - PlayCardCommand.Validate() re-resolves the card from the active
+            // player's LIVE hand, and Wight already left it after the first dispatch.
+            var scenario = MatchScenario.Build();
+            var red = scenario.AsActivePlayer(PlayerColor.Red);
+            var wight = scenario.GiveCard(PlayerColor.Red, "wight"); // Only card in hand - Alternative fires immediately.
+
+            scenario.DispatchTwice(new PlayCardCommand(wight));
+
+            Assert.AreEqual(2, red.Power, "The Power Alternative should have fired exactly once, not twice.");
         }
     }
 }

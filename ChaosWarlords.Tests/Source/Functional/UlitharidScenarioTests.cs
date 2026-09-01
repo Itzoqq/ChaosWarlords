@@ -61,13 +61,27 @@ namespace ChaosWarlords.Tests.Source.Functional
             scenario.PlayCard(ulitharid);
             Assert.AreEqual(ActionState.TargetingPlayFromMarket, scenario.Context.ActionSystem.CurrentState);
 
-            long sequenceBefore = scenario.Context.SequenceNumber;
             var forgedCommand = new PlayFromMarketCommand(neogi, ulitharid);
-            scenario.Dispatch(forgedCommand);
+            scenario.AssertRejected(forgedCommand);
 
-            Assert.AreEqual(sequenceBefore, scenario.Context.SequenceNumber, "A rejected command must not advance SequenceNumber.");
             Assert.Contains(neogi, scenario.Context.MarketManager.MarketRow, "The over-cost market card must remain untouched.");
             Assert.AreEqual(ActionState.TargetingPlayFromMarket, scenario.Context.ActionSystem.CurrentState, "Still waiting for a real, valid selection.");
+        }
+
+        [TestMethod]
+        public void PlayUlitharidCommand_DispatchedTwice_SecondDispatchIsRejected()
+        {
+            // TIER 1 matrix row 7 (double-dispatch/replay - see planning.txt section 6.C.2).
+            var scenario = MatchScenario.Build();
+            scenario.AsActivePlayer(PlayerColor.Red);
+            var ulitharid = scenario.GiveCard(PlayerColor.Red, "ulitharid");
+            var houseGuard = scenario.CardDatabase.GetCardById("core_house_guard", scenario.Context.Random)!;
+            houseGuard.Location = CardLocation.Market;
+            scenario.Context.MarketManager.MarketRow.Add(houseGuard); // Guarantees a valid target - cost 3 <= 4.
+
+            scenario.DispatchTwice(new PlayCardCommand(ulitharid));
+
+            Assert.AreEqual(ActionState.TargetingPlayFromMarket, scenario.Context.ActionSystem.CurrentState, "Should still be waiting for exactly the one market-card selection the first play triggered.");
         }
     }
 }

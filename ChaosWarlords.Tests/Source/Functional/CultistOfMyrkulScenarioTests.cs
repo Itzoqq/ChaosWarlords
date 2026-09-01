@@ -1,3 +1,4 @@
+using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Tests.Source.Functional
@@ -58,14 +59,25 @@ namespace ChaosWarlords.Tests.Source.Functional
             var blue = scenario.Player(PlayerColor.Blue);
 
             var cultist = scenario.GiveCard(PlayerColor.Blue, "cultist_of_myrkul"); // Belongs to Blue, not the active player.
-            long sequenceBefore = scenario.Context.SequenceNumber;
 
-            scenario.PlayCard(cultist);
+            scenario.AssertRejected(new PlayCardCommand(cultist));
 
             Assert.Contains(cultist, blue.Hand, "Cultist should still be in Blue's hand - the command must not have executed.");
             Assert.IsEmpty(scenario.Interactions, "No popup should have been raised for a rejected command.");
             Assert.AreEqual(0, red.Influence);
-            Assert.AreEqual(sequenceBefore, scenario.Context.SequenceNumber, "A rejected command must not advance SequenceNumber.");
+        }
+
+        [TestMethod]
+        public void PlayCultistCommand_DispatchedTwice_SecondDispatchIsRejected()
+        {
+            // TIER 1 matrix row 7 (double-dispatch/replay - see planning.txt section 6.C.2).
+            var scenario = MatchScenario.Build();
+            var red = scenario.AsActivePlayer(PlayerColor.Red);
+            var cultist = scenario.GiveCard(PlayerColor.Red, "cultist_of_myrkul");
+
+            scenario.DispatchTwice(new PlayCardCommand(cultist));
+
+            Assert.HasCount(1, scenario.Interactions, "The Choose-one popup should have been raised exactly once, not twice.");
         }
     }
 }

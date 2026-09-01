@@ -95,13 +95,25 @@ namespace ChaosWarlords.Tests.Source.Functional
             scenario.Dispatch(new EndTurnCommand());
             Assert.AreEqual(ActionState.TargetingDiscard, scenario.Context.ActionSystem.CurrentState);
 
-            long sequenceBefore = scenario.Context.SequenceNumber;
-            scenario.Dispatch(new DiscardCardCommand(blue.Color, "card_that_does_not_exist"));
+            scenario.AssertRejected(new DiscardCardCommand(blue.Color, "card_that_does_not_exist"));
 
             Assert.Contains(blueCard, blue.Hand, "The real hand card must be untouched.");
-            Assert.AreEqual(sequenceBefore, scenario.Context.SequenceNumber, "A rejected command must not advance SequenceNumber.");
             Assert.IsTrue(scenario.Context.MatchManager.IsResolvingOpponentDiscard, "Still mid-sequence, waiting for a real discard.");
             Assert.AreEqual(blue, scenario.Context.ActivePlayer, "ForcedActingPlayer override must not have been cleared by the rejected command.");
+        }
+
+        [TestMethod]
+        public void PlayNeogiCommand_DispatchedTwice_SecondDispatchIsRejected()
+        {
+            // TIER 1 matrix row 7 (double-dispatch/replay - see planning.txt section 6.C.2).
+            var scenario = MatchScenario.Build();
+            var red = scenario.AsActivePlayer(PlayerColor.Red);
+            var neogi = scenario.GiveCard(PlayerColor.Red, "neogi");
+
+            scenario.DispatchTwice(new PlayCardCommand(neogi));
+
+            Assert.AreEqual(4, red.PendingFreeTroops, "Deploy 4 troops should have applied exactly once, not twice.");
+            Assert.HasCount(1, scenario.Context.PendingOpponentDiscardTriggers, "Only one Neogi's worth of forced-discard should be pending.");
         }
     }
 }

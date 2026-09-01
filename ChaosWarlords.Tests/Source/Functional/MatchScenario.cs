@@ -10,6 +10,7 @@ using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Factories;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -205,6 +206,57 @@ namespace ChaosWarlords.Tests.Source.Functional
                 throw new InvalidOperationException("No interaction has been requested yet.");
             }
             Interactions[^1].OnResponse(accept);
+        }
+
+        /// <summary>
+        /// Dispatches <paramref name="command"/> and asserts it was REJECTED - SequenceNumber
+        /// and GetStateHash() must both be unchanged from immediately before the dispatch.
+        /// The standard adversarial-scenario assertion (see planning.txt TIER 1/section 2's
+        /// testing policy): wrong player, a stale/nonexistent target, insufficient resources,
+        /// or a replayed command should all fail this way - Validate() rejects, nothing
+        /// mutates, SequenceNumber doesn't advance. Use this instead of hand-rolling the same
+        /// "capture before, dispatch, assert unchanged" boilerplate per test.
+        /// </summary>
+        public void AssertRejected(IGameCommand command, string? because = null)
+        {
+            long sequenceBefore = Context.SequenceNumber;
+            string hashBefore = Context.GetStateHash();
+
+            Dispatch(command);
+
+            Assert.AreEqual(
+                sequenceBefore, Context.SequenceNumber,
+                because ?? "A rejected command must not advance SequenceNumber.");
+            Assert.AreEqual(
+                hashBefore, Context.GetStateHash(),
+                because ?? "A rejected command must not change any game state.");
+        }
+
+        /// <summary>
+        /// Dispatches <paramref name="command"/> once (the caller is expected to assert its
+        /// own effects happened as usual after this call returns), then dispatches the SAME
+        /// command instance again immediately - a stale/replayed command re-sent after it
+        /// already resolved. Asserts the SECOND dispatch changed nothing further
+        /// (SequenceNumber/state hash both frozen at their post-first-dispatch values) - the
+        /// double-spend/replay scenario planning.txt's testing policy requires every card to
+        /// guard against (see section 6.C.2 - this was ZERO-coverage anywhere in the suite
+        /// before TIER 1's audit).
+        /// </summary>
+        public void DispatchTwice(IGameCommand command)
+        {
+            Dispatch(command);
+
+            long sequenceAfterFirst = Context.SequenceNumber;
+            string hashAfterFirst = Context.GetStateHash();
+
+            Dispatch(command);
+
+            Assert.AreEqual(
+                sequenceAfterFirst, Context.SequenceNumber,
+                "Re-dispatching an already-resolved command must not advance SequenceNumber a second time.");
+            Assert.AreEqual(
+                hashAfterFirst, Context.GetStateHash(),
+                "Re-dispatching an already-resolved command must not mutate state a second time.");
         }
     }
 }

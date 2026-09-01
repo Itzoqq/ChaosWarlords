@@ -84,11 +84,21 @@ namespace ChaosWarlords.Tests.Source.Functional
             // sitting in TargetingReturnOwnSpy waiting for an impossible click.
             Assert.AreEqual(ActionState.Normal, scenario.Context.ActionSystem.CurrentState);
 
-            long sequenceBefore = scenario.Context.SequenceNumber;
             var forgedCommand = new ReturnOwnSpyCommand(siteA.Id, cloaker.Id);
-            scenario.Dispatch(forgedCommand);
+            scenario.AssertRejected(forgedCommand);
+        }
 
-            Assert.AreEqual(sequenceBefore, scenario.Context.SequenceNumber, "A rejected command must not advance SequenceNumber.");
+        [TestMethod]
+        public void PlayCloakerCommand_DispatchedTwice_SecondDispatchIsRejected()
+        {
+            // TIER 1 matrix row 7 (double-dispatch/replay - see planning.txt section 6.C.2).
+            var scenario = MatchScenario.Build();
+            var red = scenario.AsActivePlayer(PlayerColor.Red);
+            var cloaker = scenario.GiveCard(PlayerColor.Red, "cloaker");
+
+            scenario.DispatchTwice(new PlayCardCommand(cloaker));
+
+            Assert.HasCount(1, scenario.Interactions, "The Choose-one popup should have been raised exactly once, not twice.");
         }
     }
 }

@@ -71,12 +71,23 @@ namespace ChaosWarlords.Tests.Source.Functional
             // already left it (bought or devoured by someone else) between the client seeing
             // it and this command arriving.
 
-            long sequenceBefore = scenario.Context.SequenceNumber;
             var command = new DevourCardCommand(goneCard) { SourceCard = carrionCrawler };
-            scenario.Dispatch(command);
+            scenario.AssertRejected(command);
 
-            Assert.AreEqual(sequenceBefore, scenario.Context.SequenceNumber, "A rejected command must not advance SequenceNumber.");
             Assert.AreEqual(ActionState.TargetingDevourMarket, scenario.Context.ActionSystem.CurrentState, "Targeting should still be waiting for a real selection.");
+        }
+
+        [TestMethod]
+        public void PlayCarrionCrawlerCommand_DispatchedTwice_SecondDispatchIsRejected()
+        {
+            // TIER 1 matrix row 7 (double-dispatch/replay - see planning.txt section 6.C.2).
+            var scenario = MatchScenario.Build();
+            var red = scenario.AsActivePlayer(PlayerColor.Red);
+            var carrionCrawler = scenario.GiveCard(PlayerColor.Red, "carrion_crawler");
+
+            scenario.DispatchTwice(new PlayCardCommand(carrionCrawler));
+
+            Assert.AreEqual(3, red.Power, "The +3 Power should have applied exactly once, not twice.");
         }
     }
 }
