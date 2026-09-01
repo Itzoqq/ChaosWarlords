@@ -287,10 +287,7 @@ namespace ChaosWarlords.Source.Core.Utilities
             // lookup below for replay data recorded before CardRuntimeId existed.
             if (dto.CardRuntimeId is Guid runtimeId)
             {
-                var byRuntimeId = player.Hand.FirstOrDefault(c => c.RuntimeId == runtimeId)
-                    ?? player.InnerCircle.FirstOrDefault(c => c.RuntimeId == runtimeId)
-                    ?? player.PlayedCards.FirstOrDefault(c => c.RuntimeId == runtimeId)
-                    ?? context?.MarketManager.MarketRow?.FirstOrDefault(c => c.RuntimeId == runtimeId);
+                var byRuntimeId = FindByRuntimeId(runtimeId, player.Hand, player.InnerCircle, player.PlayedCards, context?.MarketManager.MarketRow);
                 if (byRuntimeId != null) return byRuntimeId;
             }
 
@@ -305,6 +302,22 @@ namespace ChaosWarlords.Source.Core.Utilities
             }
 
             return FindCardInHand(dto, player);
+        }
+
+        /// <summary>
+        /// Searches each given zone, in order, for a card with the given RuntimeId - the first
+        /// match wins. Used to resolve a devour target unambiguously across every zone it could
+        /// live in (Hand/InnerCircle/PlayedCards/Market), even with duplicate-copy cards where
+        /// matching by shared definition Id alone would be ambiguous.
+        /// </summary>
+        private static Card? FindByRuntimeId(Guid runtimeId, params IEnumerable<Card>?[] zones)
+        {
+            foreach (var zone in zones)
+            {
+                var match = zone?.FirstOrDefault(c => c.RuntimeId == runtimeId);
+                if (match != null) return match;
+            }
+            return null;
         }
 
         private static Card? FindCardInHand(DevourCardCommandDto dto, Player player)

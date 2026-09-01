@@ -437,5 +437,119 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
             Assert.AreEqual("inner_111", result.CardId);
             Assert.AreEqual(CardLocation.InnerCircle, result.LocationAtConstruction);
         }
+
+        // --- FindDevourTargetCard's RuntimeId-lookup branch (planning.txt TIER 1 item 4,
+        // risk-hotspot remediation, 2026-09-01) - this was the worst Crap score in the
+        // solution (110), and largely because NOTHING above exercises dto.CardRuntimeId at
+        // all; every existing case above resolves by CardId/HandIdx instead. Added as
+        // characterization tests BEFORE extracting the lookup into its own helper. ---
+
+        [TestMethod]
+        public void HydrateCommand_Devour_ByRuntimeId_FindsCardInHand()
+        {
+            var p = new Player(PlayerColor.Red, Guid.NewGuid()) { SeatIndex = 0 };
+            var card = new Card("hand_card", "HandCard", 0, CardAspect.Neutral, 0, 0, 0);
+            p.AddToHand(card);
+
+            var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+            stateMock.TurnManager.Players.Returns(new List<Player> { p });
+
+            var dto = new DevourCardCommandDto { CardRuntimeId = card.RuntimeId, Seat = 0 };
+
+            var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as DevourCardCommand;
+
+            Assert.IsNotNull(result);
+            Assert.AreEqual(card.RuntimeId, result.CardRuntimeId);
+        }
+
+        [TestMethod]
+        public void HydrateCommand_Devour_ByRuntimeId_FindsCardInInnerCircle()
+        {
+            var p = new Player(PlayerColor.Red, Guid.NewGuid()) { SeatIndex = 0 };
+            var card = new Card("inner_card", "InnerCard", 0, CardAspect.Neutral, 0, 0, 0);
+            p.AddToInnerCircle(card);
+
+            var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+            stateMock.TurnManager.Players.Returns(new List<Player> { p });
+
+            var dto = new DevourCardCommandDto { CardRuntimeId = card.RuntimeId, Seat = 0 };
+
+            var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as DevourCardCommand;
+
+            Assert.IsNotNull(result);
+            Assert.AreEqual(card.RuntimeId, result.CardRuntimeId);
+        }
+
+        [TestMethod]
+        public void HydrateCommand_Devour_ByRuntimeId_FindsCardInPlayedCards()
+        {
+            var p = new Player(PlayerColor.Red, Guid.NewGuid()) { SeatIndex = 0 };
+            var card = new Card("played_card", "PlayedCard", 0, CardAspect.Neutral, 0, 0, 0);
+            p.AddToPlayed(card);
+
+            var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+            stateMock.TurnManager.Players.Returns(new List<Player> { p });
+
+            var dto = new DevourCardCommandDto { CardRuntimeId = card.RuntimeId, Seat = 0 };
+
+            var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as DevourCardCommand;
+
+            Assert.IsNotNull(result);
+            Assert.AreEqual(card.RuntimeId, result.CardRuntimeId);
+        }
+
+        [TestMethod]
+        public void HydrateCommand_Devour_ByRuntimeId_FindsCardInMarket()
+        {
+            var p = new Player(PlayerColor.Red, Guid.NewGuid()) { SeatIndex = 0 };
+            var card = new Card("market_card", "MarketCard", 0, CardAspect.Neutral, 0, 0, 0);
+            card.Location = CardLocation.Market;
+
+            var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+            stateMock.TurnManager.Players.Returns(new List<Player> { p });
+            stateMock.MarketManager.MarketRow.Returns(new List<Card> { card });
+
+            var dto = new DevourCardCommandDto { CardRuntimeId = card.RuntimeId, Seat = 0 };
+
+            var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as DevourCardCommand;
+
+            Assert.IsNotNull(result);
+            Assert.AreEqual(card.RuntimeId, result.CardRuntimeId);
+        }
+
+        [TestMethod]
+        public void HydrateCommand_Devour_MarketLocation_ByCardId()
+        {
+            // Distinct from the RuntimeId-based Market lookup above - this is the
+            // Location=="Market" + CardId fallback path (no CardRuntimeId set at all).
+            var p = new Player(PlayerColor.Red, Guid.NewGuid()) { SeatIndex = 0 };
+            var card = new Card("market_by_id", "MarketById", 0, CardAspect.Neutral, 0, 0, 0);
+            card.Location = CardLocation.Market;
+
+            var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+            stateMock.TurnManager.Players.Returns(new List<Player> { p });
+            stateMock.MarketManager.MarketRow.Returns(new List<Card> { card });
+
+            var dto = new DevourCardCommandDto { CardId = "market_by_id", Location = "Market", Seat = 0 };
+
+            var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext) as DevourCardCommand;
+
+            Assert.IsNotNull(result);
+            Assert.AreEqual("market_by_id", result.CardId);
+            Assert.AreEqual(CardLocation.Market, result.LocationAtConstruction);
+        }
+
+        [TestMethod]
+        public void HydrateCommand_Devour_UnknownSeat_ReturnsNull()
+        {
+            var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+            stateMock.TurnManager.Players.Returns(new List<Player>()); // No player at any seat.
+
+            var dto = new DevourCardCommandDto { CardId = "whatever", Seat = 0 };
+
+            var result = DtoMapper.HydrateCommand(dto, stateMock.MatchContext);
+
+            Assert.IsNull(result);
+        }
     }
 }
