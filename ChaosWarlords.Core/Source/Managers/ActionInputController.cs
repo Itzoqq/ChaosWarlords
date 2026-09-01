@@ -40,19 +40,57 @@ namespace ChaosWarlords.Source.Managers
         public IGameCommand? HandleTargetClick(MapNode? targetNode, Site? targetSite)
         {
             var state = _actionSystem.CurrentState;
+
+            if (targetNode != null && IsNodeTargetingState(state))
+            {
+                return HandleNodeTarget(state, targetNode);
+            }
+
+            if (targetSite != null && IsSiteTargetingState(state))
+            {
+                return HandleSiteTarget(state, targetSite);
+            }
+
+            return null;
+        }
+
+        private static bool IsNodeTargetingState(ActionState state) => state is
+            ActionState.TargetingAssassinate or
+            ActionState.TargetingReturn or
+            ActionState.TargetingSupplant or
+            ActionState.TargetingMoveSource or
+            ActionState.TargetingMoveDestination;
+
+        private static bool IsSiteTargetingState(ActionState state) => state is
+            ActionState.TargetingPlaceSpy or
+            ActionState.TargetingReturnSpy or
+            ActionState.TargetingReturnOwnSpy;
+
+        private IGameCommand? HandleNodeTarget(ActionState state, MapNode targetNode)
+        {
             var pendingCardId = _actionSystem.PendingCard?.Id;
             var devourCardId = _actionSystem.PendingDevourCard?.Id;
 
             return state switch
             {
-                ActionState.TargetingAssassinate => targetNode != null ? HandleAssassinate(targetNode, pendingCardId, devourCardId) : null,
-                ActionState.TargetingReturn => targetNode != null ? HandleReturn(targetNode, pendingCardId) : null,
-                ActionState.TargetingSupplant => targetNode != null ? HandleSupplant(targetNode, pendingCardId, devourCardId) : null,
-                ActionState.TargetingPlaceSpy => targetSite != null ? _spySubsystem.HandlePlaceSpy(targetSite, pendingCardId) : null,
-                ActionState.TargetingReturnSpy => targetSite != null ? _spySubsystem.HandleReturnSpyInitialClick(targetSite, pendingCardId) : null,
-                ActionState.TargetingReturnOwnSpy => targetSite != null ? _spySubsystem.HandleReturnOwnSpy(targetSite, pendingCardId) : null,
-                ActionState.TargetingMoveSource => targetNode != null ? HandleMoveSource(targetNode) : null,
-                ActionState.TargetingMoveDestination => targetNode != null ? HandleMoveDestination(targetNode, pendingCardId) : null,
+                ActionState.TargetingAssassinate => HandleAssassinate(targetNode, pendingCardId, devourCardId),
+                ActionState.TargetingReturn => HandleReturn(targetNode, pendingCardId),
+                ActionState.TargetingSupplant => HandleSupplant(targetNode, pendingCardId, devourCardId),
+                ActionState.TargetingMoveSource => HandleMoveSource(targetNode),
+                ActionState.TargetingMoveDestination => HandleMoveDestination(targetNode, pendingCardId),
+                _ => null,
+            };
+        }
+
+        private IGameCommand? HandleSiteTarget(ActionState state, Site targetSite)
+        {
+            var pendingCardId = _actionSystem.PendingCard?.Id;
+
+            return state switch
+            {
+                ActionState.TargetingPlaceSpy => _spySubsystem.HandlePlaceSpy(targetSite, pendingCardId),
+                ActionState.TargetingReturnSpy => _spySubsystem.HandleReturnSpyInitialClick(targetSite, pendingCardId),
+                ActionState.TargetingReturnOwnSpy => _spySubsystem.HandleReturnOwnSpy(targetSite, pendingCardId),
                 _ => null,
             };
         }
