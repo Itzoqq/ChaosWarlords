@@ -248,6 +248,14 @@ ChaosWarlords.Tests/
     │       │   └── EffectStrategiesTests.cs      # All 7 IEffectStrategy implementations directly (Assassinate/Default/Devour/MoveUnit/PlaceSpy/ReturnUnit/Supplant)
     │       └── TargetingStateEngineTests.cs
     │
+    ├── Functional/
+    │   ├── MatchScenario.cs                  # Scenario harness - see "Functional/Scenario Test Harness" below
+    │   ├── WightScenarioTests.cs
+    │   ├── CarrionCrawlerScenarioTests.cs
+    │   ├── InsaneOutcastScenarioTests.cs
+    │   ├── CloakerScenarioTests.cs
+    │   └── UlitharidScenarioTests.cs
+    │
     ├── Rendering/
     │   ├── LogicVectorExtensionsTests.cs
     │   └── UI/
@@ -297,18 +305,82 @@ ChaosWarlords.Core.Tests/
 
 ---
 
-## Test Counts (as of 2026-08-31)
+## Test Counts (as of 2026-09-01)
 
-**Total: 918 tests** across both projects, all passing.
+**Total: 966 tests** across both projects, all passing.
 
-| | `ChaosWarlords.Tests` | `ChaosWarlords.Core.Tests` | Combined |
-|---|---:|---:|---:|
-| Unit | 644 | 18 | 662 |
-| Integration | 244 | 1 | 245 |
-| Performance | 7 | 0 | 7 |
-| **Total** | **899** | **19** | **918** |
+Run `dotnet test` for the combined total; see the `--filter` commands above to break it down. This number drifts as tests are added - treat it as "order of magnitude and how to check", not a value to keep manually in sync here (the per-category breakdown that used to live in this table was already stale by the time it was last checked, which is exactly why it's gone now rather than just re-counted).
 
-Run `dotnet test` for the combined total; see the `--filter` commands above to break it down. These counts drift as tests are added - treat them as "order of magnitude and how to check", not a value to keep manually in sync here.
+---
+
+## Functional/Scenario Test Harness (`MatchScenario`)
+
+`ChaosWarlords.Tests/Source/Functional/MatchScenario.cs` is the standard pattern for testing a
+card's mechanics **from this point forward** (established 2026-09-01, see planning.txt TIER 1).
+It exists to close two specific, nameable gaps that let real shipped bugs slip through a fully
+green suite before it existed:
+
+1. **Tests bypassing the real entry point.** Calling `ActionSystem` methods or
+   `command.Execute(context)` directly instead of going through
+   `PlayCardCommand -> CommandDispatcher` skips `Validate()`, replay recording, and rollback-
+   on-exception entirely - the exact gap that hid a real bug where Carrion Crawler's mandatory
+   market-Devour never actually opened the market when played for real, only when a test
+   called `ActionSystem.TryStartDevourMarket` directly.
+2. **Tests hand-typing a card's `CardEffect` tree** in a C# helper (e.g. a `GetWightCard()`
+   method) instead of loading it from the shipped `cards.json`. This matches what the test
+   *author* intended to ship, not necessarily what's actually in the file - a later JSON edit
+   can silently drift from the hand-typed copy with every test still green. This is exactly
+   how Wight and Cultist of Myrkul's broken Choose-one mutual exclusivity slipped through.
+
+`MatchScenario.Build()` loads the REAL `cards.json` into a REAL `CardDatabase` and wires a
+REAL `MatchFactory`-built match through a REAL `CommandDispatcher` - the same composition
+`ChaosWarlords.Core.Tests/Source/Integration/HeadlessCompositionSmokeTests.cs` already proves
+works end to end, just with a real card database instead of an empty `Substitute`. Typical
+usage:
+
+```csharp
+var scenario = MatchScenario.Build();
+var red = scenario.AsActivePlayer(PlayerColor.Red);       // seat order is randomized per-seed
+var wight = scenario.GiveCard(PlayerColor.Red, "wight");  // pulled from the REAL database
+
+scenario.PlayCard(wight);                                 // dispatches PlayCardCommand for real
+scenario.RespondToLatestInteraction(accept: true);        // answers the "choose one" popup
+
+scenario.SelectDevourCard(someHandCard);                  // HandleDevourSelection -> dispatch
+scenario.ClickTarget(targetNode, null);                   // HandleTargetClick -> dispatch
+
+Assert.AreEqual(...);                                     // assert on scenario.Context / scenario.Player(color)
+```
+
+Or drive an illegal command by hand and assert it's rejected with no state change (`Dispatch`
+is the low-level primitive `PlayCard`/`ClickTarget` build on):
+
+```csharp
+long before = scenario.Context.SequenceNumber;
+scenario.Dispatch(new DiscardCardCommand(PlayerColor.Red, "card_that_does_not_exist"));
+Assert.AreEqual(before, scenario.Context.SequenceNumber); // rejected commands must not advance it
+```
+
+See `WightScenarioTests.cs`, `CarrionCrawlerScenarioTests.cs`, `InsaneOutcastScenarioTests.cs`,
+`CloakerScenarioTests.cs`, and `UlitharidScenarioTests.cs` (same directory) for worked
+positive + adversarial examples.
+
+**Adversarial/negative scenarios are a first-class use of this harness, not an afterthought.**
+Per the testing policy every card/mechanic added from 2026-09-01 onward must satisfy (see
+`planning.txt` section 2): both POSITIVE coverage (through the real `CommandDispatcher` path)
+and NEGATIVE/adversarial coverage covering, at minimum, wrong-player dispatch, an out-of-range
+or nonexistent target, insufficient resources, and a command re-dispatched against state where
+it's already resolved (double-spend/replay). Once multiplayer exists, an untrusted client can
+send any command directly - `Validate()` is the only real defense, so it needs to be exercised
+as deliberately as the effect logic itself.
+
+**Not a mandate to retrofit every existing test file.** The ~15 pre-existing
+`*MechanicsTests.cs`/`*IntegrationTests.cs` files (hand-typed cards, direct `.Execute()`
+calls) are NOT being deleted or rewritten in one pass - several of them pin ActionSystem-
+internal behavior (exact stack shape, interaction-request counts) the harness doesn't
+re-assert, and mass-migrating them is separate, lower-priority cleanup, not a blocker. New
+card/mechanic work should use `MatchScenario`; touching an old file for unrelated reasons is a
+fine time to consider migrating it, not an obligation.
 
 ---
 
