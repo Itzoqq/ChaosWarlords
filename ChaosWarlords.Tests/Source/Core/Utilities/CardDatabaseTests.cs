@@ -1,3 +1,4 @@
+using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Tests.Source.Utilities
@@ -7,6 +8,20 @@ namespace ChaosWarlords.Tests.Source.Utilities
   [TestCategory("Unit")]
   public class CardDatabaseTests
   {
+    // Name/Description now resolve via ILocalizationService, keyed off "{Id}_name"/
+    // "{Id}_description" - see CardFactory.CreateFromData. This file's mock JSON's own
+    // "name"/"description" fields are inert leftovers (harmlessly ignored by the
+    // deserializer) - kept as-is so the JSON still reads naturally; the real values these
+    // tests assert against come from here instead.
+    private static ILocalizationService BuildLocalization() => new TestLocalizationService(new()
+    {
+      ["noble_name"] = "Noble",
+      ["noble_description"] = "A starting card.",
+      ["soldier_name"] = "Soldier",
+      ["soldier_description"] = "A starting card.",
+      ["wight_name"] = "Wight",
+      ["wight_description"] = "Recursive Test",
+    });
     private const string MockCardJson = @"
         [
           {
@@ -43,7 +58,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
     {
       // Arrange
       // Create an instance instead of using static methods
-      var db = new CardDatabase();
+      var db = new CardDatabase(BuildLocalization());
 
       // Act
       db.LoadFromJson(MockCardJson);
@@ -62,7 +77,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
     {
       // Arrange
       // Create a fresh instance
-      var db = new CardDatabase();
+      var db = new CardDatabase(BuildLocalization());
 
       // Act: Don't load anything
       var marketCards = db.GetAllMarketCards();
@@ -75,7 +90,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
     public void GetCardById_ReturnsCard_WhenIdExists()
     {
       // Arrange
-      var db = new CardDatabase();
+      var db = new CardDatabase(BuildLocalization());
       db.LoadFromJson(MockCardJson);
 
       // Act
@@ -91,7 +106,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
     public void GetCardById_ReturnsNull_WhenIdDoesNotExist()
     {
       // Arrange
-      var db = new CardDatabase();
+      var db = new CardDatabase(BuildLocalization());
       db.LoadFromJson(MockCardJson);
 
       // Act
@@ -105,7 +120,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
     public void Load_ReadsFromStream_AndPopulatesCache()
     {
       // Arrange
-      var db = new CardDatabase();
+      var db = new CardDatabase(BuildLocalization());
       var json = MockCardJson;
       using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json)))
       {
@@ -145,7 +160,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
           }
         ]";
 
-      var db = new CardDatabase();
+      var db = new CardDatabase(BuildLocalization());
       db.LoadFromJson(recursiveJson);
 
       // Act

@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 
 namespace ChaosWarlords.Source.Utilities
@@ -30,14 +31,19 @@ namespace ChaosWarlords.Source.Utilities
             return card;
         }
 
-        public static Card CreateFromData(CardData data, IGameRandom? random = null)
+        public static Card CreateFromData(CardData data, ILocalizationService localization, IGameRandom? random = null)
         {
             Enum.TryParse(data.Aspect, true, out CardAspect aspect);
 
-            // Using 0 for influence as default
-            var card = new Card(GenerateUniqueId(data.Id, random), data.Name, data.Cost, aspect, data.DeckVP, data.InnerCircleVP, 0);
+            // Name/Description are resolved from the localization bundle, keyed off the
+            // card's definitional Id (NOT the randomized runtime Card.Id generated below) -
+            // "{Id}_name"/"{Id}_description". See CardDatabase's CardData doc comment.
+            string name = localization.GetString($"{data.Id}_name");
 
-            card.Description = data.Description;
+            // Using 0 for influence as default
+            var card = new Card(GenerateUniqueId(data.Id, random), name, data.Cost, aspect, data.DeckVP, data.InnerCircleVP, 0);
+
+            card.Description = localization.GetString($"{data.Id}_description");
             card.RedirectsToSupplyOnDevourOrPromote = data.RedirectsToSupplyOnDevourOrPromote;
 
             if (data.Effects is not null)

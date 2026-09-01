@@ -53,8 +53,24 @@ namespace ChaosWarlords
             // Initialize State Manager
             StateManager = new StateManager(this);
 
-            // 1. Initialize Card Database Service (New Step)
-            var cardDatabase = new CardDatabase();
+            // 1. Initialize Localization Service (card Name/Description live here, not in
+            // cards.json - see CardDatabase's CardData doc comment). Loaded BEFORE
+            // CardDatabase since CardFactory.CreateFromData needs it at card-creation time.
+            var localizationService = new LocalizationManager(Logger);
+            try
+            {
+                using (var stream = TitleContainer.OpenStream("Content/data/localization/en_US.json"))
+                {
+                    localizationService.Load(stream);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log($"Failed to load localization bundle: {ex.Message}", LogChannel.Error);
+            }
+
+            // 2. Initialize Card Database Service
+            var cardDatabase = new CardDatabase(localizationService);
             CardDatabase = cardDatabase;
             try
             {

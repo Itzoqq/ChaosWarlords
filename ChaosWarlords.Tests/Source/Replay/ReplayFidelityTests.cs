@@ -113,7 +113,7 @@ namespace ChaosWarlords.Tests.Source.Replay
             {
                 Assert.Inconclusive("cards.json not found at " + path);
             }
-            var database = new CardDatabase();
+            var database = new CardDatabase(new TestLocalizationService());
             using (var stream = System.IO.File.OpenRead(path))
             {
                 database.Load(stream);

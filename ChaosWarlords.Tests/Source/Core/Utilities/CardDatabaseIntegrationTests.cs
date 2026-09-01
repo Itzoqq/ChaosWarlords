@@ -7,6 +7,48 @@ namespace ChaosWarlords.Tests.Core.Utilities
     public class CardDatabaseIntegrationTests
     {
         [TestMethod]
+        public void LoadRealCardsJson_EveryMarketCard_ResolvesNameAndDescriptionFromTheRealBundle()
+        {
+            // Regression test for the localization key indirection (planning.txt TIER 1,
+            // 2026-09-01): every card in the real cards.json must have a matching
+            // "{Id}_name"/"{Id}_description" entry in the real en_US.json bundle - a typo'd
+            // or missing key would silently ship a "[MISSING:...]" card name/description
+            // instead of failing a build, so assert it here instead.
+            var cardsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
+            var localizationPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/localization/en_US.json");
+            if (!File.Exists(cardsPath)) Assert.Inconclusive("cards.json not found at " + cardsPath);
+            if (!File.Exists(localizationPath)) Assert.Inconclusive("en_US.json not found at " + localizationPath);
+
+            var localization = new LocalizationManager();
+            using (var locStream = File.OpenRead(localizationPath))
+            {
+                localization.Load(locStream);
+            }
+
+            var database = new CardDatabase(localization);
+            using (var stream = File.OpenRead(cardsPath))
+            {
+                database.Load(stream);
+            }
+
+            var marketCards = database.GetAllMarketCards();
+            Assert.IsNotEmpty(marketCards, "Sanity check: cards.json should have produced at least one market card.");
+
+            foreach (var card in marketCards)
+            {
+                Assert.DoesNotContain("[MISSING:", card.Name, $"{card.Id}: Name resolved to a missing-key placeholder - add the matching key to en_US.json.");
+                Assert.DoesNotContain("[MISSING:", card.Description, $"{card.Id}: Description resolved to a missing-key placeholder - add the matching key to en_US.json.");
+            }
+
+            // RedirectsToSupplyOnDevourOrPromote cards (e.g. Insane Outcast) are excluded from
+            // GetAllMarketCards - check those by id directly so they're not silently skipped.
+            var supplyOnlyCard = database.GetCardById("insane_outcast");
+            Assert.IsNotNull(supplyOnlyCard, "insane_outcast should exist in cards.json.");
+            Assert.DoesNotContain("[MISSING:", supplyOnlyCard.Name);
+            Assert.DoesNotContain("[MISSING:", supplyOnlyCard.Description);
+        }
+
+        [TestMethod]
         public void LoadRealCardsJson_VerifyWight_HasSupplantSuccess()
         {
             // Arrange
@@ -15,7 +57,7 @@ namespace ChaosWarlords.Tests.Core.Utilities
             var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
             if (!File.Exists(path)) Assert.Inconclusive("cards.json not found at " + path);
 
-            var database = new CardDatabase();
+            var database = new CardDatabase(new TestLocalizationService());
             using (var stream = File.OpenRead(path))
             {
                 database.Load(stream);
@@ -47,7 +89,7 @@ namespace ChaosWarlords.Tests.Core.Utilities
             var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
             if (!File.Exists(path)) Assert.Inconclusive("cards.json not found at " + path);
 
-            var database = new CardDatabase();
+            var database = new CardDatabase(new TestLocalizationService());
             using (var stream = File.OpenRead(path))
             {
                 database.Load(stream);

@@ -162,7 +162,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             var path = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
             if (!System.IO.File.Exists(path)) Assert.Inconclusive("cards.json not found at " + path);
 
-            var database = new CardDatabase();
+            var database = new CardDatabase(new TestLocalizationService());
             using (var stream = System.IO.File.OpenRead(path))
             {
                 database.Load(stream);

@@ -7,12 +7,13 @@ using System.Diagnostics.CodeAnalysis;
 namespace ChaosWarlords.Source.Utilities
 {
     // 1. Data Structures to match cards.json
+    // Name/Description are NOT here - they live in Content/data/localization/en_US.json,
+    // resolved via ILocalizationService at card-creation time (CardFactory.CreateFromData),
+    // keyed off Id ("{Id}_name"/"{Id}_description"). See planning.txt's localization design.
     [ExcludeFromCodeCoverage]
     public class CardData
     {
         public required string Id { get; set; }
-        public required string Name { get; set; }
-        public required string Description { get; set; }
         public int Cost { get; set; }
         public required string Aspect { get; set; }
         public int DeckVP { get; set; }
@@ -44,7 +45,13 @@ namespace ChaosWarlords.Source.Utilities
     public class CardDatabase : ICardDatabase
     {
         private static readonly JsonSerializerOptions s_jsonOptions = new() { PropertyNameCaseInsensitive = true };
+        private readonly ILocalizationService _localization;
         private List<CardData> _cardDataCache = [];
+
+        public CardDatabase(ILocalizationService localization)
+        {
+            _localization = localization ?? throw new ArgumentNullException(nameof(localization));
+        }
 
         public void Load(Stream stream)
         {
@@ -78,7 +85,7 @@ namespace ChaosWarlords.Source.Utilities
 
                 // Trace for Replay Desync Debugging
                 Console.WriteLine($"[CardDatabase] Processing Market Card: {data.Id}");
-                cards.Add(CardFactory.CreateFromData(data, random));
+                cards.Add(CardFactory.CreateFromData(data, _localization, random));
             }
             return cards;
         }
@@ -86,7 +93,7 @@ namespace ChaosWarlords.Source.Utilities
         public Card? GetCardById(string id, IGameRandom? random = null)
         {
             var data = _cardDataCache?.FirstOrDefault(c => c.Id == id);
-            return data is not null ? CardFactory.CreateFromData(data, random) : null;
+            return data is not null ? CardFactory.CreateFromData(data, _localization, random) : null;
         }
     }
 }

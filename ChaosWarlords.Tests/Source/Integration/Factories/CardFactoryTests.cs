@@ -1,3 +1,4 @@
+using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Tests.Integration.Factories
@@ -7,6 +8,18 @@ namespace ChaosWarlords.Tests.Integration.Factories
     [TestCategory("Integration")]
     public class CardFactoryTests
     {
+        private static readonly ILocalizationService _localization = new TestLocalizationService(new()
+        {
+            ["priestess_of_lolth_name"] = "Priestess of Lolth",
+            ["priestess_of_lolth_description"] = "A test card",
+            ["test_card_name"] = "Test Card",
+            ["test_card_description"] = "Test effects",
+            ["old_card_name"] = "Old Card",
+            ["old_card_description"] = "Old description",
+            ["inf_test_name"] = "Influence Test",
+            ["inf_test_description"] = "Influence test",
+        });
+
         [TestMethod]
         public void CreateFromData_ParsesPropertiesCorrectly()
         {
@@ -14,17 +27,15 @@ namespace ChaosWarlords.Tests.Integration.Factories
             var cardData = new CardData
             {
                 Id = "priestess_of_lolth",
-                Name = "Priestess of Lolth",
                 Cost = 2,
                 Aspect = "Sorcery",
                 DeckVP = 1,
                 InnerCircleVP = 0,
-                Description = "A test card",
                 Effects = new List<CardEffectData>()
             };
 
             // ACT
-            var card = CardFactory.CreateFromData(cardData);
+            var card = CardFactory.CreateFromData(cardData, _localization);
 
             // ASSERT
             Assert.IsNotNull(card);
@@ -44,8 +55,6 @@ namespace ChaosWarlords.Tests.Integration.Factories
             var cardData = new CardData
             {
                 Id = "test_card",
-                Name = "Test Card",
-                Description = "Test effects",
                 Aspect = "Neutral",
                 Effects = new List<CardEffectData>
                 {
@@ -55,7 +64,7 @@ namespace ChaosWarlords.Tests.Integration.Factories
             };
 
             // ACT
-            var card = CardFactory.CreateFromData(cardData);
+            var card = CardFactory.CreateFromData(cardData, _localization);
 
             // ASSERT
             Assert.HasCount(2, card.Effects);
@@ -97,14 +106,12 @@ namespace ChaosWarlords.Tests.Integration.Factories
             var cardData = new CardData
             {
                 Id = "old_card",
-                Name = "Old Card",
                 Cost = 1,
                 Aspect = "Neutral",
-                Description = "Old description",
                 Effects = new List<CardEffectData>()
             };
 
-            var card = CardFactory.CreateFromData(cardData);
+            var card = CardFactory.CreateFromData(cardData, _localization);
 
             Assert.AreEqual(0, card.DeckVP, "Missing DeckVP should default to 0");
             Assert.AreEqual(0, card.InnerCircleVP, "Missing InnerCircleVP should default to 0");
@@ -118,14 +125,12 @@ namespace ChaosWarlords.Tests.Integration.Factories
             var cardData = new CardData
             {
                 Id = "inf_test",
-                Name = "Influence Test",
                 Cost = 1,
-                Description = "Influence test",
                 Aspect = "Neutral",
                 Effects = new List<CardEffectData>()
             };
 
-            var card = CardFactory.CreateFromData(cardData);
+            var card = CardFactory.CreateFromData(cardData, _localization);
 
             Assert.AreEqual(0, card.InfluenceValue);
         }

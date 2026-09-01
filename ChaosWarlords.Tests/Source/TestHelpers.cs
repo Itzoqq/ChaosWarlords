@@ -549,4 +549,30 @@ namespace ChaosWarlords.Tests
             return new MatchContext(_turnManager, _mapManager, _marketManager, _actionSystem, _cardDatabase, _playerStateManager, _logger, _seed);
         }
     }
+
+    /// <summary>
+    /// Minimal ILocalizationService test double for CardDatabase/CardFactory tests that don't
+    /// need the real Content/data/localization/en_US.json bundle (see MatchScenario's
+    /// ResolveLocalizationJsonPath for the tests that DO load it, real content and all).
+    /// Seed known keys via the constructor; any other key falls back to the same
+    /// "[MISSING:key]" placeholder the real LocalizationManager returns, so a test that
+    /// forgets to seed a key it depends on fails loudly rather than silently.
+    /// </summary>
+    public class TestLocalizationService : ILocalizationService
+    {
+        private readonly Dictionary<string, string> _strings;
+
+        public TestLocalizationService(Dictionary<string, string>? strings = null)
+        {
+            _strings = strings ?? new Dictionary<string, string>();
+        }
+
+        public void Set(string key, string value) => _strings[key] = value;
+
+        public void Load(Stream stream) => throw new NotSupportedException(
+            "TestLocalizationService is seeded via its constructor/Set, not a JSON stream - use LocalizationManager for real-bundle tests.");
+
+        public string GetString(string key) =>
+            _strings.TryGetValue(key, out var value) ? value : $"[MISSING:{key}]";
+    }
 }

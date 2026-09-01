@@ -62,6 +62,7 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   ├── Interfaces/                      # Contracts (API Definitions)
     │   │   ├── Data/
     │   │   │   ├── ICardDatabase.cs         # Contract for retrieving card definitions
+    │   │   │   ├── ILocalizationService.cs  # Contract for resolving "{CardId}_name"/"{CardId}_description" etc. to display text
     │   │   │   └── IDto.cs                  # Marker interface for DTOs
     │   │   ├── Logic/
     │   │   │   ├── IActionSystem.cs         # incl. OnInteractionRequested (Key Systems #4) + 3 engine-only methods ActionExecutionEngine calls back through
@@ -87,10 +88,11 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   │       # it directly (see Key Systems #4). Nothing in Core references it any more.
     │   └── Utilities/                       # Infrastructure & Constants
     │       ├── BufferedAsyncLogger.cs       # Async-optimized logging
-    │       ├── CardDatabase.cs              # Implementation of card library
+    │       ├── CardDatabase.cs              # Implementation of card library - CardData has no Name/Description, see LocalizationManager
     │       ├── DtoMapper.cs                 # Mapping logic between Entities and DTOs
     │       ├── GameConstants.cs             # Global configuration values
     │       ├── GameEnums.cs                 # Enums (PlayerColor, ResourceType, ActionState, etc.)
+    │       ├── LocalizationManager.cs       # Loads Content/data/localization/en_US.json, resolves keys ("[MISSING:key]" fallback, never a crash)
     │       ├── MapGenerationConfig.cs       # Parameters for procedural map generation
     │       ├── MapGeometry.cs               # Deterministic geometry helper (LogicVector2 based)
     │       ├── MapLayoutEngine.cs           # Procedural map generation logic
@@ -118,7 +120,7 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │       └── StartingSite.cs              # Special site where players spawn
     │
     ├── Factories/                           # Object Creation Logic
-    │   ├── CardFactory.cs                   # Creates Card instances from data
+    │   ├── CardFactory.cs                   # Creates Card instances from data - resolves Name/Description via ILocalizationService
     │   ├── MapFactory.cs                    # Generates the map graph and nodes
     │   ├── MatchFactory.cs                  # Assembles all dependencies for a new match
     │   └── WrapperFactory.cs

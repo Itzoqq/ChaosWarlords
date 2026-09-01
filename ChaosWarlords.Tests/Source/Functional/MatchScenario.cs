@@ -85,7 +85,13 @@ namespace ChaosWarlords.Tests.Source.Functional
         {
             var logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance;
 
-            var cardDatabase = new CardDatabase();
+            var localizationService = new LocalizationManager();
+            using (var locStream = File.OpenRead(ResolveLocalizationJsonPath()))
+            {
+                localizationService.Load(locStream);
+            }
+
+            var cardDatabase = new CardDatabase(localizationService);
             using (var stream = File.OpenRead(ResolveCardsJsonPath()))
             {
                 cardDatabase.Load(stream);
@@ -115,6 +121,20 @@ namespace ChaosWarlords.Tests.Source.Functional
             {
                 throw new FileNotFoundException(
                     "cards.json not found - the scenario harness requires the REAL card data (see planning.txt TIER 1), not a Substitute.",
+                    path);
+            }
+            return path;
+        }
+
+        private static string ResolveLocalizationJsonPath()
+        {
+            // Same relative-path convention as ResolveCardsJsonPath above - Name/Description
+            // live here, not in cards.json (see planning.txt's localization design).
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/localization/en_US.json");
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException(
+                    "en_US.json not found - the scenario harness requires the REAL localization bundle, not a Substitute.",
                     path);
             }
             return path;

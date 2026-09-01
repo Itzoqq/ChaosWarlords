@@ -1,8 +1,6 @@
 [
   {
     "Id": "core_house_guard",
-    "Name": "House Guard",
-    "Description": "Gain 2 Power",
     "Cost": 3,
     "Aspect": "Warlord",
     "DeckVP": 1,
@@ -17,8 +15,6 @@
   },
   {
     "Id": "core_priestess",
-    "Name": "Priestess of Light",
-    "Description": "Gain 2 Influence",
     "Cost": 3,
     "Aspect": "Sorcery",
     "DeckVP": 1,
@@ -33,8 +29,6 @@
   },
   {
     "Id": "drow_spy_master",
-    "Name": "Spy Master",
-    "Description": "Place a Spy",
     "Cost": 2,
     "Aspect": "Shadow",
     "DeckVP": 1,
@@ -48,8 +42,6 @@
   },
   {
     "Id": "test_assassin",
-    "Name": "Drow Assassin",
-    "Description": "Assassinate a troop",
     "Cost": 3,
     "Aspect": "Shadow",
     "DeckVP": 1,
@@ -63,8 +55,6 @@
   },
   {
     "Id": "test_guard",
-    "Name": "City Guard",
-    "Description": "Return a troop",
     "Cost": 2,
     "Aspect": "Order",
     "DeckVP": 1,
@@ -78,8 +68,6 @@
   },
   {
     "Id": "test_infiltrator",
-    "Name": "Elite Infiltrator",
-    "Description": "Supplant a troop",
     "Cost": 5,
     "Aspect": "Shadow",
     "DeckVP": 2,
@@ -93,8 +81,6 @@
   },
   {
     "Id": "test_blade_dancer",
-    "Name": "Shadow Blade Dancer",
-    "Description": "Assassinate a troop. Focus - Gain 3 Power.",
     "Cost": 4,
     "Aspect": "Shadow",
     "DeckVP": 1,
@@ -114,8 +100,6 @@
   },
   {
     "Id": "core_noble",
-    "Name": "Drow Noble",
-    "Description": "Promote a card from your hand.",
     "Cost": 3,
     "Aspect": "Blasphemy",
     "DeckVP": 1,
@@ -129,8 +113,6 @@
   },
   {
     "Id": "test_displacer",
-    "Name": "Displacer Beast",
-    "Description": "Move an enemy troop.",
     "Cost": 3,
     "Aspect": "Order",
     "DeckVP": 1,
@@ -144,8 +126,6 @@
   },
   {
     "Id": "wight",
-    "Name": "Wight",
-    "Description": "Choose one: Gain 2 Power. Or, devour a card in your hand to Supplant a troop.",
     "Cost": 3,
     "Aspect": "Oblivion",
     "DeckVP": 1,
@@ -170,8 +150,6 @@
   },
   {
     "Id": "market_corruptor",
-    "Name": "Market Corruptor",
-    "Description": "You may devour a card from the Market to gain 3 Influence.",
     "Cost": 3,
     "Aspect": "Sorcery",
     "DeckVP": 1,
@@ -192,8 +170,6 @@
   },
   {
     "Id": "carrion_crawler",
-    "Name": "Carrion Crawler",
-    "Description": "Gain 3 Power. Devour a card in the market and replace it with this card.",
     "Cost": 2,
     "Aspect": "Oblivion",
     "DeckVP": 0,
@@ -214,8 +190,6 @@
   },
   {
     "Id": "skeletal_horde",
-    "Name": "Skeletal Horde",
-    "Description": "Deploy 2 troops. Optional: Devour this card -> Deploy 3 additional troops.",
     "Cost": 2,
     "Aspect": "Oblivion",
     "DeckVP": 1,
@@ -240,8 +214,6 @@
   },
   {
     "Id": "cultist_of_myrkul",
-    "Name": "Cultist of Myrkul",
-    "Description": "Choose one: Gain 2 Influence. Or, devour this card; at end of turn, promote up to 2 other cards played this turn.",
     "Cost": 2,
     "Aspect": "Oblivion",
     "DeckVP": 1,
@@ -265,8 +237,6 @@
   },
   {
     "Id": "cloaker",
-    "Name": "Cloaker",
-    "Description": "Choose one: Place a spy. Or, return one of your spies to assassinate a troop at that spy's site.",
     "Cost": 2,
     "Aspect": "Shadow",
     "DeckVP": 1,
@@ -289,8 +259,6 @@
   },
   {
     "Id": "neogi",
-    "Name": "Neogi",
-    "Description": "Deploy 4 troops. At end of turn, each opponent must discard a card.",
     "Cost": 7,
     "Aspect": "Warlord",
     "DeckVP": 4,
@@ -309,8 +277,6 @@
   },
   {
     "Id": "ulitharid",
-    "Name": "Ulitharid",
-    "Description": "Play a card in the market that costs 4 or less as if it was in your hand, then devour that card.",
     "Cost": 6,
     "Aspect": "Oblivion",
     "DeckVP": 3,
@@ -324,8 +290,6 @@
   },
   {
     "Id": "insane_outcast",
-    "Name": "Insane Outcast",
-    "Description": "Discard a card from your hand to return Insane Outcast to the supply. If Insane Outcast would be devoured or promoted, return it to the supply instead.",
     "Cost": 0,
     "Aspect": "Neutral",
     "DeckVP": -1,

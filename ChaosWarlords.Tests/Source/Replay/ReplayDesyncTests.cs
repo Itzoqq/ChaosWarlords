@@ -186,9 +186,20 @@ namespace ChaosWarlords.Tests.Source.Replay
 
         public System.Collections.Generic.List<ChaosWarlords.Source.Entities.Cards.Card> GetAllMarketCards(IGameRandom? random = null)
         {
+            // Name/Description resolve via ILocalizationService now - "Soldier_name"/
+            // "Noble_name" below just need to exist for card.Name to read the same values
+            // this mock used to hardcode inline.
+            var localization = new TestLocalizationService(new()
+            {
+                ["Soldier_name"] = "Soldier",
+                ["Soldier_description"] = "",
+                ["Noble_name"] = "Noble",
+                ["Noble_description"] = "",
+            });
+
             var listData = new System.Collections.Generic.List<ChaosWarlords.Source.Utilities.CardData>();
-            listData.Add(new ChaosWarlords.Source.Utilities.CardData { Id = "Soldier", Name = "Soldier", Description = "", Aspect = "Neutral", Cost = 0, Effects = new() });
-            listData.Add(new ChaosWarlords.Source.Utilities.CardData { Id = "Noble", Name = "Noble", Description = "", Aspect = "Neutral", Cost = 0, Effects = new() });
+            listData.Add(new ChaosWarlords.Source.Utilities.CardData { Id = "Soldier", Aspect = "Neutral", Cost = 0, Effects = new() });
+            listData.Add(new ChaosWarlords.Source.Utilities.CardData { Id = "Noble", Aspect = "Neutral", Cost = 0, Effects = new() });
 
             if (ReturnReverseOrder) listData.Reverse();
 
@@ -215,7 +226,7 @@ namespace ChaosWarlords.Tests.Source.Replay
             var list = new System.Collections.Generic.List<ChaosWarlords.Source.Entities.Cards.Card>();
             foreach (var data in listData)
             {
-                list.Add(CardFactory.CreateFromData(data, random));
+                list.Add(CardFactory.CreateFromData(data, localization, random));
             }
             return list;
         }
