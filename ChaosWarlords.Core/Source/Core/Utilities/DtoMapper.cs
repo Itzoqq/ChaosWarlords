@@ -54,7 +54,8 @@ namespace ChaosWarlords.Source.Core.Utilities
                             : null;
                     }
                 },
-                { typeof(ReturnOwnSpyCommandDto), (d, s) => new ReturnOwnSpyCommand(((ReturnOwnSpyCommandDto)d).SiteId, ((ReturnOwnSpyCommandDto)d).CardId) }
+                { typeof(ReturnOwnSpyCommandDto), (d, s) => new ReturnOwnSpyCommand(((ReturnOwnSpyCommandDto)d).SiteId, ((ReturnOwnSpyCommandDto)d).CardId) },
+                { typeof(PlayFromMarketCommandDto), (d, s) => new PlayFromMarketCommand(((PlayFromMarketCommandDto)d).MarketCardRuntimeId, ((PlayFromMarketCommandDto)d).MarketCardId!) }
             };
         }
 

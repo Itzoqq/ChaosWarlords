@@ -39,6 +39,18 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         void MoveCardToPlayed(Card card);
 
         /// <summary>
+        /// Plays a card sitting in the Market "as if it was in your hand" (e.g. Ulitharid),
+        /// resolving its own effects (Focus computed off ITS aspect, not the source card's),
+        /// then devouring it (removed from the market row, replaced from the market deck top -
+        /// the standard Devour-from-Market removal, not a ReplaceWithSource-style swap). The
+        /// market card never enters Hand or PlayedCards - stays Market throughout its own
+        /// effect resolution, then goes straight to Void.
+        /// </summary>
+        /// <param name="marketCard">The market card to play (and then devour).</param>
+        /// <param name="sourceCard">The card that triggered this (e.g. Ulitharid).</param>
+        void PlayCardFromMarket(Card marketCard, Card sourceCard);
+
+        /// <summary>
         /// Checks if the current turn can be legally ended.
         /// </summary>
         /// <param name="reason">Output parameter describing why the turn cannot end, if applicable.</param>

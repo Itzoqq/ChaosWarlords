@@ -34,6 +34,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 { EffectType.Devour, new Strategies.DevourStrategy() },
                 { EffectType.DiscardCard, new Strategies.DiscardStrategy() },
                 { EffectType.ReturnOwnSpy, new Strategies.ReturnOwnSpyStrategy() },
+                { EffectType.PlayFromMarket, new Strategies.PlayFromMarketStrategy() },
                 // Add new strategies here
             };
         }

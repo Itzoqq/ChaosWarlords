@@ -139,19 +139,38 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             _actionSystem.SetPendingCard(nextEffect.SourceCard);
             bool isOptional = nextEffect.SourceEffect?.IsOptional == true;
 
-            // Self-devour never actually needs player input - there's no target to pick, it's
-            // always "this card" (DevourStrategy.GetTargetingState even returns
-            // ActionState.Normal for it, not a real targeting state). The optional case
-            // already short-circuits into HandleOptionalEffectAccepted's own identical
-            // DevourStrategyFactory call below; this covers the MANDATORY case (e.g. Insane
-            // Outcast's own "discard -> devour self" chain, reached as a non-optional
-            // OnSuccess child), which would otherwise sit in SetupTargetingForRequiredEffect's
-            // "waiting for input" state forever - nothing ever clicks to advance it.
-            if (!isOptional && nextEffect.SourceEffect?.Type == EffectType.Devour
-                && nextEffect.SourceEffect.TargetLocation == CardLocation.Self)
+            // A mandatory (non-optional) Devour effect needs its strategy's own Execute()
+            // called, not just a bare state change - SetupTargetingForRequiredEffect only
+            // sets CurrentState, but Devour(Market) also needs
+            // IMarketStateManager.OpenForDevour called (the UI's market picker never opens
+            // otherwise), and Devour(Self) needs to resolve immediately (no real target to
+            // pick - DevourStrategy.GetTargetingState even returns ActionState.Normal for it,
+            // not a real targeting state). The optional case already reaches the identical
+            // DevourStrategyFactory call via HandleOptionalEffectAccepted below; this is the
+            // same call for the MANDATORY case (e.g. Carrion Crawler's Devour(Market) - found
+            // to be completely unplayable without this, the market never opened; Insane
+            // Outcast's own "discard -> devour self" chain), which would otherwise sit in
+            // "waiting for input" forever with nothing to click. For Market/Hand/InnerCircle,
+            // strategy.Execute() itself calls StartTargeting (and, for Market, opens the
+            // market) and the pushed EffectContext stays on the stack, resolved later by
+            // whatever command the eventual click produces calling CompleteAction() - the
+            // onComplete callback here only matters for Self, which resolves synchronously
+            // with no click at all.
+            if (!isOptional && nextEffect.SourceEffect?.Type == EffectType.Devour)
             {
-                var selfStrategy = Mechanics.Rules.DevourStrategyFactory.GetStrategy(CardLocation.Self);
-                selfStrategy.Execute(nextEffect.SourceCard, _matchContext!, _logger, () => ResolveCurrentEffect(true), false);
+                var strategy = Mechanics.Rules.DevourStrategyFactory.GetStrategy(nextEffect.SourceEffect.TargetLocation);
+                strategy.Execute(nextEffect.SourceCard, _matchContext!, _logger, () => ResolveCurrentEffect(true), false);
+                return;
+            }
+
+            // Same shape, for "play a market card as if in hand" (Ulitharid): needs
+            // IMarketStateManager.OpenForDevour called too, so it can't rely on a bare state
+            // change either. Always needs a click (which market card), so - like Market/Hand/
+            // InnerCircle Devour above - no onComplete callback here; the pushed EffectContext
+            // stays on the stack until the eventual PlayFromMarketCommand calls CompleteAction().
+            if (!isOptional && nextEffect.SourceEffect?.Type == EffectType.PlayFromMarket)
+            {
+                _actionSystem.TryStartPlayFromMarket(nextEffect.SourceCard, nextEffect.SourceEffect.Amount);
                 return;
             }
 

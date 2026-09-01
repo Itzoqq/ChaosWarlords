@@ -99,6 +99,46 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
+        public void PlayCardFromMarket(Card marketCard, Card sourceCard)
+        {
+            if (marketCard.Location != CardLocation.Market)
+            {
+                _logger.Log($"PlayCardFromMarket Failed: {marketCard.Name} is not currently in the Market.", LogChannel.Warning);
+                return;
+            }
+
+            // "As if it was in your hand" - Focus is computed off the MARKET CARD's own
+            // aspect, not sourceCard's (Ulitharid's) - matches PlayCard's own Focus snapshot,
+            // just keyed to a different card.
+            int currentCount = _context.TurnManager.CurrentTurnContext.GetAspectCount(marketCard.Aspect);
+            bool playedAnother = currentCount > 0;
+            bool canRevealFromHand = _context.ActivePlayer.Hand.Any(c => c.Aspect == marketCard.Aspect);
+            bool hasFocus = playedAnother || canRevealFromHand;
+
+            // One-shot: once marketCard's own effect chain fully resolves (whether instantly
+            // or after several frames of targeting), remove it from the market row and send
+            // it to Void - the standard Devour-from-Market removal (see
+            // CheckAndReplaceMarketCard's else branch), never PlayerStateManager.PlayCard
+            // (requires Hand.Contains(card), which a market card never satisfies - would
+            // silently no-op) and never Player.PlayedCards (would make CleanUpTurn() try to
+            // discard a card that's about to be devoured).
+            EventHandler? onMarketCardResolved = null;
+            onMarketCardResolved = (s, e) =>
+            {
+                _context.ActionSystem.OnActionCompleted -= onMarketCardResolved;
+                _context.MarketManager.RemoveCard(marketCard);
+                marketCard.Location = CardLocation.Void;
+                _context.VoidPile.Add(marketCard);
+                _logger.Log($"{marketCard.Name} devoured after being played from the Market by {sourceCard.Name}.", LogChannel.Info);
+            };
+            _context.ActionSystem.OnActionCompleted += onMarketCardResolved;
+
+            CardEffectProcessor.ResolveEffects(marketCard, _context, hasFocus, _logger);
+
+            // Aspect-focus tracking for the market card's own aspect, matching "as if in hand".
+            _context.TurnManager.PlayCard(marketCard);
+        }
+
         public void DevourMarketCard(Card targetCard, Card? sourceCard)
         {
             if (targetCard.Location != CardLocation.Market)

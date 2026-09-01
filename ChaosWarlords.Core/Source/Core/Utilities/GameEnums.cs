@@ -18,7 +18,8 @@ namespace ChaosWarlords.Source.Utilities
         TargetingDevourMarket,
         TargetingDevourInnerCircle,
         TargetingDiscard, // Forced discard from a specific player's own hand (Insane Outcast's self-discard, Neogi's cross-player forced discard)
-        TargetingReturnOwnSpy // Return one of the active player's OWN spies (e.g. Cloaker), as opposed to TargetingReturnSpy (enemy spy)
+        TargetingReturnOwnSpy, // Return one of the active player's OWN spies (e.g. Cloaker), as opposed to TargetingReturnSpy (enemy spy)
+        TargetingPlayFromMarket // Picking a market card to play "as if in hand" (e.g. Ulitharid) - see ActionSystem.TryStartPlayFromMarket
     }
 
     // Replaces the "Suits" (Conquest, Malice, Guile, Obedience)
@@ -74,6 +75,7 @@ namespace ChaosWarlords.Source.Utilities
         DiscardCard,
         MarkOpponentDiscardAtEndOfTurn, // Non-targeting: just banks a MatchContext.PendingOpponentDiscardTriggers entry, resolved by MatchManager.EndTurn's opponent-discard phase
         ReturnOwnSpy, // Return one of the active player's OWN spies (e.g. Cloaker) - see TargetingReturnOwnSpy
+        PlayFromMarket, // Play a market card "as if in hand", then it gets devoured (e.g. Ulitharid) - Amount is the max cost
     }
 
     /// <summary>

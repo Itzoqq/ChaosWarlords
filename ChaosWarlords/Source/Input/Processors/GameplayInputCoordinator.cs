@@ -148,11 +148,13 @@ namespace ChaosWarlords.Source.Input
                 _state.Logger.Log("Coordinator: Switching to DiscardInputMode.", LogChannel.Input);
                 _currentMode = new DiscardInputMode(_state, _inputManager, _context.ActionSystem);
             }
-            else if (_context.ActionSystem.CurrentState == ActionState.TargetingDevourMarket)
+            else if (_context.ActionSystem.CurrentState == ActionState.TargetingDevourMarket ||
+                     _context.ActionSystem.CurrentState == ActionState.TargetingPlayFromMarket)
             {
-                // Market devour is handled by DevourSubsystem calling MarketStateManager.OpenForDevour
-                // which triggers HandleMarketModeChanged event. Just switch to TargetingInputMode temporarily.
-                _state.Logger.Log($"Coordinator: TargetingDevourMarket detected. Market will open via MarketStateManager.", LogChannel.Input);
+                // Both Devour-from-Market and Play-from-Market (Ulitharid) are handled by
+                // ActionSystem calling MarketStateManager.OpenForDevour, which triggers
+                // HandleMarketModeChanged below. Just switch to TargetingInputMode temporarily.
+                _state.Logger.Log($"Coordinator: {_context.ActionSystem.CurrentState} detected. Market will open via MarketStateManager.", LogChannel.Input);
                 _currentMode = new TargetingInputMode(
                     _state,
                     _inputManager,

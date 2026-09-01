@@ -274,6 +274,45 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         }
 
         /// <summary>
+        /// REGRESSION TEST (2026-09-01, found while implementing Ulitharid - see
+        /// planning.txt): a MANDATORY (non-optional) Devour effect reached through the real
+        /// PlayCardCommand -> CardEffectProcessor.ResolveEffects path never actually opened
+        /// the market at all - ActionExecutionEngine.HandleInputRequiredEffect only set
+        /// CurrentState via EnterTargetingState for a "requires input" effect, and never
+        /// called DevourStrategyFactory (the thing that actually calls
+        /// IMarketStateManager.OpenForDevour), unless the effect was IsOptional (handled by a
+        /// separate special case in HandleOptionalEffectAccepted) - Carrion Crawler's Devour
+        /// (Market, mandatory) is the only shipped card with this exact shape, and was
+        /// consequently unplayable: the state changed to TargetingDevourMarket, but the
+        /// player had nothing clickable to advance it. Every existing "Market Devour" test
+        /// above calls ActionSystem.TryStartDevourMarket directly, bypassing PlayCardCommand
+        /// entirely, so none of them caught this. Fixed by generalizing
+        /// HandleInputRequiredEffect's Devour special case to all TargetLocations, not just
+        /// Self.
+        /// </summary>
+        [TestMethod]
+        public void PlayCarrionCrawler_MandatoryMarketDevour_OpensMarketForReal()
+        {
+            var carrionCrawler = new Card("carrion_crawler", "Carrion Crawler", 2, CardAspect.Oblivion, 0, 2, 0);
+            carrionCrawler.AddEffect(new CardEffect(EffectType.Devour, 1)
+            {
+                TargetLocation = CardLocation.Market,
+                ReplaceWithSource = true
+            });
+            var marketCard = new Card("market_victim", "Market Victim", 1, CardAspect.Neutral, 0, 0, 0) { Location = CardLocation.Market };
+
+            _marketManager.MarketRow.Returns(new List<Card> { marketCard });
+            _context.TurnManager.CurrentTurnContext.Returns(new TurnContext(_player, _logger));
+            _player.AddToHand(carrionCrawler);
+
+            var playCommand = new ChaosWarlords.Source.Commands.PlayCardCommand(carrionCrawler);
+            playCommand.Execute(_context);
+
+            Assert.AreEqual(ActionState.TargetingDevourMarket, _actionSystem.CurrentState);
+            _marketStateManager.Received(1).OpenForDevour(Arg.Any<Func<Card, ChaosWarlords.Source.Core.Interfaces.Logic.IGameCommand?>>());
+        }
+
+        /// <summary>
         /// REGRESSION TEST: Verifies market closes automatically after devouring a card.
         /// Bug: Market stayed open after devour - user had to manually close it.
         /// Fix: DevourSubsystem.HandleDevourMarketSelection calls Close() instead of OpenForBrowsing().

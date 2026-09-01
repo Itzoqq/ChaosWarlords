@@ -675,6 +675,44 @@ namespace ChaosWarlords.Source.Managers
             _devourSubsystem.DeferDevour(card);
         }
 
+        public void TryStartPlayFromMarket(Card sourceCard, int maxCost)
+        {
+            if (_marketManager == null || !_marketManager.MarketRow.Any(c => c.Cost <= maxCost))
+            {
+                _logger.Log($"{sourceCard.Name}: No market card costing {maxCost} or less to play.", LogChannel.Warning);
+                CompleteAction();
+                return;
+            }
+
+            // Reuses IMarketStateManager.OpenForDevour - same "pick a market card, get a
+            // command back from a callback" shape Devour-from-Market already uses; only the
+            // command the callback builds differs.
+            _marketStateManager?.OpenForDevour((card) => HandlePlayFromMarketSelection(card, sourceCard, maxCost));
+            StartTargeting(ActionState.TargetingPlayFromMarket, sourceCard);
+            _logger.Log($"{sourceCard.Name}: Select a card from the Market (cost <= {maxCost}) to play.", LogChannel.General);
+        }
+
+        private Commands.PlayFromMarketCommand? HandlePlayFromMarketSelection(Card? targetCard, Card sourceCard, int maxCost)
+        {
+            _marketStateManager?.Close();
+
+            if (targetCard is null || targetCard.Location != CardLocation.Market)
+            {
+                NotifyFailure("Selected card is not in the Market.");
+                return null;
+            }
+
+            if (targetCard.Cost > maxCost)
+            {
+                // Server-side re-check, matching every other command's don't-trust-the-client
+                // pattern - the client's market UI is expected to have already filtered this.
+                NotifyFailure($"That card costs more than {maxCost}.");
+                return null;
+            }
+
+            return new Commands.PlayFromMarketCommand(targetCard, sourceCard);
+        }
+
 
 
         public DevourCardCommand? HandleDevourMarketSelection(Card? targetCard)

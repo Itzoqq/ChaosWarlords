@@ -168,6 +168,16 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         void TryStartDevourMarket(Card sourceCard, Action? onComplete = null, bool deferExecution = false);
 
         /// <summary>
+        /// Initiates the "play a market card as if in hand" flow (e.g. Ulitharid) - opens the
+        /// market for selection (reusing the same IMarketStateManager.OpenForDevour mechanism
+        /// Devour-from-Market uses; the underlying "pick a market card, get a command back
+        /// from a callback" shape is identical) and enters TargetingPlayFromMarket.
+        /// </summary>
+        /// <param name="sourceCard">The card triggering this (e.g. Ulitharid).</param>
+        /// <param name="maxCost">The maximum cost of a market card that can be selected.</param>
+        void TryStartPlayFromMarket(Card sourceCard, int maxCost);
+
+        /// <summary>
         /// Handles the selection of a hand card to devour.
         /// </summary>
         Commands.DevourCardCommand? HandleDevourSelection(Card? targetCard);

@@ -154,7 +154,8 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             [EffectType.Devour] = (effect, card, ctx, log) => ApplyDevourWithChain(effect, card, ctx, log),
             [EffectType.DiscardCard] = (effect, card, ctx, log) => ApplyDiscardCard(card, ctx, log),
             [EffectType.MarkOpponentDiscardAtEndOfTurn] = (effect, card, ctx, log) => ApplyMarkOpponentDiscardAtEndOfTurn(card, ctx, log),
-            [EffectType.ReturnOwnSpy] = (effect, card, ctx, log) => ApplyReturnOwnSpy(card, ctx, log)
+            [EffectType.ReturnOwnSpy] = (effect, card, ctx, log) => ApplyReturnOwnSpy(card, ctx, log),
+            [EffectType.PlayFromMarket] = (effect, card, ctx, log) => ctx.ActionSystem.TryStartPlayFromMarket(card, effect.Amount)
         };
 
         private static void ApplyReturnOwnSpy(Card sourceCard, MatchContext context, IGameLogger logger)

@@ -308,6 +308,21 @@
     ]
   },
   {
+    "Id": "ulitharid",
+    "Name": "Ulitharid",
+    "Description": "Play a card in the market that costs 4 or less as if it was in your hand, then devour that card.",
+    "Cost": 6,
+    "Aspect": "Oblivion",
+    "DeckVP": 3,
+    "InnerCircleVP": 6,
+    "Effects": [
+      {
+        "Type": "PlayFromMarket",
+        "Amount": 4
+      }
+    ]
+  },
+  {
     "Id": "insane_outcast",
     "Name": "Insane Outcast",
     "Description": "Discard a card from your hand to return Insane Outcast to the supply. If Insane Outcast would be devoured or promoted, return it to the supply instead.",
