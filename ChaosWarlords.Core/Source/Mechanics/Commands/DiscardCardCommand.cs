@@ -39,6 +39,14 @@ namespace ChaosWarlords.Source.Commands
             var player = context.TurnManager.GetPlayerByColor(TargetPlayerColor);
             if (player == null) return false;
 
+            // Must be the player currently expected to discard - context.TurnManager.ActivePlayer
+            // correctly resolves to ForcedActingPlayer during Cranium Rats'/Neogi's forced
+            // sequences, or the real active player for Insane Outcast's own-hand discard.
+            // Without this, an unrelated player's legitimately-owned card would validate fine
+            // and get consumed to satisfy someone else's pending forced discard. See
+            // planning.txt/RESOLVED.txt (council-review 2026-09-01).
+            if (player != context.TurnManager.ActivePlayer) return false;
+
             var card = player.Hand.FirstOrDefault(c => c.Id == CardId);
             return card != null;
         }
@@ -72,18 +80,13 @@ namespace ChaosWarlords.Source.Commands
                 // Normal chain-continuation path (e.g. Insane Outcast's own "discard -> devour
                 // self" chain) - the DiscardCard EffectContext is genuinely sitting on
                 // ExecutionStack, so CompleteAction() resolves it and pushes its OnSuccess.
-                context.ActionSystem.CompleteAction();
-
                 // If this discard was part of a forced-actor mid-turn chain (e.g. Cranium Rats'
-                // chosen opponent), and the whole chain has now fully resolved back to Normal,
-                // release the override so ActivePlayer reverts to the real active player.
-                // Guarded on CurrentState so a DiscardCard with its own further OnSuccess step
-                // (none exists today) wouldn't have this fire prematurely mid-chain - see
-                // planning.txt TIER 2 #6 for why this is scoped this way.
-                if (context.ActionSystem.CurrentState == ActionState.Normal && context.TurnManager.ForcedActingPlayer != null)
-                {
-                    context.TurnManager.EndForcedActingPlayer();
-                }
+                // chosen opponent) and the whole chain has now fully resolved back to Normal,
+                // ActionSystem's own ClearState()-driven release (see
+                // ReleaseForcedActingPlayerIfOwnedByExecutionStack) reverts ActivePlayer to the
+                // real active player - generically, for any OnSuccess shape a future
+                // SelectOpponent-based card might chain into, not just this one.
+                context.ActionSystem.CompleteAction();
             }
         }
     }

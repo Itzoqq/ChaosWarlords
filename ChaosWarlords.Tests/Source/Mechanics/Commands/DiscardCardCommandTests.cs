@@ -41,6 +41,10 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         [TestMethod]
         public void Validate_ReturnsFalse_WhenCardNotInPlayersHand()
         {
+            // ActivePlayer must be stubbed to the same player so this genuinely exercises the
+            // card-lookup branch, not incidentally pass via the (unrelated) ActivePlayer-
+            // mismatch check added 2026-09-01.
+            _state.TurnManager.ActivePlayer.Returns(_player);
             var command = new DiscardCardCommand(PlayerColor.Red, "card_that_does_not_exist");
 
             Assert.IsFalse(command.Validate(_state.MatchContext));
@@ -49,9 +53,27 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         [TestMethod]
         public void Validate_ReturnsTrue_WhenCardInPlayersHand()
         {
+            // Must also be ActivePlayer - see Validate_ReturnsFalse_WhenOwnerIsNotActivePlayer
+            // below for the new (2026-09-01) branch that requires this.
+            _state.TurnManager.ActivePlayer.Returns(_player);
             var command = new DiscardCardCommand(PlayerColor.Red, _card.Id);
 
             Assert.IsTrue(command.Validate(_state.MatchContext));
+        }
+
+        [TestMethod]
+        public void Validate_ReturnsFalse_WhenOwnerIsNotActivePlayer()
+        {
+            // Finding C (council-review 2026-09-01): the named player can genuinely own the
+            // named card while someone ELSE is ActivePlayer (e.g. the real active player
+            // trying to satisfy a forced opponent's discard requirement with their own card).
+            // DiscardCardCommand.Validate() must reject this even though the ownership check
+            // alone would pass.
+            var otherActivePlayer = TestData.Players.BluePlayer();
+            _state.TurnManager.ActivePlayer.Returns(otherActivePlayer);
+            var command = new DiscardCardCommand(PlayerColor.Red, _card.Id);
+
+            Assert.IsFalse(command.Validate(_state.MatchContext));
         }
 
         [TestMethod]
@@ -120,50 +142,22 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             _state.ActionSystem.DidNotReceive().CompleteAction();
         }
 
-        [TestMethod]
-        public void Execute_NormalPath_StateBackToNormalWithForcedActingPlayerSet_ReleasesTheOverride()
-        {
-            // Cranium Rats' chosen-opponent chain (planning.txt TIER 2 #6): once the forced
-            // actor's own DiscardCard fully resolves back to Normal, the override must be
-            // released so ActivePlayer reverts to the real active player.
-            _state.MatchManager.IsResolvingOpponentDiscard.Returns(false);
-            _state.ActionSystem.CurrentState.Returns(ActionState.Normal);
-            _state.TurnManager.ForcedActingPlayer.Returns(_player);
-            var command = new DiscardCardCommand(PlayerColor.Red, _card.Id);
-
-            command.Execute(_state.MatchContext);
-
-            _state.TurnManager.Received(1).EndForcedActingPlayer();
-        }
-
-        [TestMethod]
-        public void Execute_NormalPath_NoForcedActingPlayerSet_DoesNotCallEndForcedActingPlayer()
-        {
-            // The ordinary (non-Cranium-Rats) discard path - nothing to release.
-            _state.MatchManager.IsResolvingOpponentDiscard.Returns(false);
-            _state.ActionSystem.CurrentState.Returns(ActionState.Normal);
-            _state.TurnManager.ForcedActingPlayer.Returns((ChaosWarlords.Source.Entities.Actors.Player?)null);
-            var command = new DiscardCardCommand(PlayerColor.Red, _card.Id);
-
-            command.Execute(_state.MatchContext);
-
-            _state.TurnManager.DidNotReceive().EndForcedActingPlayer();
-        }
-
-        [TestMethod]
-        public void Execute_NormalPath_ChainStillInProgress_DoesNotCallEndForcedActingPlayer()
-        {
-            // Guarded on CurrentState == Normal - a DiscardCard with a further OnSuccess step
-            // still pending (CurrentState != Normal) must NOT release the override mid-chain,
-            // even if ForcedActingPlayer happens to be set.
-            _state.MatchManager.IsResolvingOpponentDiscard.Returns(false);
-            _state.ActionSystem.CurrentState.Returns(ActionState.TargetingSupplant);
-            _state.TurnManager.ForcedActingPlayer.Returns(_player);
-            var command = new DiscardCardCommand(PlayerColor.Red, _card.Id);
-
-            command.Execute(_state.MatchContext);
-
-            _state.TurnManager.DidNotReceive().EndForcedActingPlayer();
-        }
+        // NOTE (2026-09-01, council-review fix chain for f4f2de1/Cranium Rats): this file used
+        // to have 3 tests here (Execute_NormalPath_StateBackToNormalWithForcedActingPlayerSet_
+        // ReleasesTheOverride / ..._NoForcedActingPlayerSet_DoesNotCallEndForcedActingPlayer /
+        // ..._ChainStillInProgress_DoesNotCallEndForcedActingPlayer) asserting that
+        // DiscardCardCommand.Execute() itself called/didn't call TurnManager.
+        // EndForcedActingPlayer() depending on ActionSystem.CurrentState. That release is no
+        // longer DiscardCardCommand's responsibility at all - it moved to a generic
+        // ActionSystem.ReleaseForcedActingPlayerIfOwnedByExecutionStack() helper invoked from
+        // ClearState()/CancelTargeting(), which a mocked ActionSystem (as used in this file)
+        // never actually invokes. Removed rather than kept as now-vacuous assertions (Execute()
+        // never calls EndForcedActingPlayer regardless of CurrentState any more, so the
+        // DidNotReceive() cases would pass for the wrong reason). The real behavior these tests
+        // covered is now exercised at the scenario level, through the REAL ActionSystem, in
+        // CraniumRatsScenarioTests.CancelTargeting_DuringOpponentDiscard_ReleasesTheForcedActor_
+        // AndReturnsTheCardToHand and NeogiScenarioTests'
+        // CancelTargeting_DuringNeogiOpponentDiscardQueue_DoesNotDesyncTheQueue (the actual bug
+        // this fix closes) - see RESOLVED.txt.
     }
 }

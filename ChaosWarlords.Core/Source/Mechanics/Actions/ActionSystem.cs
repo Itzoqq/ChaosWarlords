@@ -266,6 +266,37 @@ namespace ChaosWarlords.Source.Managers
             // itself; this covers every other path back to Normal so a later cancel never
             // reuses a snapshot from a sequence that already finished.
             _targetingSequenceSnapshot = null;
+
+            ReleaseForcedActingPlayerIfOwnedByExecutionStack();
+        }
+
+        /// <summary>
+        /// Releases TurnManager.ForcedActingPlayer whenever a sequence that set it via the
+        /// ExecutionStack (e.g. SelectOpponentCommand - see planning.txt TIER 2 #6) genuinely
+        /// finishes or is cancelled - called from ClearState() (covers stack-empty completion via
+        /// ResetTargetingToNormal, CompleteAction()'s no-stack fallback, and CancelTargeting()'s
+        /// no-snapshot branch) and explicitly from CancelTargeting()'s snapshot-restore branch
+        /// (which does not call ClearState()). Deliberately generic - NOT specific to DiscardCard or
+        /// any one OnSuccess shape a future SelectOpponent-based card might chain into, since the
+        /// primitive itself (not whichever command happens to finish the chain) owns this.
+        ///
+        /// Guarded against MatchManager's Neogi cross-player forced-discard queue
+        /// (IsResolvingOpponentDiscard), which ALSO drives ForcedActingPlayer but entirely outside
+        /// ExecutionStack (AdvanceOpponentDiscard calls StartTargeting directly, nothing is ever
+        /// pushed to the stack for it) - releasing it here too would desync
+        /// MatchManager._pendingDiscardQueue from ActionState/ForcedActingPlayer the moment anyone
+        /// cancels (e.g. right-click) while Neogi's queue is mid-processing: IsResolvingOpponentDiscard
+        /// would stay true with stale queued entries while everything else looks idle, silently
+        /// misrouting the next unrelated DiscardCardCommand into ResolveOpponentDiscard. Confirmed via
+        /// council-review 2026-09-01 - see planning.txt/RESOLVED.txt.
+        /// </summary>
+        private void ReleaseForcedActingPlayerIfOwnedByExecutionStack()
+        {
+            bool neogiQueueOwnsIt = _matchManager != null && _matchManager.IsResolvingOpponentDiscard;
+            if (!neogiQueueOwnsIt && _turnManager.ForcedActingPlayer != null)
+            {
+                _turnManager.EndForcedActingPlayer();
+            }
         }
 
         public void NotifyFailure(string reason)
@@ -307,17 +338,6 @@ namespace ChaosWarlords.Source.Managers
         {
             string? cardToClearId = PendingCard?.Id;
 
-            // A forced-actor chain (e.g. Cranium Rats' chosen opponent) may still have
-            // ForcedActingPlayer set when cancelled mid-sequence (e.g. right-clicking out of
-            // the follow-up discard). StateRestorer's snapshot/restore below does NOT touch
-            // TurnManager.ForcedActingPlayer, so without this, ActivePlayer would stay stuck
-            // pointing at the chosen opponent forever after a cancel. Safe for every other
-            // targeting sequence too - a no-op whenever ForcedActingPlayer is already null.
-            if (_turnManager.ForcedActingPlayer != null)
-            {
-                _turnManager.EndForcedActingPlayer();
-            }
-
             ClearPreselectedTargets();
 
             var cancelledEffects = PopCancelledEffects(PendingCard);
@@ -327,6 +347,14 @@ namespace ChaosWarlords.Source.Managers
             {
                 Managers.StateRestorer.RestoreState(_matchContext, _targetingSequenceSnapshot);
                 _targetingSequenceSnapshot = null;
+
+                // StateRestorer's snapshot/restore above does NOT touch
+                // TurnManager.ForcedActingPlayer (e.g. Cranium Rats' chosen opponent), so without
+                // this, ActivePlayer would stay stuck pointing at the chosen opponent forever
+                // after a cancel. Correctly no-ops if Neogi's cross-player discard queue owns
+                // ForcedActingPlayer instead - see ReleaseForcedActingPlayerIfOwnedByExecutionStack.
+                ReleaseForcedActingPlayerIfOwnedByExecutionStack();
+
                 _logger.Log("ActionSystem: Targeting Cancelled. Full pre-sequence state restored.", LogChannel.Info);
             }
             else

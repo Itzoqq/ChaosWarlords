@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Utilities;
+using System.Linq;
 
 namespace ChaosWarlords.Tests.Source.Functional
 {
@@ -114,6 +115,71 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             Assert.AreEqual(4, red.PendingFreeTroops, "Deploy 4 troops should have applied exactly once, not twice.");
             Assert.HasCount(1, scenario.Context.PendingOpponentDiscardTriggers, "Only one Neogi's worth of forced-discard should be pending.");
+        }
+
+        [TestMethod]
+        public void CancelTargeting_MidQueue_DoesNotDesyncNeogisForcedDiscardQueue()
+        {
+            // Regression for the council-review fix chain on f4f2de1 (Cranium Rats):
+            // ActionSystem.CancelTargeting()/ClearState() used to release
+            // TurnManager.ForcedActingPlayer unconditionally. Neogi's cross-player forced-
+            // discard queue (MatchManager._pendingDiscardQueue) ALSO drives ForcedActingPlayer,
+            // but entirely outside ActionSystem's ExecutionStack (AdvanceOpponentDiscard calls
+            // StartTargeting directly - nothing is ever pushed to the stack for it) and owns
+            // its own release via AdvanceOpponentDiscard/ResolveOpponentDiscard. A generic
+            // cancel firing here would silently clear ForcedActingPlayer while
+            // IsResolvingOpponentDiscard stayed stuck true with the remaining queued opponent(s)
+            // still pending - corrupting the next unrelated DiscardCardCommand dispatched later.
+            // The fix guards the release on MatchManager.IsResolvingOpponentDiscard.
+            //
+            // Needs a 3rd seat (see CraniumRatsScenarioTests for the same overload) so
+            // cancelling mid-way through the FIRST queued opponent still leaves a SECOND
+            // queued - the condition that actually exposes the desync (with only 2 players,
+            // "the queue still has entries" and "the queue is fully drained" look identical
+            // once the sole opponent is cancelled out of).
+            var scenario = MatchScenario.Build(playerColors: new[] { PlayerColor.Red, PlayerColor.Blue, PlayerColor.Orange });
+            var red = scenario.AsActivePlayer(PlayerColor.Red);
+            var blue = scenario.Player(PlayerColor.Blue);
+            var orange = scenario.Player(PlayerColor.Orange);
+
+            var neogi = scenario.GiveCard(PlayerColor.Red, "neogi");
+            scenario.PlayCard(neogi);
+            scenario.GiveCard(PlayerColor.Blue, "core_noble");
+            scenario.GiveCard(PlayerColor.Orange, "core_noble");
+
+            scenario.Dispatch(new EndTurnCommand());
+
+            Assert.IsTrue(scenario.Context.MatchManager.IsResolvingOpponentDiscard, "Setup check: both Blue and Orange should now be queued.");
+            var firstToDiscard = scenario.Context.ActivePlayer;
+            Assert.IsTrue(firstToDiscard == blue || firstToDiscard == orange, "Whoever seat order picked first should be the one forced to discard.");
+
+            // Simulates the right-click-cancel path (PlayerController.HandleGlobalInput) firing
+            // while the FIRST queued opponent's forced discard is still open.
+            scenario.Context.ActionSystem.CancelTargeting();
+
+            Assert.IsTrue(scenario.Context.MatchManager.IsResolvingOpponentDiscard, "Neogi's queue must NOT have been silently abandoned by a generic ActionSystem cancel - it owns its own lifecycle independent of ExecutionStack.");
+            Assert.AreEqual(firstToDiscard, scenario.Context.ActivePlayer, "ActivePlayer must still resolve to whoever the queue currently expects.");
+            Assert.AreNotEqual(red, scenario.Context.ActivePlayer, "Must not have reverted to the real active player while the queue is still pending.");
+
+            // Bonus: prove the queue isn't just "not obviously broken" - it can still complete
+            // the whole sequence normally after surviving the cancel. Re-fetch the card to
+            // discard from the CURRENT hand rather than holding a pre-cancel Card reference -
+            // CancelTargeting's snapshot-restore branch rebuilds hands via fresh
+            // ICardDatabase.GetCardById lookups (each carrying a newly generated unique
+            // instance id), so a captured pre-cancel Card's id would no longer resolve
+            // post-restore. This is the same known, separately-documented card-identity-across-
+            // restore behavior noted in CraniumRatsScenarioTests, not the bug under test here.
+            var firstCard = firstToDiscard.Hand.Single();
+            scenario.Dispatch(new DiscardCardCommand(firstToDiscard.Color, firstCard.Id));
+
+            Assert.IsTrue(scenario.Context.MatchManager.IsResolvingOpponentDiscard, "The second opponent should still be queued.");
+            var secondToDiscard = scenario.Context.ActivePlayer;
+            Assert.AreNotEqual(firstToDiscard, secondToDiscard, "The second queued opponent should now be up.");
+
+            var secondCard = secondToDiscard.Hand.Single();
+            scenario.Dispatch(new DiscardCardCommand(secondToDiscard.Color, secondCard.Id));
+
+            Assert.IsFalse(scenario.Context.MatchManager.IsResolvingOpponentDiscard, "The sequence should complete normally once both opponents have discarded.");
         }
     }
 }
