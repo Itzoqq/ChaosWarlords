@@ -6,6 +6,7 @@ using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Utilities;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Core.Contexts;
 using ChaosWarlords.Source.Utilities;
@@ -36,36 +37,10 @@ namespace ChaosWarlords.Source.Managers
             RestoreMarket(context, dto.Market);
             
             // 5. Void / Transient State
-            context.VoidPile.Clear();
-            if (dto.VoidPile != null)
-            {
-                foreach (var cardDto in dto.VoidPile)
-                {
-                    var card = context.CardDatabase.GetCardById(cardDto.DefinitionId);
-                    if (card != null) context.VoidPile.Add(card);
-                }
-            }
-            
-            context.CardsMarkedForTurnEndDevour.Clear();
-            if (dto.MarkedForTurnEndDevourCardIds != null)
-            {
-                foreach (var id in dto.MarkedForTurnEndDevourCardIds)
-                {
-                     // Card equality is ID-based, so a database lookup is sufficient here.
-                     var card = context.CardDatabase.GetCardById(id);
-                     if (card != null) context.CardsMarkedForTurnEndDevour.Add(card);
-                }
-            }
-
-            context.PendingOpponentDiscardTriggers.Clear();
-            if (dto.PendingOpponentDiscardTriggerCardIds != null)
-            {
-                foreach (var id in dto.PendingOpponentDiscardTriggerCardIds)
-                {
-                    var card = context.CardDatabase.GetCardById(id);
-                    if (card != null) context.PendingOpponentDiscardTriggers.Add(card);
-                }
-            }
+            // Card equality is ID-based, so a database lookup is sufficient for all 3 of these.
+            RestoreCardIdList(context.VoidPile, dto.VoidPile?.Select(c => c.DefinitionId), context.CardDatabase);
+            RestoreCardIdList(context.CardsMarkedForTurnEndDevour, dto.MarkedForTurnEndDevourCardIds, context.CardDatabase);
+            RestoreCardIdList(context.PendingOpponentDiscardTriggers, dto.PendingOpponentDiscardTriggerCardIds, context.CardDatabase);
 
             // 6. Action Stack
             // EffectContext carries runtime delegates (OnResolved/OnCancelled) that can't be
@@ -92,6 +67,25 @@ namespace ChaosWarlords.Source.Managers
             context.ActionSystem.RestorePendingState(dto.ActionSystemState, pendingCard, pendingSite, pendingMoveSource, pendingDevourCard);
         }
 
+        /// <summary>
+        /// Clears <paramref name="target"/> and repopulates it by looking up each id in
+        /// <paramref name="ids"/> against the card database, skipping any that no longer
+        /// resolve. Shared by every simple "list of card ids" snapshot field (VoidPile,
+        /// CardsMarkedForTurnEndDevour, PendingOpponentDiscardTriggers) - they all restore the
+        /// same way, just to a different target list.
+        /// </summary>
+        private static void RestoreCardIdList(List<Card> target, IEnumerable<string>? ids, ICardDatabase db)
+        {
+            target.Clear();
+            if (ids == null) return;
+
+            foreach (var id in ids)
+            {
+                var card = db.GetCardById(id);
+                if (card != null) target.Add(card);
+            }
+        }
+
         private static void RestoreMap(IMapManager mapManager, MapDto mapDto)
         {
             if (mapDto.Nodes != null)
@@ -115,18 +109,27 @@ namespace ChaosWarlords.Source.Managers
                     if (site != null)
                     {
                         site.Owner = siteDto.Owner;
-                        site.Spies.Clear();
-                        if (siteDto.Spies != null)
-                        {
-                            foreach (var s in siteDto.Spies)
-                            {
-                                if (Enum.TryParse<PlayerColor>(s, out var color))
-                                {
-                                    site.Spies.Add(color);
-                                }
-                            }
-                        }
+                        RestoreSiteSpies(site, siteDto.Spies);
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Clears a site's spies and repopulates it from the DTO's string-encoded colors,
+        /// skipping any that don't parse. Split out of RestoreMap's own site loop - same
+        /// "clear then repopulate, tolerating bad entries" shape RestoreCardIdList uses.
+        /// </summary>
+        private static void RestoreSiteSpies(Site site, List<string>? spyColors)
+        {
+            site.Spies.Clear();
+            if (spyColors == null) return;
+
+            foreach (var s in spyColors)
+            {
+                if (Enum.TryParse<PlayerColor>(s, out var color))
+                {
+                    site.Spies.Add(color);
                 }
             }
         }
