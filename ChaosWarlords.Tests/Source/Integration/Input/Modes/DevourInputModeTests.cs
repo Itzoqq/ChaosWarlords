@@ -126,7 +126,12 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             sourceCard.Location = CardLocation.Hand;
 
             _mockActionSystem.PendingCard.Returns(sourceCard);
-            
+            // The Space-skip path now keys SetPreTarget off the live CurrentState rather than a
+            // hardcoded TargetingDevourHand (see DevourInputMode.HandleSkipOptionalCost) -
+            // configure it to match what a real Hand-targeting devour actually has it set to.
+            _mockActionSystem.CurrentState.Returns(ActionState.TargetingDevourHand);
+
+
             // Re-create mode to capture PendingCard if needed (or just ensure mock is ready)
             var mode = new DevourInputMode(_stateFake, _mockInputManager, _mockActionSystem);
             

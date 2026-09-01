@@ -32,11 +32,11 @@ namespace ChaosWarlords.Source.Input.Modes
         // Removed constructor with callback - logic moved to HandleInput via MarketStateManager
 
         private int _updateFrames;
-        private const int COOLDOWN_FRAMES = 5;
+        private const int CooldownFrames = 5;
 
         public IGameCommand? HandleInteraction(Core.Events.InputEventArgs evt, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
-            if (_updateFrames < COOLDOWN_FRAMES) return null;
+            if (_updateFrames < CooldownFrames) return null;
 
             if (evt.Type != Core.Events.InputEventType.LeftClick) return null;
 

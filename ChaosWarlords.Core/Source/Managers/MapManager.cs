@@ -118,7 +118,7 @@ namespace ChaosWarlords.Source.Managers
         // STATE MUTATION ACTIONS (Orchestration)
         // -------------------------------------------------------------------------
 
-        public virtual bool TryDeploy(Player currentPlayer, MapNode targetNode)
+        public bool TryDeploy(Player currentPlayer, MapNode targetNode)
         {
             ArgumentNullException.ThrowIfNull(currentPlayer);
             ArgumentNullException.ThrowIfNull(targetNode);

@@ -293,41 +293,15 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
 
         private void TriggerCompletion()
         {
-            // We invoke OUR callback then ask ActionSystem to complete.
-            // But ActionSystem.CompleteAction clears state.
-
-            // To maintain correct flow:
-            // 1. Invoke local callback (next step in chain)
-            // 2. Clear local transient state (callback)
-
+            // Order matters: clear our own pending callback and reset ActionSystem's state
+            // (Targeting -> Normal) BEFORE invoking the callback, not after - the callback may
+            // itself start a NEW targeting state (e.g. Devour -> Supplant), and running
+            // CompleteAction() afterward would wipe that fresh state instead of the one this
+            // step is actually finishing.
             var callback = _pendingCallback;
             _pendingCallback = null;
 
-            // We must call ActionSystem.CompleteAction() to reset ActionSystem state (Targeting -> Normal)
-            // BUT if the callback starts a NEW targeting state (e.g. Supplant), calling CompleteAction AFTER might wipe it?
-
-            // Depends on ActionSystem implementation.
-            // ActionSystem.CompleteAction() calls ClearState() then invokes its own Callbacks.
-
-            // In the monolithic version: _pendingCallback was stored in ActionSystem.
-            // CompleteAction called ClearState THEN invoked callback.
-
-            // So here:
-            // We should tell ActionSystem "We are done with this step".
-            // But we don't have access to ActionSystem's internal _pendingCallback storage to inject ours.
-
-            // Ideally validation/execution should end with ActionSystem.CompleteAction().
-
-            // Wait, if we invoke callback here, we might be starting the NEXT step.
-            // So we should:
-            // 1. Clear ActionSystem State (ActionSystem.ClearState() is private, oops.)
-            // ActionSystem.CompleteAction() is public.
-
-            // If we call ActionSystem.CompleteAction(), it will clear state.
-            // Then we invoke our callback?
-
             _actionSystem.CompleteAction(); // Clears ActionState: Targeting -> Normal
-
             callback?.Invoke(); // Starts next step (e.g. StartTargeting(Supplant))
         }
     }

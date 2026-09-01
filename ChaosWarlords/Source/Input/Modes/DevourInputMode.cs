@@ -35,11 +35,11 @@ namespace ChaosWarlords.Source.Input.Modes
         }
 
         private int _updateFrames;
-        private const int COOLDOWN_FRAMES = 10; // Slightly longer to ensure popup click is fully cleared
+        private const int CooldownFrames = 10; // Slightly longer to ensure popup click is fully cleared
 
         public IGameCommand? HandleInteraction(Core.Events.InputEventArgs evt, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
-            if (_updateFrames < COOLDOWN_FRAMES) return null;
+            if (_updateFrames < CooldownFrames) return null;
 
             // Handle Cancellation (Right Click or Escape)
             if (evt.Type == Core.Events.InputEventType.RightClick || (evt.Type == Core.Events.InputEventType.KeyDown && evt.Key == Keys.Escape))
@@ -77,7 +77,18 @@ namespace ChaosWarlords.Source.Input.Modes
                 return null; // Skip only supported for pre-commit flow
             }
 
-            actionSystem.SetPreTarget(_sourceCard!, ActionState.TargetingDevourHand, ActionSystem.SkippedTarget);
+            // Keyed to the CURRENT targeting state, not hardcoded to TargetingDevourHand - this
+            // mode also handles TargetingDevourInnerCircle (see the constructor/HandleCardClick
+            // branching on actionSystem.CurrentState above). Not reachable by any shipped card
+            // today (IsPreCommitFlow/NormalPlayInputMode.ShouldHandleDevourPreCommit both only
+            // allow pre-commit devour sourced from Hand) - fixed here for correctness anyway,
+            // but NOTE this alone isn't a full fix for a future Hand+InnerCircle chained-devour
+            // card: PreTargetHandler.ExecutePreTargetByType only special-cases SkippedTarget for
+            // TargetingDevourHand, and ActionExecutionEngine.TryExecutePreTargetEffect always
+            // passes ActionSystem.HandleDevourSelection (the Hand-specific selection handler)
+            // regardless of state - both would need the same InnerCircle-awareness added
+            // alongside this before that combination actually works end to end.
+            actionSystem.SetPreTarget(_sourceCard!, actionSystem.CurrentState, ActionSystem.SkippedTarget);
 
             if (actionSystem.AdvancePreCommitTargeting(_sourceCard!))
             {

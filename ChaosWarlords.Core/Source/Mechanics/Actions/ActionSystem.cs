@@ -11,10 +11,6 @@ namespace ChaosWarlords.Source.Managers
 {
     public class ActionSystem : IActionSystem
     {
-        // Logic Constants
-        private const int ASSASSINATE_COST = GameConstants.AssassinatePowerCost;
-        private const int RETURN_SPY_COST = GameConstants.ReturnSpyPowerCost;
-
         // Event Definitions
         public event EventHandler? OnActionCompleted;
         public event EventHandler<string>? OnActionFailed;
@@ -150,21 +146,21 @@ namespace ChaosWarlords.Source.Managers
 
         public void TryStartAssassinate()
         {
-            if (CurrentPlayer.Power < ASSASSINATE_COST)
+            if (CurrentPlayer.Power < GameConstants.AssassinatePowerCost)
             {
-                OnActionFailed?.Invoke(this, $"Not enough Power! Need {ASSASSINATE_COST}.");
+                OnActionFailed?.Invoke(this, $"Not enough Power! Need {GameConstants.AssassinatePowerCost}.");
                 return;
             }
 
             StartTargeting(ActionState.TargetingAssassinate);
-            _logger.Log($"Select a TROOP to Assassinate (Cost: {ASSASSINATE_COST} Power)...", LogChannel.General);
+            _logger.Log($"Select a TROOP to Assassinate (Cost: {GameConstants.AssassinatePowerCost} Power)...", LogChannel.General);
         }
 
         public void TryStartReturnSpy()
         {
-            if (CurrentPlayer.Power < RETURN_SPY_COST)
+            if (CurrentPlayer.Power < GameConstants.ReturnSpyPowerCost)
             {
-                OnActionFailed?.Invoke(this, $"Not enough Power! Need {RETURN_SPY_COST}.");
+                OnActionFailed?.Invoke(this, $"Not enough Power! Need {GameConstants.ReturnSpyPowerCost}.");
                 return;
             }
 
@@ -177,7 +173,7 @@ namespace ChaosWarlords.Source.Managers
             }
 
             StartTargeting(ActionState.TargetingReturnSpy);
-            _logger.Log($"Select a SITE to remove Enemy Spy (Cost: {RETURN_SPY_COST} Power)...", LogChannel.General);
+            _logger.Log($"Select a SITE to remove Enemy Spy (Cost: {GameConstants.ReturnSpyPowerCost} Power)...", LogChannel.General);
         }
 
         /// <summary>
@@ -429,7 +425,7 @@ namespace ChaosWarlords.Source.Managers
 
         private void SpendAssassinateCost()
         {
-            _playerStateManager.TrySpendPower(CurrentPlayer, ASSASSINATE_COST);
+            _playerStateManager.TrySpendPower(CurrentPlayer, GameConstants.AssassinatePowerCost);
         }
 
         public void PerformReturnTroop(MapNode node, string? cardId)
