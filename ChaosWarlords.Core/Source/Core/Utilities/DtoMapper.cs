@@ -386,9 +386,10 @@ namespace ChaosWarlords.Source.Core.Utilities
             dto.Phase = context.CurrentPhase;
             dto.SequenceNumber = context.SequenceNumber;
 
-            // Transient
-            dto.MarkedForTurnEndDevourCardIds = context.CardsMarkedForTurnEndDevour.Select(c => c.Id).ToList();
-            dto.PendingOpponentDiscardTriggerCardIds = context.PendingOpponentDiscardTriggers.Select(c => c.Id).ToList();
+            // Transient - definitional ids (Card.DefinitionId, NOT the CardFactory.
+            // GenerateUniqueId-suffixed Card.Id ICardDatabase.GetCardById can't resolve).
+            dto.MarkedForTurnEndDevourCardIds = context.CardsMarkedForTurnEndDevour.Select(c => c.DefinitionId).ToList();
+            dto.PendingOpponentDiscardTriggerCardIds = context.PendingOpponentDiscardTriggers.Select(c => c.DefinitionId).ToList();
 
             // Entities
             dto.Players = context.TurnManager.Players.Select(p => ToDto(p)).Where(d => d != null).ToList()!;
@@ -402,10 +403,10 @@ namespace ChaosWarlords.Source.Core.Utilities
             // ActionSystem's targeting state machine - see GameStateDto.ActionSystemState's
             // doc comment for why this travels alongside EffectStack.
             dto.ActionSystemState = context.ActionSystem.CurrentState;
-            dto.PendingCardId = context.ActionSystem.PendingCard?.Id;
+            dto.PendingCardId = context.ActionSystem.PendingCard?.DefinitionId;
             dto.PendingSiteId = context.ActionSystem.PendingSite?.Id;
             dto.PendingMoveSourceNodeId = context.ActionSystem.PendingMoveSource?.Id;
-            dto.PendingDevourCardId = context.ActionSystem.PendingDevourCard?.Id;
+            dto.PendingDevourCardId = context.ActionSystem.PendingDevourCard?.DefinitionId;
 
             // Computed from the live context, not recomputed independently on the DTO later -
             // see GameStateDto.StateHash's doc comment for why.
@@ -425,7 +426,7 @@ namespace ChaosWarlords.Source.Core.Utilities
                     effectStack.Add(new EffectContextDto
                     {
                         State = effect.EffectType,
-                        SourceCardId = effect.SourceCard?.Id,
+                        SourceCardId = effect.SourceCard?.DefinitionId,
                         RequiresInput = effect.RequiresInput,
                         Description = effect.Description,
                         EffectType = effect.SourceEffect?.Type ?? EffectType.None

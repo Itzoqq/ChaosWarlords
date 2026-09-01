@@ -37,8 +37,12 @@ namespace ChaosWarlords.Source.Managers
             RestoreMarket(context, dto.Market);
             
             // 5. Void / Transient State
-            // Card equality is ID-based, so a database lookup is sufficient for all 3 of these.
-            RestoreCardIdList(context.VoidPile, dto.VoidPile?.Select(c => c.DefinitionId), context.CardDatabase);
+            // VoidPile carries full CardDtos (Location/RuntimeId matter - see RestoreCardDtoList).
+            // CardsMarkedForTurnEndDevour/PendingOpponentDiscardTriggers are plain definitional-
+            // id lists (MatchManager.EndTurn sets their Location itself when it processes them,
+            // never reads it beforehand, so a bare re-resolved Card is sufficient there) - see
+            // RestoreCardIdList's own doc comment for the resulting known limitation.
+            RestoreCardDtoList(context.VoidPile, dto.VoidPile, context.CardDatabase);
             RestoreCardIdList(context.CardsMarkedForTurnEndDevour, dto.MarkedForTurnEndDevourCardIds, context.CardDatabase);
             RestoreCardIdList(context.PendingOpponentDiscardTriggers, dto.PendingOpponentDiscardTriggerCardIds, context.CardDatabase);
 
@@ -68,22 +72,63 @@ namespace ChaosWarlords.Source.Managers
         }
 
         /// <summary>
-        /// Clears <paramref name="target"/> and repopulates it by looking up each id in
-        /// <paramref name="ids"/> against the card database, skipping any that no longer
-        /// resolve. Shared by every simple "list of card ids" snapshot field (VoidPile,
-        /// CardsMarkedForTurnEndDevour, PendingOpponentDiscardTriggers) - they all restore the
-        /// same way, just to a different target list.
+        /// Clears <paramref name="target"/> and repopulates it by looking up each definitional
+        /// id in <paramref name="definitionIds"/> against the card database, skipping any that
+        /// no longer resolve. Used for CardsMarkedForTurnEndDevour/PendingOpponentDiscardTriggers
+        /// - both are transient, single-turn markers whose only consumer (MatchManager.EndTurn)
+        /// sets each card's Location itself when processing it rather than reading a
+        /// pre-existing value, so a freshly-resolved Card (not necessarily the same reference
+        /// sitting in the restored Hand/PlayedCards) is sufficient. KNOWN LIMITATION: because
+        /// these are freshly-resolved rather than looked up in Hand/PlayedCards by RuntimeId,
+        /// MatchManager.EndTurn's List.Remove(card) (reference equality) would silently fail to
+        /// find/remove them if a rollback happens between one of these being marked and
+        /// EndTurn actually processing it - a narrow window, not fixed by this pass.
         /// </summary>
-        private static void RestoreCardIdList(List<Card> target, IEnumerable<string>? ids, ICardDatabase db)
+        private static void RestoreCardIdList(List<Card> target, IEnumerable<string>? definitionIds, ICardDatabase db)
         {
             target.Clear();
-            if (ids == null) return;
+            if (definitionIds == null) return;
 
-            foreach (var id in ids)
+            foreach (var definitionId in definitionIds)
             {
-                var card = db.GetCardById(id);
+                var card = db.GetCardById(definitionId);
                 if (card != null) target.Add(card);
             }
+        }
+
+        /// <summary>
+        /// Clears <paramref name="target"/> and repopulates it from full CardDtos, restoring
+        /// each resolved Card's Location and RuntimeId from the snapshot (not just its
+        /// definitional identity) - see ResolveCard. Used for VoidPile, where downstream code
+        /// can care about both (e.g. a card's Location should read Void, and a UI/command
+        /// already holding that card's RuntimeId should still find it after a restore).
+        /// </summary>
+        private static void RestoreCardDtoList(List<Card> target, List<CardDto>? dtos, ICardDatabase db)
+        {
+            target.Clear();
+            if (dtos == null) return;
+
+            foreach (var d in dtos)
+            {
+                var card = ResolveCard(d, db);
+                if (card != null) target.Add(card);
+            }
+        }
+
+        /// <summary>
+        /// Resolves a CardDto back to a live Card via its DefinitionId, then carries over the
+        /// snapshot's Location and RuntimeId - the two pieces of per-instance state a fresh
+        /// ICardDatabase.GetCardById lookup can't know on its own. Shared by every restore path
+        /// that has a full CardDto to work from (player collections, Market, VoidPile).
+        /// </summary>
+        private static Card? ResolveCard(CardDto d, ICardDatabase db)
+        {
+            var card = db.GetCardById(d.DefinitionId);
+            if (card == null) return null;
+
+            card.Location = d.Location;
+            card.RuntimeId = d.RuntimeId;
+            return card;
         }
 
         private static void RestoreMap(IMapManager mapManager, MapDto mapDto)
@@ -163,7 +208,7 @@ namespace ChaosWarlords.Source.Managers
              if (dtos == null) return;
              foreach (var d in dtos)
              {
-                 var card = db.GetCardById(d.DefinitionId);
+                 var card = ResolveCard(d, db);
                  if (card != null) addAction(player, card);
              }
         }
@@ -178,7 +223,7 @@ namespace ChaosWarlords.Source.Managers
             {
                  foreach (var d in marketDtos)
                  {
-                     var card = context.CardDatabase.GetCardById(d.DefinitionId);
+                     var card = ResolveCard(d, context.CardDatabase);
                      if (card != null) mgr.MarketRow.Add(card);
                  }
             }

@@ -62,7 +62,6 @@ namespace ChaosWarlords.Tests.Source.Core.Data
             var dto = new CardDto
             {
                 DefinitionId = "test_card",
-                InstanceId = Guid.NewGuid().ToString(),
                 Location = CardLocation.Hand
             };
 
@@ -106,8 +105,7 @@ namespace ChaosWarlords.Tests.Source.Core.Data
 
             var dto = new CardDto
             {
-                DefinitionId = "invalid_id",
-                InstanceId = Guid.NewGuid().ToString()
+                DefinitionId = "invalid_id"
             };
 
             // Act & Assert
@@ -142,19 +140,36 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         }
 
         [TestMethod]
-        public void Constructor_GeneratesUniqueInstanceIds()
+        public void Constructor_PreservesRuntimeId()
         {
-            // Arrange
+            // RuntimeId must be STABLE across a snapshot-then-restore round trip (it's how a
+            // pending command/UI selection still finds "the same card" after a rollback) - so
+            // two DTOs snapshotted from the same live card must carry the SAME RuntimeId, not
+            // a freshly-generated one each time.
             var card = TestData.Cards.CheapCard();
 
-            // Act
             var dto1 = new CardDto(card, 0);
             var dto2 = new CardDto(card, 0);
 
+            Assert.AreEqual(card.RuntimeId, dto1.RuntimeId);
+            Assert.AreEqual(dto1.RuntimeId, dto2.RuntimeId);
+        }
+
+        [TestMethod]
+        public void ToEntity_WithValidDatabase_RestoresRuntimeId()
+        {
+            // Arrange
+            var mockDatabase = Substitute.For<ICardDatabase>();
+            var originalCard = TestData.Cards.PowerCard();
+            mockDatabase.GetCardById(originalCard.DefinitionId).Returns(originalCard);
+
+            var dto = new CardDto(originalCard, 0);
+
+            // Act
+            var result = dto.ToEntity(mockDatabase);
+
             // Assert
-            Assert.AreNotEqual(dto1.InstanceId, dto2.InstanceId);
-            Assert.IsFalse(string.IsNullOrEmpty(dto1.InstanceId));
-            Assert.IsFalse(string.IsNullOrEmpty(dto2.InstanceId));
+            Assert.AreEqual(originalCard.RuntimeId, result.RuntimeId);
         }
     }
 }

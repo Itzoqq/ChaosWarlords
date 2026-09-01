@@ -10,8 +10,17 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     /// </summary>
     public class CardDto : IDto<Card>
     {
+        // Card.DefinitionId, NOT Card.Id - Id carries a CardFactory.GenerateUniqueId suffix
+        // (so two copies of the same catalog card get distinct ids), which ICardDatabase.
+        // GetCardById can never resolve. DefinitionId is the plain, un-suffixed catalog key
+        // GetCardById actually looks up by. See Card.cs's doc comments on both properties.
         public required string DefinitionId { get; set; }
-        public required string InstanceId { get; set; } // Only if we track individual instances uniquely
+
+        // Card.RuntimeId - identifies this specific card instance (as opposed to another copy
+        // of the same catalog card) within the live match, so a restored Hand/Market/etc. still
+        // matches whatever RuntimeId a pending command/UI selection is already holding.
+        public Guid RuntimeId { get; set; }
+
         public CardLocation Location { get; set; }
         public int ListIndex { get; set; } // Order preservation in list
 
@@ -22,19 +31,8 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         public CardDto(Card card, int index = 0)
         {
             ArgumentNullException.ThrowIfNull(card);
-            DefinitionId = card.Id;
-            InstanceId = Guid.NewGuid().ToString(); // Generate a temporary ID if one doesn't exist on Entity yet, or map it if it did. 
-                                                    // Ideally Card entity should have an InstanceId. For now, we generate one or use DefinitionId if strictly one-to-one (which it isn't).
-                                                    // Let's assume for serialization of a *running* game, we need stable IDs.
-                                                    // But Card entity currently doesn't seem to have a unique InstanceId in the code shown? 
-                                                    // Checking Card.cs in memory... it has Id (Definition) but maybe not InstanceId.
-                                                    // For the DTO, we need to satisfy the 'required' contract. 
-
-            // Re-reading Card.cs from context... I don't see it open but I recall it.
-            // If Card doesn't have InstanceId, we can't reliably persist it round-trip without one if we need it.
-            // But for now, to fix the build, we must assign it.
-            InstanceId = Guid.NewGuid().ToString();
-
+            DefinitionId = card.DefinitionId;
+            RuntimeId = card.RuntimeId;
             Location = card.Location;
             ListIndex = index;
         }
@@ -53,6 +51,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
             if (card is not null)
             {
                 card.Location = Location;
+                card.RuntimeId = RuntimeId;
                 return card;
             }
             throw new InvalidOperationException($"Failed to hydrate card: {DefinitionId} not found.");

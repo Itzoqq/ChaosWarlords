@@ -17,7 +17,7 @@ namespace ChaosWarlords.Source.Utilities
 
         public static Card CreateSoldier(IGameRandom? random = null)
         {
-            var card = new Card(GenerateUniqueId("soldier", random), "Soldier", 0, CardAspect.Neutral, 0, 0, 0);
+            var card = new Card(GenerateUniqueId("soldier", random), "Soldier", 0, CardAspect.Neutral, 0, 0, 0, definitionId: "soldier");
             card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Power));
             card.Description = "+1 Power";
             return card;
@@ -25,13 +25,13 @@ namespace ChaosWarlords.Source.Utilities
 
         public static Card CreateNoble(IGameRandom? random = null)
         {
-            var card = new Card(GenerateUniqueId("noble", random), "Noble", 0, CardAspect.Neutral, 0, 0, 0);
+            var card = new Card(GenerateUniqueId("noble", random), "Noble", 0, CardAspect.Neutral, 0, 0, 0, definitionId: "noble");
             card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Influence));
             card.Description = "+1 Influence";
             return card;
         }
 
-        public static Card CreateFromData(CardData data, ILocalizationService localization, IGameRandom? random = null)
+        public static Card CreateFromData(CardData data, ILocalizationService localization, IGameRandom? random = null, IGameLogger? logger = null)
         {
             Enum.TryParse(data.Aspect, true, out CardAspect aspect);
 
@@ -41,7 +41,7 @@ namespace ChaosWarlords.Source.Utilities
             string name = localization.GetString($"{data.Id}_name");
 
             // Using 0 for influence as default
-            var card = new Card(GenerateUniqueId(data.Id, random), name, data.Cost, aspect, data.DeckVP, data.InnerCircleVP, 0);
+            var card = new Card(GenerateUniqueId(data.Id, random), name, data.Cost, aspect, data.DeckVP, data.InnerCircleVP, 0, definitionId: data.Id);
 
             card.Description = localization.GetString($"{data.Id}_description");
             card.RedirectsToSupplyOnDevourOrPromote = data.RedirectsToSupplyOnDevourOrPromote;
@@ -50,7 +50,7 @@ namespace ChaosWarlords.Source.Utilities
             {
                 foreach (var effectData in data.Effects)
                 {
-                    var effect = CreateEffect(effectData);
+                    var effect = CreateEffect(effectData, logger);
                     if (effect != null)
                     {
                         card.AddEffect(effect);
@@ -60,14 +60,14 @@ namespace ChaosWarlords.Source.Utilities
             return card;
         }
 
-        private static CardEffect? CreateEffect(CardEffectData data)
+        private static CardEffect? CreateEffect(CardEffectData data, IGameLogger? logger)
         {
             if (!Enum.TryParse(data.Type, true, out EffectType type))
                 return null;
 
             var effect = CreateBaseEffect(data, type);
-            ParseTargetLocation(data, effect);
-            ParseRecursiveEffect(data, effect);
+            ParseTargetLocation(data, effect, logger);
+            ParseRecursiveEffect(data, effect, logger);
             ParseCondition(data, effect);
             ParseOptionalFlags(data, effect);
 
@@ -87,7 +87,7 @@ namespace ChaosWarlords.Source.Utilities
             return effect;
         }
 
-        private static void ParseTargetLocation(CardEffectData data, CardEffect effect)
+        private static void ParseTargetLocation(CardEffectData data, CardEffect effect, IGameLogger? logger)
         {
             if (string.IsNullOrEmpty(data.TargetLocation))
                 return;
@@ -98,20 +98,20 @@ namespace ChaosWarlords.Source.Utilities
             }
             else
             {
-                Console.WriteLine($"[CardFactory] FAILED to parse TargetLocation: {data.TargetLocation}");
+                logger?.Log($"[CardFactory] FAILED to parse TargetLocation: {data.TargetLocation}", LogChannel.Warning);
             }
         }
 
-        private static void ParseRecursiveEffect(CardEffectData data, CardEffect effect)
+        private static void ParseRecursiveEffect(CardEffectData data, CardEffect effect, IGameLogger? logger)
         {
             if (data.OnSuccess != null)
             {
-                effect.OnSuccess = CreateEffect(data.OnSuccess);
+                effect.OnSuccess = CreateEffect(data.OnSuccess, logger);
             }
 
             if (data.Alternative != null)
             {
-                effect.Alternative = CreateEffect(data.Alternative);
+                effect.Alternative = CreateEffect(data.Alternative, logger);
             }
         }
 

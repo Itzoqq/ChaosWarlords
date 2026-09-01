@@ -70,7 +70,7 @@ namespace ChaosWarlords
             }
 
             // 2. Initialize Card Database Service
-            var cardDatabase = new CardDatabase(localizationService);
+            var cardDatabase = new CardDatabase(localizationService, Logger);
             CardDatabase = cardDatabase;
             try
             {
