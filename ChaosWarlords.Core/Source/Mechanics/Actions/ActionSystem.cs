@@ -307,6 +307,17 @@ namespace ChaosWarlords.Source.Managers
         {
             string? cardToClearId = PendingCard?.Id;
 
+            // A forced-actor chain (e.g. Cranium Rats' chosen opponent) may still have
+            // ForcedActingPlayer set when cancelled mid-sequence (e.g. right-clicking out of
+            // the follow-up discard). StateRestorer's snapshot/restore below does NOT touch
+            // TurnManager.ForcedActingPlayer, so without this, ActivePlayer would stay stuck
+            // pointing at the chosen opponent forever after a cancel. Safe for every other
+            // targeting sequence too - a no-op whenever ForcedActingPlayer is already null.
+            if (_turnManager.ForcedActingPlayer != null)
+            {
+                _turnManager.EndForcedActingPlayer();
+            }
+
             ClearPreselectedTargets();
 
             var cancelledEffects = PopCancelledEffects(PendingCard);

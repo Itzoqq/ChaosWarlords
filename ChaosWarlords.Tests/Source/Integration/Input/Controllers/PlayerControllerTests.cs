@@ -13,6 +13,7 @@ using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities; // Added for Enums
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Linq;
 
 namespace ChaosWarlords.Tests.Integration.Input.Controllers
 {
@@ -187,6 +188,59 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
 
             // Assert
             mockActionSystem.Received(1).FinalizeSpyReturn(PlayerColor.Blue);
+        }
+
+        [TestMethod]
+        public void HandleOpponentSelectionInput_RecordsAndExecutesSelectOpponentCommand()
+        {
+            // Matches HandleSpySelectionInput_FinalizesSpyReturn's depth/style - the sibling
+            // this new method is built alongside (see planning.txt TIER 2 #6 / Cranium Rats).
+            var mockActionSystem = Substitute.For<IActionSystem>();
+            mockActionSystem.CurrentState.Returns(ActionState.TargetingOpponentSelect);
+
+            var craniumRats = new ChaosWarlords.Tests.CardBuilder()
+                .WithEffect(ChaosWarlords.Source.Utilities.EffectType.SelectOpponent, 3)
+                .Build();
+            mockActionSystem.PendingCard.Returns(craniumRats);
+
+            _stateFake.ActionSystem = mockActionSystem;
+            _stateFake.InitializeMatchContext();
+
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(100, 100));
+
+            var mockUIManager = Substitute.For<IUIManager>();
+            mockUIManager.ScreenWidth.Returns(800);
+            _stateFake.UIManager = mockUIManager;
+
+            _mockMapper.GetClickedOpponentSelectButton(Arg.Any<Point>(), Arg.Any<IReadOnlyList<Player>>(), Arg.Any<Player>(), 3, 800)
+                .Returns(PlayerColor.Blue);
+
+            // Act
+            _mockInputManager.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(_mockInputManager, evt);
+
+            // Assert
+            Assert.IsTrue(
+                _stateFake.ExecutedCommands.Any(c => c is ChaosWarlords.Source.Commands.SelectOpponentCommand soc && soc.TargetPlayerColor == PlayerColor.Blue),
+                "A SelectOpponentCommand targeting Blue should have been recorded and executed.");
+        }
+
+        [TestMethod]
+        public void HandleOpponentSelectionInput_ReturnsFalse_WhenNotInTargetingOpponentSelectState()
+        {
+            var mockActionSystem = Substitute.For<IActionSystem>();
+            mockActionSystem.CurrentState.Returns(ActionState.Normal);
+            _stateFake.ActionSystem = mockActionSystem;
+            _stateFake.InitializeMatchContext();
+
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(100, 100));
+
+            // Act
+            _mockInputManager.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(_mockInputManager, evt);
+
+            // Assert
+            Assert.IsEmpty(_stateFake.ExecutedCommands);
+            _mockMapper.DidNotReceive().GetClickedOpponentSelectButton(
+                Arg.Any<Point>(), Arg.Any<IReadOnlyList<Player>>(), Arg.Any<Player>(), Arg.Any<int>(), Arg.Any<int>());
         }
     }
 }

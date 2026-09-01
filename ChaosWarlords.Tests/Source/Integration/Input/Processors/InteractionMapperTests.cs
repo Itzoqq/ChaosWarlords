@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Rendering.ViewModels;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
+using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Input;
 using ChaosWarlords.Source.Utilities;
@@ -278,6 +279,95 @@ namespace ChaosWarlords.Tests.Integration.Input.Processors
 
             // Act
             var result = _mapper.GetClickedSpyReturnButton(mousePos, site, 800);
+
+            // Assert
+            Assert.IsNull(result);
+        }
+
+        #endregion
+
+        #region GetClickedOpponentSelectButton Tests
+
+        [TestMethod]
+        public void GetClickedOpponentSelectButton_ReturnsColor_WhenClickingEligibleOpponentRow()
+        {
+            // Arrange - same geometry as GetClickedSpyReturnButton: drawX = 300, startY = 200,
+            // first non-active-player row -> Rectangle(300, 240, 200, 30).
+            var active = TestData.Players.RedPlayer();
+            var opponent = TestData.Players.BluePlayer();
+            opponent.AddToHand(TestData.Cards.CheapCard());
+            opponent.AddToHand(TestData.Cards.CheapCard());
+            opponent.AddToHand(TestData.Cards.CheapCard());
+            opponent.AddToHand(TestData.Cards.CheapCard()); // 4 cards - above a threshold of 3.
+
+            var allPlayers = new List<Player> { active, opponent };
+            var mousePos = new Point(350, 250);
+
+            // Act
+            var result = _mapper.GetClickedOpponentSelectButton(mousePos, allPlayers, active, eligibilityThreshold: 3, screenWidth: 800);
+
+            // Assert
+            Assert.AreEqual(PlayerColor.Blue, result);
+        }
+
+        [TestMethod]
+        public void GetClickedOpponentSelectButton_ReturnsNull_WhenClickingIneligibleOpponentRow()
+        {
+            // Arrange - same row position, but the opponent's hand does NOT exceed the threshold.
+            var active = TestData.Players.RedPlayer();
+            var opponent = TestData.Players.BluePlayer();
+            opponent.AddToHand(TestData.Cards.CheapCard());
+            opponent.AddToHand(TestData.Cards.CheapCard());
+            opponent.AddToHand(TestData.Cards.CheapCard()); // Exactly 3 - not eligible ("more than 3").
+
+            var allPlayers = new List<Player> { active, opponent };
+            var mousePos = new Point(350, 250);
+
+            // Act
+            var result = _mapper.GetClickedOpponentSelectButton(mousePos, allPlayers, active, eligibilityThreshold: 3, screenWidth: 800);
+
+            // Assert
+            Assert.IsNull(result);
+        }
+
+        [TestMethod]
+        public void GetClickedOpponentSelectButton_ReturnsNull_WhenClickingTheActivePlayersOwnRow()
+        {
+            // Arrange - the active player is structurally skipped when assigning rows (no rect
+            // is ever produced for them), so a list containing ONLY the active player must
+            // return null for any click - there's no row to hit at all.
+            var active = TestData.Players.RedPlayer();
+            active.AddToHand(TestData.Cards.CheapCard());
+            active.AddToHand(TestData.Cards.CheapCard());
+            active.AddToHand(TestData.Cards.CheapCard());
+            active.AddToHand(TestData.Cards.CheapCard());
+
+            var allPlayers = new List<Player> { active };
+            var mousePos = new Point(350, 250);
+
+            // Act
+            var result = _mapper.GetClickedOpponentSelectButton(mousePos, allPlayers, active, eligibilityThreshold: 3, screenWidth: 800);
+
+            // Assert
+            Assert.IsNull(result);
+        }
+
+        [TestMethod]
+        public void GetClickedOpponentSelectButton_ReturnsNull_WhenClickingOutsideAnyRow()
+        {
+            // Arrange
+            var active = TestData.Players.RedPlayer();
+            var opponent = TestData.Players.BluePlayer();
+            opponent.AddToHand(TestData.Cards.CheapCard());
+            opponent.AddToHand(TestData.Cards.CheapCard());
+            opponent.AddToHand(TestData.Cards.CheapCard());
+            opponent.AddToHand(TestData.Cards.CheapCard());
+
+            var allPlayers = new List<Player> { active, opponent };
+            var mousePos = new Point(10, 10); // Nowhere near any row.
+
+            // Act
+            var result = _mapper.GetClickedOpponentSelectButton(mousePos, allPlayers, active, eligibilityThreshold: 3, screenWidth: 800);
 
             // Assert
             Assert.IsNull(result);

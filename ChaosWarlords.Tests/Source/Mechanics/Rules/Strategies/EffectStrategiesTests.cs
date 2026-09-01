@@ -466,5 +466,91 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules.Strategies
         }
 
         #endregion
+
+        #region SelectOpponentStrategy
+
+        [TestMethod]
+        public void SelectOpponentStrategy_EffectType_IsSelectOpponent()
+        {
+            Assert.AreEqual(EffectType.SelectOpponent, new SelectOpponentStrategy().EffectType);
+        }
+
+        [TestMethod]
+        public void SelectOpponentStrategy_IsTargetingEffect_IsTrue()
+        {
+            Assert.IsTrue(new SelectOpponentStrategy().IsTargetingEffect);
+        }
+
+        [TestMethod]
+        public void SelectOpponentStrategy_GetTargetingState_ReturnsTargetingOpponentSelect()
+        {
+            var state = new SelectOpponentStrategy().GetTargetingState(new CardEffect(EffectType.SelectOpponent, 3));
+            Assert.AreEqual(ActionState.TargetingOpponentSelect, state);
+        }
+
+        [TestMethod]
+        public void SelectOpponentStrategy_HasValidTargets_NullSourceCard_FallsBackToZeroThreshold()
+        {
+            // FindThreshold returns 0 for a null sourceCard - any opponent with a non-empty
+            // hand (> 0) would count as eligible in that fallback case.
+            var active = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var opponent = new PlayerBuilder().WithColor(PlayerColor.Blue).WithCardsInHand(TestData.Cards.CheapCard()).Build();
+            var turnManager = Substitute.For<ITurnManager>();
+            turnManager.Players.Returns(new List<Player> { active, opponent });
+            var context = new MatchContextBuilder().WithTurnManager(turnManager).Build();
+
+            Assert.IsTrue(new SelectOpponentStrategy().HasValidTargets(context, active, null));
+        }
+
+        [TestMethod]
+        public void SelectOpponentStrategy_HasValidTargets_NoOpponentAboveThreshold_ReturnsFalse()
+        {
+            var sourceCard = new CardBuilder().Build();
+            sourceCard.Effects.Add(new CardEffect(EffectType.SelectOpponent, 3));
+            var active = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var opponent = new PlayerBuilder().WithColor(PlayerColor.Blue)
+                .WithCardsInHand(TestData.Cards.CheapCard(), TestData.Cards.CheapCard(), TestData.Cards.CheapCard())
+                .Build(); // Exactly at the threshold - not eligible ("more than 3").
+            var turnManager = Substitute.For<ITurnManager>();
+            turnManager.Players.Returns(new List<Player> { active, opponent });
+            var context = new MatchContextBuilder().WithTurnManager(turnManager).Build();
+
+            Assert.IsFalse(new SelectOpponentStrategy().HasValidTargets(context, active, sourceCard));
+        }
+
+        [TestMethod]
+        public void SelectOpponentStrategy_HasValidTargets_OpponentAboveThreshold_ReturnsTrue()
+        {
+            var sourceCard = new CardBuilder().Build();
+            sourceCard.Effects.Add(new CardEffect(EffectType.SelectOpponent, 3));
+            var active = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var opponent = new PlayerBuilder().WithColor(PlayerColor.Blue)
+                .WithCardsInHand(TestData.Cards.CheapCard(), TestData.Cards.CheapCard(), TestData.Cards.CheapCard(), TestData.Cards.CheapCard())
+                .Build(); // One above the threshold.
+            var turnManager = Substitute.For<ITurnManager>();
+            turnManager.Players.Returns(new List<Player> { active, opponent });
+            var context = new MatchContextBuilder().WithTurnManager(turnManager).Build();
+
+            Assert.IsTrue(new SelectOpponentStrategy().HasValidTargets(context, active, sourceCard));
+        }
+
+        [TestMethod]
+        public void SelectOpponentStrategy_HasValidTargets_ExcludesTheActivePlayerThemself()
+        {
+            // Even if the active player's OWN hand exceeds the threshold, they're not a valid
+            // target for their own card's effect - only opponents count.
+            var sourceCard = new CardBuilder().Build();
+            sourceCard.Effects.Add(new CardEffect(EffectType.SelectOpponent, 1));
+            var active = new PlayerBuilder().WithColor(PlayerColor.Red)
+                .WithCardsInHand(TestData.Cards.CheapCard(), TestData.Cards.CheapCard(), TestData.Cards.CheapCard())
+                .Build();
+            var turnManager = Substitute.For<ITurnManager>();
+            turnManager.Players.Returns(new List<Player> { active });
+            var context = new MatchContextBuilder().WithTurnManager(turnManager).Build();
+
+            Assert.IsFalse(new SelectOpponentStrategy().HasValidTargets(context, active, sourceCard));
+        }
+
+        #endregion
     }
 }

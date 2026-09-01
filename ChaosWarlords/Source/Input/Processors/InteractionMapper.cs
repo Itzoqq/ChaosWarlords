@@ -1,6 +1,7 @@
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
@@ -61,6 +62,30 @@ namespace ChaosWarlords.Source.Input
             {
                 Rectangle rect = new Rectangle((int)drawX, startY + yOffset, 200, 30);
                 if (rect.Contains(mousePos)) return spy;
+                yOffset += 40;
+            }
+            return null;
+        }
+
+        public PlayerColor? GetClickedOpponentSelectButton(Point mousePos, IReadOnlyList<Player> allPlayers, Player activePlayer, int eligibilityThreshold, int screenWidth)
+        {
+            // Mirrors GetClickedSpyReturnButton's geometry exactly - see
+            // DrawOpponentSelectionUI, which MUST stay in sync with this rectangle math (same
+            // caveat this codebase's spy-return equivalent already flags).
+            Vector2 headerSize = new Vector2(200, 20);
+            float drawX = (screenWidth - headerSize.X) / 2;
+            int yOffset = 40;
+            int startY = 200;
+
+            foreach (var player in allPlayers)
+            {
+                if (player == activePlayer) continue;
+
+                Rectangle rect = new Rectangle((int)drawX, startY + yOffset, 200, 30);
+                if (rect.Contains(mousePos) && player.Hand.Count > eligibilityThreshold)
+                {
+                    return player.Color;
+                }
                 yOffset += 40;
             }
             return null;

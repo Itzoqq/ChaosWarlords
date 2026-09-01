@@ -23,6 +23,7 @@ namespace ChaosWarlords.Source.Core.Data.Enums
         Promote,
         DiscardCard,
         ReturnOwnSpy,
-        PlayFromMarket
+        PlayFromMarket,
+        SelectOpponent
     }
 }

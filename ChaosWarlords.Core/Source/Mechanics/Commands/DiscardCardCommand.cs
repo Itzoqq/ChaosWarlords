@@ -73,6 +73,17 @@ namespace ChaosWarlords.Source.Commands
                 // self" chain) - the DiscardCard EffectContext is genuinely sitting on
                 // ExecutionStack, so CompleteAction() resolves it and pushes its OnSuccess.
                 context.ActionSystem.CompleteAction();
+
+                // If this discard was part of a forced-actor mid-turn chain (e.g. Cranium Rats'
+                // chosen opponent), and the whole chain has now fully resolved back to Normal,
+                // release the override so ActivePlayer reverts to the real active player.
+                // Guarded on CurrentState so a DiscardCard with its own further OnSuccess step
+                // (none exists today) wouldn't have this fire prematurely mid-chain - see
+                // planning.txt TIER 2 #6 for why this is scoped this way.
+                if (context.ActionSystem.CurrentState == ActionState.Normal && context.TurnManager.ForcedActingPlayer != null)
+                {
+                    context.TurnManager.EndForcedActingPlayer();
+                }
             }
         }
     }

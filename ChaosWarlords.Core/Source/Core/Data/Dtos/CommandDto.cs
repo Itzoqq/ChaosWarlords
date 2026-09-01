@@ -24,6 +24,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     [JsonDerivedType(typeof(DiscardCardCommandDto), typeDiscriminator: "discard")]
     [JsonDerivedType(typeof(ReturnOwnSpyCommandDto), typeDiscriminator: "ret_own_spy")]
     [JsonDerivedType(typeof(PlayFromMarketCommandDto), typeDiscriminator: "play_market")]
+    [JsonDerivedType(typeof(SelectOpponentCommandDto), typeDiscriminator: "select_opponent")]
     public abstract class GameCommandDto
     {
         public int Seq { get; set; }
@@ -137,5 +138,10 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     {
         public Guid MarketCardRuntimeId { get; set; }
         public string? MarketCardId { get; set; }
+    }
+
+    public class SelectOpponentCommandDto : GameCommandDto
+    {
+        public string? TargetPlayerColor { get; set; }
     }
 }

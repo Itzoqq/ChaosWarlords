@@ -19,7 +19,8 @@ namespace ChaosWarlords.Source.Utilities
         TargetingDevourInnerCircle,
         TargetingDiscard, // Forced discard from a specific player's own hand (Insane Outcast's self-discard, Neogi's cross-player forced discard)
         TargetingReturnOwnSpy, // Return one of the active player's OWN spies (e.g. Cloaker), as opposed to TargetingReturnSpy (enemy spy)
-        TargetingPlayFromMarket // Picking a market card to play "as if in hand" (e.g. Ulitharid) - see ActionSystem.TryStartPlayFromMarket
+        TargetingPlayFromMarket, // Picking a market card to play "as if in hand" (e.g. Ulitharid) - see ActionSystem.TryStartPlayFromMarket
+        TargetingOpponentSelect // Choosing which opponent to target with EffectType.SelectOpponent (e.g. Cranium Rats' "choose one opponent... to discard")
     }
 
     // Replaces the "Suits" (Conquest, Malice, Guile, Obedience)
@@ -76,6 +77,13 @@ namespace ChaosWarlords.Source.Utilities
         MarkOpponentDiscardAtEndOfTurn, // Non-targeting: just banks a MatchContext.PendingOpponentDiscardTriggers entry, resolved by MatchManager.EndTurn's opponent-discard phase
         ReturnOwnSpy, // Return one of the active player's OWN spies (e.g. Cloaker) - see TargetingReturnOwnSpy
         PlayFromMarket, // Play a market card "as if in hand", then it gets devoured (e.g. Ulitharid) - Amount is the max cost
+
+        // Generic "target a player" primitive - the active player chooses one opponent
+        // matching an eligibility threshold (Amount = minimum hand size the opponent must
+        // exceed to be eligible), then that opponent becomes TurnManager.ForcedActingPlayer
+        // for whatever OnSuccess chains off it (e.g. Cranium Rats chains DiscardCard). First
+        // reusable instance of this shape in the codebase - see planning.txt TIER 2 #6.
+        SelectOpponent,
     }
 
     /// <summary>

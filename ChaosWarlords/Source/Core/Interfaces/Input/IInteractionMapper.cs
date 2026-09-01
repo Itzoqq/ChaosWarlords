@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
@@ -36,6 +37,15 @@ namespace ChaosWarlords.Source.Core.Interfaces.Input
         /// Gets the spy color clicked in the spy return UI.
         /// </summary>
         PlayerColor? GetClickedSpyReturnButton(Point mousePos, Site site, int screenWidth);
+
+        /// <summary>
+        /// Gets the opponent color clicked in the opponent-selection UI (e.g. Cranium Rats'
+        /// "choose one opponent"). Iterates all players except <paramref name="activePlayer"/>
+        /// (can't target yourself) - clicking a row for a player whose hand doesn't exceed
+        /// <paramref name="eligibilityThreshold"/> returns null (ineligible rows are
+        /// grayed-out/unclickable, matching DrawOpponentSelectionUI).
+        /// </summary>
+        PlayerColor? GetClickedOpponentSelectButton(Point mousePos, IReadOnlyList<Player> allPlayers, Player activePlayer, int eligibilityThreshold, int screenWidth);
     }
 }
 

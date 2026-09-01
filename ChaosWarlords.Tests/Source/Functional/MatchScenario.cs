@@ -81,7 +81,14 @@ namespace ChaosWarlords.Tests.Source.Functional
         /// MatchManager, real CommandDispatcher. Seat order is randomized per-seed by
         /// TurnManager - don't assume Red goes first, use AsActivePlayer instead.
         /// </summary>
-        public static MatchScenario Build(int? seed = 20260901)
+        /// <param name="seed">Deterministic RNG seed for the match.</param>
+        /// <param name="playerColors">Optional 2-4 player roster (defaults to MatchFactory's
+        /// own default of [Red, Blue]) - passed straight through to MatchFactory.Build. Added
+        /// for scenarios that genuinely need a 3rd/4th seat (e.g. a "target a player" primitive
+        /// where the boundary case under test requires an INELIGIBLE opponent to exist
+        /// alongside an ELIGIBLE one, which 2 players alone can't express - see
+        /// CraniumRatsScenarioTests).</param>
+        public static MatchScenario Build(int? seed = 20260901, IReadOnlyList<PlayerColor>? playerColors = null)
         {
             var logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance;
 
@@ -98,7 +105,7 @@ namespace ChaosWarlords.Tests.Source.Functional
             }
 
             var replayManager = new ReplayManager(logger);
-            var world = new MatchFactory(cardDatabase, logger).Build(replayManager, seed);
+            var world = new MatchFactory(cardDatabase, logger).Build(replayManager, seed, playerColors);
 
             var context = new MatchContext(
                 world.TurnManager, world.MapManager, world.MarketManager, world.ActionSystem,

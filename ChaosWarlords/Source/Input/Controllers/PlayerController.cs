@@ -1,8 +1,11 @@
+using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Events;
+using ChaosWarlords.Source.Entities.Cards;
 using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Utilities;
+using System.Linq;
 
 namespace ChaosWarlords.Source.Input.Controllers
 {
@@ -51,6 +54,7 @@ namespace ChaosWarlords.Source.Input.Controllers
 
             // PRIORITY 4: Specific State Logic (Spy Selection)
             if (HandleSpySelectionInput(e)) return;
+            if (HandleOpponentSelectionInput(e)) return;
 
             // Note: Coordinator logic is handled by Coordinator's own subscription to the same event.
             // We do not need to call _inputCoordinator.HandleEvent(e) because it listens independently.
@@ -146,6 +150,40 @@ namespace ChaosWarlords.Source.Input.Controllers
                 return true;
             }
             return false;
+        }
+
+        private bool HandleOpponentSelectionInput(InputEventArgs e)
+        {
+            if (_gameState.ActionSystem.CurrentState != ActionState.TargetingOpponentSelect)
+                return false;
+
+            if (e.Type != InputEventType.LeftClick) return false;
+            if (_interactionMapper is null) return false;
+
+            var allPlayers = _gameState.MatchContext.TurnManager.Players;
+            var activePlayer = _gameState.MatchContext.TurnManager.ActivePlayer;
+            int eligibilityThreshold = GetSelectOpponentThreshold(_gameState.ActionSystem.PendingCard);
+
+            PlayerColor? clickedColor = _interactionMapper.GetClickedOpponentSelectButton(
+                e.Position.ToPoint(),
+                allPlayers,
+                activePlayer,
+                eligibilityThreshold,
+                _gameState.UIManager.ScreenWidth);
+
+            if (clickedColor.HasValue)
+            {
+                _gameState.RecordAndExecuteCommand(new SelectOpponentCommand(clickedColor.Value));
+                return true;
+            }
+            return false;
+        }
+
+        private static int GetSelectOpponentThreshold(Card? sourceCard)
+        {
+            if (sourceCard == null) return 0;
+            var effect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.SelectOpponent);
+            return effect?.Amount ?? 0;
         }
 
         private bool HandlePopupInteractions(InputEventArgs e)

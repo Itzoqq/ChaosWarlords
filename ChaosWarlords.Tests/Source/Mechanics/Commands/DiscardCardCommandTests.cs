@@ -119,5 +119,51 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             _state.MatchManager.Received(1).ResolveOpponentDiscard(_card);
             _state.ActionSystem.DidNotReceive().CompleteAction();
         }
+
+        [TestMethod]
+        public void Execute_NormalPath_StateBackToNormalWithForcedActingPlayerSet_ReleasesTheOverride()
+        {
+            // Cranium Rats' chosen-opponent chain (planning.txt TIER 2 #6): once the forced
+            // actor's own DiscardCard fully resolves back to Normal, the override must be
+            // released so ActivePlayer reverts to the real active player.
+            _state.MatchManager.IsResolvingOpponentDiscard.Returns(false);
+            _state.ActionSystem.CurrentState.Returns(ActionState.Normal);
+            _state.TurnManager.ForcedActingPlayer.Returns(_player);
+            var command = new DiscardCardCommand(PlayerColor.Red, _card.Id);
+
+            command.Execute(_state.MatchContext);
+
+            _state.TurnManager.Received(1).EndForcedActingPlayer();
+        }
+
+        [TestMethod]
+        public void Execute_NormalPath_NoForcedActingPlayerSet_DoesNotCallEndForcedActingPlayer()
+        {
+            // The ordinary (non-Cranium-Rats) discard path - nothing to release.
+            _state.MatchManager.IsResolvingOpponentDiscard.Returns(false);
+            _state.ActionSystem.CurrentState.Returns(ActionState.Normal);
+            _state.TurnManager.ForcedActingPlayer.Returns((ChaosWarlords.Source.Entities.Actors.Player?)null);
+            var command = new DiscardCardCommand(PlayerColor.Red, _card.Id);
+
+            command.Execute(_state.MatchContext);
+
+            _state.TurnManager.DidNotReceive().EndForcedActingPlayer();
+        }
+
+        [TestMethod]
+        public void Execute_NormalPath_ChainStillInProgress_DoesNotCallEndForcedActingPlayer()
+        {
+            // Guarded on CurrentState == Normal - a DiscardCard with a further OnSuccess step
+            // still pending (CurrentState != Normal) must NOT release the override mid-chain,
+            // even if ForcedActingPlayer happens to be set.
+            _state.MatchManager.IsResolvingOpponentDiscard.Returns(false);
+            _state.ActionSystem.CurrentState.Returns(ActionState.TargetingSupplant);
+            _state.TurnManager.ForcedActingPlayer.Returns(_player);
+            var command = new DiscardCardCommand(PlayerColor.Red, _card.Id);
+
+            command.Execute(_state.MatchContext);
+
+            _state.TurnManager.DidNotReceive().EndForcedActingPlayer();
+        }
     }
 }

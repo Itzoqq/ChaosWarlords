@@ -34,5 +34,7 @@
   "ulitharid_name": "Ulitharid",
   "ulitharid_description": "Play a card in the market that costs 4 or less as if it was in your hand, then devour that card.",
   "insane_outcast_name": "Insane Outcast",
-  "insane_outcast_description": "Discard a card from your hand to return Insane Outcast to the supply. If Insane Outcast would be devoured or promoted, return it to the supply instead."
+  "insane_outcast_description": "Discard a card from your hand to return Insane Outcast to the supply. If Insane Outcast would be devoured or promoted, return it to the supply instead.",
+  "cranium_rats_name": "Cranium Rats",
+  "cranium_rats_description": "Deploy 2 troops. Choose one opponent with more than 3 cards to discard a card."
 }

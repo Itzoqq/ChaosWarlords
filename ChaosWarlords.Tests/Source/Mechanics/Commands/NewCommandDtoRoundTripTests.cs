@@ -140,5 +140,46 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Commands
             Assert.AreEqual(original.MarketCardRuntimeId, hydrated!.MarketCardRuntimeId);
             Assert.AreEqual(original.MarketCardId, hydrated.MarketCardId);
         }
+
+        // --- SelectOpponentCommand / SelectOpponentCommandDto ---
+        // (Cranium Rats / planning.txt TIER 2 #6 - the "target a player" primitive.)
+
+        [TestMethod]
+        public void SelectOpponentCommand_ToDto_CarriesTargetPlayerColor()
+        {
+            var command = new SelectOpponentCommand(PlayerColor.Blue);
+
+            var dto = (SelectOpponentCommandDto)command.ToDto();
+
+            Assert.AreEqual("Blue", dto.TargetPlayerColor);
+            Assert.AreEqual(CommandType.SelectOpponent, command.Type);
+        }
+
+        [TestMethod]
+        public void SelectOpponentCommandDto_HydrateCommand_RoundTripsToAnEquivalentCommand()
+        {
+            var original = new SelectOpponentCommand(PlayerColor.Blue);
+            var dto = original.ToDto();
+            var context = CreateMinimalContext();
+
+            var hydrated = DtoMapper.HydrateCommand(dto, context) as SelectOpponentCommand;
+
+            Assert.IsNotNull(hydrated);
+            Assert.AreEqual(original.TargetPlayerColor, hydrated!.TargetPlayerColor);
+        }
+
+        [TestMethod]
+        public void SelectOpponentCommandDto_HydrateCommand_WithUnparsablePlayerColor_ReturnsNull()
+        {
+            // Same defensive Enum.TryParse guard as DiscardCardCommandDto's rehydration - a
+            // corrupted/forward-incompatible replay/network payload shouldn't throw or
+            // silently default to some player.
+            var dto = new SelectOpponentCommandDto { TargetPlayerColor = "NotARealColor" };
+            var context = CreateMinimalContext();
+
+            var hydrated = DtoMapper.HydrateCommand(dto, context);
+
+            Assert.IsNull(hydrated);
+        }
     }
 }

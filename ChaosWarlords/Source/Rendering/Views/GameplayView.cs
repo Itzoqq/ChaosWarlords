@@ -178,6 +178,11 @@ namespace ChaosWarlords.Source.Rendering.Views
             {
                 DrawSpySelectionUI(spriteBatch, context.ActionSystem.PendingSite, uiManager.ScreenWidth);
             }
+            else if (context.ActionSystem.CurrentState == ActionState.TargetingOpponentSelect)
+            {
+                int eligibilityThreshold = GetSelectOpponentThreshold(context.ActionSystem.PendingCard);
+                DrawOpponentSelectionUI(spriteBatch, context.TurnManager.Players, context.TurnManager.ActivePlayer, eligibilityThreshold, uiManager.ScreenWidth);
+            }
 
             // 7. Draw REPLAY MODE Indicator
             if (isReplaying)
@@ -368,6 +373,44 @@ namespace ChaosWarlords.Source.Rendering.Views
                 yOffset += GameConstants.UILayout.DefaultYOffset;
             }
         }
+
+        private void DrawOpponentSelectionUI(SpriteBatch sb, IReadOnlyList<Player> allPlayers, Player activePlayer, int eligibilityThreshold, int screenWidth)
+        {
+            // Mirrors DrawSpySelectionUI's layout/constants exactly - this geometry MUST stay
+            // in sync with InteractionMapper.GetClickedOpponentSelectButton (same caveat
+            // GetClickedSpyReturnButton's own comment already flags).
+            string header = "Choose an Opponent:";
+            Vector2 size = _defaultFont.MeasureString(header);
+            Vector2 startPos = new Vector2((screenWidth - size.X) / 2, GameConstants.UILayout.DefaultButtonWidth);
+
+            sb.DrawString(_defaultFont, header, startPos, Color.White);
+
+            int yOffset = GameConstants.UILayout.DefaultYOffset;
+            foreach (var player in allPlayers)
+            {
+                if (player == activePlayer) continue;
+
+                bool isEligible = player.Hand.Count > eligibilityThreshold;
+                string btnText = player.DisplayName;
+                Rectangle rect = new Rectangle((int)startPos.X, (int)startPos.Y + yOffset, GameConstants.UILayout.DefaultButtonWidth, GameConstants.UILayout.DefaultButtonHeight);
+
+                // Eligible rows match DrawSpySelectionUI's normal Color.Gray/Color.Black
+                // button convention exactly; ineligible rows are dimmed (grayed out) and
+                // unclickable - see GetClickedOpponentSelectButton's matching threshold check.
+                sb.Draw(_pixelTexture, rect, isEligible ? Color.Gray : Color.Gray * 0.3f);
+                sb.DrawString(_defaultFont, btnText, new Vector2(rect.X + GameConstants.UILayout.MediumPadding, rect.Y + GameConstants.UILayout.SmallPadding), Color.Black);
+
+                yOffset += GameConstants.UILayout.DefaultYOffset;
+            }
+        }
+
+        private static int GetSelectOpponentThreshold(Card? sourceCard)
+        {
+            if (sourceCard == null) return 0;
+            var effect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.SelectOpponent);
+            return effect?.Amount ?? 0;
+        }
+
         public void DrawSetupPhaseOverlay(SpriteBatch spriteBatch, Player activePlayer)
         {
             if (_defaultFont is null) return;
