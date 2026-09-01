@@ -8,6 +8,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
     {
         IGameCommand? HandlePlaceSpy(Site targetSite, string? cardId);
         IGameCommand? HandleReturnSpyInitialClick(Site clickedSite, string? cardId);
+        IGameCommand? HandleReturnOwnSpy(Site clickedSite, string? cardId);
         IGameCommand? FinalizeSpyReturn(PlayerColor selectedSpyColor, Site pendingSite, string? cardId);
         
         bool PerformSpyReturn(Site site, PlayerColor selectedSpyColor, string? cardId);

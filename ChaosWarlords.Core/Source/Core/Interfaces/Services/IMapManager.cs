@@ -52,6 +52,8 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         // Spy Actions
         void PlaceSpy(Site site, Player player);
         bool ReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor);
+        bool CanReturnOwnSpy(Site site, Player activePlayer);
+        bool ReturnOwnSpy(Site site, Player activePlayer);
 
 
         // Move troop action

@@ -17,7 +17,8 @@ namespace ChaosWarlords.Source.Utilities
         TargetingDevourHand,
         TargetingDevourMarket,
         TargetingDevourInnerCircle,
-        TargetingDiscard // Forced discard from a specific player's own hand (Insane Outcast's self-discard, Neogi's cross-player forced discard)
+        TargetingDiscard, // Forced discard from a specific player's own hand (Insane Outcast's self-discard, Neogi's cross-player forced discard)
+        TargetingReturnOwnSpy // Return one of the active player's OWN spies (e.g. Cloaker), as opposed to TargetingReturnSpy (enemy spy)
     }
 
     // Replaces the "Suits" (Conquest, Malice, Guile, Obedience)
@@ -72,6 +73,7 @@ namespace ChaosWarlords.Source.Utilities
         MoveUnit,
         DiscardCard,
         MarkOpponentDiscardAtEndOfTurn, // Non-targeting: just banks a MatchContext.PendingOpponentDiscardTriggers entry, resolved by MatchManager.EndTurn's opponent-discard phase
+        ReturnOwnSpy, // Return one of the active player's OWN spies (e.g. Cloaker) - see TargetingReturnOwnSpy
     }
 
     /// <summary>

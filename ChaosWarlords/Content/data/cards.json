@@ -264,6 +264,30 @@
     ]
   },
   {
+    "Id": "cloaker",
+    "Name": "Cloaker",
+    "Description": "Choose one: Place a spy. Or, return one of your spies to assassinate a troop at that spy's site.",
+    "Cost": 2,
+    "Aspect": "Shadow",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "Effects": [
+      {
+        "Type": "PlaceSpy",
+        "Amount": 1,
+        "IsOptional": true,
+        "Alternative": {
+          "Type": "ReturnOwnSpy",
+          "Amount": 1,
+          "OnSuccess": {
+            "Type": "Assassinate",
+            "Amount": 1
+          }
+        }
+      }
+    ]
+  },
+  {
     "Id": "neogi",
     "Name": "Neogi",
     "Description": "Deploy 4 troops. At end of turn, each opponent must discard a card.",

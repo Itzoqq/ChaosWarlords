@@ -50,6 +50,7 @@ namespace ChaosWarlords.Source.Managers
                 ActionState.TargetingSupplant => targetNode != null ? HandleSupplant(targetNode, pendingCardId, devourCardId) : null,
                 ActionState.TargetingPlaceSpy => targetSite != null ? _spySubsystem.HandlePlaceSpy(targetSite, pendingCardId) : null,
                 ActionState.TargetingReturnSpy => targetSite != null ? _spySubsystem.HandleReturnSpyInitialClick(targetSite, pendingCardId) : null,
+                ActionState.TargetingReturnOwnSpy => targetSite != null ? _spySubsystem.HandleReturnOwnSpy(targetSite, pendingCardId) : null,
                 ActionState.TargetingMoveSource => targetNode != null ? HandleMoveSource(targetNode) : null,
                 ActionState.TargetingMoveDestination => targetNode != null ? HandleMoveDestination(targetNode, pendingCardId) : null,
                 _ => null,
@@ -61,6 +62,16 @@ namespace ChaosWarlords.Source.Managers
             if (!_mapManager.CanAssassinate(targetNode, ActivePlayer()))
             {
                 _actionSystem.RaiseActionFailed("Invalid Target!");
+                return null;
+            }
+
+            // Site-scoped Assassinate (e.g. Cloaker: "assassinate a troop at that spy's
+            // site") - PendingSite is set by ReturnOwnSpyCommand right before this chains in,
+            // and is null for every other Assassinate flow (cleared on every return to
+            // Normal), so this never affects the normal, unscoped case.
+            if (_actionSystem.PendingSite != null && !_actionSystem.PendingSite.NodesInternal.Contains(targetNode))
+            {
+                _actionSystem.RaiseActionFailed("Must assassinate at the site you returned your spy from.");
                 return null;
             }
 

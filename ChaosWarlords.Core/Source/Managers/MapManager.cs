@@ -252,6 +252,29 @@ namespace ChaosWarlords.Source.Managers
             return _spyOps.ExecuteReturnSpy(site, activePlayer, targetSpyColor);
         }
 
+        /// <summary>
+        /// Can the player return one of their OWN spies from this site? (e.g. Cloaker.)
+        /// Deliberately does not reuse CanReturnSpecificSpy, which rejects
+        /// targetSpyColor == activePlayer.Color by design (that's the enemy-spy action), and
+        /// deliberately requires no Presence check - card-effect-driven, not the paid base
+        /// "Return Spy" action, matching CanReturnTroop's own-unit precedent.
+        /// </summary>
+        public bool CanReturnOwnSpy(Site site, Player activePlayer)
+        {
+            return site is not null && site.Spies.Contains(activePlayer.Color);
+        }
+
+        public bool ReturnOwnSpy(Site site, Player activePlayer)
+        {
+            if (!CanReturnOwnSpy(site, activePlayer))
+            {
+                _logger.Log($"Cannot return own spy: Invalid Target.", LogChannel.Error);
+                return false;
+            }
+
+            return _spyOps.ExecuteReturnOwnSpy(site, activePlayer);
+        }
+
     }
 }
 

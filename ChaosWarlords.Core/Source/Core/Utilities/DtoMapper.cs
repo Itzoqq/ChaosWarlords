@@ -53,7 +53,8 @@ namespace ChaosWarlords.Source.Core.Utilities
                             ? new DiscardCardCommand(color, dto.CardId)
                             : null;
                     }
-                }
+                },
+                { typeof(ReturnOwnSpyCommandDto), (d, s) => new ReturnOwnSpyCommand(((ReturnOwnSpyCommandDto)d).SiteId, ((ReturnOwnSpyCommandDto)d).CardId) }
             };
         }
 

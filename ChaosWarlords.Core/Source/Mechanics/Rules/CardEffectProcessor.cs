@@ -90,6 +90,17 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             var state = context.CardRuleEngine.GetStrategy(effect.Type).GetTargetingState(effect);
             bool requiresInput = context.CardRuleEngine.GetStrategy(effect.Type).IsTargetingEffect || effect.IsOptional;
 
+            // Same guard as the top-level pre-check in ResolveEffects, applied here too: a
+            // chained node (OnSuccess or Alternative) with no valid target would otherwise sit
+            // in "waiting for input" forever (e.g. Cloaker's Alternative - ReturnOwnSpy - has
+            // no valid target for a player with no spy anywhere). Fall back to THIS node's own
+            // Alternative instead of pushing something unreachable.
+            if (requiresInput && !context.CardRuleEngine.HasValidTargets(context.ActivePlayer, effect.Type, card))
+            {
+                PushEffectNode(effect.Alternative, card, context);
+                return;
+            }
+
             var ctx = new EffectContext(
                 state,
                 card,
@@ -142,8 +153,22 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             [EffectType.ReturnUnit] = (effect, card, ctx, log) => ApplyReturnUnit(card, ctx, log),
             [EffectType.Devour] = (effect, card, ctx, log) => ApplyDevourWithChain(effect, card, ctx, log),
             [EffectType.DiscardCard] = (effect, card, ctx, log) => ApplyDiscardCard(card, ctx, log),
-            [EffectType.MarkOpponentDiscardAtEndOfTurn] = (effect, card, ctx, log) => ApplyMarkOpponentDiscardAtEndOfTurn(card, ctx, log)
+            [EffectType.MarkOpponentDiscardAtEndOfTurn] = (effect, card, ctx, log) => ApplyMarkOpponentDiscardAtEndOfTurn(card, ctx, log),
+            [EffectType.ReturnOwnSpy] = (effect, card, ctx, log) => ApplyReturnOwnSpy(card, ctx, log)
         };
+
+        private static void ApplyReturnOwnSpy(Card sourceCard, MatchContext context, IGameLogger logger)
+        {
+            if (context.CardRuleEngine.HasValidTargets(context.ActivePlayer, EffectType.ReturnOwnSpy, sourceCard))
+            {
+                context.ActionSystem.StartTargeting(ActionState.TargetingReturnOwnSpy, sourceCard);
+                logger.Log($"{sourceCard.Name}: Select a site to return one of your spies from.", LogChannel.Input);
+            }
+            else
+            {
+                logger.Log($"{sourceCard.Name}: No spies to return.", LogChannel.Warning);
+            }
+        }
 
         private static void ApplyMarkOpponentDiscardAtEndOfTurn(Card sourceCard, MatchContext context, IGameLogger logger)
         {

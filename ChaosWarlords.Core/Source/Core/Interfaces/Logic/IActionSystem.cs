@@ -80,6 +80,15 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         void TransitionToSpySelection(Site site);
 
         /// <summary>
+        /// Sets PendingSite ONLY, without touching CurrentState - unlike
+        /// TransitionToSpySelection, which also forces CurrentState to
+        /// SelectingSpyToReturn (correct for the enemy-spy flow, wrong here). Used by
+        /// ReturnOwnSpyCommand so a chained effect (e.g. Cloaker's Assassinate, scoped to
+        /// "at that spy's site") can read back which site the spy was just returned from.
+        /// </summary>
+        void SetPendingSiteForChain(Site site);
+
+        /// <summary>
         /// Notifies the system that an action has failed validation or execution,
         /// and cancels the current targeting sequence.
         /// </summary>

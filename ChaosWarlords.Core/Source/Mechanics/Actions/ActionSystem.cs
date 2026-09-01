@@ -631,6 +631,11 @@ namespace ChaosWarlords.Source.Managers
             CurrentState = ActionState.SelectingSpyToReturn;
         }
 
+        public void SetPendingSiteForChain(Site site)
+        {
+            PendingSite = site;
+        }
+
         /// <summary>
         /// Sets the source node for a Move Troop sequence and transitions to destination-targeting.
         /// Called by ActionInputController once it has validated the source node.

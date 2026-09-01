@@ -79,6 +79,30 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             return ExecuteReturnSpy(clickedSite, enemySpies, cardId);
         }
 
+        /// <summary>
+        /// Handles a site click while returning ONE OF THE ACTIVE PLAYER'S OWN spies (e.g.
+        /// Cloaker). Simpler than the enemy-spy flow: a player only ever has at most one spy
+        /// of their own color at a given site, so there's no multi-color "which spy"
+        /// sub-step (SelectingSpyToReturn) and no Power cost (card-effect-driven, not the
+        /// paid base action).
+        /// </summary>
+        public IGameCommand? HandleReturnOwnSpy(Site clickedSite, string? cardId)
+        {
+            if (clickedSite is null)
+            {
+                _logger.Log("Invalid Target: You must click a Site.", LogChannel.Warning);
+                return null;
+            }
+
+            if (!_mapManager.CanReturnOwnSpy(clickedSite, CurrentPlayer))
+            {
+                _actionSystem.NotifyFailure("You have no spy at that site.");
+                return null;
+            }
+
+            return new Commands.ReturnOwnSpyCommand(clickedSite.Id, cardId);
+        }
+
         private bool IsValidSpyReturnTarget(Site site, List<PlayerColor> enemySpies, string? cardId, out string reason)
         {
             if (enemySpies is null || enemySpies.Count == 0)

@@ -33,6 +33,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 { EffectType.MoveUnit, new Strategies.MoveUnitStrategy() },
                 { EffectType.Devour, new Strategies.DevourStrategy() },
                 { EffectType.DiscardCard, new Strategies.DiscardStrategy() },
+                { EffectType.ReturnOwnSpy, new Strategies.ReturnOwnSpyStrategy() },
                 // Add new strategies here
             };
         }

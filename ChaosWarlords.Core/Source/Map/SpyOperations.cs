@@ -77,6 +77,31 @@ namespace ChaosWarlords.Source.Map
         }
 
         /// <summary>
+        /// Returns the active player's OWN spy from a site (e.g. Cloaker's "return one of
+        /// your spies"). Deliberately separate from ExecuteReturnSpy, which explicitly
+        /// rejects targetSpyColor == activePlayer.Color by design (that's the enemy-spy
+        /// action) - no Presence check either, matching CanReturnTroop's precedent that
+        /// returning your own unit needs no Presence, only returning an enemy's does.
+        /// </summary>
+        public bool ExecuteReturnOwnSpy(Site site, Player activePlayer)
+        {
+            ArgumentNullException.ThrowIfNull(site);
+            ArgumentNullException.ThrowIfNull(activePlayer);
+
+            if (!site.Spies.Contains(activePlayer.Color))
+            {
+                _logger.Log($"Cannot return own spy: no {activePlayer.Color} spy at {site.Name}.", LogChannel.Error);
+                return false;
+            }
+
+            site.Spies.Remove(activePlayer.Color);
+
+            _logger.Log($"Returned own ({activePlayer.Color}) Spy from {site.Name}.", LogChannel.Combat);
+            _recalculateSiteState(site, activePlayer);
+            return true;
+        }
+
+        /// <summary>
         /// Gets list of enemy spies at a site (excluding the active player's spies).
         /// </summary>
         public static List<PlayerColor> GetEnemySpiesAtSite(Site site, Player activePlayer)
