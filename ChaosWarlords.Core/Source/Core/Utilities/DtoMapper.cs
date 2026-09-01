@@ -45,7 +45,15 @@ namespace ChaosWarlords.Source.Core.Utilities
                 { typeof(PlaceSpyCommandDto), (d, s) => new PlaceSpyCommand(((PlaceSpyCommandDto)d).SiteId, ((PlaceSpyCommandDto)d).CardId) },
                 { typeof(MoveTroopCommandDto), (d, s) => new MoveTroopCommand(((MoveTroopCommandDto)d).SrcId, ((MoveTroopCommandDto)d).DestId, ((MoveTroopCommandDto)d).CardId) },
                 { typeof(ActionCompletedCommandDto), (d, s) => new ActionCompletedCommand() },
-                { typeof(PromoteCommandDto), (d, s) => new PromoteCommand(((PromoteCommandDto)d).CardId) }
+                { typeof(PromoteCommandDto), (d, s) => new PromoteCommand(((PromoteCommandDto)d).CardId) },
+                { typeof(DiscardCardCommandDto), (d, s) =>
+                    {
+                        var dto = (DiscardCardCommandDto)d;
+                        return Enum.TryParse<PlayerColor>(dto.PlayerColor, out var color)
+                            ? new DiscardCardCommand(color, dto.CardId)
+                            : null;
+                    }
+                }
             };
         }
 

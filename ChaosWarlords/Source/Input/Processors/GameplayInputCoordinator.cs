@@ -143,6 +143,11 @@ namespace ChaosWarlords.Source.Input
                 _state.Logger.Log($"Coordinator: Switching to DevourInputMode (State: {_context.ActionSystem.CurrentState})", LogChannel.Input);
                 _currentMode = new DevourInputMode(_state, _inputManager, _context.ActionSystem);
             }
+            else if (_context.ActionSystem.CurrentState == ActionState.TargetingDiscard)
+            {
+                _state.Logger.Log("Coordinator: Switching to DiscardInputMode.", LogChannel.Input);
+                _currentMode = new DiscardInputMode(_state, _inputManager, _context.ActionSystem);
+            }
             else if (_context.ActionSystem.CurrentState == ActionState.TargetingDevourMarket)
             {
                 // Market devour is handled by DevourSubsystem calling MarketStateManager.OpenForDevour

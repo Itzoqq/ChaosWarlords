@@ -21,6 +21,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     [JsonDerivedType(typeof(MoveTroopCommandDto), typeDiscriminator: "move")]
     [JsonDerivedType(typeof(ActionCompletedCommandDto), typeDiscriminator: "done")]
     [JsonDerivedType(typeof(PromoteCommandDto), typeDiscriminator: "promote")]
+    [JsonDerivedType(typeof(DiscardCardCommandDto), typeDiscriminator: "discard")]
     public abstract class GameCommandDto
     {
         public int Seq { get; set; }
@@ -115,6 +116,12 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
 
     public class PromoteCommandDto : GameCommandDto
     {
+        public string? CardId { get; set; }
+    }
+
+    public class DiscardCardCommandDto : GameCommandDto
+    {
+        public string? PlayerColor { get; set; }
         public string? CardId { get; set; }
     }
 }

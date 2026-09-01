@@ -17,6 +17,7 @@ namespace ChaosWarlords.Source.Utilities
         public required string Aspect { get; set; }
         public int DeckVP { get; set; }
         public int InnerCircleVP { get; set; }
+        public bool RedirectsToSupplyOnDevourOrPromote { get; set; }
         public required List<CardEffectData> Effects { get; set; }
     }
 
@@ -66,6 +67,15 @@ namespace ChaosWarlords.Source.Utilities
 
             foreach (var data in _cardDataCache.OrderBy(c => c.Id))
             {
+                // Supply-pile cards (e.g. Insane Outcast) are never purchasable from the
+                // market - they only ever reach a player via another card's effect. Excluded
+                // here rather than via a second flag, since RedirectsToSupplyOnDevourOrPromote
+                // is otherwise unique to exactly this kind of card.
+                if (data.RedirectsToSupplyOnDevourOrPromote)
+                {
+                    continue;
+                }
+
                 // Trace for Replay Desync Debugging
                 Console.WriteLine($"[CardDatabase] Processing Market Card: {data.Id}");
                 cards.Add(CardFactory.CreateFromData(data, random));

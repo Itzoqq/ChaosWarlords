@@ -49,6 +49,20 @@ namespace ChaosWarlords.Source.Mechanics.Rules
     {
         public void Execute(Card sourceCard, MatchContext context, IGameLogger logger, Action? onComplete, bool defer)
         {
+            if (sourceCard.RedirectsToSupplyOnDevourOrPromote)
+            {
+                // e.g. Insane Outcast's own "discard a card -> return to supply" chain uses
+                // Devour(Self) as its mechanism. Unlike a normal self-devour (Skeletal Horde
+                // etc.), this is NOT deferred to end of turn - the card is immediately pulled
+                // from play, matching the card's own wording ("return it to the supply
+                // instead", not "at end of turn"). Reuses PlayerStateManager.DevourCard's own
+                // redirect guard rather than duplicating the Hand/Played/InnerCircle removal
+                // scan here.
+                context.PlayerStateManager.DevourCard(context.ActivePlayer, sourceCard);
+                onComplete?.Invoke();
+                return;
+            }
+
             // Guard against being invoked twice for the same card (e.g. a stray duplicate
             // accept-click reaching this a second time) - CardsMarkedForTurnEndDevour is a
             // plain List<Card>, and MatchManager.EndTurn's cleanup loop isn't itself

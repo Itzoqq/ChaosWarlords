@@ -176,8 +176,31 @@ namespace ChaosWarlords.Source.Managers
             // If we found it:
             if (removed)
             {
-                card.Location = CardLocation.Void;
-                _logger.Log($"[State] {player.DisplayName} devoured (trashed) '{card.Name}'", LogChannel.Info);
+                if (card.RedirectsToSupplyOnDevourOrPromote)
+                {
+                    // e.g. Insane Outcast: "If [this] would be devoured or promoted, return it
+                    // to the supply instead." Not actually devoured - CardLocation.Supply, not
+                    // Void, so callers (e.g. MatchManager.DevourCard's "if Void, add to
+                    // VoidPile" check) correctly leave it out of the void pile.
+                    card.Location = CardLocation.Supply;
+                    _logger.Log($"[State] {player.DisplayName}'s '{card.Name}' redirected to the supply instead of being devoured.", LogChannel.Info);
+                }
+                else
+                {
+                    card.Location = CardLocation.Void;
+                    _logger.Log($"[State] {player.DisplayName} devoured (trashed) '{card.Name}'", LogChannel.Info);
+                }
+            }
+        }
+
+        public void DiscardCard(Player player, Card card)
+        {
+            bool removed = player.RemoveFromHand(card);
+
+            if (removed)
+            {
+                player.DeckManager.AddToDiscard(card);
+                _logger.Log($"[State] {player.DisplayName} discarded '{card.Name}'", LogChannel.Info);
             }
         }
 

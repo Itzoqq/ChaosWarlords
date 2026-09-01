@@ -16,7 +16,8 @@ namespace ChaosWarlords.Source.Utilities
         TargetingMoveDestination,
         TargetingDevourHand,
         TargetingDevourMarket,
-        TargetingDevourInnerCircle
+        TargetingDevourInnerCircle,
+        TargetingDiscard // Forced discard from a specific player's own hand (Insane Outcast's self-discard, Neogi's cross-player forced discard)
     }
 
     // Replaces the "Suits" (Conquest, Malice, Guile, Obedience)
@@ -50,7 +51,9 @@ namespace ChaosWarlords.Source.Utilities
         DiscardPile,
         InnerCircle,   // The "Promoted" pile (Tyrants' Inner Circle)
         Void,          // Removed from game entirely
-        Self           // The card itself (for self-devour effects)
+        Self,          // The card itself (for self-devour effects)
+        Supply         // Returned to the shared supply (e.g. Insane Outcast) - distinct from
+                        // Void: not actually devoured, can re-enter play via whatever grants it
     }
 
     // The command pattern: what does this card actually DO?
@@ -67,6 +70,7 @@ namespace ChaosWarlords.Source.Utilities
         Devour,
         PlaceSpy,
         MoveUnit,
+        DiscardCard,
     }
 
     /// <summary>

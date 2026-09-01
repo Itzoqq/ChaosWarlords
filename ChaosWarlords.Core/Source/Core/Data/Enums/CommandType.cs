@@ -20,6 +20,7 @@ namespace ChaosWarlords.Source.Core.Data.Enums
         PlaceSpy,
         MoveTroop,
         ActionCompleted,
-        Promote
+        Promote,
+        DiscardCard
     }
 }

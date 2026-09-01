@@ -124,6 +124,15 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// <param name="card">The card to devour.</param>
         void DevourCard(Player player, Card card);
 
+        /// <summary>
+        /// Discards a card from the player's hand to their discard pile (a forced discard,
+        /// e.g. Insane Outcast's own cost or an opponent-targeting effect - not the end-of-turn
+        /// hand/played cleanup, see CleanUpTurn for that).
+        /// </summary>
+        /// <param name="player">The player discarding.</param>
+        /// <param name="card">The card to discard.</param>
+        void DiscardCard(Player player, Card card);
+
         // --- Turn Management ---
 
         /// <summary>

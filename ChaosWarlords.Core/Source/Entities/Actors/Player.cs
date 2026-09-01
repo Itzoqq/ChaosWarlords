@@ -258,8 +258,17 @@ namespace ChaosWarlords.Source.Entities.Actors
             }
 
             // Success path
-            card.Location = CardLocation.InnerCircle;
-            _innerCircle.Add(card);
+            if (card.RedirectsToSupplyOnDevourOrPromote)
+            {
+                // e.g. Insane Outcast: "If [this] would be devoured or promoted, return it to
+                // the supply instead." Not actually promoted.
+                card.Location = CardLocation.Supply;
+            }
+            else
+            {
+                card.Location = CardLocation.InnerCircle;
+                _innerCircle.Add(card);
+            }
             errorMessage = string.Empty;
             return true;
         }

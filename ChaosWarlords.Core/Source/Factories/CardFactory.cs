@@ -38,6 +38,7 @@ namespace ChaosWarlords.Source.Utilities
             var card = new Card(GenerateUniqueId(data.Id, random), data.Name, data.Cost, aspect, data.DeckVP, data.InnerCircleVP, 0);
 
             card.Description = data.Description;
+            card.RedirectsToSupplyOnDevourOrPromote = data.RedirectsToSupplyOnDevourOrPromote;
 
             if (data.Effects is not null)
             {

@@ -140,8 +140,25 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             [EffectType.Supplant] = (effect, card, ctx, log) => ApplySupplant(card, ctx, log),
             [EffectType.PlaceSpy] = (effect, card, ctx, log) => ApplyPlaceSpy(card, ctx, log),
             [EffectType.ReturnUnit] = (effect, card, ctx, log) => ApplyReturnUnit(card, ctx, log),
-            [EffectType.Devour] = (effect, card, ctx, log) => ApplyDevourWithChain(effect, card, ctx, log)
+            [EffectType.Devour] = (effect, card, ctx, log) => ApplyDevourWithChain(effect, card, ctx, log),
+            [EffectType.DiscardCard] = (effect, card, ctx, log) => ApplyDiscardCard(card, ctx, log)
         };
+
+        private static void ApplyDiscardCard(Card sourceCard, MatchContext context, IGameLogger logger)
+        {
+            // Only the active-player, own-hand case (e.g. Insane Outcast's own cost) goes
+            // through this path - Neogi's cross-player forced discard doesn't use this
+            // EffectType's normal targeting flow at all, see EffectType.MarkOpponentDiscardAtEndOfTurn.
+            if (context.ActivePlayer.Hand.Count > 0)
+            {
+                context.ActionSystem.StartTargeting(ActionState.TargetingDiscard, sourceCard);
+                logger.Log($"{sourceCard.Name}: Select a card from your hand to discard.", LogChannel.Input);
+            }
+            else
+            {
+                logger.Log($"{sourceCard.Name}: No cards in hand to discard.", LogChannel.Warning);
+            }
+        }
 
         private static void ApplyDevourWithChain(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
         {

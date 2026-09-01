@@ -139,6 +139,22 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             _actionSystem.SetPendingCard(nextEffect.SourceCard);
             bool isOptional = nextEffect.SourceEffect?.IsOptional == true;
 
+            // Self-devour never actually needs player input - there's no target to pick, it's
+            // always "this card" (DevourStrategy.GetTargetingState even returns
+            // ActionState.Normal for it, not a real targeting state). The optional case
+            // already short-circuits into HandleOptionalEffectAccepted's own identical
+            // DevourStrategyFactory call below; this covers the MANDATORY case (e.g. Insane
+            // Outcast's own "discard -> devour self" chain, reached as a non-optional
+            // OnSuccess child), which would otherwise sit in SetupTargetingForRequiredEffect's
+            // "waiting for input" state forever - nothing ever clicks to advance it.
+            if (!isOptional && nextEffect.SourceEffect?.Type == EffectType.Devour
+                && nextEffect.SourceEffect.TargetLocation == CardLocation.Self)
+            {
+                var selfStrategy = Mechanics.Rules.DevourStrategyFactory.GetStrategy(CardLocation.Self);
+                selfStrategy.Execute(nextEffect.SourceCard, _matchContext!, _logger, () => ResolveCurrentEffect(true), false);
+                return;
+            }
+
             if (!isOptional)
             {
                 SetupTargetingForRequiredEffect(nextEffect);

@@ -32,6 +32,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 { EffectType.Supplant, new Strategies.SupplantStrategy() },
                 { EffectType.MoveUnit, new Strategies.MoveUnitStrategy() },
                 { EffectType.Devour, new Strategies.DevourStrategy() },
+                { EffectType.DiscardCard, new Strategies.DiscardStrategy() },
                 // Add new strategies here
             };
         }
