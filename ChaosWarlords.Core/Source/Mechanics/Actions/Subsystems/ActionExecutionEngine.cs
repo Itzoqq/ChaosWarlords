@@ -228,27 +228,11 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
         {
             if (OnInteractionRequested == null) return false;
 
-            // Deep Lookahead: Check if OnSuccess chain has valid targets
-            if (effect.SourceEffect?.OnSuccess != null && _matchContext != null)
+            if (HasUnreachableOnSuccess(effect))
             {
-                var onSuccessEffect = effect.SourceEffect.OnSuccess;
-                bool onSuccessRequiresTargeting = _matchContext.CardRuleEngine.GetStrategy(onSuccessEffect.Type).IsTargetingEffect;
-
-                if (onSuccessRequiresTargeting)
-                {
-                    bool hasValidTargets = _matchContext.CardRuleEngine.HasValidTargets(
-                        _matchContext.ActivePlayer,
-                        onSuccessEffect.Type,
-                        effect.SourceCard
-                    );
-
-                    if (!hasValidTargets)
-                    {
-                        _logger.Log($"ActionExecutionEngine: Skipping optional effect {effect.SourceEffect.Type} - OnSuccess effect {onSuccessEffect.Type} has no valid targets.", LogChannel.Warning);
-                        ResolveCurrentEffect(false);
-                        return true;
-                    }
-                }
+                _logger.Log($"ActionExecutionEngine: Skipping optional effect {effect.SourceEffect?.Type} - OnSuccess effect {effect.SourceEffect?.OnSuccess?.Type} has no valid targets.", LogChannel.Warning);
+                ResolveCurrentEffect(false);
+                return true;
             }
 
             _logger.Log($"ActionExecutionEngine: Requesting optional effect confirmation for {effect.SourceEffect?.Type}...", LogChannel.Input);
@@ -262,6 +246,29 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             OnInteractionRequested.Invoke(request);
 
             return true;
+        }
+
+        /// <summary>
+        /// Deep lookahead: if accepting this optional effect would chain into an OnSuccess
+        /// effect that itself has no valid targets, there's no point asking the player at all -
+        /// ProcessOptionalEffect skips straight to the decline path (and its own Alternative,
+        /// if any) instead of raising a confirmation prompt for something that can't complete.
+        /// </summary>
+        private bool HasUnreachableOnSuccess(Core.Contexts.EffectContext effect)
+        {
+            var onSuccessEffect = effect.SourceEffect?.OnSuccess;
+            if (onSuccessEffect == null || _matchContext == null) return false;
+
+            bool onSuccessRequiresTargeting = _matchContext.CardRuleEngine.GetStrategy(onSuccessEffect.Type).IsTargetingEffect;
+            if (!onSuccessRequiresTargeting) return false;
+
+            bool hasValidTargets = _matchContext.CardRuleEngine.HasValidTargets(
+                _matchContext.ActivePlayer,
+                onSuccessEffect.Type,
+                effect.SourceCard
+            );
+
+            return !hasValidTargets;
         }
 
         /// <summary>

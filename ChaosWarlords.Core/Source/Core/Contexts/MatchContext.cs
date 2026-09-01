@@ -102,13 +102,24 @@ namespace ChaosWarlords.Source.Contexts
             IGameLogger logger,
             int? seed = null)
         {
-            TurnManager = turn ?? throw new ArgumentNullException(nameof(turn));
-            MapManager = map ?? throw new ArgumentNullException(nameof(map));
-            MarketManager = market ?? throw new ArgumentNullException(nameof(market));
-            ActionSystem = action ?? throw new ArgumentNullException(nameof(action));
-            CardDatabase = cardDb ?? throw new ArgumentNullException(nameof(cardDb));
-            PlayerStateManager = playerState ?? throw new ArgumentNullException(nameof(playerState));
-            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            // ArgumentNullException.ThrowIfNull keeps this constructor's own body a flat,
+            // branch-free sequence - the null check + throw both live inside the BCL method
+            // instead of being reimplemented 7 times as "?? throw" here.
+            ArgumentNullException.ThrowIfNull(turn);
+            ArgumentNullException.ThrowIfNull(map);
+            ArgumentNullException.ThrowIfNull(market);
+            ArgumentNullException.ThrowIfNull(action);
+            ArgumentNullException.ThrowIfNull(cardDb);
+            ArgumentNullException.ThrowIfNull(playerState);
+            ArgumentNullException.ThrowIfNull(logger);
+
+            TurnManager = turn;
+            MapManager = map;
+            MarketManager = market;
+            ActionSystem = action;
+            CardDatabase = cardDb;
+            PlayerStateManager = playerState;
+            Logger = logger;
 
             // Initialize seeded RNG
             Seed = seed ?? Environment.TickCount;
