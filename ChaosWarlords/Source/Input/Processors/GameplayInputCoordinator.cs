@@ -126,57 +126,65 @@ namespace ChaosWarlords.Source.Input
 
         public void SwitchToTargetingMode()
         {
-            // Specialized logic for which targeting mode to enter
-            if (_context.ActionSystem.CurrentState == ActionState.SelectingCardToPromote)
-            {
-                int amount = _context.TurnManager.CurrentTurnContext.PendingPromotionsCount;
-                // Fallback to card effect if context is 0 (direct play)
-                if (amount == 0 && _context.ActionSystem.PendingCard is not null)
-                    amount = 1; // Simplify for now
+            var state = _context.ActionSystem.CurrentState;
 
-                _state.Logger.Log($"Coordinator: Switching to PromoteInputMode (Amount: {amount})", LogChannel.Input);
-                _currentMode = new PromoteInputMode(_state, _inputManager, _context.ActionSystem, amount);
-            }
-            else if (_context.ActionSystem.CurrentState == ActionState.TargetingDevourHand ||
-                     _context.ActionSystem.CurrentState == ActionState.TargetingDevourInnerCircle)
+            _currentMode = state switch
             {
-                _state.Logger.Log($"Coordinator: Switching to DevourInputMode (State: {_context.ActionSystem.CurrentState})", LogChannel.Input);
-                _currentMode = new DevourInputMode(_state, _inputManager, _context.ActionSystem);
-            }
-            else if (_context.ActionSystem.CurrentState == ActionState.TargetingDiscard)
-            {
-                _state.Logger.Log("Coordinator: Switching to DiscardInputMode.", LogChannel.Input);
-                _currentMode = new DiscardInputMode(_state, _inputManager, _context.ActionSystem);
-            }
-            else if (_context.ActionSystem.CurrentState == ActionState.TargetingDevourMarket ||
-                     _context.ActionSystem.CurrentState == ActionState.TargetingPlayFromMarket)
-            {
+                ActionState.SelectingCardToPromote => CreatePromoteMode(),
+                ActionState.TargetingDevourHand or ActionState.TargetingDevourInnerCircle => CreateDevourMode(state),
+                ActionState.TargetingDiscard => CreateDiscardMode(),
                 // Both Devour-from-Market and Play-from-Market (Ulitharid) are handled by
                 // ActionSystem calling MarketStateManager.OpenForDevour, which triggers
-                // HandleMarketModeChanged below. Just switch to TargetingInputMode temporarily.
-                _state.Logger.Log($"Coordinator: {_context.ActionSystem.CurrentState} detected. Market will open via MarketStateManager.", LogChannel.Input);
-                _currentMode = new TargetingInputMode(
-                    _state,
-                    _inputManager,
-                    _state.UIManager,
-                    _context.MapManager,
-                    _context.TurnManager,
-                    _context.ActionSystem
-                );
-            }
-            else
-            {
-                _state.Logger.Log($"Coordinator: Switching to TargetingInputMode (State: {_context.ActionSystem.CurrentState})", LogChannel.Input);
-                _currentMode = new TargetingInputMode(
-                    _state,
-                    _inputManager,
-                    _state.UIManager,
-                    _context.MapManager,
-                    _context.TurnManager,
-                    _context.ActionSystem
-                );
-            }
+                // HandleMarketModeChanged below - just switch to TargetingInputMode
+                // temporarily, same as the default case, with a more specific log message.
+                ActionState.TargetingDevourMarket or ActionState.TargetingPlayFromMarket => CreateMarketPendingMode(state),
+                _ => CreateDefaultTargetingMode(state),
+            };
         }
+
+        private PromoteInputMode CreatePromoteMode()
+        {
+            int amount = _context.TurnManager.CurrentTurnContext.PendingPromotionsCount;
+            // Fallback to card effect if context is 0 (direct play)
+            if (amount == 0 && _context.ActionSystem.PendingCard is not null)
+                amount = 1; // Simplify for now
+
+            _state.Logger.Log($"Coordinator: Switching to PromoteInputMode (Amount: {amount})", LogChannel.Input);
+            return new PromoteInputMode(_state, _inputManager, _context.ActionSystem, amount);
+        }
+
+        private DevourInputMode CreateDevourMode(ActionState state)
+        {
+            _state.Logger.Log($"Coordinator: Switching to DevourInputMode (State: {state})", LogChannel.Input);
+            return new DevourInputMode(_state, _inputManager, _context.ActionSystem);
+        }
+
+        private DiscardInputMode CreateDiscardMode()
+        {
+            _state.Logger.Log("Coordinator: Switching to DiscardInputMode.", LogChannel.Input);
+            return new DiscardInputMode(_state, _inputManager, _context.ActionSystem);
+        }
+
+        private TargetingInputMode CreateMarketPendingMode(ActionState state)
+        {
+            _state.Logger.Log($"Coordinator: {state} detected. Market will open via MarketStateManager.", LogChannel.Input);
+            return CreateTargetingInputMode();
+        }
+
+        private TargetingInputMode CreateDefaultTargetingMode(ActionState state)
+        {
+            _state.Logger.Log($"Coordinator: Switching to TargetingInputMode (State: {state})", LogChannel.Input);
+            return CreateTargetingInputMode();
+        }
+
+        private TargetingInputMode CreateTargetingInputMode() => new(
+            _state,
+            _inputManager,
+            _state.UIManager,
+            _context.MapManager,
+            _context.TurnManager,
+            _context.ActionSystem
+        );
 
         private void HandleMarketModeChanged(object? sender, MarketMode newMode)
         {

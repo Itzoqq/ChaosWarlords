@@ -291,17 +291,23 @@ namespace ChaosWarlords.Source.Core.Utilities
                 if (byRuntimeId != null) return byRuntimeId;
             }
 
-            if (string.Equals(dto.Location, "Market", StringComparison.OrdinalIgnoreCase) && context != null)
-            {
-                return context.MarketManager.MarketRow?.FirstOrDefault(c => c.Id == dto.CardId);
-            }
+            return FindByLocationOrHand(dto, player, context);
+        }
 
-            if (string.Equals(dto.Location, "InnerCircle", StringComparison.OrdinalIgnoreCase))
+        /// <summary>
+        /// Location-directed CardId/index lookup - the replay-compatible fallback for data
+        /// recorded before CardRuntimeId existed (see FindDevourTargetCard). Case-insensitive
+        /// on Location to match the original string.Equals(..., OrdinalIgnoreCase) checks this
+        /// replaced (both "Market"/"market"/"MARKET" etc. must still match).
+        /// </summary>
+        private static Card? FindByLocationOrHand(DevourCardCommandDto dto, Player player, MatchContext? context)
+        {
+            return dto.Location?.ToUpperInvariant() switch
             {
-                return player.InnerCircle.FirstOrDefault(c => c.Id == dto.CardId);
-            }
-
-            return FindCardInHand(dto, player);
+                "MARKET" when context != null => context.MarketManager.MarketRow?.FirstOrDefault(c => c.Id == dto.CardId),
+                "INNERCIRCLE" => player.InnerCircle.FirstOrDefault(c => c.Id == dto.CardId),
+                _ => FindCardInHand(dto, player),
+            };
         }
 
         /// <summary>
