@@ -26,50 +26,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             // Push effects to Stack in REVERSE order (LIFO)
             for (int i = effectQueue.Count - 1; i >= 0; i--)
             {
-                var effect = effectQueue[i];
-                var state = context.CardRuleEngine.GetStrategy(effect.Type).GetTargetingState(effect);
-
-                // Determine if this effect requires blocking input
-                bool requiresInput = context.CardRuleEngine.GetStrategy(effect.Type).IsTargetingEffect || effect.IsOptional;
-
-                // VALIDATION: If the effect requires targeting, ensure valid targets exist.
-                // If not, we skip pushing it (and thus skip the action) - UNLESS it carries an
-                // Alternative ("Choose one"), in which case the alternative fires instead of
-                // just granting nothing. (This closes a real bug: e.g. Wight played with an
-                // empty hand used to skip Devour and get nothing, not even the +2 Power
-                // fallback - see planning.txt.)
-                if (requiresInput && !context.CardRuleEngine.HasValidTargets(context.ActivePlayer, effect.Type, card))
-                {
-                    logger.Log($"{card.Name}: No valid targets for {effect.Type}. Effect skipped.", LogChannel.Warning);
-                    if (effect.Alternative != null)
-                    {
-                        PushEffectNode(effect.Alternative, card, context);
-                    }
-                    continue;
-                }
-
-                var ctx = new EffectContext(
-                    state,
-                    card,
-                    requiresInput,
-                    $"Effect: {effect.Type}",
-                    (success) =>
-                    {
-                        // OnResolved callback (Executed after success)
-                        // For blocking effects, we must explicitly push the child effect here
-                        // because ApplyEffect is NOT called for them (they are handled by input)
-                        if (success)
-                        {
-                            PushEffectNode(effect.OnSuccess, card, context);
-                        }
-                    },
-                    effect,
-                    onCancelled: effect.Alternative != null
-                        ? () => PushEffectNode(effect.Alternative, card, context)
-                        : null
-                );
-
-                context.ActionSystem.PushEffect(ctx);
+                PushEffectContext(effectQueue[i], card, context, "Effect", logger);
             }
 
             // Start Stack Processing
@@ -78,26 +35,37 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         // Pushes a single effect node (an OnSuccess continuation, an Alternative fallback, or
         // recursively either of those node's own OnSuccess/Alternative) onto the execution
-        // stack. Nullable so callers (PushEffectNode itself, via effect.OnSuccess) can pass
+        // stack. Nullable so callers (itself, via effect.OnSuccess/Alternative) can pass
         // "there is no next node" without a separate null check at every call site.
-        private static void PushEffectNode(CardEffect? effect, Card card, MatchContext context)
+        private static void PushEffectNode(CardEffect? effect, Card card, MatchContext context, IGameLogger logger)
         {
             if (effect == null)
             {
                 return;
             }
 
+            PushEffectContext(effect, card, context, "Effect Node", logger);
+        }
+
+        /// <summary>
+        /// Computes the targeting state, checks HasValidTargets (falling back to
+        /// <paramref name="effect"/>'s own Alternative if there's no valid target - "Choose
+        /// one" cards must still grant the Alternative, not nothing, e.g. Wight played with an
+        /// empty hand), and builds + pushes the resulting EffectContext, wiring its
+        /// OnSuccess/Alternative continuations back through PushEffectNode. Shared by
+        /// ResolveEffects (the top-level effect list) and PushEffectNode (a single chained
+        /// node) - the two used to duplicate this whole sequence independently, differing only
+        /// in the EffectContext's description prefix.
+        /// </summary>
+        private static void PushEffectContext(CardEffect effect, Card card, MatchContext context, string descriptionPrefix, IGameLogger logger)
+        {
             var state = context.CardRuleEngine.GetStrategy(effect.Type).GetTargetingState(effect);
             bool requiresInput = context.CardRuleEngine.GetStrategy(effect.Type).IsTargetingEffect || effect.IsOptional;
 
-            // Same guard as the top-level pre-check in ResolveEffects, applied here too: a
-            // chained node (OnSuccess or Alternative) with no valid target would otherwise sit
-            // in "waiting for input" forever (e.g. Cloaker's Alternative - ReturnOwnSpy - has
-            // no valid target for a player with no spy anywhere). Fall back to THIS node's own
-            // Alternative instead of pushing something unreachable.
             if (requiresInput && !context.CardRuleEngine.HasValidTargets(context.ActivePlayer, effect.Type, card))
             {
-                PushEffectNode(effect.Alternative, card, context);
+                logger.Log($"{card.Name}: No valid targets for {effect.Type}. Effect skipped.", LogChannel.Warning);
+                PushEffectNode(effect.Alternative, card, context, logger);
                 return;
             }
 
@@ -105,17 +73,24 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 state,
                 card,
                 requiresInput,
-                $"Effect Node: {effect.Type}",
+                $"{descriptionPrefix}: {effect.Type}",
                 (success) =>
                 {
-                    if (success) PushEffectNode(effect.OnSuccess, card, context);
+                    // OnResolved callback (Executed after success)
+                    // For blocking effects, we must explicitly push the child effect here
+                    // because ApplyEffect is NOT called for them (they are handled by input)
+                    if (success)
+                    {
+                        PushEffectNode(effect.OnSuccess, card, context, logger);
+                    }
                 },
                 effect,
                 onCancelled: effect.Alternative != null
-                    ? () => PushEffectNode(effect.Alternative, card, context)
+                    ? () => PushEffectNode(effect.Alternative, card, context, logger)
                     : null
             );
-            context.ActionSystem.PushEffect(ctx); // Push to Top
+
+            context.ActionSystem.PushEffect(ctx);
         }
 
         // Restored public ApplyEffect method
