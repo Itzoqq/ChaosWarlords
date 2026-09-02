@@ -157,13 +157,17 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
         │   ├── CancelActionCommand.cs       # Cancel targeting
         │   ├── DeployTroopCommand.cs        # Place unit
         │   ├── DevourCardCommand.cs         # Trash card
+        │   ├── DiscardCardCommand.cs        # Discard a named card from a specific player's hand
         │   ├── EndTurnCommand.cs            # End turn
         │   ├── MoveTroopCommand.cs          # Move unit between nodes
         │   ├── PlaceSpyCommand.cs           # Place spy on site
         │   ├── PlayCardCommand.cs           # Play card
+        │   ├── PlayFromMarketCommand.cs     # Play a market card "as if in hand" (e.g. Ulitharid), then devour it
         │   ├── PromoteCommand.cs            # Upgrade unit/site
         │   ├── ResolveSpyCommand.cs         # Execute spy action
+        │   ├── ReturnOwnSpyCommand.cs       # Return one of the active player's OWN spies (e.g. Cloaker)
         │   ├── ReturnTroopCommand.cs        # Return unit to hand
+        │   ├── SelectOpponentCommand.cs     # Resolve EffectType.SelectOpponent - choose which opponent to target
         │   ├── StartAssassinateCommand.cs   # Initiate assassination
         │   ├── StartReturnSpyCommand.cs     # Initiate spy return
         │   ├── SupplantCommand.cs           # Replace enemy unit
@@ -176,9 +180,14 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
             │   ├── AssassinateStrategy.cs
             │   ├── DefaultStrategy.cs
             │   ├── DevourStrategy.cs
+            │   ├── DiscardStrategy.cs
             │   ├── MoveUnitStrategy.cs
             │   ├── PlaceSpyStrategy.cs
+            │   ├── PlayFromMarketStrategy.cs
+            │   ├── PromoteFromPileStrategy.cs   # EffectType.PromoteFromPile - see Key Systems #4
+            │   ├── ReturnOwnSpyStrategy.cs
             │   ├── ReturnUnitStrategy.cs
+            │   ├── SelectOpponentStrategy.cs    # EffectType.SelectOpponent - see Key Systems #4
             │   └── SupplantStrategy.cs
             ├── CardEffectProcessor.cs       # Applies card effects
             ├── CardRuleEngine.cs            # Validates card conditions, resolves IEffectStrategy per EffectType
@@ -235,8 +244,10 @@ ChaosWarlords/                     # Client (Game) Project Root - references Cor
     │   │   └── ReplayController.cs          # Replay Workflow Orchestrator - increments MatchContext.SequenceNumber per replayed command (see Key Systems #6)
     │   ├── Modes/                           # Input State Machine
     │   │   ├── DevourInputMode.cs           # Input mode for trashing a card
+    │   │   ├── DiscardInputMode.cs          # Input mode for a forced discard (own or cross-player, e.g. Insane Outcast/Neogi)
     │   │   ├── MarketInputMode.cs           # Input mode for interacting with market
     │   │   ├── NormalPlayInputMode.cs       # Default input mode for standard play
+    │   │   ├── PromoteFromPileInputMode.cs  # Input mode for EffectType.PromoteFromPile's immediate promote-from-pile targeting
     │   │   ├── PromoteInputMode.cs          # Input mode for upgrading units/sites
     │   │   └── TargetingInputMode.cs        # Input mode for selecting targets
     │   ├── Processors/
@@ -305,7 +316,9 @@ All significant game actions (Move, Attack, Buy) are encapsulated in `IGameComma
 
 This allows actions to be paused (e.g., waiting for user input on an optional effect), new actions to be pushed and resolved (nested transactions), and then the original action to resume. Targets are buffered until the entire chain is valid (`Deferred Execution`).
 
-**Cancellation - snapshot/reload, not field-by-field undo.** `StartTargeting` takes a full `GameStateDto` snapshot (the same `DtoMapper`/`StateRestorer` machinery `CommandDispatcher`'s rollback-on-exception uses - see Key Systems #6) exactly once per targeting *sequence*, not once per step (a multi-step chain like Wight's Devour → Supplant calls `StartTargeting` again for each step via `AdvancePreCommitTargeting`, and cancelling any step has always meant undoing the whole attempt, not just the latest step). `CancelTargeting` restores from that snapshot instead of clearing fields one at a time, so map state, player resources, market, void, the effect stack, and `ActionSystem`'s own targeting state all revert automatically - no per-mechanic undo code needed for future mechanics. It's best-effort: if the snapshot itself can't be taken (e.g. a lightly-mocked test double), `CancelTargeting` falls back to the original field-by-field clear rather than crashing. One thing the snapshot genuinely can't reach: a played card's move from Hand to Played, since `MatchManager.PlayCard` moves the card and pays its cost *before* pushing its effects onto the stack - `TryRestoreCardToHand` (now ID-based, not reference-based, and run *after* the snapshot restore) still handles that one piece of the timeline.
+**Cancellation - snapshot/reload, not field-by-field undo.** `StartTargeting` takes a full `GameStateDto` snapshot (the same `DtoMapper`/`StateRestorer` machinery `CommandDispatcher`'s rollback-on-exception uses - see Key Systems #6) exactly once per targeting *sequence*, not once per step (a multi-step chain like Wight's Devour → Supplant calls `StartTargeting` again for each step via `AdvancePreCommitTargeting`, and cancelling any step has always meant undoing the whole attempt, not just the latest step). `CancelTargeting` restores from that snapshot instead of clearing fields one at a time, so map state, player resources, market, void, the effect stack, and `ActionSystem`'s own targeting state all revert automatically - no per-mechanic undo code needed for future mechanics. It's best-effort: if the snapshot itself can't be taken (e.g. a lightly-mocked test double), `CancelTargeting` falls back to the original field-by-field clear rather than crashing. One thing the snapshot genuinely can't reach: a played card's move from Hand to Played, since `MatchManager.PlayCard` moves the card and pays its cost *before* pushing its effects onto the stack - `TryRestoreCardToHand` (run *after* the snapshot restore) still handles that one piece of the timeline. `TryRestoreCardToHand` matches by `Card.RuntimeId` (a `Guid`), not `Card.Id` (a `string`): the snapshot restore rebuilds the player's Hand/Played collections wholesale via `CardFactory`, which regenerates each `Card`'s `Id` fresh on every restore, so a pre-cancel `Id` is stale and would never match the post-restore collection - `RuntimeId` is the one identifier that survives a restore unchanged, so it's the only safe lookup key here (found via a real bug: cancelling correctly restored state via the snapshot but then failed to find the card by its now-stale pre-restore `Id`, leaving it stuck in `PlayedCards`).
+
+`StartTargeting`'s own snapshot is only part of the story, though: as of 2026-09-02 there's also `ActionSystem.EnsureTargetingSnapshot()` (idempotent - snapshots only if `CurrentState == Normal` and no snapshot already exists for this sequence, extracted from `StartTargeting`'s own inline condition), called from `MatchManager.PlayCard`/`PlayCardFromMarket` *before* any of a played card's effects resolve (automatic or targeting - not just when a targeting UI actually opens), and again from `ActionSystem.EnterTargetingState` itself as defense-in-depth for any resumed-chain entry path that skips `PlayCard`/`PlayCardFromMarket` (e.g. a devour-chain resume). Why this mattered: a card shaped "an automatic effect that mutates state, THEN a mandatory targeting effect" (e.g. Matron Mother: `MoveDeckToDiscard` → `PromoteFromPile`; also Cranium Rats: `GainResource` → `SelectOpponent`) reaches its mandatory targeting step via the bare `ActionExecutionEngine.HandleInputRequiredEffect`/`SetupTargetingForRequiredEffect` → `EnterTargetingState` path, not the full `StartTargeting` method - so the automatic effect's mutation had already happened with no snapshot covering it, and cancelling the targeting step afterward left that mutation permanently applied. This was a real, exploitable bug for Matron Mother (a player could dump their whole deck to discard, then cancel, keeping the card to play again), not just a theoretical gap. `EnsureTargetingSnapshot()` closes it by snapshotting *before* any effect - automatic or targeting - resolves at all.
 
 Optional effects (e.g. an accept/decline popup) don't call the UI layer directly from
 `ActionSystem`/`ActionExecutionEngine`: it raises `OnInteractionRequested` with an `InteractionRequest` (card,
@@ -314,8 +327,14 @@ subscribes to that event in its existing `Initialize()`/`Cleanup()` and drives t
 popup, calling `OnResponse` when the player answers. `ActionSystem` has no reference to
 `IUIEventMediator` at all - no field, no `SetUIMediator` method.
 
+**Newer immediate-targeting primitives.** Two `EffectType`/`IEffectStrategy`/`ActionState` triples were added in 2026-09, following the same established shape as `Assassinate`/`Supplant`/`PlaceSpy` (a new `EffectType` + `Strategies/` implementation + `ActionState`, resolved via the execution stack):
+- `EffectType.SelectOpponent` / `SelectOpponentStrategy` / `ActionState.TargetingOpponentSelect` - the generic "target a player" primitive: the active player picks which opponent (matching an eligibility threshold) becomes `TurnManager.ForcedActingPlayer` for whatever `OnSuccess` chains off it, e.g. Cranium Rats' "choose one opponent with more than 3 cards to discard a card".
+- `EffectType.PromoteFromPile` / `PromoteFromPileStrategy` / `ActionState.TargetingPromoteFromPile` - "promote a card right now from an expanded pool" (`CardLocation.DiscardPile`, or `CardLocation.HandOrDiscard` for hand+discard+the source card itself), e.g. Matron Mother/Necromancer. Explicitly a *different*, independent primitive from the pre-existing `EffectType.Promote` (the deferred end-of-turn promotion-credit flow driven by `PromoteInputMode`/`ActionState.SelectingCardToPromote`, e.g. Noble/Cultist of Myrkul) - the two are not to be conflated.
+
 ### 5. Card Rule Engine
 Card logic is validated by a centralized `CardRuleEngine` using a Chain of Responsibility pattern. `EffectCondition` definitions allow data-driven rules (defined in JSON), separating validation logic from effect execution.
+
+`ConditionType` covers the usual resource/board-state checks (`ControlsSite`, `HasTroopsDeployed`, `HasResourceAmount`, `InnerCircleCount`, `HandSize`) plus, as of 2026-09, `ConditionType.OpponentPresentAtSite`: reads `ActionSystem.PendingSite` to check whether another player has a spy or troop (`SitePresenceType.Spy`/`SitePresenceType.Troop`) at the site a chained `PlaceSpy` effect just targeted, e.g. Banshee (bonus Power if an opponent has a spy there) and Infiltrator (bonus Power if an opponent has a troop there).
 
 ### 6. Multiplayer Readiness
 
@@ -402,6 +421,11 @@ The `IGameDependencies` object groups core services to simplify composition root
 ---
 
 ## Code Quality & Maintainability
+
+### EnsureTargetingSnapshot & the Cranium Rats/Matron Mother Cancellation Gap (2026-09-02)
+See Key Systems #4's "Cancellation" paragraphs above for the full description. Summary (full detail in `RESOLVED.txt`/commits `34e8222`/`5b4e95a`):
+- A 4-lens council review of the `PromoteFromPile` primitive found `CancelTargeting`'s snapshot was taken too late for cards shaped "automatic mutation, then mandatory targeting" - confirmed exploitable on Matron Mother (dump deck to discard, cancel the promote step, keep the card) and the pre-existing Cranium Rats gap. Fixed via `IActionSystem.EnsureTargetingSnapshot()`, called from `MatchManager.PlayCard`/`PlayCardFromMarket` before any effect resolves, plus a defense-in-depth call from `ActionSystem.EnterTargetingState`.
+- That fix's own verification surfaced two further real production bugs: `TryRestoreCardToHand`/`CancelTargeting` were matching on the stale pre-restore `Card.Id` instead of the restore-stable `Card.RuntimeId`, leaving a cancelled card stuck in `PlayedCards` instead of returning to Hand; and `PlayerDto` was silently missing `Player.PendingFreeTroops` entirely (unlike every other per-turn resource field), so `StateRestorer.RestorePlayers` dropped it on *every* restore path, not just this one - including `CommandDispatcher`'s rollback-on-exception.
 
 ### ActionSystem Decomposition & Transactional Cancellation (2026-08)
 See Key Systems #4 above for the full description. Summary:

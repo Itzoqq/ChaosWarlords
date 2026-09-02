@@ -99,6 +99,7 @@ ChaosWarlords.Tests/
     │
     ├── Core/
     │   ├── Contexts/
+    │   │   ├── MatchContextConstructorTests.cs
     │   │   ├── MatchContextHashingTests.cs      # GetStateHash() determinism
     │   │   └── TurnContextTests.cs
     │   ├── Data/
@@ -110,8 +111,6 @@ ChaosWarlords.Tests/
     │   │   ├── MapNodeDtoTests.cs
     │   │   ├── PlayerDtoTests.cs
     │   │   └── SnapshotSerializationTests.cs    # EffectStack + ActionSystem targeting-state serialization
-    │   ├── Logic/
-    │   │   └── CommandValidatorTests.cs
     │   ├── Performance/
     │   │   └── PerformanceTests.cs              # All [TestCategory("Performance")] benchmarks live here
     │   └── Utilities/
@@ -120,6 +119,7 @@ ChaosWarlords.Tests/
     │       ├── CardDatabaseIntegrationTests.cs
     │       ├── CardDatabaseTests.cs
     │       ├── DtoMapperTests.cs
+    │       ├── LocalizationManagerTests.cs
     │       ├── MapGeometryTest.cs
     │       ├── MapLayoutEngineTests.cs
     │       ├── ObjectPoolTests.cs
@@ -139,9 +139,11 @@ ChaosWarlords.Tests/
     │   ├── SiteTests.cs
     │   └── StartingSiteTests.cs
     │
-    ├── Input/Controllers/
-    │   ├── PlayerControllerTests.cs
-    │   └── ReplayControllerTests.cs
+    ├── Input/
+    │   ├── Controllers/
+    │   │   ├── PlayerControllerTests.cs
+    │   │   └── ReplayControllerTests.cs
+    │   └── MapHitTestExtensionsTests.cs
     │
     ├── Integration/                         # Multi-component tests, real implementations where it matters
     │   ├── Factories/
@@ -160,9 +162,10 @@ ChaosWarlords.Tests/
     │   │   ├── Modes/
     │   │   │   ├── DevourInputModePreCommitFlowIntegrationTests.cs
     │   │   │   ├── DevourInputModeTests.cs
+    │   │   │   ├── DiscardInputModeTests.cs
     │   │   │   ├── MarketInputModeTests.cs
     │   │   │   ├── NormalPlayInputModeTests.cs
-    │   │   │   ├── PromoteInputModeTests.cs
+    │   │   │   ├── PromoteInputModeTests.cs     # PromoteFromPileInputMode has no sibling test file yet - see note below
     │   │   │   └── TargetingInputModeTests.cs
     │   │   ├── Processors/
     │   │   │   ├── GameplayInputCoordinatorTests.cs
@@ -176,13 +179,18 @@ ChaosWarlords.Tests/
     │       ├── ActionSystemCancelTargetingSnapshotTests.cs  # CancelTargeting's snapshot/restore path specifically (MatchContext wired)
     │       ├── ActionSystemCancellationTests.cs             # CancelTargeting's fallback path (no MatchContext wired)
     │       ├── ActionSystemCompletionTests.cs
+    │       ├── CloakerMechanicsTests.cs
     │       ├── ConditionalEffectTests.cs
+    │       ├── CultistOfMyrkulMechanicsTests.cs
     │       ├── DevourFromInnerCircleIntegrationTests.cs
     │       ├── DevourIntegrationTests.cs
+    │       ├── InsaneOutcastMechanicsTests.cs
     │       ├── MandatoryInnerCircleDevourIntegrationTests.cs
+    │       ├── NeogiMechanicsTests.cs
     │       ├── ReturnUnitMechanicsTests.cs
     │       ├── SelfDevourIntegrationTests.cs
     │       ├── TransactionalCommandTests.cs
+    │       ├── UlitharidMechanicsTests.cs
     │       └── WightMechanicsTests.cs
     │
     ├── Managers/
@@ -191,8 +199,8 @@ ChaosWarlords.Tests/
     │   ├── MarketManagerTests.cs
     │   ├── MarketStateManagerTests.cs
     │   ├── PlayerStateManagerTests.cs
-    │   ├── PoolManagerTests.cs
     │   ├── ReplayManagerTests.cs
+    │   ├── StateRestorerRealCardIdentityTests.cs
     │   ├── StateRestorerTests.cs             # Rollback coverage incl. ActionSystem's own Pending*/CurrentState
     │   ├── TurnManagerTests.cs
     │   ├── UIEventMediatorTests.cs
@@ -224,13 +232,18 @@ ChaosWarlords.Tests/
     │   │   ├── CommandSerializationTests.cs
     │   │   ├── DeployTroopCommandTests.cs
     │   │   ├── DevourCardCommandTests.cs     # incl. Validate() rejecting an unresolvable RuntimeId
+    │   │   ├── DiscardCardCommandTests.cs
     │   │   ├── EndTurnCommandTests.cs
     │   │   ├── MoveTroopCommandTests.cs
+    │   │   ├── NewCommandDtoRoundTripTests.cs
     │   │   ├── PlaceSpyCommandTests.cs
     │   │   ├── PlayCardCommandTests.cs
+    │   │   ├── PlayFromMarketCommandTests.cs
     │   │   ├── PromoteCommandTests.cs
     │   │   ├── ResolveSpyCommandTests.cs
+    │   │   ├── ReturnOwnSpyCommandTests.cs
     │   │   ├── ReturnTroopCommandTests.cs
+    │   │   ├── SelectOpponentCommandTests.cs
     │   │   ├── StartAssassinateCommandTests.cs
     │   │   ├── StartReturnSpyCommandTests.cs
     │   │   ├── SupplantCommandTests.cs
@@ -245,18 +258,25 @@ ChaosWarlords.Tests/
     │       ├── MapRuleEngineTests.cs
     │       ├── SiteControlSystemTests.cs
     │       ├── Strategies/
-    │       │   └── EffectStrategiesTests.cs      # All 7 IEffectStrategy implementations directly (Assassinate/Default/Devour/MoveUnit/PlaceSpy/ReturnUnit/Supplant)
+    │       │   └── EffectStrategiesTests.cs      # Direct tests for 9 of the 12 registered IEffectStrategy implementations (Assassinate/Default/Devour/MoveUnit/PlaceSpy/ReturnUnit/Supplant/SelectOpponent/PromoteFromPile) - Discard/ReturnOwnSpy/PlayFromMarket aren't covered directly here
     │       └── TargetingStateEngineTests.cs
     │
     ├── Functional/
     │   ├── MatchScenario.cs                  # Scenario harness - see "Functional/Scenario Test Harness" below
-    │   ├── WightScenarioTests.cs
+    │   ├── AlwaysLegalCommandsScenarioTests.cs   # Spam/idempotency of always-legal no-target commands, not a per-card scenario
+    │   ├── BansheeInfiltratorScenarioTests.cs
     │   ├── CarrionCrawlerScenarioTests.cs
-    │   ├── InsaneOutcastScenarioTests.cs
     │   ├── CloakerScenarioTests.cs
-    │   ├── UlitharidScenarioTests.cs
+    │   ├── CraniumRatsScenarioTests.cs
     │   ├── CultistOfMyrkulScenarioTests.cs
-    │   └── NeogiScenarioTests.cs
+    │   ├── InsaneOutcastScenarioTests.cs
+    │   ├── MarketCorruptorScenarioTests.cs
+    │   ├── MatronMotherNecromancerScenarioTests.cs
+    │   ├── NeogiScenarioTests.cs
+    │   ├── SkeletalHordeScenarioTests.cs
+    │   ├── TrivialPrimitiveCardsScenarioTests.cs # Batched matrix pass across 8 no-special-mechanic cards, not one file per card
+    │   ├── UlitharidScenarioTests.cs
+    │   └── WightScenarioTests.cs
     │
     ├── Rendering/
     │   ├── LogicVectorExtensionsTests.cs
@@ -272,6 +292,11 @@ ChaosWarlords.Tests/
     └── Utilities/
         └── TestLogger.cs                     # Shared IGameLogger for tests (BufferedAsyncLogger-backed)
 ```
+
+**Known coverage gap:** `PromoteFromPileInputMode.cs` (the client input mode for the
+PromoteFromPile primitive) shipped without a dedicated `Integration/Input/Modes/
+PromoteFromPileInputModeTests.cs` the way `DevourInputModeTests.cs` exists for its sibling
+`DevourInputMode`. This is a real, currently-open gap, not an omission from this doc.
 
 ### ChaosWarlords.Core.Tests/ (headless-only suite)
 
@@ -307,9 +332,9 @@ ChaosWarlords.Core.Tests/
 
 ---
 
-## Test Counts (as of 2026-09-01)
+## Test Counts (as of 2026-09-02)
 
-**Total: 973 tests** across both projects, all passing.
+**Total: 1184 tests** across both projects, all passing (19 in `ChaosWarlords.Core.Tests`, 1165 in `ChaosWarlords.Tests`).
 
 Run `dotnet test` for the combined total; see the `--filter` commands above to break it down. This number drifts as tests are added - treat it as "order of magnitude and how to check", not a value to keep manually in sync here (the per-category breakdown that used to live in this table was already stale by the time it was last checked, which is exactly why it's gone now rather than just re-counted).
 
@@ -364,8 +389,10 @@ Assert.AreEqual(before, scenario.Context.SequenceNumber); // rejected commands m
 ```
 
 See `WightScenarioTests.cs`, `CarrionCrawlerScenarioTests.cs`, `InsaneOutcastScenarioTests.cs`,
-`CloakerScenarioTests.cs`, `UlitharidScenarioTests.cs`, `CultistOfMyrkulScenarioTests.cs`, and
-`NeogiScenarioTests.cs` (same directory) for worked positive + adversarial examples. Note
+`CloakerScenarioTests.cs`, `UlitharidScenarioTests.cs`, `CultistOfMyrkulScenarioTests.cs`,
+`NeogiScenarioTests.cs`, `CraniumRatsScenarioTests.cs`, `BansheeInfiltratorScenarioTests.cs`,
+`MatronMotherNecromancerScenarioTests.cs`, `MarketCorruptorScenarioTests.cs`, and
+`SkeletalHordeScenarioTests.cs` (same directory) for worked positive + adversarial examples. Note
 `MatchScenario.Build()` always creates exactly 2 players (Red/Blue) - a scenario needing 3+
 players (e.g. Neogi's seat-order/stacking behavior across more than one opponent) still needs
 the older hand-typed-`TurnManager` pattern for that specific case; `NeogiScenarioTests.cs`
