@@ -13,12 +13,14 @@ namespace ChaosWarlords.Source.Entities.Cards
         public ConditionType Type { get; internal set; }
         public int Threshold { get; internal set; }
         public ResourceType? Resource { get; internal set; }
+        public SitePresenceType? PresenceType { get; internal set; }
 
-        public EffectCondition(ConditionType type, int threshold = 0, ResourceType? resource = null)
+        public EffectCondition(ConditionType type, int threshold = 0, ResourceType? resource = null, SitePresenceType? presenceType = null)
         {
             Type = type;
             Threshold = threshold;
             Resource = resource;
+            PresenceType = presenceType;
         }
 
         /// <summary>
@@ -34,7 +36,29 @@ namespace ChaosWarlords.Source.Entities.Cards
                 ConditionType.HasResourceAmount => EvaluateHasResourceAmount(player),
                 ConditionType.InnerCircleCount => player.InnerCircle.Count >= Threshold,
                 ConditionType.HandSize => player.Hand.Count >= Threshold,
+                ConditionType.OpponentPresentAtSite => EvaluateOpponentPresentAtSite(context, player),
                 _ => true
+            };
+        }
+
+        /// <summary>
+        /// "Another player has presence (spy or troop, per PresenceType) at
+        /// ActionSystem.PendingSite" - e.g. Banshee's "if another player's spy is at that
+        /// site" and Infiltrator's "if another player's troop is at that site". Reads
+        /// PendingSite as the site just targeted by this effect's own PlaceSpy step (see
+        /// PlaceSpyCommand.Execute/SpySubsystem.PerformPlaceSpy, which set it right before
+        /// the OnSuccess chain resolves), not a later chained step's own site.
+        /// </summary>
+        private bool EvaluateOpponentPresentAtSite(MatchContext context, Player player)
+        {
+            var site = context.ActionSystem.PendingSite;
+            if (site is null) return false;
+
+            return PresenceType switch
+            {
+                SitePresenceType.Spy => site.Spies.Any(color => color != PlayerColor.None && color != PlayerColor.Neutral && color != player.Color),
+                SitePresenceType.Troop => site.NodesInternal.Any(node => node.Occupant != PlayerColor.None && node.Occupant != PlayerColor.Neutral && node.Occupant != player.Color),
+                _ => false
             };
         }
 

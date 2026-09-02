@@ -36,6 +36,7 @@ namespace ChaosWarlords.Source.Utilities
         public string? ConditionType { get; set; }
         public int ConditionThreshold { get; set; }
         public string? ConditionResource { get; set; }
+        public string? ConditionPresenceType { get; set; }
 
         public bool IsOptional { get; set; }
 

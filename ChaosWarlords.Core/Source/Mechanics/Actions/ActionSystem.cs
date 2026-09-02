@@ -58,6 +58,8 @@ namespace ChaosWarlords.Source.Managers
             }
             return null;
         }
+        // See IActionSystem.PendingSite's doc comment for the two distinct uses this field
+        // serves (later-step site-scoping, and a Condition-evaluation read).
         public Site? PendingSite { get; private set; }
 
 

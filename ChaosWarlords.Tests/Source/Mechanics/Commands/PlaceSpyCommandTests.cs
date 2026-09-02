@@ -1,4 +1,6 @@
 using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Core.Data.Dtos;
+using ChaosWarlords.Source.Core.Utilities;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
 using NSubstitute;
@@ -115,6 +117,50 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // Assert
             _state.MapManager.DidNotReceive().PlaceSpy(Arg.Any<Site>(), Arg.Any<ChaosWarlords.Source.Entities.Actors.Player>());
             _state.ActionSystem.DidNotReceive().CompleteAction();
+        }
+
+        [TestMethod]
+        public void Execute_SetsPendingSiteForChain_BeforeCompletingAction()
+        {
+            // Arrange: Banshee/Infiltrator's conditional OnSuccess (ConditionType.
+            // OpponentPresentAtSite) reads ActionSystem.PendingSite while CompleteAction()
+            // synchronously resolves the chain - SetPendingSiteForChain must therefore be
+            // called BEFORE CompleteAction(), not after (see PlaceSpyCommand.Execute's own
+            // comment). NSubstitute records call order, so this pins that ordering directly
+            // rather than just each call happening at all.
+            var player = TestData.Players.RedPlayer();
+            _state.TurnManager.ActivePlayer.Returns(player);
+
+            var command = new PlaceSpyCommand(_targetSite.Id);
+
+            // Act
+            command.Execute(_state.MatchContext);
+
+            // Assert
+            Received.InOrder(() =>
+            {
+                _state.ActionSystem.SetPendingSiteForChain(_targetSite);
+                _state.ActionSystem.CompleteAction();
+            });
+        }
+
+        [TestMethod]
+        public void ToDto_ThenHydrate_RoundTripsSiteIdAndCardId()
+        {
+            // Arrange: DTO round-trip (planning.txt's testing-policy matrix row 9) - confirms
+            // this still holds along Banshee/Infiltrator's new conditional OnSuccess chain,
+            // even though the chain itself lives on the card's CardEffect tree, not on this
+            // command's own DTO shape.
+            var command = new PlaceSpyCommand(_targetSite.Id, "banshee");
+
+            // Act
+            var dto = command.ToDto();
+            var hydrated = ChaosWarlords.Source.Core.Utilities.DtoMapper.HydrateCommand(dto, _state.MatchContext) as PlaceSpyCommand;
+
+            // Assert
+            Assert.IsNotNull(hydrated);
+            Assert.AreEqual(command.TargetSiteId, hydrated!.TargetSiteId);
+            Assert.AreEqual(command.CardId, hydrated.CardId);
         }
     }
 }

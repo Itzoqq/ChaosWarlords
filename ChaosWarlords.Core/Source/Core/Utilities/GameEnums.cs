@@ -97,7 +97,20 @@ namespace ChaosWarlords.Source.Utilities
         HasTroopsDeployed,     // Player has troops on the map
         HasResourceAmount,     // Player has X or more of a resource
         InnerCircleCount,      // Player has X or more cards in Inner Circle
-        HandSize               // Player has X or more cards in hand
+        HandSize,               // Player has X or more cards in hand
+        OpponentPresentAtSite  // Another player has a spy/troop (see SitePresenceType) at
+                                // ActionSystem.PendingSite (e.g. Banshee, Infiltrator)
+    }
+
+    /// <summary>
+    /// What kind of presence ConditionType.OpponentPresentAtSite checks for at
+    /// ActionSystem.PendingSite - distinguishes "another player has a SPY here" (Banshee)
+    /// from "another player has a TROOP here" (Infiltrator).
+    /// </summary>
+    public enum SitePresenceType
+    {
+        Spy,
+        Troop
     }
 
     public enum PlayerColor

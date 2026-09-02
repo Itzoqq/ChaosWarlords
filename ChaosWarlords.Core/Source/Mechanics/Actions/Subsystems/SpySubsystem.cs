@@ -42,6 +42,11 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
         public void PerformPlaceSpy(Site site, string? cardId)
         {
             _mapManager.PlaceSpy(site, CurrentPlayer);
+
+            // Must be set before CompleteAction() - see PlaceSpyCommand.Execute's matching
+            // comment (same requirement, this is the secondary direct-call entry point).
+            _actionSystem.SetPendingSiteForChain(site);
+
             // ActionSystem completes the action
             _actionSystem.CompleteAction();
         }

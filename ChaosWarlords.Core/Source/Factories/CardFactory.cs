@@ -129,7 +129,14 @@ namespace ChaosWarlords.Source.Utilities
                 Enum.TryParse(data.ConditionResource, true, out condRes);
             }
 
-            effect.Condition = new EffectCondition(condType, data.ConditionThreshold, condRes);
+            SitePresenceType? condPresenceType = null;
+            if (!string.IsNullOrEmpty(data.ConditionPresenceType) &&
+                Enum.TryParse(data.ConditionPresenceType, true, out SitePresenceType parsedPresenceType))
+            {
+                condPresenceType = parsedPresenceType;
+            }
+
+            effect.Condition = new EffectCondition(condType, data.ConditionThreshold, condRes, condPresenceType);
         }
 
         private static void ParseOptionalFlags(CardEffectData data, CardEffect effect)

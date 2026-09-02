@@ -16,6 +16,7 @@ namespace ChaosWarlords.Tests.Source.Entities.Cards
     {
         private MatchContext _context = null!;
         private IMapManager _mapManager = null!;
+        private IActionSystem _actionSystem = null!;
         private Player _player = null!;
 
         [TestInitialize]
@@ -24,12 +25,12 @@ namespace ChaosWarlords.Tests.Source.Entities.Cards
             var turn = Substitute.For<ITurnManager>();
             _mapManager = Substitute.For<IMapManager>();
             var market = Substitute.For<IMarketManager>();
-            var action = Substitute.For<IActionSystem>();
+            _actionSystem = Substitute.For<IActionSystem>();
             var cardDb = Substitute.For<ICardDatabase>();
             var playerState = Substitute.For<IPlayerStateManager>();
             var logger = Substitute.For<IGameLogger>();
 
-            _context = new MatchContext(turn, _mapManager, market, action, cardDb, playerState, logger);
+            _context = new MatchContext(turn, _mapManager, market, _actionSystem, cardDb, playerState, logger);
             _player = new Player(PlayerColor.Red);
 
             // Default empty map state
@@ -95,6 +96,130 @@ namespace ChaosWarlords.Tests.Source.Entities.Cards
 
             var condition = new EffectCondition(ConditionType.InnerCircleCount, 1);
             Assert.IsTrue(condition.Evaluate(_context, _player));
+        }
+
+        // --- ConditionType.OpponentPresentAtSite (Banshee/Infiltrator - planning.txt TIER 2 #1) ---
+        // Reads context.ActionSystem.PendingSite, set by PlaceSpyCommand/SpySubsystem right
+        // before this OnSuccess-chained condition is evaluated - see EffectCondition's own
+        // doc comment. All of these mock IActionSystem.PendingSite directly rather than
+        // going through a real ActionSystem, matching this file's existing Unit-level style
+        // (the real end-to-end wiring - PlaceSpyCommand actually setting PendingSite before
+        // CompleteAction() - is covered separately by BansheeInfiltratorScenarioTests.cs
+        // through the real CommandDispatcher path).
+
+        [TestMethod]
+        public void Evaluate_OpponentPresentAtSite_Spy_WhenOtherPlayerSpyPresent_ReturnsTrue()
+        {
+            // Arrange
+            var site = TestData.Sites.StartingSite();
+            site.AddSpy(PlayerColor.Blue);
+            _actionSystem.PendingSite.Returns(site);
+
+            var condition = new EffectCondition(ConditionType.OpponentPresentAtSite, presenceType: SitePresenceType.Spy);
+
+            // Act & Assert
+            Assert.IsTrue(condition.Evaluate(_context, _player));
+        }
+
+        [TestMethod]
+        public void Evaluate_OpponentPresentAtSite_Spy_WhenOnlyOwnSpyPresent_ReturnsFalse()
+        {
+            // Arrange
+            var site = TestData.Sites.StartingSite();
+            site.AddSpy(_player.Color); // The EVALUATING player's own spy - not "another player".
+            _actionSystem.PendingSite.Returns(site);
+
+            var condition = new EffectCondition(ConditionType.OpponentPresentAtSite, presenceType: SitePresenceType.Spy);
+
+            // Act & Assert
+            Assert.IsFalse(condition.Evaluate(_context, _player));
+        }
+
+        [TestMethod]
+        public void Evaluate_OpponentPresentAtSite_Spy_WhenNoSpyPresent_ReturnsFalse()
+        {
+            // Arrange
+            var site = TestData.Sites.StartingSite();
+            _actionSystem.PendingSite.Returns(site);
+
+            var condition = new EffectCondition(ConditionType.OpponentPresentAtSite, presenceType: SitePresenceType.Spy);
+
+            // Act & Assert
+            Assert.IsFalse(condition.Evaluate(_context, _player));
+        }
+
+        [TestMethod]
+        public void Evaluate_OpponentPresentAtSite_Troop_WhenOtherPlayerTroopPresent_ReturnsTrue()
+        {
+            // Arrange
+            var node = new MapNode(0, ChaosWarlords.Source.Core.Data.LogicVector2.Zero) { Occupant = PlayerColor.Blue };
+            var site = TestData.Sites.StartingSite();
+            site.NodesInternal.Add(node);
+            _actionSystem.PendingSite.Returns(site);
+
+            var condition = new EffectCondition(ConditionType.OpponentPresentAtSite, presenceType: SitePresenceType.Troop);
+
+            // Act & Assert
+            Assert.IsTrue(condition.Evaluate(_context, _player));
+        }
+
+        [TestMethod]
+        public void Evaluate_OpponentPresentAtSite_Troop_WhenOnlyOwnTroopPresent_ReturnsFalse()
+        {
+            // Arrange
+            var node = new MapNode(0, ChaosWarlords.Source.Core.Data.LogicVector2.Zero) { Occupant = _player.Color };
+            var site = TestData.Sites.StartingSite();
+            site.NodesInternal.Add(node);
+            _actionSystem.PendingSite.Returns(site);
+
+            var condition = new EffectCondition(ConditionType.OpponentPresentAtSite, presenceType: SitePresenceType.Troop);
+
+            // Act & Assert
+            Assert.IsFalse(condition.Evaluate(_context, _player));
+        }
+
+        [TestMethod]
+        public void Evaluate_OpponentPresentAtSite_WhenPendingSiteIsNull_ReturnsFalseNotThrow()
+        {
+            // Arrange: default/unset PendingSite (e.g. Substitute's default for a reference
+            // type, or ActionSystem.CompleteAction's own reset after a chain finishes).
+            _actionSystem.PendingSite.Returns((Site?)null);
+
+            var condition = new EffectCondition(ConditionType.OpponentPresentAtSite, presenceType: SitePresenceType.Spy);
+
+            // Act & Assert - must return false, not throw NullReferenceException.
+            Assert.IsFalse(condition.Evaluate(_context, _player));
+        }
+
+        [TestMethod]
+        public void Evaluate_OpponentPresentAtSite_Troop_IgnoresOpponentSpyOnly()
+        {
+            // Arrange: an opponent SPY is present but no opponent TROOP - a Troop-gated
+            // condition (Infiltrator) must not be satisfied by this alone.
+            var site = TestData.Sites.StartingSite();
+            site.AddSpy(PlayerColor.Blue);
+            _actionSystem.PendingSite.Returns(site);
+
+            var condition = new EffectCondition(ConditionType.OpponentPresentAtSite, presenceType: SitePresenceType.Troop);
+
+            // Act & Assert
+            Assert.IsFalse(condition.Evaluate(_context, _player), "Troop-gated condition must not be satisfied by an opponent's spy alone.");
+        }
+
+        [TestMethod]
+        public void Evaluate_OpponentPresentAtSite_Spy_IgnoresOpponentTroopOnly()
+        {
+            // Arrange: symmetric case - an opponent TROOP is present but no opponent SPY - a
+            // Spy-gated condition (Banshee) must not be satisfied by this alone.
+            var node = new MapNode(0, ChaosWarlords.Source.Core.Data.LogicVector2.Zero) { Occupant = PlayerColor.Blue };
+            var site = TestData.Sites.StartingSite();
+            site.NodesInternal.Add(node);
+            _actionSystem.PendingSite.Returns(site);
+
+            var condition = new EffectCondition(ConditionType.OpponentPresentAtSite, presenceType: SitePresenceType.Spy);
+
+            // Act & Assert
+            Assert.IsFalse(condition.Evaluate(_context, _player), "Spy-gated condition must not be satisfied by an opponent's troop alone.");
         }
     }
 }

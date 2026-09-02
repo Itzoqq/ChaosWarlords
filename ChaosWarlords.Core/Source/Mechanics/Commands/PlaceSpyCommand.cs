@@ -46,6 +46,12 @@ namespace ChaosWarlords.Source.Commands
             {
                 context.MapManager.PlaceSpy(site, context.TurnManager.ActivePlayer);
                 context.RecordAction("PlaceSpy", $"Placed spy at {site.Name}");
+
+                // Must be set before CompleteAction(): CompleteAction() synchronously
+                // resolves this PlaceSpy effect and pushes/runs any OnSuccess child (e.g.
+                // Banshee/Infiltrator's conditional GainResource, which reads PendingSite
+                // via ConditionType.OpponentPresentAtSite) - see EffectCondition.
+                context.ActionSystem.SetPendingSiteForChain(site);
                 context.ActionSystem.CompleteAction();
             }
         }

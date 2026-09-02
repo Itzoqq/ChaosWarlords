@@ -36,5 +36,9 @@
   "insane_outcast_name": "Insane Outcast",
   "insane_outcast_description": "Discard a card from your hand to return Insane Outcast to the supply. If Insane Outcast would be devoured or promoted, return it to the supply instead.",
   "cranium_rats_name": "Cranium Rats",
-  "cranium_rats_description": "Deploy 2 troops. Choose one opponent with more than 3 cards to discard a card."
+  "cranium_rats_description": "Deploy 2 troops. Choose one opponent with more than 3 cards to discard a card.",
+  "banshee_name": "Banshee",
+  "banshee_description": "Place a spy. If another player's spy is at that site, gain 3 Power.",
+  "infiltrator_name": "Infiltrator",
+  "infiltrator_description": "Place a spy. If another player's troop is at that site, gain 1 Power."
 }

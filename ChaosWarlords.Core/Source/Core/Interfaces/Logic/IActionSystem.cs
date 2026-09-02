@@ -48,7 +48,18 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         Card? PendingCard { get; }
 
         /// <summary>
-        /// Gets the sites involved in the current pending action, if any.
+        /// Gets the site involved in the current pending action, if any - "the site
+        /// associated with the current effect chain". Two distinct uses share this one
+        /// field: (1) scoping a LATER chained step to the site an earlier step targeted
+        /// (e.g. Cloaker's own-spy-return-then-assassinate: see
+        /// ActionInputController.HandleAssassinate's PendingSite check), and (2) a
+        /// Condition-evaluation READ of the site a step just targeted, checked while that
+        /// same step's OnSuccess is resolving (e.g. Banshee/Infiltrator's
+        /// ConditionType.OpponentPresentAtSite - see PlaceSpyCommand.Execute, which sets
+        /// this via SetPendingSiteForChain right before CompleteAction() resolves the
+        /// PlaceSpy effect and its OnSuccess child). Already has full DTO/rollback support
+        /// (GameStateDto.PendingSiteId, DtoMapper, StateRestorer) and is cleared by
+        /// ClearState() on every return to Normal.
         /// </summary>
         Site? PendingSite { get; }
 
