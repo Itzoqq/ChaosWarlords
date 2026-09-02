@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Commands
 {
@@ -40,7 +41,14 @@ namespace ChaosWarlords.Source.Commands
 
             if (node == null) return false;
 
-            return context.MapManager.CanAssassinate(node, player);
+            // Re-derives the neutral-only restriction from the currently pending CardEffect
+            // (e.g. Ravenous Zombies' "Assassinate a white troop") rather than trusting
+            // anything the caller claims, since Validate() is the real defense once a client
+            // can send commands directly.
+            var pendingEffect = context.ActionSystem.CurrentSourceEffect;
+            bool requireNeutral = pendingEffect != null && pendingEffect.Type == EffectType.Supplant && pendingEffect.TargetNeutralTroopOnly;
+
+            return context.MapManager.CanAssassinate(node, player, requireNeutral);
         }
 
         public void Execute(MatchContext context)

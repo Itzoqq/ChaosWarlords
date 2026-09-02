@@ -2,6 +2,7 @@ using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Mechanics.Actions.Subsystems;
@@ -132,6 +133,38 @@ namespace ChaosWarlords.Tests.Source.Managers
             _actionSystem.DidNotReceive().NotifyFailure(Arg.Any<string>());
         }
 
+        [TestMethod]
+        public void HandleTargetClick_TargetingAssassinate_PendingEffectRequiresNeutralTroop_RejectsANonNeutralTarget()
+        {
+            // Ravenous Zombies' shape: ActionSystem.CurrentSourceEffect carries
+            // TargetNeutralTroopOnly - the click handler must thread that into
+            // IMapManager.CanAssassinate as requireNeutralTroop: true, not silently ignore it.
+            _actionSystem.CurrentState.Returns(ActionState.TargetingAssassinate);
+            _actionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Assassinate, 1) { TargetNeutralTroopOnly = true });
+            var node = Node();
+            _mapManager.CanAssassinate(node, _player, true).Returns(false); // Non-Neutral occupant - engine rejects it.
+
+            var result = _controller.HandleTargetClick(node, null);
+
+            Assert.IsNull(result);
+            _mapManager.Received(1).CanAssassinate(node, _player, true);
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_TargetingAssassinate_PendingEffectRequiresNeutralTroop_AcceptsANeutralTarget()
+        {
+            _actionSystem.CurrentState.Returns(ActionState.TargetingAssassinate);
+            _actionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Assassinate, 1) { TargetNeutralTroopOnly = true });
+            _actionSystem.PendingCard.Returns((Card?)null);
+            var node = Node();
+            _mapManager.CanAssassinate(node, _player, true).Returns(true);
+            _player.AddPower(GameConstants.AssassinatePowerCost);
+
+            var result = _controller.HandleTargetClick(node, null);
+
+            Assert.IsInstanceOfType<AssassinateCommand>(result);
+        }
+
         // --- TargetingReturn ---
 
         [TestMethod]
@@ -223,6 +256,36 @@ namespace ChaosWarlords.Tests.Source.Managers
 
             var cmd = Assert.IsInstanceOfType<SupplantCommand>(result);
             Assert.AreEqual(11, cmd.TargetNodeId);
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_TargetingSupplant_PendingEffectRequiresNeutralTroop_RejectsANonNeutralTarget()
+        {
+            _actionSystem.CurrentState.Returns(ActionState.TargetingSupplant);
+            _actionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Supplant, 1) { TargetNeutralTroopOnly = true });
+            var node = Node();
+            _mapManager.CanAssassinate(node, _player, true).Returns(false);
+            _player.TroopsInBarracks = 3;
+
+            var result = _controller.HandleTargetClick(node, null);
+
+            Assert.IsNull(result);
+            _mapManager.Received(1).CanAssassinate(node, _player, true);
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_TargetingSupplant_PendingEffectRequiresNeutralTroop_AcceptsANeutralTarget()
+        {
+            _actionSystem.CurrentState.Returns(ActionState.TargetingSupplant);
+            _actionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Supplant, 1) { TargetNeutralTroopOnly = true });
+            var node = Node(12);
+            _mapManager.CanAssassinate(node, _player, true).Returns(true);
+            _player.TroopsInBarracks = 3;
+
+            var result = _controller.HandleTargetClick(node, null);
+
+            var cmd = Assert.IsInstanceOfType<SupplantCommand>(result);
+            Assert.AreEqual(12, cmd.TargetNodeId);
         }
 
         // --- TargetingPlaceSpy ---

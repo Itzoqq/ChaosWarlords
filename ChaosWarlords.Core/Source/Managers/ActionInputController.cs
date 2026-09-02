@@ -97,7 +97,10 @@ namespace ChaosWarlords.Source.Managers
 
         private AssassinateCommand? HandleAssassinate(MapNode targetNode, string? cardId, string? devourCardId)
         {
-            if (!_mapManager.CanAssassinate(targetNode, ActivePlayer()))
+            var pendingEffect = _actionSystem.CurrentSourceEffect;
+            bool requireNeutral = pendingEffect != null && pendingEffect.Type == EffectType.Assassinate && pendingEffect.TargetNeutralTroopOnly;
+
+            if (!_mapManager.CanAssassinate(targetNode, ActivePlayer(), requireNeutral))
             {
                 _actionSystem.RaiseActionFailed("Invalid Target!");
                 return null;
@@ -136,9 +139,12 @@ namespace ChaosWarlords.Source.Managers
 
         private SupplantCommand? HandleSupplant(MapNode targetNode, string? cardId, string? devourCardId)
         {
+            var pendingEffect = _actionSystem.CurrentSourceEffect;
+            bool requireNeutral = pendingEffect != null && pendingEffect.Type == EffectType.Supplant && pendingEffect.TargetNeutralTroopOnly;
+
             // Empty barracks doesn't block Supplant - the deploy half grants 1 VP instead
             // (rulebook p.12/22). See SupplantCommand.Validate/ActionSystem.CanStartSupplant.
-            if (!_mapManager.CanAssassinate(targetNode, ActivePlayer())) return null;
+            if (!_mapManager.CanAssassinate(targetNode, ActivePlayer(), requireNeutral)) return null;
 
             return new SupplantCommand(targetNode.Id, cardId, devourCardId);
         }

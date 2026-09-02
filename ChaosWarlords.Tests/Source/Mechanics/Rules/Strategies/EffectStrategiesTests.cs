@@ -81,6 +81,48 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules.Strategies
             Assert.IsFalse(new AssassinateStrategy().HasValidTargets(context, player, null));
         }
 
+        [TestMethod]
+        public void AssassinateStrategy_HasValidTargets_SourceCardWithTargetNeutralTroopOnly_ThreadsTheFlagThrough()
+        {
+            // Ravenous Zombies' actual shape: a top-level Assassinate effect carrying
+            // TargetNeutralTroopOnly. HasValidTargets must find that effect on the source card
+            // and pass its flag into IMapManager.HasValidAssassinationTarget - not silently
+            // default to the unfiltered (false) check.
+            var mapManager = Substitute.For<IMapManager>();
+            var player = new PlayerBuilder().Build();
+            var sourceCard = new CardBuilder().Build();
+            sourceCard.Effects.Add(new CardEffect(EffectType.Assassinate, 1) { TargetNeutralTroopOnly = true });
+            mapManager.HasValidAssassinationTarget(player, true).Returns(true);
+            var context = new MatchContextBuilder().WithMapManager(mapManager).Build();
+
+            bool result = new AssassinateStrategy().HasValidTargets(context, player, sourceCard);
+
+            Assert.IsTrue(result);
+            mapManager.Received(1).HasValidAssassinationTarget(player, true);
+        }
+
+        [TestMethod]
+        public void AssassinateStrategy_HasValidTargets_TargetNeutralTroopOnlyNestedInOnSuccess_FindsItRecursively()
+        {
+            // Same recursive-search pattern as DevourStrategy/PromoteFromPileStrategy's
+            // FindFirstEffect tests - the Assassinate effect isn't always the card's top-level
+            // effect; it can be nested under an OnSuccess chain (e.g. "Gain Power, then
+            // Assassinate a white troop").
+            var mapManager = Substitute.For<IMapManager>();
+            var player = new PlayerBuilder().Build();
+            var sourceCard = new CardBuilder().Build();
+            var assassinateEffect = new CardEffect(EffectType.Assassinate, 1) { TargetNeutralTroopOnly = true };
+            var gainEffect = new CardEffect(EffectType.GainResource, 1) { OnSuccess = assassinateEffect };
+            sourceCard.Effects.Add(gainEffect);
+            mapManager.HasValidAssassinationTarget(player, true).Returns(true);
+            var context = new MatchContextBuilder().WithMapManager(mapManager).Build();
+
+            bool result = new AssassinateStrategy().HasValidTargets(context, player, sourceCard);
+
+            Assert.IsTrue(result);
+            mapManager.Received(1).HasValidAssassinationTarget(player, true);
+        }
+
         #endregion
 
         #region ReturnUnitStrategy
@@ -173,6 +215,40 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules.Strategies
             var context = new MatchContextBuilder().WithMapManager(mapManager).Build();
 
             Assert.IsTrue(new SupplantStrategy().HasValidTargets(context, player, null));
+        }
+
+        [TestMethod]
+        public void SupplantStrategy_HasValidTargets_SourceCardWithTargetNeutralTroopOnly_ThreadsTheFlagThrough()
+        {
+            var mapManager = Substitute.For<IMapManager>();
+            var player = new PlayerBuilder().WithTroops(3).Build();
+            var sourceCard = new CardBuilder().Build();
+            sourceCard.Effects.Add(new CardEffect(EffectType.Supplant, 1) { TargetNeutralTroopOnly = true });
+            mapManager.HasValidAssassinationTarget(player, true).Returns(true);
+            var context = new MatchContextBuilder().WithMapManager(mapManager).Build();
+
+            bool result = new SupplantStrategy().HasValidTargets(context, player, sourceCard);
+
+            Assert.IsTrue(result);
+            mapManager.Received(1).HasValidAssassinationTarget(player, true);
+        }
+
+        [TestMethod]
+        public void SupplantStrategy_HasValidTargets_TargetNeutralTroopOnlyNestedInOnSuccess_FindsItRecursively()
+        {
+            var mapManager = Substitute.For<IMapManager>();
+            var player = new PlayerBuilder().WithTroops(3).Build();
+            var sourceCard = new CardBuilder().Build();
+            var supplantEffect = new CardEffect(EffectType.Supplant, 1) { TargetNeutralTroopOnly = true };
+            var gainEffect = new CardEffect(EffectType.GainResource, 1) { OnSuccess = supplantEffect };
+            sourceCard.Effects.Add(gainEffect);
+            mapManager.HasValidAssassinationTarget(player, true).Returns(true);
+            var context = new MatchContextBuilder().WithMapManager(mapManager).Build();
+
+            bool result = new SupplantStrategy().HasValidTargets(context, player, sourceCard);
+
+            Assert.IsTrue(result);
+            mapManager.Received(1).HasValidAssassinationTarget(player, true);
         }
 
         #endregion

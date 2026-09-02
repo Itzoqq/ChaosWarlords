@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
 using NSubstitute;
@@ -103,6 +104,60 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
 
             // Assert
             Assert.IsTrue(result, "A card-fed assassinate shouldn't require spare Power");
+        }
+
+        [TestMethod]
+        public void Validate_Returns_False_When_PendingEffectRequiresNeutralTroop_AndMapManagerRejectsIt()
+        {
+            // Server-side re-derivation: Validate() reads ActionSystem.CurrentSourceEffect
+            // itself (not anything the command carries) and must pass requireNeutralTroop: true
+            // through to CanAssassinate - this is the actual defense against a forged command
+            // targeting a non-Neutral troop while Ravenous Zombies' Assassinate is pending.
+            var player = TestData.Players.RedPlayer();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.ActionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Assassinate, 1) { TargetNeutralTroopOnly = true });
+            _state.MapManager.CanAssassinate(_targetNode, player, true).Returns(false);
+
+            var command = new AssassinateCommand(_targetNode.Id);
+
+            var result = command.Validate(_state.MatchContext);
+
+            Assert.IsFalse(result);
+            _state.MapManager.Received(1).CanAssassinate(_targetNode, player, true);
+        }
+
+        [TestMethod]
+        public void Validate_Returns_True_When_PendingEffectRequiresNeutralTroop_AndMapManagerAccepts()
+        {
+            var player = TestData.Players.RedPlayer();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.ActionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Assassinate, 1) { TargetNeutralTroopOnly = true });
+            _state.MapManager.CanAssassinate(_targetNode, player, true).Returns(true);
+
+            var command = new AssassinateCommand(_targetNode.Id, cardId: "ravenous_zombies");
+
+            var result = command.Validate(_state.MatchContext);
+
+            Assert.IsTrue(result);
+        }
+
+        [TestMethod]
+        public void Validate_DoesNotRequireNeutralTroop_When_PendingEffectIsForADifferentEffectType()
+        {
+            // A pending effect whose Type isn't Assassinate (e.g. a Supplant with the flag set,
+            // or an unrelated effect) must not leak its TargetNeutralTroopOnly into an unrelated
+            // AssassinateCommand's requireNeutralTroop derivation.
+            var player = TestData.Players.RedPlayer();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.ActionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Supplant, 1) { TargetNeutralTroopOnly = true });
+            _state.MapManager.CanAssassinate(_targetNode, player).Returns(true);
+
+            var command = new AssassinateCommand(_targetNode.Id);
+
+            var result = command.Validate(_state.MatchContext);
+
+            Assert.IsTrue(result);
+            _state.MapManager.Received(1).CanAssassinate(_targetNode, player, false);
         }
 
         [TestMethod]

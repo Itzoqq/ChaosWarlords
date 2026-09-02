@@ -85,6 +85,21 @@ namespace ChaosWarlords.Tests.Source.Entities
         }
 
         [TestMethod]
+        public void Clone_EffectHasTargetNeutralTroopOnly_PreservesTargetNeutralTroopOnly()
+        {
+            // Arrange
+            _card.AddEffect(new CardEffect(EffectType.Assassinate, 1) { TargetNeutralTroopOnly = true });
+
+            // Act
+            var clone = _card.Clone();
+
+            // Assert
+            Assert.AreNotSame(_card, clone, "Clone should be a new instance.");
+            Assert.HasCount(1, clone.Effects);
+            Assert.IsTrue(clone.Effects[0].TargetNeutralTroopOnly, "Clone must preserve TargetNeutralTroopOnly.");
+        }
+
+        [TestMethod]
         public void Constructor_AllowsNegativeValues()
         {
             // Scenario: A "Cursed" card that subtracts VP

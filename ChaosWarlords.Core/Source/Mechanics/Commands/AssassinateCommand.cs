@@ -44,8 +44,14 @@ namespace ChaosWarlords.Source.Commands
                 return false;
             }
 
-            // 4. Delegation
-            return context.MapManager.CanAssassinate(node, player);
+            // 4. Delegation - re-derives the neutral-only restriction from the currently
+            // pending CardEffect (e.g. Ravenous Zombies' "Assassinate a white troop") rather
+            // than trusting anything the caller claims, since Validate() is the real defense
+            // once a client can send commands directly.
+            var pendingEffect = context.ActionSystem.CurrentSourceEffect;
+            bool requireNeutral = pendingEffect != null && pendingEffect.Type == EffectType.Assassinate && pendingEffect.TargetNeutralTroopOnly;
+
+            return context.MapManager.CanAssassinate(node, player, requireNeutral);
         }
 
         public void Execute(MatchContext context)

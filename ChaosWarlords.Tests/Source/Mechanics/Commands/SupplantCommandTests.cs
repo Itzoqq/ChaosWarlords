@@ -1,5 +1,7 @@
 using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
+using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
 
@@ -85,6 +87,57 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
 
             // Assert
             Assert.IsTrue(result);
+        }
+
+        [TestMethod]
+        public void Validate_Returns_False_When_PendingEffectRequiresNeutralTroop_AndMapManagerRejectsIt()
+        {
+            // Server-side re-derivation: Validate() reads ActionSystem.CurrentSourceEffect
+            // itself and must pass requireNeutralTroop: true through to CanAssassinate - the
+            // real defense against a forged command targeting a non-Neutral troop while a
+            // "Supplant a white troop"-shaped effect is pending.
+            var player = TestData.Players.RedPlayer();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.ActionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Supplant, 1) { TargetNeutralTroopOnly = true });
+            _state.MapManager.CanAssassinate(_targetNode, player, true).Returns(false);
+
+            var command = new SupplantCommand(_targetNode.Id);
+
+            var result = command.Validate(_state.MatchContext);
+
+            Assert.IsFalse(result);
+            _state.MapManager.Received(1).CanAssassinate(_targetNode, player, true);
+        }
+
+        [TestMethod]
+        public void Validate_Returns_True_When_PendingEffectRequiresNeutralTroop_AndMapManagerAccepts()
+        {
+            var player = TestData.Players.RedPlayer();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.ActionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Supplant, 1) { TargetNeutralTroopOnly = true });
+            _state.MapManager.CanAssassinate(_targetNode, player, true).Returns(true);
+
+            var command = new SupplantCommand(_targetNode.Id);
+
+            var result = command.Validate(_state.MatchContext);
+
+            Assert.IsTrue(result);
+        }
+
+        [TestMethod]
+        public void Validate_DoesNotRequireNeutralTroop_When_PendingEffectIsForADifferentEffectType()
+        {
+            var player = TestData.Players.RedPlayer();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.ActionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Assassinate, 1) { TargetNeutralTroopOnly = true });
+            _state.MapManager.CanAssassinate(_targetNode, player).Returns(true);
+
+            var command = new SupplantCommand(_targetNode.Id);
+
+            var result = command.Validate(_state.MatchContext);
+
+            Assert.IsTrue(result);
+            _state.MapManager.Received(1).CanAssassinate(_targetNode, player, false);
         }
 
         [TestMethod]

@@ -1,5 +1,7 @@
+using ChaosWarlords.Source.Core.Contexts;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Managers;
@@ -103,6 +105,43 @@ namespace ChaosWarlords.Tests.Systems
 
             cmd?.Execute(stateFake.MatchContext);
         }
+
+        #region CurrentSourceEffect
+
+        [TestMethod]
+        public void CurrentSourceEffect_EmptyExecutionStack_ReturnsNull()
+        {
+            Assert.IsEmpty(_actionSystem.ExecutionStack);
+
+            Assert.IsNull(_actionSystem.CurrentSourceEffect);
+        }
+
+        [TestMethod]
+        public void CurrentSourceEffect_ReturnsTheSourceEffectOfTheTopOfStackEntry()
+        {
+            // ActionSystem.CurrentSourceEffect is a thin ExecutionStack.Peek().SourceEffect
+            // wrapper - lets click-handling/command validation (ActionInputController,
+            // AssassinateCommand/SupplantCommand.Validate) read effect-specific targeting
+            // constraints like CardEffect.TargetNeutralTroopOnly without threading a new
+            // parameter through every targeting path.
+            var sourceCard = TestData.Cards.CheapCard();
+            var sourceEffect = new CardEffect(EffectType.Assassinate, 1) { TargetNeutralTroopOnly = true };
+            var ctx = new EffectContext(
+                ActionState.TargetingAssassinate,
+                sourceCard,
+                requiresInput: true,
+                description: "test",
+                onResolved: _ => { },
+                sourceEffect: sourceEffect);
+
+            _actionSystem.PushEffect(ctx);
+
+            Assert.IsNotNull(_actionSystem.CurrentSourceEffect);
+            Assert.AreSame(sourceEffect, _actionSystem.CurrentSourceEffect);
+            Assert.IsTrue(_actionSystem.CurrentSourceEffect!.TargetNeutralTroopOnly);
+        }
+
+        #endregion
 
         #region 1. Initiation Tests
 

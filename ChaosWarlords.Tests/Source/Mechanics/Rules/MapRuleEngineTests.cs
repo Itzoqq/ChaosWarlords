@@ -110,6 +110,27 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         [TestMethod]
+        public void CanAssassinate_RequireNeutralTroop_False_ForAnotherPlayersTroop()
+        {
+            // Ravenous Zombies' "Assassinate a white troop" (CardEffect.TargetNeutralTroopOnly)
+            // - a node otherwise perfectly legal for an ordinary Assassinate (enemy troop,
+            // Presence satisfied) must still be rejected once requireNeutralTroop is true.
+            _node1.Occupant = _player1.Color; // Presence
+            _node2.Occupant = _player2.Color; // Target: another PLAYER's troop, not Neutral
+
+            Assert.IsFalse(_engine.CanAssassinate(_node2, _player1, requireNeutralTroop: true));
+        }
+
+        [TestMethod]
+        public void CanAssassinate_RequireNeutralTroop_True_ForANeutralTroopWithPresence()
+        {
+            _node1.Occupant = _player1.Color; // Presence
+            _node2.Occupant = PlayerColor.Neutral; // Target: unaligned/white troop
+
+            Assert.IsTrue(_engine.CanAssassinate(_node2, _player1, requireNeutralTroop: true));
+        }
+
+        [TestMethod]
         public void CanMoveSource_True_ForEnemyWithPresence()
         {
             // P1 has presence at Node 1 (via Node 2), Node 1 has Enemy
@@ -281,6 +302,37 @@ namespace ChaosWarlords.Tests.Systems
             // Should be able to deploy ANYWHERE (e.g., node 3 which is far away and disconnected)
             Assert.IsTrue(_engine.CanDeployAt(_node3, _player1.Color), "Wiped player should be able to deploy anywhere.");
         }
+
+        [TestMethod]
+        public void HasValidAssassinationTarget_RequireNeutralTroop_False_WhenOnlyEnemyTroopsReachable()
+        {
+            _node1.Occupant = _player1.Color; // Presence
+            _node2.Occupant = _player2.Color; // Reachable, but not Neutral
+
+            Assert.IsFalse(_engine.HasValidAssassinationTarget(_player1, requireNeutralTroop: true));
+        }
+
+        [TestMethod]
+        public void HasValidAssassinationTarget_RequireNeutralTroop_True_WhenANeutralTroopIsReachable()
+        {
+            _node1.Occupant = _player1.Color; // Presence
+            _node2.Occupant = PlayerColor.Neutral;
+
+            Assert.IsTrue(_engine.HasValidAssassinationTarget(_player1, requireNeutralTroop: true));
+        }
+
+        [TestMethod]
+        public void HasValidAssassinationTarget_RequireNeutralTroop_False_WhenNeutralTroopExistsButUnreachable()
+        {
+            // Node 3 (Site A) has a Neutral troop, but Player 1 has no Presence there (no
+            // adjacency, no spy) - the neutral-only filter shouldn't bypass the Presence
+            // requirement.
+            _node1.Occupant = _player1.Color; // Presence only at/adjacent to node1
+            _node3.Occupant = PlayerColor.Neutral; // Unreachable (node2 - the only link - is empty)
+
+            Assert.IsFalse(_engine.HasValidAssassinationTarget(_player1, requireNeutralTroop: true));
+        }
+
         [TestMethod]
         public void HasValidReturnSpyTarget_True_IfEnemySpyAndPresence()
         {

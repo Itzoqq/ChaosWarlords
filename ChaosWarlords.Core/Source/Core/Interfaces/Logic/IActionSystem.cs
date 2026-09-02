@@ -275,6 +275,15 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         Stack<Contexts.EffectContext> ExecutionStack { get; }
 
         /// <summary>
+        /// The CardEffect currently being resolved on top of the execution stack (the effect that
+        /// caused the current blocking targeting state), or null if there is no such effect (e.g. a
+        /// directly-dispatched, non-card-driven basic action). Lets click-handling/command
+        /// validation read effect-specific targeting constraints (e.g. CardEffect.
+        /// TargetNeutralTroopOnly) without threading a new parameter through every targeting path.
+        /// </summary>
+        CardEffect? CurrentSourceEffect { get; }
+
+        /// <summary>
         /// Pushes a new effect onto the execution stack.
         /// </summary>
         void PushEffect(Contexts.EffectContext context);

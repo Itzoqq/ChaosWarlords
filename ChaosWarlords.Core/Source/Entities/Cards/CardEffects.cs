@@ -22,6 +22,12 @@ namespace ChaosWarlords.Source.Entities.Cards
         public bool IsOptional { get; set; }                     // "You may..."
         public CardLocation TargetLocation { get; set; } = CardLocation.None; // Where the target is from (Market, Deck, etc.)
 
+        // "Assassinate/Supplant a white troop" (rulebook: restricted to an unaligned/Neutral
+        // troop only, never another player's) - Ravenous Zombies is the first shipped card using
+        // this. Defaults to false (no filter) so every existing Assassinate/Supplant effect is
+        // unaffected. See planning.txt TIER 2 #1 for more cards wanting the same filter later.
+        public bool TargetNeutralTroopOnly { get; set; }
+
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {
             Type = type;

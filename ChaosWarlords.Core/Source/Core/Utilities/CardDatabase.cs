@@ -41,6 +41,9 @@ namespace ChaosWarlords.Source.Utilities
         public bool IsOptional { get; set; }
 
         public bool ReplaceWithSource { get; set; }
+
+        // "Assassinate/Supplant a white troop" - see CardEffect.TargetNeutralTroopOnly.
+        public bool TargetNeutralTroopOnly { get; set; }
     }
 
     public class CardDatabase : ICardDatabase

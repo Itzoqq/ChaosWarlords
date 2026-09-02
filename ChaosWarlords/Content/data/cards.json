@@ -149,6 +149,25 @@
     ]
   },
   {
+    "Id": "ravenous_zombies",
+    "Cost": 3,
+    "Aspect": "Warlord",
+    "DeckVP": 1,
+    "InnerCircleVP": 2,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 1,
+        "TargetResource": "Power"
+      },
+      {
+        "Type": "Assassinate",
+        "Amount": 1,
+        "TargetNeutralTroopOnly": true
+      }
+    ]
+  },
+  {
     "Id": "market_corruptor",
     "Cost": 3,
     "Aspect": "Sorcery",

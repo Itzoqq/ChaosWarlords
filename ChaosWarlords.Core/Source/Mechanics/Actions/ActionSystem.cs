@@ -807,6 +807,8 @@ namespace ChaosWarlords.Source.Managers
 
         public Stack<Core.Contexts.EffectContext> ExecutionStack => _executionEngine.ExecutionStack;
 
+        public CardEffect? CurrentSourceEffect => _executionEngine.ExecutionStack.Count > 0 ? _executionEngine.ExecutionStack.Peek().SourceEffect : null;
+
         public Core.Contexts.EffectContext? CurrentEffect => _executionEngine.CurrentEffect;
 
         public void PushEffect(Core.Contexts.EffectContext context) => _executionEngine.PushEffect(context);
