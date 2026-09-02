@@ -86,6 +86,20 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         void StartTargeting(ActionState state, Card? card = null);
 
         /// <summary>
+        /// Captures a full-state snapshot for CancelTargeting() to restore to, if this is
+        /// genuinely the start of a new sequence (CurrentState == Normal) and one hasn't
+        /// already been taken for it. Idempotent and safe to call from multiple entry
+        /// points - MatchManager.PlayCard/PlayCardFromMarket call this BEFORE resolving a
+        /// card's effects (not just when a targeting UI actually opens), because a card
+        /// shaped "automatic mutation, THEN mandatory targeting" (e.g. Matron Mother:
+        /// MoveDeckToDiscard -> PromoteFromPile; Cranium Rats: GainResource -> SelectOpponent)
+        /// already mutates state before StartTargeting/EnterTargetingState ever runs - by
+        /// then it's too late to snapshot the pre-mutation state. See planning.txt's
+        /// CancelTargeting/EnterTargetingState gap writeup.
+        /// </summary>
+        void EnsureTargetingSnapshot();
+
+        /// <summary>
         /// Transititions the system to the Spy Selection state for the given site.
         /// </summary>
         void TransitionToSpySelection(Site site);
@@ -213,6 +227,14 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// Explicitly sets the pending devour card (deferral).
         /// </summary>
         void DeferDevour(Card card);
+
+        /// <summary>
+        /// Handles the selection of a card to promote via EffectType.PromoteFromPile's
+        /// immediate flow (e.g. Matron Mother, Necromancer). Returns a PromoteCommand with
+        /// IsChainedEffect set so its Execute() pops the blocking EffectContext it's resolving,
+        /// mirroring HandleDevourInnerCircleSelection's shape.
+        /// </summary>
+        Commands.PromoteCommand? HandlePromoteFromPileSelection(Card? targetCard);
 
 
 

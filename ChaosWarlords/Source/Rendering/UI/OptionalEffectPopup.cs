@@ -147,6 +147,7 @@ namespace ChaosWarlords.Source.Rendering.UI
                 EffectType.Devour => "devour a card",
                 EffectType.PlaceSpy => "place a spy",
                 EffectType.Promote => "promote a card",
+                EffectType.PromoteFromPile => "promote a card",
                 EffectType.Assassinate => "assassinate a troop",
                 EffectType.MoveUnit => "move a unit",
                 EffectType.ReturnUnit => "return a unit",

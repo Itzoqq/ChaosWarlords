@@ -224,6 +224,22 @@ namespace ChaosWarlords.Tests.Source.Functional
         }
 
         /// <summary>
+        /// Routes a card-browser click through ActionSystem.HandlePromoteFromPileSelection (the
+        /// real "pick this card to promote right now" path for EffectType.PromoteFromPile - see
+        /// PromoteFromPileInputMode.HandleCardClick, which this mirrors exactly) and dispatches
+        /// the resulting command.
+        /// </summary>
+        public IGameCommand? SelectPromoteFromPileCard(Card? card)
+        {
+            var command = Context.ActionSystem.HandlePromoteFromPileSelection(card);
+            if (command != null)
+            {
+                Dispatch(command);
+            }
+            return command;
+        }
+
+        /// <summary>
         /// Responds to the MOST RECENTLY raised OnInteractionRequested popup.
         /// </summary>
         public void RespondToLatestInteraction(bool accept)

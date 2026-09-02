@@ -204,6 +204,12 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
+        public void MoveDeckToDiscard(Player player)
+        {
+            player.MoveDeckToDiscard();
+            _logger.Log($"[State] {player.DisplayName} put their deck into the discard pile.", LogChannel.Info);
+        }
+
         public void MoveCardToMarket(Player player, Card card)
         {
             // Logic to remove card from player ownership

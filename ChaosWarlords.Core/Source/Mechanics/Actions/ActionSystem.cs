@@ -216,12 +216,29 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
-        public void StartTargeting(ActionState state, Card? card = null)
+        /// <summary>
+        /// Captures a full-state snapshot for CancelTargeting() to restore to, if this is
+        /// genuinely the start of a new sequence (CurrentState == Normal) and one hasn't
+        /// already been taken for it. Idempotent and safe to call from multiple entry
+        /// points - MatchManager.PlayCard/PlayCardFromMarket call this BEFORE resolving a
+        /// card's effects (not just when a targeting UI actually opens), because a card
+        /// shaped "automatic mutation, THEN mandatory targeting" (e.g. Matron Mother:
+        /// MoveDeckToDiscard -> PromoteFromPile; Cranium Rats: GainResource -> SelectOpponent)
+        /// already mutates state before StartTargeting/EnterTargetingState ever runs - by
+        /// then it's too late to snapshot the pre-mutation state. See planning.txt's
+        /// CancelTargeting/EnterTargetingState gap writeup.
+        /// </summary>
+        public void EnsureTargetingSnapshot()
         {
-            if (CurrentState == ActionState.Normal && _matchContext != null)
+            if (CurrentState == ActionState.Normal && _matchContext != null && _targetingSequenceSnapshot == null)
             {
                 _targetingSequenceSnapshot = TryCreateTargetingSnapshot();
             }
+        }
+
+        public void StartTargeting(ActionState state, Card? card = null)
+        {
+            EnsureTargetingSnapshot();
 
             CurrentState = state;
             PendingCard = card;
@@ -328,17 +345,20 @@ namespace ChaosWarlords.Source.Managers
         ///    undo the played-card's move from Hand to Played: MatchManager.PlayCard moves a
         ///    card to Played and pays its cost BEFORE pushing its effects onto the stack (see
         ///    MatchManager.PlayCard), so even a snapshot taken at the true start of THIS
-        ///    targeting sequence is already post-play. This runs by card ID, not by object
-        ///    reference, and AFTER the snapshot restore (not before) - the restore replaces
-        ///    the player's Hand/Played collections wholesale with freshly-resolved Card
-        ///    instances (see StateRestorer's own doc comments on Card identity across a
-        ///    restore), so the pre-cancel PendingCard reference may no longer be the same
-        ///    object the restored PlayedCards collection holds; running before the restore
-        ///    would just have its own fix immediately overwritten by it.
+        ///    targeting sequence is already post-play. This runs by RuntimeId, not by object
+        ///    reference and not by Card.Id, and AFTER the snapshot restore (not before) - the
+        ///    restore replaces the player's Hand/Played collections wholesale with freshly-resolved
+        ///    Card instances via CardFactory (see StateRestorer's own doc comments on Card identity
+        ///    across a restore), which regenerates each Card's per-instance-suffixed Id - so the
+        ///    pre-cancel PendingCard.Id is stale and will never match anything in the
+        ///    post-restore PlayedCards collection. RuntimeId is the one identifier CardFactory
+        ///    carries across a restore unchanged (see Card.RuntimeId's own doc comment), so it's
+        ///    the only safe key to look up by here. Running before the restore would just have
+        ///    its own fix immediately overwritten by it.
         /// </summary>
         public void CancelTargeting()
         {
-            string? cardToClearId = PendingCard?.Id;
+            System.Guid? cardToClearRuntimeId = PendingCard?.RuntimeId;
 
             ClearPreselectedTargets();
 
@@ -366,7 +386,7 @@ namespace ChaosWarlords.Source.Managers
                 _logger.Log("ActionSystem: Targeting Cancelled (no snapshot available - state cleared directly).", LogChannel.Info);
             }
 
-            TryRestoreCardToHand(cardToClearId);
+            TryRestoreCardToHand(cardToClearRuntimeId);
 
             // Resume stack processing ONLY if there are remaining effects
             if (_executionEngine.ExecutionStack.Count > 0)
@@ -376,11 +396,11 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
-        private void TryRestoreCardToHand(string? cardId)
+        private void TryRestoreCardToHand(System.Guid? cardRuntimeId)
         {
-            if (string.IsNullOrEmpty(cardId)) return;
+            if (cardRuntimeId is null) return;
 
-            var card = CurrentPlayer.PlayedCards.FirstOrDefault(c => c.Id == cardId);
+            var card = CurrentPlayer.PlayedCards.FirstOrDefault(c => c.RuntimeId == cardRuntimeId);
             if (card != null)
             {
                 CurrentPlayer.RemoveFromPlayed(card);
@@ -752,6 +772,13 @@ namespace ChaosWarlords.Source.Managers
         {
             return _devourSubsystem.HandleDevourSelection(targetCard);
         }
+
+        public Commands.PromoteCommand? HandlePromoteFromPileSelection(Card? targetCard)
+        {
+            if (targetCard == null) return null;
+            return new Commands.PromoteCommand(targetCard.Id, isChainedEffect: true);
+        }
+
         public void CompleteAction()
         {
             // NEW STACK LOGIC:
@@ -824,6 +851,11 @@ namespace ChaosWarlords.Source.Managers
 
         public void EnterTargetingState(ActionState state)
         {
+            // Defense-in-depth for any resumed-chain entry path that doesn't go through
+            // MatchManager.PlayCard/PlayCardFromMarket (e.g. a devour-chain resume) - see
+            // EnsureTargetingSnapshot's doc comment. Idempotent/safe to call redundantly.
+            EnsureTargetingSnapshot();
+
             CurrentState = state;
         }
 

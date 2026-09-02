@@ -116,6 +116,72 @@ namespace ChaosWarlords.Tests.Source.Entities
             Assert.HasCount(2, distinct, "Drawn cards must be unique");
             Assert.DoesNotContain(_deck.DrawPile[0], drawn, "Remaining card should not be in drawn list");
         }
+
+        [TestMethod]
+        public void MoveAllToDiscard_NonEmptyDeck_EmptiesDrawPileAndMovesCardsToDiscardWithLocationUpdated()
+        {
+            // Arrange: Matron Mother's "Put your deck into your discard pile."
+            _deck.AddToTop(_c1);
+            _deck.AddToTop(_c2);
+
+            // Act
+            _deck.MoveAllToDiscard();
+
+            // Assert
+            Assert.IsEmpty(_deck.DrawPile, "Draw pile should be fully emptied.");
+            Assert.AreEqual(0, _deck.Count);
+            Assert.AreEqual(2, _deck.DiscardCount);
+            Assert.Contains(_c1, _deck.DiscardPile.ToList());
+            Assert.Contains(_c2, _deck.DiscardPile.ToList());
+            Assert.AreEqual(CardLocation.DiscardPile, _c1.Location);
+            Assert.AreEqual(CardLocation.DiscardPile, _c2.Location);
+        }
+
+        [TestMethod]
+        public void MoveAllToDiscard_EmptyDeck_IsSafeNoOp()
+        {
+            // Arrange: draw pile already empty (with an unrelated card already in discard).
+            _deck.AddToDiscard(_c3);
+
+            // Act
+            _deck.MoveAllToDiscard();
+
+            // Assert
+            Assert.IsEmpty(_deck.DrawPile);
+            Assert.AreEqual(1, _deck.DiscardCount, "The pre-existing discard card should be untouched.");
+            Assert.Contains(_c3, _deck.DiscardPile.ToList());
+        }
+
+        [TestMethod]
+        public void RemoveFromDiscard_ExistingCard_RemovesAndReturnsTrue()
+        {
+            // Arrange
+            _deck.AddToDiscard(_c1);
+            _deck.AddToDiscard(_c2);
+
+            // Act
+            var result = _deck.RemoveFromDiscard(_c1);
+
+            // Assert
+            Assert.IsTrue(result);
+            Assert.DoesNotContain(_c1, _deck.DiscardPile.ToList());
+            Assert.Contains(_c2, _deck.DiscardPile.ToList());
+            Assert.AreEqual(1, _deck.DiscardCount);
+        }
+
+        [TestMethod]
+        public void RemoveFromDiscard_CardNotPresent_ReturnsFalse()
+        {
+            // Arrange: c1 is in discard, c2 never was.
+            _deck.AddToDiscard(_c1);
+
+            // Act
+            var result = _deck.RemoveFromDiscard(_c2);
+
+            // Assert
+            Assert.IsFalse(result);
+            Assert.AreEqual(1, _deck.DiscardCount, "The unrelated existing discard card should be untouched.");
+        }
     }
 }
 

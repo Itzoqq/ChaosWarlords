@@ -56,6 +56,13 @@ namespace ChaosWarlords.Source.Managers
             var remainingCards = string.Join(", ", _context.ActivePlayer.Hand.Select(c => $"{c.Name}({c.Id})"));
             _logger.Log($"[Hand State] After playing {card.Name}, Hand ({_context.ActivePlayer.Hand.Count}): [{remainingCards}]", LogChannel.Info);
 
+            // Snapshot BEFORE resolving effects, not just when a targeting UI actually opens -
+            // a card shaped "automatic mutation, THEN mandatory targeting" (e.g. Matron
+            // Mother, Cranium Rats) already mutates state before StartTargeting/
+            // EnterTargetingState would otherwise take this snapshot. See
+            // EnsureTargetingSnapshot's doc comment and planning.txt.
+            _context.ActionSystem.EnsureTargetingSnapshot();
+
             // --- 3. RESOLVE EFFECTS (The Missing Link) ---
             // Now that the card is "played", we trigger its game logic.
             // We pass the 'hasFocus' snapshot we calculated earlier.
@@ -132,6 +139,10 @@ namespace ChaosWarlords.Source.Managers
                 _logger.Log($"{marketCard.Name} devoured after being played from the Market by {sourceCard.Name}.", LogChannel.Info);
             };
             _context.ActionSystem.OnActionCompleted += onMarketCardResolved;
+
+            // Snapshot BEFORE resolving effects - see PlayCard's matching call and
+            // EnsureTargetingSnapshot's doc comment.
+            _context.ActionSystem.EnsureTargetingSnapshot();
 
             CardEffectProcessor.ResolveEffects(marketCard, _context, hasFocus, _logger);
 

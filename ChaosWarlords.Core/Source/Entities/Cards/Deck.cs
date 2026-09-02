@@ -96,6 +96,28 @@ namespace ChaosWarlords.Source.Entities.Cards
             _discardPile.Clear();
         }
 
+        /// <summary>
+        /// Moves every card currently in the draw pile into the discard pile (e.g. Matron
+        /// Mother's "Put your deck into your discard pile"). Mirrors ReshuffleDiscard's style
+        /// for mutating Location/the two lists, just in the opposite direction.
+        /// </summary>
+        public void MoveAllToDiscard()
+        {
+            foreach (var card in _drawPile)
+            {
+                card.Location = CardLocation.DiscardPile;
+            }
+            _discardPile.AddRange(_drawPile);
+            _drawPile.Clear();
+        }
+
+        /// <summary>
+        /// Removes a specific card from the discard pile (e.g. EffectType.PromoteFromPile
+        /// promoting a card out of the discard pile). Returns false if the card isn't there.
+        /// </summary>
+        /// <param name="card">The card to remove.</param>
+        public bool RemoveFromDiscard(Card card) => _discardPile.Remove(card);
+
         public List<Card> Draw(int count, IGameRandom random)
         {
             var drawnCards = new List<Card>();

@@ -120,6 +120,11 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     public class PromoteCommandDto : GameCommandDto
     {
         public string? CardId { get; set; }
+
+        // Defaults to false, matching PromoteCommand.IsChainedEffect's default - old replay
+        // JSON files recorded before this field existed deserialize with this missing and
+        // System.Text.Json defaults it to false, which is exactly the old (only) behavior.
+        public bool IsChainedEffect { get; set; }
     }
 
     public class DiscardCardCommandDto : GameCommandDto

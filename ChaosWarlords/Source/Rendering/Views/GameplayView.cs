@@ -18,6 +18,7 @@ using ChaosWarlords.Source.Input;
 
 using System.Diagnostics.CodeAnalysis;
 using System;
+using System.Linq;
 
 namespace ChaosWarlords.Source.Rendering.Views
 {
@@ -124,6 +125,20 @@ namespace ChaosWarlords.Source.Rendering.Views
                 if (!_cardBrowser.IsVisible)
                 {
                     _cardBrowser.Show(context.ActivePlayer.InnerCircle, "Select Inner Circle Card to Devour");
+                }
+                _cardBrowser.Update(inputManager.MousePosition.ToPoint());
+            }
+            else if (context.ActionSystem.CurrentState == ActionState.TargetingPromoteFromPile)
+            {
+                if (!_cardBrowser.IsVisible)
+                {
+                    var targetLocation = context.ActionSystem.CurrentEffect?.SourceEffect?.TargetLocation;
+                    var pool = targetLocation == CardLocation.DiscardPile
+                        ? (IEnumerable<Card>)context.ActivePlayer.DiscardPile
+                        : context.ActivePlayer.Hand
+                            .Concat(context.ActivePlayer.DiscardPile)
+                            .Append(context.ActionSystem.PendingCard!);
+                    _cardBrowser.Show(pool, "Select a card to Promote");
                 }
                 _cardBrowser.Update(inputManager.MousePosition.ToPoint());
             }

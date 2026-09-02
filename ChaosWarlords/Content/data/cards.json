@@ -369,5 +369,40 @@
         }
       }
     ]
+  },
+  {
+    "Id": "matron_mother",
+    "Cost": 6,
+    "Aspect": "Blasphemy",
+    "DeckVP": 3,
+    "InnerCircleVP": 6,
+    "Effects": [
+      {
+        "Type": "MoveDeckToDiscard",
+        "OnSuccess": {
+          "Type": "PromoteFromPile",
+          "TargetLocation": "DiscardPile"
+        }
+      }
+    ]
+  },
+  {
+    "Id": "necromancer",
+    "Cost": 5,
+    "Aspect": "Blasphemy",
+    "DeckVP": 1,
+    "InnerCircleVP": 4,
+    "Effects": [
+      {
+        "Type": "PromoteFromPile",
+        "TargetLocation": "HandOrDiscard",
+        "IsOptional": true,
+        "Alternative": {
+          "Type": "GainResource",
+          "Amount": 3,
+          "TargetResource": "Power"
+        }
+      }
+    ]
   }
 ]

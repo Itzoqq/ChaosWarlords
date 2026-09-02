@@ -130,7 +130,9 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             [EffectType.DiscardCard] = (effect, card, ctx, log) => ApplyDiscardCard(card, ctx, log),
             [EffectType.MarkOpponentDiscardAtEndOfTurn] = (effect, card, ctx, log) => ApplyMarkOpponentDiscardAtEndOfTurn(card, ctx, log),
             [EffectType.ReturnOwnSpy] = (effect, card, ctx, log) => ApplyReturnOwnSpy(card, ctx, log),
-            [EffectType.PlayFromMarket] = (effect, card, ctx, log) => ctx.ActionSystem.TryStartPlayFromMarket(card, effect.Amount)
+            [EffectType.PlayFromMarket] = (effect, card, ctx, log) => ctx.ActionSystem.TryStartPlayFromMarket(card, effect.Amount),
+            [EffectType.MoveDeckToDiscard] = (effect, card, ctx, log) => ctx.PlayerStateManager.MoveDeckToDiscard(ctx.ActivePlayer),
+            [EffectType.PromoteFromPile] = (effect, card, ctx, log) => ApplyPromoteFromPile(card, ctx, log)
         };
 
         private static void ApplyReturnOwnSpy(Card sourceCard, MatchContext context, IGameLogger logger)
@@ -268,6 +270,19 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             {
                 if (context.ActivePlayer.SpiesInBarracks <= 0) logger.Log($"{sourceCard.Name}: Cannot Place Spy (No Spies in Barracks).", LogChannel.Warning);
                 else logger.Log($"{sourceCard.Name}: No valid sites to Place Spy.", LogChannel.Warning);
+            }
+        }
+
+        private static void ApplyPromoteFromPile(Card sourceCard, MatchContext context, IGameLogger logger)
+        {
+            if (context.CardRuleEngine.HasValidTargets(context.ActivePlayer, EffectType.PromoteFromPile, sourceCard))
+            {
+                context.ActionSystem.StartTargeting(ActionState.TargetingPromoteFromPile, sourceCard);
+                logger.Log($"{sourceCard.Name}: Select a card to Promote.", LogChannel.Input);
+            }
+            else
+            {
+                logger.Log($"{sourceCard.Name}: No valid targets to Promote.", LogChannel.Warning);
             }
         }
 

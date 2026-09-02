@@ -133,6 +133,13 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// <param name="card">The card to discard.</param>
         void DiscardCard(Player player, Card card);
 
+        /// <summary>
+        /// Moves the player's entire draw pile into their discard pile (e.g. Matron Mother's
+        /// "Put your deck into your discard pile").
+        /// </summary>
+        /// <param name="player">The player whose deck is being moved.</param>
+        void MoveDeckToDiscard(Player player);
+
         // --- Turn Management ---
 
         /// <summary>

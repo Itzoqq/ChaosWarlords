@@ -139,6 +139,45 @@ namespace ChaosWarlords.Tests.Source.Entities
         }
 
         [TestMethod]
+        public void TryPromoteCard_CardOnlyInDiscardPile_Succeeds()
+        {
+            // Arrange: EffectType.PromoteFromPile (Matron Mother/Necromancer) needs to be able
+            // to promote a card that is ONLY in the discard pile, not Hand/Played - this used
+            // to fail before the discard-pile search was added.
+            _player.DeckManager.AddToDiscard(_card1);
+            Assert.AreEqual(CardLocation.DiscardPile, _card1.Location); // Setup check.
+
+            // Act
+            bool success = _player.TryPromoteCard(_card1, out string errorMessage);
+
+            // Assert
+            Assert.IsTrue(success, "Promotion from the discard pile should now succeed.");
+            Assert.AreEqual(string.Empty, errorMessage);
+            Assert.Contains(_card1, _player.InnerCircle.ToList());
+            Assert.DoesNotContain(_card1, _player.DiscardPile.ToList(), "Card should be removed from the discard pile.");
+            Assert.AreEqual(CardLocation.InnerCircle, _card1.Location);
+        }
+
+        [TestMethod]
+        public void TryPromoteCard_CardInNoneOfHandPlayedOrDiscard_ReturnsFalseWithErrorMessage()
+        {
+            // Arrange: card1 lives nowhere on this player at all (e.g. still in the deck, or
+            // belongs to a different player entirely) - the not-found error path must still
+            // correctly report failure, even with the discard-pile search widened.
+            _player.AddToHand(_card2);
+            _player.AddToPlayed(_card3);
+            _player.DeckManager.AddToDiscard(TestData.Cards.AssassinCard()); // Unrelated discard card.
+
+            // Act
+            bool success = _player.TryPromoteCard(_card1, out string errorMessage);
+
+            // Assert
+            Assert.IsFalse(success, "A card in none of Hand/Played/Discard must not be promotable.");
+            Assert.Contains(_card1.Name, errorMessage);
+            Assert.IsEmpty(_player.InnerCircle);
+        }
+
+        [TestMethod]
         public void Resources_SpendPower_ValidatesFunds()
         {
             _player.AddPower(5);

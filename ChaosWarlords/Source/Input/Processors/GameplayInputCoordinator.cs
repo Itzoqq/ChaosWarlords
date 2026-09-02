@@ -133,6 +133,7 @@ namespace ChaosWarlords.Source.Input
                 ActionState.SelectingCardToPromote => CreatePromoteMode(),
                 ActionState.TargetingDevourHand or ActionState.TargetingDevourInnerCircle => CreateDevourMode(state),
                 ActionState.TargetingDiscard => CreateDiscardMode(),
+                ActionState.TargetingPromoteFromPile => CreatePromoteFromPileMode(),
                 // Both Devour-from-Market and Play-from-Market (Ulitharid) are handled by
                 // ActionSystem calling MarketStateManager.OpenForDevour, which triggers
                 // HandleMarketModeChanged below - just switch to TargetingInputMode
@@ -163,6 +164,12 @@ namespace ChaosWarlords.Source.Input
         {
             _state.Logger.Log("Coordinator: Switching to DiscardInputMode.", LogChannel.Input);
             return new DiscardInputMode(_state, _inputManager, _context.ActionSystem);
+        }
+
+        private PromoteFromPileInputMode CreatePromoteFromPileMode()
+        {
+            _state.Logger.Log("Coordinator: Switching to PromoteFromPileInputMode.", LogChannel.Input);
+            return new PromoteFromPileInputMode(_state, _inputManager, _context.ActionSystem);
         }
 
         private TargetingInputMode CreateMarketPendingMode(ActionState state)

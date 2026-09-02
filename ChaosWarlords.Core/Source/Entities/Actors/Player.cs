@@ -212,7 +212,17 @@ namespace ChaosWarlords.Source.Entities.Actors
         }
 
         /// <summary>
-        /// Attempts to promote a card from Hand or PlayedCards to the Inner Circle.
+        /// Moves the entire draw pile into the discard pile (e.g. Matron Mother's "Put your
+        /// deck into your discard pile").
+        /// </summary>
+        internal void MoveDeckToDiscard() => _deckManager.MoveAllToDiscard();
+
+        /// <summary>
+        /// Attempts to promote a card from Hand, PlayedCards, or the discard pile to the Inner
+        /// Circle. The discard-pile search exists for EffectType.PromoteFromPile (e.g. Matron
+        /// Mother, Necromancer) - unconditional/safe to leave widened for every caller since the
+        /// legacy deferred-credit UI (PromoteInputMode) only ever offers Hand/Played cards as
+        /// click targets, so it can never actually pass a discard-pile card's id through here.
         /// </summary>
         /// <param name="card">The card to promote.</param>
         /// <param name="errorMessage">Error message if promotion fails.</param>
@@ -226,7 +236,7 @@ namespace ChaosWarlords.Source.Entities.Actors
                 return false;
             }
 
-            // Try to remove from Hand first, then PlayedCards
+            // Try to remove from Hand first, then PlayedCards, then the discard pile.
             // Key Fix: Use RuntimeId to ensure we remove the EXACT instance requested
             // Use RemoveAll with count check or Find + Remove
 
@@ -248,12 +258,21 @@ namespace ChaosWarlords.Source.Entities.Actors
                 }
             }
 
+            // Check the discard pile if not found in Hand or PlayedCards
+            if (!removed)
+            {
+                var discardMatch = DiscardPile.FirstOrDefault(c => c.RuntimeId == card.RuntimeId);
+                if (discardMatch != null)
+                {
+                    removed = _deckManager.RemoveFromDiscard(discardMatch);
+                }
+            }
+
             // Guard clause: card not found
             if (!removed)
             {
-                // Card not found in Hand or PlayedCards
-                // Note: Promotion from Discard pile is not currently supported
-                errorMessage = $"Card '{card.Name}' (ID: {card.RuntimeId}) not found in Hand or Played area";
+                // Card not found in Hand, Played, or the discard pile
+                errorMessage = $"Card '{card.Name}' (ID: {card.RuntimeId}) not found in Hand, Played, or Discard area";
                 return false;
             }
 

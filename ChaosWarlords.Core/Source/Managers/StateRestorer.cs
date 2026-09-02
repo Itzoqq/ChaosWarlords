@@ -191,6 +191,7 @@ namespace ChaosWarlords.Source.Managers
                     player.VictoryPoints = pDto.VictoryPoints;
                     player.TroopsInBarracks = pDto.Troops;
                     player.SpiesInBarracks = pDto.Spies;
+                    player.PendingFreeTroops = pDto.PendingFreeTroops;
                     
                     // Card Lists
                     RestorePlayerCollection(player, pDto.Hand, context.CardDatabase, (p, c) => p.AddToHand(c), p => p.ClearHand());

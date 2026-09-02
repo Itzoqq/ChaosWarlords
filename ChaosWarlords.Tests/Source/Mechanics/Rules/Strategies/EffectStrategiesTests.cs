@@ -552,5 +552,140 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules.Strategies
         }
 
         #endregion
+
+        #region PromoteFromPileStrategy
+
+        [TestMethod]
+        public void PromoteFromPileStrategy_EffectType_IsPromoteFromPile()
+        {
+            Assert.AreEqual(EffectType.PromoteFromPile, new PromoteFromPileStrategy().EffectType);
+        }
+
+        [TestMethod]
+        public void PromoteFromPileStrategy_IsTargetingEffect_IsTrue()
+        {
+            Assert.IsTrue(new PromoteFromPileStrategy().IsTargetingEffect);
+        }
+
+        [TestMethod]
+        public void PromoteFromPileStrategy_GetTargetingState_ReturnsTargetingPromoteFromPile()
+        {
+            var state = new PromoteFromPileStrategy().GetTargetingState(new CardEffect(EffectType.PromoteFromPile, 0));
+            Assert.AreEqual(ActionState.TargetingPromoteFromPile, state);
+        }
+
+        [TestMethod]
+        public void PromoteFromPileStrategy_HasValidTargets_NullSourceCard_ReturnsFalse()
+        {
+            // HasValidTargets can't locate the effect (and therefore its TargetLocation) at all
+            // without a source card to search - unlike DefaultStrategy, there is no sensible
+            // fallback here.
+            var player = new PlayerBuilder().WithCardsInDiscard(TestData.Cards.CheapCard()).Build();
+
+            Assert.IsFalse(new PromoteFromPileStrategy().HasValidTargets(BuildContext(), player, null));
+        }
+
+        [TestMethod]
+        public void PromoteFromPileStrategy_HasValidTargets_SourceCardWithoutPromoteFromPileEffect_ReturnsFalse()
+        {
+            var sourceCard = new CardBuilder().WithEffect(EffectType.GainResource, 1).Build();
+            var player = new PlayerBuilder().WithCardsInDiscard(TestData.Cards.CheapCard()).Build();
+
+            Assert.IsFalse(new PromoteFromPileStrategy().HasValidTargets(BuildContext(), player, sourceCard));
+        }
+
+        [TestMethod]
+        public void PromoteFromPileStrategy_HasValidTargets_DiscardPileLocation_EmptyDiscard_ReturnsFalse()
+        {
+            var sourceCard = new CardBuilder().Build();
+            sourceCard.Effects.Add(new CardEffect(EffectType.PromoteFromPile, 0) { TargetLocation = CardLocation.DiscardPile });
+            var player = new PlayerBuilder().Build(); // Empty discard pile.
+
+            Assert.IsFalse(new PromoteFromPileStrategy().HasValidTargets(BuildContext(), player, sourceCard));
+        }
+
+        [TestMethod]
+        public void PromoteFromPileStrategy_HasValidTargets_DiscardPileLocation_NonEmptyDiscard_ReturnsTrue()
+        {
+            var sourceCard = new CardBuilder().Build();
+            sourceCard.Effects.Add(new CardEffect(EffectType.PromoteFromPile, 0) { TargetLocation = CardLocation.DiscardPile });
+            var player = new PlayerBuilder().WithCardsInDiscard(TestData.Cards.CheapCard()).Build();
+
+            Assert.IsTrue(new PromoteFromPileStrategy().HasValidTargets(BuildContext(), player, sourceCard));
+        }
+
+        [TestMethod]
+        public void PromoteFromPileStrategy_HasValidTargets_HandOrDiscardLocation_SourceCardStillPlayed_ReturnsTrue_EvenWithEmptyHandAndDiscard()
+        {
+            // The source card itself (sitting in PlayedCards at resolution time) is a valid
+            // target for this shape even with an empty hand/discard - Necromancer can always
+            // promote itself, as long as it's still genuinely in Played.
+            var sourceCard = new CardBuilder().Build();
+            sourceCard.Location = CardLocation.Played;
+            sourceCard.Effects.Add(new CardEffect(EffectType.PromoteFromPile, 0) { TargetLocation = CardLocation.HandOrDiscard });
+            var player = new PlayerBuilder().Build(); // Empty hand and discard.
+
+            Assert.IsTrue(new PromoteFromPileStrategy().HasValidTargets(BuildContext(), player, sourceCard));
+        }
+
+        [TestMethod]
+        public void PromoteFromPileStrategy_HasValidTargets_HandOrDiscardLocation_ReturnsFalse_WhenHandAndDiscardEmpty_AndSourceCardNotPlayed()
+        {
+            // Regression guard: HandOrDiscard used to unconditionally return true regardless of
+            // the actual pool. This simulates a hypothetical future "card removed itself from
+            // play before this resolves" shape (see Card.RedirectsToSupplyOnDevourOrPromote) -
+            // hand empty, discard empty, AND the source card no longer sitting in Played, so
+            // there is genuinely no valid target left.
+            var sourceCard = new CardBuilder().Build();
+            sourceCard.Location = CardLocation.Void;
+            sourceCard.Effects.Add(new CardEffect(EffectType.PromoteFromPile, 0) { TargetLocation = CardLocation.HandOrDiscard });
+            var player = new PlayerBuilder().Build(); // Empty hand and discard.
+
+            Assert.IsFalse(new PromoteFromPileStrategy().HasValidTargets(BuildContext(), player, sourceCard));
+        }
+
+        [TestMethod]
+        public void PromoteFromPileStrategy_HasValidTargets_UnrecognizedTargetLocation_ReturnsFalse()
+        {
+            var sourceCard = new CardBuilder().Build();
+            sourceCard.Effects.Add(new CardEffect(EffectType.PromoteFromPile, 0) { TargetLocation = CardLocation.Market });
+            var player = new PlayerBuilder().WithCardsInDiscard(TestData.Cards.CheapCard()).Build();
+
+            Assert.IsFalse(new PromoteFromPileStrategy().HasValidTargets(BuildContext(), player, sourceCard));
+        }
+
+        [TestMethod]
+        public void PromoteFromPileStrategy_HasValidTargets_EffectNestedUnderOnSuccess_FindsItRecursively()
+        {
+            // Matron Mother's actual shape: MoveDeckToDiscard -> OnSuccess -> PromoteFromPile
+            // (DiscardPile). FindFirstEffect has to walk the OnSuccess chain, not just the
+            // card's top-level effect list.
+            var sourceCard = new CardBuilder().Build();
+            var promoteEffect = new CardEffect(EffectType.PromoteFromPile, 0) { TargetLocation = CardLocation.DiscardPile };
+            var moveDeckEffect = new CardEffect(EffectType.MoveDeckToDiscard, 0) { OnSuccess = promoteEffect };
+            sourceCard.Effects.Add(moveDeckEffect);
+            var player = new PlayerBuilder().WithCardsInDiscard(TestData.Cards.CheapCard()).Build();
+
+            Assert.IsTrue(new PromoteFromPileStrategy().HasValidTargets(BuildContext(), player, sourceCard));
+        }
+
+        [TestMethod]
+        public void PromoteFromPileStrategy_HasValidTargets_EffectAtTopLevel_FindsItDirectly()
+        {
+            // Necromancer's actual shape: PromoteFromPile (HandOrDiscard) is the card's own
+            // top-level effect, not nested under anything. This test is about FindFirstEffect
+            // locating a top-level effect (as opposed to the OnSuccess-nested case above), so
+            // sourceCard.Location is set to Played to make it a valid HandOrDiscard target on
+            // its own merits - otherwise this would incidentally fail on the unrelated pool
+            // check instead of verifying what it's actually meant to.
+            var sourceCard = new CardBuilder().Build();
+            sourceCard.Location = CardLocation.Played;
+            sourceCard.Effects.Add(new CardEffect(EffectType.PromoteFromPile, 0) { TargetLocation = CardLocation.HandOrDiscard });
+            var player = new PlayerBuilder().Build();
+
+            Assert.IsTrue(new PromoteFromPileStrategy().HasValidTargets(BuildContext(), player, sourceCard));
+        }
+
+        #endregion
     }
 }

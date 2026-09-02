@@ -20,7 +20,13 @@ namespace ChaosWarlords.Source.Utilities
         TargetingDiscard, // Forced discard from a specific player's own hand (Insane Outcast's self-discard, Neogi's cross-player forced discard)
         TargetingReturnOwnSpy, // Return one of the active player's OWN spies (e.g. Cloaker), as opposed to TargetingReturnSpy (enemy spy)
         TargetingPlayFromMarket, // Picking a market card to play "as if in hand" (e.g. Ulitharid) - see ActionSystem.TryStartPlayFromMarket
-        TargetingOpponentSelect // Choosing which opponent to target with EffectType.SelectOpponent (e.g. Cranium Rats' "choose one opponent... to discard")
+        TargetingOpponentSelect, // Choosing which opponent to target with EffectType.SelectOpponent (e.g. Cranium Rats' "choose one opponent... to discard")
+        TargetingPromoteFromPile // Picking a card to promote RIGHT NOW from an expanded pool
+                                 // (discard pile, or hand+discard+self) via EffectType.
+                                 // PromoteFromPile (e.g. Matron Mother, Necromancer) - distinct
+                                 // from SelectingCardToPromote, which is the legacy deferred
+                                 // end-of-turn promotion-credit flow (Noble/Cultist of Myrkul)
+                                 // wired to PromoteInputMode; do not conflate the two.
     }
 
     // Replaces the "Suits" (Conquest, Malice, Guile, Obedience)
@@ -55,8 +61,12 @@ namespace ChaosWarlords.Source.Utilities
         InnerCircle,   // The "Promoted" pile (Tyrants' Inner Circle)
         Void,          // Removed from game entirely
         Self,          // The card itself (for self-devour effects)
-        Supply         // Returned to the shared supply (e.g. Insane Outcast) - distinct from
+        Supply,        // Returned to the shared supply (e.g. Insane Outcast) - distinct from
                         // Void: not actually devoured, can re-enter play via whatever grants it
+        HandOrDiscard  // EffectType.PromoteFromPile ONLY: expands the pool to Hand + DiscardPile
+                        // + the source card itself (e.g. Necromancer - "promote this card, or a
+                        // card from your hand or discard pile"). CardLocation.DiscardPile alone
+                        // means "Discard pile only" for the same effect (e.g. Matron Mother).
     }
 
     // The command pattern: what does this card actually DO?
@@ -84,6 +94,18 @@ namespace ChaosWarlords.Source.Utilities
         // for whatever OnSuccess chains off it (e.g. Cranium Rats chains DiscardCard). First
         // reusable instance of this shape in the codebase - see planning.txt TIER 2 #6.
         SelectOpponent,
+
+        // Puts the active player's entire draw pile into their discard pile (Matron Mother's
+        // first half). Automatic/instant - no targeting, no strategy registration (falls
+        // through to DefaultStrategy). See Player.MoveDeckToDiscard/Deck.MoveAllToDiscard.
+        MoveDeckToDiscard,
+
+        // Immediately promote a specific card, chosen RIGHT NOW during this card's own
+        // resolution (blocking on the execution stack), from an expanded pool - see
+        // CardLocation.HandOrDiscard/DiscardPile for what TargetLocation selects. Distinct
+        // from EffectType.Promote (the deferred end-of-turn promotion-credit flow) - see
+        // planning.txt TIER 2 #2.
+        PromoteFromPile,
     }
 
     /// <summary>

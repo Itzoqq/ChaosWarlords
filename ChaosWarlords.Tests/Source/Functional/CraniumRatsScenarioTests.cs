@@ -190,6 +190,13 @@ namespace ChaosWarlords.Tests.Source.Functional
             // stuck ForcedActingPlayer (and therefore a stuck ActivePlayer) after a cancel
             // mid-sequence - see ActionSystem.CancelTargeting's own new doc comment. Exercises
             // that fix directly, via the real ActionSystem the scenario is wired with.
+            //
+            // Also exercises ActionSystem.EnsureTargetingSnapshot(): MatchManager.PlayCard now
+            // takes the full-state snapshot BEFORE any effect resolves (not just when targeting
+            // UI opens), so a cancel here correctly reverts the whole sequence - including the
+            // GainResource(Troops) effect that ran before SelectOpponent even opened - not just
+            // the card-to-hand/forced-actor bookkeeping. This used to be a real, verified gap
+            // (the 2 troops silently survived a cancel); EnsureTargetingSnapshot fixed it.
             var scenario = MatchScenario.Build();
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
@@ -209,25 +216,20 @@ namespace ChaosWarlords.Tests.Source.Functional
             Assert.IsNull(scenario.Context.TurnManager.ForcedActingPlayer, "CancelTargeting must release the forced-actor override, not leave ActivePlayer stuck on the chosen opponent.");
             Assert.AreEqual(red, scenario.Context.ActivePlayer, "ActivePlayer should have reverted to the real active player.");
             Assert.AreEqual(ActionState.Normal, scenario.Context.ActionSystem.CurrentState);
-            Assert.Contains(craniumRats, red.Hand, "The played card itself is restored to hand on any cancel, by id, regardless of the snapshot mechanism below (see ActionSystem.TryRestoreCardToHand).");
+            // Asserted by DefinitionId, not object reference or Card.Id: the snapshot restore
+            // rebuilds Hand/PlayedCards with freshly-resolved Card instances via StateRestorer
+            // (see ActionSystemCancelTargetingSnapshotTests.cs for that established pattern),
+            // and unlike that file's mocked ICardDatabase (which always hands back the exact
+            // same object for a given plain id), the REAL CardDatabase this scenario harness
+            // uses re-randomizes Card.Id on every CardFactory call (see
+            // StateRestorerRealCardIdentityTests.cs) - only DefinitionId/RuntimeId survive a
+            // restore unchanged, so Card.Id itself is the wrong key to compare on here.
+            Assert.Contains(craniumRats.DefinitionId, red.Hand.Select(c => c.DefinitionId).ToList(), "The played card itself is restored to hand on any cancel, by id.");
 
-            // NOT reverted, and this is a REAL, VERIFIED pre-existing gap surfaced by this
-            // card (not something to silently assert-away): ActionSystem's full-state
-            // snapshot/restore only fires for a targeting sequence started via the *full*
-            // StartTargeting(...) method (see its own doc comment - "captured only when
-            // actually leaving Normal state"). The mandatory-effect stack path a real
-            // PlayCardCommand->CommandDispatcher play actually uses
-            // (CardEffectProcessor.ResolveEffects -> ActionExecutionEngine.
-            // HandleInputRequiredEffect -> SetupTargetingForRequiredEffect) transitions via the
-            // bare IActionSystem.EnterTargetingState instead, which does NOT take a snapshot.
-            // So CancelTargeting() falls back to its field-by-field ClearState() here, which
-            // only clears ActionSystem's own Pending*/CurrentState - it has no way to know
-            // GainResource(Troops) already ran for this same card earlier in the same
-            // sequence. Net effect: cancelling Cranium Rats mid-sequence correctly returns the
-            // card to hand and releases the forced actor, but silently keeps the 2 free troops
-            // already granted. Asserted here as observed, real behavior - reported separately
-            // as a production finding rather than "fixed" by this test (see delegator report).
-            Assert.AreEqual(2, red.PendingFreeTroops, "KNOWN GAP (see comment above): the 2 troops from GainResource are NOT reverted by this cancel, because no full-state snapshot was ever taken for this targeting sequence.");
+            // Now correctly reverted, thanks to EnsureTargetingSnapshot: the snapshot is taken
+            // before GainResource(Troops) even runs, so cancelling anywhere in the sequence
+            // reverts the troops along with everything else.
+            Assert.AreEqual(0, red.PendingFreeTroops, "The 2 troops from GainResource must be reverted by this cancel now that EnsureTargetingSnapshot takes the snapshot before any effect resolves.");
         }
 
         [TestMethod]

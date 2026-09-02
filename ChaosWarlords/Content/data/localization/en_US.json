@@ -40,5 +40,9 @@
   "banshee_name": "Banshee",
   "banshee_description": "Place a spy. If another player's spy is at that site, gain 3 Power.",
   "infiltrator_name": "Infiltrator",
-  "infiltrator_description": "Place a spy. If another player's troop is at that site, gain 1 Power."
+  "infiltrator_description": "Place a spy. If another player's troop is at that site, gain 1 Power.",
+  "matron_mother_name": "Matron Mother",
+  "matron_mother_description": "Put your deck into your discard pile. Then promote a card from your discard pile.",
+  "necromancer_name": "Necromancer",
+  "necromancer_description": "Choose one: gain 3 Power, or promote this card or a card from your hand or discard pile."
 }
