@@ -46,5 +46,19 @@
   "matron_mother_name": "Matron Mother",
   "matron_mother_description": "Put your deck into your discard pile. Then promote a card from your discard pile.",
   "necromancer_name": "Necromancer",
-  "necromancer_description": "Choose one: gain 3 Power, or promote this card or a card from your hand or discard pile."
+  "necromancer_description": "Choose one: gain 3 Power, or promote this card or a card from your hand or discard pile.",
+  "advance_scout_name": "Advance Scout",
+  "advance_scout_description": "Supplant a white troop.",
+  "black_wyrmling_name": "Black Wyrmling",
+  "black_wyrmling_description": "Gain 1 Power. Assassinate a white troop.",
+  "crushing_wave_cultist_name": "Crushing Wave Cultist",
+  "crushing_wave_cultist_description": "Assassinate a white troop. Focus - Deploy 2 troops.",
+  "kobold_name": "Kobold",
+  "kobold_description": "Choose one: Deploy a troop. Or, assassinate a white troop.",
+  "master_of_melee_magthere_name": "Master of Melee-Magthere",
+  "master_of_melee_magthere_description": "Choose one: Deploy 4 troops. Or, Supplant a white troop anywhere on the board.",
+  "ogre_zombie_name": "Ogre Zombie",
+  "ogre_zombie_description": "Supplant a white troop anywhere on the board.",
+  "olhydra_name": "Olhydra",
+  "olhydra_description": "Supplant a white troop anywhere on the board. Focus - Deploy 2 troops."
 }

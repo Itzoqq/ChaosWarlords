@@ -28,7 +28,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
 
         // --- Deadlock Prevention Checks ---
         // These check if a valid target exists AND is reachable by the player
-        bool HasValidAssassinationTarget(Player activePlayer, bool requireNeutralTroop = false);
+        bool HasValidAssassinationTarget(Player activePlayer, bool requireNeutralTroop = false, bool ignoresPresence = false);
         bool HasValidReturnSpyTarget(Player activePlayer);
         bool HasValidReturnTroopTarget(Player activePlayer);
         bool HasValidPlaceSpyTarget(Player activePlayer);
@@ -52,7 +52,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         MapNode? GetNodeById(int id);
 
         // Actions
-        bool CanAssassinate(MapNode target, Player attacker, bool requireNeutralTroop = false);
+        bool CanAssassinate(MapNode target, Player attacker, bool requireNeutralTroop = false, bool ignoresPresence = false);
         void Assassinate(MapNode node, Player attacker);
         void Supplant(MapNode node, Player attacker);
         bool CanReturnTroop(MapNode node, Player requestingPlayer);

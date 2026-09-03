@@ -144,6 +144,7 @@ namespace ChaosWarlords.Source.Utilities
             effect.IsOptional = data.IsOptional;
             effect.ReplaceWithSource = data.ReplaceWithSource;
             effect.TargetNeutralTroopOnly = data.TargetNeutralTroopOnly;
+            effect.IgnoresPresenceRequirement = data.IgnoresPresenceRequirement;
         }
     }
 }

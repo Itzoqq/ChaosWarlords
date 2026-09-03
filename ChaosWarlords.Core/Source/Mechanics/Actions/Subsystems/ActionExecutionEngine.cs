@@ -291,7 +291,16 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
                 var strategy = Mechanics.Rules.DevourStrategyFactory.GetStrategy(effect.SourceEffect.TargetLocation);
                 strategy.Execute(effect.SourceCard, _matchContext!, _logger, () => ResolveCurrentEffect(true), false);
             }
-            // For other optional effects, continue to normal targeting flow
+            else if (effect.SourceEffect != null && _matchContext != null
+                && !_matchContext.CardRuleEngine.GetStrategy(effect.SourceEffect.Type).IsTargetingEffect)
+            {
+                // Non-targeting optional effect (e.g. GainResource) - no click will ever arrive
+                // to resolve it, so apply and resolve the stack immediately, same as
+                // ProcessAutomaticEffect does for the unconditional case.
+                Mechanics.Rules.CardEffectProcessor.ApplyEffect(effect.SourceEffect, effect.SourceCard, _matchContext, _logger);
+                ResolveCurrentEffect(true);
+            }
+            // For other optional effects that ARE targeting effects, continue to normal targeting flow
         }
 
         /// <summary>

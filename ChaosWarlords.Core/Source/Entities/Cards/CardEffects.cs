@@ -28,6 +28,13 @@ namespace ChaosWarlords.Source.Entities.Cards
         // unaffected. See planning.txt TIER 2 #1 for more cards wanting the same filter later.
         public bool TargetNeutralTroopOnly { get; set; }
 
+        // "Supplant a white troop anywhere on the board" (rulebook: an explicit override of
+        // the normal Presence requirement, tyrants-rules.pdf p.9/22) - Ogre Zombie is the
+        // first shipped card using this. Defaults to false (normal Presence still required)
+        // so every existing Assassinate/Supplant effect is unaffected. Only threaded through
+        // the Supplant path - no shipped card needs this on plain Assassinate.
+        public bool IgnoresPresenceRequirement { get; set; }
+
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {
             Type = type;

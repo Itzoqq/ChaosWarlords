@@ -288,6 +288,40 @@ namespace ChaosWarlords.Tests.Source.Managers
             Assert.AreEqual(12, cmd.TargetNodeId);
         }
 
+        [TestMethod]
+        public void HandleTargetClick_TargetingSupplant_PendingEffectDoesNotIgnorePresence_StillRejectsWhenMapManagerSaysNoPresence()
+        {
+            // Regression check: the default (IgnoresPresenceRequirement not set) must not
+            // have silently loosened Presence enforcement for every other already-shipped
+            // Supplant card.
+            _actionSystem.CurrentState.Returns(ActionState.TargetingSupplant);
+            _actionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Supplant, 1));
+            var node = Node();
+            _mapManager.CanAssassinate(node, _player, false, false).Returns(false);
+            _player.TroopsInBarracks = 3;
+
+            var result = _controller.HandleTargetClick(node, null);
+
+            Assert.IsNull(result);
+            _mapManager.Received(1).CanAssassinate(node, _player, false, false);
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_TargetingSupplant_PendingEffectIgnoresPresenceRequirement_AcceptsATargetWithoutPresence()
+        {
+            _actionSystem.CurrentState.Returns(ActionState.TargetingSupplant);
+            _actionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Supplant, 1) { IgnoresPresenceRequirement = true });
+            var node = Node(13);
+            _mapManager.CanAssassinate(node, _player, false, true).Returns(true);
+            _player.TroopsInBarracks = 3;
+
+            var result = _controller.HandleTargetClick(node, null);
+
+            var cmd = Assert.IsInstanceOfType<SupplantCommand>(result);
+            Assert.AreEqual(13, cmd.TargetNodeId);
+            _mapManager.Received(1).CanAssassinate(node, _player, false, true);
+        }
+
         // --- TargetingPlaceSpy ---
 
         [TestMethod]

@@ -91,7 +91,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
 
         private static Card GetUlitharidCard()
         {
-            var card = new Card("ulitharid", "Ulitharid", 6, CardAspect.Oblivion, 3, 6, 0);
+            var card = new Card("ulitharid", "Ulitharid", 6, CardAspect.Blasphemy, 3, 6, 0);
             card.AddEffect(new CardEffect(EffectType.PlayFromMarket, 4));
             return card;
         }
@@ -146,8 +146,8 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             Assert.Contains(cheapCard, _context.VoidPile);
             Assert.IsFalse(_p1.Hand.Contains(cheapCard));
             Assert.IsFalse(_p1.PlayedCards.Contains(cheapCard));
-            Assert.AreEqual(1, _context.TurnManager.CurrentTurnContext.GetAspectCount(CardAspect.Sorcery), "Aspect-focus tracking should credit the MARKET CARD's own aspect (Sorcery), not Ulitharid's (Oblivion).");
-            Assert.AreEqual(1, _context.TurnManager.CurrentTurnContext.GetAspectCount(CardAspect.Oblivion), "Ulitharid's own aspect should be credited exactly once (by its own PlayCardCommand), not again by playing the market card.");
+            Assert.AreEqual(1, _context.TurnManager.CurrentTurnContext.GetAspectCount(CardAspect.Sorcery), "Aspect-focus tracking should credit the MARKET CARD's own aspect (Sorcery), not Ulitharid's (Blasphemy).");
+            Assert.AreEqual(1, _context.TurnManager.CurrentTurnContext.GetAspectCount(CardAspect.Blasphemy), "Ulitharid's own aspect should be credited exactly once (by its own PlayCardCommand), not again by playing the market card.");
         }
 
         [TestMethod]

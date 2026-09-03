@@ -20,28 +20,8 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Strategies
 
         public bool HasValidTargets(MatchContext context, Player player, Card? sourceCard)
         {
-            var effect = sourceCard != null ? FindFirstEffect(sourceCard.Effects, EffectType.Assassinate) : null;
+            var effect = sourceCard != null ? EffectTreeSearch.FindFirstEffect(sourceCard.Effects, EffectType.Assassinate) : null;
             return context.MapManager.HasValidAssassinationTarget(player, effect?.TargetNeutralTroopOnly ?? false);
-        }
-
-        // Same recursive-search pattern as DevourStrategy.FindFirstEffect - finds the
-        // Assassinate CardEffect (including nested inside OnSuccess chains) so per-card
-        // targeting constraints (e.g. TargetNeutralTroopOnly) can be read here.
-        private static CardEffect? FindFirstEffect(IEnumerable<CardEffect> effects, EffectType type)
-        {
-            if (effects == null) return null;
-
-            foreach (var effect in effects)
-            {
-                if (effect.Type == type) return effect;
-
-                if (effect.OnSuccess != null)
-                {
-                    var found = FindFirstEffect(new[] { effect.OnSuccess }, type);
-                    if (found != null) return found;
-                }
-            }
-            return null;
         }
     }
 }

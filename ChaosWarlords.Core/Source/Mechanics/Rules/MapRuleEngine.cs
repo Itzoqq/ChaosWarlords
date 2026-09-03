@@ -127,11 +127,12 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             return site.NodesInternal.Any(n => n.Occupant != PlayerColor.None && n.Occupant != player);
         }
 
-        public bool CanAssassinate(MapNode target, Player attacker, bool requireNeutralTroop = false)
+        public bool CanAssassinate(MapNode target, Player attacker, bool requireNeutralTroop = false, bool ignoresPresence = false)
         {
             if (target.Occupant == PlayerColor.None) return false;
             if (target.Occupant == attacker.Color) return false;
             if (requireNeutralTroop && target.Occupant != PlayerColor.Neutral) return false;
+            if (ignoresPresence) return true;
             return HasPresence(target, attacker.Color);
         }
 
@@ -149,13 +150,13 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         // -------------------------------------------------------------------------
         // DEADLOCK PREVENTION CHECKS
         // -------------------------------------------------------------------------
-        public bool HasValidAssassinationTarget(Player activePlayer, bool requireNeutralTroop = false)
+        public bool HasValidAssassinationTarget(Player activePlayer, bool requireNeutralTroop = false, bool ignoresPresence = false)
         {
             return _nodes.Any(n =>
                 n.Occupant != PlayerColor.None &&
                 n.Occupant != activePlayer.Color &&
                 (!requireNeutralTroop || n.Occupant == PlayerColor.Neutral) &&
-                HasPresence(n, activePlayer.Color));
+                (ignoresPresence || HasPresence(n, activePlayer.Color)));
         }
 
         public bool HasValidReturnSpyTarget(Player activePlayer)

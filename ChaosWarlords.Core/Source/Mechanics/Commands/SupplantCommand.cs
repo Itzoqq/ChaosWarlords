@@ -47,8 +47,9 @@ namespace ChaosWarlords.Source.Commands
             // can send commands directly.
             var pendingEffect = context.ActionSystem.CurrentSourceEffect;
             bool requireNeutral = pendingEffect != null && pendingEffect.Type == EffectType.Supplant && pendingEffect.TargetNeutralTroopOnly;
+            bool ignoresPresence = pendingEffect != null && pendingEffect.Type == EffectType.Supplant && pendingEffect.IgnoresPresenceRequirement;
 
-            return context.MapManager.CanAssassinate(node, player, requireNeutral);
+            return context.MapManager.CanAssassinate(node, player, requireNeutral, ignoresPresence);
         }
 
         public void Execute(MatchContext context)

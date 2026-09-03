@@ -141,6 +141,42 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Commands
             Assert.AreEqual(original.MarketCardId, hydrated.MarketCardId);
         }
 
+        // --- SupplantCommand / SupplantCommandDto ---
+        // (Row 9 of the standing test matrix - ToDto()/HydrateCommand had no dedicated
+        // round-trip test anywhere before this session, unlike AssassinateCommand's; the DTO
+        // deliberately does NOT carry IgnoresPresenceRequirement - that flag lives on the
+        // pending CardEffect, re-derived from ActionSystem.CurrentSourceEffect at Validate()
+        // time, not serialized on the command itself - see SupplantCommandTests.cs for that
+        // primitive's own coverage.)
+
+        [TestMethod]
+        public void SupplantCommand_ToDto_CarriesNodeIdCardIdAndDevourCardId()
+        {
+            var command = new SupplantCommand(7, "ogre_zombie", "devour_me");
+
+            var dto = (SupplantCommandDto)command.ToDto();
+
+            Assert.AreEqual(7, dto.NodeId);
+            Assert.AreEqual("ogre_zombie", dto.CardId);
+            Assert.AreEqual("devour_me", dto.DevourCardId);
+            Assert.AreEqual(CommandType.Supplant, command.Type);
+        }
+
+        [TestMethod]
+        public void SupplantCommandDto_HydrateCommand_RoundTripsToAnEquivalentCommand()
+        {
+            var original = new SupplantCommand(7, "ogre_zombie", "devour_me");
+            var dto = original.ToDto();
+            var context = CreateMinimalContext();
+
+            var hydrated = DtoMapper.HydrateCommand(dto, context) as SupplantCommand;
+
+            Assert.IsNotNull(hydrated);
+            Assert.AreEqual(original.TargetNodeId, hydrated!.TargetNodeId);
+            Assert.AreEqual(original.CardId, hydrated.CardId);
+            Assert.AreEqual(original.DevourCardId, hydrated.DevourCardId);
+        }
+
         // --- SelectOpponentCommand / SelectOpponentCommandDto ---
         // (Cranium Rats / planning.txt TIER 2 #6 - the "target a player" primitive.)
 

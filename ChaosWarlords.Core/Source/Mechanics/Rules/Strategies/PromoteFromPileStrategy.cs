@@ -28,7 +28,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Strategies
 
         public bool HasValidTargets(MatchContext context, Player player, Card? sourceCard)
         {
-            var effect = sourceCard != null ? FindFirstEffect(sourceCard.Effects, EffectType.PromoteFromPile) : null;
+            var effect = sourceCard != null ? EffectTreeSearch.FindFirstEffect(sourceCard.Effects, EffectType.PromoteFromPile) : null;
             if (effect == null) return false;
 
             return effect.TargetLocation switch
@@ -43,26 +43,6 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Strategies
                 CardLocation.HandOrDiscard => player.Hand.Count > 0 || player.DiscardPile.Count > 0 || sourceCard?.Location == CardLocation.Played,
                 _ => false
             };
-        }
-
-        // Mirrors DevourStrategy.FindFirstEffect - HasValidTargets's signature doesn't pass
-        // the CardEffect directly, so we have to re-locate it on the source card (including
-        // walking OnSuccess chains, e.g. Matron Mother's MoveDeckToDiscard -> PromoteFromPile).
-        private static CardEffect? FindFirstEffect(IEnumerable<CardEffect> effects, EffectType type)
-        {
-            if (effects == null) return null;
-
-            foreach (var effect in effects)
-            {
-                if (effect.Type == type) return effect;
-
-                if (effect.OnSuccess != null)
-                {
-                    var found = FindFirstEffect(new[] { effect.OnSuccess }, type);
-                    if (found != null) return found;
-                }
-            }
-            return null;
         }
     }
 }

@@ -141,10 +141,11 @@ namespace ChaosWarlords.Source.Managers
         {
             var pendingEffect = _actionSystem.CurrentSourceEffect;
             bool requireNeutral = pendingEffect != null && pendingEffect.Type == EffectType.Supplant && pendingEffect.TargetNeutralTroopOnly;
+            bool ignoresPresence = pendingEffect != null && pendingEffect.Type == EffectType.Supplant && pendingEffect.IgnoresPresenceRequirement;
 
             // Empty barracks doesn't block Supplant - the deploy half grants 1 VP instead
             // (rulebook p.12/22). See SupplantCommand.Validate/ActionSystem.CanStartSupplant.
-            if (!_mapManager.CanAssassinate(targetNode, ActivePlayer(), requireNeutral)) return null;
+            if (!_mapManager.CanAssassinate(targetNode, ActivePlayer(), requireNeutral, ignoresPresence)) return null;
 
             return new SupplantCommand(targetNode.Id, cardId, devourCardId);
         }

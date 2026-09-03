@@ -74,7 +74,6 @@ namespace ChaosWarlords.Source.Utilities
     {
         None = 0,
         GainResource,
-        DeployUnit,
         Assassinate,
         ReturnUnit,
         Supplant,

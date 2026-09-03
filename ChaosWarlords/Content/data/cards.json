@@ -127,7 +127,7 @@
   {
     "Id": "wight",
     "Cost": 3,
-    "Aspect": "Oblivion",
+    "Aspect": "Sorcery",
     "DeckVP": 1,
     "InnerCircleVP": 3,
     "Effects": [
@@ -190,7 +190,7 @@
   {
     "Id": "carrion_crawler",
     "Cost": 2,
-    "Aspect": "Oblivion",
+    "Aspect": "Sorcery",
     "DeckVP": 0,
     "InnerCircleVP": 2,
     "Effects": [
@@ -210,7 +210,7 @@
   {
     "Id": "skeletal_horde",
     "Cost": 2,
-    "Aspect": "Oblivion",
+    "Aspect": "Warlord",
     "DeckVP": 1,
     "InnerCircleVP": 2,
     "Effects": [
@@ -234,7 +234,7 @@
   {
     "Id": "cultist_of_myrkul",
     "Cost": 2,
-    "Aspect": "Oblivion",
+    "Aspect": "Blasphemy",
     "DeckVP": 1,
     "InnerCircleVP": 2,
     "Effects": [
@@ -297,7 +297,7 @@
   {
     "Id": "ulitharid",
     "Cost": 6,
-    "Aspect": "Oblivion",
+    "Aspect": "Blasphemy",
     "DeckVP": 3,
     "InnerCircleVP": 6,
     "Effects": [
@@ -421,6 +421,136 @@
           "Amount": 3,
           "TargetResource": "Power"
         }
+      }
+    ]
+  },
+  {
+    "Id": "advance_scout",
+    "Cost": 3,
+    "Aspect": "Warlord",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "Effects": [
+      {
+        "Type": "Supplant",
+        "Amount": 1,
+        "TargetNeutralTroopOnly": true
+      }
+    ]
+  },
+  {
+    "Id": "black_wyrmling",
+    "Cost": 3,
+    "Aspect": "Warlord",
+    "DeckVP": 1,
+    "InnerCircleVP": 4,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 1,
+        "TargetResource": "Power"
+      },
+      {
+        "Type": "Assassinate",
+        "Amount": 1,
+        "TargetNeutralTroopOnly": true
+      }
+    ]
+  },
+  {
+    "Id": "crushing_wave_cultist",
+    "Cost": 3,
+    "Aspect": "Warlord",
+    "DeckVP": 1,
+    "InnerCircleVP": 4,
+    "Effects": [
+      {
+        "Type": "Assassinate",
+        "Amount": 1,
+        "TargetNeutralTroopOnly": true
+      },
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Troops",
+        "RequiresFocus": true
+      }
+    ]
+  },
+  {
+    "Id": "kobold",
+    "Cost": 1,
+    "Aspect": "Warlord",
+    "DeckVP": 1,
+    "InnerCircleVP": 2,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 1,
+        "TargetResource": "Troops",
+        "IsOptional": true,
+        "Alternative": {
+          "Type": "Assassinate",
+          "Amount": 1,
+          "TargetNeutralTroopOnly": true
+        }
+      }
+    ]
+  },
+  {
+    "Id": "master_of_melee_magthere",
+    "Cost": 5,
+    "Aspect": "Warlord",
+    "DeckVP": 2,
+    "InnerCircleVP": 5,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 4,
+        "TargetResource": "Troops",
+        "IsOptional": true,
+        "Alternative": {
+          "Type": "Supplant",
+          "Amount": 1,
+          "TargetNeutralTroopOnly": true,
+          "IgnoresPresenceRequirement": true
+        }
+      }
+    ]
+  },
+  {
+    "Id": "ogre_zombie",
+    "Cost": 4,
+    "Aspect": "Warlord",
+    "DeckVP": 2,
+    "InnerCircleVP": 4,
+    "Effects": [
+      {
+        "Type": "Supplant",
+        "Amount": 1,
+        "TargetNeutralTroopOnly": true,
+        "IgnoresPresenceRequirement": true
+      }
+    ]
+  },
+  {
+    "Id": "olhydra",
+    "Cost": 6,
+    "Aspect": "Warlord",
+    "DeckVP": 3,
+    "InnerCircleVP": 6,
+    "Effects": [
+      {
+        "Type": "Supplant",
+        "Amount": 1,
+        "TargetNeutralTroopOnly": true,
+        "IgnoresPresenceRequirement": true
+      },
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Troops",
+        "RequiresFocus": true
       }
     ]
   }

@@ -226,6 +226,22 @@ namespace ChaosWarlords.Tests.Integration.Managers
             Assert.AreEqual(initialTroops - 1, _player1.TroopsInBarracks); // Troop spent
         }
 
+        [TestMethod]
+        public void CanAssassinate_IgnoresPresence_DelegatesThroughToRuleEngine()
+        {
+            // MapManager.CanAssassinate/HasValidAssassinationTarget are thin delegates to
+            // MapRuleEngine (see MapRuleEngineTests.cs for the primitive's own detailed
+            // coverage) - this pins that the ignoresPresence param actually makes it across
+            // that delegation boundary rather than getting dropped/defaulted along the way.
+            // Player1 has no troops/spies deployed anywhere in this test, so there's no
+            // Presence anywhere on the board for them at all.
+            _node5.Occupant = _player2.Color;
+
+            Assert.IsFalse(_mapManager.CanAssassinate(_node5, _player1), "Sanity check: without the override, this must be unreachable.");
+            Assert.IsTrue(_mapManager.CanAssassinate(_node5, _player1, ignoresPresence: true));
+            Assert.IsTrue(_mapManager.HasValidAssassinationTarget(_player1, ignoresPresence: true));
+        }
+
         #endregion
 
         #region 3. Spy Actions (State Mutation)

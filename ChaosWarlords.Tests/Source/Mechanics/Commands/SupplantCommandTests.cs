@@ -125,6 +125,66 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         }
 
         [TestMethod]
+        public void Validate_Returns_False_When_PendingEffectDoesNotSetIgnoresPresence_AndMapManagerRejectsForPresence()
+        {
+            // Regression check: a plain, already-shipped Supplant effect (e.g. Advance
+            // Scout/Wight - any Supplant that never opts into IgnoresPresenceRequirement)
+            // must still fail Validate() when MapManager reports no Presence - the new
+            // parameter's default (false) must not have silently loosened this for every
+            // OTHER Supplant card. CardEffect.IgnoresPresenceRequirement defaults to false
+            // here (not set).
+            var player = TestData.Players.RedPlayer();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.ActionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Supplant, 1));
+            _state.MapManager.CanAssassinate(_targetNode, player, false, false).Returns(false);
+
+            var command = new SupplantCommand(_targetNode.Id);
+
+            var result = command.Validate(_state.MatchContext);
+
+            Assert.IsFalse(result, "Default IgnoresPresenceRequirement (false) must still enforce Presence.");
+            _state.MapManager.Received(1).CanAssassinate(_targetNode, player, false, false);
+        }
+
+        [TestMethod]
+        public void Validate_Returns_True_When_PendingEffectIgnoresPresenceRequirement_AndMapManagerAcceptsWithoutPresence()
+        {
+            // Ogre Zombie's "...anywhere on the board" shape: Validate() must re-derive
+            // IgnoresPresenceRequirement from the pending CardEffect and pass it through to
+            // MapManager.CanAssassinate, the same way it already does for TargetNeutralTroopOnly.
+            var player = TestData.Players.RedPlayer();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.ActionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Supplant, 1) { IgnoresPresenceRequirement = true });
+            _state.MapManager.CanAssassinate(_targetNode, player, false, true).Returns(true);
+
+            var command = new SupplantCommand(_targetNode.Id);
+
+            var result = command.Validate(_state.MatchContext);
+
+            Assert.IsTrue(result);
+            _state.MapManager.Received(1).CanAssassinate(_targetNode, player, false, true);
+        }
+
+        [TestMethod]
+        public void Validate_DoesNotIgnorePresence_When_PendingEffectIsForADifferentEffectType()
+        {
+            // Same defensive shape as TargetNeutralTroopOnly's equivalent test just below -
+            // an Assassinate effect's own IgnoresPresenceRequirement must never leak into a
+            // Supplant command's Validate() (the primitive is Supplant-only by design).
+            var player = TestData.Players.RedPlayer();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.ActionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Assassinate, 1) { IgnoresPresenceRequirement = true });
+            _state.MapManager.CanAssassinate(_targetNode, player, false, false).Returns(true);
+
+            var command = new SupplantCommand(_targetNode.Id);
+
+            var result = command.Validate(_state.MatchContext);
+
+            Assert.IsTrue(result);
+            _state.MapManager.Received(1).CanAssassinate(_targetNode, player, false, false);
+        }
+
+        [TestMethod]
         public void Validate_DoesNotRequireNeutralTroop_When_PendingEffectIsForADifferentEffectType()
         {
             var player = TestData.Players.RedPlayer();

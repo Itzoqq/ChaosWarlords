@@ -130,6 +130,73 @@ namespace ChaosWarlords.Tests.Systems
             Assert.IsTrue(_engine.CanAssassinate(_node2, _player1, requireNeutralTroop: true));
         }
 
+        // -------------------------------------------------------------------------
+        // IgnoresPresenceRequirement (Ogre Zombie's "...anywhere on the board" primitive -
+        // CardEffect.IgnoresPresenceRequirement, threaded through as the "ignoresPresence"
+        // param below; only ever wired through the Supplant path, but CanAssassinate itself
+        // is the shared primitive both Assassinate and Supplant funnel through).
+        // -------------------------------------------------------------------------
+
+        [TestMethod]
+        public void CanAssassinate_IgnoresPresence_DefaultFalse_StillRejectsATargetWithoutPresence()
+        {
+            // Regression check: the new ignoresPresence parameter's default (false) must not
+            // have silently loosened Presence enforcement for every OTHER already-shipped
+            // Assassinate/Supplant card that never opts in. Node1/Node3 are disconnected (no
+            // path through Node2), so Player1 has no Presence at Node3 at all.
+            _node1.Occupant = _player1.Color; // Presence source, far from the target
+            _node3.Occupant = _player2.Color; // Target, unreachable
+
+            Assert.IsFalse(_engine.CanAssassinate(_node3, _player1), "Default (ignoresPresence not set) must still require Presence.");
+            Assert.IsFalse(_engine.CanAssassinate(_node3, _player1, ignoresPresence: false), "Explicit false must still require Presence.");
+        }
+
+        [TestMethod]
+        public void CanAssassinate_IgnoresPresence_True_AcceptsATargetWithNoPresenceAnywhereNearby()
+        {
+            // The new behavior: Player1 has NO troop, NO spy, nothing granting Presence
+            // anywhere near Node3 - an ordinary CanAssassinate call would reject this.
+            _node1.Occupant = PlayerColor.None;
+            _node2.Occupant = PlayerColor.None;
+            _node3.Occupant = _player2.Color; // Target, zero Presence
+
+            Assert.IsFalse(_engine.CanAssassinate(_node3, _player1), "Sanity check: without the override, this must indeed be unreachable.");
+            Assert.IsTrue(_engine.CanAssassinate(_node3, _player1, ignoresPresence: true), "IgnoresPresenceRequirement should let a zero-Presence target still be valid.");
+        }
+
+        [TestMethod]
+        public void CanAssassinate_IgnoresPresence_True_StillRejectsOwnTroopOrEmptyNode()
+        {
+            // The override only bypasses the PRESENCE check - the "not your own troop" /
+            // "must actually be occupied" checks must still apply regardless.
+            _node1.Occupant = _player1.Color; // Own troop
+            Assert.IsFalse(_engine.CanAssassinate(_node1, _player1, ignoresPresence: true), "Must still reject the attacker's own troop even with the Presence override.");
+
+            _node2.Occupant = PlayerColor.None; // Empty
+            Assert.IsFalse(_engine.CanAssassinate(_node2, _player1, ignoresPresence: true), "Must still reject an empty node even with the Presence override.");
+        }
+
+        [TestMethod]
+        public void HasValidAssassinationTarget_IgnoresPresence_True_FindsATargetWithNoPresenceAnywhere()
+        {
+            _node1.Occupant = PlayerColor.None;
+            _node2.Occupant = PlayerColor.None;
+            _node3.Occupant = _player2.Color; // Zero-Presence target
+
+            Assert.IsFalse(_engine.HasValidAssassinationTarget(_player1), "Sanity check: without the override, no valid target should be found.");
+            Assert.IsTrue(_engine.HasValidAssassinationTarget(_player1, ignoresPresence: true));
+        }
+
+        [TestMethod]
+        public void HasValidAssassinationTarget_IgnoresPresence_DefaultFalse_StillRequiresPresence()
+        {
+            _node1.Occupant = PlayerColor.None;
+            _node2.Occupant = PlayerColor.None;
+            _node3.Occupant = _player2.Color;
+
+            Assert.IsFalse(_engine.HasValidAssassinationTarget(_player1, ignoresPresence: false));
+        }
+
         [TestMethod]
         public void CanMoveSource_True_ForEnemyWithPresence()
         {

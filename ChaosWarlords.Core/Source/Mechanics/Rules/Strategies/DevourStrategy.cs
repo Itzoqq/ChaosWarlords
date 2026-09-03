@@ -34,7 +34,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Strategies
 
             if (sourceCard == null) return HasHandTargets(player, sourceCard);
 
-            var devourEffect = FindFirstEffect(sourceCard.Effects, EffectType.Devour);
+            var devourEffect = EffectTreeSearch.FindFirstEffect(sourceCard.Effects, EffectType.Devour);
             if (devourEffect == null) return HasHandTargets(player, sourceCard);
 
             return devourEffect.TargetLocation switch
@@ -48,23 +48,6 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Strategies
         }
 
         // Helper methods (Logic moved from CardRuleEngine)
-        
-        private static CardEffect? FindFirstEffect(IEnumerable<CardEffect> effects, EffectType type)
-        {
-            if (effects == null) return null;
-
-            foreach (var effect in effects)
-            {
-                if (effect.Type == type) return effect;
-                
-                if (effect.OnSuccess != null)
-                {
-                    var found = FindFirstEffect(new[] { effect.OnSuccess }, type);
-                    if (found != null) return found;
-                }
-            }
-            return null;
-        }
 
         private static bool HasMarketTargets(MatchContext context)
         {
