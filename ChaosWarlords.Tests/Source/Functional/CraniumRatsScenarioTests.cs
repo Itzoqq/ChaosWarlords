@@ -191,12 +191,11 @@ namespace ChaosWarlords.Tests.Source.Functional
             // mid-sequence - see ActionSystem.CancelTargeting's own new doc comment. Exercises
             // that fix directly, via the real ActionSystem the scenario is wired with.
             //
-            // Also exercises ActionSystem.EnsureTargetingSnapshot(): MatchManager.PlayCard now
-            // takes the full-state snapshot BEFORE any effect resolves (not just when targeting
-            // UI opens), so a cancel here correctly reverts the whole sequence - including the
+            // Also exercises ActionSystem.EnsureTargetingSnapshot(): MatchManager.PlayCard
+            // takes the full-state snapshot before any effect resolves (not just when targeting
+            // UI opens), so a cancel here reverts the whole sequence - including the
             // GainResource(Troops) effect that ran before SelectOpponent even opened - not just
-            // the card-to-hand/forced-actor bookkeeping. This used to be a real, verified gap
-            // (the 2 troops silently survived a cancel); EnsureTargetingSnapshot fixed it.
+            // the card-to-hand/forced-actor bookkeeping.
             var scenario = MatchScenario.Build();
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
@@ -226,10 +225,10 @@ namespace ChaosWarlords.Tests.Source.Functional
             // restore unchanged, so Card.Id itself is the wrong key to compare on here.
             Assert.Contains(craniumRats.DefinitionId, red.Hand.Select(c => c.DefinitionId).ToList(), "The played card itself is restored to hand on any cancel, by id.");
 
-            // Now correctly reverted, thanks to EnsureTargetingSnapshot: the snapshot is taken
-            // before GainResource(Troops) even runs, so cancelling anywhere in the sequence
-            // reverts the troops along with everything else.
-            Assert.AreEqual(0, red.PendingFreeTroops, "The 2 troops from GainResource must be reverted by this cancel now that EnsureTargetingSnapshot takes the snapshot before any effect resolves.");
+            // EnsureTargetingSnapshot takes the snapshot before GainResource(Troops) even runs,
+            // so cancelling anywhere in the sequence reverts the troops along with everything
+            // else.
+            Assert.AreEqual(0, red.PendingFreeTroops, "The 2 troops from GainResource must be reverted by this cancel.");
         }
 
         [TestMethod]

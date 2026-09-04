@@ -12,22 +12,10 @@ namespace ChaosWarlords.Tests.Source.Functional
     /// board.") - the simplest vehicle for CardEffect.IgnoresPresenceRequirement, the new
     /// sibling primitive to TargetNeutralTroopOnly (see planning.txt section 2 / RESOLVED.txt).
     /// Loads the REAL "ogre_zombie" entry out of the REAL cards.json and dispatches every
-    /// command through a REAL CommandDispatcher.
-    ///
-    /// HISTORY (see RESOLVED.txt/planning.txt) - a real production bug was found while writing
-    /// this file, now FIXED: CardEffectData (the JSON DTO in CardDatabase.cs) had no
-    /// IgnoresPresenceRequirement property at all, and CardFactory.ParseOptionalFlags never
-    /// copied it onto the runtime CardEffect even where TargetNeutralTroopOnly WAS copied. The
-    /// result was that cards.json said "IgnoresPresenceRequirement": true for ogre_zombie, but
-    /// any CardEffect loaded through the REAL CardDatabase/CardFactory pipeline ended up with
-    /// IgnoresPresenceRequirement == false regardless. CardEffectData now has the property and
-    /// CardFactory.ParseOptionalFlags copies it (mirroring the existing TargetNeutralTroopOnly
-    /// line). The underlying primitive itself
-    /// (MapRuleEngine.CanAssassinate/HasValidAssassinationTarget, MapManager,
-    /// SupplantStrategy.HasValidTargets, SupplantCommand.Validate,
-    /// ActionInputController.HandleSupplant) was always correctly wired and is covered
-    /// directly at the unit level (see MapRuleEngineTests/SupplantCommandTests/
-    /// ActionInputControllerTests) - only the JSON->CardEffect plumbing was broken.
+    /// command through a REAL CommandDispatcher, exercising the full JSON -> CardEffectData ->
+    /// CardFactory.ParseOptionalFlags -> runtime CardEffect pipeline end to end (not just the
+    /// underlying primitive's own unit-level coverage in MapRuleEngineTests/SupplantCommandTests/
+    /// ActionInputControllerTests).
     /// </summary>
     [TestClass]
     [TestCategory("Integration")]
@@ -45,17 +33,15 @@ namespace ChaosWarlords.Tests.Source.Functional
             return (red, targetNode);
         }
 
-        // --- Regression: pins the JSON-wiring fix described in the class doc comment ---
+        // --- Regression guard: pins the JSON -> runtime CardEffect wiring described in the
+        // class doc comment ---
 
         [TestMethod]
         public void OgreZombie_LoadedFromRealCardsJson_IgnoresPresenceRequirementIsTrue()
         {
-            // FIXED (see RESOLVED.txt/planning.txt): cards.json says
-            // "IgnoresPresenceRequirement": true for ogre_zombie's Supplant effect, and
-            // CardEffectData/CardFactory now correctly carries that flag from JSON onto the
-            // runtime CardEffect (CardFactory.ParseOptionalFlags copies it, mirroring the
-            // existing TargetNeutralTroopOnly line). This test guards against a regression
-            // silently losing that flag again.
+            // cards.json says "IgnoresPresenceRequirement": true for ogre_zombie's Supplant
+            // effect; CardFactory.ParseOptionalFlags carries that flag from JSON onto the
+            // runtime CardEffect (mirroring the existing TargetNeutralTroopOnly line).
             var scenario = MatchScenario.Build();
             scenario.AsActivePlayer(PlayerColor.Red);
             var card = scenario.GiveCard(PlayerColor.Red, "ogre_zombie");
@@ -65,7 +51,7 @@ namespace ChaosWarlords.Tests.Source.Functional
             Assert.IsTrue(effect.IgnoresPresenceRequirement, "cards.json says IgnoresPresenceRequirement: true for ogre_zombie - the runtime CardEffect must carry that flag through from JSON.");
         }
 
-        // --- Row 1: the headline behavior - previously blocked by the now-FIXED JSON-wiring bug above ---
+        // --- Row 1: the headline behavior, relying on the JSON wiring pinned above ---
 
         [TestMethod]
         public void PlayOgreZombie_NeutralTroopWithNoPresenceAnywhereNearby_StillSupplantsIt()

@@ -48,9 +48,9 @@ namespace ChaosWarlords.Source.Commands
             // to promote from Discard - that must be enforced here, not merely by the UI
             // never offering a discard card as a click target. This must stay a pure read -
             // CommandDispatcher calls Validate() then Execute() on the same instance, so
-            // actually promoting here (as this used to do via TryPromoteCard) removes the card
-            // from Hand/Played/Discard as a side effect of "checking", leaving Execute()'s own
-            // TryPromoteCard call to find nothing.
+            // calling TryPromoteCard here would remove the card from Hand/Played/Discard as a
+            // side effect of "checking", leaving Execute()'s own TryPromoteCard call to find
+            // nothing.
             var card = player.Hand.FirstOrDefault(c => c.Id == CardId) ??
                        player.PlayedCards.FirstOrDefault(c => c.Id == CardId) ??
                        (IsChainedEffect ? player.DiscardPile.FirstOrDefault(c => c.Id == CardId) : null);

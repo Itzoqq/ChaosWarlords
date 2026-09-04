@@ -147,6 +147,7 @@ namespace ChaosWarlords.Source.Entities.Cards
                 TargetLocation = effect.TargetLocation,
                 ReplaceWithSource = effect.ReplaceWithSource,
                 TargetNeutralTroopOnly = effect.TargetNeutralTroopOnly,
+                IgnoresPresenceRequirement = effect.IgnoresPresenceRequirement,
                 Condition = effect.Condition // Reference copy for condition (usually shared/immutable)
             };
 

@@ -142,12 +142,10 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Commands
         }
 
         // --- SupplantCommand / SupplantCommandDto ---
-        // (Row 9 of the standing test matrix - ToDto()/HydrateCommand had no dedicated
-        // round-trip test anywhere before this session, unlike AssassinateCommand's; the DTO
-        // deliberately does NOT carry IgnoresPresenceRequirement - that flag lives on the
-        // pending CardEffect, re-derived from ActionSystem.CurrentSourceEffect at Validate()
-        // time, not serialized on the command itself - see SupplantCommandTests.cs for that
-        // primitive's own coverage.)
+        // (Row 9 of the standing test matrix. The DTO deliberately does NOT carry
+        // IgnoresPresenceRequirement - that flag lives on the pending CardEffect, re-derived
+        // from ActionSystem.CurrentSourceEffect at Validate() time, not serialized on the
+        // command itself - see SupplantCommandTests.cs for that primitive's own coverage.)
 
         [TestMethod]
         public void SupplantCommand_ToDto_CarriesNodeIdCardIdAndDevourCardId()

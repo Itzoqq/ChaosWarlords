@@ -14,24 +14,15 @@ namespace ChaosWarlords.Tests.Source.Functional
     /// out of the REAL cards.json and dispatches every command through a REAL
     /// CommandDispatcher.
     ///
-    /// The Deploy half used to be EffectType.DeployUnit, which had zero production
-    /// implementation anywhere - fixed for the AUTOMATIC/non-optional case (see
-    /// CrushingWaveCultistScenarioTests) by switching to GainResource(TargetResource: Troops).
-    /// That data fix alone did NOT fully fix Kobold, though - a SEPARATE production bug existed
-    /// for the OPTIONAL accept path specifically: ActionExecutionEngine.HandleOptionalEffectAccepted
-    /// used to only call ResolveCurrentEffect for EffectType.Devour, so every other optional
-    /// effect type (GainResource included) fell through to a "continue to normal targeting
-    /// flow" branch and was expected to resolve via a subsequent targeting click instead.
-    /// GainResource is a non-targeting effect (DefaultStrategy.GetTargetingState returns
-    /// ActionState.Normal), so no such click was ever coming - the pushed EffectContext was
-    /// never resolved and never popped, a genuine ExecutionStack hang (CurrentState reporting
-    /// Normal masked the corruption). FIXED: HandleOptionalEffectAccepted now has a generic
-    /// fallback that applies the effect and resolves the stack immediately for any accepted
-    /// optional non-targeting effect, not just Devour. The "decline" direction was always
-    /// unaffected (it correctly calls ResolveCurrentEffect(false) and reaches the Assassinate
-    /// Alternative normally) - as was the FindFirstEffect pre-check bug for the decline path
-    /// (row 3 below), which the AssassinateStrategy.FindFirstEffect.Alternative-recursion fix
-    /// DID resolve.
+    /// The Deploy half is an OPTIONAL GainResource(TargetResource: Troops) effect. Accepting it
+    /// applies the effect and resolves the stack immediately via
+    /// ActionExecutionEngine.HandleOptionalEffectAccepted's generic fallback for any accepted
+    /// optional non-targeting effect (GainResource is non-targeting -
+    /// DefaultStrategy.GetTargetingState returns ActionState.Normal for it, so no further
+    /// targeting click ever arrives to resolve it otherwise). Declining instead calls
+    /// ResolveCurrentEffect(false) and reaches the Assassinate Alternative, which
+    /// AssassinateStrategy.FindFirstEffect finds by recursing into CardEffect.Alternative (row
+    /// 3 below).
     /// </summary>
     [TestClass]
     [TestCategory("Integration")]

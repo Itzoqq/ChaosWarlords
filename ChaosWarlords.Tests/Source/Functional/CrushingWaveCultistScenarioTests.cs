@@ -13,15 +13,13 @@ namespace ChaosWarlords.Tests.Source.Functional
     /// entry out of the REAL cards.json and dispatches every command through a REAL
     /// CommandDispatcher.
     ///
-    /// HISTORY (see RESOLVED.txt/planning.txt): the Deploy half used to be
-    /// EffectType.DeployUnit, which had zero production implementation anywhere - it silently
-    /// no-op'd instead of deploying. Fixed by switching the JSON to GainResource with
-    /// TargetResource: Troops, the same mechanism every other shipped "Deploy N troops" card
-    /// (e.g. Skeletal Horde) already used successfully: it credits Player.PendingFreeTroops
-    /// immediately (an automatic, non-optional effect - ProcessAutomaticEffect applies it and
-    /// pops the stack in one step, no dedicated IEffectStrategy needed), and those pending
-    /// troops are later spent one at a time via the normal DeployTroopCommand flow
-    /// (CombatResolver.ExecuteDeploy/ExecuteAssassinate both check PendingFreeTroops first).
+    /// The Deploy half is EffectType.GainResource with TargetResource: Troops, the same
+    /// mechanism every other shipped "Deploy N troops" card (e.g. Skeletal Horde) uses: it
+    /// credits Player.PendingFreeTroops immediately (an automatic, non-optional effect -
+    /// ProcessAutomaticEffect applies it and pops the stack in one step, no dedicated
+    /// IEffectStrategy needed), and those pending troops are later spent one at a time via the
+    /// normal DeployTroopCommand flow (CombatResolver.ExecuteDeploy/ExecuteAssassinate both
+    /// check PendingFreeTroops first).
     /// </summary>
     [TestClass]
     [TestCategory("Integration")]

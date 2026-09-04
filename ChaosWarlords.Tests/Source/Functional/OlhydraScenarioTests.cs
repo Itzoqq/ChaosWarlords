@@ -11,19 +11,14 @@ namespace ChaosWarlords.Tests.Source.Functional
     /// board. Focus: Deploy 2 troops.") - Supplant(TargetNeutralTroopOnly,
     /// IgnoresPresenceRequirement) then a Focus-gated GainResource(TargetResource: Troops,
     /// Amount: 2). Loads the REAL "olhydra" entry out of the REAL cards.json and dispatches
-    /// every command through a REAL CommandDispatcher. Per planning.txt's task scope this file
-    /// keeps the matrix lean (doesn't re-prove every row already covered individually by
-    /// OgreZombieScenarioTests - same Supplant shape - and CrushingWaveCultistScenarioTests -
-    /// same Focus-gated GainResource(Troops) shape) and focuses on the combination.
+    /// every command through a REAL CommandDispatcher. Keeps the matrix lean - doesn't re-prove
+    /// every row already covered individually by OgreZombieScenarioTests (same Supplant shape)
+    /// and CrushingWaveCultistScenarioTests (same Focus-gated GainResource(Troops) shape) -
+    /// and focuses on the combination instead.
     ///
-    /// Both halves used to hit real production bugs, both now FIXED (see
-    /// OgreZombieScenarioTests/CrushingWaveCultistScenarioTests' class doc comments for the
-    /// individual histories, and RESOLVED.txt/planning.txt): the Supplant half's
-    /// IgnoresPresenceRequirement now correctly reaches the runtime CardEffect from JSON, and
-    /// the Deploy half was switched from the never-implemented EffectType.DeployUnit to
-    /// GainResource(TargetResource: Troops) - an automatic, non-optional effect for this card
-    /// (unlike Kobold/Master of Melee-Magthere's still-open OPTIONAL-accept bug - this effect
-    /// has no IsOptional here, so it isn't affected by that separate gap).
+    /// The Deploy half here is an automatic, non-optional GainResource(TargetResource: Troops)
+    /// effect - unlike Kobold/Master of Melee-Magthere, where the equivalent Deploy is offered
+    /// as an optional accept/decline choice.
     /// </summary>
     [TestClass]
     [TestCategory("Integration")]

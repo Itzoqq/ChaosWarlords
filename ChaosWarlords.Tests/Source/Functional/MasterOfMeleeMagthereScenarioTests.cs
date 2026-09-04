@@ -14,28 +14,14 @@ namespace ChaosWarlords.Tests.Source.Functional
     /// "master_of_melee_magthere" entry out of the REAL cards.json and dispatches every
     /// command through a REAL CommandDispatcher.
     ///
-    /// This card sat at the intersection of THREE real production bugs found while writing
-    /// this session's test matrix (see planning.txt/RESOLVED.txt). Two are now FIXED:
-    ///  1. CardEffectData/CardFactory never propagated IgnoresPresenceRequirement from JSON,
-    ///     so the Supplant Alternative's presence-override never actually applied in real
-    ///     play (same as Ogre Zombie) - FIXED, CardFactory.ParseOptionalFlags now copies it.
-    ///  2. SupplantStrategy.FindFirstEffect (used by the "should this Alternative even be
-    ///     offered" pre-check) only recursed into CardEffect.OnSuccess, never
-    ///     CardEffect.Alternative - so even TargetNeutralTroopOnly/IgnoresPresenceRequirement
-    ///     were invisible to that pre-check regardless of bug 1, because the Supplant
-    ///     CardEffect lives under GainResource.Alternative, not .OnSuccess - FIXED,
-    ///     FindFirstEffect now recurses into .Alternative too.
-    ///
-    /// The third is now also FIXED, and was a DIFFERENT bug than the DeployUnit-had-no-handler
-    /// issue CrushingWaveCultist/Olhydra had (that one was fixed by switching those cards'
-    /// JSON to GainResource):
-    ///  3. Accepting the OPTIONAL "Deploy 4 troops" branch used to strand an unresolved effect
-    ///     on ActionSystem.ExecutionStack forever - ActionExecutionEngine.HandleOptionalEffectAccepted
-    ///     only called ResolveCurrentEffect for EffectType.Devour, and GainResource is a
-    ///     non-targeting effect so no subsequent click ever resolved it either (same root
-    ///     cause as Kobold's former accept-path bug - see KoboldScenarioTests' class doc
-    ///     comment). FIXED: HandleOptionalEffectAccepted now applies+resolves any accepted
-    ///     optional non-targeting effect immediately, not just Devour.
+    /// Exercises three things together that no other single card's test matrix covers at once:
+    /// IgnoresPresenceRequirement flowing all the way from JSON through
+    /// CardFactory.ParseOptionalFlags to the runtime CardEffect (same as Ogre Zombie);
+    /// SupplantStrategy.FindFirstEffect recursing into CardEffect.Alternative (this card's
+    /// Supplant lives under GainResource.Alternative, not .OnSuccess); and accepting the
+    /// optional "Deploy 4 troops" branch resolving immediately via
+    /// ActionExecutionEngine.HandleOptionalEffectAccepted's generic non-targeting-effect
+    /// fallback, rather than stranding an unresolved effect on ActionSystem.ExecutionStack.
     /// </summary>
     [TestClass]
     [TestCategory("Integration")]
@@ -79,9 +65,9 @@ namespace ChaosWarlords.Tests.Source.Functional
             Assert.IsEmpty(scenario.Context.ActionSystem.ExecutionStack, "No leftover effects should ambush the next card played.");
         }
 
-        // --- Row 2 (decline direction), the HEADLINE new behavior - previously blocked by the
-        // now-FIXED IgnoresPresenceRequirement JSON plumbing + FindFirstEffect.Alternative
-        // pre-check bugs (see class doc comment). ---
+        // --- Row 2 (decline direction): proves IgnoresPresenceRequirement actually lets a
+        // zero-Presence Neutral troop count as a valid Supplant target for this card's
+        // Alternative (see class doc comment). ---
 
         [TestMethod]
         public void PlayMasterOfMeleeMagthere_DeclineTheOptionalDeploy_SupplantsANeutralTroopWithNoPresenceAnywhereNearby()
@@ -105,20 +91,17 @@ namespace ChaosWarlords.Tests.Source.Functional
             Assert.AreEqual(1, red.TrophyHall);
         }
 
-        // --- Row 2 (accept direction): the optional Deploy branch now applies+resolves
-        // immediately - see class doc comment, bug 3 (FIXED). This was the same root cause as
-        // Kobold's former accept-path bug - ActionExecutionEngine.HandleOptionalEffectAccepted
-        // now has a generic fallback for any accepted optional non-targeting effect, not just
-        // Devour. ---
+        // --- Row 2 (accept direction): the optional Deploy branch applies+resolves
+        // immediately - see class doc comment. ---
 
         [TestMethod]
         public void PlayMasterOfMeleeMagthere_AcceptTheOptionalDeploy_CreditsPendingFreeTroopsAndResolvesTheStack()
         {
-            // FIXED: accepting the optional GainResource(Troops) now credits PendingFreeTroops
-            // and resolves the pushed EffectContext - ActionExecutionEngine.HandleOptionalEffectAccepted
+            // Accepting the optional GainResource(Troops) credits PendingFreeTroops and resolves
+            // the pushed EffectContext - ActionExecutionEngine.HandleOptionalEffectAccepted
             // applies the effect and calls ResolveCurrentEffect(true) for any accepted optional
-            // non-targeting effect (not just Devour), so the stack no longer strands an
-            // unresolved effect (same fix as Kobold's former accept-path bug).
+            // non-targeting effect, not just Devour, so the stack doesn't strand an unresolved
+            // effect.
             var scenario = MatchScenario.Build();
             var (red, neutralTarget) = SetupRedWithAdjacentTroop(scenario, PlayerColor.Neutral);
             int barracksBefore = red.TroopsInBarracks;

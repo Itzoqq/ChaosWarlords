@@ -100,6 +100,21 @@ namespace ChaosWarlords.Tests.Source.Entities
         }
 
         [TestMethod]
+        public void Clone_EffectHasIgnoresPresenceRequirement_PreservesIgnoresPresenceRequirement()
+        {
+            // Arrange
+            _card.AddEffect(new CardEffect(EffectType.Supplant, 1) { IgnoresPresenceRequirement = true });
+
+            // Act
+            var clone = _card.Clone();
+
+            // Assert
+            Assert.AreNotSame(_card, clone, "Clone should be a new instance.");
+            Assert.HasCount(1, clone.Effects);
+            Assert.IsTrue(clone.Effects[0].IgnoresPresenceRequirement, "Clone must preserve IgnoresPresenceRequirement.");
+        }
+
+        [TestMethod]
         public void Constructor_AllowsNegativeValues()
         {
             // Scenario: A "Cursed" card that subtracts VP
