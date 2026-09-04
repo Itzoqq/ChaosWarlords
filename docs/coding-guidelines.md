@@ -819,3 +819,32 @@ var card = CurrentPlayer.PlayedCards.FirstOrDefault(c => c.RuntimeId == cardRunt
 
 See `ActionSystem.CancelTargeting`/`TryRestoreCardToHand` for the real fix, and
 `Card.RuntimeId`'s own doc comment for why it - and not `Id` - is stable across a restore.
+
+---
+
+## 23. Comment Hygiene: Explain Current Behavior, Not History
+
+**Rule**: Code comments and doc comments explain what the code does and why it's built this way *right now*. They are not a changelog - don't narrate previous versions, which commit/session/review found a bug, or phrases like "as of 2026-XX," "this used to X," "previously Y," "shipped as a bug and was fixed."
+
+**Why**: A comment that reads like a diary of the code's history goes stale the moment the next change lands (nobody reliably updates or deletes it), and it makes the file harder to read for someone who just needs to know what the code does *today*. That history already has a real, permanent home - commit messages (the full "why did this change" story, permanently in `git log -p`) and `RESOLVED.txt` (the terse "what got fixed, which commit" ledger). Comments duplicating either of those just rot in place.
+
+```csharp
+// ❌ WRONG: narrates history instead of explaining current behavior
+// (as of 2026-09-04) Fixed a bug where this used to strand the ExecutionStack -
+// see RESOLVED.txt [a5e5d42] for the full investigation. Previously this only
+// handled EffectType.Devour on accept; now it also handles non-targeting effects.
+private void HandleOptionalEffectAccepted(EffectContext effect) { ... }
+
+// ✅ CORRECT: explains what the code does and why, nothing else
+// Devour resolves via its own strategy (see below); any other non-targeting
+// optional effect is applied and the stack resolved immediately on accept -
+// a targeting effect instead waits for the eventual click to resolve it.
+private void HandleOptionalEffectAccepted(EffectContext effect) { ... }
+```
+
+**What's still fine to keep** (this rule targets *narration*, not all context):
+- Explaining *why* a non-obvious design choice exists, when the "why" is still true today (e.g. Rule #22 above - "keyed on `RuntimeId`, not `Id`, because `CardFactory` regenerates `Id` on every restore-rebuild" is present-tense reasoning about current behavior, not a history lesson).
+- A pointer to a *related*, still-relevant doc/skill (`planning.txt`, the `tyrants-rules` skill) when the reader genuinely needs it to understand a constraint - not as a changelog citation.
+- A short "not obvious, don't 'simplify' this" warning for a real footgun, stated as a present-tense fact about the code, not a story about who found it or when.
+
+**Where history actually belongs**: the commit message and `RESOLVED.txt`'s one-line-plus-commit-hash ledger. Neither needs a mirror copy living in the source file.
