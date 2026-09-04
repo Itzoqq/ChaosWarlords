@@ -79,9 +79,11 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         void RemoveSpies(Player player, int amount);
 
         /// <summary>
-        /// Awards a generic trophy to the player (unused placeholder).
+        /// Adds one troop to the player's trophy hall (1 VP each at final scoring) - called by
+        /// CombatResolver on both a successful Assassinate and the assassinate half of a
+        /// successful Supplant.
         /// </summary>
-        /// <param name="player">The target player.</param>
+        /// <param name="player">The player whose trophy hall receives the troop.</param>
         void AddTrophy(Player player);
 
         // --- Card Management ---

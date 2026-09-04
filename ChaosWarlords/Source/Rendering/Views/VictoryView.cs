@@ -21,25 +21,6 @@ namespace ChaosWarlords.Source.Rendering.Views
         public Rectangle MainMenuButtonRect { get; private set; }
         public bool IsMainMenuHovered { get; set; }
 
-        public VictoryView(GraphicsDevice graphicsDevice, IButtonManager buttonManager, VictoryDto victoryData, IGameLogger logger)
-        {
-            _buttonManager = buttonManager ?? throw new ArgumentNullException(nameof(buttonManager));
-            _victoryData = victoryData ?? throw new ArgumentNullException(nameof(victoryData));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
-            // Initialize Renderer
-            // NOTE: In a real DI container this would be injected, but we are manually composing for now.
-            // We reuse UIRenderer logic but need to handle its requirements.
-            // Currently manual composition with dummy fonts if not provided (see second ctor).
-            // However, UIRenderer ctor requires valid fonts.
-            // This ctor is potentially unsafe if called without content.
-            // We should probably remove it or ensure it fails explicitly if called?
-            // Or assume default fonts? Can't assume without Content.
-            // Unused constructor for now - unsafe
-            _uiRenderer = null!;
-        }
-
-        // Revised Constructor with Content
         public VictoryView(GraphicsDevice graphicsDevice, Microsoft.Xna.Framework.Content.ContentManager content, IButtonManager buttonManager, VictoryDto victoryData, IGameLogger logger)
         {
             _buttonManager = buttonManager;

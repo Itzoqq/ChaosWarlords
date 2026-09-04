@@ -206,16 +206,6 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
         }
 
-        // REFACTOR: ApplyEffect needs to handle the recursion for Instant effects too? 
-        // Or should each ApplyX method handle it? 
-        // Better: ApplyEffect handles it via "OnActionCompleted" event? No, avoiding event spaghetti.
-        // Simple synchronous chaining for instant effects. Callback chaining for async (Targeting) effects.
-
-        // Let's stick to the user request: Devour -> Supplant. Devour is async.
-        // Valid handling for ApplyDevour above. 
-        // For simple effects, we might need a general handling.
-
-
         private static void ApplyDrawCard(CardEffect effect, MatchContext context)
         {
             context.PlayerStateManager.DrawCards(context.ActivePlayer, effect.Amount, context.Random);
