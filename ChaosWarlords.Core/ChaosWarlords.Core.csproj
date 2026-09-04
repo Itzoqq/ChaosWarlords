@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AnalysisMode>Recommended</AnalysisMode>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RootNamespace>ChaosWarlords</RootNamespace>
     <!--
       No MonoGame package references here, deliberately. This project holds the
