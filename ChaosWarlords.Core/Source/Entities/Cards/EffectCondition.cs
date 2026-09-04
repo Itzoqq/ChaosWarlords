@@ -56,10 +56,20 @@ namespace ChaosWarlords.Source.Entities.Cards
 
             return PresenceType switch
             {
-                SitePresenceType.Spy => site.Spies.Any(color => color != PlayerColor.None && color != PlayerColor.Neutral && color != player.Color),
-                SitePresenceType.Troop => site.NodesInternal.Any(node => node.Occupant != PlayerColor.None && node.Occupant != PlayerColor.Neutral && node.Occupant != player.Color),
+                SitePresenceType.Spy => site.Spies.Any(color => IsOpponentColor(color, player)),
+                SitePresenceType.Troop => site.NodesInternal.Any(node => IsOpponentColor(node.Occupant, player)),
                 _ => false
             };
+        }
+
+        /// <summary>
+        /// True when <paramref name="color"/> belongs to a real opponent of
+        /// <paramref name="player"/> - neither empty, Neutral (white/unaligned troops belong to
+        /// no player), nor the player's own color.
+        /// </summary>
+        private static bool IsOpponentColor(PlayerColor color, Player player)
+        {
+            return color != PlayerColor.None && color != PlayerColor.Neutral && color != player.Color;
         }
 
         private static bool EvaluateControlsSite(MatchContext context, Player player)

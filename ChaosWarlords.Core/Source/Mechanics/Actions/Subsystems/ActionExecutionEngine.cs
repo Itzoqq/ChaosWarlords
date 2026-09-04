@@ -278,29 +278,44 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
         {
             _logger.Log($"ActionExecutionEngine: Optional effect {effect.SourceEffect?.Type} accepted.", LogChannel.Input);
 
-            // User accepted - NOW we set the state to Targeting (if applicable)
-            if (_actionSystem.CurrentState == ActionState.Normal && effect.EffectType != ActionState.Normal)
-            {
-                _actionSystem.EnterTargetingState(effect.EffectType);
-                _logger.Log($"ActionExecutionEngine: [PROCESS] Optional Accepted -> State set to: {_actionSystem.CurrentState}", LogChannel.Debug);
-            }
+            EnterTargetingStateIfNeeded(effect);
 
-            // User accepted - execute the effect
             if (effect.SourceEffect?.Type == EffectType.Devour)
             {
-                var strategy = Mechanics.Rules.DevourStrategyFactory.GetStrategy(effect.SourceEffect.TargetLocation);
-                strategy.Execute(effect.SourceCard, _matchContext!, _logger, () => ResolveCurrentEffect(true), false);
+                ExecuteAcceptedDevour(effect);
+                return;
             }
-            else if (effect.SourceEffect != null && _matchContext != null
-                && !_matchContext.CardRuleEngine.GetStrategy(effect.SourceEffect.Type).IsTargetingEffect)
+
+            if (IsAcceptedNonTargetingEffect(effect))
             {
                 // Non-targeting optional effect (e.g. GainResource) - no click will ever arrive
                 // to resolve it, so apply and resolve the stack immediately, same as
                 // ProcessAutomaticEffect does for the unconditional case.
-                Mechanics.Rules.CardEffectProcessor.ApplyEffect(effect.SourceEffect, effect.SourceCard, _matchContext, _logger);
+                Mechanics.Rules.CardEffectProcessor.ApplyEffect(effect.SourceEffect!, effect.SourceCard, _matchContext!, _logger);
                 ResolveCurrentEffect(true);
             }
             // For other optional effects that ARE targeting effects, continue to normal targeting flow
+        }
+
+        /// <summary>User accepted - set state to Targeting, if this effect actually needs it.</summary>
+        private void EnterTargetingStateIfNeeded(Core.Contexts.EffectContext effect)
+        {
+            if (_actionSystem.CurrentState != ActionState.Normal || effect.EffectType == ActionState.Normal) return;
+
+            _actionSystem.EnterTargetingState(effect.EffectType);
+            _logger.Log($"ActionExecutionEngine: [PROCESS] Optional Accepted -> State set to: {_actionSystem.CurrentState}", LogChannel.Debug);
+        }
+
+        private void ExecuteAcceptedDevour(Core.Contexts.EffectContext effect)
+        {
+            var strategy = Mechanics.Rules.DevourStrategyFactory.GetStrategy(effect.SourceEffect!.TargetLocation);
+            strategy.Execute(effect.SourceCard, _matchContext!, _logger, () => ResolveCurrentEffect(true), false);
+        }
+
+        private bool IsAcceptedNonTargetingEffect(Core.Contexts.EffectContext effect)
+        {
+            return effect.SourceEffect != null && _matchContext != null
+                && !_matchContext.CardRuleEngine.GetStrategy(effect.SourceEffect.Type).IsTargetingEffect;
         }
 
         /// <summary>

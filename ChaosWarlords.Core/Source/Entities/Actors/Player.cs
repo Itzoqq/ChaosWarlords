@@ -229,54 +229,18 @@ namespace ChaosWarlords.Source.Entities.Actors
         /// <returns>True if promotion succeeded, false otherwise.</returns>
         internal bool TryPromoteCard(Card card, out string errorMessage)
         {
-            // Guard clause: null check
             if (card is null)
             {
                 errorMessage = "Card cannot be null";
                 return false;
             }
 
-            // Try to remove from Hand first, then PlayedCards, then the discard pile.
-            // Key Fix: Use RuntimeId to ensure we remove the EXACT instance requested
-            // Use RemoveAll with count check or Find + Remove
-
-            // Check Hand
-            var handMatch = Hand.FirstOrDefault(c => c.RuntimeId == card.RuntimeId);
-            bool removed = false;
-            if (handMatch != null)
+            if (!TryRemoveFromHandPlayedOrDiscard(card.RuntimeId))
             {
-                removed = _hand.Remove(handMatch);
-            }
-
-            // Check PlayedCards if not found in Hand
-            if (!removed)
-            {
-                var playedMatch = PlayedCards.FirstOrDefault(c => c.RuntimeId == card.RuntimeId);
-                if (playedMatch != null)
-                {
-                    removed = _playedCards.Remove(playedMatch);
-                }
-            }
-
-            // Check the discard pile if not found in Hand or PlayedCards
-            if (!removed)
-            {
-                var discardMatch = DiscardPile.FirstOrDefault(c => c.RuntimeId == card.RuntimeId);
-                if (discardMatch != null)
-                {
-                    removed = _deckManager.RemoveFromDiscard(discardMatch);
-                }
-            }
-
-            // Guard clause: card not found
-            if (!removed)
-            {
-                // Card not found in Hand, Played, or the discard pile
                 errorMessage = $"Card '{card.Name}' (ID: {card.RuntimeId}) not found in Hand, Played, or Discard area";
                 return false;
             }
 
-            // Success path
             if (card.RedirectsToSupplyOnDevourOrPromote)
             {
                 // e.g. Insane Outcast: "If [this] would be devoured or promoted, return it to
@@ -290,6 +254,25 @@ namespace ChaosWarlords.Source.Entities.Actors
             }
             errorMessage = string.Empty;
             return true;
+        }
+
+        /// <summary>
+        /// Removes the card matching <paramref name="runtimeId"/> from whichever of Hand,
+        /// PlayedCards, or the discard pile currently holds it (checked in that order - the
+        /// discard-pile search exists for EffectType.PromoteFromPile, see TryPromoteCard's own
+        /// doc comment). Returns false if none of the three piles holds a match.
+        /// </summary>
+        private bool TryRemoveFromHandPlayedOrDiscard(Guid runtimeId)
+        {
+            return TryRemoveMatch(Hand, runtimeId, _hand.Remove)
+                || TryRemoveMatch(PlayedCards, runtimeId, _playedCards.Remove)
+                || TryRemoveMatch(DiscardPile, runtimeId, _deckManager.RemoveFromDiscard);
+        }
+
+        private static bool TryRemoveMatch(IEnumerable<Card> pile, Guid runtimeId, Func<Card, bool> remove)
+        {
+            var match = pile.FirstOrDefault(c => c.RuntimeId == runtimeId);
+            return match != null && remove(match);
         }
 
         internal void CleanUpTurn()
