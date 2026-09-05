@@ -1,6 +1,7 @@
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Core.Data.Dtos;
 using ChaosWarlords.Source.Core.Interfaces.Data;
+using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Utilities;
 using ChaosWarlords.Source.Entities.Actors;
@@ -10,6 +11,7 @@ using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Tests.Utilities;
 using NSubstitute;
+using System.Reflection;
 
 namespace ChaosWarlords.Tests.Source.Managers
 {
@@ -271,6 +273,135 @@ namespace ChaosWarlords.Tests.Source.Managers
             Assert.AreEqual(ActionState.TargetingAssassinate, _context.ActionSystem.CurrentState);
             Assert.AreEqual("wight", _context.ActionSystem.PendingCard?.Id);
             Assert.AreEqual("victim", _context.ActionSystem.PendingDevourCard?.Id);
+        }
+
+        // --- Reflection-based completeness checks (docs/coding-guidelines.md Rule #24) -
+        // cover every CURRENT and FUTURE IActionSystem.Pending* property automatically, instead
+        // of relying on someone remembering to hand-write a test (like the ones above) for the
+        // next one. This is the exact shape that shipped as a real bug for
+        // PlayerDto.PendingFreeTroops (see the tyrants-rules skill's bug-log.md) - a field
+        // silently dropped by a restore path, only surfacing later in an unrelated code path. ---
+
+        /// <summary>
+        /// A Pending* field this project has deliberately decided should NOT be reset by
+        /// ClearState() - see ActionSystem.ClearState's own doc comment (PendingDevourCard
+        /// survives across a chained Devour -> Assassinate/Supplant transaction, e.g. Wight).
+        /// An explicit, documented exception here rather than the completeness test below
+        /// silently skipping it.
+        /// </summary>
+        private static readonly HashSet<string> PendingPropertiesNotClearedByDesign = new()
+        {
+            nameof(IActionSystem.PendingDevourCard)
+        };
+
+        [TestMethod]
+        public void EveryPendingProperty_OnIActionSystem_RoundTripsThroughGameStateDtoAndStateRestorer()
+        {
+            var (pendingProperties, sentinels) = SetAllPendingPropertiesToSentinels();
+
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+
+            // Reset to a blank slate BEFORE restoring, so a field that didn't actually round-trip
+            // shows up as null/default rather than coincidentally still holding its pre-reset value.
+            _context.ActionSystem.RestorePendingState(ActionState.Normal, null, null, null, null, null);
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            foreach (var prop in pendingProperties)
+            {
+                var actual = prop.GetValue(_context.ActionSystem);
+                Assert.AreEqual(sentinels[prop.Name], actual,
+                    $"IActionSystem.{prop.Name} did not survive a GameStateDto round-trip via " +
+                    "StateRestorer.RestoreState - it's missing from GameStateDto/DtoMapper." +
+                    "ToGameStateDto/StateRestorer.RestoreState (see docs/coding-guidelines.md Rule #24).");
+            }
+        }
+
+        [TestMethod]
+        public void EveryPendingProperty_ExceptDocumentedExceptions_IsResetByClearState()
+        {
+            var (pendingProperties, _) = SetAllPendingPropertiesToSentinels();
+
+            // ClearState() is private - invoked via reflection rather than coupling this test to
+            // whichever public entry point happens to call it today (CompleteAction's no-stack
+            // fallback, ResetTargetingToNormal, and CancelTargeting's no-snapshot fallback all do).
+            var clearState = typeof(ActionSystem).GetMethod("ClearState", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new InvalidOperationException("ActionSystem.ClearState not found by reflection - has it been renamed?");
+            clearState.Invoke(_context.ActionSystem, null);
+
+            foreach (var prop in pendingProperties)
+            {
+                if (PendingPropertiesNotClearedByDesign.Contains(prop.Name)) continue;
+
+                var actual = prop.GetValue(_context.ActionSystem);
+                Assert.IsNull(actual,
+                    $"IActionSystem.{prop.Name} must be reset by ActionSystem.ClearState() - it's " +
+                    $"still {actual} afterward. If this is deliberate (like PendingDevourCard), add " +
+                    $"it to {nameof(PendingPropertiesNotClearedByDesign)} with a comment explaining " +
+                    "why (see docs/coding-guidelines.md Rule #24).");
+            }
+        }
+
+        /// <summary>
+        /// Shared setup for both completeness tests above: reflects over every IActionSystem
+        /// property named "PendingX", maps it to RestorePendingState's "pendingX" parameter
+        /// (failing loudly if a future Pending* property has no such parameter, or no sentinel
+        /// registered below for it - see Rule #24), and calls RestorePendingState once with a
+        /// sentinel value - distinguishable from null/default - for every one of them. Returns
+        /// the discovered properties plus the sentinel actually used for each (keyed by property
+        /// name), so callers can assert against them after the operation under test.
+        /// </summary>
+        private (List<PropertyInfo> Properties, Dictionary<string, object?> Sentinels) SetAllPendingPropertiesToSentinels()
+        {
+            var site = new NonCitySite("Sentinel Site", ResourceType.Power, 0, ResourceType.Power, 0) { Id = 7 };
+            _mapManager.Sites.Returns(new List<Site> { site });
+            var pendingCardSentinel = RegisterCard("pending_card_sentinel");
+            var pendingDevourCardSentinel = RegisterCard("pending_devour_card_sentinel");
+
+            var sentinelsByParameterName = new Dictionary<string, object?>
+            {
+                ["pendingCard"] = pendingCardSentinel,
+                ["pendingSite"] = site,
+                ["pendingMoveSource"] = _node,
+                ["pendingDevourCard"] = pendingDevourCardSentinel,
+                ["pendingAffectedPlayerColor"] = PlayerColor.Blue,
+            };
+
+            var restoreMethod = typeof(IActionSystem).GetMethod(nameof(IActionSystem.RestorePendingState))
+                ?? throw new InvalidOperationException("IActionSystem.RestorePendingState not found by reflection.");
+            var parameters = restoreMethod.GetParameters();
+
+            var pendingProperties = typeof(IActionSystem).GetProperties()
+                .Where(p => p.Name.StartsWith("Pending", StringComparison.Ordinal))
+                .ToList();
+            Assert.IsNotEmpty(pendingProperties, "Sanity check: IActionSystem should have at least one Pending* property.");
+
+            var args = new object?[parameters.Length];
+            args[0] = ActionState.TargetingAssassinate; // 'state' - any non-Normal value.
+
+            var sentinelsByPropertyName = new Dictionary<string, object?>();
+            foreach (var prop in pendingProperties)
+            {
+                string expectedParamName = char.ToLowerInvariant(prop.Name[0]) + prop.Name.Substring(1);
+                int paramIndex = Array.FindIndex(parameters, p => p.Name == expectedParamName);
+                Assert.AreNotEqual(-1, paramIndex,
+                    $"IActionSystem.{prop.Name} has no matching '{expectedParamName}' parameter on " +
+                    "RestorePendingState - a new Pending* property must be threaded through it (see " +
+                    "docs/coding-guidelines.md Rule #24).");
+
+                Assert.IsTrue(sentinelsByParameterName.ContainsKey(expectedParamName),
+                    "No sentinel value registered in SetAllPendingPropertiesToSentinels for " +
+                    $"'{expectedParamName}' (IActionSystem.{prop.Name}) - add one so these " +
+                    "completeness tests can actually exercise the new field.");
+
+                object? sentinel = sentinelsByParameterName[expectedParamName];
+                args[paramIndex] = sentinel;
+                sentinelsByPropertyName[prop.Name] = sentinel;
+            }
+
+            restoreMethod.Invoke(_context.ActionSystem, args);
+
+            return (pendingProperties, sentinelsByPropertyName);
         }
 
         [TestMethod]
