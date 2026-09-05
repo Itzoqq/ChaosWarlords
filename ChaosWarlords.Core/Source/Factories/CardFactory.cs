@@ -57,7 +57,32 @@ namespace ChaosWarlords.Source.Utilities
                     }
                 }
             }
+
+            ParseReactiveDiscardEffect(data, card, logger);
+
             return card;
+        }
+
+        private static void ParseReactiveDiscardEffect(CardData data, Card card, IGameLogger? logger)
+        {
+            if (data.ReactiveDiscardEffect is null)
+            {
+                return;
+            }
+
+            card.ReactiveDiscardEffect = CreateEffect(data.ReactiveDiscardEffect, logger);
+
+            // DiscardCardCommand applies this via a bare CardEffectProcessor.ApplyEffect call
+            // with no follow-up ResolveCurrentEffect - unlike every other ApplyEffect call site,
+            // nothing ever pushes OnSuccess/Alternative onto ExecutionStack for it. A card whose
+            // ReactiveDiscardEffect chains would silently drop that chain in play instead of
+            // erroring - warn loudly at load time instead, so this is caught before a card
+            // ships, not discovered as "this card underperforms."
+            bool hasUnsupportedChain = card.ReactiveDiscardEffect?.OnSuccess != null || card.ReactiveDiscardEffect?.Alternative != null;
+            if (hasUnsupportedChain)
+            {
+                logger?.Log($"[CardFactory] {data.Id}: ReactiveDiscardEffect has an OnSuccess/Alternative chain, which DiscardCardCommand does not resolve - it will be silently dropped in play. Not supported yet.", LogChannel.Warning);
+            }
         }
 
         private static CardEffect? CreateEffect(CardEffectData data, IGameLogger? logger)

@@ -586,5 +586,23 @@
         "DynamicAmountDivisor": 2
       }
     ]
+  },
+  {
+    "Id": "grimlock",
+    "Cost": 1,
+    "Aspect": "Warlord",
+    "DeckVP": 0,
+    "InnerCircleVP": 1,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 1,
+        "TargetResource": "Troops"
+      }
+    ],
+    "ReactiveDiscardEffect": {
+      "Type": "DrawCard",
+      "Amount": 2
+    }
   }
 ]

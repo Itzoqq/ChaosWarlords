@@ -20,6 +20,9 @@ namespace ChaosWarlords.Source.Utilities
         public int InnerCircleVP { get; set; }
         public bool RedirectsToSupplyOnDevourOrPromote { get; set; }
         public required List<CardEffectData> Effects { get; set; }
+
+        // "If an opponent causes you to discard this, [effect]" - see Card.ReactiveDiscardEffect.
+        public CardEffectData? ReactiveDiscardEffect { get; set; }
     }
 
     [ExcludeFromCodeCoverage]

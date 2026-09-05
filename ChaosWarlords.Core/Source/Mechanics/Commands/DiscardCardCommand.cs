@@ -61,8 +61,29 @@ namespace ChaosWarlords.Source.Commands
                 return;
             }
 
+            // "An opponent's effect caused this discard" (as opposed to the card's own owner
+            // choosing to discard it, e.g. Insane Outcast's own-hand cost) - the same
+            // distinction ReactiveDiscardEffect's card text keys off (e.g. Grimlock: "If an
+            // opponent causes you to discard this, draw 2 cards"). ForcedActingPlayer being
+            // set to THIS discarding player is the correct, general signal for that - true for
+            // BOTH of the two independent ways a shipped card can force someone else to
+            // discard: Neogi's cross-player queue (MatchManager.AdvanceOpponentDiscard calls
+            // BeginForcedActingPlayer directly, no ExecutionStack involved) and Cranium Rats'
+            // SelectOpponent -> OnSuccess: DiscardCard chain (BeginForcedActingPlayer via
+            // SelectOpponentCommand, released later by ActionSystem's own ClearState() once the
+            // chain resolves - see ReleaseForcedActingPlayerIfOwnedByExecutionStack). Checking
+            // MatchManager.IsResolvingOpponentDiscard alone only covers the Neogi case and
+            // silently misses Cranium Rats forcing a discard of a ReactiveDiscardEffect card -
+            // read before either branch below can release it.
+            bool forcedByOpponent = context.TurnManager.ForcedActingPlayer == player;
+
             context.PlayerStateManager.DiscardCard(player, card);
             context.RecordAction("DiscardCard", $"{player.DisplayName} discarded {card.Name}.");
+
+            if (forcedByOpponent && card.ReactiveDiscardEffect != null)
+            {
+                Mechanics.Rules.CardEffectProcessor.ApplyEffect(card.ReactiveDiscardEffect, card, context, context.Logger);
+            }
 
             if (context.MatchManager.IsResolvingOpponentDiscard)
             {
@@ -78,14 +99,15 @@ namespace ChaosWarlords.Source.Commands
             else
             {
                 // Normal chain-continuation path (e.g. Insane Outcast's own "discard -> devour
-                // self" chain) - the DiscardCard EffectContext is genuinely sitting on
-                // ExecutionStack, so CompleteAction() resolves it and pushes its OnSuccess.
-                // If this discard was part of a forced-actor mid-turn chain (e.g. Cranium Rats'
-                // chosen opponent) and the whole chain has now fully resolved back to Normal,
-                // ActionSystem's own ClearState()-driven release (see
-                // ReleaseForcedActingPlayerIfOwnedByExecutionStack) reverts ActivePlayer to the
-                // real active player - generically, for any OnSuccess shape a future
-                // SelectOpponent-based card might chain into, not just this one.
+                // self" chain, or Cranium Rats' SelectOpponent -> DiscardCard chain) - the
+                // DiscardCard EffectContext is genuinely sitting on ExecutionStack, so
+                // CompleteAction() resolves it and pushes its OnSuccess. If this discard was
+                // part of a forced-actor mid-turn chain (e.g. Cranium Rats' chosen opponent)
+                // and the whole chain has now fully resolved back to Normal, ActionSystem's own
+                // ClearState()-driven release (see ReleaseForcedActingPlayerIfOwnedByExecutionStack)
+                // reverts ActivePlayer to the real active player - generically, for any
+                // OnSuccess shape a future SelectOpponent-based card might chain into, not just
+                // this one.
                 context.ActionSystem.CompleteAction();
             }
         }

@@ -64,5 +64,7 @@
   "deathblade_name": "Deathblade",
   "deathblade_description": "Assassinate 2 troops.",
   "white_dragon_name": "White Dragon",
-  "white_dragon_description": "Deploy 3 troops. Gain 1 VP for every 2 sites you control."
+  "white_dragon_description": "Deploy 3 troops. Gain 1 VP for every 2 sites you control.",
+  "grimlock_name": "Grimlock",
+  "grimlock_description": "Deploy a troop. If an opponent causes you to discard this, draw 2 cards."
 }

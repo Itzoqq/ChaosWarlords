@@ -91,6 +91,20 @@ namespace ChaosWarlords.Source.Entities.Cards
         /// </summary>
         public bool RedirectsToSupplyOnDevourOrPromote { get; set; }
 
+        /// <summary>
+        /// "If an opponent causes you to discard this, [effect]" (e.g. Grimlock: draw 2 cards).
+        /// Null for every card without this text (the overwhelming majority). Applied by
+        /// DiscardCardCommand.Execute when this specific card is discarded while
+        /// TurnManager.ForcedActingPlayer is the discarding player - true for both of the two
+        /// independent ways a shipped card can force someone else to discard (Neogi's
+        /// cross-player queue, Cranium Rats' SelectOpponent chain), and correctly false for the
+        /// card's own owner choosing to discard it (e.g. Insane Outcast's own-hand-discard
+        /// cost), which never triggers this. Independent of Effects (the card's own
+        /// played-effects list) - this fires later, whenever this card happens to be sitting in
+        /// Hand at the moment it's force-discarded, not when played.
+        /// </summary>
+        public CardEffect? ReactiveDiscardEffect { get; set; }
+
         // Constants moved to GameConstants.CardRendering for centralization
         public static int Width => GameConstants.CardRendering.CardWidth;
         public static int Height => GameConstants.CardRendering.CardHeight;
@@ -130,6 +144,11 @@ namespace ChaosWarlords.Source.Entities.Cards
             foreach (var effect in Effects)
             {
                 newCard.Effects.Add(CloneEffect(effect));
+            }
+
+            if (ReactiveDiscardEffect != null)
+            {
+                newCard.ReactiveDiscardEffect = CloneEffect(ReactiveDiscardEffect);
             }
 
             return newCard;
