@@ -62,5 +62,7 @@
   "olhydra_name": "Olhydra",
   "olhydra_description": "Supplant a white troop anywhere on the board. Focus - Deploy 2 troops.",
   "deathblade_name": "Deathblade",
-  "deathblade_description": "Assassinate 2 troops."
+  "deathblade_description": "Assassinate 2 troops.",
+  "white_dragon_name": "White Dragon",
+  "white_dragon_description": "Deploy 3 troops. Gain 1 VP for every 2 sites you control."
 }

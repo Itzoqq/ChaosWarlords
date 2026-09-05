@@ -193,18 +193,54 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             ApplyDevour(effect, sourceCard, context, logger, onSuccess, deferExecution);
         }
 
+        /// <summary>
+        /// Returns effect.Amount unchanged for every effect (DynamicAmountSource.None, the
+        /// default) - this is a no-op for every card that predates the dynamic-amount
+        /// primitive. Otherwise computes the amount fresh from live game state at resolution
+        /// time (e.g. White Dragon: "Gain 1 VP for every 2 sites you control" - DynamicAmountDivisor
+        /// is the "every N" part, integer division/floor).
+        /// </summary>
+        private static int ResolveAmount(CardEffect effect, MatchContext context, IGameLogger logger)
+        {
+            if (effect.DynamicAmountSource == DynamicAmountSource.None)
+                return effect.Amount;
+
+            int count;
+            switch (effect.DynamicAmountSource)
+            {
+                case DynamicAmountSource.SitesControlled:
+                    count = context.MapManager.Sites.Count(s => s.Owner == context.ActivePlayer.Color);
+                    break;
+                default:
+                    // A new DynamicAmountSource enum value added without its matching case
+                    // here yet (e.g. mid-way through wiring up the next Dragon card) must not
+                    // silently resolve to a permanent, unexplained 0 - that's much harder to
+                    // spot than a loud warning in the log.
+                    logger.Log($"CardEffectProcessor.ResolveAmount: no case wired for DynamicAmountSource.{effect.DynamicAmountSource} - resolving to 0.", LogChannel.Warning);
+                    count = 0;
+                    break;
+            }
+
+            int divisor = Math.Max(1, effect.DynamicAmountDivisor);
+            return count / divisor;
+        }
+
         private static void ApplyGainResource(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
         {
+            int amount = ResolveAmount(effect, context, logger);
+
             if (effect.TargetResource == ResourceType.Power)
-                context.PlayerStateManager.AddPower(context.ActivePlayer, effect.Amount);
+                context.PlayerStateManager.AddPower(context.ActivePlayer, amount);
             else if (effect.TargetResource == ResourceType.Influence)
-                context.PlayerStateManager.AddInfluence(context.ActivePlayer, effect.Amount);
+                context.PlayerStateManager.AddInfluence(context.ActivePlayer, amount);
             else if (effect.TargetResource == ResourceType.Troops)
             {
                 // Troops from cards go to PendingFreeTroops (free deployments this turn)
-                context.ActivePlayer.PendingFreeTroops += effect.Amount;
-                logger.Log($"{sourceCard.Name}: Gained {effect.Amount} free troop deployment(s) this turn.", LogChannel.Info);
+                context.ActivePlayer.PendingFreeTroops += amount;
+                logger.Log($"{sourceCard.Name}: Gained {amount} free troop deployment(s) this turn.", LogChannel.Info);
             }
+            else if (effect.TargetResource == ResourceType.VictoryPoints)
+                context.PlayerStateManager.AddVictoryPoints(context.ActivePlayer, amount);
 
             // Auto-trigger recursive effects for instant actions
             // This is required for chains like GainResource -> GainResource where the second effect

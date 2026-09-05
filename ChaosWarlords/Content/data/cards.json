@@ -566,5 +566,25 @@
         "Amount": 2
       }
     ]
+  },
+  {
+    "Id": "white_dragon",
+    "Cost": 6,
+    "Aspect": "Warlord",
+    "DeckVP": 2,
+    "InnerCircleVP": 5,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 3,
+        "TargetResource": "Troops"
+      },
+      {
+        "Type": "GainResource",
+        "TargetResource": "VictoryPoints",
+        "DynamicAmountSource": "SitesControlled",
+        "DynamicAmountDivisor": 2
+      }
+    ]
   }
 ]

@@ -148,6 +148,8 @@ namespace ChaosWarlords.Source.Entities.Cards
                 ReplaceWithSource = effect.ReplaceWithSource,
                 TargetNeutralTroopOnly = effect.TargetNeutralTroopOnly,
                 IgnoresPresenceRequirement = effect.IgnoresPresenceRequirement,
+                DynamicAmountSource = effect.DynamicAmountSource,
+                DynamicAmountDivisor = effect.DynamicAmountDivisor,
                 Condition = effect.Condition // Reference copy for condition (usually shared/immutable)
             };
 

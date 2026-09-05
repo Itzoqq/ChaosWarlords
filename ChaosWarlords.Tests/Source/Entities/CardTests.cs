@@ -115,6 +115,26 @@ namespace ChaosWarlords.Tests.Source.Entities
         }
 
         [TestMethod]
+        public void Clone_EffectHasDynamicAmountSource_PreservesDynamicAmountSourceAndDivisor()
+        {
+            // Arrange
+            _card.AddEffect(new CardEffect(EffectType.GainResource, 0, ResourceType.VictoryPoints)
+            {
+                DynamicAmountSource = DynamicAmountSource.SitesControlled,
+                DynamicAmountDivisor = 2
+            });
+
+            // Act
+            var clone = _card.Clone();
+
+            // Assert
+            Assert.AreNotSame(_card, clone, "Clone should be a new instance.");
+            Assert.HasCount(1, clone.Effects);
+            Assert.AreEqual(DynamicAmountSource.SitesControlled, clone.Effects[0].DynamicAmountSource, "Clone must preserve DynamicAmountSource.");
+            Assert.AreEqual(2, clone.Effects[0].DynamicAmountDivisor, "Clone must preserve DynamicAmountDivisor.");
+        }
+
+        [TestMethod]
         public void Constructor_AllowsNegativeValues()
         {
             // Scenario: A "Cursed" card that subtracts VP

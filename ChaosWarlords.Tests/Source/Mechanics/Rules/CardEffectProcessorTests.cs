@@ -565,6 +565,29 @@ namespace ChaosWarlords.Tests.Source.Systems
             _context.ActionSystem.DidNotReceive().StartTargeting(Arg.Any<ActionState>(), Arg.Any<Card>());
         }
 
+        [TestMethod]
+        public void ApplyEffect_GainResource_UnwiredDynamicAmountSource_LogsWarningAndResolvesToZero()
+        {
+            // A DynamicAmountSource value with no matching case in
+            // CardEffectProcessor.ResolveAmount (simulated here via an out-of-range cast,
+            // standing in for "added to GameEnums.cs before its ResolveAmount arm exists yet")
+            // must not silently resolve to a permanent, unexplained 0 - it should log loudly so
+            // this is easy to spot instead of looking like a card that "does nothing".
+            var card = new Card("test-dynamic", "Test Dynamic", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.GainResource, 0, ResourceType.VictoryPoints)
+            {
+                DynamicAmountSource = (DynamicAmountSource)999
+            };
+            card.AddEffect(effect);
+
+            var mockLogger = Substitute.For<IGameLogger>();
+
+            CardEffectProcessor.ApplyEffect(effect, card, _context, mockLogger);
+
+            mockLogger.Received().Log(Arg.Is<string>(s => s.Contains("no case wired for DynamicAmountSource")), LogChannel.Warning);
+            Assert.AreEqual(0, _player.VictoryPoints, "An unwired dynamic amount source must resolve to 0, not throw or grant an arbitrary amount.");
+        }
+
         #endregion
     }
 }

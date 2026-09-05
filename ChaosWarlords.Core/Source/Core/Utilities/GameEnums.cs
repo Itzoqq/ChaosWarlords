@@ -134,6 +134,22 @@ namespace ChaosWarlords.Source.Utilities
         Troop
     }
 
+    /// <summary>
+    /// Where CardEffectProcessor.ResolveAmount computes an effect's actual amount from live
+    /// game state at resolution time, instead of using CardEffect.Amount as a fixed literal
+    /// (e.g. White Dragon: "Gain 1 VP for every 2 sites you control" - the real amount depends
+    /// on board state when the card resolves, not a number baked into cards.json). Defaults to
+    /// None, meaning "use CardEffect.Amount as-is" - every existing card is unaffected.
+    /// </summary>
+    public enum DynamicAmountSource
+    {
+        None = 0,
+        SitesControlled  // Count of Sites where Site.Owner == the active player's color
+                         // (White Dragon). Distinct from sites under TOTAL control or site
+                         // control MARKERS - see planning.txt for the other dynamic-amount
+                         // cards keying off those different counts, not yet wired.
+    }
+
     public enum PlayerColor
     {
         None = 0,       // Empty space

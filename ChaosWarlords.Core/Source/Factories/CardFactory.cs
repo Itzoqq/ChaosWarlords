@@ -70,6 +70,7 @@ namespace ChaosWarlords.Source.Utilities
             ParseRecursiveEffect(data, effect, logger);
             ParseCondition(data, effect);
             ParseOptionalFlags(data, effect);
+            ParseDynamicAmount(data, effect, logger);
 
             return effect;
         }
@@ -145,6 +146,23 @@ namespace ChaosWarlords.Source.Utilities
             effect.ReplaceWithSource = data.ReplaceWithSource;
             effect.TargetNeutralTroopOnly = data.TargetNeutralTroopOnly;
             effect.IgnoresPresenceRequirement = data.IgnoresPresenceRequirement;
+        }
+
+        private static void ParseDynamicAmount(CardEffectData data, CardEffect effect, IGameLogger? logger)
+        {
+            effect.DynamicAmountDivisor = data.DynamicAmountDivisor;
+
+            if (string.IsNullOrEmpty(data.DynamicAmountSource))
+                return;
+
+            if (Enum.TryParse(data.DynamicAmountSource, true, out DynamicAmountSource source))
+            {
+                effect.DynamicAmountSource = source;
+            }
+            else
+            {
+                logger?.Log($"[CardFactory] FAILED to parse DynamicAmountSource: {data.DynamicAmountSource}", LogChannel.Warning);
+            }
         }
     }
 }

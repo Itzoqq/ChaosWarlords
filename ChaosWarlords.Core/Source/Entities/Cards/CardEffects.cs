@@ -35,6 +35,16 @@ namespace ChaosWarlords.Source.Entities.Cards
         // the Supplant path - no shipped card needs this on plain Assassinate.
         public bool IgnoresPresenceRequirement { get; set; }
 
+        // "Gain 1 VP for every 2 sites you control" (White Dragon) - when set to anything but
+        // None, CardEffectProcessor.ResolveAmount computes the actual amount from live game
+        // state instead of using Amount as a fixed literal. DynamicAmountDivisor is the "every
+        // N" part (integer division, floor - 3 sites at divisor 2 is 1 VP, not 1.5); defaults to
+        // 1 (Amount == the raw count, no division) for a source like Green/Red Dragon's "for
+        // each" - not yet wired, since neither has a shipped card, but the field already
+        // supports that ratio once one is.
+        public DynamicAmountSource DynamicAmountSource { get; set; }
+        public int DynamicAmountDivisor { get; set; } = 1;
+
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {
             Type = type;

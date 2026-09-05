@@ -47,6 +47,10 @@ namespace ChaosWarlords.Source.Utilities
 
         // "Supplant even without Presence at the site" - see CardEffect.IgnoresPresenceRequirement.
         public bool IgnoresPresenceRequirement { get; set; }
+
+        // "Gain 1 VP for every 2 sites you control" - see CardEffect.DynamicAmountSource.
+        public string? DynamicAmountSource { get; set; }
+        public int DynamicAmountDivisor { get; set; } = 1;
     }
 
     public class CardDatabase : ICardDatabase
