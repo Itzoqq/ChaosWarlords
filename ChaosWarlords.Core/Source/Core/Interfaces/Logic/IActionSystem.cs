@@ -69,6 +69,20 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         MapNode? PendingMoveSource { get; }
 
         /// <summary>
+        /// The color of the player whose troop/spy was just removed by the most recently
+        /// resolved Assassinate/Supplant step (set in PerformAssassinate/PerformSupplant right
+        /// before the map mutation that would otherwise erase it), or null if no such step has
+        /// resolved yet this sequence. Outcome-dependent targeting's read side (e.g.
+        /// Mindwitness: "if that troop belonged to another player... they must discard a
+        /// card") - see CardEffect.TargetsAffectedPlayer and
+        /// CardEffectProcessor.PushEffectContext, which resolves this into the actual Player an
+        /// OnSuccess/Alternative chain step should target. Cleared by ClearState() alongside
+        /// PendingSite. Has full DTO/rollback support (GameStateDto.PendingAffectedPlayerColor,
+        /// DtoMapper, StateRestorer), matching PendingSite's pattern.
+        /// </summary>
+        PlayerColor? PendingAffectedPlayerColor { get; }
+
+        /// <summary>
         /// Initiates the Assassination action flow.
         /// </summary>
         void TryStartAssassinate();
@@ -313,7 +327,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// pre-command snapshot on rollback - not a general-purpose setter, and not something
         /// game logic outside StateRestorer should call. See GameStateDto.ActionSystemState.
         /// </summary>
-        void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard);
+        void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard, PlayerColor? pendingAffectedPlayerColor = null);
 
         // --- Engine-only methods (ActionExecutionEngine's exclusive callers) ---
         // Narrow, single-purpose targeting-state mutators that stack-processing needs to

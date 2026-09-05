@@ -169,6 +169,7 @@ namespace ChaosWarlords.Source.Entities.Cards
                 IgnoresPresenceRequirement = effect.IgnoresPresenceRequirement,
                 DynamicAmountSource = effect.DynamicAmountSource,
                 DynamicAmountDivisor = effect.DynamicAmountDivisor,
+                TargetsAffectedPlayer = effect.TargetsAffectedPlayer,
                 Condition = effect.Condition // Reference copy for condition (usually shared/immutable)
             };
 

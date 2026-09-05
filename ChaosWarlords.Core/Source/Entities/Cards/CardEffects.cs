@@ -45,6 +45,17 @@ namespace ChaosWarlords.Source.Entities.Cards
         public DynamicAmountSource DynamicAmountSource { get; set; }
         public int DynamicAmountDivisor { get; set; } = 1;
 
+        // Outcome-dependent targeting (Mindwitness: "Assassinate a troop. If that troop
+        // belonged to another player... they must discard a card.") - this effect's actor is
+        // not the card's owner, but whoever ActionSystem.PendingAffectedPlayerColor names (the
+        // player whose troop/spy the immediately preceding Assassinate/Supplant step just
+        // removed). Only meaningful on an OnSuccess/Alternative node chained directly beneath
+        // an Assassinate/Supplant effect; CardEffectProcessor.PushEffectContext resolves it
+        // (falling through to Alternative, same as an unmet Condition/no-valid-targets, if
+        // PendingAffectedPlayerColor isn't a real opponent - e.g. the removed troop was
+        // Neutral). Defaults to false so every existing effect is unaffected.
+        public bool TargetsAffectedPlayer { get; set; }
+
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {
             Type = type;

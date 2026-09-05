@@ -604,5 +604,23 @@
       "Type": "DrawCard",
       "Amount": 2
     }
+  },
+  {
+    "Id": "mindwitness",
+    "Cost": 3,
+    "Aspect": "Sorcery",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "Effects": [
+      {
+        "Type": "Assassinate",
+        "OnSuccess": {
+          "Type": "DiscardCard",
+          "TargetsAffectedPlayer": true,
+          "ConditionType": "HandSize",
+          "ConditionThreshold": 4
+        }
+      }
+    ]
   }
 ]

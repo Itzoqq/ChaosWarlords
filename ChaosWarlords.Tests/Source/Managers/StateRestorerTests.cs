@@ -233,6 +233,25 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         [TestMethod]
+        public void RestoreState_RevertsActionSystemPendingAffectedPlayerColor()
+        {
+            // No side-effect-free public API sets PendingAffectedPlayerColor in isolation -
+            // it's set internally by PerformAssassinate/PerformSupplant, right before a real
+            // map mutation - so RestorePendingState (the documented restore-only entry point)
+            // is used to arrange the "before" state, same pattern as
+            // RestoreState_RevertsActionSystemPendingCardAndPendingDevourCard below.
+            _context.ActionSystem.RestorePendingState(ActionState.TargetingDiscard, null, null, null, null, PlayerColor.Blue);
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+
+            _context.ActionSystem.RestorePendingState(ActionState.Normal, null, null, null, null, null);
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.AreEqual(ActionState.TargetingDiscard, _context.ActionSystem.CurrentState);
+            Assert.AreEqual(PlayerColor.Blue, _context.ActionSystem.PendingAffectedPlayerColor);
+        }
+
+        [TestMethod]
         public void RestoreState_RevertsActionSystemPendingCardAndPendingDevourCard()
         {
             var pendingCard = RegisterCard("wight", CardLocation.Hand);

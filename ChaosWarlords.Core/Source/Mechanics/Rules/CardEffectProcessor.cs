@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Core.Contexts; // For EffectContext
+using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Utilities;
@@ -48,14 +49,16 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         }
 
         /// <summary>
-        /// Computes the targeting state, checks HasValidTargets (falling back to
-        /// <paramref name="effect"/>'s own Alternative if there's no valid target - "Choose
-        /// one" cards must still grant the Alternative, not nothing, e.g. Wight played with an
-        /// empty hand), and builds + pushes the resulting EffectContext, wiring its
-        /// OnSuccess/Alternative continuations back through PushEffectNode. Shared by
-        /// ResolveEffects (the top-level effect list) and PushEffectNode (a single chained
-        /// node) - the two used to duplicate this whole sequence independently, differing only
-        /// in the EffectContext's description prefix.
+        /// Computes the targeting state, resolves WHO this effect actually acts as (normally
+        /// context.ActivePlayer, but see the TargetsAffectedPlayer branch below), checks the
+        /// effect's own Condition and HasValidTargets against that resolved actor (falling back
+        /// to <paramref name="effect"/>'s own Alternative if either fails - "Choose one" cards
+        /// must still grant the Alternative, not nothing, e.g. Wight played with an empty
+        /// hand), and builds + pushes the resulting EffectContext, wiring its OnSuccess/
+        /// Alternative continuations back through PushEffectNode. Shared by ResolveEffects (the
+        /// top-level effect list) and PushEffectNode (a single chained node) - the two used to
+        /// duplicate this whole sequence independently, differing only in the EffectContext's
+        /// description prefix.
         /// </summary>
         private static void PushEffectContext(CardEffect effect, Card card, MatchContext context, string descriptionPrefix, IGameLogger logger)
         {
@@ -63,11 +66,18 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             var state = strategy.GetTargetingState(effect);
             bool requiresInput = strategy.IsTargetingEffect || effect.IsOptional;
 
-            if (requiresInput && !context.CardRuleEngine.HasValidTargets(context.ActivePlayer, effect.Type, card))
+            if (!TryResolveActor(effect, card, context, requiresInput, logger, out var actor))
             {
-                logger.Log($"{card.Name}: No valid targets for {effect.Type}. Effect skipped.", LogChannel.Warning);
                 PushEffectNode(effect.Alternative, card, context, logger);
                 return;
+            }
+
+            // Only now that every gate has passed do we actually switch whose turn this is
+            // for - avoids ever having to unwind a speculative ForcedActingPlayer switch if a
+            // check inside TryResolveActor had failed instead.
+            if (effect.TargetsAffectedPlayer)
+            {
+                context.TurnManager.BeginForcedActingPlayer(actor);
             }
 
             var ctx = new EffectContext(
@@ -101,6 +111,70 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
 
             context.ActionSystem.PushEffect(ctx);
+        }
+
+        /// <summary>
+        /// Resolves WHO this effect acts as/on - normally context.ActivePlayer, but for
+        /// CardEffect.TargetsAffectedPlayer (Mindwitness), the outcome-affected opponent (see
+        /// ResolveAffectedOpponent) - and gates on that resolved actor's Condition and
+        /// HasValidTargets (both take an explicit Player rather than reading
+        /// context.ActivePlayer internally, so this needs no ForcedActingPlayer switch to
+        /// evaluate). A targeting effect's own Condition used to only be checked for AUTOMATIC
+        /// effects (via ApplyEffect's IsConditionMet gate) - a conditional targeting effect
+        /// (e.g. Mindwitness's DiscardCard, gated on the affected opponent's hand size) was
+        /// never checked here at all, so it would have been pushed and opened for input
+        /// unconditionally.
+        /// </summary>
+        /// <returns>False if this effect should not be pushed at all (the caller falls through
+        /// to effect.Alternative in every such case, matching the pre-existing "no valid
+        /// targets -> Alternative" behavior) - <paramref name="actor"/> is only meaningful when
+        /// this returns true.</returns>
+        private static bool TryResolveActor(CardEffect effect, Card card, MatchContext context, bool requiresInput, IGameLogger logger, out Player actor)
+        {
+            actor = context.ActivePlayer;
+            if (effect.TargetsAffectedPlayer)
+            {
+                var affectedOpponent = ResolveAffectedOpponent(context);
+                if (affectedOpponent == null)
+                {
+                    logger.Log($"{card.Name}: {effect.Type} has no outcome-affected opponent to target (the removed troop/spy wasn't another player's). Effect skipped.", LogChannel.Info);
+                    return false;
+                }
+                actor = affectedOpponent;
+            }
+
+            if (!context.CardRuleEngine.IsConditionMet(actor, effect))
+            {
+                logger.Log($"{card.Name}: {effect.Type}'s condition was not met for {actor.DisplayName}. Effect skipped.", LogChannel.Info);
+                return false;
+            }
+
+            if (requiresInput && !context.CardRuleEngine.HasValidTargets(actor, effect.Type, card))
+            {
+                logger.Log($"{card.Name}: No valid targets for {effect.Type}. Effect skipped.", LogChannel.Warning);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Resolves CardEffect.TargetsAffectedPlayer to the actual Player whose troop/spy the
+        /// immediately preceding Assassinate/Supplant step removed (ActionSystem.
+        /// PendingAffectedPlayerColor), or null if that step didn't affect a genuine opponent of
+        /// the player currently playing this card - the removed troop was Neutral/unaligned
+        /// (belongs to no player), or PendingAffectedPlayerColor was never set at all (e.g. this
+        /// flag was set on an effect not actually chained beneath an Assassinate/Supplant).
+        /// Evaluated against context.ActivePlayer, which is still the real card-playing player
+        /// at this point - nothing has called BeginForcedActingPlayer for THIS effect yet.
+        /// </summary>
+        private static Player? ResolveAffectedOpponent(MatchContext context)
+        {
+            var color = context.ActionSystem.PendingAffectedPlayerColor;
+            if (color is null || color == PlayerColor.None || color == PlayerColor.Neutral) return null;
+            if (color == context.ActivePlayer.Color) return null;
+
+            return context.TurnManager.GetPlayerByColor(color.Value);
         }
 
         // Restored public ApplyEffect method

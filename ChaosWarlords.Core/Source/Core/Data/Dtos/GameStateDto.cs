@@ -56,6 +56,14 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         public int? PendingMoveSourceNodeId { get; set; }
         public string? PendingDevourCardId { get; set; }
 
+        /// <summary>
+        /// See IActionSystem.PendingAffectedPlayerColor's doc comment - the outcome-dependent
+        /// targeting primitive's read side (e.g. Mindwitness). Unlike PendingSite/
+        /// PendingMoveSource, this needs no id-lookup re-resolution on restore - PlayerColor is
+        /// a plain value, not an entity reference.
+        /// </summary>
+        public PlayerColor? PendingAffectedPlayerColor { get; set; }
+
         public long SequenceNumber { get; set; }
 
         /// <summary>

@@ -62,6 +62,10 @@ namespace ChaosWarlords.Source.Managers
         // serves (later-step site-scoping, and a Condition-evaluation read).
         public Site? PendingSite { get; private set; }
 
+        // See IActionSystem.PendingAffectedPlayerColor's doc comment - outcome-dependent
+        // targeting's read side (e.g. Mindwitness).
+        public PlayerColor? PendingAffectedPlayerColor { get; private set; }
+
 
 
         public Card? PendingDevourCard => _devourSubsystem.PendingDevourCard;
@@ -276,6 +280,7 @@ namespace ChaosWarlords.Source.Managers
             CurrentState = ActionState.Normal;
             PendingCard = null;
             PendingSite = null;
+            PendingAffectedPlayerColor = null;
             PendingMoveSource = null;
             // Note: PendingDevourCard is NOT cleared here to allow transactional persistence across chained actions.
 
@@ -480,6 +485,9 @@ namespace ChaosWarlords.Source.Managers
                 SpendAssassinateCost();
             }
 
+            // Must be captured BEFORE MapManager.Assassinate mutates the node - see
+            // IActionSystem.PendingAffectedPlayerColor's doc comment (Mindwitness).
+            PendingAffectedPlayerColor = node.Occupant;
             _mapManager.Assassinate(node, CurrentPlayer);
             CompleteAction();
         }
@@ -508,6 +516,12 @@ namespace ChaosWarlords.Source.Managers
             // Transactional Devour Handling (Logic Layer)
             ConsumePendingDevour(devourCardId);
 
+            // Must be captured BEFORE MapManager.Supplant mutates the node - see
+            // IActionSystem.PendingAffectedPlayerColor's doc comment. No shipped card chains
+            // off Supplant's outcome yet (Mindwitness uses Assassinate), but Supplant's
+            // assassinate-half removes a troop the exact same way, so this is set here too for
+            // consistency rather than leaving it Assassinate-only.
+            PendingAffectedPlayerColor = node.Occupant;
             _mapManager.Supplant(node, CurrentPlayer);
             // CompleteAction(), not a manual OnActionCompleted+ClearState() - matches
             // PerformAssassinate's pattern. When Supplant was reached via a chained effect
@@ -838,11 +852,12 @@ namespace ChaosWarlords.Source.Managers
         /// for tracking "the start of the sequence that WAS in progress" is stale regardless of
         /// which path got here or what state is being restored to.
         /// </summary>
-        public void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard)
+        public void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard, PlayerColor? pendingAffectedPlayerColor = null)
         {
             _currentState = state;
             PendingCard = pendingCard;
             PendingSite = pendingSite;
+            PendingAffectedPlayerColor = pendingAffectedPlayerColor;
             PendingMoveSource = pendingMoveSource;
             _devourSubsystem.RestorePendingDevourCard(pendingDevourCard);
             _targetingSequenceSnapshot = null;

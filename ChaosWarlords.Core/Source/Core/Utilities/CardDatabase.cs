@@ -54,6 +54,10 @@ namespace ChaosWarlords.Source.Utilities
         // "Gain 1 VP for every 2 sites you control" - see CardEffect.DynamicAmountSource.
         public string? DynamicAmountSource { get; set; }
         public int DynamicAmountDivisor { get; set; } = 1;
+
+        // "If that troop belonged to another player... they must discard" - see
+        // CardEffect.TargetsAffectedPlayer.
+        public bool TargetsAffectedPlayer { get; set; }
     }
 
     public class CardDatabase : ICardDatabase

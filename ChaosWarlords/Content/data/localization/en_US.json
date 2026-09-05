@@ -66,5 +66,7 @@
   "white_dragon_name": "White Dragon",
   "white_dragon_description": "Deploy 3 troops. Gain 1 VP for every 2 sites you control.",
   "grimlock_name": "Grimlock",
-  "grimlock_description": "Deploy a troop. If an opponent causes you to discard this, draw 2 cards."
+  "grimlock_description": "Deploy a troop. If an opponent causes you to discard this, draw 2 cards.",
+  "mindwitness_name": "Mindwitness",
+  "mindwitness_description": "Assassinate a troop. If that troop belonged to another player and they have more than 3 cards, they must discard a card."
 }

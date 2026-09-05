@@ -415,6 +415,7 @@ namespace ChaosWarlords.Source.Core.Utilities
             dto.PendingSiteId = context.ActionSystem.PendingSite?.Id;
             dto.PendingMoveSourceNodeId = context.ActionSystem.PendingMoveSource?.Id;
             dto.PendingDevourCardId = context.ActionSystem.PendingDevourCard?.DefinitionId;
+            dto.PendingAffectedPlayerColor = context.ActionSystem.PendingAffectedPlayerColor;
 
             // Computed from the live context, not recomputed independently on the DTO later -
             // see GameStateDto.StateHash's doc comment for why.
