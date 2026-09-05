@@ -1,7 +1,7 @@
 # Coding Guidelines
 
 **Status**: Established Patterns (Mandatory)  
-**Last Updated**: 2026-09-02
+**Last Updated**: 2026-09-05
 
 These are **established patterns** that all contributors must follow. Violations will cause multiplayer desyncs, test failures, or architectural degradation.
 
@@ -285,7 +285,7 @@ public class MapManager : IMapManager
 
 ## Quick Reference Checklist
 
-This covers Rules 1-7 only (the ones with the highest "easy to violate without noticing" risk) - it's a fast pre-PR pass, not full coverage of Rules 8-23. For card/mechanic work specifically, also run the `add-card` skill's own Tests section (step 3) and, for anything non-trivial, the risk-hotspot check (`master.md`'s "Risk-hotspot check" section).
+This covers Rules 1-7 only (the ones with the highest "easy to violate without noticing" risk) - it's a fast pre-PR pass, not full coverage of Rules 8-24. For card/mechanic work specifically, also run the `add-card` skill's own Tests section (step 3), Rule #24's checklist below if you added a new field to `CardEffect`/`Card`/`Player`/`ActionSystem`'s targeting state, and, for anything non-trivial, the risk-hotspot check (`master.md`'s "Risk-hotspot check" section).
 
 Before submitting a PR, verify:
 
@@ -860,3 +860,42 @@ private void HandleOptionalEffectAccepted(EffectContext effect) { ... }
 - A short "not obvious, don't 'simplify' this" warning for a real footgun, stated as a present-tense fact about the code, not a story about who found it or when.
 
 **Where history actually belongs**: the commit message and `RESOLVED.txt`'s one-line-plus-commit-hash ledger. Neither needs a mirror copy living in the source file.
+
+---
+
+## 24. New Field Completeness (`CardEffect`/`Card`/`Player`/`ActionSystem` State)
+
+**Rule**: A new field added to `CardEffect`, `Card`, `Player`, or `ActionSystem`'s own targeting state (any `Pending*` field) must be updated in EVERY place that structure is duplicated, serialized, or snapshotted - not just wherever the field is first read/written. Adding the field and its one consuming code path is not "done."
+
+**Why**: This project has already shipped two real, silent bugs from exactly this gap, in two different structures - `Card.CloneEffect` copied `TargetNeutralTroopOnly` but forgot the newer `IgnoresPresenceRequirement` (permanently and silently stripping the flag the first time an in-progress targeting selection involving that card was cancelled or rolled back), and `PlayerDto` was missing `Player.PendingFreeTroops` entirely (silently dropped by `StateRestorer` on every restore path, including `CommandDispatcher`'s rollback-on-exception). Neither crashed - both silently produced a wrong game state that only surfaced later, in a completely different code path (a cancel, or a rollback) than the one that introduced the field, which is what makes this shape dangerous: normal happy-path testing of the new field's own feature won't catch it.
+
+**Checklist - work through whichever rows apply to what you added:**
+- New field on `CardEffect` → `Card.CloneEffect`'s object initializer.
+- New top-level field on `Card` itself (not a `CardEffect`) → `Card.Clone`.
+- New field on `Player` → `PlayerDto`, `DtoMapper`'s player mapping (both directions), and `StateRestorer.RestorePlayers`.
+- New `ActionSystem` `Pending*` targeting-state field → `GameStateDto`, `DtoMapper.ToGameStateDto`, `StateRestorer.RestoreState`, `IActionSystem.RestorePendingState`/`ActionSystem.RestorePendingState`, **and** `ActionSystem.ClearState()` (or it survives a return to `Normal` that every other `Pending*` field doesn't).
+- Consider - not mandatory, see `planning.txt`'s open "hash granularity vs. cost" design question - whether it belongs in `MatchContext.GetStateHash()` too, for multiplayer desync detection. Several existing fields (all of `ActionSystem`'s `Pending*` state, `TrophyHall`, `PendingFreeTroops`, `EffectContext.RemainingRepeats`) are deliberately NOT hashed yet, pending that decision - don't treat "the existing fields don't hash this" as proof a new one shouldn't either; it's an open question, not settled precedent either way.
+
+```csharp
+// ❌ WRONG: new flag added to CardEffect, but CloneEffect wasn't updated -
+// silently reverts to the default the first time this effect is cloned
+// (e.g. on ActionSystem.CancelTargeting's snapshot restore)
+public class CardEffect
+{
+    public bool MyNewFlag { get; set; } // added here...
+}
+private static CardEffect CloneEffect(CardEffect effect) => new(effect.Type, effect.Amount, effect.TargetResource)
+{
+    TargetNeutralTroopOnly = effect.TargetNeutralTroopOnly,
+    // ...MyNewFlag missing here - every clone of a card with this effect silently loses it.
+};
+
+// ✅ CORRECT: the new field ships in the SAME change as its CloneEffect line
+private static CardEffect CloneEffect(CardEffect effect) => new(effect.Type, effect.Amount, effect.TargetResource)
+{
+    TargetNeutralTroopOnly = effect.TargetNeutralTroopOnly,
+    MyNewFlag = effect.MyNewFlag,
+};
+```
+
+See the `tyrants-rules` skill's `reference/bug-log.md` for the full incident history behind this rule, and `reference/patterns.md` for the current list of established per-effect fields (`TargetNeutralTroopOnly`, `IgnoresPresenceRequirement`, `TargetsAffectedPlayer`, etc.) as worked examples of the checklist above already applied correctly.
