@@ -333,7 +333,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         private static void ApplyPromote(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
         {
-            context.TurnManager.CurrentTurnContext.AddPromotionCredit(sourceCard, effect.Amount);
+            context.TurnManager.CurrentTurnContext.AddPromotionCredit(sourceCard, effect.Amount, effect.PromotionCreditIsOptional);
             logger.Log($"Promotion pending! Added {effect.Amount} point(s) from {sourceCard.Name}.", LogChannel.Info);
         }
 

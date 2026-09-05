@@ -244,7 +244,8 @@
         "IsOptional": true,
         "OnSuccess": {
           "Type": "Promote",
-          "Amount": 2
+          "Amount": 2,
+          "PromotionCreditIsOptional": true
         },
         "Alternative": {
           "Type": "GainResource",

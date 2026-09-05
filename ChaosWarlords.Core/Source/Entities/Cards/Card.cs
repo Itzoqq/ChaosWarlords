@@ -171,6 +171,7 @@ namespace ChaosWarlords.Source.Entities.Cards
                 DynamicAmountDivisor = effect.DynamicAmountDivisor,
                 TargetsAffectedPlayer = effect.TargetsAffectedPlayer,
                 AllowPartialRepeat = effect.AllowPartialRepeat,
+                PromotionCreditIsOptional = effect.PromotionCreditIsOptional,
                 Condition = effect.Condition // Reference copy for condition (usually shared/immutable)
             };
 

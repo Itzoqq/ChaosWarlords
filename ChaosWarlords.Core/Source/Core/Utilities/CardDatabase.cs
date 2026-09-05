@@ -61,6 +61,10 @@ namespace ChaosWarlords.Source.Utilities
 
         // "Move up to 2 enemy troops" - see CardEffect.AllowPartialRepeat.
         public bool AllowPartialRepeat { get; set; }
+
+        // "At end of turn, promote up to 2 other cards played this turn" - see
+        // CardEffect.PromotionCreditIsOptional.
+        public bool PromotionCreditIsOptional { get; set; }
     }
 
     public class CardDatabase : ICardDatabase

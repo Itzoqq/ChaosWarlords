@@ -81,7 +81,10 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         [TestMethod]
         public void HandleInteraction_RightClick_DoesNotSwitchMode_IfMandatory()
         {
-            // Arrange
+            // Arrange - a plain, mandatory credit (core_noble's "promote a card played this
+            // turn" shape, isOptional defaults to false) must refuse Right-click/Escape.
+            var card = TestData.Cards.CheapCard();
+            _realTurnContext.AddPromotionCredit(card, 1);
             var evt = new InputEventArgs(InputEventType.RightClick, Vector2.Zero);
 
             // Act
@@ -90,6 +93,41 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             // Assert
             Assert.IsNull(result, "Should return null (action ignored).");
             // Verify warning log? (StateFake logger would implicitly capture it, but we can assume logic correctness if result is null)
+            _actionSub.DidNotReceive().CancelTargeting();
+        }
+
+        [TestMethod]
+        public void HandleInteraction_RightClick_DeclinesRemaining_IfAllOutstandingCreditsAreOptional()
+        {
+            // Cultist of Myrkul/Zuggtmoy's "promote up to 2 other cards played this turn" -
+            // Right-click should forfeit the credit(s) and proceed straight to end of turn.
+            var card = TestData.Cards.CheapCard();
+            _realTurnContext.AddPromotionCredit(card, 2, isOptional: true);
+            var evt = new InputEventArgs(InputEventType.RightClick, Vector2.Zero);
+
+            var result = _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
+
+            Assert.IsInstanceOfType(result, typeof(EndTurnCommand));
+            // NOT CancelTargeting() - that would revert the WHOLE redemption session
+            // (including any earlier real promotions) via its full-sequence snapshot, not just
+            // forfeit the declined remainder. See ActionSystem.DeclineRemainingPromotions.
+            _actionSub.Received(1).DeclineRemainingPromotions();
+            _actionSub.DidNotReceive().CancelTargeting();
+            Assert.AreEqual(0, _realTurnContext.PendingPromotionsCount, "The declined credits must be forfeited.");
+        }
+
+        [TestMethod]
+        public void HandleInteraction_Escape_StillRefuses_IfOneOutstandingCreditIsMandatory_EvenAlongsideOptionalOnes()
+        {
+            var mandatorySource = TestData.Cards.CheapCard();
+            var optionalSource = TestData.Cards.ExpensiveCard();
+            _realTurnContext.AddPromotionCredit(mandatorySource, 1, isOptional: false);
+            _realTurnContext.AddPromotionCredit(optionalSource, 2, isOptional: true);
+            var evt = new InputEventArgs(InputEventType.KeyDown, Vector2.Zero, Keys.Escape);
+
+            var result = _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
+
+            Assert.IsNull(result, "A mandatory credit is still outstanding - declining must be refused.");
             _actionSub.DidNotReceive().CancelTargeting();
         }
 
@@ -157,7 +195,11 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             // Verify EndTurn Command is returned
             Assert.IsInstanceOfType(resultCmd, typeof(EndTurnCommand), "Should return EndTurnCommand");
-            _actionSub.Received().CancelTargeting();
+            // NOT CancelTargeting() - that would revert the WHOLE redemption session
+            // (including the promotion just asserted above) via its full-sequence snapshot,
+            // not just cleanly finish it. See ActionSystem.DeclineRemainingPromotions.
+            _actionSub.Received(1).DeclineRemainingPromotions();
+            _actionSub.DidNotReceive().CancelTargeting();
         }
     }
 }

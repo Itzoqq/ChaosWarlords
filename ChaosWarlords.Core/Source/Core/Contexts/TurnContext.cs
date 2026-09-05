@@ -11,9 +11,12 @@ namespace ChaosWarlords.Source.Contexts
         private readonly Dictionary<CardAspect, int> _playedAspectCounts;
         private readonly IGameLogger _logger;
 
-        // --- CHANGED: Track credits by Source Card ---
-        // Each entry represents 1 promotion point provided by 'Card'
-        private readonly List<Card> _promotionCredits;
+        // Each entry represents 1 promotion point provided by a source Card, plus whether
+        // that specific point is voluntarily declinable (CardEffect.PromotionCreditIsOptional
+        // - e.g. Cultist of Myrkul/Zuggtmoy's "up to N", as opposed to core_noble's plain,
+        // mandatory "promote a card played this turn").
+        private readonly record struct PromotionCredit(Card Source, bool IsOptional);
+        private readonly List<PromotionCredit> _promotionCredits;
 
         // --- Action Sequencing ---
         private int _actionSequence;
@@ -29,7 +32,7 @@ namespace ChaosWarlords.Source.Contexts
         {
             ActivePlayer = activePlayer;
             _playedAspectCounts = new Dictionary<CardAspect, int>();
-            _promotionCredits = new List<Card>();
+            _promotionCredits = new List<PromotionCredit>();
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -48,11 +51,11 @@ namespace ChaosWarlords.Source.Contexts
 
         // --- Credit Management ---
 
-        public void AddPromotionCredit(Card source, int amount)
+        public void AddPromotionCredit(Card source, int amount, bool isOptional = false)
         {
             for (int i = 0; i < amount; i++)
             {
-                _promotionCredits.Add(source);
+                _promotionCredits.Add(new PromotionCredit(source, isOptional));
             }
         }
 
@@ -62,7 +65,7 @@ namespace ChaosWarlords.Source.Contexts
         public bool HasValidCreditFor(Card target)
         {
             // We need at least one credit where CreditSource != Target
-            return _promotionCredits.Any(source => source != target);
+            return _promotionCredits.Any(credit => credit.Source != target);
         }
 
         /// <summary>
@@ -72,19 +75,42 @@ namespace ChaosWarlords.Source.Contexts
         public void ConsumeCreditFor(Card target)
         {
             // Find the first credit that is NOT from the target
-            var validCredit = _promotionCredits.FirstOrDefault(source => source != target);
+            int index = _promotionCredits.FindIndex(credit => credit.Source != target);
 
-            if (validCredit is not null)
+            if (index >= 0)
             {
-                _promotionCredits.Remove(validCredit);
+                _promotionCredits.RemoveAt(index);
             }
             else
             {
-                // Fallback (Should be prevented by HasValidCreditFor check, 
+                // Fallback (Should be prevented by HasValidCreditFor check,
                 // but handles forced cases if necessary)
                 if (_promotionCredits.Count > 0)
                     _promotionCredits.RemoveAt(0);
             }
+        }
+
+        /// <summary>
+        /// True whenever every currently-outstanding promotion credit is voluntarily
+        /// declinable (CardEffect.PromotionCreditIsOptional - "up to N", e.g. Cultist of
+        /// Myrkul) - vacuously true once no credits remain at all. False if even ONE
+        /// outstanding credit is the plain, mandatory shape (e.g. core_noble's "promote a card
+        /// played this turn"), which must still be resolved before the player can stop.
+        /// PromoteInputMode reads this to decide whether a Right-click/Escape may end the
+        /// redemption flow early (forfeiting whatever's left) instead of refusing outright.
+        /// </summary>
+        public bool CanDeclineRemainingPromotions => _promotionCredits.All(credit => credit.IsOptional);
+
+        /// <summary>
+        /// Forfeits every currently-outstanding promotion credit - called once
+        /// CanDeclineRemainingPromotions has been confirmed true, so this is only ever reached
+        /// when every remaining credit was voluntarily declinable to begin with. Harmless even
+        /// without this call (a fresh TurnContext replaces this one at end of turn regardless),
+        /// but explicit rather than relying on that turn-boundary side effect.
+        /// </summary>
+        public void ForfeitRemainingPromotions()
+        {
+            _promotionCredits.Clear();
         }
 
         // --- Action Sequencing ---

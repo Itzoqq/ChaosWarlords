@@ -65,6 +65,18 @@ namespace ChaosWarlords.Source.Entities.Cards
         // false so every existing repeat-capable effect is unaffected.
         public bool AllowPartialRepeat { get; set; }
 
+        // "At end of turn, promote up to 2 other cards played this turn" (Cultist of Myrkul,
+        // Zuggtmoy) - marks an EffectType.Promote effect's banked end-of-turn credits as
+        // voluntarily declinable, as opposed to the plain "promote a card played this turn"
+        // shape (e.g. core_noble), which the rulebook's plain instruction-following rule
+        // (tyrants-rules.pdf p.9) makes mandatory once a valid target exists. Threaded onto
+        // each TurnContext.PromotionCredit this effect banks (see TurnContext.
+        // AddPromotionCredit) - a DIFFERENT mechanism from CardEffect.AllowPartialRepeat above
+        // (that one governs the immediate, execution-stack-blocking repeat primitive; this one
+        // governs the separate deferred end-of-turn promotion-credit flow, redeemed via
+        // PromoteInputMode). Defaults to false so every existing Promote effect is unaffected.
+        public bool PromotionCreditIsOptional { get; set; }
+
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {
             Type = type;

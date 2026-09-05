@@ -49,6 +49,12 @@ namespace ChaosWarlords.Tests.Source.Functional
             Assert.Contains(cultist, scenario.Context.CardsMarkedForTurnEndDevour, "Card should be marked for end-of-turn devour.");
             Assert.AreEqual(2, scenario.Context.TurnManager.CurrentTurnContext.PendingPromotionsCount, "Accepting should bank 2 Promote credits (\"promote up to 2\") for later, not resolve them immediately.");
             Assert.AreEqual(0, red.Influence, "Choose-one mutual exclusivity: accepting the devour must NOT also grant the +2 Influence Alternative.");
+            // cards.json says PromotionCreditIsOptional: true for this effect - the runtime
+            // TurnContext.PromotionCredit banked from it must actually carry that flag through
+            // from JSON (CardFactory.ParseOptionalFlags), not just the hand-typed CardEffect
+            // CultistOfMyrkulMechanicsTests.cs constructs directly.
+            Assert.IsTrue(scenario.Context.TurnManager.CurrentTurnContext.CanDeclineRemainingPromotions,
+                "\"Promote UP TO 2\" credits loaded from the real cards.json must be voluntarily declinable.");
         }
 
         [TestMethod]

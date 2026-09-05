@@ -87,6 +87,60 @@ namespace ChaosWarlords.Tests.Contexts
             Assert.IsTrue(_turnContext.HasValidCreditFor(_cardB));
         }
 
+        // --- CanDeclineRemainingPromotions ("up to N" vs. plain mandatory Promote credits) ---
+
+        [TestMethod]
+        public void CanDeclineRemainingPromotions_NoCreditsOutstanding_ReturnsTrue()
+        {
+            Assert.IsTrue(_turnContext.CanDeclineRemainingPromotions, "Vacuously true - nothing left to decline.");
+        }
+
+        [TestMethod]
+        public void CanDeclineRemainingPromotions_DefaultsToMandatory_ReturnsFalse()
+        {
+            // AddPromotionCredit's isOptional defaults to false - a plain "promote a card
+            // played this turn" (core_noble) must stay mandatory unless a card explicitly
+            // opts into the "up to N" shape.
+            _turnContext.AddPromotionCredit(_cardA, 1);
+
+            Assert.IsFalse(_turnContext.CanDeclineRemainingPromotions);
+        }
+
+        [TestMethod]
+        public void CanDeclineRemainingPromotions_AllCreditsOptional_ReturnsTrue()
+        {
+            // Cultist of Myrkul/Zuggtmoy's "promote up to 2 other cards played this turn".
+            _turnContext.AddPromotionCredit(_cardA, 2, isOptional: true);
+
+            Assert.IsTrue(_turnContext.CanDeclineRemainingPromotions);
+        }
+
+        [TestMethod]
+        public void CanDeclineRemainingPromotions_OneMandatoryCreditAmongOptionalOnes_ReturnsFalse()
+        {
+            // A player who played BOTH core_noble (mandatory 1) and Cultist of Myrkul
+            // (optional 2) the same turn must still resolve the mandatory one before being
+            // allowed to stop.
+            _turnContext.AddPromotionCredit(_cardA, 1, isOptional: false);
+            _turnContext.AddPromotionCredit(_cardB, 2, isOptional: true);
+
+            Assert.IsFalse(_turnContext.CanDeclineRemainingPromotions);
+        }
+
+        [TestMethod]
+        public void CanDeclineRemainingPromotions_AfterTheMandatoryCreditIsConsumed_ReturnsTrue()
+        {
+            _turnContext.AddPromotionCredit(_cardA, 1, isOptional: false); // Added first - earliest in the credit list.
+            _turnContext.AddPromotionCredit(_cardB, 2, isOptional: true);
+
+            // ConsumeCreditFor picks the FIRST credit not sourced from its target - cardA's
+            // mandatory credit (added first, and not sourced from cardB) is the one consumed.
+            _turnContext.ConsumeCreditFor(_cardB);
+
+            Assert.AreEqual(2, _turnContext.PendingPromotionsCount, "Setup check: 2 optional credits should remain.");
+            Assert.IsTrue(_turnContext.CanDeclineRemainingPromotions, "Only optional credits remain now - declining should be allowed.");
+        }
+
         [TestMethod]
         public void RecordAction_AddsToHistory()
         {

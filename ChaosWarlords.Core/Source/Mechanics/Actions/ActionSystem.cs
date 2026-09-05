@@ -401,6 +401,23 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
+        /// <summary>
+        /// Ends a "for up to N" deferred end-of-turn promotion-credit redemption early
+        /// (Cultist of Myrkul/Zuggtmoy: "promote up to 2..."), forfeiting whatever credits
+        /// remain WITHOUT reverting anything already promoted earlier in this same
+        /// redemption. Deliberately does NOT call CancelTargeting(): that reverts the whole
+        /// targeting sequence back to a snapshot taken once, when SwitchToPromoteMode first
+        /// entered SelectingCardToPromote - which predates every promotion made during this
+        /// redemption, so a full revert would silently undo those too, not just the declined
+        /// remainder (same class of bug DeclineRepeatCommand/DeclineRemainingRepeats exists to
+        /// avoid for the OTHER, immediate repeat primitive - see its own doc comment). Called
+        /// by PromoteInputMode when TurnContext.CanDeclineRemainingPromotions is true.
+        /// </summary>
+        public void DeclineRemainingPromotions()
+        {
+            ClearState();
+        }
+
         private void TryRestoreCardToHand(System.Guid? cardRuntimeId)
         {
             if (cardRuntimeId is null) return;

@@ -152,6 +152,15 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         void CancelTargeting();
 
         /// <summary>
+        /// Ends a "for up to N" deferred end-of-turn promotion-credit redemption early
+        /// (Cultist of Myrkul/Zuggtmoy's "promote up to 2..."), forfeiting whatever credits
+        /// remain WITHOUT reverting anything already promoted earlier in this same
+        /// redemption - unlike CancelTargeting(), whose full-sequence snapshot revert would
+        /// wrongly undo those too. See ActionSystem's own doc comment on this method.
+        /// </summary>
+        void DeclineRemainingPromotions();
+
+        /// <summary>
         /// Checks if the system is currently in a targeting state.
         /// </summary>
         /// <returns>True if expecting user input for a target; otherwise, false.</returns>

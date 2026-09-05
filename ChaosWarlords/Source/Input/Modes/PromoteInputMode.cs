@@ -28,55 +28,91 @@ namespace ChaosWarlords.Source.Input.Modes
 
         public IGameCommand? HandleInteraction(Core.Events.InputEventArgs evt, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
         {
-            // 1. Check Cancellations (Right Click or Escape)
-            // Note: Promote is usually mandatory in Chaos Warlords if triggered, but the original code handled escape/right click as "Mandatory Action" warning log.
-            if (evt.Type == Core.Events.InputEventType.RightClick || (evt.Type == Core.Events.InputEventType.KeyDown && evt.Key == Keys.Escape))
+            bool isCancelInput = evt.Type == Core.Events.InputEventType.RightClick
+                || (evt.Type == Core.Events.InputEventType.KeyDown && evt.Key == Keys.Escape);
+
+            if (isCancelInput)
             {
-                // Strict Rule Enforcement:
-                _gameplayState.Logger.Log("Mandatory Action: You must select a card to promote.", LogChannel.Warning);
+                return HandleCancellation(actionSystem);
+            }
+
+            if (evt.Type == Core.Events.InputEventType.LeftClick)
+            {
+                return HandleLeftClick(actionSystem);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Right-click/Escape: "at end of turn, promote up to 2 other cards played this turn"
+        /// (Cultist of Myrkul, Zuggtmoy) is genuinely optional - the player may forfeit
+        /// whatever's left. A plain "promote a card played this turn" (core_noble) has no such
+        /// wording and stays mandatory (tyrants-rules.pdf p.9's plain instruction-following
+        /// rule) - only decline early when EVERY outstanding credit is declinable, never
+        /// partway through a still-mandatory one. Uses ActionSystem.DeclineRemainingPromotions()
+        /// here, NOT CancelTargeting() - this session's redemption may have already promoted
+        /// real cards via earlier left-clicks, and CancelTargeting()'s full-sequence snapshot
+        /// revert (taken once, before the FIRST promotion) would silently undo those too, not
+        /// just the declined remainder. See ActionSystem.DeclineRemainingPromotions's own doc
+        /// comment.
+        /// </summary>
+        private Commands.EndTurnCommand? HandleCancellation(IActionSystem actionSystem)
+        {
+            var context = _gameplayState.MatchContext.TurnManager.CurrentTurnContext;
+            if (context.CanDeclineRemainingPromotions)
+            {
+                _gameplayState.Logger.Log("Declining remaining optional promotion credit(s).", LogChannel.Info);
+                context.ForfeitRemainingPromotions();
+                actionSystem.DeclineRemainingPromotions();
+                return new Commands.EndTurnCommand();
+            }
+
+            _gameplayState.Logger.Log("Mandatory Action: You must select a card to promote.", LogChannel.Warning);
+            return null;
+        }
+
+        private Commands.EndTurnCommand? HandleLeftClick(IActionSystem actionSystem)
+        {
+            Card? targetCard = _gameplayState.GetHoveredPlayedCard();
+            if (targetCard is null)
+            {
                 return null;
             }
 
-            // 2. Check Left Click
-            if (evt.Type == Core.Events.InputEventType.LeftClick)
+            var context = _gameplayState.MatchContext.TurnManager.CurrentTurnContext;
+
+            // --- Safety Check ---
+            // Prevent a card from promoting itself if it is the only source of points
+            if (!context.HasValidCreditFor(targetCard))
             {
-                Card? targetCard = _gameplayState.GetHoveredPlayedCard();
-
-                if (targetCard is not null)
-                {
-                    var context = _gameplayState.MatchContext.TurnManager.CurrentTurnContext;
-
-                    // --- Safety Check ---
-                    // Prevent a card from promoting itself if it is the only source of points
-                    if (!context.HasValidCreditFor(targetCard))
-                    {
-                        _gameplayState.Logger.Log("Invalid Target: This card cannot promote itself!", LogChannel.Warning);
-                        return null;
-                    }
-
-                    _cardsLeftToPromote--;
-                    _gameplayState.Logger.Log($"Promoted {targetCard.Name} to Inner Circle!", LogChannel.Economy);
-
-                    context.ConsumeCreditFor(targetCard);
-
-                    // 1. Manually execute the promote command immediately
-                    var promoteCmd = new Commands.PromoteCommand(targetCard.Id);
-                    _gameplayState.RecordAndExecuteCommand(promoteCmd);
-
-                    // 2. Check if we are done
-                    if (_cardsLeftToPromote <= 0)
-                    {
-                        actionSystem.CancelTargeting();
-
-                        // 3. Return EndTurn command to be executed by Coordinator immediately after
-                        return new Commands.EndTurnCommand();
-                    }
-
-                    // 4. If not done, return null (Command already executed above)
-                    return null;
-                }
+                _gameplayState.Logger.Log("Invalid Target: This card cannot promote itself!", LogChannel.Warning);
+                return null;
             }
 
+            _cardsLeftToPromote--;
+            _gameplayState.Logger.Log($"Promoted {targetCard.Name} to Inner Circle!", LogChannel.Economy);
+
+            context.ConsumeCreditFor(targetCard);
+
+            // 1. Manually execute the promote command immediately
+            var promoteCmd = new Commands.PromoteCommand(targetCard.Id);
+            _gameplayState.RecordAndExecuteCommand(promoteCmd);
+
+            // 2. Check if we are done - NOT CancelTargeting() here either (same reasoning as
+            // HandleCancellation above): every credit in this redemption may have already
+            // promoted a real card via an earlier left-click in this same loop, and
+            // CancelTargeting()'s full-sequence snapshot revert (taken once, before the FIRST
+            // promotion) would silently undo ALL of them, not just "finish cleanly."
+            if (_cardsLeftToPromote <= 0)
+            {
+                actionSystem.DeclineRemainingPromotions();
+
+                // 3. Return EndTurn command to be executed by Coordinator immediately after
+                return new Commands.EndTurnCommand();
+            }
+
+            // 4. If not done, return null (Command already executed above)
             return null;
         }
 

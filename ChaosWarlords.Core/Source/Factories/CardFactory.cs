@@ -173,6 +173,7 @@ namespace ChaosWarlords.Source.Utilities
             effect.IgnoresPresenceRequirement = data.IgnoresPresenceRequirement;
             effect.TargetsAffectedPlayer = data.TargetsAffectedPlayer;
             effect.AllowPartialRepeat = data.AllowPartialRepeat;
+            effect.PromotionCreditIsOptional = data.PromotionCreditIsOptional;
         }
 
         private static void ParseDynamicAmount(CardEffectData data, CardEffect effect, IGameLogger? logger)
