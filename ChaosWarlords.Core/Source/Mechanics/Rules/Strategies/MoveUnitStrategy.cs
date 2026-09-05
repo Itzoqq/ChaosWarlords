@@ -13,6 +13,13 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Strategies
 
         public bool IsTargetingEffect => true;
 
+        // "Move up to 2 enemy troops" (Council Member) - see IEffectStrategy.SupportsRepeat's
+        // doc comment. Safe for the existing single-move card (test_displacer, Amount=1):
+        // PushEffectContext clamps RemainingRepeats to Math.Max(1, Amount), so
+        // ShouldRepeatCurrentEffect's RemainingRepeats<=1 short-circuit still fires
+        // immediately for it, completely unchanged.
+        public bool SupportsRepeat => true;
+
         public ActionState GetTargetingState(CardEffect effect)
         {
             return ActionState.TargetingMoveSource;

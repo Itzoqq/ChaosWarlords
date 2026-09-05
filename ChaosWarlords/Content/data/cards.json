@@ -622,5 +622,23 @@
         }
       }
     ]
+  },
+  {
+    "Id": "council_member",
+    "Cost": 6,
+    "Aspect": "Blasphemy",
+    "DeckVP": 3,
+    "InnerCircleVP": 6,
+    "Effects": [
+      {
+        "Type": "MoveUnit",
+        "Amount": 2,
+        "AllowPartialRepeat": true
+      },
+      {
+        "Type": "Promote",
+        "Amount": 1
+      }
+    ]
   }
 ]

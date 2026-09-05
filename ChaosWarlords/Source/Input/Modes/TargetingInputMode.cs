@@ -91,16 +91,39 @@ namespace ChaosWarlords.Source.Input.Modes
             return _uiManager.IsMarketHovered || _uiManager.IsAssassinateHovered || _uiManager.IsReturnSpyHovered;
         }
 
-        private SwitchToNormalModeCommand HandleCancellation(IActionSystem actionSystem)
+        private IGameCommand HandleCancellation(IActionSystem actionSystem)
         {
+            // "Move up to 2 enemy troops" (Council Member) etc. - right-click at a genuine
+            // repeat boundary means "I'm done, keep what I already did," NOT "undo the whole
+            // card play" - dispatch DeclineRepeatCommand (a real, replay-recorded command)
+            // instead of the usual CancelTargeting() full revert. See CardEffect.
+            // AllowPartialRepeat and DeclineRepeatCommand's own doc comment.
+            var effect = actionSystem.CurrentEffect;
+            if (IsAtADeclinableRepeatBoundary(effect, actionSystem))
+            {
+                _state.Logger.Log($"Input: Declining remaining repeats for {effect!.SourceCard?.Name ?? "Unknown"}.", LogChannel.Info);
+                return new DeclineRepeatCommand(effect.SourceCard?.Id);
+            }
+
             // Safety Log
             string cardName = actionSystem.PendingCard is not null ? actionSystem.PendingCard.Name : "Unknown";
             _state.Logger.Log($"Input: Cancelled Action for {cardName}. Card returned to hand.", LogChannel.Info);
 
             actionSystem.CancelTargeting();
-            // We return this command to ensure immediate update, 
+            // We return this command to ensure immediate update,
             // though the event system could handle cancellation too if you wired OnActionCancelled.
             return new SwitchToNormalModeCommand();
+        }
+
+        /// <summary>
+        /// True when right-click should decline a repeat-optional effect's remaining repeats
+        /// instead of fully cancelling: a genuine repeat boundary (CurrentState still equals
+        /// the pending effect's own entry state), not mid a multi-click sub-target like
+        /// MoveUnit's source/destination pair.
+        /// </summary>
+        private static bool IsAtADeclinableRepeatBoundary(ChaosWarlords.Source.Core.Contexts.EffectContext? effect, IActionSystem actionSystem)
+        {
+            return effect?.SourceEffect?.AllowPartialRepeat == true && actionSystem.CurrentState == effect.EffectType;
         }
 
         private static SwitchToNormalModeCommand? HandleSpySelection(Vector2 mousePos, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)

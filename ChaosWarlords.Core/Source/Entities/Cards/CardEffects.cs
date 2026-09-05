@@ -56,6 +56,15 @@ namespace ChaosWarlords.Source.Entities.Cards
         // Neutral). Defaults to false so every existing effect is unaffected.
         public bool TargetsAffectedPlayer { get; set; }
 
+        // "Move up to 2 enemy troops" (Council Member) - marks a SupportsRepeat effect as
+        // voluntarily stoppable early: CardEffect.Amount is a MAXIMUM, not a mandatory exact
+        // count. Deathblade's "Assassinate 2 troops" doesn't set this - it can only stop
+        // early via ShouldRepeatCurrentEffect's own "no more legal targets" fallback, never by
+        // player choice while a legal target still exists. See
+        // ActionExecutionEngine.DeclineRemainingRepeats and DeclineRepeatCommand. Defaults to
+        // false so every existing repeat-capable effect is unaffected.
+        public bool AllowPartialRepeat { get; set; }
+
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {
             Type = type;

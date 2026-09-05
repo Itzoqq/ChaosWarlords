@@ -172,6 +172,7 @@ namespace ChaosWarlords.Source.Utilities
             effect.TargetNeutralTroopOnly = data.TargetNeutralTroopOnly;
             effect.IgnoresPresenceRequirement = data.IgnoresPresenceRequirement;
             effect.TargetsAffectedPlayer = data.TargetsAffectedPlayer;
+            effect.AllowPartialRepeat = data.AllowPartialRepeat;
         }
 
         private static void ParseDynamicAmount(CardEffectData data, CardEffect effect, IGameLogger? logger)

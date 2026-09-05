@@ -116,6 +116,53 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         }
 
         [TestMethod]
+        public void HandleInteraction_RightClick_AtARepeatOptionalEffectsEntryState_DeclinesInsteadOfCancelling()
+        {
+            // Council Member's "Move up to 2 enemy troops" - right-click at a genuine repeat
+            // boundary (CurrentState == the pending effect's own entry state) must decline the
+            // remaining repeats (keeping whatever already resolved), not fully CancelTargeting().
+            var sourceCard = new ChaosWarlords.Source.Entities.Cards.Card(
+                "council_member", "Council Member", 6, ChaosWarlords.Source.Utilities.CardAspect.Blasphemy, 3, 6, 0);
+            var sourceEffect = new ChaosWarlords.Source.Entities.Cards.CardEffect(EffectType.MoveUnit, 2) { AllowPartialRepeat = true };
+            var effectContext = new ChaosWarlords.Source.Core.Contexts.EffectContext(
+                ActionState.TargetingMoveSource, sourceCard, requiresInput: true, "Effect: MoveUnit", onResolved: _ => { }, sourceEffect: sourceEffect);
+
+            _actionSub.CurrentState.Returns(ActionState.TargetingMoveSource);
+            _actionSub.CurrentEffect.Returns(effectContext);
+
+            var evt = new InputEventArgs(InputEventType.RightClick, new Vector2(100, 100));
+
+            var result = _inputMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
+
+            _actionSub.DidNotReceive().CancelTargeting();
+            Assert.IsInstanceOfType(result, typeof(DeclineRepeatCommand));
+            Assert.AreEqual("council_member", ((DeclineRepeatCommand)result!).CardId);
+        }
+
+        [TestMethod]
+        public void HandleInteraction_RightClick_MidwayThroughARepeatOptionalEffect_StillCancelsNormally()
+        {
+            // Same repeat-optional effect as above, but CurrentState has moved on to MoveUnit's
+            // OWN 2nd sub-step (source picked, destination not yet chosen) - not a genuine
+            // repeat boundary, so right-click must fall back to the normal full cancel.
+            var sourceCard = new ChaosWarlords.Source.Entities.Cards.Card(
+                "council_member", "Council Member", 6, ChaosWarlords.Source.Utilities.CardAspect.Blasphemy, 3, 6, 0);
+            var sourceEffect = new ChaosWarlords.Source.Entities.Cards.CardEffect(EffectType.MoveUnit, 2) { AllowPartialRepeat = true };
+            var effectContext = new ChaosWarlords.Source.Core.Contexts.EffectContext(
+                ActionState.TargetingMoveSource, sourceCard, requiresInput: true, "Effect: MoveUnit", onResolved: _ => { }, sourceEffect: sourceEffect);
+
+            _actionSub.CurrentState.Returns(ActionState.TargetingMoveDestination);
+            _actionSub.CurrentEffect.Returns(effectContext);
+
+            var evt = new InputEventArgs(InputEventType.RightClick, new Vector2(100, 100));
+
+            var result = _inputMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
+
+            _actionSub.Received(1).CancelTargeting();
+            Assert.IsInstanceOfType(result, typeof(SwitchToNormalModeCommand));
+        }
+
+        [TestMethod]
         public void HandleInteraction_UIBlocking_IfMarketHovered_DoesNothing()
         {
             _actionSub.CurrentState.Returns(ActionState.TargetingPlaceSpy);

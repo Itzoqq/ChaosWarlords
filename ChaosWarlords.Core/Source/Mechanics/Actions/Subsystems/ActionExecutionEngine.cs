@@ -72,15 +72,51 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
                 return;
             }
 
-            if (success && ShouldRepeatCurrentEffect(ExecutionStack.Peek()))
+            var currentEffect = ExecutionStack.Peek();
+            if (success && ShouldRepeatCurrentEffect(currentEffect))
             {
                 // More targets are still owed for this same effect (e.g. Deathblade:
                 // "Assassinate 2 troops") - stay on the SAME EffectContext rather than
-                // popping/resolving, so CurrentState doesn't change and the next click routes
-                // right back through the same targeting handler for another target.
+                // popping/resolving. Explicitly re-enter this effect's own targeting state
+                // (a no-op for a single-ActionState effect like Assassinate, which never left
+                // it) rather than trusting CurrentState is already right - MoveUnit's "source,
+                // then destination" 2-step targeting leaves CurrentState on
+                // TargetingMoveDestination after a single repeat resolves, and the next click
+                // must route back to TargetingMoveSource to pick a NEW source, not be
+                // misinterpreted as a destination pick for the already-completed move. See
+                // planning.txt's Council Member writeup.
+                _actionSystem.EnterTargetingState(currentEffect.EffectType);
                 return;
             }
 
+            PopAndResolve(success);
+        }
+
+        /// <summary>
+        /// Voluntarily ends a "for up to N" repeat targeting effect early (CardEffect.
+        /// AllowPartialRepeat - e.g. Council Member: "Move up to 2 enemy troops"), resolving
+        /// the stack effect as a success so whatever repeats already happened stay in effect.
+        /// Unlike ActionSystem.CancelTargeting(), which reverts the WHOLE sequence (including
+        /// any already-resolved repeats) via a full state snapshot restore, this keeps
+        /// progress and is dispatched through the normal CommandDispatcher/replay path
+        /// (DeclineRepeatCommand) since it's a genuine, replay-significant player choice, not
+        /// a pure client-side UI revert. Deliberately bypasses ShouldRepeatCurrentEffect -
+        /// unlike ResolveCurrentEffect(true), the whole point here is to stop regardless of
+        /// RemainingRepeats or whether the board still has a legal further target.
+        /// </summary>
+        public void DeclineRemainingRepeats()
+        {
+            if (ExecutionStack.Count == 0)
+            {
+                _logger.Log("ActionExecutionEngine: DeclineRemainingRepeats called but stack is empty!", LogChannel.Warning);
+                return;
+            }
+
+            PopAndResolve(true);
+        }
+
+        private void PopAndResolve(bool success)
+        {
             var effect = ExecutionStack.Pop();
             _logger.Log($"ActionExecutionEngine: [RESOLVE] Popped effect [{effect.EffectType}] Success={success}. Remaining Stack: {ExecutionStack.Count}", LogChannel.Debug);
             _logger.Log($"ActionExecutionEngine: [RESOLVE] Effect has callback: {effect.OnResolved != null}, SourceEffect: {effect.SourceEffect?.Type}", LogChannel.Debug);

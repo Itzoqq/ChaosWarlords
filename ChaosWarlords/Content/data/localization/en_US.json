@@ -68,5 +68,7 @@
   "grimlock_name": "Grimlock",
   "grimlock_description": "Deploy a troop. If an opponent causes you to discard this, draw 2 cards.",
   "mindwitness_name": "Mindwitness",
-  "mindwitness_description": "Assassinate a troop. If that troop belonged to another player and they have more than 3 cards, they must discard a card."
+  "mindwitness_description": "Assassinate a troop. If that troop belonged to another player and they have more than 3 cards, they must discard a card.",
+  "council_member_name": "Council Member",
+  "council_member_description": "Move up to 2 enemy troops. At end of turn, promote another card played this turn."
 }

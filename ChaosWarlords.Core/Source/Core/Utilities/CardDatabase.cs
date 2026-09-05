@@ -58,6 +58,9 @@ namespace ChaosWarlords.Source.Utilities
         // "If that troop belonged to another player... they must discard" - see
         // CardEffect.TargetsAffectedPlayer.
         public bool TargetsAffectedPlayer { get; set; }
+
+        // "Move up to 2 enemy troops" - see CardEffect.AllowPartialRepeat.
+        public bool AllowPartialRepeat { get; set; }
     }
 
     public class CardDatabase : ICardDatabase

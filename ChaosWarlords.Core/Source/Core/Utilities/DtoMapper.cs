@@ -63,7 +63,8 @@ namespace ChaosWarlords.Source.Core.Utilities
                             ? new SelectOpponentCommand(color)
                             : null;
                     }
-                }
+                },
+                { typeof(DeclineRepeatCommandDto), (d, s) => new DeclineRepeatCommand(((DeclineRepeatCommandDto)d).CardId) }
             };
         }
 

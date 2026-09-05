@@ -829,6 +829,8 @@ namespace ChaosWarlords.Source.Managers
 
         public void ResolveCurrentEffect(bool success) => _executionEngine.ResolveCurrentEffect(success);
 
+        public void DeclineRemainingRepeats() => _executionEngine.DeclineRemainingRepeats();
+
         public void ProcessStack() => _executionEngine.ProcessStack();
 
         private Contexts.MatchContext? _matchContext;

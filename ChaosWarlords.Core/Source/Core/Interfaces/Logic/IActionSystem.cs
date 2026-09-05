@@ -320,6 +320,17 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         void ResolveCurrentEffect(bool success);
 
         /// <summary>
+        /// Voluntarily ends a "for up to N" repeat targeting effect early (CardEffect.
+        /// AllowPartialRepeat - e.g. Council Member: "Move up to 2 enemy troops"), resolving
+        /// the current stack effect as a success so whatever repeats already happened stay in
+        /// effect. Unlike CancelTargeting(), which reverts the WHOLE sequence (including any
+        /// already-resolved repeats) via a full state snapshot restore, this keeps progress -
+        /// called by DeclineRepeatCommand.Execute, not directly by UI code, since it's a
+        /// genuine replay-significant player choice rather than a pure client-side revert.
+        /// </summary>
+        void DeclineRemainingRepeats();
+
+        /// <summary>
         /// Restore-only: overwrites CurrentState and the Pending* fields directly, bypassing
         /// the normal targeting-flow mutators (StartAssassinate, HandleReturnSpyInitialClick,
         /// etc.) and the side effects some of those carry. Exists solely for
