@@ -69,6 +69,7 @@ namespace ChaosWarlords.Tests.Source.Managers
 
             var marketManager = Substitute.For<IMarketManager>();
             marketManager.MarketRow.Returns(new List<Card>());
+            marketManager.MarketDeck.Returns(new List<Card>());
 
             var playerState = new PlayerStateManager(logger);
             var actionSystem = new ActionSystem(turnManager, mapManager, logger, playerState, marketManager);
@@ -133,6 +134,30 @@ namespace ChaosWarlords.Tests.Source.Managers
             Assert.HasCount(1, _player.Hand);
             Assert.AreEqual(originalRuntimeId, _player.Hand[0].RuntimeId,
                 "A pending command/UI selection holding the pre-restore RuntimeId should still find this card.");
+        }
+
+        [TestMethod]
+        public void RestoreState_PreservesTheRealCardFactorySuffixedId_NotAFreshlyGeneratedOne()
+        {
+            // Every ICardDatabase.GetCardById call generates a BRAND NEW suffixed Id via the
+            // real CardFactory.GenerateUniqueId (no IGameRandom is threaded through
+            // StateRestorer, so this always falls into its Guid.NewGuid() branch) - a real
+            // pipeline round-trip, unlike the mocked StateRestorerTests.cs equivalent, actually
+            // exercises that fresh-id generation rather than assuming it. StateRestorer.
+            // ResolveCard must overwrite that fresh id with the snapshot's original one
+            // (CardDto.Id) - otherwise MatchContext.GetStateHash's market/hand contribution
+            // (which hashes Card.Id) would differ across two runs of the exact same rollback.
+            var wight = _cardDb.GetCardById("wight", _context.Random)!;
+            var originalId = wight.Id;
+            _player.AddToHand(wight);
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+
+            _player.ClearHand();
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.HasCount(1, _player.Hand);
+            Assert.AreEqual(originalId, _player.Hand[0].Id,
+                "The restored card must carry its ORIGINAL suffixed Id back, not a freshly-generated one from this restore's own GetCardById call.");
         }
 
         [TestMethod]

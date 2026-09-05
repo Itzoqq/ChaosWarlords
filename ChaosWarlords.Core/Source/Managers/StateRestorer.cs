@@ -26,6 +26,12 @@ namespace ChaosWarlords.Source.Managers
             context.CurrentTurnNumber = dto.TurnNumber;
             context.CurrentPhase = dto.Phase;
             context.SequenceNumber = dto.SequenceNumber;
+            // MapManager/MapRuleEngine hold their own independent copy of the current phase
+            // (read by ValidateDeployment's Setup power-cost bypass and the Setup
+            // auto-advance-turn trigger) - MatchManager.CompleteEndTurnSwitch always sets both
+            // copies together on the Setup->Playing transition, so a restore must too, or the
+            // two copies can permanently desync if an exception hits shortly after that flip.
+            context.MapManager.SetPhase(dto.Phase);
             
             // 2. Map State
             RestoreMap(context.MapManager, dto.Map);
@@ -34,7 +40,7 @@ namespace ChaosWarlords.Source.Managers
             RestorePlayers(context, dto.Players);
 
             // 4. Market State
-            RestoreMarket(context, dto.Market);
+            RestoreMarket(context, dto.Market, dto.MarketDeck);
             
             // 5. Void / Transient State
             // VoidPile carries full CardDtos (Location/RuntimeId matter - see RestoreCardDtoList).
@@ -117,15 +123,29 @@ namespace ChaosWarlords.Source.Managers
 
         /// <summary>
         /// Resolves a CardDto back to a live Card via its DefinitionId, then carries over the
-        /// snapshot's Location and RuntimeId - the two pieces of per-instance state a fresh
-        /// ICardDatabase.GetCardById lookup can't know on its own. Shared by every restore path
-        /// that has a full CardDto to work from (player collections, Market, VoidPile).
+        /// snapshot's Location, RuntimeId, and Id - the per-instance state a fresh
+        /// ICardDatabase.GetCardById lookup can't know on its own (a fresh lookup always
+        /// generates a BRAND NEW Card.Id suffix via CardFactory.GenerateUniqueId). Shared by
+        /// every restore path that has a full CardDto to work from (player collections, Market,
+        /// VoidPile).
+        ///
+        /// Deliberately does NOT pass an IGameRandom to GetCardById here, even though that would
+        /// make the discarded, freshly-generated Id (immediately overwritten by d.Id below)
+        /// "deterministic from the seed" - it would still be WRONG, and worse than the plain
+        /// Guid.NewGuid() default: ActionSystem.CancelTargeting() (an ordinary, everyday player
+        /// action, not just an error path) calls this same restore machinery but is often never
+        /// recorded through CommandDispatcher/ReplayManager, so consuming a real draw from the
+        /// match's shared IGameRandom stream here would silently desync every LATER replay-
+        /// critical draw (shuffles, other random effects) from what a replay of the recorded
+        /// command list would reproduce - a strictly worse bug than the one restoring the
+        /// original Id fixes. Restoring the exact original Id needs no randomness at all.
         /// </summary>
         private static Card? ResolveCard(CardDto d, ICardDatabase db)
         {
             var card = db.GetCardById(d.DefinitionId);
             if (card == null) return null;
 
+            card.Id = d.Id;
             card.Location = d.Location;
             card.RuntimeId = d.RuntimeId;
             return card;
@@ -217,7 +237,14 @@ namespace ChaosWarlords.Source.Managers
 
 
 
-        private static void RestoreMarket(MatchContext context, List<CardDto> marketDtos)
+        /// <summary>
+        /// Restores both MarketRow (the visible slots) AND MarketDeck (the face-down draw pile
+        /// behind it) - a rollback that only restored MarketRow would leave MarketDeck already
+        /// short whatever card RefillMarket drew to backfill a bought/removed slot, permanently
+        /// deleting that card from the game (present in neither the row, the deck, nor any
+        /// player's hand/discard/void).
+        /// </summary>
+        private static void RestoreMarket(MatchContext context, List<CardDto> marketDtos, List<CardDto> marketDeckDtos)
         {
             var mgr = context.MarketManager;
             mgr.MarketRow.Clear();
@@ -227,6 +254,16 @@ namespace ChaosWarlords.Source.Managers
                  {
                      var card = ResolveCard(d, context.CardDatabase);
                      if (card != null) mgr.MarketRow.Add(card);
+                 }
+            }
+
+            mgr.MarketDeck.Clear();
+            if (marketDeckDtos != null)
+            {
+                 foreach (var d in marketDeckDtos)
+                 {
+                     var card = ResolveCard(d, context.CardDatabase);
+                     if (card != null) mgr.MarketDeck.Add(card);
                  }
             }
         }
@@ -249,7 +286,14 @@ namespace ChaosWarlords.Source.Managers
              CardEffect? sourceEffect = null;
              if (effectDto.State != ActionState.Normal)
              {
-                 sourceEffect = sourceCard.Effects.FirstOrDefault(e => e.Type == effectDto.EffectType);
+                 // Must search the full OnSuccess/Alternative subtree, not just the card's
+                 // top-level Effects - a targeting effect nested under a Choose-one Alternative
+                 // (e.g. kobold/master_of_melee_magthere's Assassinate/Supplant branch) would
+                 // otherwise resolve to null here, silently dropping its TargetNeutralTroopOnly/
+                 // IgnoresPresenceRequirement constraint on rollback. Same shared lookup the
+                 // Assassinate/Supplant/Devour/PromoteFromPile strategies already use for the same
+                 // reason (see EffectTreeSearch's own doc comment).
+                 sourceEffect = Mechanics.Rules.Strategies.EffectTreeSearch.FindFirstEffect(sourceCard.Effects, effectDto.EffectType);
              }
 
              var ctx = new EffectContext(

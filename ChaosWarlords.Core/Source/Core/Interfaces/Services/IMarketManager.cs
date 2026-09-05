@@ -24,6 +24,16 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         List<Card> MarketRow { get; }
 
         /// <summary>
+        /// The face-down draw pile behind MarketRow - RefillMarket pulls from the front of this
+        /// list to backfill MarketRow whenever a card leaves it (bought, devoured, replaced).
+        /// Exposed (rather than kept private) so StateRestorer can clear/repopulate it directly
+        /// on rollback, the same pattern already used for MarketRow - without this, a rollback
+        /// after a successful buy+refill would restore MarketRow but leave this deck already
+        /// short the card it drew, permanently deleting that card from the game.
+        /// </summary>
+        List<Card> MarketDeck { get; }
+
+        /// <summary>
         /// Removes a specific card from the market row and triggers a refill.
         /// </summary>
         /// <param name="card">The card to remove.</param>

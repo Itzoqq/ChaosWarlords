@@ -181,6 +181,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             mapManager.Sites.Returns(new List<ChaosWarlords.Source.Entities.Map.Site>());
             var marketManager = Substitute.For<IMarketManager>();
             marketManager.MarketRow.Returns(new List<Card>());
+            marketManager.MarketDeck.Returns(new List<Card>());
             var playerState = new PlayerStateManager(_logger);
             // Unlike the other tests in this file, this one needs a REAL ActionSystem (not a
             // bare Substitute): DtoMapper.ToGameStateDto reads ActionSystem.ExecutionStack,

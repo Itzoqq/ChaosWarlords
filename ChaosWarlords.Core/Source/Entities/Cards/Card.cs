@@ -25,8 +25,17 @@ namespace ChaosWarlords.Source.Entities.Cards
         /// two cards from the same cards.json entry get distinct Ids), which is exactly why
         /// DefinitionId exists as a separate field below. Kept as-is (rather than renamed) to
         /// avoid touching the many call sites/tests that already read Card.Id.
+        /// Settable internally only so StateRestorer can carry the ORIGINAL value across a
+        /// rollback-rebuilt Card (a fresh instance from a fresh ICardDatabase.GetCardById call,
+        /// which otherwise generates a brand new suffix every time) - see CardDto.Id. Without
+        /// this, a restore's freshly-generated Id would either need Guid.NewGuid() (non-
+        /// deterministic, violates this codebase's seeded-RNG-only rule) or the match's own
+        /// shared IGameRandom stream (which desyncs replay, since routine, often-unrecorded
+        /// actions like ActionSystem.CancelTargeting() would then silently consume RNG draws a
+        /// replay's own stream never produces) - restoring the original value instead needs
+        /// neither.
         /// </summary>
-        public string Id { get; private set; }
+        public string Id { get; internal set; }
 
         /// <summary>
         /// The plain, un-suffixed catalog key this card was created from (e.g. "wight",

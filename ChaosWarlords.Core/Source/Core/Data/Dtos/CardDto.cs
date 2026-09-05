@@ -21,6 +21,14 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         // matches whatever RuntimeId a pending command/UI selection is already holding.
         public Guid RuntimeId { get; set; }
 
+        // Card.Id - the CardFactory.GenerateUniqueId-suffixed instance id (distinct from
+        // DefinitionId above). A fresh ICardDatabase.GetCardById call always generates a NEW
+        // suffix, so without capturing the original value here, a restored card's Id would
+        // silently change on every rollback - either non-deterministically (Guid.NewGuid()) or,
+        // worse, by consuming the match's shared IGameRandom stream on routine, often-unrecorded
+        // actions like ActionSystem.CancelTargeting(), desyncing replay. See ResolveCard.
+        public required string Id { get; set; }
+
         public CardLocation Location { get; set; }
         public int ListIndex { get; set; } // Order preservation in list
 
@@ -32,6 +40,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         {
             ArgumentNullException.ThrowIfNull(card);
             DefinitionId = card.DefinitionId;
+            Id = card.Id;
             RuntimeId = card.RuntimeId;
             Location = card.Location;
             ListIndex = index;

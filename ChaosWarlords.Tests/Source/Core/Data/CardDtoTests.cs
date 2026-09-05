@@ -62,6 +62,7 @@ namespace ChaosWarlords.Tests.Source.Core.Data
             var dto = new CardDto
             {
                 DefinitionId = "test_card",
+                Id = "test_card",
                 Location = CardLocation.Hand
             };
 
@@ -105,7 +106,8 @@ namespace ChaosWarlords.Tests.Source.Core.Data
 
             var dto = new CardDto
             {
-                DefinitionId = "invalid_id"
+                DefinitionId = "invalid_id",
+                Id = "invalid_id"
             };
 
             // Act & Assert

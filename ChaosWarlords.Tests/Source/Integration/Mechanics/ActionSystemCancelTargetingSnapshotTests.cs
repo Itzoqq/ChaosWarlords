@@ -53,6 +53,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
 
             _marketManager = Substitute.For<IMarketManager>();
             _marketManager.MarketRow.Returns(new List<Card>());
+            _marketManager.MarketDeck.Returns(new List<Card>());
 
             // A snapshot restore re-resolves every card by DefinitionId via
             // CardDatabase.GetCardById (see StateRestorer's own doc comments on Card identity

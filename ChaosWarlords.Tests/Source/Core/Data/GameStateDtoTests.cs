@@ -63,8 +63,8 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         {
             // Arrange
             var dto = new GameStateDto();
-            var card1 = new CardDto { DefinitionId = "card1" };
-            var card2 = new CardDto { DefinitionId = "card2" };
+            var card1 = new CardDto { DefinitionId = "card1", Id = "card1" };
+            var card2 = new CardDto { DefinitionId = "card2", Id = "card2" };
 
             // Act
             dto.Market.Add(card1);
@@ -81,7 +81,7 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         {
             // Arrange
             var dto = new GameStateDto();
-            var card = new CardDto { DefinitionId = "void_card" };
+            var card = new CardDto { DefinitionId = "void_card", Id = "void_card" };
 
             // Act
             dto.VoidPile.Add(card);

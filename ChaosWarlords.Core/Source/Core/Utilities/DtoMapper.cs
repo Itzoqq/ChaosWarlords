@@ -404,6 +404,7 @@ namespace ChaosWarlords.Source.Core.Utilities
             dto.Players = context.TurnManager.Players.Select(p => ToDto(p)).Where(d => d != null).ToList()!;
             dto.Map = ToDto(context.MapManager);
             dto.Market = ToDtoList(context.MarketManager.MarketRow);
+            dto.MarketDeck = ToDtoList(context.MarketManager.MarketDeck);
             dto.VoidPile = ToDtoList(context.VoidPile);
 
             // Stack Serialization

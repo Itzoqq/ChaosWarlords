@@ -62,6 +62,7 @@ namespace ChaosWarlords.Tests.Source.Managers
 
             _marketManager = Substitute.For<IMarketManager>();
             _marketManager.MarketRow.Returns(new List<Card>());
+            _marketManager.MarketDeck.Returns(new List<Card>());
 
             var cardDb = Substitute.For<ICardDatabase>();
             _cardsById = new Dictionary<string, Card>();
@@ -97,6 +98,24 @@ namespace ChaosWarlords.Tests.Source.Managers
 
             Assert.AreEqual(0, _context.CurrentTurnNumber);
             Assert.AreEqual(0, _context.SequenceNumber);
+        }
+
+        [TestMethod]
+        public void RestoreState_RevertsMapManagersOwnPhaseCopy_ToMatchTheSnapshot()
+        {
+            // MapManager/MapRuleEngine hold their own independent copy of CurrentPhase (read by
+            // ValidateDeployment's Setup power-cost bypass and the Setup auto-advance-turn
+            // trigger) - MatchManager.CompleteEndTurnSwitch always sets both copies together on
+            // the Setup->Playing transition, so a restore must reset both too, or they can
+            // permanently desync if an exception hits shortly after that flip.
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+            Assert.AreEqual(MatchPhase.Setup, snapshot.Phase);
+
+            _context.CurrentPhase = MatchPhase.Playing;
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            _mapManager.Received().SetPhase(MatchPhase.Setup);
         }
 
         [TestMethod]
@@ -137,6 +156,36 @@ namespace ChaosWarlords.Tests.Source.Managers
 
             CollectionAssert.Contains(_player.Hand.ToList(), keptCard, "The pre-mutation hand card must be restored.");
             Assert.HasCount(1, _player.Hand, "The card added after the snapshot must NOT survive the rollback.");
+        }
+
+        [TestMethod]
+        public void RestoreState_PreservesTheOriginalCardId_EvenThoughCardDatabaseAlwaysGeneratesAFreshOne()
+        {
+            // A real ICardDatabase.GetCardById call always generates a BRAND NEW Card.Id suffix
+            // (CardFactory.GenerateUniqueId) - simulated here by configuring the mock to return
+            // a DIFFERENT card instance (with a different .Id) than the one the snapshot was
+            // built from, the same way the real CardDatabase would on every restore. ResolveCard
+            // must overwrite that fresh Id with the snapshot's original one (CardDto.Id) rather
+            // than leaving whatever GetCardById happened to return - restoring a card that
+            // already existed should never invent a new identity for it. Deliberately does NOT
+            // thread an IGameRandom into GetCardById to "make the fresh id deterministic" - see
+            // ResolveCard's own doc comment for why that would be a worse bug (desyncs replay's
+            // RNG stream via ActionSystem.CancelTargeting(), which is often never recorded).
+            var originalCard = new Card("hand_card_original_id", "hand_card_original_id", 1, CardAspect.Neutral, 0, 0, 0, definitionId: "hand_card")
+            {
+                Location = CardLocation.Hand
+            };
+            _player.AddToHand(originalCard);
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+
+            var freshCardFromDb = new Card("hand_card_freshly_generated_id", "hand_card_freshly_generated_id", 1, CardAspect.Neutral, 0, 0, 0, definitionId: "hand_card");
+            _context.CardDatabase.GetCardById("hand_card", Arg.Any<IGameRandom?>()).Returns(freshCardFromDb);
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            var restoredCard = _player.Hand.Single();
+            Assert.AreEqual("hand_card_original_id", restoredCard.Id, "The restored card must carry its ORIGINAL Id back, not whatever fresh one GetCardById generated.");
+            _context.CardDatabase.DidNotReceive().GetCardById(Arg.Any<string>(), Arg.Is<IGameRandom?>(r => r != null));
         }
 
         [TestMethod]
@@ -419,6 +468,33 @@ namespace ChaosWarlords.Tests.Source.Managers
             Assert.IsEmpty(_marketManager.MarketRow, "A card added to the market row after the snapshot must not survive rollback.");
         }
 
+        [TestMethod]
+        public void RestoreState_RevertsMarketDeck_SoARolledBackRefillDoesNotPermanentlyDeleteACard()
+        {
+            // MarketManager.RefillMarket immediately draws from MarketDeck (RemoveAt(0)) to
+            // backfill any slot MarketRow loses (bought/removed). Without restoring MarketDeck
+            // too, a rollback after such a refill would put MarketRow back to its pre-command
+            // contents while leaving the deck already short the card it drew - present in
+            // neither the row, the deck, nor any player's hand/discard/void: permanently deleted
+            // from the game.
+            var marketDeck = new List<Card>
+            {
+                RegisterCard("still_in_deck", CardLocation.Deck),
+                RegisterCard("drawn_by_refill", CardLocation.Deck)
+            };
+            _marketManager.MarketDeck.Returns(marketDeck);
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+
+            // Simulate RefillMarket drawing "drawn_by_refill" out of the deck as part of a
+            // (later-failing) buy command.
+            marketDeck.RemoveAt(0);
+            Assert.HasCount(1, marketDeck, "Sanity check: the simulated refill must have actually shrunk the deck.");
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.HasCount(2, _marketManager.MarketDeck, "Both cards must be back in the deck after rollback - the drawn one must not vanish from the game entirely.");
+        }
+
         // --- RestoreEffect coverage (planning.txt TIER 1 item 1 - risk-hotspot remediation:
         // StateRestorer.RestoreEffect was flagged with Crap 42 / cyclomatic 6, a coverage gap
         // (nothing above exercises restoring a genuinely non-empty ExecutionStack) rather than
@@ -472,6 +548,39 @@ namespace ChaosWarlords.Tests.Source.Managers
             Assert.HasCount(1, _context.ActionSystem.ExecutionStack);
             var restored = _context.ActionSystem.ExecutionStack.Peek();
             Assert.AreSame(devourEffect, restored.SourceEffect, "A non-Normal state should re-resolve SourceEffect from the card's own Effects, matched by EffectType.");
+        }
+
+        [TestMethod]
+        public void RestoreState_EffectStackEntry_WhoseCardEffectIsNestedUnderAlternative_StillReattachesIt()
+        {
+            // Same shape as kobold/master_of_melee_magthere: a top-level optional GainResource
+            // whose real targeting effect (Assassinate, here with TargetNeutralTroopOnly set)
+            // lives under .Alternative, not at the top level of Effects. RestoreEffect must
+            // search the full OnSuccess/Alternative subtree (EffectTreeSearch.FindFirstEffect),
+            // the same lookup AssassinateStrategy/SupplantStrategy already use - a flat
+            // top-level-only FirstOrDefault would silently resolve SourceEffect to null here,
+            // dropping the TargetNeutralTroopOnly restriction on rollback.
+            var sourceCard = RegisterCard("kobold", CardLocation.Played);
+            var assassinateEffect = new CardEffect(EffectType.Assassinate, 1) { TargetNeutralTroopOnly = true };
+            var gainResourceEffect = new CardEffect(EffectType.GainResource, 1, ResourceType.Power)
+            {
+                IsOptional = true,
+                Alternative = assassinateEffect
+            };
+            sourceCard.AddEffect(gainResourceEffect);
+
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+            snapshot.EffectStack = new List<EffectContextDto>
+            {
+                new() { State = ActionState.TargetingAssassinate, SourceCardId = "kobold", RequiresInput = true, EffectType = EffectType.Assassinate }
+            };
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.HasCount(1, _context.ActionSystem.ExecutionStack);
+            var restored = _context.ActionSystem.ExecutionStack.Peek();
+            Assert.AreSame(assassinateEffect, restored.SourceEffect, "SourceEffect must be re-resolved from the full effect tree, not just the card's top-level Effects.");
+            Assert.IsTrue(restored.SourceEffect!.TargetNeutralTroopOnly, "The restored effect must be the actual nested Assassinate node, carrying its TargetNeutralTroopOnly restriction.");
         }
 
         [TestMethod]

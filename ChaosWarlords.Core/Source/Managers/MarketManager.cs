@@ -9,18 +9,18 @@ namespace ChaosWarlords.Source.Managers
     public class MarketManager : IMarketManager
     {
         private readonly ICardDatabase _cardDatabase;
-        private readonly List<Card> _marketDeck;
 
         public List<Card> MarketRow { get; private set; }
+        public List<Card> MarketDeck { get; }
 
         public MarketManager(ICardDatabase cardDatabase, IGameRandom random)
         {
             _cardDatabase = cardDatabase;
-            _marketDeck = _cardDatabase.GetAllMarketCards(random);
+            MarketDeck = _cardDatabase.GetAllMarketCards(random);
             MarketRow = new List<Card>();
 
             // Shuffle market deck using deterministic RNG
-            random.Shuffle(_marketDeck);
+            random.Shuffle(MarketDeck);
 
             RefillMarket();
         }
@@ -44,10 +44,10 @@ namespace ChaosWarlords.Source.Managers
 
         private void RefillMarket()
         {
-            while (MarketRow.Count < GameConstants.MarketRowSize && _marketDeck.Count > 0)
+            while (MarketRow.Count < GameConstants.MarketRowSize && MarketDeck.Count > 0)
             {
-                Card card = _marketDeck[0];
-                _marketDeck.RemoveAt(0);
+                Card card = MarketDeck[0];
+                MarketDeck.RemoveAt(0);
                 card.Location = CardLocation.Market;
                 MarketRow.Add(card);
             }
@@ -63,7 +63,7 @@ namespace ChaosWarlords.Source.Managers
 
         public bool HasCardsInDeck()
         {
-            return _marketDeck.Count > 0;
+            return MarketDeck.Count > 0;
         }
 
         public void ReplaceCard(Card target, Card replacement)

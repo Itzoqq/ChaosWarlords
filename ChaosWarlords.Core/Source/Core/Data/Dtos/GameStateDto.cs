@@ -21,6 +21,16 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         // Market (Row of cards)
         public List<CardDto> Market { get; set; } = [];
 
+        // Market's face-down draw pile behind the visible row (IMarketManager.MarketDeck).
+        // Without this, a rollback after a command that bought/removed a market card (which
+        // RefillMarket immediately backfills from this deck) restores MarketRow to its
+        // pre-command contents but leaves the deck already short the card it drew - that card
+        // ends up in neither the row, the deck, any player's hand/discard/void, permanently
+        // deleted from the game. Not currently part of MatchContext.GetStateHash (see
+        // planning.txt's existing hash-granularity-vs-cost bucket) - this field only closes the
+        // DTO/restore gap, not the hash one.
+        public List<CardDto> MarketDeck { get; set; } = [];
+
         // Void (Removed cards)
         public List<CardDto> VoidPile { get; set; } = [];
 
