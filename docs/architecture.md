@@ -120,8 +120,7 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     ├── Factories/                           # Object Creation Logic
     │   ├── CardFactory.cs                   # Creates Card instances from data - resolves Name/Description via ILocalizationService
     │   ├── MapFactory.cs                    # Generates the map graph and nodes
-    │   ├── MatchFactory.cs                  # Assembles all dependencies for a new match
-    │   └── WrapperFactory.cs
+    │   └── MatchFactory.cs                  # Assembles all dependencies for a new match
     │
     ├── Managers/                            # Business Logic Services
     │   ├── ActionInputController.cs         # Click-to-command routing for targeting (extracted from ActionSystem)
@@ -181,6 +180,7 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
             │   ├── DefaultStrategy.cs
             │   ├── DevourStrategy.cs
             │   ├── DiscardStrategy.cs
+            │   ├── EffectTreeSearch.cs          # Shared FindFirstEffect helper (Assassinate/Supplant/Devour/PromoteFromPile strategies) - recurses into both OnSuccess and Alternative
             │   ├── MoveUnitStrategy.cs
             │   ├── PlaceSpyStrategy.cs
             │   ├── PlayFromMarketStrategy.cs
@@ -239,6 +239,7 @@ ChaosWarlords/                     # Client (Game) Project Root - references Cor
     │   └── VictoryState.cs                  # Post-game summary state
     │
     ├── Input/                               # Human Interface Layer
+    │   ├── MapHitTestExtensions.cs           # Screen-space hit-testing (GetNodeAt/GetSiteAt) - deliberately client-only, a headless server never needs it
     │   ├── Controllers/
     │   │   ├── PlayerController.cs          # High-Level Intent Parser
     │   │   └── ReplayController.cs          # Replay Workflow Orchestrator - increments MatchContext.SequenceNumber per replayed command (see Key Systems #6)
@@ -331,10 +332,21 @@ popup, calling `OnResponse` when the player answers. `ActionSystem` has no refer
 - `EffectType.SelectOpponent` / `SelectOpponentStrategy` / `ActionState.TargetingOpponentSelect` - the generic "target a player" primitive: the active player picks which opponent (matching an eligibility threshold) becomes `TurnManager.ForcedActingPlayer` for whatever `OnSuccess` chains off it, e.g. Cranium Rats' "choose one opponent with more than 3 cards to discard a card".
 - `EffectType.PromoteFromPile` / `PromoteFromPileStrategy` / `ActionState.TargetingPromoteFromPile` - "promote a card right now from an expanded pool" (`CardLocation.DiscardPile`, or `CardLocation.HandOrDiscard` for hand+discard+the source card itself), e.g. Matron Mother/Necromancer. Explicitly a *different*, independent primitive from the pre-existing `EffectType.Promote` (the deferred end-of-turn promotion-credit flow driven by `PromoteInputMode`/`ActionState.SelectingCardToPromote`, e.g. Noble/Cultist of Myrkul) - the two are not to be conflated.
 
+**Per-effect targeting filters and modifiers (2026-09-02 through 09-05).** A second wave of primitives, each a small field/flag rather than a new `EffectType`/`ActionState` pair, added to `CardEffect` (`Entities/Cards/CardEffects.cs`) and consumed by the existing strategies/engine:
+- `CardEffect.TargetNeutralTroopOnly` - restricts an Assassinate/Supplant's valid targets to white/unaligned troops only (e.g. Ravenous Zombies).
+- `CardEffect.IgnoresPresenceRequirement` - lets a Supplant's assassinate-half skip the normal Presence check at the target site (e.g. Ogre Zombie, Master of Melee-Magthere, Olhydra). `Card.CloneEffect` must copy this flag along with `TargetNeutralTroopOnly` - a past bug dropped it on clone, silently and permanently stripping the override the first time a targeting selection involving the card got cancelled or rolled back (see `reference/bug-log.md` in the `tyrants-rules` skill).
+- `IEffectStrategy.SupportsRepeat` + `EffectContext.RemainingRepeats` - lets a targeting effect ask to be resolved N times in a row instead of once (currently only `AssassinateStrategy` opts in, e.g. Deathblade). `RemainingRepeats` is part of `EffectContextDto` and round-trips through the same snapshot/restore machinery as the rest of the execution stack (see Key Systems #6).
+- `CardEffect.DynamicAmountSource` / `DynamicAmountDivisor` - computes an effect's numeric amount from live board state at resolution time (via `CardEffectProcessor.ResolveAmount`) instead of a fixed JSON constant, e.g. White Dragon.
+- `Card.ReactiveDiscardEffect` - a top-level card field (not a `CardEffect`) applied by `DiscardCardCommand.Execute` when an opponent forces this card to be discarded from hand, e.g. Grimlock.
+
+`IActionSystem.CurrentSourceEffect` is a related, smaller addition: a public read of "which `CardEffect` is currently driving targeting," used by `ActionInputController`/`AssassinateCommand`/`SupplantCommand` to apply the per-effect filters above (`TargetNeutralTroopOnly`, `IgnoresPresenceRequirement`) at click-validation time rather than only at resolution time.
+
 ### 5. Card Rule Engine
 Card logic is validated by a centralized `CardRuleEngine` using a Chain of Responsibility pattern. `EffectCondition` definitions allow data-driven rules (defined in JSON), separating validation logic from effect execution.
 
 `ConditionType` covers the usual resource/board-state checks (`ControlsSite`, `HasTroopsDeployed`, `HasResourceAmount`, `InnerCircleCount`, `HandSize`) plus, as of 2026-09, `ConditionType.OpponentPresentAtSite`: reads `ActionSystem.PendingSite` to check whether another player has a spy or troop (`SitePresenceType.Spy`/`SitePresenceType.Troop`) at the site a chained `PlaceSpy` effect just targeted, e.g. Banshee (bonus Power if an opponent has a spy there) and Infiltrator (bonus Power if an opponent has a troop there).
+
+`CardRuleEngine.GetStrategy(EffectType)` is the lookup used throughout `CardEffectProcessor` to resolve the right `IEffectStrategy` (12 implementations in `Mechanics/Rules/Strategies/`, one per `EffectType` family - `EffectTreeSearch.cs` in the same folder is a shared helper, not an `IEffectStrategy`) for `IsTargetingEffect`/`HasValidTargets`/`SupportsRepeat` checks - this is the extension point for a new effect type's targeting behavior, not a hardcoded switch.
 
 ### 6. Multiplayer Readiness
 
@@ -429,7 +441,7 @@ See Key Systems #4's "Cancellation" paragraphs above for the full description. S
 
 ### ActionSystem Decomposition & Transactional Cancellation (2026-08)
 See Key Systems #4 above for the full description. Summary:
-- Extracted the execution-stack engine into `ActionExecutionEngine`, following the codebase's own established subsystem-composition pattern. `ActionSystem.cs`: 871 → 680 lines.
+- Extracted the execution-stack engine into `ActionExecutionEngine`, following the codebase's own established subsystem-composition pattern. `ActionSystem.cs` dropped from 871 to 680 lines at the time of this split; later feature work (new primitives, `CurrentSourceEffect`) has since added lines back, so don't treat either number as a current fact.
 - Replaced `CancelTargeting`'s field-by-field imperative undo with a full-state snapshot/restore, reusing `CommandDispatcher`'s existing rollback machinery instead of a parallel implementation.
 - Added `ChaosWarlords.Core.Tests` so "Core is headless" is provable at the test level, not just the build level.
 - Replaced `SeededGameRandom`'s `System.Random` engine with a from-scratch `Pcg32` implementation for cross-.NET-version determinism.
@@ -442,7 +454,7 @@ The codebase underwent significant refactoring to reduce cyclomatic complexity a
 - `ActionSystem.StartTargeting`: Reduced from CC 26 to 6 (77% reduction)
 - `TargetingStateEngine.TraverseForNext`: Reduced from CC 26 to 8 (69% reduction)
 - `CardEffectProcessor.ApplyDevour`: Reduced from CC 16 to 6 (63% reduction)
-- `CardEffectProcessor.ProcessNextEffect`: Reduced from CC 14 to 7 (50% reduction)
+- `CardEffectProcessor.ProcessNextEffect` (since renamed/absorbed into the `ActionExecutionEngine` stack-processing methods - see the 2026-08 entry above): Reduced from CC 14 to 7 (50% reduction)
 
 **New Helper Classes:**
 1. **PreTargetHandler** (Internal) - Encapsulates pre-target auto-execution logic extracted from `ActionSystem`
@@ -452,7 +464,7 @@ The codebase underwent significant refactoring to reduce cyclomatic complexity a
 
 2. **DevourStrategyFactory** (Internal) - Strategy pattern for devour operations
    - `IDevourStrategy` interface with location-specific implementations
-   - `DevourFromHandStrategy`, `DevourFromMarketStrategy`, `DevourFromDeckStrategy`, `DevourFromInnerCircleStrategy`
+   - `DevourFromHandStrategy`, `DevourFromMarketStrategy`, `DevourSelfStrategy`, `DevourFromInnerCircleStrategy`
    - Eliminates conditional complexity in `CardEffectProcessor`
 
 **Benefits:**

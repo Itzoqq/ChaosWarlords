@@ -165,7 +165,8 @@ ChaosWarlords.Tests/
     │   │   │   ├── DiscardInputModeTests.cs
     │   │   │   ├── MarketInputModeTests.cs
     │   │   │   ├── NormalPlayInputModeTests.cs
-    │   │   │   ├── PromoteInputModeTests.cs     # PromoteFromPileInputMode has no sibling test file yet - see note below
+    │   │   │   ├── PromoteFromPileInputModeTests.cs
+    │   │   │   ├── PromoteInputModeTests.cs
     │   │   │   └── TargetingInputModeTests.cs
     │   │   ├── Processors/
     │   │   │   ├── GameplayInputCoordinatorTests.cs
@@ -261,22 +262,13 @@ ChaosWarlords.Tests/
     │       │   └── EffectStrategiesTests.cs      # Direct tests for 9 of the 12 registered IEffectStrategy implementations (Assassinate/Default/Devour/MoveUnit/PlaceSpy/ReturnUnit/Supplant/SelectOpponent/PromoteFromPile) - Discard/ReturnOwnSpy/PlayFromMarket aren't covered directly here
     │       └── TargetingStateEngineTests.cs
     │
-    ├── Functional/
+    ├── Functional/                          # One MatchScenario file per card/mechanic with real coverage
+    │   │                                    # gaps to close - list below is illustrative, not exhaustive;
+    │   │                                    # see the directory itself for the current, growing full list.
     │   ├── MatchScenario.cs                  # Scenario harness - see "Functional/Scenario Test Harness" below
     │   ├── AlwaysLegalCommandsScenarioTests.cs   # Spam/idempotency of always-legal no-target commands, not a per-card scenario
-    │   ├── BansheeInfiltratorScenarioTests.cs
-    │   ├── CarrionCrawlerScenarioTests.cs
-    │   ├── CloakerScenarioTests.cs
-    │   ├── CraniumRatsScenarioTests.cs
-    │   ├── CultistOfMyrkulScenarioTests.cs
-    │   ├── InsaneOutcastScenarioTests.cs
-    │   ├── MarketCorruptorScenarioTests.cs
-    │   ├── MatronMotherNecromancerScenarioTests.cs
-    │   ├── NeogiScenarioTests.cs
-    │   ├── SkeletalHordeScenarioTests.cs
     │   ├── TrivialPrimitiveCardsScenarioTests.cs # Batched matrix pass across 8 no-special-mechanic cards, not one file per card
-    │   ├── UlitharidScenarioTests.cs
-    │   └── WightScenarioTests.cs
+    │   ├── WightScenarioTests.cs             # ...and 20+ further per-card scenario files (Cloaker, Neogi, Deathblade, White Dragon, etc.)
     │
     ├── Rendering/
     │   ├── LogicVectorExtensionsTests.cs
@@ -292,11 +284,6 @@ ChaosWarlords.Tests/
     └── Utilities/
         └── TestLogger.cs                     # Shared IGameLogger for tests (BufferedAsyncLogger-backed)
 ```
-
-**Known coverage gap:** `PromoteFromPileInputMode.cs` (the client input mode for the
-PromoteFromPile primitive) shipped without a dedicated `Integration/Input/Modes/
-PromoteFromPileInputModeTests.cs` the way `DevourInputModeTests.cs` exists for its sibling
-`DevourInputMode`. This is a real, currently-open gap, not an omission from this doc.
 
 ### ChaosWarlords.Core.Tests/ (headless-only suite)
 
@@ -374,6 +361,7 @@ scenario.PlayCard(wight);                                 // dispatches PlayCard
 scenario.RespondToLatestInteraction(accept: true);        // answers the "choose one" popup
 
 scenario.SelectDevourCard(someHandCard);                  // HandleDevourSelection -> dispatch
+scenario.SelectPromoteFromPileCard(someDiscardCard);      // HandlePromoteFromPileSelection -> dispatch
 scenario.ClickTarget(targetNode, null);                   // HandleTargetClick -> dispatch
 
 Assert.AreEqual(...);                                     // assert on scenario.Context / scenario.Player(color)
@@ -445,6 +433,11 @@ All methods return **new instances** to prevent state pollution.
 | `DrawCard()` | Sorcery aspect | 1 | DrawCard(2) |
 | `MoveUnitCard()` | Warlord aspect | 2 | MoveUnit(1) |
 | `SupplantCard()` | Shadow aspect | 4 | Supplant(1) |
+| `DevourCard()` | Shadow aspect | 3 | Devour(1) |
+| `NobleCard()` | Sorcery aspect | 3 | Promote(1) |
+| `FocusPowerCard()` | Shadow aspect, Focus | 2 | Focus GainResource(Power, 3) |
+| `ReturnUnitCard()` | Sorcery aspect | 2 | ReturnUnit(1) |
+| `PlaceSpyCard()` | Shadow aspect | 3 | PlaceSpy(1) |
 
 ### TestData.Players
 All methods return **new instances** with fresh state.
@@ -453,8 +446,10 @@ All methods return **new instances** with fresh state.
 |--------|-------------|-------|-----------|--------|-------|
 | `RedPlayer()` | Standard red player | 10 | 10 | 10 | 5 |
 | `BluePlayer()` | Standard blue player | 10 | 10 | 10 | 5 |
-| `PoorPlayer()` | No resources | 0 | 0 | 0 | 0 |
-| `RichPlayer()` | Abundant resources | 100 | 100 | 50 | 20 |
+| `OrangePlayer()` | Standard orange player | 10 | 10 | 10 | 5 |
+| `BlackPlayer()` | Standard black player | 10 | 10 | 10 | 5 |
+| `PoorPlayer()` | No resources (Red color) | 0 | 0 | 0 | 0 |
+| `RichPlayer()` | Abundant resources (Red color) | 100 | 100 | 50 | 20 |
 
 ### TestData.MapNodes
 All methods return **new instances** with unique IDs.
@@ -464,9 +459,22 @@ All methods return **new instances** with unique IDs.
 | `Node1()` | Generic node | 1 | (10, 10) | None |
 | `Node2()` | Generic node | 2 | (20, 10) | None |
 | `Node3()` | Generic node | 3 | (30, 10) | None |
+| `Node4()` | Generic node | 4 | (40, 10) | None |
+| `Node5()` | Generic node | 5 | (50, 10) | None |
 | `RedNode()` | Red-occupied | 10 | (100, 100) | Red |
 | `BlueNode()` | Blue-occupied | 11 | (110, 100) | Blue |
 | `EmptyNode()` | Unoccupied | 99 | (200, 200) | None |
+
+### TestData.Sites
+All methods return **new instances**.
+
+| Method | Type | Resource (Control) | Amount | Reward (Total Control) | Amount |
+|--------|------|---------------------|--------|-------------------------|--------|
+| `PowerCity()` | `CitySite` | Power | 2 | VictoryPoints | 2 |
+| `CitySite()` | `CitySite` | Power | 1 | VictoryPoints | 1 |
+| `InfluenceSite()` | `NonCitySite` | Influence | 1 | VictoryPoints | 1 |
+| `NeutralSite()` | `NonCitySite` | Power | 1 | Power | 1 |
+| `StartingSite()` | `StartingSite` | Power | 1 | VictoryPoints | 1 |
 
 ---
 

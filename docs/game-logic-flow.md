@@ -598,6 +598,13 @@ classDiagram
         +HandlePlaceSpy()
         +PerformSpyReturn()
     }
+    class ActionInputController {
+        +HandleTargetClick()
+        -HandleAssassinate()
+        -HandleSupplant()
+        -HandleMoveSource()
+        -HandleMoveDestination()
+    }
 
     ActionSystem --> ActionExecutionEngine : Delegates ExecutionStack/ProcessStack/ResolveCurrentEffect
     ActionExecutionEngine --> ActionSystem : Calls back for targeting-state transitions (IActionSystem)
@@ -605,6 +612,7 @@ classDiagram
     ActionExecutionEngine --> PreTargetHandler : Also uses (shared instance)
     ActionSystem --> DevourSubsystem : Delegates Devour Logic
     ActionSystem --> SpySubsystem : Delegates Spy Logic
+    ActionSystem --> ActionInputController : Delegates click-to-command routing
 ```
 
 > **Key Takeaway**: To keep complexity low (CC ≤ 10) and responsibilities single-purpose, `ActionSystem` delegates to specialized helpers:
@@ -612,6 +620,7 @@ classDiagram
 > - **PreTargetHandler** - Handles pre-selected target execution (extracted to reduce CC 26→6); shared by both `ActionSystem` and `ActionExecutionEngine`
 > - **DevourSubsystem** - Manages devour mechanics
 > - **SpySubsystem** - Handles spy placement and removal
+> - **ActionInputController** - Owns click-to-command routing for every targeting state; `ActionSystem.HandleTargetClick(...)` is a one-line delegation to it and remains the stable public entry point every caller/test uses
 
 ---
 
@@ -629,6 +638,7 @@ classDiagram
         +HasValidTargets()
         +GetTargetingState()
         +IsTargetingEffect
+        +SupportsRepeat
     }
     class AssassinateStrategy {
         +HasValidTargets()
@@ -951,7 +961,8 @@ flowchart TD
 - **Entities**: Players, Map (nodes/sites), Market cards, Void pile
 - **Metadata**: Seed, turn number, phase, sequence number
 - **Transient State**: Cards marked for turn-end devour
-- **Execution Context**: Effect stack for resuming mid-action state
+- **Execution Context**: Effect stack for resuming mid-action state, including each frame's `RemainingRepeats` (repeat-count targeting, e.g. Deathblade)
+- **Targeting State**: `ActionSystem`'s own `CurrentState` + `Pending*` fields (card/site/move-source/devour-card IDs) - so a rejoin mid-targeting-sequence restores the full picture, not just the effect stack
 
 ---
 

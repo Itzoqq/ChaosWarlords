@@ -56,8 +56,10 @@ player.Influence -= 3;
 
 // ✅ CORRECT: Centralized, logged, and validated
 _playerStateManager.AddPower(player, 5);
-_playerStateManager.SpendInfluence(player, 3);
+_playerStateManager.TrySpendInfluence(player, 3);
 ```
+
+Spend operations (`TrySpendPower`, `TrySpendInfluence`) return `bool` - they check affordability themselves and no-op on failure rather than throwing or letting a caller under/overspend, so always check the return value rather than assuming success.
 
 **Covered Resources**:
 - Power, Influence, Victory Points
@@ -150,7 +152,7 @@ public class MapManager : IMapManager
 - Interfaces (`IGameplayView`, `IUIManager`)
 - DTOs (`GameStateDto`, `CardDto`)
 - Domain models (`Player`, `Card`, `MapNode`)
-- Primitives (`Vector2` for positions, `Color` enum)
+- Primitives (`LogicVector2`/`LogicRectangle` for positions - see Rule #17; `Color` enum). `Microsoft.Xna.Framework.Vector2` itself is never allowed in logic, not even for positions - Core has zero references to any `Microsoft.Xna.Framework` type at all.
 
 **NOT Allowed in Logic**:
 - `SpriteBatch`
@@ -168,31 +170,39 @@ public class MapManager : IMapManager
 **Why**: Enables replay, undo, logging, and multiplayer command transmission.
 
 ```csharp
-// ✅ CORRECT: Action as command
+// ✅ CORRECT: Action as command (trimmed from the real PlayCardCommand)
 public class PlayCardCommand : IGameCommand
 {
-    private readonly Player _player;
-    private readonly Card _card;
-    
-    public PlayCardCommand(Player player, Card card)
+    public CommandType Type => CommandType.PlayCard;
+
+    // Carries only IDs, not object references - resolved against the active
+    // player's hand fresh in Validate()/Execute(), so the command itself stays
+    // serializable/replay-safe.
+    public Guid CardRuntimeId { get; }
+    public string CardId { get; }
+
+    public PlayCardCommand(Card card) { CardRuntimeId = card.RuntimeId; CardId = card.Id; }
+
+    private Card? ResolveCard(MatchContext context) =>
+        context.TurnManager.ActivePlayer.Hand.FirstOrDefault(c => c.RuntimeId == CardRuntimeId);
+
+    public bool Validate(MatchContext context) => ResolveCard(context) != null;
+
+    public void Execute(MatchContext context)
     {
-        _player = player;
-        _card = card;
+        var card = ResolveCard(context);
+        if (card != null) context.MatchManager.PlayCard(card);
     }
-    
-    public void Execute(IGameplayState state)
-    {
-        state.CardPlaySystem.PlayCard(_player, _card);
-        state.TurnContext.RecordAction(ActionType.PlayCard, _card);
-    }
+
+    public GameCommandDto ToDto() => new PlayCardCommandDto { CardId = CardId, CardRuntimeId = CardRuntimeId };
 }
 ```
 
 **Commands must**:
-- Implement `IGameCommand`
-- Be serializable (use IDs, not object references for multiplayer)
-- Record execution in `TurnContext` or `ReplayManager`
+- Implement `IGameCommand` (`Type`, `ToDto()`, `Validate(MatchContext)`, `Execute(MatchContext)` - there is no `Execute(IGameplayState)` overload; commands only ever touch `MatchContext`, never the client-only `IGameplayState`)
+- Be serializable (use IDs, not object references for multiplayer/replay)
 - Be stateless (all data passed in constructor)
+- Get recorded by `CommandDispatcher` (which snapshots before `Execute()` and rolls back on exception) - a command doesn't record itself
 
 **Examples**: See `Source/Mechanics/Commands/` for all implemented commands.
 
@@ -225,8 +235,9 @@ public class TurnManager : ITurnManager
 **Exceptions** (allowed static usage):
 - Constants (`GameConstants`)
 - Pure utility functions (no state)
-- Logging (`IGameLogger`)
 - Enums (`PlayerColor`, `CardAspect`)
+
+Logging is NOT one of these exceptions: `IGameLogger` is constructor-injected everywhere (e.g. `SiteControlSystem(IGameLogger logger)`), never a static/global logger - there is no static `Logger` class anywhere in the codebase. It follows the same Rule #7 constructor-injection discipline as every other dependency.
 
 ---
 
@@ -274,12 +285,14 @@ public class MapManager : IMapManager
 
 ## Quick Reference Checklist
 
+This covers Rules 1-7 only (the ones with the highest "easy to violate without noticing" risk) - it's a fast pre-PR pass, not full coverage of Rules 8-23. For card/mechanic work specifically, also run the `add-card` skill's own Tests section (step 3) and, for anything non-trivial, the risk-hotspot check (`master.md`'s "Risk-hotspot check" section).
+
 Before submitting a PR, verify:
 
 - [ ] No `new Random()` - use `IGameRandom`
 - [ ] No direct `player.Power +=` - use `IPlayerStateManager`
 - [ ] Dependencies are interfaces, not concrete classes
-- [ ] No `SpriteBatch` or MonoGame types in logic layer
+- [ ] No `SpriteBatch` or MonoGame types (or bare `Vector2`) in logic layer
 - [ ] Actions are `IGameCommand` implementations
 - [ ] No `static` game state
 - [ ] All dependencies via constructor
@@ -319,11 +332,12 @@ if (context.CardRuleEngine.IsConditionMet(player, effect))
 - **CardRuleEngine**: The service (injected via `MatchContext`) that evaluates rules.
 - **EffectCondition**: The data object (from JSON) defining requirements (e.g., `ControlsSite`).
 - **HasValidTargets**: Checks if an effect can even initiate (e.g., prevents playing "Devour" with empty hand).
+- **IEffectStrategy** / **`CardRuleEngine.GetStrategy(EffectType)`**: the extension point for a new effect type's targeting behavior. Twelve implementations live in `Mechanics/Rules/Strategies/` (one per `EffectType` family - `AssassinateStrategy`, `DevourStrategy`, `PromoteFromPileStrategy`, etc.; `EffectTreeSearch.cs` in the same folder is a shared helper, not an `IEffectStrategy`), each answering `IsTargetingEffect`/`HasValidTargets`/`SupportsRepeat` for its effect type. Adding a new targeting-shaped `EffectType` means adding a strategy here, not a new `if`/`switch` branch in `CardEffectProcessor`.
 
 **Pattern**:
 1. Check `HasValidTargets` early (in `CardPlaySystem` or UI).
 2. Check `IsConditionMet` before applying specific sub-effects.
-3. Keep `CardEffectProcessor` dumb (execution only).
+3. Keep `CardEffectProcessor` dumb (execution only) - it asks `CardRuleEngine.GetStrategy` rather than branching on `EffectType` itself.
 
 ---
 
@@ -332,34 +346,30 @@ if (context.CardRuleEngine.IsConditionMet(player, effect))
 
 ## 9. Input Coordination System
 
-**Rule**: Application of input must follow the tiered orchestration flow: `InputManager` -> `Controller` -> `Coordinator` -> `InputMode`.
+**Rule**: Gameplay input follows an event-driven flow: `InputManager` fires raw events, and `GameplayInputCoordinator` handles them by checking blocking state and delegating to the active `IInputMode`, which decides what (if anything) happens.
 
 **Why**: Separates raw input detection from intent and execution, allowing context-aware flexibility (e.g., clicking a card in Normal mode plays it, but in Targeting mode selects it).
 
+`GameplayInputCoordinator` and `PlayerController` are independent subscribers to the same `InputManager.OnInputEvent` - the coordinator does not receive its events *through* the controller. `PlayerController` handles high-level/global concerns (e.g. toggling the pause menu); `GameplayInputCoordinator` handles gameplay input and is blocked outright while any popup/menu is open, so the two never compete for the same event.
+
 ```csharp
-// 1. InputManager - Raw input
-var mouseState = _inputManager.GetMouseState();
-bool clicked = mouseState.LeftButton == ButtonState.Pressed;
-
-// 2. PlayerController - Intent detection
-if (clicked)
+// Real GameplayInputCoordinator.HandleInputEvent (trimmed)
+private void HandleInputEvent(object? sender, InputEventArgs e)
 {
-    var intent = _controller.DetectIntent(mouseState);
-    // intent = "PlayCard" or "DeployTroop" or "EndTurn"
-}
+    // BLOCKING CHECK: if any overlay/popup is open, gameplay input is not processed here at all.
+    if (_state.IsPauseMenuOpen || _state.IsConfirmationPopupOpen || _state.IsOptionalEffectPopupOpen)
+        return;
 
-// 3. InputCoordinator - Orchestration
-_coordinator.HandleIntent(intent);
-// Checks current mode, validates action, delegates to manager
+    // Delegate straight to the active mode - it returns a command, or null if the click means nothing right now.
+    IGameCommand? command = _currentMode.HandleInteraction(
+        e, _context.MarketManager, _context.MapManager, _context.ActivePlayer, _context.ActionSystem);
 
-// 4. InputMode - Contextual handling
-if (_currentMode is TargetingInputMode)
-{
-    // Clicks select targets, not cards
-    var target = _mapper.GetNodeAtPosition(x, y);
-    _actionSystem.SelectTarget(target);
+    if (command != null)
+        _state.RecordAndExecuteCommand(command);
 }
 ```
+
+Each `IInputMode.HandleInteraction` interprets the same click differently depending on context - e.g. `TargetingInputMode` resolves a click to a map node/site and asks `ActionSystem` whether it's a valid target, where `NormalPlayInputMode` would instead resolve a click to a card to play.
 
 ---
 
@@ -739,6 +749,8 @@ foreach (var node in MapManager.Nodes.OrderBy(n => n.Id))
 ---
 
 ## 21. Network Abstraction
+
+**Status**: no networking exists yet, and nothing in the codebase currently constructs, injects, or calls `INetworkProvider` - `CommandDispatcher` and every other real caller talk to `MatchContext` directly. This rule documents the *planned* shape for when networking is added, not an already-wired pattern - don't read the snippets below as "this is how it works today."
 
 **Rule**: Game logic must NEVER depend on concrete network implementations.
 
