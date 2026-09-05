@@ -409,11 +409,15 @@ namespace ChaosWarlords.Source.Rendering.Views
                 string btnText = player.DisplayName;
                 Rectangle rect = new Rectangle((int)startPos.X, (int)startPos.Y + yOffset, GameConstants.UILayout.DefaultButtonWidth, GameConstants.UILayout.DefaultButtonHeight);
 
-                // Eligible rows match DrawSpySelectionUI's normal Color.Gray/Color.Black
-                // button convention exactly; ineligible rows are dimmed (grayed out) and
-                // unclickable - see GetClickedOpponentSelectButton's matching threshold check.
+                // Button backdrop matches DrawSpySelectionUI's normal Color.Gray convention;
+                // ineligible rows are dimmed and unclickable - see
+                // GetClickedOpponentSelectButton's matching threshold check. The NAME itself is
+                // drawn in that player's own color so it's identifiable at a glance, same as
+                // their troops/spies on the map - only grayed out when ineligible (not enough
+                // cards to satisfy this effect's threshold), never as a default.
                 sb.Draw(_pixelTexture, rect, isEligible ? Color.Gray : Color.Gray * 0.3f);
-                sb.DrawString(_defaultFont, btnText, new Vector2(rect.X + GameConstants.UILayout.MediumPadding, rect.Y + GameConstants.UILayout.SmallPadding), Color.Black);
+                Color nameColor = isEligible ? player.Color.ToColor() : Color.DarkGray;
+                sb.DrawString(_defaultFont, btnText, new Vector2(rect.X + GameConstants.UILayout.MediumPadding, rect.Y + GameConstants.UILayout.SmallPadding), nameColor);
 
                 yOffset += GameConstants.UILayout.DefaultYOffset;
             }
