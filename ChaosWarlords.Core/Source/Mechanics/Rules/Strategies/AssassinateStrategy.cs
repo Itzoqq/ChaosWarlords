@@ -13,6 +13,10 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Strategies
 
         public bool IsTargetingEffect => true;
 
+        // "Assassinate 2 troops" (Deathblade) - see IEffectStrategy.SupportsRepeat's doc
+        // comment.
+        public bool SupportsRepeat => true;
+
         public ActionState GetTargetingState(CardEffect effect)
         {
             return ActionState.TargetingAssassinate;

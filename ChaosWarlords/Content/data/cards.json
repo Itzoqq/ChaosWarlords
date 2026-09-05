@@ -553,5 +553,18 @@
         "RequiresFocus": true
       }
     ]
+  },
+  {
+    "Id": "deathblade",
+    "Cost": 6,
+    "Aspect": "Sorcery",
+    "DeckVP": 3,
+    "InnerCircleVP": 6,
+    "Effects": [
+      {
+        "Type": "Assassinate",
+        "Amount": 2
+      }
+    ]
   }
 ]

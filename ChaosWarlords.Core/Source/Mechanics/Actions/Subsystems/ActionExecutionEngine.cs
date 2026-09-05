@@ -72,6 +72,15 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
                 return;
             }
 
+            if (success && ShouldRepeatCurrentEffect(ExecutionStack.Peek()))
+            {
+                // More targets are still owed for this same effect (e.g. Deathblade:
+                // "Assassinate 2 troops") - stay on the SAME EffectContext rather than
+                // popping/resolving, so CurrentState doesn't change and the next click routes
+                // right back through the same targeting handler for another target.
+                return;
+            }
+
             var effect = ExecutionStack.Pop();
             _logger.Log($"ActionExecutionEngine: [RESOLVE] Popped effect [{effect.EffectType}] Success={success}. Remaining Stack: {ExecutionStack.Count}", LogChannel.Debug);
             _logger.Log($"ActionExecutionEngine: [RESOLVE] Effect has callback: {effect.OnResolved != null}, SourceEffect: {effect.SourceEffect?.Type}", LogChannel.Debug);
@@ -98,6 +107,32 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             _logger.Log($"ActionExecutionEngine: [RESOLVE] Calling ProcessStack to continue. Stack size: {ExecutionStack.Count}", LogChannel.Debug);
             ProcessStack();
             _logger.Log($"ActionExecutionEngine: [RESOLVE] ProcessStack returned. Current state: {_actionSystem.CurrentState}", LogChannel.Debug);
+        }
+
+        /// <summary>
+        /// Decrements and returns true if <paramref name="effect"/> still owes more targets
+        /// (RemainingRepeats > 1) AND the board still has a legal target for it - e.g.
+        /// Deathblade's "Assassinate 2 troops" with only 1 enemy troop left on the board
+        /// gracefully resolves with the 1 available instead of waiting forever for a 2nd click
+        /// that can never legally arrive (same "don't soft-lock on an impossible requirement"
+        /// principle as Deploy's empty-barracks VP substitution). Every effect that doesn't use
+        /// repeats (RemainingRepeats defaults to 1) short-circuits on the first check, so this
+        /// is a no-op for every existing card.
+        /// </summary>
+        private bool ShouldRepeatCurrentEffect(Core.Contexts.EffectContext effect)
+        {
+            if (effect.RemainingRepeats <= 1) return false;
+
+            effect.RemainingRepeats--;
+
+            if (_matchContext != null && effect.SourceEffect != null
+                && !_matchContext.CardRuleEngine.HasValidTargets(_matchContext.ActivePlayer, effect.SourceEffect.Type, effect.SourceCard))
+            {
+                _logger.Log($"ActionExecutionEngine: [RESOLVE] {effect.EffectType} has no more valid targets - resolving early instead of waiting for an impossible {effect.RemainingRepeats} more.", LogChannel.Info);
+                return false;
+            }
+
+            return true;
         }
 
         public void ProcessStack()

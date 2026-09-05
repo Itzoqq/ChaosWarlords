@@ -325,6 +325,29 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         [TestMethod]
+        public void RestoreState_EffectStackEntry_PreservesRemainingRepeats()
+        {
+            // Regression guard for the same shape as PlayerDto's once-missing
+            // PendingFreeTroops field (see docs/architecture.md): RemainingRepeats must
+            // survive a snapshot/restore round-trip (e.g. CommandDispatcher's
+            // rollback-on-exception mid-way through a repeat effect like Deathblade's
+            // "Assassinate 2 troops"), not silently reset to the single-target default of 1.
+            var sourceCard = RegisterCard("deathblade", CardLocation.Played);
+            sourceCard.AddEffect(new CardEffect(EffectType.Assassinate, 3));
+
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+            snapshot.EffectStack = new List<EffectContextDto>
+            {
+                new() { State = ActionState.TargetingAssassinate, SourceCardId = "deathblade", RequiresInput = true, EffectType = EffectType.Assassinate, RemainingRepeats = 3 }
+            };
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.HasCount(1, _context.ActionSystem.ExecutionStack);
+            Assert.AreEqual(3, _context.ActionSystem.ExecutionStack.Peek().RemainingRepeats, "RemainingRepeats must survive a state restore unchanged.");
+        }
+
+        [TestMethod]
         public void RestoreState_EffectStackEntry_WithNormalState_LeavesSourceEffectNull()
         {
             // Mirrors ResolveOpponentDiscard-style bookkeeping entries (see GameStateDto.

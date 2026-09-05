@@ -60,5 +60,7 @@
   "ogre_zombie_name": "Ogre Zombie",
   "ogre_zombie_description": "Supplant a white troop anywhere on the board.",
   "olhydra_name": "Olhydra",
-  "olhydra_description": "Supplant a white troop anywhere on the board. Focus - Deploy 2 troops."
+  "olhydra_description": "Supplant a white troop anywhere on the board. Focus - Deploy 2 troops.",
+  "deathblade_name": "Deathblade",
+  "deathblade_description": "Assassinate 2 troops."
 }

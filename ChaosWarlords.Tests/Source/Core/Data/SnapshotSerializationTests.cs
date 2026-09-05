@@ -84,5 +84,44 @@ namespace ChaosWarlords.Tests.Source.Core.Data
             Assert.HasCount(1, dto.EffectStack, "Should have 1 item.");
             Assert.AreEqual(ActionState.TargetingAssassinate, dto.EffectStack[0].State);
         }
+
+        [TestMethod]
+        public void ToGameStateDto_SerializesEffectStack_PreservesRemainingRepeats()
+        {
+            // Companion to ToGameStateDto_SerializesEffectStack above - RemainingRepeats
+            // (Deathblade's "Assassinate 2 troops" mid-sequence counter) must actually make it
+            // into the DTO, not just default silently.
+            var stack = new Stack<EffectContext>();
+            var testCard = new Card("test-1", "Test Card", 3, CardAspect.Neutral, 0, 0, 0);
+            var effect = new EffectContext(
+                ActionState.TargetingAssassinate,
+                testCard,
+                true,
+                "Assassinate Logic",
+                (s) => { },
+                null
+            )
+            {
+                RemainingRepeats = 2
+            };
+            stack.Push(effect);
+
+            _actionSystem.ExecutionStack.Returns(stack);
+
+            var context = new MatchContext(
+                _turnManager,
+                _mapManager,
+                _marketManager,
+                _actionSystem,
+                _cardDatabase,
+                _playerStateManager,
+                TestLogger.Instance,
+                999
+            );
+
+            var dto = DtoMapper.ToGameStateDto(context);
+
+            Assert.AreEqual(2, dto.EffectStack[0].RemainingRepeats, "RemainingRepeats must be carried into the DTO, not defaulted.");
+        }
     }
 }

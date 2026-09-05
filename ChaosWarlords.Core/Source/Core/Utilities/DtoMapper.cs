@@ -437,7 +437,8 @@ namespace ChaosWarlords.Source.Core.Utilities
                         SourceCardId = effect.SourceCard?.DefinitionId,
                         RequiresInput = effect.RequiresInput,
                         Description = effect.Description,
-                        EffectType = effect.SourceEffect?.Type ?? EffectType.None
+                        EffectType = effect.SourceEffect?.Type ?? EffectType.None,
+                        RemainingRepeats = effect.RemainingRepeats
                     });
                 }
             }

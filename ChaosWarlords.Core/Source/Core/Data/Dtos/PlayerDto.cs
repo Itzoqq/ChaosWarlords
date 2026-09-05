@@ -21,6 +21,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         public int Troops { get; set; }
         public int Spies { get; set; }
         public int PendingFreeTroops { get; set; }
+        public int TrophyHall { get; set; }
 
         public List<CardDto> Hand { get; set; } = [];
         public List<CardDto> InnerCircle { get; set; } = [];
@@ -46,6 +47,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
                 Troops = player.TroopsInBarracks,
                 Spies = player.SpiesInBarracks,
                 PendingFreeTroops = player.PendingFreeTroops,
+                TrophyHall = player.TrophyHall,
                 Hand = player.Hand.Select((c, i) => new CardDto(c, i)).ToList(),
                 InnerCircle = player.InnerCircle.Select((c, i) => new CardDto(c, i)).ToList(),
                 PlayedCards = player.PlayedCards.Select((c, i) => new CardDto(c, i)).ToList(),

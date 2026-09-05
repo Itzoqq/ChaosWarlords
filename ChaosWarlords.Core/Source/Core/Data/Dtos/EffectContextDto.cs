@@ -21,5 +21,14 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         // However, if we have nested effects (Devour -> Deploy), we might need an index or explicit EffectType.
         
         public EffectType EffectType { get; set; }
+
+        /// <summary>
+        /// Mirrors EffectContext.RemainingRepeats (see its own doc comment) - defaults to 1 so
+        /// older/other effects round-trip unaffected. Without this, a snapshot/restore mid-way
+        /// through a repeat effect (e.g. CommandDispatcher's rollback-on-exception after the
+        /// first of Deathblade's 2 Assassinates) would silently lose track of how many targets
+        /// were still owed.
+        /// </summary>
+        public int RemainingRepeats { get; set; } = 1;
     }
 }

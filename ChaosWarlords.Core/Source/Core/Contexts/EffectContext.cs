@@ -52,6 +52,19 @@ namespace ChaosWarlords.Source.Core.Contexts
         /// </summary>
         public CardEffect? SourceEffect { get; }
 
+        /// <summary>
+        /// How many more targets this effect still needs before it's actually resolved (e.g.
+        /// Deathblade's "Assassinate 2 troops" - see IEffectStrategy.SupportsRepeat). Defaults
+        /// to 1 (resolve on the first successful target, matching every effect that doesn't use
+        /// this), and is decremented in place by ActionExecutionEngine.ResolveCurrentEffect as
+        /// each target resolves - the same EffectContext instance stays on ExecutionStack across
+        /// all of a repeat effect's targets, only actually popping once this reaches 1 (or valid
+        /// targets run out). Mutable (unlike this class's other properties) because it's the one
+        /// piece of an EffectContext that genuinely changes over that effect's own lifetime on
+        /// the stack.
+        /// </summary>
+        public int RemainingRepeats { get; set; } = 1;
+
         public EffectContext(
             ActionState effectType,
             Card sourceCard,

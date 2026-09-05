@@ -25,5 +25,13 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Interfaces
         /// Returns true if this effect requires user interaction (targeting).
         /// </summary>
         bool IsTargetingEffect { get; }
+
+        /// <summary>
+        /// True if this targeting effect treats CardEffect.Amount as "how many separate targets
+        /// to pick" (e.g. Deathblade: "Assassinate 2 troops") rather than ignoring it. Defaults
+        /// to false so every existing effect - including every OTHER targeting effect type - is
+        /// completely unaffected; only strategies that explicitly opt in support repeats.
+        /// </summary>
+        bool SupportsRepeat => false;
     }
 }

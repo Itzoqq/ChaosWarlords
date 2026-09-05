@@ -59,8 +59,9 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// </summary>
         private static void PushEffectContext(CardEffect effect, Card card, MatchContext context, string descriptionPrefix, IGameLogger logger)
         {
-            var state = context.CardRuleEngine.GetStrategy(effect.Type).GetTargetingState(effect);
-            bool requiresInput = context.CardRuleEngine.GetStrategy(effect.Type).IsTargetingEffect || effect.IsOptional;
+            var strategy = context.CardRuleEngine.GetStrategy(effect.Type);
+            var state = strategy.GetTargetingState(effect);
+            bool requiresInput = strategy.IsTargetingEffect || effect.IsOptional;
 
             if (requiresInput && !context.CardRuleEngine.HasValidTargets(context.ActivePlayer, effect.Type, card))
             {
@@ -89,6 +90,15 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                     ? () => PushEffectNode(effect.Alternative, card, context, logger)
                     : null
             );
+
+            // "Assassinate 2 troops" (Deathblade) etc. - see IEffectStrategy.SupportsRepeat.
+            // Amount otherwise means something completely different per EffectType (resource
+            // quantity, card draw count, ...), so this is deliberately gated on the strategy
+            // opting in, not applied to every effect unconditionally.
+            if (strategy.SupportsRepeat)
+            {
+                ctx.RemainingRepeats = Math.Max(1, effect.Amount);
+            }
 
             context.ActionSystem.PushEffect(ctx);
         }

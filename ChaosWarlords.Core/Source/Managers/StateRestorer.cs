@@ -192,7 +192,8 @@ namespace ChaosWarlords.Source.Managers
                     player.TroopsInBarracks = pDto.Troops;
                     player.SpiesInBarracks = pDto.Spies;
                     player.PendingFreeTroops = pDto.PendingFreeTroops;
-                    
+                    player.TrophyHall = pDto.TrophyHall;
+
                     // Card Lists
                     RestorePlayerCollection(player, pDto.Hand, context.CardDatabase, (p, c) => p.AddToHand(c), p => p.ClearHand());
                     RestorePlayerCollection(player, pDto.Deck, context.CardDatabase, (p, c) => p.DeckManager.ForceAdd(c), p => p.DeckManager.Clear());
@@ -258,7 +259,10 @@ namespace ChaosWarlords.Source.Managers
                  effectDto.Description,
                  _ => { }, // Dummy callback, state restore cannot recover runtime delegates yet
                  sourceEffect
-             );
+             )
+             {
+                 RemainingRepeats = effectDto.RemainingRepeats
+             };
 
              // Push to stack
              context.ActionSystem.PushEffect(ctx);
