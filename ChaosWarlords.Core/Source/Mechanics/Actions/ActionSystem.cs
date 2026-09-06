@@ -1,3 +1,4 @@
+using System.Linq;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Actors;
@@ -721,6 +722,20 @@ namespace ChaosWarlords.Source.Managers
             _logger.Log("Select an empty destination space anywhere on the board.", LogChannel.General);
         }
 
+        /// <summary>
+        /// Discards an in-flight, not-yet-committed move source with no other side effects -
+        /// unlike SetMoveSource(null), this does NOT force a CurrentState transition or log
+        /// anything. Used by MoveUnitStrategy.ResetInProgressSelection (see IEffectStrategy),
+        /// which must be safe to call even when nothing is actually pending (e.g. declining a
+        /// repeat-capable move effect right at its own entry state, before any source was ever
+        /// picked) - reusing SetMoveSource(null) there would have unconditionally forced a real
+        /// TargetingMoveSource -> TargetingMoveDestination transition for no reason every time.
+        /// </summary>
+        public void ClearPendingMoveSource()
+        {
+            PendingMoveSource = null;
+        }
+
         public void PerformMoveTroop(MapNode source, MapNode dest, string? cardId)
         {
             _mapManager.MoveTroop(source, dest, CurrentPlayer);
@@ -847,6 +862,35 @@ namespace ChaosWarlords.Source.Managers
         public void ResolveCurrentEffect(bool success) => _executionEngine.ResolveCurrentEffect(success);
 
         public void DeclineRemainingRepeats() => _executionEngine.DeclineRemainingRepeats();
+
+        /// <summary>
+        /// Right-click's "step back" gesture for a repeat-capable "up to N" effect
+        /// (CardEffect.AllowPartialRepeat - e.g. Council Member's MoveUnit source/destination
+        /// pair): if CurrentState is genuinely mid a multi-click sub-pick for the current
+        /// effect (one of its own IEffectStrategy.GetOwnedActionStates, but NOT its literal
+        /// entry/boundary state), discards that in-flight, not-yet-committed pick
+        /// (IEffectStrategy.ResetInProgressSelection) and returns to the entry state - the
+        /// redemption stays open, keeping any EARLIER repeat's already-real progress intact,
+        /// so the player can try another target or right-click again from the boundary to
+        /// finish. Returns false (no-op) when there's nothing to step back FROM - already at
+        /// the boundary, not a repeat-capable effect at all, or no effect pending - letting the
+        /// caller (TargetingInputMode.HandleCancellation) fall through to its own next step (a
+        /// full CancelTargeting()). See planning.txt's Phase 2 writeup.
+        /// </summary>
+        public bool TryAbortInProgressRepeatSubStep()
+        {
+            var effect = CurrentEffect;
+            if (effect?.SourceEffect?.AllowPartialRepeat != true) return false;
+            if (CurrentState == effect.EffectType) return false;
+            if (_matchContext == null) return false;
+
+            var strategy = _matchContext.CardRuleEngine.GetStrategy(effect.SourceEffect.Type);
+            if (!strategy.GetOwnedActionStates(effect.SourceEffect).Contains(CurrentState)) return false;
+
+            strategy.ResetInProgressSelection(this);
+            EnterTargetingState(effect.EffectType);
+            return true;
+        }
 
         public void ProcessStack() => _executionEngine.ProcessStack();
 

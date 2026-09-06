@@ -134,6 +134,73 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         [TestMethod]
+        public void HandleInputEvent_Invokes_ActiveElement_DeclineRepeatButton_WhenRepeatDeclinable()
+        {
+            // Unlike Market/Assassinate/ReturnSpy/EndTurn, this button is ACTIVE precisely
+            // while a repeat-capable "up to N" effect is in progress (IsRepeatDeclinable),
+            // the opposite gating condition to IsTargeting. See planning.txt's Phase 2 writeup.
+            _uiManager.IsPaused = false;
+            _uiManager.IsPopupVisible = false;
+            _uiManager.IsRepeatDeclinable = true;
+
+            bool eventFired = false;
+            _uiManager.OnDeclineRepeatRequest += (s, e) => eventFired = true;
+
+            var rect = _uiManager.DeclineRepeatButtonRect;
+            var center = rect.Center;
+
+            _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                this,
+                new InputEventArgs(InputEventType.LeftClick, new Vector2(center.X, center.Y), Microsoft.Xna.Framework.Input.Keys.None));
+
+            Assert.IsTrue(eventFired, "Decline Repeat Button should fire when a repeat-capable effect is in progress.");
+        }
+
+        [TestMethod]
+        public void HandleInputEvent_Ignores_InactiveElement_DeclineRepeatButton_WhenNotRepeatDeclinable()
+        {
+            // No repeat-capable effect in progress - the button doesn't exist to begin with,
+            // so a click landing on its (otherwise-unused) screen rect must be a no-op.
+            _uiManager.IsPaused = false;
+            _uiManager.IsPopupVisible = false;
+            _uiManager.IsRepeatDeclinable = false;
+
+            bool eventFired = false;
+            _uiManager.OnDeclineRepeatRequest += (s, e) => eventFired = true;
+
+            var rect = _uiManager.DeclineRepeatButtonRect;
+            var center = rect.Center;
+
+            _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                this,
+                new InputEventArgs(InputEventType.LeftClick, new Vector2(center.X, center.Y), Microsoft.Xna.Framework.Input.Keys.None));
+
+            Assert.IsFalse(eventFired, "Decline Repeat Button should be inactive when no repeat-capable effect is in progress.");
+        }
+
+        [TestMethod]
+        public void HandleInputEvent_Ignores_InactiveElement_DeclineRepeatButton_WhenPaused()
+        {
+            // Even mid-effect, the pause menu takes priority - same convention as every other
+            // interactive element in this class (IsActive always ANDs in !IsPaused).
+            _uiManager.IsPaused = true;
+            _uiManager.IsPopupVisible = false;
+            _uiManager.IsRepeatDeclinable = true;
+
+            bool eventFired = false;
+            _uiManager.OnDeclineRepeatRequest += (s, e) => eventFired = true;
+
+            var rect = _uiManager.DeclineRepeatButtonRect;
+            var center = rect.Center;
+
+            _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                this,
+                new InputEventArgs(InputEventType.LeftClick, new Vector2(center.X, center.Y), Microsoft.Xna.Framework.Input.Keys.None));
+
+            Assert.IsFalse(eventFired, "Decline Repeat Button should be inactive while paused.");
+        }
+
+        [TestMethod]
         public void HandleInputEvent_Invokes_PopupConfirm_WhenConfirmationPopupVisible()
         {
             _uiManager.IsConfirmationPopupVisible = true;

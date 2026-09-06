@@ -452,6 +452,70 @@ namespace ChaosWarlords.Tests.Source.Managers
             _uiManager.Received(1).IsTargeting = true;
         }
 
+        [TestMethod]
+        public void Update_SyncsUIManagerIsRepeatDeclinable_TrueWhenCurrentEffectAllowsPartialRepeat()
+        {
+            // Gates whether the "I'm done" button is drawn/clickable at all - see planning.txt's
+            // Phase 2 writeup.
+            var card = new CardBuilder().WithName("Council Member").WithCost(1).WithAspect(CardAspect.Warlord).Build();
+            var sourceEffect = new CardEffect(EffectType.MoveUnit, 2) { AllowPartialRepeat = true };
+            var effect = new EffectContext(ActionState.TargetingMoveSource, card, true, "desc", _ => { }, sourceEffect);
+            _actionSystem.CurrentEffect.Returns(effect);
+
+            _mediator.Update();
+
+            _uiManager.Received(1).IsRepeatDeclinable = true;
+        }
+
+        [TestMethod]
+        public void Update_SyncsUIManagerIsRepeatDeclinable_FalseWhenNoCurrentEffect()
+        {
+            _actionSystem.CurrentEffect.Returns((EffectContext?)null);
+
+            _mediator.Update();
+
+            _uiManager.Received(1).IsRepeatDeclinable = false;
+        }
+
+        [TestMethod]
+        public void Update_SyncsUIManagerIsRepeatDeclinable_FalseWhenCurrentEffectDoesNotAllowPartialRepeat()
+        {
+            // e.g. Deathblade's mandatory "exactly 2" Assassinate - not a repeat-optional effect.
+            var card = new CardBuilder().WithName("Deathblade").WithCost(1).WithAspect(CardAspect.Warlord).Build();
+            var sourceEffect = new CardEffect(EffectType.Assassinate, 2) { AllowPartialRepeat = false };
+            var effect = new EffectContext(ActionState.TargetingAssassinate, card, true, "desc", _ => { }, sourceEffect);
+            _actionSystem.CurrentEffect.Returns(effect);
+
+            _mediator.Update();
+
+            _uiManager.Received(1).IsRepeatDeclinable = false;
+        }
+
+        [TestMethod]
+        public void HandleDeclineRepeatRequest_WhenRepeatCapableEffectActive_DispatchesDeclineRepeatCommandForThatCard()
+        {
+            // CardBuilder uses WithName's value as the Card's Id (see CardBuilder.Build()).
+            var card = new CardBuilder().WithName("council_member").WithCost(1).WithAspect(CardAspect.Warlord).Build();
+            var sourceEffect = new CardEffect(EffectType.MoveUnit, 2) { AllowPartialRepeat = true };
+            var effect = new EffectContext(ActionState.TargetingMoveSource, card, true, "desc", _ => { }, sourceEffect);
+            _actionSystem.CurrentEffect.Returns(effect);
+
+            _uiManager.OnDeclineRepeatRequest += Raise.Event<EventHandler>(this, EventArgs.Empty);
+
+            _gameState.Received(1).RecordAndExecuteCommand(
+                Arg.Is<DeclineRepeatCommand>(c => c.CardId == "council_member"));
+        }
+
+        [TestMethod]
+        public void HandleDeclineRepeatRequest_WhenNoRepeatCapableEffectActive_DoesNotDispatchAnything()
+        {
+            _actionSystem.CurrentEffect.Returns((EffectContext?)null);
+
+            _uiManager.OnDeclineRepeatRequest += Raise.Event<EventHandler>(this, EventArgs.Empty);
+
+            _gameState.DidNotReceive().RecordAndExecuteCommand(Arg.Any<DeclineRepeatCommand>());
+        }
+
         // Helper
         private void SetPrivateField(object target, string fieldName, object value)
         {

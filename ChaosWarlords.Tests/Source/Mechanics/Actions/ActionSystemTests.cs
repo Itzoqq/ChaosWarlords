@@ -1,4 +1,6 @@
+using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Core.Contexts;
+using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Cards;
@@ -669,6 +671,121 @@ namespace ChaosWarlords.Tests.Systems
             Assert.IsTrue(_eventFailedFired);
             Assert.AreEqual(ActionState.TargetingMoveDestination, _actionSystem.CurrentState, "Should stay in Step 2 to allow retry");
             _mapManager.DidNotReceive().MoveTroop(Arg.Any<MapNode>(), Arg.Any<MapNode>(), Arg.Any<Player>());
+        }
+
+        #endregion
+
+        #region 9. TryAbortInProgressRepeatSubStep (Phase 2 "step back" primitive)
+
+        // These need a real MatchContext (unlike the rest of this file) so
+        // CardRuleEngine.GetStrategy resolves the REAL MoveUnitStrategy - TryAbortInProgress
+        // RepeatSubStep's own logic lives partly there (GetOwnedActionStates/
+        // ResetInProgressSelection), not just on ActionSystem itself. Constructed locally per
+        // test rather than added to the shared Setup(), so every other test in this file stays
+        // exactly as it was (this file's ActionSystem never had a MatchContext before).
+        private MatchContext WireRealMatchContext()
+        {
+            var cardDb = Substitute.For<ICardDatabase>();
+            var playerState = Substitute.For<IPlayerStateManager>();
+            var marketManager = Substitute.For<IMarketManager>();
+            var context = new MatchContext(_turnManager, _mapManager, marketManager, _actionSystem, cardDb, playerState, Utilities.TestLogger.Instance, seed: 999);
+            _actionSystem.SetMatchContext(context);
+            return context;
+        }
+
+        private static Card BuildRepeatCapableMoveCard()
+        {
+            var card = new Card("council_member_test", "Council Member", 6, CardAspect.Blasphemy, 3, 6, 0);
+            card.AddEffect(new CardEffect(EffectType.MoveUnit, 2) { AllowPartialRepeat = true });
+            return card;
+        }
+
+        /// <summary>
+        /// StartTargeting alone (this file's usual, simpler test entry point for exercising
+        /// HandleTargetClick's own mechanics) does NOT push anything onto ExecutionStack - the
+        /// real card-play pipeline (ResolveEffects/PushEffectContext) does that separately.
+        /// TryAbortInProgressRepeatSubStep reads CurrentEffect (ExecutionStack.Peek()), so
+        /// these tests need a matching EffectContext actually pushed, not just CurrentState set.
+        /// </summary>
+        private void StartRepeatCapableMoveTargeting(Card card)
+        {
+            _actionSystem.StartTargeting(ActionState.TargetingMoveSource, card);
+            var sourceEffect = card.Effects[0];
+            _actionSystem.PushEffect(new EffectContext(ActionState.TargetingMoveSource, card, requiresInput: true, "Effect: MoveUnit", onResolved: _ => { }, sourceEffect: sourceEffect));
+        }
+
+        [TestMethod]
+        public void TryAbortInProgressRepeatSubStep_WhenMidwayThroughASingleMove_ResetsPendingMoveSource_AndReturnsToEntryState()
+        {
+            WireRealMatchContext();
+            var card = BuildRepeatCapableMoveCard();
+            StartRepeatCapableMoveTargeting(card);
+
+            _mapManager.CanMoveSource(_node1, _player1).Returns(true);
+            var sourceCmd = _actionSystem.HandleTargetClick(_node1, null!);
+            ExecuteIfNotNull(sourceCmd);
+            Assert.AreEqual(ActionState.TargetingMoveDestination, _actionSystem.CurrentState, "Sanity check: source pick should have advanced to step 2.");
+            Assert.AreEqual(_node1, _actionSystem.PendingMoveSource);
+
+            bool result = _actionSystem.TryAbortInProgressRepeatSubStep();
+
+            Assert.IsTrue(result);
+            Assert.AreEqual(ActionState.TargetingMoveSource, _actionSystem.CurrentState, "Should step back to the entry state, not fully cancel.");
+            Assert.IsNull(_actionSystem.PendingMoveSource, "The in-flight source pick must be discarded.");
+        }
+
+        [TestMethod]
+        public void TryAbortInProgressRepeatSubStep_WhenAtTheEntryBoundary_ReturnsFalse()
+        {
+            // Nothing in-flight to step back FROM - this is the genuine repeat boundary
+            // DeclineRepeatCommand/IsAtADeclinableRepeatBoundary already handle.
+            WireRealMatchContext();
+            var card = BuildRepeatCapableMoveCard();
+            StartRepeatCapableMoveTargeting(card);
+
+            bool result = _actionSystem.TryAbortInProgressRepeatSubStep();
+
+            Assert.IsFalse(result);
+            Assert.AreEqual(ActionState.TargetingMoveSource, _actionSystem.CurrentState);
+        }
+
+        [TestMethod]
+        public void TryAbortInProgressRepeatSubStep_WhenEffectDoesNotAllowPartialRepeat_ReturnsFalse()
+        {
+            // A plain, non-repeat MoveUnit card (test_displacer's shape) mid its own source/
+            // destination pair must NOT get the step-back treatment - right-click here should
+            // still fully cancel, matching this card's existing accepted behavior.
+            WireRealMatchContext();
+            var card = TestData.Cards.MoveUnitCard();
+            _actionSystem.StartTargeting(ActionState.TargetingMoveSource, card);
+            _actionSystem.PushEffect(new EffectContext(ActionState.TargetingMoveSource, card, requiresInput: true, "Effect: MoveUnit", onResolved: _ => { }, sourceEffect: card.Effects[0]));
+
+            _mapManager.CanMoveSource(_node1, _player1).Returns(true);
+            var sourceCmd = _actionSystem.HandleTargetClick(_node1, null!);
+            ExecuteIfNotNull(sourceCmd);
+            Assert.AreEqual(ActionState.TargetingMoveDestination, _actionSystem.CurrentState);
+
+            bool result = _actionSystem.TryAbortInProgressRepeatSubStep();
+
+            Assert.IsFalse(result);
+            Assert.AreEqual(ActionState.TargetingMoveDestination, _actionSystem.CurrentState, "Must not have stepped back - the caller should fall through to a full cancel instead.");
+        }
+
+        [TestMethod]
+        public void TryAbortInProgressRepeatSubStep_WhenNoMatchContextWired_ReturnsFalseRatherThanThrowing()
+        {
+            // Defense-in-depth: every OTHER test in this file never wires a MatchContext at
+            // all (this file's own established convention) - confirm the new method degrades
+            // safely rather than NRE-ing for those callers/scenarios.
+            var card = BuildRepeatCapableMoveCard();
+            StartRepeatCapableMoveTargeting(card);
+            _mapManager.CanMoveSource(_node1, _player1).Returns(true);
+            var sourceCmd = _actionSystem.HandleTargetClick(_node1, null!);
+            ExecuteIfNotNull(sourceCmd);
+
+            bool result = _actionSystem.TryAbortInProgressRepeatSubStep();
+
+            Assert.IsFalse(result);
         }
 
         #endregion

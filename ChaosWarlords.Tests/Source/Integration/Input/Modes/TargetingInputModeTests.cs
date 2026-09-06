@@ -157,11 +157,15 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         }
 
         [TestMethod]
-        public void HandleInteraction_RightClick_MidwayThroughARepeatOptionalEffect_StillCancelsNormally()
+        public void HandleInteraction_RightClick_MidwayThroughARepeatOptionalEffect_WhenStepBackApplies_ReturnsNullWithoutCancelling()
         {
-            // Same repeat-optional effect as above, but CurrentState has moved on to MoveUnit's
-            // OWN 2nd sub-step (source picked, destination not yet chosen) - not a genuine
-            // repeat boundary, so right-click must fall back to the normal full cancel.
+            // Phase 2 design decision (planning.txt): mid a multi-click sub-pick for a repeat-
+            // capable effect (MoveUnit's source chosen, destination not yet picked), right-
+            // click steps back to the entry state instead of fully cancelling the whole card
+            // play - ActionSystem.TryAbortInProgressRepeatSubStep is the real primitive doing
+            // this (see ActionSystemTests.cs for its own real, non-mocked coverage); here it's
+            // stubbed true to prove HandleCancellation correctly defers to it FIRST, before
+            // ever reaching CancelTargeting().
             var sourceCard = new ChaosWarlords.Source.Entities.Cards.Card(
                 "council_member", "Council Member", 6, ChaosWarlords.Source.Utilities.CardAspect.Blasphemy, 3, 6, 0);
             var sourceEffect = new ChaosWarlords.Source.Entities.Cards.CardEffect(EffectType.MoveUnit, 2) { AllowPartialRepeat = true };
@@ -170,6 +174,32 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
 
             _actionSub.CurrentState.Returns(ActionState.TargetingMoveDestination);
             _actionSub.CurrentEffect.Returns(effectContext);
+            _actionSub.TryAbortInProgressRepeatSubStep().Returns(true);
+
+            var evt = new InputEventArgs(InputEventType.RightClick, new Vector2(100, 100));
+
+            var result = _inputMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
+
+            Assert.IsNull(result, "A successful step-back is purely client-side - nothing to dispatch.");
+            _actionSub.DidNotReceive().CancelTargeting();
+        }
+
+        [TestMethod]
+        public void HandleInteraction_RightClick_MidwayThroughARepeatOptionalEffect_WhenStepBackDoesNotApply_FallsBackToFullCancel()
+        {
+            // The genuinely-unrelated-cancel fallback (non-repeat effects, mid-chain Devour,
+            // etc.) still needs to work when TryAbortInProgressRepeatSubStep has nothing to do
+            // (stubbed false here, matching what the real ActionSystem returns whenever this
+            // isn't a repeat-capable effect's own in-progress sub-pick).
+            var sourceCard = new ChaosWarlords.Source.Entities.Cards.Card(
+                "council_member", "Council Member", 6, ChaosWarlords.Source.Utilities.CardAspect.Blasphemy, 3, 6, 0);
+            var sourceEffect = new ChaosWarlords.Source.Entities.Cards.CardEffect(EffectType.MoveUnit, 2) { AllowPartialRepeat = true };
+            var effectContext = new ChaosWarlords.Source.Core.Contexts.EffectContext(
+                ActionState.TargetingMoveSource, sourceCard, requiresInput: true, "Effect: MoveUnit", onResolved: _ => { }, sourceEffect: sourceEffect);
+
+            _actionSub.CurrentState.Returns(ActionState.TargetingMoveDestination);
+            _actionSub.CurrentEffect.Returns(effectContext);
+            _actionSub.TryAbortInProgressRepeatSubStep().Returns(false);
 
             var evt = new InputEventArgs(InputEventType.RightClick, new Vector2(100, 100));
 

@@ -112,6 +112,7 @@ namespace ChaosWarlords.Source.Managers
             _uiManager.OnAssassinateRequest += HandleAssassinateRequest;
             _uiManager.OnReturnSpyRequest += HandleReturnSpyRequest;
             _uiManager.OnEndTurnRequest += HandleEndTurnRequest;
+            _uiManager.OnDeclineRepeatRequest += HandleDeclineRepeatRequest;
 
             // Popup events
             _uiManager.OnPopupConfirm += HandlePopupConfirm;
@@ -137,6 +138,7 @@ namespace ChaosWarlords.Source.Managers
             _uiManager.OnAssassinateRequest -= HandleAssassinateRequest;
             _uiManager.OnReturnSpyRequest -= HandleReturnSpyRequest;
             _uiManager.OnEndTurnRequest -= HandleEndTurnRequest;
+            _uiManager.OnDeclineRepeatRequest -= HandleDeclineRepeatRequest;
             _uiManager.OnPopupConfirm -= HandlePopupConfirm;
             _uiManager.OnPopupCancel -= HandlePopupCancel;
             _uiManager.OnResumeRequest -= HandleResumeRequest;
@@ -165,6 +167,10 @@ namespace ChaosWarlords.Source.Managers
             // Gates the Market/Assassinate/ReturnSpy/EndTurn buttons so they can't be
             // clicked into an unrelated in-progress targeting sequence - see planning.txt.
             _uiManager.IsTargeting = _actionSystem.IsTargeting();
+            // Gates whether the explicit "I'm done" button is drawn/clickable at all - see
+            // IUIManager.IsRepeatDeclinable's own doc comment and planning.txt's Phase 2
+            // writeup.
+            _uiManager.IsRepeatDeclinable = _actionSystem.CurrentEffect?.SourceEffect?.AllowPartialRepeat == true;
         }
 
         // --- Public Methods for External Control ---
@@ -252,6 +258,27 @@ namespace ChaosWarlords.Source.Managers
             {
                 _gameState.SwitchToTargetingMode();
             }
+        }
+
+        /// <summary>
+        /// The explicit "I'm done" button - always means "stop now, unconditionally," even
+        /// mid a multi-click sub-pick, unlike right-click's own narrower "step back if
+        /// mid-pick" policy (TargetingInputMode.HandleCancellation). Dispatches the SAME
+        /// DeclineRepeatCommand right-click already uses at the boundary - its own Validate()
+        /// accepts any of the effect's owned states, not just the entry one, which is what
+        /// makes this safe regardless of which sub-step the button was clicked from. See
+        /// DeclineRepeatCommand's own doc comment and planning.txt's Phase 2 writeup.
+        /// </summary>
+        private void HandleDeclineRepeatRequest(object? sender, EventArgs e)
+        {
+            var effect = _actionSystem.CurrentEffect;
+            if (effect?.SourceEffect?.AllowPartialRepeat != true)
+            {
+                _logger.Log("Gameplay: DeclineRepeat requested but no repeat-capable effect is active.", LogChannel.Warning);
+                return;
+            }
+
+            _gameState.RecordAndExecuteCommand(new Commands.DeclineRepeatCommand(effect.SourceCard?.Id));
         }
 
         private void HandleEndTurnRequest(object? sender, EventArgs e)

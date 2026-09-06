@@ -17,6 +17,7 @@ namespace ChaosWarlords.Source.Managers
         public bool IsPopupVisible { get; set; }
         public bool IsConfirmationPopupVisible { get; set; }
         public bool IsTargeting { get; set; }
+        public bool IsRepeatDeclinable { get; set; }
 
         // Internals (encapsulated)
         private class InteractiveElement
@@ -34,11 +35,13 @@ namespace ChaosWarlords.Source.Managers
         private Rectangle _assassinateButtonRect;
         private Rectangle _returnSpyButtonRect;
         private Rectangle _endTurnButtonRect;
+        private Rectangle _declineRepeatButtonRect;
 
         public Rectangle MarketButtonRect => _marketButtonRect;
         public Rectangle AssassinateButtonRect => _assassinateButtonRect;
         public Rectangle ReturnSpyButtonRect => _returnSpyButtonRect;
         public Rectangle EndTurnButtonRect => _endTurnButtonRect;
+        public Rectangle DeclineRepeatButtonRect => _declineRepeatButtonRect;
 
         // Popup
         private Rectangle _popupBackgroundRect;
@@ -50,6 +53,7 @@ namespace ChaosWarlords.Source.Managers
         public event EventHandler? OnAssassinateRequest;
         public event EventHandler? OnReturnSpyRequest;
         public event EventHandler? OnEndTurnRequest;
+        public event EventHandler? OnDeclineRepeatRequest;
         public event EventHandler? OnPopupConfirm;
         public event EventHandler? OnPopupCancel;
 
@@ -57,6 +61,7 @@ namespace ChaosWarlords.Source.Managers
         public bool IsAssassinateHovered { get; private set; }
         public bool IsReturnSpyHovered { get; private set; }
         public bool IsEndTurnHovered { get; private set; }
+        public bool IsDeclineRepeatHovered { get; private set; }
 
         public bool IsPopupConfirmHovered { get; private set; }
         public bool IsPopupCancelHovered { get; private set; }
@@ -152,6 +157,16 @@ namespace ChaosWarlords.Source.Managers
                     OnClick = () => { _logger.Log("UI: EndTurn Clicked", LogChannel.Info); OnEndTurnRequest?.Invoke(this, EventArgs.Empty); },
                     IsActive = () => !IsPaused && !IsPopupVisible && !IsTargeting
                 },
+                // Only exists to begin with while IsRepeatDeclinable - see its own doc comment
+                // (IUIManager.cs) for why this differs from the always-visible-but-sometimes-
+                // disabled buttons above.
+                new InteractiveElement
+                {
+                    GetBounds = () => _declineRepeatButtonRect,
+                    SetHover = (v) => IsDeclineRepeatHovered = v,
+                    OnClick = () => { _logger.Log("UI: DeclineRepeat Clicked", LogChannel.Info); OnDeclineRepeatRequest?.Invoke(this, EventArgs.Empty); },
+                    IsActive = () => !IsPaused && !IsPopupVisible && IsRepeatDeclinable
+                },
             ];
         }
 
@@ -179,6 +194,14 @@ namespace ChaosWarlords.Source.Managers
                 ScreenWidth - 150,
                 ScreenHeight - 60,
                 120,
+                40);
+
+            // Immediately to the left of End Turn, same row - only ever drawn/clickable while
+            // IsRepeatDeclinable (see its own doc comment).
+            _declineRepeatButtonRect = new Rectangle(
+                ScreenWidth - 150 - 10 - 100,
+                ScreenHeight - 60,
+                100,
                 40);
 
             // Popup Layout (Centered)

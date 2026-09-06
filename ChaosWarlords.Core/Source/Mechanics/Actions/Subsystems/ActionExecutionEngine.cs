@@ -103,6 +103,14 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
         /// a pure client-side UI revert. Deliberately bypasses ShouldRepeatCurrentEffect -
         /// unlike ResolveCurrentEffect(true), the whole point here is to stop regardless of
         /// RemainingRepeats or whether the board still has a legal further target.
+        ///
+        /// Defensively discards whatever in-flight, not-yet-committed sub-pick the strategy
+        /// owns (IEffectStrategy.ResetInProgressSelection) BEFORE resolving - this is what
+        /// makes it safe for DeclineRepeatCommand.Validate() to accept a decline from ANY of
+        /// the strategy's owned states, not just its literal entry one (e.g. the explicit
+        /// "I'm done" button can be clicked mid-way through MoveUnit's source/destination
+        /// sub-flow) - nothing has actually been dispatched for that in-flight pick yet, so
+        /// there's nothing to revert, only a stray Pending* field to clear.
         /// </summary>
         public void DeclineRemainingRepeats()
         {
@@ -110,6 +118,12 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             {
                 _logger.Log("ActionExecutionEngine: DeclineRemainingRepeats called but stack is empty!", LogChannel.Warning);
                 return;
+            }
+
+            var effect = ExecutionStack.Peek();
+            if (_matchContext != null && effect.SourceEffect != null)
+            {
+                _matchContext.CardRuleEngine.GetStrategy(effect.SourceEffect.Type).ResetInProgressSelection(_actionSystem);
             }
 
             PopAndResolve(true);

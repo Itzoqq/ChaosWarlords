@@ -1,3 +1,4 @@
+using System.Linq;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
 
@@ -11,6 +12,14 @@ namespace ChaosWarlords.Source.Commands
     /// (including any already-resolved repeats) via a full state snapshot restore and is
     /// never dispatched through CommandDispatcher - this command IS, since declining early is
     /// a genuine, replay-significant player choice, not a pure client-side UI revert.
+    ///
+    /// Dispatched from 2 different UI gestures with 2 different narrower gates: right-click AT
+    /// a genuine repeat boundary (TargetingInputMode.IsAtADeclinableRepeatBoundary - narrower,
+    /// only the effect's own entry state) and the explicit "I'm done" button (visible/clickable
+    /// from ANY of the effect's owned states, not just the entry one). This command's own
+    /// Validate() below is intentionally as permissive as it's safe to be (any owned state, not
+    /// just the entry one) - it's the single authoritative gate both call sites share, not
+    /// the place either UI gesture's own narrower policy lives.
     /// </summary>
     public class DeclineRepeatCommand : IGameCommand
     {
@@ -45,17 +54,21 @@ namespace ChaosWarlords.Source.Commands
             // stuck at its default of 1 - CurrentState == effect.EffectType would already be
             // true at the very entry state, before any real target was ever picked, letting
             // this command "resolve" a mandatory effect as a success with zero targets chosen.
-            if (!context.CardRuleEngine.GetStrategy(effect.SourceEffect.Type).SupportsRepeat) return false;
+            var strategy = context.CardRuleEngine.GetStrategy(effect.SourceEffect.Type);
+            if (!strategy.SupportsRepeat) return false;
 
             // ... belong to the card this command claims (defense against a stale/forged
             // command referencing a sequence that has since resolved and moved on) ...
             if (effect.SourceCard.Id != CardId) return false;
 
-            // ... and be at a genuine repeat boundary, not mid-way through a multi-click
-            // sub-target (e.g. MoveUnit's source-chosen-but-destination-not-yet-picked step) -
-            // CurrentState only equals the effect's own entry state at the very start of the
-            // sequence or between two repeats, never partway through one.
-            return context.ActionSystem.CurrentState == effect.EffectType;
+            // ... and be SOMEWHERE within this effect's own targeting sub-flow - not
+            // necessarily its literal entry state anymore (see IEffectStrategy.
+            // GetOwnedActionStates's doc comment). A not-yet-committed sub-pick (e.g. MoveUnit's
+            // source-chosen-but-destination-not-yet-picked step) is always safe to discard
+            // regardless of which owned state it's in, since nothing has actually been
+            // dispatched for it yet - ActionExecutionEngine.DeclineRemainingRepeats calls the
+            // strategy's own ResetInProgressSelection to discard it defensively either way.
+            return strategy.GetOwnedActionStates(effect.SourceEffect).Contains(context.ActionSystem.CurrentState);
         }
 
         public void Execute(MatchContext context)

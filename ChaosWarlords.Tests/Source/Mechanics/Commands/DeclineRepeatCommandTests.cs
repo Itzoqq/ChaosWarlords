@@ -88,13 +88,34 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         }
 
         [TestMethod]
-        public void Validate_ReturnsFalse_WhenNotAtAGenuineRepeatBoundary()
+        public void Validate_ReturnsTrue_EvenMidwayThroughASingleMovesSourceDestinationPair()
         {
-            // MoveUnit's own 2nd ActionState (source picked, destination not yet chosen) -
-            // must not be declinable mid-sub-target.
+            // Phase 2 design decision (planning.txt): the command's own Validate() is
+            // intentionally MORE permissive than TargetingInputMode's right-click boundary
+            // check - MoveUnit's own 2nd ActionState (source picked, destination not yet
+            // chosen) is still one of MoveUnitStrategy.GetOwnedActionStates, and nothing has
+            // actually been dispatched for that in-flight pick yet, so declining from here is
+            // safe (ActionExecutionEngine.DeclineRemainingRepeats discards it defensively via
+            // ResetInProgressSelection). This is what makes the explicit "I'm done" button
+            // work regardless of which sub-step it's clicked from - right-click's OWN
+            // boundary check stays narrower on purpose, see TargetingInputModeTests.cs.
             var effect = BuildEffectContext(ActionState.TargetingMoveSource, allowPartialRepeat: true);
             _state.ActionSystem.CurrentEffect.Returns(effect);
             _state.ActionSystem.CurrentState.Returns(ActionState.TargetingMoveDestination);
+            var command = new DeclineRepeatCommand(_card.Id);
+
+            Assert.IsTrue(command.Validate(_state.MatchContext));
+        }
+
+        [TestMethod]
+        public void Validate_ReturnsFalse_WhenCurrentStateIsNotOneOfTheEffectsOwnedStatesAtAll()
+        {
+            // A genuinely unrelated ActionState (not one of MoveUnitStrategy's owned states at
+            // all) must still be rejected - the relaxation above only extends to states that
+            // are actually part of THIS effect's own sub-flow, not anywhere in the game.
+            var effect = BuildEffectContext(ActionState.TargetingMoveSource, allowPartialRepeat: true);
+            _state.ActionSystem.CurrentEffect.Returns(effect);
+            _state.ActionSystem.CurrentState.Returns(ActionState.TargetingPlaceSpy);
             var command = new DeclineRepeatCommand(_card.Id);
 
             Assert.IsFalse(command.Validate(_state.MatchContext));

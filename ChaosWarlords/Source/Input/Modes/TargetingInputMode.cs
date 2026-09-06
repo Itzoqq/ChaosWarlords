@@ -103,7 +103,7 @@ namespace ChaosWarlords.Source.Input.Modes
             return _uiManager.IsMarketHovered || _uiManager.IsAssassinateHovered || _uiManager.IsReturnSpyHovered;
         }
 
-        private IGameCommand HandleCancellation(IActionSystem actionSystem)
+        private IGameCommand? HandleCancellation(IActionSystem actionSystem)
         {
             // "Move up to 2 enemy troops" (Council Member) etc. - right-click at a genuine
             // repeat boundary means "I'm done, keep what I already did," NOT "undo the whole
@@ -115,6 +115,21 @@ namespace ChaosWarlords.Source.Input.Modes
             {
                 _state.Logger.Log($"Input: Declining remaining repeats for {effect!.SourceCard?.Name ?? "Unknown"}.", LogChannel.Info);
                 return new DeclineRepeatCommand(effect.SourceCard?.Id);
+            }
+
+            // Not at the boundary, but might still be genuinely mid-way through THIS SAME
+            // repeat-capable effect's own multi-click sub-pick (e.g. MoveUnit's source chosen,
+            // destination not yet picked) - "I'm done" isn't what a right-click here should
+            // mean (nothing's actually finished yet for this repeat), so step back to the
+            // entry state instead of fully cancelling the whole card play. Purely a client-side
+            // reset (no command dispatched, nothing replay-significant happened) - the
+            // redemption stays open. See planning.txt's Phase 2 writeup for why this differs
+            // from the explicit "I'm done" button, which always declines unconditionally
+            // instead.
+            if (actionSystem.TryAbortInProgressRepeatSubStep())
+            {
+                _state.Logger.Log("Input: Stepped back from an in-progress repeat sub-target - redemption still open.", LogChannel.Info);
+                return null;
             }
 
             // Safety Log

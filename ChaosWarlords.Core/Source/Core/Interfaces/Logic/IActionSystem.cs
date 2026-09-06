@@ -147,6 +147,13 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         void SetMoveSource(MapNode? node);
 
         /// <summary>
+        /// Discards an in-flight, not-yet-committed move source with no other side effects -
+        /// unlike SetMoveSource(null), does NOT force a CurrentState transition or log
+        /// anything. Safe to call even when nothing is actually pending.
+        /// </summary>
+        void ClearPendingMoveSource();
+
+        /// <summary>
         /// Cancels the current targeting sequence and returns to Normal state.
         /// </summary>
         void CancelTargeting();
@@ -338,6 +345,18 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// genuine replay-significant player choice rather than a pure client-side revert.
         /// </summary>
         void DeclineRemainingRepeats();
+
+        /// <summary>
+        /// Right-click's "step back" gesture for a repeat-capable "up to N" effect: if
+        /// CurrentState is genuinely mid a multi-click sub-pick for the current effect (one of
+        /// its own IEffectStrategy.GetOwnedActionStates, but not its literal entry/boundary
+        /// state), discards that in-flight, not-yet-committed pick and returns to the entry
+        /// state - the redemption stays open, keeping any earlier repeat's already-real
+        /// progress intact. Returns false (no-op) when there's nothing to step back from,
+        /// letting the caller fall through to its own next step (a full CancelTargeting()). See
+        /// ActionSystem's own doc comment and planning.txt's Phase 2 writeup.
+        /// </summary>
+        bool TryAbortInProgressRepeatSubStep();
 
         /// <summary>
         /// Restore-only: overwrites CurrentState and the Pending* fields directly, bypassing

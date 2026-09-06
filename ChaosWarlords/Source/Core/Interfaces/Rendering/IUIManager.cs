@@ -17,6 +17,10 @@ namespace ChaosWarlords.Source.Core.Interfaces.Rendering
         Rectangle ReturnSpyButtonRect { get; }
         // End Turn
         Rectangle EndTurnButtonRect { get; }
+        // "I'm done" - explicit stop for a repeat-capable "up to N" effect (CardEffect.
+        // AllowPartialRepeat, e.g. Council Member's "Move up to 2 enemy troops"). Alongside
+        // right-click, not replacing it - see planning.txt's Phase 2 writeup.
+        Rectangle DeclineRepeatButtonRect { get; }
         // Popup (Modal)
         Rectangle PopupBackgroundRect { get; }
         Rectangle PopupConfirmButtonRect { get; }
@@ -32,6 +36,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Rendering
         event EventHandler OnReturnSpyRequest;
         // End Turn
         event EventHandler OnEndTurnRequest;
+        event EventHandler OnDeclineRepeatRequest;
         // Popup (Modal)
         event EventHandler OnPopupConfirm;
         event EventHandler OnPopupCancel;
@@ -42,6 +47,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Rendering
         bool IsReturnSpyHovered { get; }
         // End Turn
         bool IsEndTurnHovered { get; }
+        bool IsDeclineRepeatHovered { get; }
         // Popup (Modal)
         // Popup (Modal)
         bool IsPopupConfirmHovered { get; }
@@ -81,6 +87,19 @@ namespace ChaosWarlords.Source.Core.Interfaces.Rendering
         /// strand or permanently desync it instead of being rejected outright. See planning.txt.
         /// </summary>
         bool IsTargeting { get; set; }
+
+        /// <summary>
+        /// True whenever ActionSystem.CurrentEffect?.SourceEffect?.AllowPartialRepeat is true
+        /// (synced each frame by UIEventMediator.Update()) - i.e. anywhere inside an "up to N"
+        /// effect's targeting flow, at ANY sub-state, not just the boundary. Gates BOTH whether
+        /// DeclineRepeatButtonRect is drawn at all (GameplayView) and whether it's clickable
+        /// (UIManager.IsActive) - unlike the always-visible-but-sometimes-disabled Market/
+        /// Assassinate/ReturnSpy/EndTurn buttons, this one only exists to begin with while a
+        /// repeat-capable effect is actually in progress. Self-clears for free once the effect
+        /// actually finishes (declined, or RemainingRepeats naturally exhausted) - no extra
+        /// bookkeeping needed. See planning.txt's Phase 2 writeup.
+        /// </summary>
+        bool IsRepeatDeclinable { get; set; }
 
         bool IsResumeHovered { get; }
         bool IsMainMenuHovered { get; }

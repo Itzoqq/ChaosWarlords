@@ -178,6 +178,15 @@ namespace ChaosWarlords.Source.Rendering.Views
             bool canEndTurn = true;
             _uiRenderer.DrawHorizontalButton(spriteBatch, uiManager.EndTurnButtonRect, "END TURN", uiManager.IsEndTurnHovered, canEndTurn, Color.Green);
 
+            // Explicit "I'm done" button for a repeat-capable "up to N" effect (CardEffect.
+            // AllowPartialRepeat) - only drawn at all while relevant, unlike the always-visible-
+            // but-sometimes-disabled buttons above. See IUIManager.IsRepeatDeclinable's own doc
+            // comment and planning.txt's Phase 2 writeup.
+            if (uiManager.IsRepeatDeclinable)
+            {
+                _uiRenderer.DrawHorizontalButton(spriteBatch, uiManager.DeclineRepeatButtonRect, "DONE", uiManager.IsDeclineRepeatHovered, true, Color.Yellow);
+            }
+
             _uiRenderer.DrawHUD(spriteBatch, context.ActivePlayer, uiManager.ScreenWidth, matchManager);
 
             // 5. Draw Indicators

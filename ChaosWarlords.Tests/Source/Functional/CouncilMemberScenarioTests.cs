@@ -2,6 +2,7 @@ using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ChaosWarlords.Tests.Source.Functional
@@ -224,8 +225,16 @@ namespace ChaosWarlords.Tests.Source.Functional
         }
 
         [TestMethod]
-        public void DeclineRepeatCommand_WhileMidwayThroughASingleMove_IsRejected()
+        public void DeclineRepeatCommand_WhileMidwayThroughASingleMove_EndsTheRedemption()
         {
+            // Phase 2 design decision (planning.txt): DISPATCHING DeclineRepeatCommand directly
+            // (e.g. via the explicit "I'm done" button) always means "stop now, unconditionally" -
+            // even mid a single move's source/destination pair - unlike TargetingInputMode's OWN
+            // right-click handling, which "steps back" mid-pick instead of declining, letting the
+            // player retry (see TargetingInputModeTests.cs's own coverage of that narrower UX
+            // policy). Nothing has been committed for the in-flight source pick, so ending here
+            // costs nothing beyond abandoning it - ActionExecutionEngine.DeclineRemainingRepeats
+            // discards it via IEffectStrategy.ResetInProgressSelection.
             var scenario = MatchScenario.Build();
             var (_, target1, _, _, _) = SetupRedWithTwoAdjacentEnemyTroopsAndDestinations(scenario);
             var card = scenario.GiveCard(PlayerColor.Red, "council_member");
@@ -234,8 +243,9 @@ namespace ChaosWarlords.Tests.Source.Functional
             scenario.ClickTarget(target1, null); // Source picked - now mid-way to TargetingMoveDestination.
             Assert.AreEqual(ActionState.TargetingMoveDestination, scenario.Context.ActionSystem.CurrentState);
 
-            scenario.AssertRejected(new DeclineRepeatCommand(card.Id), "Declining is only valid at a repeat boundary, not mid a single move's source/destination pair.");
-            Assert.AreEqual(ActionState.TargetingMoveDestination, scenario.Context.ActionSystem.CurrentState);
+            scenario.Dispatch(new DeclineRepeatCommand(card.Id));
+
+            Assert.AreEqual(ActionState.Normal, scenario.Context.ActionSystem.CurrentState, "Declining must end the whole redemption sequence, not just this one in-flight pick.");
         }
 
         [TestMethod]
@@ -275,6 +285,31 @@ namespace ChaosWarlords.Tests.Source.Functional
             Assert.IsEmpty(scenario.Context.ActionSystem.ExecutionStack);
             Assert.AreEqual(1, scenario.Context.TurnManager.CurrentTurnContext.PendingPromotionsCount,
                 "The independent Promote effect must still resolve after declining Move entirely.");
+        }
+
+        [TestMethod]
+        public void PlayCouncilMember_DeclineBeforeMovingAnyTroops_DoesNotSpuriouslyTransitionState()
+        {
+            // Regression test: ActionExecutionEngine.DeclineRemainingRepeats defensively calls
+            // MoveUnitStrategy.ResetInProgressSelection even when nothing is actually pending
+            // (declining right at the entry state, before any source was ever picked). That must
+            // stay a true no-op - see ActionSystem.ClearPendingMoveSource's own doc comment for
+            // why it must NOT reuse SetMoveSource(null), which would force a real
+            // TargetingMoveSource -> TargetingMoveDestination transition every single time.
+            var scenario = MatchScenario.Build();
+            var (_, _, _, _, _) = SetupRedWithTwoAdjacentEnemyTroopsAndDestinations(scenario);
+            var card = scenario.GiveCard(PlayerColor.Red, "council_member");
+
+            scenario.PlayCard(card);
+            Assert.AreEqual(ActionState.TargetingMoveSource, scenario.Context.ActionSystem.CurrentState);
+
+            var observedStates = new List<ActionState>();
+            scenario.Context.ActionSystem.OnStateChanged += (_, state) => observedStates.Add(state);
+
+            scenario.Dispatch(new DeclineRepeatCommand(card.Id));
+
+            CollectionAssert.DoesNotContain(observedStates, ActionState.TargetingMoveDestination,
+                "Declining with nothing pending must not force a spurious source->destination transition.");
         }
 
         [TestMethod]
