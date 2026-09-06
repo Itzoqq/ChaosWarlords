@@ -57,92 +57,100 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
         }
         
         [TestMethod]
-        public void HandleEscapeKey_CallsGameStateEscapeHandler()
+        public void HandleEscapeKey_WhileNotBlocked_DoesNotHandleItDirectly()
         {
-            // Arrange
+            // Escape's gameplay-facing meaning (cancel targeting / close market / open the
+            // pause menu when nothing else applies) is exclusively GameplayInputCoordinator's
+            // job now, via the active IInputMode - a second, competing handler here (racing
+            // against the coordinator on the very same event) was the actual bug. See
+            // planning.txt.
             var evt = new InputEventArgs(InputEventType.KeyDown, Vector2.Zero, Keys.Escape);
 
-            // Act
             _mockInputManager.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(_mockInputManager, evt);
 
-            // Assert
-            Assert.IsTrue(_stateFake.EscapeHandled, "State should acknowledge Escape key press.");
+            Assert.IsFalse(_stateFake.EscapeHandled, "PlayerController must not handle Escape itself while nothing is blocking input.");
         }
 
         [TestMethod]
-        public void HandleEnterKey_EndsTurn_WhenAllowed()
+        public void HandleEnterKey_WhileNotBlocked_DoesNotEndTurnDirectly()
         {
-            // Arrange
+            // Enter's "attempt to end the turn" meaning is exclusively
+            // GameplayInputCoordinator's fallback job now (only reached once the active mode
+            // itself declines to do anything with the event) - see planning.txt.
             _stateFake.IsPauseMenuOpen = false;
             var evt = new InputEventArgs(InputEventType.KeyDown, Vector2.Zero, Keys.Enter);
 
-            // Act
             _mockInputManager.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(_mockInputManager, evt);
 
-            // Assert
-            Assert.IsTrue(_stateFake.EndTurnRequested, "State should have received EndTurn request.");
+            Assert.IsFalse(_stateFake.EndTurnRequested, "PlayerController must not end the turn itself while nothing is blocking input.");
         }
 
         [TestMethod]
-        public void Update_WhenPaused_DoesNotProcessGameplayInput()
+        public void HandleSpySelectionInput_WhilePauseMenuOpen_IsBlocked()
         {
-            // Arrange
+            // IsInputBlocked() is the only gate left in PlayerController now (Escape/Enter/
+            // popup handling all moved to GameplayInputCoordinator - see planning.txt) - this
+            // proves it still correctly short-circuits the 2 responsibilities PlayerController
+            // kept (spy/opponent selection) while a blocking overlay is open.
             _stateFake.IsPauseMenuOpen = true;
-            // Enter key usually ends turn, but if paused it shouldn't.
-            var evt = new InputEventArgs(InputEventType.KeyDown, Vector2.Zero, Keys.Enter);
 
-            // Act
+            var mockActionSystem = Substitute.For<IActionSystem>();
+            mockActionSystem.CurrentState.Returns(ActionState.SelectingSpyToReturn);
+            var mockSite = TestData.Sites.CitySite();
+            mockActionSystem.PendingSite.Returns(mockSite);
+            _stateFake.ActionSystem = mockActionSystem;
+            _stateFake.InitializeMatchContext();
+
+            var mockUIManager = Substitute.For<IUIManager>();
+            mockUIManager.ScreenWidth.Returns(800);
+            _stateFake.UIManager = mockUIManager;
+
+            _mockMapper.GetClickedSpyReturnButton(Arg.Any<Point>(), mockSite, 800)
+                .Returns(PlayerColor.Blue);
+
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(100, 100));
+
             _mockInputManager.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(_mockInputManager, evt);
 
-            // Assert
-            Assert.IsFalse(_stateFake.EndTurnRequested, "Should not end turn while paused.");
+            mockActionSystem.DidNotReceive().FinalizeSpyReturn(Arg.Any<PlayerColor>());
         }
-        
+
         [TestMethod]
         public void HandleOneKey_SelectsCard_Index0()
         {
              // Arrange
             var evt = new InputEventArgs(InputEventType.KeyDown, Vector2.Zero, Keys.D1);
-            
+
             // Act
             _mockInputManager.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(_mockInputManager, evt);
-            
+
             // Assert
             // Verify state interaction or UI interaction
         }
 
         [TestMethod]
-        public void HandleEnterKey_DoesNotEndTurn_WhenPauseMenuOpen()
+        public void HandleRightClick_WhileMarketOpenAndNotBlocked_DoesNotCloseMarketDirectly()
         {
-            // Arrange
-            _stateFake.IsPauseMenuOpen = true;
-            var evt = new InputEventArgs(InputEventType.KeyDown, Vector2.Zero, Keys.Enter);
-
-            // Act
-            _mockInputManager.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(_mockInputManager, evt);
-
-            // Assert
-            Assert.IsFalse(_stateFake.EndTurnRequested, "Should NOT request EndTurn when Pause Menu is open.");
-        }
-
-        [TestMethod]
-        public void HandleRightClick_ClosesMarket_WhenOpen()
-        {
-            // Arrange
+            // Closing the market via right-click is MarketInputMode's job now, via
+            // GameplayInputCoordinator - a second, competing handler here (which used to run
+            // BEFORE the coordinator's own mode dispatch on the exact same click) was the
+            // actual bug. See planning.txt.
             _stateFake.MarketStateManager.OpenForBrowsing();
             var evt = new InputEventArgs(InputEventType.RightClick, Vector2.Zero);
 
-            // Act
             _mockInputManager.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(_mockInputManager, evt);
 
-            // Assert
-            Assert.IsFalse(_stateFake.IsMarketOpen, "Market should be closed by right click.");
+            Assert.IsTrue(_stateFake.IsMarketOpen, "PlayerController must not close the market itself while nothing is blocking input.");
         }
 
         [TestMethod]
-        public void HandleRightClick_CancelsTargeting_WhenTargeting()
+        public void HandleRightClick_WhileTargetingAndNotBlocked_DoesNotCancelTargetingDirectly()
         {
-            // Arrange
+            // Cancelling/declining an in-progress targeting sequence via right-click is the
+            // active IInputMode's job now, via GameplayInputCoordinator - a second, competing
+            // handler here that could mutate ActionSystem BEFORE the mode's own (correct,
+            // mode-aware) cancel/decline logic ever ran was the actual bug this whole pass
+            // exists to fix. See planning.txt.
             _stateFake.MarketStateManager.Close();
 
             var mockActionSystem = Substitute.For<IActionSystem>();
@@ -156,10 +164,7 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
             _mockInputManager.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(_mockInputManager, evt);
 
             // Assert
-            mockActionSystem.Received(1).CancelTargeting();
-
-            // Verify state logic (PlayerController calls SwitchToNormalMode on state)
-            Assert.AreEqual("Normal", _stateFake.ActiveModeName, "Should switch to Normal mode.");
+            mockActionSystem.DidNotReceive().CancelTargeting();
         }
 
         [TestMethod]

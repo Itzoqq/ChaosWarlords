@@ -162,10 +162,25 @@ namespace ChaosWarlords.Source.Managers
             // popup is open (it has its own dedicated Yes/No buttons - see IUIManager's doc
             // comment on this property).
             _uiManager.IsConfirmationPopupVisible = _isConfirmationPopupOpen;
+            // Gates the Market/Assassinate/ReturnSpy/EndTurn buttons so they can't be
+            // clicked into an unrelated in-progress targeting sequence - see planning.txt.
+            _uiManager.IsTargeting = _actionSystem.IsTargeting();
         }
 
         // --- Public Methods for External Control ---
 
+        /// <summary>
+        /// Escape's meaning here is deliberately narrow now - cancelling/declining an
+        /// in-progress targeting sequence (including closing the market) is the active
+        /// IInputMode's own job via GameplayInputCoordinator, not this method's. This is
+        /// called from exactly 2 places: PlayerController's blocked-input handler (while a
+        /// popup/pause menu is open - the ONLY handler for Escape during that window, since
+        /// GameplayInputCoordinator deliberately no-ops entirely then) and
+        /// GameplayInputCoordinator's own fallback (when the active mode returned null for
+        /// Escape, i.e. nothing left to cancel). Both call sites are safe with the same
+        /// unconditional logic below since they're mutually exclusive by construction (blocked
+        /// vs. not blocked). See planning.txt.
+        /// </summary>
         public void HandleEscapeKeyPress()
         {
             if (_isPauseMenuOpen)
@@ -174,29 +189,14 @@ namespace ChaosWarlords.Source.Managers
                 return;
             }
 
-            // Priority 1: Cancel Targeting
-            if (_actionSystem.IsTargeting())
-            {
-                _actionSystem.CancelTargeting();
-                _gameState.SwitchToNormalMode();
-                return; // Do NOT open pause menu
-            }
-
-            // Priority 2: Close Market
-            if (_gameState.IsMarketOpen)
-            {
-                _gameState.MarketStateManager.Close();
-                return; // Do NOT open pause menu
-            }
-
-            // Priority 3: Close Confirmation Popup
+            // Priority 1: Close Confirmation Popup
             if (_isConfirmationPopupOpen)
             {
                 _isConfirmationPopupOpen = false;
                 return; // Do NOT open pause menu
             }
-            
-            // Priority 4: Decline Optional Effect
+
+            // Priority 2: Decline Optional Effect
             if (_isOptionalEffectPopupOpen)
             {
                 HandlePopupCancel(this, EventArgs.Empty);

@@ -5,6 +5,7 @@ using ChaosWarlords.Source.Input.Modes;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Logic;
+using Microsoft.Xna.Framework.Input;
 
 
 namespace ChaosWarlords.Source.Input
@@ -38,16 +39,29 @@ namespace ChaosWarlords.Source.Input
 
         private void HandleInputEvent(object? sender, Core.Events.InputEventArgs e)
         {
-            // BLOCKING CHECK: If any overlay/popup is open, do not process gameplay input here.
-            // UI interactions are handled by PlayerController or UIManager.
+            // BLOCKING CHECK: while any overlay/popup is open, this is the ONLY handler for
+            // Escape/Enter/click - PlayerController used to ALSO independently react to the
+            // same raw event here, re-checking this same blocking state itself; that looked
+            // "mutually exclusive" on paper but wasn't in practice, since one handler's own
+            // side effect (e.g. this method's fallback below opening the pause menu) could
+            // flip the very flag the OTHER handler was about to check for the SAME event,
+            // causing it to immediately undo what was just done (verified: Escape opening the
+            // pause menu, then PlayerController's own stale-blocking-check-turned-true
+            // re-invoking HandleEscapeKeyPress a second time and closing it right back). Fixed
+            // by making this the single, un-bypassable handler for ALL of it - see
+            // planning.txt.
             if (_state.IsPauseMenuOpen || _state.IsConfirmationPopupOpen || _state.IsOptionalEffectPopupOpen)
             {
+                HandleBlockedInput(e);
                 return;
             }
 
             if (_currentMode == null) return;
 
-            // Delegate event to current mode
+            // Delegate event to current mode - RightClick/Escape/Enter flow through here
+            // exactly like LeftClick already does, so the active IInputMode is the single,
+            // un-bypassable source of truth for what cancelling/declining means right now.
+            // See planning.txt for why a second, competing global handler used to exist.
             IGameCommand? command = _currentMode.HandleInteraction(
                 e,
                 _context.MarketManager,
@@ -59,6 +73,96 @@ namespace ChaosWarlords.Source.Input
             {
                 _state.Logger.Log($"[Coordinator] Command Generated from {e.Type}: {command.GetType().Name}", LogChannel.Input);
                 _state.RecordAndExecuteCommand(command);
+                return;
+            }
+
+            // Nothing about this event was handled by the active mode - the only remaining
+            // universal meanings are Escape (open the pause menu) and Enter (attempt to end
+            // the turn). RightClick/LeftClick with nothing to do are legitimately no-ops.
+            HandleUnhandledGlobalShortcut(e);
+        }
+
+        /// <summary>
+        /// Escape closes/declines whichever overlay is open (pause menu first, then
+        /// confirmation popup, then optional-effect popup - see IGameplayState.
+        /// HandleEscapeKeyPress's own priority order), Enter confirms the simple yes/no
+        /// confirmation popup specifically (matches the pre-existing behavior - the optional-
+        /// effect popup has no implicit Enter-confirm, only its own explicit accept/decline),
+        /// and a LeftClick on the optional-effect popup routes to its own click handler. This
+        /// is the ONLY place any of this runs - see HandleInputEvent's own comment on why a
+        /// second, independent handler for the same events was a real bug, not just a
+        /// theoretical one.
+        /// </summary>
+        private void HandleBlockedInput(Core.Events.InputEventArgs e)
+        {
+            if (e.Type != Core.Events.InputEventType.KeyDown)
+            {
+                HandleBlockedLeftClick(e);
+                return;
+            }
+
+            if (e.Key == Keys.Escape)
+            {
+                HandleBlockedEscape();
+            }
+            else if (e.Key == Keys.Enter)
+            {
+                HandleBlockedEnter();
+            }
+        }
+
+        private void HandleBlockedEscape()
+        {
+            _state.HandleEscapeKeyPress();
+        }
+
+        private void HandleBlockedEnter()
+        {
+            if (_state.IsConfirmationPopupOpen)
+            {
+                _state.UIManager.TriggerPopupConfirm();
+            }
+        }
+
+        private void HandleBlockedLeftClick(Core.Events.InputEventArgs e)
+        {
+            if (e.Type != Core.Events.InputEventType.LeftClick) return;
+            if (!_state.IsOptionalEffectPopupOpen || _state.View == null) return;
+
+            var mousePos = e.Position.ToPoint();
+            _state.View.HandleOptionalEffectClick(mousePos.X, mousePos.Y);
+        }
+
+        /// <summary>
+        /// Fallback for Escape/Enter ONLY when the active IInputMode declined to produce a
+        /// command for it - e.g. nothing is being targeted (NormalPlayInputMode never
+        /// intercepts these) or a mandatory sequence refused to cancel (PromoteInputMode/
+        /// DiscardInputMode both correctly return null in that case, which safely falls
+        /// through to "open the pause menu" here - pausing never bypasses a mandatory effect,
+        /// it just pauses). Reuses IGameplayState.HandleEscapeKeyPress - the same method
+        /// HandleBlockedInput calls for the popup/pause-open case - since both call sites are
+        /// mutually exclusive in this single method's own control flow (one blocking check,
+        /// one branch or the other, never both for the same event) and want identical "close
+        /// confirm popup -> decline optional popup -> else open pause menu" behavior.
+        /// </summary>
+        private void HandleUnhandledGlobalShortcut(Core.Events.InputEventArgs e)
+        {
+            if (e.Type == Core.Events.InputEventType.KeyDown && e.Key == Keys.Escape)
+            {
+                _state.HandleEscapeKeyPress();
+                return;
+            }
+
+            if (e.Type == Core.Events.InputEventType.KeyDown && e.Key == Keys.Enter)
+            {
+                if (_state.CanEndTurn(out string reason))
+                {
+                    _state.HandleEndTurnKeyPress();
+                }
+                else
+                {
+                    _state.Logger.Log(reason, LogChannel.Warning);
+                }
             }
         }
 

@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Interfaces.Input;
@@ -48,10 +49,14 @@ namespace ChaosWarlords.Source.Input.Modes
                 return null;
             }
 
-            // Targeting can be cancellable via Right Click
-            if (evt.Type == InputEventType.RightClick)
+            // Targeting can be cancelled via Right Click or Escape - treated as synonyms
+            // (matching PromoteInputMode/DevourInputMode/PromoteFromPileInputMode's existing
+            // pattern). Escape used to reach this mode only via a global, competing handler
+            // that bypassed this mode's own cancel/decline logic entirely - see planning.txt.
+            bool isCancelInput = evt.Type == InputEventType.RightClick
+                || (evt.Type == InputEventType.KeyDown && evt.Key == Keys.Escape);
+            if (isCancelInput)
             {
-                // Right click cancels targeting
                 return HandleCancellation(actionSystem);
             }
 
@@ -86,6 +91,13 @@ namespace ChaosWarlords.Source.Input.Modes
             return HandleTargetingClick(actionSystem, targetNode, targetSite);
         }
 
+        // NOTE: these 3 hover flags can now only be true while their button's own IsActive()
+        // is true, which requires !ActionSystem.IsTargeting() (see UIManager's button setup) -
+        // but this method only ever runs while TargetingInputMode itself is the active mode,
+        // i.e. while IsTargeting() is already true. So in practice none of the 3 can be true
+        // here anymore (barring an unverified one-frame stale-hover window right at the
+        // transition into targeting) - effectively inert, not removed since a future change to
+        // either side's semantics could make it load-bearing again. See planning.txt.
         private bool IsUIBlocking()
         {
             return _uiManager.IsMarketHovered || _uiManager.IsAssassinateHovered || _uiManager.IsReturnSpyHovered;

@@ -16,6 +16,7 @@ namespace ChaosWarlords.Source.Managers
         public bool IsPaused { get; set; }
         public bool IsPopupVisible { get; set; }
         public bool IsConfirmationPopupVisible { get; set; }
+        public bool IsTargeting { get; set; }
 
         // Internals (encapsulated)
         private class InteractiveElement
@@ -120,33 +121,36 @@ namespace ChaosWarlords.Source.Managers
                 },
 
                 // Main Game UI (Lowest Priority)
+                // !IsTargeting - without this, these 4 stayed clickable throughout an
+                // unrelated in-progress targeting sequence, letting a click silently strand
+                // or permanently desync it instead of being rejected outright. See planning.txt.
                 new InteractiveElement
                 {
                     GetBounds = () => _marketButtonRect,
                     SetHover = (v) => IsMarketHovered = v,
                     OnClick = () => { _logger.Log("UI: Market Clicked", LogChannel.Info); OnMarketToggleRequest?.Invoke(this, EventArgs.Empty); },
-                    IsActive = () => !IsPaused && !IsPopupVisible
+                    IsActive = () => !IsPaused && !IsPopupVisible && !IsTargeting
                 },
                 new InteractiveElement
                 {
                     GetBounds = () => _assassinateButtonRect,
                     SetHover = (v) => IsAssassinateHovered = v,
                     OnClick = () => { _logger.Log("UI: Assassinate Clicked", LogChannel.Info); OnAssassinateRequest?.Invoke(this, EventArgs.Empty); },
-                    IsActive = () => !IsPaused && !IsPopupVisible
+                    IsActive = () => !IsPaused && !IsPopupVisible && !IsTargeting
                 },
                 new InteractiveElement
                 {
                     GetBounds = () => _returnSpyButtonRect,
                     SetHover = (v) => IsReturnSpyHovered = v,
                     OnClick = () => { _logger.Log("UI: ReturnSpy Clicked", LogChannel.Info); OnReturnSpyRequest?.Invoke(this, EventArgs.Empty); },
-                    IsActive = () => !IsPaused && !IsPopupVisible
+                    IsActive = () => !IsPaused && !IsPopupVisible && !IsTargeting
                 },
                 new InteractiveElement
                 {
                     GetBounds = () => _endTurnButtonRect,
                     SetHover = (v) => IsEndTurnHovered = v,
                     OnClick = () => { _logger.Log("UI: EndTurn Clicked", LogChannel.Info); OnEndTurnRequest?.Invoke(this, EventArgs.Empty); },
-                    IsActive = () => !IsPaused && !IsPopupVisible
+                    IsActive = () => !IsPaused && !IsPopupVisible && !IsTargeting
                 },
             ];
         }

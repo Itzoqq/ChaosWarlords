@@ -16,6 +16,7 @@ using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
 using ChaosWarlords.Source.Core.Events; // Fixed namespace
+using Microsoft.Xna.Framework.Input;
 
 namespace ChaosWarlords.Tests.Integration.Input.Modes
 {
@@ -108,6 +109,22 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             _actionSub.CurrentState.Returns(ActionState.TargetingAssassinate);
 
             var evt = new InputEventArgs(InputEventType.RightClick, new Vector2(100, 100));
+
+            var result = _inputMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
+
+            _actionSub.Received(1).CancelTargeting();
+            Assert.IsInstanceOfType(result, typeof(SwitchToNormalModeCommand));
+        }
+
+        [TestMethod]
+        public void HandleInteraction_Escape_CancelsTargeting_AndReturnsSwitchCommand()
+        {
+            // Escape used to reach this mode's cancel logic only via a global, competing
+            // handler that ran BEFORE this mode's own dispatch - now it's a direct synonym for
+            // RightClick, handled by exactly the same code path. See planning.txt.
+            _actionSub.CurrentState.Returns(ActionState.TargetingAssassinate);
+
+            var evt = new InputEventArgs(InputEventType.KeyDown, Vector2.Zero, Keys.Escape);
 
             var result = _inputMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
 

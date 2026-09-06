@@ -87,6 +87,53 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         [TestMethod]
+        public void HandleInputEvent_Ignores_InactiveElement_MarketButton_WhenTargeting()
+        {
+            // Without this, the Market/Assassinate/ReturnSpy/EndTurn buttons stayed clickable
+            // throughout an unrelated in-progress targeting sequence, letting a click silently
+            // strand or permanently desync it instead of being rejected outright. See
+            // planning.txt.
+            _uiManager.IsPaused = false;
+            _uiManager.IsPopupVisible = false;
+            _uiManager.IsTargeting = true;
+
+            bool eventFired = false;
+            _uiManager.OnMarketToggleRequest += (s, e) => eventFired = true;
+
+            var rect = _uiManager.MarketButtonRect;
+            var center = rect.Center;
+
+            _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                this,
+                new InputEventArgs(InputEventType.LeftClick, new Vector2(center.X, center.Y), Microsoft.Xna.Framework.Input.Keys.None));
+
+            Assert.IsFalse(eventFired, "Market Button should be inactive while a targeting sequence is in progress.");
+        }
+
+        [TestMethod]
+        public void HandleInputEvent_Ignores_InactiveElement_EndTurnButton_WhenTargeting()
+        {
+            // The concrete bug repro this fixes: pressing End Turn while a "up to N" promotion
+            // redemption (or any other targeting sequence) is still in progress - see
+            // planning.txt.
+            _uiManager.IsPaused = false;
+            _uiManager.IsPopupVisible = false;
+            _uiManager.IsTargeting = true;
+
+            bool eventFired = false;
+            _uiManager.OnEndTurnRequest += (s, e) => eventFired = true;
+
+            var rect = _uiManager.EndTurnButtonRect;
+            var center = rect.Center;
+
+            _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                this,
+                new InputEventArgs(InputEventType.LeftClick, new Vector2(center.X, center.Y), Microsoft.Xna.Framework.Input.Keys.None));
+
+            Assert.IsFalse(eventFired, "End Turn Button should be inactive while a targeting sequence is in progress.");
+        }
+
+        [TestMethod]
         public void HandleInputEvent_Invokes_PopupConfirm_WhenConfirmationPopupVisible()
         {
             _uiManager.IsConfirmationPopupVisible = true;

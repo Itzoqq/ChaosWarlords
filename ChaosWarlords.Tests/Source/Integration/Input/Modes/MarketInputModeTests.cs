@@ -125,6 +125,54 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         }
 
         [TestMethod]
+        public void HandleInteraction_RightClick_ClosesMarket_EvenDuringStartupCooldown()
+        {
+            // The cooldown exists to stop the SAME click that opened the market from also
+            // being read as a click inside it (buy/close-on-empty-space) - it must NOT also
+            // gate Escape/RightClick's cancel meaning, or pressing Escape right after opening
+            // the market would fall through to the pause-menu fallback instead of closing it.
+            // See planning.txt.
+            _stateFake.MarketStateManager.OpenForBrowsing();
+            var freshMode = new MarketInputMode(_stateFake, _mockInputManager, _stateFake.MatchContext);
+
+            var evt = new InputEventArgs(InputEventType.RightClick, Vector2.Zero);
+
+            var result = freshMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _mockActionSystem);
+
+            Assert.IsFalse(_stateFake.IsMarketOpen, "Market should be closed by right-click even within the startup cooldown window.");
+            Assert.IsInstanceOfType(result, typeof(SwitchToNormalModeCommand));
+        }
+
+        [TestMethod]
+        public void HandleInteraction_RightClick_ClosesMarket_AndReturnsSwitchCommand()
+        {
+            // Closing the market via right-click/Escape used to be handled only by a global,
+            // competing handler that ran BEFORE this mode ever got a chance to react - now
+            // it's this mode's own direct responsibility. See planning.txt.
+            _stateFake.MarketStateManager.OpenForBrowsing();
+
+            var evt = new InputEventArgs(InputEventType.RightClick, Vector2.Zero);
+
+            var result = _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _mockActionSystem);
+
+            Assert.IsFalse(_stateFake.IsMarketOpen, "Market should be closed by right-click.");
+            Assert.IsInstanceOfType(result, typeof(SwitchToNormalModeCommand));
+        }
+
+        [TestMethod]
+        public void HandleInteraction_Escape_ClosesMarket_AndReturnsSwitchCommand()
+        {
+            _stateFake.MarketStateManager.OpenForBrowsing();
+
+            var evt = new InputEventArgs(InputEventType.KeyDown, Vector2.Zero, Keys.Escape);
+
+            var result = _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _mockActionSystem);
+
+            Assert.IsFalse(_stateFake.IsMarketOpen, "Market should be closed by Escape.");
+            Assert.IsInstanceOfType(result, typeof(SwitchToNormalModeCommand));
+        }
+
+        [TestMethod]
         public void HandleInteraction_ClickingMarketButton_DoesNotCloseMarket()
         {
             _mockUI.IsMarketHovered.Returns(true);

@@ -43,89 +43,27 @@ namespace ChaosWarlords.Source.Input.Controllers
 
         private void HandleInputEvent(object? sender, InputEventArgs e)
         {
-            // PRIORITY 1: Global Shortcuts (Escape) & Overlays
-            if (HandleGlobalInput(e)) return;
-
-            // PRIORITY 2: Popups & UI Interactions (Must handle before blocking checks!)
-            if (HandlePopupInteractions(e)) return;
-
-            // PRIORITY 3: Blocking Overlays (Blocks Map/Game input)
+            // Popups/pause-menu/Escape/Enter/gameplay-cancel input is ALL handled exclusively
+            // by GameplayInputCoordinator now, in a single ordered pipeline - a second,
+            // independent subscriber (this class) reacting to the SAME raw event used to also
+            // handle a subset of it directly, which looked "mutually exclusive" from the
+            // blocked/unblocked split alone but wasn't in practice: one handler's own side
+            // effect (e.g. opening the pause menu) could flip the very flag the OTHER handler
+            // was about to re-check for the SAME event, causing genuine double-processing (see
+            // planning.txt for the concrete repro this was verified against). This class now
+            // owns only the 2 narrow, still-independent responsibilities below, which don't
+            // mutate anything GameplayInputCoordinator's own dispatch reads.
             if (IsInputBlocked()) return;
 
-            // PRIORITY 4: Specific State Logic (Spy Selection)
             if (HandleSpySelectionInput(e)) return;
             if (HandleOpponentSelectionInput(e)) return;
-
-            // Note: Coordinator logic is handled by Coordinator's own subscription to the same event.
-            // We do not need to call _inputCoordinator.HandleEvent(e) because it listens independently.
-            // However, IF blocking was required, the Coordinator should check blocking status or we should have a centralized handler.
-            // currently, the Coordinator is a separate listener. 
-            // Ideally, Coordinator should check "IsPaused" or similar state.
         }
 
         private bool IsInputBlocked()
         {
-            // Market is handled by InputCoordinator, so we don't strictly block it, 
-            // but Pause/Confirmation/OptionalPopup block everything.
             return _gameState.IsPauseMenuOpen ||
                    _gameState.IsConfirmationPopupOpen ||
                    _gameState.IsOptionalEffectPopupOpen;
-        }
-
-        private bool HandleGlobalInput(InputEventArgs e)
-        {
-            if (e.Type == InputEventType.KeyDown && e.Key == Keys.Escape)
-            {
-                _gameState.HandleEscapeKeyPress();
-                return true;
-            }
-            if (e.Type == InputEventType.KeyDown && e.Key == Keys.Enter)
-            {
-                return HandleEnterKey();
-            }
-            if (e.Type == InputEventType.RightClick)
-            {
-                return HandleRightClick();
-            }
-            return false;
-        }
-
-        private bool HandleEnterKey()
-        {
-            if (IsInputBlocked() && !_gameState.IsConfirmationPopupOpen) return true;
-
-            if (_gameState.IsConfirmationPopupOpen)
-            {
-                _gameState.UIManager.TriggerPopupConfirm();
-                return true;
-            }
-
-            if (_gameState.CanEndTurn(out string reason))
-            {
-                _gameState.HandleEndTurnKeyPress();
-            }
-            else
-            {
-                _gameState.Logger.Log(reason, LogChannel.Warning);
-            }
-            return true;
-        }
-
-        private bool HandleRightClick()
-        {
-            if (_gameState.IsMarketOpen)
-            {
-                _gameState.MarketStateManager.Close();
-                return true;
-            }
-
-            if (_gameState.ActionSystem.IsTargeting())
-            {
-                _gameState.ActionSystem.CancelTargeting();
-                _gameState.SwitchToNormalMode();
-                return true;
-            }
-            return false;
         }
 
         private bool HandleSpySelectionInput(InputEventArgs e)
@@ -186,23 +124,6 @@ namespace ChaosWarlords.Source.Input.Controllers
             return effect?.Amount ?? 0;
         }
 
-        private bool HandlePopupInteractions(InputEventArgs e)
-        {
-            // Optional Effect Popup Click
-            // Now uses decoupled interface access
-            if (_gameState.View != null && _gameState.IsOptionalEffectPopupOpen)
-            {
-                if (e.Type == InputEventType.LeftClick)
-                {
-                    var mousePos = e.Position.ToPoint();
-                    _gameState.View.HandleOptionalEffectClick(mousePos.X, mousePos.Y);
-                    
-                    // Return true to block input if popup was visible
-                    return true;
-                }
-            }
-            return false;
-        }
     }
 }
 

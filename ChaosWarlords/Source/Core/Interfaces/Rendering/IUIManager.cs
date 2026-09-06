@@ -73,6 +73,15 @@ namespace ChaosWarlords.Source.Core.Interfaces.Rendering
         /// </summary>
         bool IsConfirmationPopupVisible { get; set; }
 
+        /// <summary>
+        /// True whenever ActionSystem.IsTargeting() is true (synced each frame by
+        /// UIEventMediator.Update(), same pattern as IsPaused/IsPopupVisible). Gates the
+        /// Market/Assassinate/ReturnSpy/EndTurn buttons - without this, they stayed clickable
+        /// throughout an unrelated in-progress targeting sequence, letting a click silently
+        /// strand or permanently desync it instead of being rejected outright. See planning.txt.
+        /// </summary>
+        bool IsTargeting { get; set; }
+
         bool IsResumeHovered { get; }
         bool IsMainMenuHovered { get; }
         bool IsExitHovered { get; }

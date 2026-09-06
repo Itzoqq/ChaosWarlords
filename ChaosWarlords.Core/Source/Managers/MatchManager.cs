@@ -268,6 +268,17 @@ namespace ChaosWarlords.Source.Managers
 
         public bool CanEndTurn(out string reason)
         {
+            // A targeting sequence in progress (including a deferred "up to N" promotion
+            // redemption or a forced-discard flow) must resolve or be explicitly declined
+            // first - EndTurnCommand.Validate() enforces this too (the actual authoritative
+            // gate), but checking it here as well gives the player an informative reason
+            // instead of a silent command-layer rejection. See planning.txt.
+            if (_context.ActionSystem.IsTargeting())
+            {
+                reason = "You must finish or cancel your current action before ending your turn.";
+                return false;
+            }
+
             if (_context.CurrentPhase == MatchPhase.Setup)
             {
                 // Check if current player has deployed a troop

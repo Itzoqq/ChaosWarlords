@@ -16,11 +16,13 @@ namespace ChaosWarlords.Source.Input.Modes
     /// context.ActivePlayer, which MatchManager's forced-actor override points at the
     /// correct player during Neogi's cross-player sequencing).
     ///
-    /// Intended as a forced discard with no cancel (matching Neogi's/Cranium Rats' design
-    /// intent), but this is NOT currently enforced - PlayerController.HandleGlobalInput's
-    /// global right-click/Escape handler will cancel out of ANY non-Normal ActionState,
-    /// including this one, regardless of input mode. See planning.txt for the follow-up this
-    /// gap needs (a real ActionState-aware cancel gate), not fixed here.
+    /// A forced discard with no cancel (matching Neogi's/Cranium Rats' design intent) -
+    /// returning null for every non-LeftClick event here IS the enforcement: Escape/RightClick
+    /// now route through GameplayInputCoordinator into this mode like any other input, and a
+    /// null result correctly means "nothing to cancel," falling through to the pause-menu
+    /// fallback at most (which never touches ActionSystem) rather than a raw
+    /// ActionSystem.CancelTargeting() bypassing this mode entirely, as a global handler
+    /// independent of the active mode once did. See planning.txt.
     /// </summary>
     public class DiscardInputMode : IInputMode
     {

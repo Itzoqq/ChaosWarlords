@@ -85,42 +85,16 @@ namespace ChaosWarlords.Tests.Source.Managers
             _mediator.Cleanup();
         }
 
-        // --- Escape Key Priority Tests (Preserved) ---
+        // --- Escape Key Priority Tests ---
+        // Cancelling/declining an in-progress targeting sequence (including closing the
+        // market) is no longer this method's responsibility - that's the active IInputMode's
+        // job via GameplayInputCoordinator now (see planning.txt for why a second, competing
+        // handler here was a real bug). This method's own remaining priority is just
+        // pause -> confirmation popup -> optional-effect popup -> else open pause menu.
 
         [TestMethod]
-        public void HandleEscapeKeyPress_Priority1_CancelsTargeting_IfActive()
+        public void HandleEscapeKeyPress_Priority1_ClosesConfirmationPopup_IfOpen()
         {
-            _actionSystem.IsTargeting().Returns(true);
-            _gameState.IsMarketOpen.Returns(true);
-            _marketStateManager.IsOpen.Returns(true);
-
-            _mediator.HandleEscapeKeyPress();
-
-            _actionSystem.Received(1).CancelTargeting();
-            _gameState.Received(1).SwitchToNormalMode();
-            _marketStateManager.DidNotReceive().Close();
-            Assert.IsFalse(_mediator.IsPauseMenuOpen);
-        }
-
-        [TestMethod]
-        public void HandleEscapeKeyPress_Priority2_ClosesMarket_IfOpen()
-        {
-            _actionSystem.IsTargeting().Returns(false);
-            _gameState.IsMarketOpen.Returns(true);
-            _marketStateManager.IsOpen.Returns(true);
-
-            _mediator.HandleEscapeKeyPress();
-
-            _marketStateManager.Received(1).Close();
-            Assert.IsFalse(_mediator.IsPauseMenuOpen);
-        }
-
-        [TestMethod]
-        public void HandleEscapeKeyPress_Priority3_ClosesConfirmationPopup_IfOpen()
-        {
-            _actionSystem.IsTargeting().Returns(false);
-            _gameState.IsMarketOpen.Returns(false);
-
             SetPrivateField(_mediator, "_isConfirmationPopupOpen", true);
             Assert.IsTrue(_mediator.IsConfirmationPopupOpen, "Setup failed to set popup open");
 
@@ -131,16 +105,13 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         [TestMethod]
-        public void HandleEscapeKeyPress_Priority4_DeclinesOptionalEffect_IfOpen()
+        public void HandleEscapeKeyPress_Priority2_DeclinesOptionalEffect_IfOpen()
         {
-            _actionSystem.IsTargeting().Returns(false);
-            _gameState.IsMarketOpen.Returns(false);
-
             bool declineCalled = false;
             _mediator.RequestOptionalEffect(
-                null!, 
-                null!, 
-                () => { }, 
+                null!,
+                null!,
+                () => { },
                 () => { declineCalled = true; });
 
             Assert.IsTrue(_mediator.IsOptionalEffectPopupOpen, "Setup failed to set optional popup open");
@@ -155,12 +126,23 @@ namespace ChaosWarlords.Tests.Source.Managers
         [TestMethod]
         public void HandleEscapeKeyPress_Default_OpensPauseMenu_WhenNoOtherState()
         {
-            _actionSystem.IsTargeting().Returns(false);
-            _gameState.IsMarketOpen.Returns(false);
+            _mediator.HandleEscapeKeyPress();
+
+            Assert.IsTrue(_mediator.IsPauseMenuOpen);
+        }
+
+        [TestMethod]
+        public void HandleEscapeKeyPress_Default_OpensPauseMenu_EvenWhileTargeting()
+        {
+            // Confirms this method deliberately does NOT touch ActionSystem at all anymore -
+            // opening the pause menu never bypasses or reverts an in-progress targeting
+            // sequence, it just pauses (the sequence is untouched, still there on resume).
+            _actionSystem.IsTargeting().Returns(true);
 
             _mediator.HandleEscapeKeyPress();
 
             Assert.IsTrue(_mediator.IsPauseMenuOpen);
+            _actionSystem.DidNotReceive().CancelTargeting();
         }
 
         [TestMethod]
@@ -457,6 +439,17 @@ namespace ChaosWarlords.Tests.Source.Managers
 
             _uiManager.Received(1).IsPopupVisible = true;
             _uiManager.Received(1).IsConfirmationPopupVisible = true;
+        }
+
+        [TestMethod]
+        public void Update_SyncsUIManagerIsTargeting_FromActionSystem()
+        {
+            // Gates the Market/Assassinate/ReturnSpy/EndTurn buttons - see planning.txt.
+            _actionSystem.IsTargeting().Returns(true);
+
+            _mediator.Update();
+
+            _uiManager.Received(1).IsTargeting = true;
         }
 
         // Helper

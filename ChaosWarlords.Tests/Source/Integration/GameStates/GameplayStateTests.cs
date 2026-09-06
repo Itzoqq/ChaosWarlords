@@ -158,8 +158,18 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         }
 
         [TestMethod]
-        public void Update_RightClick_CancelsTargeting_AndResetsInputMode()
+        public void Update_RightClick_CancelsTargeting()
         {
+            // Right-click reaching TargetingInputMode (via GameplayInputCoordinator, the ONLY
+            // handler for this now - PlayerController used to also react to the same click
+            // directly, which was the actual bug, see planning.txt) is what's under test here.
+            // The input-mode reset back to NormalPlayInputMode is a SEPARATE mechanism (real
+            // ActionSystem.CurrentState's setter raises OnStateChanged, which
+            // GameplayInputCoordinator.HandleActionStateChanged reacts to) already covered by
+            // GameplayInputCoordinatorTests.HandleActionStateChanged_NormalStateWithMarketClosed_
+            // SwitchesToNormalMode with a real event raise - not re-asserted here since
+            // _actionSystem is a plain substitute that doesn't actually raise it on
+            // CancelTargeting().
             var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
             state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
 
@@ -173,7 +183,190 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             state.Update(new GameTime());
 
             _actionSystem.Received().CancelTargeting();
-            Assert.IsInstanceOfType(state.InputMode, typeof(NormalPlayInputMode));
+        }
+
+        [TestMethod]
+        public void Update_Escape_DuringForcedDiscard_DoesNotCancelTargeting()
+        {
+            // Rules-accuracy fix, not just a UI-safety one: a mandatory forced discard
+            // (Neogi's per-opponent queue, Cranium Rats' chain) has no legal way to be
+            // declined per tyrants-rules.pdf's plain-instruction rule - but the global Escape/
+            // right-click bypass used to let a player dodge it entirely by reverting the whole
+            // sequence via CancelTargeting(), since it ran before DiscardInputMode's own
+            // (correct, by omission - it only ever handles LeftClick) refusal ever got a
+            // chance to matter. See planning.txt.
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            _actionSystem.CurrentState.Returns(ActionState.TargetingDiscard);
+            state.SwitchToTargetingMode();
+            Assert.IsInstanceOfType(state.InputMode, typeof(DiscardInputMode));
+
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Escape));
+
+            state.Update(new GameTime());
+
+            _actionSystem.DidNotReceive().CancelTargeting();
+        }
+
+        [TestMethod]
+        public void Update_Escape_WhileTargeting_CancelsTargeting()
+        {
+            // Escape used to reach TargetingInputMode's own cancel logic only via a global,
+            // competing handler (PlayerController/UIEventMediator) that ran BEFORE
+            // GameplayInputCoordinator's mode dispatch on the exact same key press, wiping
+            // ActionSystem state before the mode ever got a chance to react correctly - see
+            // planning.txt. This proves Escape now reaches the mode directly, the same as
+            // RightClick already does (Update_RightClick_CancelsTargeting).
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            _actionSystem.IsTargeting().Returns(true);
+            state.SwitchToTargetingMode();
+
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Escape));
+
+            state.Update(new GameTime());
+
+            _actionSystem.Received().CancelTargeting();
+        }
+
+        [TestMethod]
+        public void Update_Escape_WhileIdle_OpensPauseMenu()
+        {
+            // Nothing to cancel (NormalPlayInputMode never intercepts Escape) -
+            // GameplayInputCoordinator's own fallback (HandleUnhandledGlobalShortcut) is what
+            // opens the pause menu now - PlayerController used to do this directly and
+            // unconditionally, see planning.txt. This is also the exact scenario that caught a
+            // real double-processing bug during this fix's own development (verified by
+            // reintroducing it): with PlayerController still independently reacting to the
+            // SAME Escape press, its own blocking check would see the pause menu the
+            // coordinator's fallback JUST opened (mid-event) and immediately close it back -
+            // this test failed against that bug, confirming it's meaningful, not just
+            // asserting the happy path.
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+            state.MatchContext.CurrentPhase = MatchPhase.Playing;
+
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Escape));
+
+            state.Update(new GameTime());
+
+            Assert.IsTrue(state.IsPauseMenuOpen);
+        }
+
+        [TestMethod]
+        public void Update_Escape_WhilePauseMenuAlreadyOpen_ClosesIt()
+        {
+            // Baseline coverage for GameplayInputCoordinator.HandleBlockedInput's Escape
+            // branch - the single handler for this now (see planning.txt on why a second,
+            // independent PlayerController subscriber used to also react to a subset of these
+            // same events). The actual double-processing race this consolidation fixes needs a
+            // TRANSITION mid-event (pause menu opening AS A RESULT of processing THIS press,
+            // not already open beforehand) to reproduce - see Update_Escape_WhileIdle_
+            // OpensPauseMenu's own comment for that scenario and how it was verified.
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+            state.MatchContext.CurrentPhase = MatchPhase.Playing;
+
+            state.HandleEscapeKeyPress(); // opens it (nothing else to cancel)
+            Assert.IsTrue(state.IsPauseMenuOpen, "Setup failed to open the pause menu.");
+
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Escape));
+
+            state.Update(new GameTime());
+
+            Assert.IsFalse(state.IsPauseMenuOpen);
+        }
+
+        [TestMethod]
+        public void Update_Escape_WhileConfirmationPopupOpen_ClosesPopup_NotPauseMenu()
+        {
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+            state.MatchContext.CurrentPhase = MatchPhase.Playing;
+            state.MatchContext.ActivePlayer.AddToHand(TestData.Cards.CheapCard());
+
+            // Open the confirmation popup the same way EndTurnRequest_WithUnplayedCards_
+            // OpensPopup_AndDoesNotEndTurn already proves works.
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
+            state.Update(new GameTime());
+            Assert.IsTrue(state.IsConfirmationPopupOpen, "Setup failed to open the confirmation popup.");
+
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState());
+            state.Update(new GameTime());
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Escape));
+
+            state.Update(new GameTime());
+
+            Assert.IsFalse(state.IsConfirmationPopupOpen, "Escape should close the confirmation popup.");
+            Assert.IsFalse(state.IsPauseMenuOpen, "Escape must not ALSO open the pause menu on the same press.");
+        }
+
+        [TestMethod]
+        public void Update_LeftClick_WhileOptionalEffectPopupOpen_RoutesToView()
+        {
+            // IGameplayState.IsOptionalEffectPopupOpen reads _view.IsOptionalEffectPopupOpen
+            // (the rendering layer's own "currently displaying it" flag), NOT UIEventMediator's
+            // internal one directly - a real GameplayView keeps this in sync by subscribing to
+            // OnOptionalEffectRequested; a mock needs it stubbed explicitly. Also open it via
+            // the mediator, matching how a real popup actually gets requested end to end.
+            var mockView = Substitute.For<IGameplayView>();
+            mockView.IsOptionalEffectPopupOpen.Returns(true);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance, mockView);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            state.RequestOptionalEffectForTest();
+
+            _inputProvider.GetMouseState().Returns(new MouseState(100, 200, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
+            state.Update(new GameTime());
+            _inputProvider.GetMouseState().Returns(new MouseState(100, 200, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
+
+            state.Update(new GameTime());
+
+            mockView.Received(1).HandleOptionalEffectClick(100, 200);
+        }
+
+        [TestMethod]
+        public void Update_RightClick_WhileOptionalEffectPopupOpen_DoesNotRouteToView()
+        {
+            // RightClick has no meaning for the optional-effect popup (only its own explicit
+            // accept/decline buttons do) - confirms HandleBlockedInput's LeftClick-only guard.
+            var mockView = Substitute.For<IGameplayView>();
+            mockView.IsOptionalEffectPopupOpen.Returns(true);
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance, mockView);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            state.RequestOptionalEffectForTest();
+
+            _inputProvider.GetMouseState().Returns(new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
+            state.Update(new GameTime());
+            _inputProvider.GetMouseState().Returns(new MouseState(0, 0, 0, ButtonState.Released, ButtonState.Released, ButtonState.Pressed, ButtonState.Released, ButtonState.Released));
+
+            state.Update(new GameTime());
+
+            mockView.DidNotReceive().HandleOptionalEffectClick(Arg.Any<int>(), Arg.Any<int>());
+        }
+
+        [TestMethod]
+        public void Update_Enter_WhileConfirmationPopupOpen_TriggersPopupConfirm()
+        {
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+            state.MatchContext.CurrentPhase = MatchPhase.Playing;
+            state.MatchContext.ActivePlayer.AddToHand(TestData.Cards.CheapCard());
+
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
+            state.Update(new GameTime());
+            Assert.IsTrue(state.IsConfirmationPopupOpen, "Setup failed to open the confirmation popup.");
+
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState());
+            state.Update(new GameTime());
+            _inputProvider.GetKeyboardState().Returns(new KeyboardState(Keys.Enter));
+
+            state.Update(new GameTime());
+
+            state.UIManager.Received(1).TriggerPopupConfirm();
         }
 
         [TestMethod]
@@ -339,6 +532,18 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             }
 
             public new MatchContext MatchContext => base.MatchContext;
+
+            /// <summary>
+            /// Opens the optional-effect popup the same way a real card effect would
+            /// (ActionSystem.OnInteractionRequested -> UIEventMediator.HandleInteractionRequest
+            /// -> RequestOptionalEffect) - test-only shortcut straight to the mediator, since
+            /// constructing a real optional CardEffect just to trigger this is unnecessary
+            /// ceremony for what's actually under test (Escape/click routing while it's open).
+            /// </summary>
+            public void RequestOptionalEffectForTest()
+            {
+                _uiEventMediator.RequestOptionalEffect(null!, null!, () => { }, () => { });
+            }
         }
 
         [TestMethod]

@@ -153,6 +153,23 @@ namespace ChaosWarlords.Tests.Integration.Managers
         }
 
         [TestMethod]
+        public void CanEndTurn_ReturnsFalse_WhileTargeting()
+        {
+            // A targeting sequence in progress (including a deferred "up to N" promotion
+            // redemption or a forced-discard flow) must resolve or be explicitly declined
+            // first - EndTurnCommand.Validate() enforces this too (the actual authoritative
+            // gate); this UI-layer check just gives the player an informative reason instead
+            // of a silent command-layer rejection. See planning.txt.
+            _context.CurrentPhase = MatchPhase.Playing;
+            _actionSystem.IsTargeting().Returns(true);
+
+            bool result = _controller.CanEndTurn(out string reason);
+
+            Assert.IsFalse(result);
+            Assert.AreNotEqual(string.Empty, reason);
+        }
+
+        [TestMethod]
         public void EndTurn_DiscardsRemainingHand()
         {
             // Arrange
