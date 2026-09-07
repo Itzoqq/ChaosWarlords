@@ -74,8 +74,13 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             var result = _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
 
             // Assert
+            // Mode-switching itself is GameplayInputCoordinator's job, driven by the real
+            // ActionSystem.CancelTargeting() -> OnStateChanged -> HandleActionStateChanged
+            // chain (see GameplayInputCoordinatorTests.
+            // RealActionSystem_CancelTargeting_ResyncsInputModeBackToNormal) - this mode's own
+            // contract is just to cancel and hand back the right command, not to force the
+            // ambient mode directly, so _stateFake.ActiveModeName isn't asserted here.
             _actionSub.Received(1).CancelTargeting();
-            Assert.AreEqual("Normal", _stateFake.ActiveModeName);
             Assert.IsInstanceOfType(result, typeof(SwitchToNormalModeCommand));
         }
 
@@ -90,8 +95,13 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             var result = _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
 
             // Assert
+            // Mode-switching itself is GameplayInputCoordinator's job, driven by the real
+            // ActionSystem.CancelTargeting() -> OnStateChanged -> HandleActionStateChanged
+            // chain (see GameplayInputCoordinatorTests.
+            // RealActionSystem_CancelTargeting_ResyncsInputModeBackToNormal) - this mode's own
+            // contract is just to cancel and hand back the right command, not to force the
+            // ambient mode directly, so _stateFake.ActiveModeName isn't asserted here.
             _actionSub.Received(1).CancelTargeting();
-            Assert.AreEqual("Normal", _stateFake.ActiveModeName);
             Assert.IsInstanceOfType(result, typeof(SwitchToNormalModeCommand));
         }
 

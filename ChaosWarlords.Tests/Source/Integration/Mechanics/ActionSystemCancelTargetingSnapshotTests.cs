@@ -154,5 +154,29 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
 
             Assert.AreEqual(powerBeforeSequence, _player.Power, "Cancelling mid-chain must revert BOTH steps' mutations, not just the latest one.");
         }
+
+        [TestMethod]
+        public void CancelTargeting_ViaSnapshotRestore_RaisesOnStateChanged_BackToNormal()
+        {
+            // Every other test in this file only asserts CurrentState == Normal after
+            // CancelTargeting() - none check whether OnStateChanged actually FIRES for that
+            // transition. This matters because GameplayInputCoordinator's only way to know a
+            // targeting sequence ended (and switch its own input mode back to
+            // NormalPlayInputMode) is subscribing to OnStateChanged - it never polls
+            // CurrentState directly. If the snapshot-restore path silently changed CurrentState
+            // without raising the event, the coordinator's input mode would go stale even
+            // though ActionSystem itself is correctly back in Normal.
+            var observedStates = new List<ActionState>();
+            _actionSystem.OnStateChanged += (_, s) => observedStates.Add(s);
+
+            _actionSystem.StartTargeting(ActionState.TargetingAssassinate);
+            Assert.HasCount(1, observedStates, "Sanity: starting targeting should raise OnStateChanged once.");
+
+            _actionSystem.CancelTargeting();
+
+            Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "Sanity: CancelTargeting should revert CurrentState.");
+            Assert.Contains(ActionState.Normal, observedStates,
+                "CancelTargeting's snapshot-restore path must raise OnStateChanged with Normal - GameplayInputCoordinator has no other way to learn the sequence ended and resync its input mode.");
+        }
     }
 }

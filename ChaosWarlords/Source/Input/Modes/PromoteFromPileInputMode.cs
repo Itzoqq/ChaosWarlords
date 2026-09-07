@@ -92,9 +92,6 @@ namespace ChaosWarlords.Source.Input.Modes
             _gameplayState.Logger.Log("Promote cancelled.", LogChannel.Info);
             actionSystem.CancelTargeting();
 
-            // Explicitly switch state back to avoid stuck states.
-            _gameplayState.SwitchToNormalMode();
-
             return new Commands.SwitchToNormalModeCommand();
         }
     }

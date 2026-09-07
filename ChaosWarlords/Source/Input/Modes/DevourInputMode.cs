@@ -198,9 +198,6 @@ namespace ChaosWarlords.Source.Input.Modes
         {
             _gameplayState.Logger.Log("Devour cancelled. Card returned to hand.", LogChannel.Info);
             actionSystem.CancelTargeting();
-            
-            // Explicitly switch state back to avoid stuck states
-            _gameplayState.SwitchToNormalMode();
 
             return new Commands.SwitchToNormalModeCommand();
         }

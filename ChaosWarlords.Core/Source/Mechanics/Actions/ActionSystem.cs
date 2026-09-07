@@ -903,10 +903,16 @@ namespace ChaosWarlords.Source.Managers
 
         /// <summary>
         /// See IActionSystem.RestorePendingState - restore-only, StateRestorer's exclusive
-        /// caller. Bypasses CurrentState's normal OnStateChanged-raising setter path
-        /// deliberately: a rollback isn't a real state transition any UI/subscriber should
-        /// react to, it's undoing one that (from their perspective) never should have
-        /// happened. Setting the backing field directly, not the property, is what skips that.
+        /// caller. Sets CurrentState via the backing field directly rather than the property,
+        /// same as before - a rollback isn't a "real" forward progression any effect/replay
+        /// logic should treat like a genuine transition. It still raises OnStateChanged itself
+        /// afterward when the value actually changed, though: GameplayInputCoordinator's ONLY
+        /// way to learn CurrentState changed and pick a matching IInputMode is this event - it
+        /// never polls CurrentState directly - and that need is real regardless of whether the
+        /// change came from a genuine progression or from undoing one via CancelTargeting's
+        /// snapshot restore or CommandDispatcher's rollback-on-exception path. Skipping the
+        /// notification here left the input layer showing a stale mode after exactly those two
+        /// paths, since nothing else in the client polls CurrentState either.
         ///
         /// Also invalidates _targetingSequenceSnapshot unconditionally: this method means an
         /// external authority (StateRestorer, via CancelTargeting's own restore OR
@@ -917,6 +923,7 @@ namespace ChaosWarlords.Source.Managers
         /// </summary>
         public void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard, PlayerColor? pendingAffectedPlayerColor = null)
         {
+            bool stateActuallyChanged = _currentState != state;
             _currentState = state;
             PendingCard = pendingCard;
             PendingSite = pendingSite;
@@ -924,6 +931,11 @@ namespace ChaosWarlords.Source.Managers
             PendingMoveSource = pendingMoveSource;
             _devourSubsystem.RestorePendingDevourCard(pendingDevourCard);
             _targetingSequenceSnapshot = null;
+
+            if (stateActuallyChanged)
+            {
+                OnStateChanged?.Invoke(this, _currentState);
+            }
         }
 
         // --- IActionSystem "engine-only" methods - ActionExecutionEngine's exclusive

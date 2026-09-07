@@ -365,6 +365,9 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// StateRestorer.RestoreState to put ActionSystem's targeting state machine back to a
         /// pre-command snapshot on rollback - not a general-purpose setter, and not something
         /// game logic outside StateRestorer should call. See GameStateDto.ActionSystemState.
+        /// Still raises OnStateChanged when CurrentState actually changes, though - the client's
+        /// input-mode selector has no other way to learn a rollback moved it, forward-progression
+        /// or not.
         /// </summary>
         void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard, PlayerColor? pendingAffectedPlayerColor = null);
 

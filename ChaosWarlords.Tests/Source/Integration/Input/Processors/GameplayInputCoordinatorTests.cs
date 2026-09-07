@@ -314,6 +314,51 @@ namespace ChaosWarlords.Tests.Integration.Input.Processors
             Assert.IsInstanceOfType(_coordinator.CurrentMode, typeof(NormalPlayInputMode));
         }
 
+        [TestMethod]
+        public void RealActionSystem_CancelTargeting_ResyncsInputModeBackToNormal()
+        {
+            // Every other test in this file drives mode-switching with a MOCKED ActionSystem
+            // (_actionSub), manually raising OnStateChanged or calling SwitchToTargetingMode()
+            // directly - neither exercises whether the REAL ActionSystem.CancelTargeting()
+            // actually notifies the coordinator when it restores state via a real snapshot
+            // (StateRestorer.RestoreState -> ActionSystem.RestorePendingState), as opposed to
+            // the no-snapshot ClearState() fallback. This wires a real ActionSystem against a
+            // real MatchContext (mirroring ActionSystemCancelTargetingSnapshotTests.cs's own
+            // setup, which is what makes the snapshot actually succeed instead of silently
+            // failing) so the coordinator's mode genuinely resyncs end to end, not just the
+            // Core-level OnStateChanged event in isolation.
+            var player = TestData.Players.RedPlayer();
+            var tm = new TurnManager(new List<Player> { player }, Substitute.For<IGameRandom>(), Utilities.TestLogger.Instance);
+            var mapManager = Substitute.For<IMapManager>();
+            mapManager.Nodes.Returns(new List<ChaosWarlords.Source.Entities.Map.MapNode>());
+            mapManager.Sites.Returns(new List<ChaosWarlords.Source.Entities.Map.Site>());
+            var marketManager = Substitute.For<IMarketManager>();
+            marketManager.MarketRow.Returns(new List<ChaosWarlords.Source.Entities.Cards.Card>());
+            marketManager.MarketDeck.Returns(new List<ChaosWarlords.Source.Entities.Cards.Card>());
+            var cardDb = Substitute.For<ICardDatabase>();
+            var playerStateManager = new PlayerStateManager(Utilities.TestLogger.Instance);
+
+            var realActionSystem = new ActionSystem(tm, mapManager, Utilities.TestLogger.Instance, playerStateManager, marketManager);
+            var realContext = new MatchContext(tm, mapManager, marketManager, realActionSystem, cardDb, playerStateManager, Utilities.TestLogger.Instance, seed: 20260907);
+            realActionSystem.SetMatchContext(realContext);
+
+            var state = new TestableGameplayState(null!, Substitute.For<IInputProvider>(), cardDb, Utilities.TestLogger.Instance);
+            state.SetUIManager(Substitute.For<IUIManager>());
+            var inputManager = new InputManager(Substitute.For<IInputProvider>());
+            var coordinator = new GameplayInputCoordinator(state, inputManager, realContext);
+
+            Assert.IsInstanceOfType(coordinator.CurrentMode, typeof(NormalPlayInputMode), "Sanity: starts in normal mode.");
+
+            realActionSystem.StartTargeting(ActionState.TargetingAssassinate);
+            Assert.IsInstanceOfType(coordinator.CurrentMode, typeof(TargetingInputMode), "Sanity: starting a real targeting sequence should switch modes via the real OnStateChanged event.");
+
+            realActionSystem.CancelTargeting();
+
+            Assert.AreEqual(ActionState.Normal, realActionSystem.CurrentState, "Sanity: CancelTargeting should revert CurrentState.");
+            Assert.IsInstanceOfType(coordinator.CurrentMode, typeof(NormalPlayInputMode),
+                "The coordinator's input mode must resync back to NormalPlayInputMode after a real cancel - otherwise the player is stuck in TargetingInputMode despite ActionSystem correctly being back in Normal.");
+        }
+
         internal class TestableGameplayState : GameplayState
         {
             public TestableGameplayState(Game game, IInputProvider input, ICardDatabase db, IGameLogger logger)

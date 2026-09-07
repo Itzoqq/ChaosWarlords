@@ -52,6 +52,35 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         }
 
         [TestMethod]
+        public void HandleInteraction_RightClick_CancelsTargeting_AndReturnsSwitchCommand()
+        {
+            // No existing test covered HandleCancellation at all. Mode-switching itself is
+            // GameplayInputCoordinator's job, driven by the real ActionSystem.CancelTargeting()
+            // -> OnStateChanged -> HandleActionStateChanged chain (see
+            // GameplayInputCoordinatorTests.RealActionSystem_CancelTargeting_ResyncsInputModeBackToNormal)
+            // - this mode's own contract is just to cancel and hand back the right command.
+            for (int i = 0; i < 15; i++) _mode.HandleUpdate(_mockInputManager, _mapSub, _activePlayer);
+            var evt = new InputEventArgs(InputEventType.RightClick, Vector2.Zero);
+
+            var result = _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _mockActionSystem);
+
+            _mockActionSystem.Received(1).CancelTargeting();
+            Assert.IsInstanceOfType(result, typeof(SwitchToNormalModeCommand));
+        }
+
+        [TestMethod]
+        public void HandleInteraction_Escape_CancelsTargeting_AndReturnsSwitchCommand()
+        {
+            for (int i = 0; i < 15; i++) _mode.HandleUpdate(_mockInputManager, _mapSub, _activePlayer);
+            var evt = new InputEventArgs(InputEventType.KeyDown, Vector2.Zero, Keys.Escape);
+
+            var result = _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _mockActionSystem);
+
+            _mockActionSystem.Received(1).CancelTargeting();
+            Assert.IsInstanceOfType(result, typeof(SwitchToNormalModeCommand));
+        }
+
+        [TestMethod]
         public void HandleInteraction_SwitchesToTargeting_WhenActionChains()
         {
             // Arrange
