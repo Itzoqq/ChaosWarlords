@@ -26,10 +26,15 @@ namespace ChaosWarlords
         public ICardDatabase CardDatabase { get; private set; } = null!;
         public IReplayManager ReplayManager { get; private set; } = null!;
         public IGameLogger Logger { get; }
+        // Concrete type, not ICrashReporter: private, never reassigned/mocked (Game1 is the
+        // composition root and is excluded from coverage, same as its other `new`-constructed
+        // dependencies below) - CA1859 flags the interface as unnecessary indirection here.
+        private readonly CrashReporter _crashReporter;
 
         public Game1(IGameLogger logger)
         {
             Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _crashReporter = new CrashReporter(logger);
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
@@ -83,8 +88,13 @@ namespace ChaosWarlords
             }
             catch (Exception ex)
             {
-                // In a real game, you might show a fatal error screen here
-                Logger.Log($"Failed to load card database: {ex.Message}", LogChannel.Error);
+                // Fail fast rather than limp forward with an empty card database: nothing
+                // downstream (MatchFactory.Build() and beyond) guards against an empty
+                // CardDatabase, so continuing here would only defer this exact failure to a
+                // completely unrelated-looking crash deep inside match setup, several log lines
+                // away from the real cause.
+                Logger.Log($"Failed to load card database - cannot continue: {ex.Message}", LogChannel.Error);
+                throw;
             }
 
             // 1.5 Initialize ReplayManager
@@ -134,8 +144,22 @@ namespace ChaosWarlords
 
         protected override void Update(GameTime gameTime)
         {
-            // Delegate logic to current state
-            StateManager.Update(gameTime);
+            // Per-frame crash isolation: without this, ANY uncaught exception anywhere in game
+            // logic (a bad card effect, a bug in a future AI policy, etc.) propagates all the
+            // way up through MonoGame's own loop to Program.cs's one top-level catch, which
+            // logs and kills the whole process - "log it, then die" was the only line of
+            // defense in the app. Catching here instead logs verbosely, dumps a crash-repro
+            // replay (see CrashReporter), and skips just this frame's update, letting the
+            // session keep running. See planning.txt's crash-safety audit.
+            try
+            {
+                // Delegate logic to current state
+                StateManager.Update(gameTime);
+            }
+            catch (Exception ex)
+            {
+                _crashReporter.ReportCrash(ex, ReplayManager, "Update");
+            }
             base.Update(gameTime);
         }
 
@@ -145,8 +169,15 @@ namespace ChaosWarlords
 
             _spriteBatch.Begin();
 
-            // Delegate drawing to current state
-            StateManager.Draw(_spriteBatch);
+            try
+            {
+                // Delegate drawing to current state
+                StateManager.Draw(_spriteBatch);
+            }
+            catch (Exception ex)
+            {
+                _crashReporter.ReportCrash(ex, ReplayManager, "Draw");
+            }
 
             _spriteBatch.End();
 

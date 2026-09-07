@@ -33,7 +33,12 @@ namespace ChaosWarlords.Source.Commands
             // Logic: Can we return this spy?
             // Site.HasSpy(SpyColor)
             var site = context.MapManager.Sites.FirstOrDefault(s => s.Id == SiteId);
-            return site != null && site.HasSpy(SpyColor);
+            if (site == null) return context.RejectValidation(nameof(ResolveSpyCommand), $"site {SiteId} not found.");
+            if (!site.HasSpy(SpyColor))
+            {
+                return context.RejectValidation(nameof(ResolveSpyCommand), $"{SpyColor} has no spy at site '{site.Name}'.");
+            }
+            return true;
         }
 
         public void Execute(MatchContext context)

@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Commands
 {
@@ -27,14 +28,18 @@ namespace ChaosWarlords.Source.Commands
         public bool Validate(MatchContext context)
         {
             var node = context.MapManager.GetNodeById(TargetNodeId);
-            if (node == null) return false;
+            if (node == null) return context.RejectValidation(nameof(ReturnTroopCommand), $"node {TargetNodeId} not found.");
 
             // Delegates to MapManager.CanReturnTroop - the single authoritative check
             // (occupied, not Neutral, and Presence required only for an enemy troop, not the
             // requester's own). This used to reimplement those conditions independently,
             // which is exactly how the Presence-for-own-troops bug (see CanReturnTroop's
             // comment) could have been fixed in one of the two places and not the other.
-            return context.MapManager.CanReturnTroop(node, context.TurnManager.ActivePlayer);
+            if (!context.MapManager.CanReturnTroop(node, context.TurnManager.ActivePlayer))
+            {
+                return context.RejectValidation(nameof(ReturnTroopCommand), $"MapManager rejected returning the troop at node {TargetNodeId} (empty, Neutral, or no Presence).");
+            }
+            return true;
         }
 
         public void Execute(MatchContext context)

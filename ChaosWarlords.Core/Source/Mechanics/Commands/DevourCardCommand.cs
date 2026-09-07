@@ -87,7 +87,11 @@ namespace ChaosWarlords.Source.Commands
             // Execute() will and reject if the card can't be found (already devoured, already
             // moved, or simply never existed - matters once an untrusted client can send this
             // command directly to a server, not just a trusted single-process replay).
-            return ResolveCard(context, CardRuntimeId) != null;
+            if (ResolveCard(context, CardRuntimeId) == null)
+            {
+                return context.RejectValidation(nameof(DevourCardCommand), $"no card with RuntimeId {CardRuntimeId} in Hand/InnerCircle/PlayedCards/Market.");
+            }
+            return true;
         }
 
         public void Execute(MatchContext context)

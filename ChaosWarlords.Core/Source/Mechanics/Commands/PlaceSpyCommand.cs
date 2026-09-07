@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Commands
 {
@@ -27,14 +28,20 @@ namespace ChaosWarlords.Source.Commands
         public bool Validate(MatchContext context)
         {
             var site = context.MapManager.Sites.FirstOrDefault(s => s.Id == TargetSiteId);
-            if (site == null) return false;
+            if (site == null) return context.RejectValidation(nameof(PlaceSpyCommand), $"site {TargetSiteId} not found.");
 
             var player = context.TurnManager.ActivePlayer;
 
             // Mirrors SpySubsystem.HandlePlaceSpy's checks: must have a spy to place, and can't
             // stack a second spy of your own on a site you already occupy.
-            if (player.SpiesInBarracks <= 0) return false;
-            if (site.Spies.Contains(player.Color)) return false;
+            if (player.SpiesInBarracks <= 0)
+            {
+                return context.RejectValidation(nameof(PlaceSpyCommand), "no spies remaining in barracks.");
+            }
+            if (site.Spies.Contains(player.Color))
+            {
+                return context.RejectValidation(nameof(PlaceSpyCommand), $"{player.Color} already has a spy at site '{site.Name}'.");
+            }
 
             return true;
         }

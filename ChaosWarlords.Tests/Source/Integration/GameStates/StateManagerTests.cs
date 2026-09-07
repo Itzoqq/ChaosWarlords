@@ -98,6 +98,28 @@ namespace ChaosWarlords.Tests.Integration.GameStates
         }
 
         [TestMethod]
+        public void ChangeState_WhenNewStateLoadContentThrows_LeavesOldStateInPlace()
+        {
+            // Regression: ChangeState popped/unloaded the old state unconditionally BEFORE the
+            // new state's LoadContent() ran - a throw there (e.g. a missing font, see
+            // GameplayView.LoadContent's fail-fast font loading) left _states permanently
+            // empty. Update()/Draw() both no-op on an empty stack, so this turned a load
+            // failure into a silent, permanent blank-screen freeze with no path back, instead
+            // of a visible crash. LoadContent() must run BEFORE the old state is touched, so a
+            // throw leaves the old state exactly as it was.
+            var oldState = Substitute.For<IState>();
+            var newState = Substitute.For<IState>();
+            newState.When(s => s.LoadContent()).Do(_ => throw new InvalidOperationException("boom"));
+
+            _manager.PushState(oldState);
+
+            Assert.ThrowsExactly<InvalidOperationException>(() => _manager.ChangeState(newState));
+
+            oldState.DidNotReceive().UnloadContent();
+            Assert.AreSame(oldState, _manager.GetCurrentState());
+        }
+
+        [TestMethod]
         public void Update_DoesNothing_WhenStackEmpty()
         {
             // Act & Assert (Should not throw)

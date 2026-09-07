@@ -73,13 +73,26 @@ namespace ChaosWarlords.Source.Rendering.Views
             _whitePixel = new Texture2D(_graphicsDevice, 1, 1);
             _whitePixel.SetData(new[] { Color.White });
 
+            // Fail fast rather than limp forward with a null font: _defaultFont/_smallFont are
+            // used unguarded by dozens of DrawString/MeasureString call sites throughout this
+            // class, so silently continuing with a null font here would only defer the failure
+            // to an uncaught NullReferenceException inside MonoGame's own DrawString one frame
+            // later, disguised as an unrelated exception. Null-guarding every downstream call
+            // site instead isn't practical given how many there are - failing fast here, with a
+            // clear message naming which font failed to load, is the cheaper and clearer fix.
             try { _defaultFont = content.Load<SpriteFont>("fonts/DefaultFont"); }
-            catch (ContentLoadException ex) { _logger.Log($"Failed to load DefaultFont: {ex.Message}", LogChannel.Error); }
-            catch (Exception ex) { _logger.Log($"Unexpected error loading DefaultFont: {ex.Message}", LogChannel.Error); }
+            catch (Exception ex)
+            {
+                _logger.Log($"Failed to load DefaultFont - cannot continue: {ex.Message}", LogChannel.Error);
+                throw;
+            }
 
             try { _smallFont = content.Load<SpriteFont>("fonts/SmallFont"); }
-            catch (ContentLoadException ex) { _logger.Log($"Failed to load SmallFont: {ex.Message}", LogChannel.Error); }
-            catch (Exception ex) { _logger.Log($"Unexpected error loading SmallFont: {ex.Message}", LogChannel.Error); }
+            catch (Exception ex)
+            {
+                _logger.Log($"Failed to load SmallFont - cannot continue: {ex.Message}", LogChannel.Error);
+                throw;
+            }
 
             _uiRenderer = new UIRenderer(_graphicsDevice, _defaultFont, _smallFont);
             _mapRenderer = new MapRenderer(_pixelTexture, _pixelTexture, _defaultFont);

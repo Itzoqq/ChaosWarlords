@@ -34,8 +34,21 @@ namespace ChaosWarlords.Source.GameStates
 
         public void ChangeState(IState state)
         {
-            PopState();
-            PushState(state);
+            // Load the NEW state's content BEFORE touching the old one. If LoadContent() throws
+            // (e.g. a missing font/texture), the old state must stay exactly as it was - still on
+            // the stack, still functional - rather than _states ending up empty: Update()/Draw()
+            // both no-op on an empty stack (see below), which would otherwise turn a load failure
+            // into a permanent, silent blank-screen freeze with no path back to a working state
+            // or to Program.cs's top-level crash handler.
+            state.LoadContent();
+
+            if (_states.Count > 0)
+            {
+                var oldState = _states.Pop();
+                oldState.UnloadContent();
+            }
+
+            _states.Push(state);
         }
 
         public IState? GetCurrentState()

@@ -1,6 +1,7 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Commands
 {
@@ -57,7 +58,11 @@ namespace ChaosWarlords.Source.Commands
         public bool Validate(MatchContext context)
         {
             // Can Play if in hand
-            return ResolveCard(context) != null;
+            if (ResolveCard(context) == null)
+            {
+                return context.RejectValidation(nameof(PlayCardCommand), $"card '{CardId}' (RuntimeId {CardRuntimeId}) not found in the active player's hand.");
+            }
+            return true;
         }
 
         public void Execute(MatchContext context)

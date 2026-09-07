@@ -38,14 +38,24 @@ namespace ChaosWarlords.Source.Commands
 
         public bool Validate(MatchContext context)
         {
-            if (context.ActionSystem.CurrentState != ActionState.TargetingOpponentSelect) return false;
+            if (context.ActionSystem.CurrentState != ActionState.TargetingOpponentSelect)
+            {
+                return context.RejectValidation(nameof(SelectOpponentCommand), $"CurrentState is {context.ActionSystem.CurrentState}, not TargetingOpponentSelect.");
+            }
 
             var active = context.TurnManager.ActivePlayer;
             var target = context.TurnManager.GetPlayerByColor(TargetPlayerColor);
-            if (target == null || target == active) return false;
+            if (target == null || target == active)
+            {
+                return context.RejectValidation(nameof(SelectOpponentCommand), $"{TargetPlayerColor} is not a valid opponent (missing or is the active player).");
+            }
 
             int threshold = FindThreshold(context.ActionSystem.PendingCard);
-            return target.Hand.Count > threshold;
+            if (target.Hand.Count <= threshold)
+            {
+                return context.RejectValidation(nameof(SelectOpponentCommand), $"{TargetPlayerColor} doesn't meet the eligibility threshold (Hand.Count={target.Hand.Count} <= {threshold}).");
+            }
+            return true;
         }
 
         public void Execute(MatchContext context)

@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Commands
 {
@@ -34,9 +35,13 @@ namespace ChaosWarlords.Source.Commands
         public bool Validate(MatchContext context)
         {
             var site = context.MapManager.Sites.FirstOrDefault(s => s.Id == TargetSiteId);
-            if (site == null) return false;
+            if (site == null) return context.RejectValidation(nameof(ReturnOwnSpyCommand), $"site {TargetSiteId} not found.");
 
-            return context.MapManager.CanReturnOwnSpy(site, context.TurnManager.ActivePlayer);
+            if (!context.MapManager.CanReturnOwnSpy(site, context.TurnManager.ActivePlayer))
+            {
+                return context.RejectValidation(nameof(ReturnOwnSpyCommand), $"MapManager rejected returning the active player's own spy from site '{site.Name}'.");
+            }
+            return true;
         }
 
         public void Execute(MatchContext context)

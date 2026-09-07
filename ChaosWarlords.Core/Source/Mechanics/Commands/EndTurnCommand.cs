@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Commands
 {
@@ -21,7 +22,11 @@ namespace ChaosWarlords.Source.Commands
             // command-layer defense at all (only a UI-layer button/CanEndTurn check, which any
             // other caller - AI, network client, replay - could bypass entirely). See
             // planning.txt.
-            return !context.ActionSystem.IsTargeting();
+            if (context.ActionSystem.IsTargeting())
+            {
+                return context.RejectValidation(nameof(EndTurnCommand), $"a targeting sequence ({context.ActionSystem.CurrentState}) is still in progress.");
+            }
+            return true;
         }
 
         public void Execute(MatchContext context)

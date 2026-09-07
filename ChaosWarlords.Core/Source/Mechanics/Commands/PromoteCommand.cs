@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Commands
 {
@@ -55,7 +56,11 @@ namespace ChaosWarlords.Source.Commands
                        player.PlayedCards.FirstOrDefault(c => c.Id == CardId) ??
                        (IsChainedEffect ? player.DiscardPile.FirstOrDefault(c => c.Id == CardId) : null);
 
-            return card != null;
+            if (card == null)
+            {
+                return context.RejectValidation(nameof(PromoteCommand), $"card '{CardId}' not found in Hand/PlayedCards{(IsChainedEffect ? "/Discard" : "")}.");
+            }
+            return true;
         }
 
         public void Execute(MatchContext context)

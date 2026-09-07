@@ -32,7 +32,7 @@ namespace ChaosWarlords.Source.Commands
         {
             // 1. Get Node
             var node = context.MapManager.GetNodeById(TargetNodeId);
-            if (node == null) return false;
+            if (node == null) return context.RejectValidation(nameof(AssassinateCommand), $"target node {TargetNodeId} not found.");
 
             // 2. Get Player
             var player = context.TurnManager.ActivePlayer; // Assassinate is usually active player action
@@ -41,7 +41,7 @@ namespace ChaosWarlords.Source.Commands
             // input layer) so a directly-dispatched command can't grant a free assassination.
             if (string.IsNullOrEmpty(CardId) && player.Power < GameConstants.AssassinatePowerCost)
             {
-                return false;
+                return context.RejectValidation(nameof(AssassinateCommand), $"insufficient Power (has {player.Power}, needs {GameConstants.AssassinatePowerCost}).");
             }
 
             // 4. Delegation - re-derives the neutral-only restriction from the currently
@@ -51,7 +51,11 @@ namespace ChaosWarlords.Source.Commands
             var pendingEffect = context.ActionSystem.CurrentSourceEffect;
             bool requireNeutral = pendingEffect != null && pendingEffect.Type == EffectType.Assassinate && pendingEffect.TargetNeutralTroopOnly;
 
-            return context.MapManager.CanAssassinate(node, player, requireNeutral);
+            if (!context.MapManager.CanAssassinate(node, player, requireNeutral))
+            {
+                return context.RejectValidation(nameof(AssassinateCommand), $"MapManager rejected node {TargetNodeId} (presence/ownership/neutral-only check).");
+            }
+            return true;
         }
 
         public void Execute(MatchContext context)

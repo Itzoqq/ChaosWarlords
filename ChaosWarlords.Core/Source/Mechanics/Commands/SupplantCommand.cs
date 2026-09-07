@@ -39,7 +39,7 @@ namespace ChaosWarlords.Source.Commands
             var node = context.MapManager.GetNodeById(TargetNodeId);
             var player = context.TurnManager.ActivePlayer;
 
-            if (node == null) return false;
+            if (node == null) return context.RejectValidation(nameof(SupplantCommand), $"target node {TargetNodeId} not found.");
 
             // Re-derives the neutral-only restriction from the currently pending CardEffect
             // (e.g. Ravenous Zombies' "Assassinate a white troop") rather than trusting
@@ -49,7 +49,11 @@ namespace ChaosWarlords.Source.Commands
             bool requireNeutral = pendingEffect != null && pendingEffect.Type == EffectType.Supplant && pendingEffect.TargetNeutralTroopOnly;
             bool ignoresPresence = pendingEffect != null && pendingEffect.Type == EffectType.Supplant && pendingEffect.IgnoresPresenceRequirement;
 
-            return context.MapManager.CanAssassinate(node, player, requireNeutral, ignoresPresence);
+            if (!context.MapManager.CanAssassinate(node, player, requireNeutral, ignoresPresence))
+            {
+                return context.RejectValidation(nameof(SupplantCommand), $"MapManager rejected node {TargetNodeId} (presence/ownership/neutral-only check).");
+            }
+            return true;
         }
 
         public void Execute(MatchContext context)

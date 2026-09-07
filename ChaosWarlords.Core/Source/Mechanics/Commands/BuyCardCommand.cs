@@ -1,6 +1,7 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Commands
 {
@@ -42,7 +43,7 @@ namespace ChaosWarlords.Source.Commands
         public bool Validate(MatchContext context)
         {
             var card = ResolveCard(context);
-            if (card == null) return false;
+            if (card == null) return context.RejectValidation(nameof(BuyCardCommand), $"no card with RuntimeId {CardRuntimeId} in the market row.");
 
             // Every other resource-gated command enforces its own cost precondition
             // directly in Validate() (AssassinateCommand's Power, PlaceSpyCommand's
@@ -51,7 +52,12 @@ namespace ChaosWarlords.Source.Commands
             // (advancing SequenceNumber, getting recorded) and rely entirely on
             // MarketManager.TryBuyCard's own internal guard to silently no-op it. See
             // planning.txt TIER 1 (test hardening audit, 2026-09-01).
-            return context.TurnManager.ActivePlayer.Influence >= card.Cost;
+            var player = context.TurnManager.ActivePlayer;
+            if (player.Influence < card.Cost)
+            {
+                return context.RejectValidation(nameof(BuyCardCommand), $"insufficient Influence (has {player.Influence}, needs {card.Cost}).");
+            }
+            return true;
         }
 
         public void Execute(MatchContext context)

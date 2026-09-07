@@ -37,7 +37,7 @@ namespace ChaosWarlords.Source.Commands
         public bool Validate(MatchContext context)
         {
             var player = context.TurnManager.GetPlayerByColor(TargetPlayerColor);
-            if (player == null) return false;
+            if (player == null) return context.RejectValidation(nameof(DiscardCardCommand), $"no player with color {TargetPlayerColor}.");
 
             // Must be the player currently expected to discard - context.TurnManager.ActivePlayer
             // correctly resolves to ForcedActingPlayer during Cranium Rats'/Neogi's forced
@@ -45,10 +45,17 @@ namespace ChaosWarlords.Source.Commands
             // Without this, an unrelated player's legitimately-owned card would validate fine
             // and get consumed to satisfy someone else's pending forced discard. See
             // planning.txt/RESOLVED.txt (council-review 2026-09-01).
-            if (player != context.TurnManager.ActivePlayer) return false;
+            if (player != context.TurnManager.ActivePlayer)
+            {
+                return context.RejectValidation(nameof(DiscardCardCommand), $"{TargetPlayerColor} is not the player currently expected to discard (ActivePlayer is {context.TurnManager.ActivePlayer.Color}).");
+            }
 
             var card = player.Hand.FirstOrDefault(c => c.Id == CardId);
-            return card != null;
+            if (card == null)
+            {
+                return context.RejectValidation(nameof(DiscardCardCommand), $"card '{CardId}' not found in {TargetPlayerColor}'s hand.");
+            }
+            return true;
         }
 
         public void Execute(MatchContext context)

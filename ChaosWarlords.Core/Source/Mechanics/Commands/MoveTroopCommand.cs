@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Commands
 {
@@ -33,12 +34,24 @@ namespace ChaosWarlords.Source.Commands
             var src = context.MapManager.GetNodeById(SourceNodeId);
             var dest = context.MapManager.GetNodeById(DestinationNodeId);
 
-            if (src == null || dest == null) return false;
+            if (src == null || dest == null)
+            {
+                return context.RejectValidation(nameof(MoveTroopCommand), $"source node {SourceNodeId} or destination node {DestinationNodeId} not found.");
+            }
 
             var player = context.TurnManager.ActivePlayer;
 
-            // 2. Delegate to MapManager logic
-            return context.MapManager.CanMoveSource(src, player) && context.MapManager.CanMoveDestination(dest);
+            // 2. Delegate to MapManager logic - checked separately (not a single && expression)
+            // so a rejection log can say WHICH half failed.
+            if (!context.MapManager.CanMoveSource(src, player))
+            {
+                return context.RejectValidation(nameof(MoveTroopCommand), $"MapManager rejected source node {SourceNodeId} (no Presence, or nothing to move).");
+            }
+            if (!context.MapManager.CanMoveDestination(dest))
+            {
+                return context.RejectValidation(nameof(MoveTroopCommand), $"MapManager rejected destination node {DestinationNodeId} (not empty).");
+            }
+            return true;
         }
 
         public void Execute(MatchContext context)

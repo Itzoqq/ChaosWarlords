@@ -49,13 +49,17 @@ namespace ChaosWarlords.Source.Commands
         public bool Validate(MatchContext context)
         {
             var marketCard = ResolveMarketCard(context, MarketCardRuntimeId);
-            if (marketCard == null) return false;
+            if (marketCard == null) return context.RejectValidation(nameof(PlayFromMarketCommand), $"no card with RuntimeId {MarketCardRuntimeId} in the market row.");
 
             var sourceCard = context.ActionSystem.PendingCard;
-            if (sourceCard == null) return false;
+            if (sourceCard == null) return context.RejectValidation(nameof(PlayFromMarketCommand), "no pending source card (ActionSystem.PendingCard is null).");
 
             int maxCost = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.PlayFromMarket)?.Amount ?? 0;
-            return marketCard.Cost <= maxCost;
+            if (marketCard.Cost > maxCost)
+            {
+                return context.RejectValidation(nameof(PlayFromMarketCommand), $"market card cost {marketCard.Cost} exceeds the source effect's max ({maxCost}).");
+            }
+            return true;
         }
 
         public void Execute(MatchContext context)

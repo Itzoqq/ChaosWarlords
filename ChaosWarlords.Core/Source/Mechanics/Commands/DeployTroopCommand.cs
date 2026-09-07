@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Commands
 {
@@ -27,12 +28,16 @@ namespace ChaosWarlords.Source.Commands
         public bool Validate(MatchContext context)
         {
             var node = context.MapManager.GetNodeById(NodeId);
-            if (node == null) return false;
+            if (node == null) return context.RejectValidation(nameof(DeployTroopCommand), $"node {NodeId} not found.");
 
             // Deploy is always the active player's own action (there's no "deploy for someone
             // else" in the rules), matching AssassinateCommand/SupplantCommand/etc.'s pattern.
             var player = context.TurnManager.ActivePlayer;
-            return context.MapManager.CanDeployAt(node, player.Color);
+            if (!context.MapManager.CanDeployAt(node, player.Color))
+            {
+                return context.RejectValidation(nameof(DeployTroopCommand), $"MapManager rejected deploying at node {NodeId} (occupied or no Presence).");
+            }
+            return true;
         }
 
         public void Execute(MatchContext context)
