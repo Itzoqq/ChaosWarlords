@@ -173,6 +173,7 @@ namespace ChaosWarlords.Source.Utilities
             effect.IgnoresPresenceRequirement = data.IgnoresPresenceRequirement;
             effect.TargetsAffectedPlayer = data.TargetsAffectedPlayer;
             effect.AllowPartialRepeat = data.AllowPartialRepeat;
+            effect.RestrictRepeatsToFirstTargetSite = data.RestrictRepeatsToFirstTargetSite;
             effect.PromotionCreditIsOptional = data.PromotionCreditIsOptional;
         }
 

@@ -400,6 +400,40 @@ namespace ChaosWarlords.Tests.Systems
             Assert.IsFalse(_engine.HasValidAssassinationTarget(_player1, requireNeutralTroop: true));
         }
 
+        // --- restrictToSite (Minotaur Skeleton's "at a single site" repeat scoping) ---
+
+        [TestMethod]
+        public void HasValidAssassinationTarget_RestrictToSite_True_WhenTheReachableTargetIsAtThatSite()
+        {
+            _siteA.Spies.Add(_player1.Color); // Presence at every node in siteA, node3 included.
+            _node3.Occupant = _player2.Color;
+
+            Assert.IsTrue(_engine.HasValidAssassinationTarget(_player1, restrictToSite: _siteA));
+        }
+
+        [TestMethod]
+        public void HasValidAssassinationTarget_RestrictToSite_False_WhenTheOnlyReachableTargetIsAtADifferentSite()
+        {
+            // node1/node2 belong to no site at all (see Setup's lookup dict) - a genuinely
+            // different site than _siteA, same as a real 2nd site would be. Without the
+            // restriction this target is perfectly legal (proven by the sanity check below);
+            // WITH it, it must be excluded even though it's otherwise reachable.
+            _node1.Occupant = _player1.Color; // Presence
+            _node2.Occupant = _player2.Color; // Reachable, but not at _siteA
+
+            Assert.IsTrue(_engine.HasValidAssassinationTarget(_player1), "Sanity check: without the restriction, this target is legal.");
+            Assert.IsFalse(_engine.HasValidAssassinationTarget(_player1, restrictToSite: _siteA));
+        }
+
+        [TestMethod]
+        public void HasValidAssassinationTarget_RestrictToSite_Null_BehavesLikeNoRestriction()
+        {
+            _node1.Occupant = _player1.Color; // Presence
+            _node2.Occupant = _player2.Color;
+
+            Assert.IsTrue(_engine.HasValidAssassinationTarget(_player1, restrictToSite: null));
+        }
+
         [TestMethod]
         public void HasValidReturnSpyTarget_True_IfEnemySpyAndPresence()
         {

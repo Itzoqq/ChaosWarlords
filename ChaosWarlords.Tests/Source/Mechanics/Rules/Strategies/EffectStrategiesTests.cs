@@ -1,8 +1,10 @@
 using NSubstitute;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Mechanics.Rules.Strategies;
 using ChaosWarlords.Source.Utilities;
 
@@ -121,6 +123,49 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules.Strategies
 
             Assert.IsTrue(result);
             mapManager.Received(1).HasValidAssassinationTarget(player, true);
+        }
+
+        [TestMethod]
+        public void AssassinateStrategy_HasValidTargets_RestrictRepeatsToFirstTargetSite_ThreadsPendingSiteThrough()
+        {
+            // Minotaur Skeleton's shape: once ActionSystem.PendingSite is bound (by
+            // ActionSystem.PerformAssassinate, after the first repeat), the "any more legal
+            // targets?" check must be scoped to that site too - see CardEffect.
+            // RestrictRepeatsToFirstTargetSite's doc comment.
+            var mapManager = Substitute.For<IMapManager>();
+            var actionSystem = Substitute.For<IActionSystem>();
+            var boundSite = TestData.Sites.NeutralSite();
+            actionSystem.PendingSite.Returns(boundSite);
+            var player = new PlayerBuilder().Build();
+            var sourceCard = new CardBuilder().Build();
+            sourceCard.Effects.Add(new CardEffect(EffectType.Assassinate, 3) { RestrictRepeatsToFirstTargetSite = true });
+            mapManager.HasValidAssassinationTarget(player, false, restrictToSite: boundSite).Returns(true);
+            var context = new MatchContextBuilder().WithMapManager(mapManager).WithActionSystem(actionSystem).Build();
+
+            bool result = new AssassinateStrategy().HasValidTargets(context, player, sourceCard);
+
+            Assert.IsTrue(result);
+            mapManager.Received(1).HasValidAssassinationTarget(player, false, restrictToSite: boundSite);
+        }
+
+        [TestMethod]
+        public void AssassinateStrategy_HasValidTargets_RestrictRepeatsToFirstTargetSiteButPendingSiteStillNull_PassesNullRestriction()
+        {
+            // The FIRST repeat of a RestrictRepeatsToFirstTargetSite effect - PendingSite hasn't
+            // been bound yet, so the check must behave exactly like an unrestricted Assassinate.
+            var mapManager = Substitute.For<IMapManager>();
+            var actionSystem = Substitute.For<IActionSystem>();
+            actionSystem.PendingSite.Returns((Site?)null);
+            var player = new PlayerBuilder().Build();
+            var sourceCard = new CardBuilder().Build();
+            sourceCard.Effects.Add(new CardEffect(EffectType.Assassinate, 3) { RestrictRepeatsToFirstTargetSite = true });
+            mapManager.HasValidAssassinationTarget(player, false).Returns(true);
+            var context = new MatchContextBuilder().WithMapManager(mapManager).WithActionSystem(actionSystem).Build();
+
+            bool result = new AssassinateStrategy().HasValidTargets(context, player, sourceCard);
+
+            Assert.IsTrue(result);
+            mapManager.Received(1).HasValidAssassinationTarget(player, false, restrictToSite: null);
         }
 
         #endregion

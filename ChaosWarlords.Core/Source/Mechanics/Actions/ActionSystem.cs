@@ -506,6 +506,19 @@ namespace ChaosWarlords.Source.Managers
             // Must be captured BEFORE MapManager.Assassinate mutates the node - see
             // IActionSystem.PendingAffectedPlayerColor's doc comment (Mindwitness).
             PendingAffectedPlayerColor = node.Occupant;
+
+            // Minotaur Skeleton: "assassinate up to three white troops AT A SINGLE SITE" -
+            // read CurrentSourceEffect (still the top-of-stack repeat context; CompleteAction()
+            // below hasn't popped/decremented it yet) BEFORE it's gone. Only binds on the
+            // FIRST repeat (PendingSite still null) - every later repeat of this same effect is
+            // then confined to that site by the existing PendingSite guards
+            // (ActionInputController.HandleAssassinate, AssassinateCommand.Validate). See
+            // CardEffect.RestrictRepeatsToFirstTargetSite's doc comment.
+            if (PendingSite == null && CurrentSourceEffect?.RestrictRepeatsToFirstTargetSite == true)
+            {
+                PendingSite = _mapManager.GetSiteForNode(node);
+            }
+
             _mapManager.Assassinate(node, CurrentPlayer);
             CompleteAction();
         }

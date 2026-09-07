@@ -65,6 +65,22 @@ namespace ChaosWarlords.Source.Entities.Cards
         // false so every existing repeat-capable effect is unaffected.
         public bool AllowPartialRepeat { get; set; }
 
+        // "Assassinate up to three white troops AT A SINGLE SITE" (Minotaur Skeleton) - a
+        // SIBLING constraint to AllowPartialRepeat/SupportsRepeat, not a replacement: the
+        // first repeat of this effect can target anywhere a plain Assassinate normally could,
+        // but ActionSystem.PerformAssassinate then binds ActionSystem.PendingSite to that
+        // target's site (reusing the same field/guard Cloaker's ReturnOwnSpy->Assassinate
+        // chain already established - see ActionInputController.HandleAssassinate and
+        // AssassinateCommand.Validate), so every later repeat of THIS card's effect is
+        // rejected unless it targets a node at that same site. AssassinateStrategy.
+        // HasValidTargets also honors this when deciding whether a repeat can still legally
+        // continue (Site-restricted board state, not just "any enemy troop anywhere"), so
+        // "no more valid targets at this site" resolves the effect early exactly like the
+        // plain no-repeat-possible fallback does. Defaults to false so every existing
+        // Assassinate/Supplant effect is unaffected. Only meaningful alongside SupportsRepeat
+        // (Assassinate) - no shipped card needs this on Supplant/MoveUnit yet.
+        public bool RestrictRepeatsToFirstTargetSite { get; set; }
+
         // "At end of turn, promote up to 2 other cards played this turn" (Cultist of Myrkul,
         // Zuggtmoy) - marks an EffectType.Promote effect's banked end-of-turn credits as
         // voluntarily declinable, as opposed to the plain "promote a card played this turn"

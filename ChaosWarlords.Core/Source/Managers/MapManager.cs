@@ -87,7 +87,7 @@ namespace ChaosWarlords.Source.Managers
         public bool CanMoveSource(MapNode node, Player activePlayer) => _ruleEngine.CanMoveSource(node, activePlayer);
         public bool CanMoveDestination(MapNode node) => MapRuleEngine.CanMoveDestination(node);
 
-        public bool HasValidAssassinationTarget(Player activePlayer, bool requireNeutralTroop = false, bool ignoresPresence = false) => _ruleEngine.HasValidAssassinationTarget(activePlayer, requireNeutralTroop, ignoresPresence);
+        public bool HasValidAssassinationTarget(Player activePlayer, bool requireNeutralTroop = false, bool ignoresPresence = false, Site? restrictToSite = null) => _ruleEngine.HasValidAssassinationTarget(activePlayer, requireNeutralTroop, ignoresPresence, restrictToSite);
         public bool HasValidReturnSpyTarget(Player activePlayer) => _ruleEngine.HasValidReturnSpyTarget(activePlayer);
         public bool HasValidReturnTroopTarget(Player activePlayer) => _ruleEngine.HasValidReturnTroopTarget(activePlayer);
         public bool HasValidPlaceSpyTarget(Player activePlayer) => _ruleEngine.HasValidPlaceSpyTarget(activePlayer);

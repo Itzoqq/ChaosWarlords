@@ -62,6 +62,10 @@ namespace ChaosWarlords.Source.Utilities
         // "Move up to 2 enemy troops" - see CardEffect.AllowPartialRepeat.
         public bool AllowPartialRepeat { get; set; }
 
+        // "Assassinate up to three white troops at a single site" - see
+        // CardEffect.RestrictRepeatsToFirstTargetSite.
+        public bool RestrictRepeatsToFirstTargetSite { get; set; }
+
         // "At end of turn, promote up to 2 other cards played this turn" - see
         // CardEffect.PromotionCreditIsOptional.
         public bool PromotionCreditIsOptional { get; set; }

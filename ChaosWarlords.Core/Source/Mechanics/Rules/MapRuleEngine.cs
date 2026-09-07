@@ -150,12 +150,13 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         // -------------------------------------------------------------------------
         // DEADLOCK PREVENTION CHECKS
         // -------------------------------------------------------------------------
-        public bool HasValidAssassinationTarget(Player activePlayer, bool requireNeutralTroop = false, bool ignoresPresence = false)
+        public bool HasValidAssassinationTarget(Player activePlayer, bool requireNeutralTroop = false, bool ignoresPresence = false, Site? restrictToSite = null)
         {
             return _nodes.Any(n =>
                 n.Occupant != PlayerColor.None &&
                 n.Occupant != activePlayer.Color &&
                 (!requireNeutralTroop || n.Occupant == PlayerColor.Neutral) &&
+                (restrictToSite == null || restrictToSite.NodesInternal.Contains(n)) &&
                 (ignoresPresence || HasPresence(n, activePlayer.Color)));
         }
 

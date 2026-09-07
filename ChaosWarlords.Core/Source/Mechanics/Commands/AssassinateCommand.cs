@@ -1,5 +1,7 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Commands
@@ -30,32 +32,55 @@ namespace ChaosWarlords.Source.Commands
 
         public bool Validate(MatchContext context)
         {
-            // 1. Get Node
             var node = context.MapManager.GetNodeById(TargetNodeId);
             if (node == null) return context.RejectValidation(nameof(AssassinateCommand), $"target node {TargetNodeId} not found.");
 
-            // 2. Get Player
             var player = context.TurnManager.ActivePlayer; // Assassinate is usually active player action
 
-            // 3. When not fed by a card, this costs Power - enforce that here (not just in the
-            // input layer) so a directly-dispatched command can't grant a free assassination.
-            if (string.IsNullOrEmpty(CardId) && player.Power < GameConstants.AssassinatePowerCost)
+            if (!HasSufficientPower(player))
             {
                 return context.RejectValidation(nameof(AssassinateCommand), $"insufficient Power (has {player.Power}, needs {GameConstants.AssassinatePowerCost}).");
             }
 
-            // 4. Delegation - re-derives the neutral-only restriction from the currently
-            // pending CardEffect (e.g. Ravenous Zombies' "Assassinate a white troop") rather
-            // than trusting anything the caller claims, since Validate() is the real defense
-            // once a client can send commands directly.
-            var pendingEffect = context.ActionSystem.CurrentSourceEffect;
-            bool requireNeutral = pendingEffect != null && pendingEffect.Type == EffectType.Assassinate && pendingEffect.TargetNeutralTroopOnly;
-
-            if (!context.MapManager.CanAssassinate(node, player, requireNeutral))
+            if (!context.MapManager.CanAssassinate(node, player, RequiresNeutralTarget(context)))
             {
                 return context.RejectValidation(nameof(AssassinateCommand), $"MapManager rejected node {TargetNodeId} (presence/ownership/neutral-only check).");
             }
+
+            if (!IsAtRequiredSite(context, node, out var requiredSiteName))
+            {
+                return context.RejectValidation(nameof(AssassinateCommand), $"node {TargetNodeId} is not at the required site ({requiredSiteName}).");
+            }
+
             return true;
+        }
+
+        // When not fed by a card, this costs Power - enforced here (not just in the input
+        // layer) so a directly-dispatched command can't grant a free assassination.
+        private bool HasSufficientPower(Player player) =>
+            !string.IsNullOrEmpty(CardId) || player.Power >= GameConstants.AssassinatePowerCost;
+
+        // Re-derives the neutral-only restriction from the currently pending CardEffect (e.g.
+        // Ravenous Zombies' "Assassinate a white troop") rather than trusting anything the
+        // caller claims, since Validate() is the real defense once a client can send commands
+        // directly.
+        private static bool RequiresNeutralTarget(MatchContext context)
+        {
+            var pendingEffect = context.ActionSystem.CurrentSourceEffect;
+            return pendingEffect != null && pendingEffect.Type == EffectType.Assassinate && pendingEffect.TargetNeutralTroopOnly;
+        }
+
+        // Site-scoped Assassinate (Cloaker's chain-in from ReturnOwnSpy, or Minotaur Skeleton's
+        // own later repeats via CardEffect.RestrictRepeatsToFirstTargetSite) -
+        // ActionInputController.HandleAssassinate already enforces this for a click-built
+        // command, but Validate() is the only real defense against a directly-dispatched,
+        // forged command bypassing that UI-layer check entirely (untrusted client, once one
+        // exists - see docs/testing.md's STANDING TEST MATRIX row 5).
+        private static bool IsAtRequiredSite(MatchContext context, MapNode node, out string requiredSiteName)
+        {
+            var pendingSite = context.ActionSystem.PendingSite;
+            requiredSiteName = pendingSite?.Name ?? string.Empty;
+            return pendingSite == null || pendingSite.NodesInternal.Contains(node);
         }
 
         public void Execute(MatchContext context)

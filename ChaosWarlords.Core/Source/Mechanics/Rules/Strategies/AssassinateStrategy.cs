@@ -25,7 +25,15 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Strategies
         public bool HasValidTargets(MatchContext context, Player player, Card? sourceCard)
         {
             var effect = sourceCard != null ? EffectTreeSearch.FindFirstEffect(sourceCard.Effects, EffectType.Assassinate) : null;
-            return context.MapManager.HasValidAssassinationTarget(player, effect?.TargetNeutralTroopOnly ?? false);
+
+            // Minotaur Skeleton: once RestrictRepeatsToFirstTargetSite has bound
+            // ActionSystem.PendingSite to the first repeat's site, "no more valid targets"
+            // (ActionExecutionEngine.ShouldRepeatCurrentEffect's early-resolve fallback) must
+            // mean "at that site", not "anywhere on the board" - see CardEffect.
+            // RestrictRepeatsToFirstTargetSite's doc comment.
+            var restrictToSite = (effect?.RestrictRepeatsToFirstTargetSite ?? false) ? context.ActionSystem.PendingSite : null;
+
+            return context.MapManager.HasValidAssassinationTarget(player, effect?.TargetNeutralTroopOnly ?? false, restrictToSite: restrictToSite);
         }
     }
 }
