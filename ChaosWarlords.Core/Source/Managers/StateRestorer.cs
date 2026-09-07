@@ -44,12 +44,12 @@ namespace ChaosWarlords.Source.Managers
             
             // 5. Void / Transient State
             // VoidPile carries full CardDtos (Location/RuntimeId matter - see RestoreCardDtoList).
-            // CardsMarkedForTurnEndDevour/PendingOpponentDiscardTriggers are plain definitional-
-            // id lists (MatchManager.EndTurn sets their Location itself when it processes them,
-            // never reads it beforehand, so a bare re-resolved Card is sufficient there) - see
+            // CardsMarkedForTurnEndDevour/CardsMarkedForTurnEndPromote/
+            // PendingOpponentDiscardTriggers are plain definitional-id lists instead - see
             // RestoreCardIdList's own doc comment for the resulting known limitation.
             RestoreCardDtoList(context.VoidPile, dto.VoidPile, context.CardDatabase);
             RestoreCardIdList(context.CardsMarkedForTurnEndDevour, dto.MarkedForTurnEndDevourCardIds, context.CardDatabase);
+            RestoreCardIdList(context.CardsMarkedForTurnEndPromote, dto.MarkedForTurnEndPromoteCardIds, context.CardDatabase);
             RestoreCardIdList(context.PendingOpponentDiscardTriggers, dto.PendingOpponentDiscardTriggerCardIds, context.CardDatabase);
 
             // 6. Action Stack
@@ -80,15 +80,19 @@ namespace ChaosWarlords.Source.Managers
         /// <summary>
         /// Clears <paramref name="target"/> and repopulates it by looking up each definitional
         /// id in <paramref name="definitionIds"/> against the card database, skipping any that
-        /// no longer resolve. Used for CardsMarkedForTurnEndDevour/PendingOpponentDiscardTriggers
-        /// - both are transient, single-turn markers whose only consumer (MatchManager.EndTurn)
-        /// sets each card's Location itself when processing it rather than reading a
-        /// pre-existing value, so a freshly-resolved Card (not necessarily the same reference
-        /// sitting in the restored Hand/PlayedCards) is sufficient. KNOWN LIMITATION: because
-        /// these are freshly-resolved rather than looked up in Hand/PlayedCards by RuntimeId,
-        /// MatchManager.EndTurn's List.Remove(card) (reference equality) would silently fail to
-        /// find/remove them if a rollback happens between one of these being marked and
-        /// EndTurn actually processing it - a narrow window, not fixed by this pass.
+        /// no longer resolve. Used for CardsMarkedForTurnEndDevour/CardsMarkedForTurnEndPromote/
+        /// PendingOpponentDiscardTriggers - all 3 are transient, single-turn markers sharing the
+        /// same KNOWN LIMITATION: unlike RestoreCardDtoList (VoidPile/Hand/Played/etc.), this
+        /// helper carries only a definitional id, never RuntimeId, so `db.GetCardById` always
+        /// mints a brand-new Card with a fresh RuntimeId rather than the one already restored
+        /// into Hand/PlayedCards/DiscardPile. A rollback that happens between a card being
+        /// marked and MatchManager.EndTurn actually processing it (a narrow window) leaves this
+        /// list holding a Card that can never be found again by EITHER lookup strategy its
+        /// consumers use afterwards - List.Remove's reference equality (the Devour loop) or a
+        /// RuntimeId search (PlayerStateManager.TryPromoteCard, the Promote loop) - both fail
+        /// silently against a RuntimeId/reference that no longer matches anything real. Not
+        /// fixed by this pass; a real fix would carry a full CardDto (RuntimeId included) the
+        /// way VoidPile already does.
         /// </summary>
         private static void RestoreCardIdList(List<Card> target, IEnumerable<string>? definitionIds, ICardDatabase db)
         {

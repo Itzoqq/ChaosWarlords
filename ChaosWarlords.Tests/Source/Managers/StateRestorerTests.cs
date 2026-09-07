@@ -230,6 +230,22 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         [TestMethod]
+        public void RestoreState_RevertsCardsMarkedForTurnEndPromote()
+        {
+            // Same shape as RestoreState_RevertsCardsMarkedForTurnEndDevour - EffectType.
+            // PromoteSelf's (Revenant) end-of-turn marker list needs the same rollback safety.
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+            Assert.IsEmpty(_context.CardsMarkedForTurnEndPromote);
+
+            var marked = RegisterCard("marked_for_promote", CardLocation.Played);
+            _context.CardsMarkedForTurnEndPromote.Add(marked);
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.IsEmpty(_context.CardsMarkedForTurnEndPromote, "A self-promote mark added after the snapshot must not survive rollback.");
+        }
+
+        [TestMethod]
         public void RestoreState_RevertsPendingOpponentDiscardTriggers()
         {
             // Same shape as RestoreState_RevertsCardsMarkedForTurnEndDevour - Neogi's

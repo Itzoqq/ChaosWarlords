@@ -37,6 +37,7 @@ namespace ChaosWarlords.Source.Entities.Cards
                 ConditionType.InnerCircleCount => player.InnerCircle.Count >= Threshold,
                 ConditionType.HandSize => player.Hand.Count >= Threshold,
                 ConditionType.OpponentPresentAtSite => EvaluateOpponentPresentAtSite(context, player),
+                ConditionType.TrophyHallCount => player.TrophyHall >= Threshold,
                 _ => true
             };
         }

@@ -332,6 +332,17 @@ namespace ChaosWarlords.Source.Managers
             }
             _context.CardsMarkedForTurnEndDevour.Clear();
 
+            // 1c. Process Turn End Promote (Self-Promote effects, e.g. Revenant) - before
+            // Cleanup below moves anything still in Played to the discard pile.
+            // PlayerStateManager.TryPromoteCard already finds and removes the card from
+            // wherever it currently sits (Hand/Played/Discard), unlike the Devour loop above,
+            // and already logs success/failure itself.
+            foreach (var card in _context.CardsMarkedForTurnEndPromote.ToList())
+            {
+                _context.PlayerStateManager.TryPromoteCard(_context.ActivePlayer, card, out _);
+            }
+            _context.CardsMarkedForTurnEndPromote.Clear();
+
             // 2. Cleanup: Move Hand + Played -> Discard
             _context.PlayerStateManager.CleanUpTurn(_context.ActivePlayer);
 

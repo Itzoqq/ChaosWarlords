@@ -64,6 +64,13 @@ namespace ChaosWarlords.Source.Contexts
         public List<Card> CardsMarkedForTurnEndDevour { get; private set; } = new List<Card>();
 
         /// <summary>
+        /// Cards marked for EffectType.PromoteSelf, resolved at the end of the turn (e.g.
+        /// Revenant) - mirrors CardsMarkedForTurnEndDevour's shape/timing, just promoting
+        /// instead of voiding.
+        /// </summary>
+        public List<Card> CardsMarkedForTurnEndPromote { get; private set; } = new List<Card>();
+
+        /// <summary>
         /// One entry per card played this turn that forces "each opponent discards a card"
         /// at end of turn (e.g. Neogi) - stacks, so 2 such cards played the same turn means
         /// every opponent owes 2 discards. Consumed and cleared by MatchManager.EndTurn's

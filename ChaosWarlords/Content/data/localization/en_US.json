@@ -76,5 +76,7 @@
   "underdark_ranger_name": "Underdark Ranger",
   "underdark_ranger_description": "Assassinate 2 white troops.",
   "masters_of_sorcere_name": "Masters of Sorcere",
-  "masters_of_sorcere_description": "Choose one: Place 2 spies. Or, return one of your spies to gain 4 Power."
+  "masters_of_sorcere_description": "Choose one: Place 2 spies. Or, return one of your spies to gain 4 Power.",
+  "revenant_name": "Revenant",
+  "revenant_description": "Assassinate two troops. Then, if you have 8 or more troops in your trophy hall, promote this card."
 }

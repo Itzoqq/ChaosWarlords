@@ -98,6 +98,29 @@ namespace ChaosWarlords.Tests.Source.Entities.Cards
             Assert.IsTrue(condition.Evaluate(_context, _player));
         }
 
+        // --- ConditionType.TrophyHallCount (Revenant: "if you have 8 or more troops in your
+        // trophy hall") ---
+
+        [TestMethod]
+        public void Evaluate_TrophyHallCount_ReturnsTrueWhenAtOrAboveThreshold()
+        {
+            _player.TrophyHall = 8;
+
+            var condition = new EffectCondition(ConditionType.TrophyHallCount, 8);
+
+            Assert.IsTrue(condition.Evaluate(_context, _player));
+        }
+
+        [TestMethod]
+        public void Evaluate_TrophyHallCount_ReturnsFalseWhenBelowThreshold()
+        {
+            _player.TrophyHall = 7;
+
+            var condition = new EffectCondition(ConditionType.TrophyHallCount, 8);
+
+            Assert.IsFalse(condition.Evaluate(_context, _player));
+        }
+
         // --- ConditionType.OpponentPresentAtSite (Banshee/Infiltrator - planning.txt TIER 2 #1) ---
         // Reads context.ActionSystem.PendingSite, set by PlaceSpyCommand/SpySubsystem right
         // before this OnSuccess-chained condition is evaluated - see EffectCondition's own

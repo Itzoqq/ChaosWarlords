@@ -398,6 +398,7 @@ namespace ChaosWarlords.Source.Core.Utilities
             // Transient - definitional ids (Card.DefinitionId, NOT the CardFactory.
             // GenerateUniqueId-suffixed Card.Id ICardDatabase.GetCardById can't resolve).
             dto.MarkedForTurnEndDevourCardIds = context.CardsMarkedForTurnEndDevour.Select(c => c.DefinitionId).ToList();
+            dto.MarkedForTurnEndPromoteCardIds = context.CardsMarkedForTurnEndPromote.Select(c => c.DefinitionId).ToList();
             dto.PendingOpponentDiscardTriggerCardIds = context.PendingOpponentDiscardTriggers.Select(c => c.DefinitionId).ToList();
 
             // Entities

@@ -138,6 +138,28 @@ namespace ChaosWarlords.Tests.Integration.Managers
         }
 
         [TestMethod]
+        public void EndTurn_PromotesCardsMarkedForTurnEndPromote_InsteadOfDiscardingThem()
+        {
+            // EffectType.PromoteSelf (e.g. Revenant) - see MatchManager.EndTurn's "1c. Process
+            // Turn End Promote" step.
+            var card = TestData.Cards.CheapCard();
+            _p1.AddToPlayed(card);
+            _context.CardsMarkedForTurnEndPromote.Add(card);
+
+            for (int i = 0; i < 10; i++)
+            {
+                _p1.DeckManager.AddToTop(TestData.Cards.CheapCard());
+            }
+
+            _controller.EndTurn();
+
+            Assert.AreEqual(CardLocation.InnerCircle, card.Location);
+            Assert.Contains(card, _p1.InnerCircle.ToList());
+            Assert.DoesNotContain(card, _p1.DiscardPile.ToList(), "A promoted card must not also end up discarded.");
+            Assert.IsEmpty(_context.CardsMarkedForTurnEndPromote, "The marker list must be cleared after processing.");
+        }
+
+        [TestMethod]
         public void CanEndTurn_ReturnsTrue_EvenIfHandNotEmpty()
         {
             // Arrange

@@ -236,7 +236,8 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             [EffectType.ReturnOwnSpy] = (effect, card, ctx, log) => ApplyReturnOwnSpy(card, ctx, log),
             [EffectType.PlayFromMarket] = (effect, card, ctx, log) => ctx.ActionSystem.TryStartPlayFromMarket(card, effect.Amount),
             [EffectType.MoveDeckToDiscard] = (effect, card, ctx, log) => ctx.PlayerStateManager.MoveDeckToDiscard(ctx.ActivePlayer),
-            [EffectType.PromoteFromPile] = (effect, card, ctx, log) => ApplyPromoteFromPile(card, ctx, log)
+            [EffectType.PromoteFromPile] = (effect, card, ctx, log) => ApplyPromoteFromPile(card, ctx, log),
+            [EffectType.PromoteSelf] = (effect, card, ctx, log) => ApplyPromoteSelf(card, ctx, log)
         };
 
         private static void ApplyReturnOwnSpy(Card sourceCard, MatchContext context, IGameLogger logger)
@@ -352,6 +353,23 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         {
             context.TurnManager.CurrentTurnContext.AddPromotionCredit(sourceCard, effect.Amount, effect.PromotionCreditIsOptional);
             logger.Log($"Promotion pending! Added {effect.Amount} point(s) from {sourceCard.Name}.", LogChannel.Info);
+        }
+
+        /// <summary>
+        /// Marks sourceCard itself to be promoted at end of turn (e.g. Revenant) - the
+        /// CardEffect.Condition gate on ApplyEffect already decided whether this runs at all.
+        /// Guards against a duplicate add the same way ApplyDevourWithChain's Self case does
+        /// (defense in depth against a stray repeated resolution marking the same card twice).
+        /// </summary>
+        private static void ApplyPromoteSelf(Card sourceCard, MatchContext context, IGameLogger logger)
+        {
+            if (context.CardsMarkedForTurnEndPromote.Contains(sourceCard))
+            {
+                return;
+            }
+
+            context.CardsMarkedForTurnEndPromote.Add(sourceCard);
+            logger.Log($"{sourceCard.Name}: Marked for self-promotion at end of turn.", LogChannel.Info);
         }
 
         private static void ApplyMoveUnit(Card sourceCard, MatchContext context, IGameLogger logger)

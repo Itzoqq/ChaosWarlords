@@ -105,6 +105,16 @@ namespace ChaosWarlords.Source.Utilities
         // from EffectType.Promote (the deferred end-of-turn promotion-credit flow) - see
         // planning.txt TIER 2 #2.
         PromoteFromPile,
+
+        // Unconditionally promotes THIS card itself (the one carrying the effect), deferred to
+        // end of turn - e.g. Revenant: "...if you have 8 or more troops in your trophy hall,
+        // promote this card." Distinct from EffectType.Promote, which banks a credit
+        // redeemable against OTHER eligible cards (TurnContext.ConsumeCreditFor explicitly
+        // excludes the credit's own source card) - there is no player choice here at all, and
+        // no PromotionCreditIsOptional "up to N" shape. Non-targeting/automatic (falls through
+        // to DefaultStrategy) - CardEffect.Condition is what makes this conditional. See
+        // MatchContext.CardsMarkedForTurnEndPromote.
+        PromoteSelf,
     }
 
     /// <summary>
@@ -119,8 +129,10 @@ namespace ChaosWarlords.Source.Utilities
         HasResourceAmount,     // Player has X or more of a resource
         InnerCircleCount,      // Player has X or more cards in Inner Circle
         HandSize,               // Player has X or more cards in hand
-        OpponentPresentAtSite  // Another player has a spy/troop (see SitePresenceType) at
+        OpponentPresentAtSite, // Another player has a spy/troop (see SitePresenceType) at
                                 // ActionSystem.PendingSite (e.g. Banshee, Infiltrator)
+        TrophyHallCount        // Player has X or more troops in their trophy hall (e.g.
+                                // Revenant: "if you have 8 or more troops in your trophy hall")
     }
 
     /// <summary>
