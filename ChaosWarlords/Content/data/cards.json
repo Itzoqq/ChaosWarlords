@@ -641,5 +641,29 @@
         "Amount": 1
       }
     ]
+  },
+  {
+    "Id": "zuggtmoy",
+    "Cost": 6,
+    "Aspect": "Warlord",
+    "DeckVP": 3,
+    "InnerCircleVP": 6,
+    "Effects": [
+      {
+        "Type": "Devour",
+        "TargetLocation": "InnerCircle",
+        "IsOptional": true,
+        "OnSuccess": {
+          "Type": "GainResource",
+          "Amount": 3,
+          "TargetResource": "Influence",
+          "OnSuccess": {
+            "Type": "Promote",
+            "Amount": 2,
+            "PromotionCreditIsOptional": true
+          }
+        }
+      }
+    ]
   }
 ]

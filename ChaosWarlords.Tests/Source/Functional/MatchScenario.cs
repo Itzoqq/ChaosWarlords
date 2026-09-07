@@ -163,6 +163,22 @@ namespace ChaosWarlords.Tests.Source.Functional
         }
 
         /// <summary>
+        /// Pulls the REAL card instance for <paramref name="cardId"/> out of the REAL database
+        /// and places it directly into <paramref name="color"/>'s inner circle (bypassing the
+        /// normal Promote flow) - for scenarios that need a pre-existing inner-circle card as
+        /// some OTHER effect's target (e.g. Zuggtmoy's Devour(InnerCircle)), not for testing
+        /// Promote itself.
+        /// </summary>
+        public Card PutCardInInnerCircle(PlayerColor color, string cardId)
+        {
+            var card = CardDatabase.GetCardById(cardId, Context.Random)
+                ?? throw new InvalidOperationException($"No card with id '{cardId}' in cards.json - check the id.");
+            card.Location = CardLocation.InnerCircle;
+            Player(color).AddToInnerCircle(card);
+            return card;
+        }
+
+        /// <summary>
         /// Advances real turns (TurnManager.EndTurn) until <paramref name="color"/> is
         /// ActivePlayer, then returns that Player for convenience. Bare TurnManager.EndTurn,
         /// not MatchManager.EndTurn - this is scenario SETUP (whose turn the test starts on),
@@ -216,6 +232,21 @@ namespace ChaosWarlords.Tests.Source.Functional
         public IGameCommand? SelectDevourCard(Card? card)
         {
             var command = Context.ActionSystem.HandleDevourSelection(card);
+            if (command != null)
+            {
+                Dispatch(command);
+            }
+            return command;
+        }
+
+        /// <summary>
+        /// Routes an inner-circle-card click through ActionSystem.HandleDevourInnerCircleSelection
+        /// (the real "pick this inner-circle card to devour" path, e.g. Zuggtmoy) and dispatches
+        /// the resulting command.
+        /// </summary>
+        public IGameCommand? SelectInnerCircleDevourCard(Card? card)
+        {
+            var command = Context.ActionSystem.HandleDevourInnerCircleSelection(card);
             if (command != null)
             {
                 Dispatch(command);

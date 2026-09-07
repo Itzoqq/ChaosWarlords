@@ -49,6 +49,21 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         }
 
         /// <summary>
+        /// Public entry point for continuing an effect chain from outside this class - the
+        /// exact same node-push/OnSuccess-wiring PushEffectNode uses internally, exposed for
+        /// MatchManager.ResumeDevourChain (a Devour effect resolved outside the normal
+        /// ProcessStack flow, so nothing else pushes its OnSuccess child). This is the ONLY
+        /// mechanism that propagates a chain node forward - an effect's own handler (e.g.
+        /// ApplyGainResource) applies just that one node and must not also call ApplyEffect on
+        /// effect.OnSuccess itself, or a chain two levels deep would apply its second level
+        /// twice (once here, once from the handler).
+        /// </summary>
+        public static void PushSuccessorEffect(CardEffect? effect, Card card, MatchContext context, IGameLogger logger)
+        {
+            PushEffectNode(effect, card, context, logger);
+        }
+
+        /// <summary>
         /// Computes the targeting state, resolves WHO this effect actually acts as (normally
         /// context.ActivePlayer, but see the TargetsAffectedPlayer branch below), checks the
         /// effect's own Condition and HasValidTargets against that resolved actor (falling back
@@ -193,11 +208,16 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 handler(effect, sourceCard, context, logger);
             }
 
-            // Note: Standard ApplyEffect does not automatically push children to stack.
-            // That logic is handled by ResolveEffects (for initial play) or OnResolved callbacks.
-            // However, if this is called directly (e.g. legacy), we might miss children?
-            // "Instant" children (GainResource->GainResource) are handled by ApplyGainResource chaining.
-            // Stack-based children are pushed by OnResolved.
+            // ApplyEffect applies ONLY this single node - it never pushes effect.OnSuccess
+            // itself. Propagation to a chain's next node happens via the OnResolved callback
+            // PushEffectContext wires onto every EffectContext (ResolveEffects for the
+            // top-level list, PopAndResolve for a still-on-the-stack chain node,
+            // PushSuccessorEffect for MatchManager.ResumeDevourChain's Direct-API resumption) -
+            // see PushSuccessorEffect's doc comment. A caller that invokes ApplyEffect directly
+            // without ever building an EffectContext for it at all (DiscardCardCommand's
+            // ReactiveDiscardEffect, e.g. Grimlock) gets no further propagation - fine while no
+            // shipped ReactiveDiscardEffect chains beyond one node, but a real gap the day one
+            // does (see planning.txt).
         }
 
         private static readonly Dictionary<EffectType, Action<CardEffect, Card, MatchContext, IGameLogger>> _effectHandlers = new()
@@ -316,14 +336,11 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             else if (effect.TargetResource == ResourceType.VictoryPoints)
                 context.PlayerStateManager.AddVictoryPoints(context.ActivePlayer, amount);
 
-            // Auto-trigger recursive effects for instant actions
-            // This is required for chains like GainResource -> GainResource where the second effect
-            // might not be pushed to the stack by OnResolved if we are outside a full stack context (e.g. tests)
-            // Or if the first effect was "Automatic" and not pushed as a "Blocking" effect.
-            if (effect.OnSuccess != null)
-            {
-                ApplyEffect(effect.OnSuccess, sourceCard, context, logger);
-            }
+            // Does NOT also propagate effect.OnSuccess itself - every caller of ApplyEffect
+            // (ProcessAutomaticEffect, HandleOptionalEffectAccepted, ResumeDevourChain via
+            // PushSuccessorEffect) already resolves the owning EffectContext afterwards, which
+            // pushes effect.OnSuccess through PushEffectNode. Doing it again here would apply a
+            // two-level-deep chain's second level twice.
         }
 
         private static void ApplyDrawCard(CardEffect effect, MatchContext context)

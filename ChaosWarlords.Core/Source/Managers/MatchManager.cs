@@ -237,20 +237,11 @@ namespace ChaosWarlords.Source.Managers
             {
                 _logger.Log($"Resuming Devour Chain for {sourceCard.Name} -> {devourEffect.OnSuccess.Type}", LogChannel.Info);
 
-                // Push the child effect to the stack
-                var child = devourEffect.OnSuccess;
-                var state = _context.CardRuleEngine.GetStrategy(child.Type).GetTargetingState(child);
-                bool requiresInput = _context.CardRuleEngine.GetStrategy(child.Type).IsTargetingEffect || child.IsOptional;
-
-                var childCtx = new Core.Contexts.EffectContext(
-                   state,
-                   sourceCard,
-                   requiresInput,
-                   $"Successor Effect: {child.Type}",
-                   (success) => { }, // Recursive/Standard handling
-                   child
-               );
-                _context.ActionSystem.PushEffect(childCtx);
+                // CardEffectProcessor.PushSuccessorEffect wires this child's own OnSuccess
+                // continuation the same way the normal stack-based flow does - a hand-built
+                // EffectContext here (with no such wiring) would silently drop anything chained
+                // beyond this one child, e.g. Zuggtmoy's Devour -> GainResource -> Promote.
+                Mechanics.Rules.CardEffectProcessor.PushSuccessorEffect(devourEffect.OnSuccess, sourceCard, _context, _logger);
 
                 // Process immediately
                 _context.ActionSystem.ProcessStack();
