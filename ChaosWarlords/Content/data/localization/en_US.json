@@ -80,5 +80,7 @@
   "revenant_name": "Revenant",
   "revenant_description": "Assassinate two troops. Then, if you have 8 or more troops in your trophy hall, promote this card.",
   "minotaur_skeleton_name": "Minotaur Skeleton",
-  "minotaur_skeleton_description": "Choose one: Deploy 3 troops. Or, devour this card to assassinate up to 3 white troops at a single site."
+  "minotaur_skeleton_description": "Choose one: Deploy 3 troops. Or, devour this card to assassinate up to 3 white troops at a single site.",
+  "weaponmaster_name": "Weaponmaster",
+  "weaponmaster_description": "Choose three times: Deploy a troop. Or, assassinate a white troop."
 }

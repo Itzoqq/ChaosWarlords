@@ -66,6 +66,10 @@ namespace ChaosWarlords.Source.Utilities
         // CardEffect.RestrictRepeatsToFirstTargetSite.
         public bool RestrictRepeatsToFirstTargetSite { get; set; }
 
+        // "Choose three times: Deploy a troop. Or, Assassinate a white troop." - see
+        // CardEffect.ChooseCount.
+        public int ChooseCount { get; set; }
+
         // "At end of turn, promote up to 2 other cards played this turn" - see
         // CardEffect.PromotionCreditIsOptional.
         public bool PromotionCreditIsOptional { get; set; }

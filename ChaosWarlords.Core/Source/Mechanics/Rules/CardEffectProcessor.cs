@@ -77,6 +77,15 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// </summary>
         private static void PushEffectContext(CardEffect effect, Card card, MatchContext context, string descriptionPrefix, IGameLogger logger)
         {
+            // "Choose N times: Deploy a troop. Or, Assassinate a white troop." (Weaponmaster) -
+            // see CardEffect.ChooseCount's doc comment. Transparently swaps in an equivalent,
+            // purely transient OnSuccess/Alternative chain before any of the normal logic below
+            // ever sees it - every existing card (ChooseCount defaults to 0) is unaffected.
+            if (effect.ChooseCount > 1)
+            {
+                effect = ExpandChoiceRepeat(effect, effect.ChooseCount);
+            }
+
             var strategy = context.CardRuleEngine.GetStrategy(effect.Type);
             var state = strategy.GetTargetingState(effect);
             bool requiresInput = strategy.IsTargetingEffect || effect.IsOptional;
@@ -126,6 +135,82 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             }
 
             context.ActionSystem.PushEffect(ctx);
+        }
+
+        /// <summary>
+        /// Builds an equivalent, purely transient OnSuccess/Alternative chain for a
+        /// CardEffect.ChooseCount > 1 node (Weaponmaster: "Choose three times: Deploy a troop.
+        /// Or, Assassinate a white troop.") - a genuinely different primitive from
+        /// IEffectStrategy.SupportsRepeat (repeats the SAME effect type/targeting state N times)
+        /// and from a plain one-shot IsOptional+Alternative pair (ChooseCount &lt;= 1, e.g.
+        /// Kobold - unaffected): this repeats an INDEPENDENT choice between 2 different effect
+        /// types, N times in a row. Deliberately does NOT touch the resolution engine
+        /// (ActionExecutionEngine/HandleOptionalEffectAccepted/Declined/TryResolveActor) at all -
+        /// it only changes what CardEffect TREE SHAPE gets fed into that already-proven-correct
+        /// engine, recomputed fresh every PushEffectContext call (never written back onto
+        /// Card.Effects).
+        ///
+        /// Known gap (flagged, unresolved): because these round-specific clones never get
+        /// written back onto Card.Effects, EffectTreeSearch.FindFirstEffect-based lookups
+        /// (AssassinateStrategy/SupplantStrategy/DevourStrategy/PromoteFromPileStrategy.
+        /// HasValidTargets, and StateRestorer.RestoreEffect's post-rollback SourceEffect lookup)
+        /// always resolve against the AUTHORED, un-expanded node on Card.Effects - never the
+        /// actual in-flight round's clone. Harmless today because every clone ExpandChoiceRepeat
+        /// produces is field-identical to the authored template (TargetNeutralTroopOnly,
+        /// IgnoresPresenceRequirement, etc. never vary by round) - but a future ChooseCount card
+        /// wanting PER-ROUND-VARYING targeting constraints would silently validate every round
+        /// against the wrong (first/authored) round's constraints instead. Also: StateRestorer.
+        /// RestoreEffect already gives every restored EffectContext dummy no-op OnResolved/
+        /// OnCancelled callbacks (a pre-existing, accepted limitation for every chain card, not
+        /// introduced here) - for a ChooseCount sequence specifically, a CommandDispatcher
+        /// rollback mid-round therefore silently truncates ALL remaining rounds (not just the one
+        /// node a simpler chain would lose), with no round-index persisted anywhere
+        /// (EffectContextDto has no such field) to ever recover it. Narrow trigger (needs an
+        /// actual exception mid-Execute, not the common CancelTargeting()/DeclineRepeatCommand
+        /// paths) - not fixed by this pass.
+        ///
+        /// Both branches of round N converge on round N+1: the accepted branch's OnSuccess, the
+        /// declined branch's OnSuccess (its own target resolved successfully), AND - critically -
+        /// the declined branch's own Alternative (its TryResolveActor found NO valid target at
+        /// all, e.g. no white troop left) all point at the SAME round N+1 continuation. Without
+        /// that last one, a round where the decline option turns out to be impossible would
+        /// silently swallow every REMAINING round too (PushEffectContext's normal "no valid
+        /// target -> Alternative, full stop" behavior, which is exactly right for a plain
+        /// one-shot choice but wrong here since a whole sequence is still in progress).
+        ///
+        /// The LAST round (remainingRounds &lt;= 1) is a clone with ChooseCount forced to 0 (so
+        /// PushEffectContext's entry guard never re-expands it) but otherwise whatever OnSuccess/
+        /// Alternative the card actually authored for "after all N rounds" is preserved as-is -
+        /// null for every card that exists today, ending the whole effect there, but this leaves
+        /// room for a future "choose N times, THEN X" card for free.
+        /// </summary>
+        private static CardEffect ExpandChoiceRepeat(CardEffect effect, int remainingRounds)
+        {
+            if (remainingRounds <= 1)
+            {
+                var final = Card.CloneEffect(effect);
+                final.ChooseCount = 0;
+                if (final.Alternative != null)
+                {
+                    final.Alternative.ChooseCount = 0;
+                }
+                return final;
+            }
+
+            var continuation = ExpandChoiceRepeat(effect, remainingRounds - 1);
+
+            var expanded = Card.CloneEffect(effect);
+            expanded.ChooseCount = 0;
+            expanded.OnSuccess = continuation;
+
+            if (expanded.Alternative != null)
+            {
+                expanded.Alternative.ChooseCount = 0;
+                expanded.Alternative.OnSuccess = continuation;
+                expanded.Alternative.Alternative = continuation;
+            }
+
+            return expanded;
         }
 
         /// <summary>

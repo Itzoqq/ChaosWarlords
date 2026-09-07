@@ -165,8 +165,11 @@ namespace ChaosWarlords.Source.Entities.Cards
 
         // Fully recursive - both OnSuccess ("and then") and Alternative ("instead, if
         // declined/impossible") chains can nest arbitrarily deep (e.g. Cloaker:
-        // PlaceSpy.Alternative = ReturnOwnSpy.OnSuccess = Assassinate).
-        private static CardEffect CloneEffect(CardEffect effect)
+        // PlaceSpy.Alternative = ReturnOwnSpy.OnSuccess = Assassinate). Internal (not private) so
+        // CardEffectProcessor.ExpandChoiceRepeat (CardEffect.ChooseCount's primitive) can reuse
+        // this exact copy list rather than maintaining a second, easily-out-of-sync one - every
+        // new per-effect flag only needs adding here, not in 2 places.
+        internal static CardEffect CloneEffect(CardEffect effect)
         {
             var newEffect = new CardEffect(effect.Type, effect.Amount, effect.TargetResource)
             {
@@ -182,6 +185,7 @@ namespace ChaosWarlords.Source.Entities.Cards
                 AllowPartialRepeat = effect.AllowPartialRepeat,
                 RestrictRepeatsToFirstTargetSite = effect.RestrictRepeatsToFirstTargetSite,
                 PromotionCreditIsOptional = effect.PromotionCreditIsOptional,
+                ChooseCount = effect.ChooseCount,
                 Condition = effect.Condition // Reference copy for condition (usually shared/immutable)
             };
 

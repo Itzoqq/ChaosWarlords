@@ -96,8 +96,60 @@ namespace ChaosWarlords.Source.Utilities
             ParseCondition(data, effect);
             ParseOptionalFlags(data, effect);
             ParseDynamicAmount(data, effect, logger);
+            WarnIfChooseCountShapeIsUnsupported(data, effect, logger);
 
             return effect;
+        }
+
+        // CardEffect.ChooseCount > 1 needs a real 2nd branch to alternate with (Alternative), and
+        // CardEffectProcessor.ExpandChoiceRepeat OVERWRITES this node's and its Alternative's own
+        // OnSuccess/Alternative on every round except the last - warn loudly at load time rather
+        // than let an author's authored chain silently vanish in play (same "catch it before it
+        // ships" precedent as ParseReactiveDiscardEffect's own warning above). Does NOT warn on
+        // ChooseCount set on a non-IsOptional node - HandleInputRequiredEffect only ever raises
+        // the accept/decline popup for an IsOptional effect, so a mandatory node would never
+        // actually offer a real per-round choice (Alternative only reached via "no valid
+        // target"); left unflagged since no card needs this shape and it's unclear whether it's
+        // ever intentional.
+        private const int ChooseCountSanityCeiling = 10;
+
+        private static void WarnIfChooseCountShapeIsUnsupported(CardEffectData data, CardEffect effect, IGameLogger? logger)
+        {
+            if (effect.ChooseCount <= 1)
+            {
+                return;
+            }
+
+            WarnIfChooseCountIsUnusuallyLarge(data, effect, logger);
+
+            if (effect.Alternative == null)
+            {
+                logger?.Log($"[CardFactory] {data.Type}: ChooseCount={effect.ChooseCount} has no Alternative to choose between - not a real 2-option choice.", LogChannel.Warning);
+                return;
+            }
+
+            WarnIfChooseCountChainWouldBeOverridden(data, effect, logger);
+        }
+
+        private static void WarnIfChooseCountIsUnusuallyLarge(CardEffectData data, CardEffect effect, IGameLogger? logger)
+        {
+            if (effect.ChooseCount <= ChooseCountSanityCeiling)
+            {
+                return;
+            }
+
+            logger?.Log($"[CardFactory] {data.Type}: ChooseCount={effect.ChooseCount} is unusually large (>{ChooseCountSanityCeiling}) - likely a typo (ExpandChoiceRepeat recurses this deep on every play); proceeding anyway.", LogChannel.Warning);
+        }
+
+        private static void WarnIfChooseCountChainWouldBeOverridden(CardEffectData data, CardEffect effect, IGameLogger? logger)
+        {
+            bool hasChainThatWillBeOverridden = effect.OnSuccess != null || effect.Alternative!.OnSuccess != null || effect.Alternative.Alternative != null;
+            if (!hasChainThatWillBeOverridden)
+            {
+                return;
+            }
+
+            logger?.Log($"[CardFactory] {data.Type}: ChooseCount={effect.ChooseCount}'s own OnSuccess/Alternative chain is only honored on the LAST round - every earlier round overrides it with the next round's continuation.", LogChannel.Warning);
         }
 
         private static CardEffect CreateBaseEffect(CardEffectData data, EffectType type)
@@ -175,6 +227,7 @@ namespace ChaosWarlords.Source.Utilities
             effect.AllowPartialRepeat = data.AllowPartialRepeat;
             effect.RestrictRepeatsToFirstTargetSite = data.RestrictRepeatsToFirstTargetSite;
             effect.PromotionCreditIsOptional = data.PromotionCreditIsOptional;
+            effect.ChooseCount = data.ChooseCount;
         }
 
         private static void ParseDynamicAmount(CardEffectData data, CardEffect effect, IGameLogger? logger)

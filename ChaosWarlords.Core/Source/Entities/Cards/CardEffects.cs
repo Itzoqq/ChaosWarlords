@@ -81,6 +81,25 @@ namespace ChaosWarlords.Source.Entities.Cards
         // (Assassinate) - no shipped card needs this on Supplant/MoveUnit yet.
         public bool RestrictRepeatsToFirstTargetSite { get; set; }
 
+        // "Choose three times: Deploy a troop. Or, Assassinate a white troop." (Weaponmaster) -
+        // marks THIS node (an IsOptional effect with a sibling Alternative, e.g. Kobold's exact
+        // choice pair) as a repeated INDEPENDENT choice between the 2 branches, resolved
+        // ChooseCount times in a row - a genuinely different primitive from SupportsRepeat
+        // (repeats the SAME effect type/targeting state N times) and from a plain one-shot
+        // IsOptional+Alternative pair (ChooseCount defaults to 0, meaning "not a repeated
+        // choice" - every existing card is unaffected). See
+        // CardEffectProcessor.ExpandChoiceRepeat for how this is realized: a purely transient
+        // OnSuccess/Alternative chain built fresh each time this node is pushed, never written
+        // back onto Card.Effects, so the existing resolution engine (ActionExecutionEngine/
+        // TryResolveActor/etc.) needs no changes at all to support it. Only the node THIS flag
+        // is set on, and its Alternative, are expanded - any OnSuccess/Alternative authored on
+        // either of those 2 nodes is only honored on the FINAL round (every earlier round's is
+        // overridden by the next round's continuation) - not currently exercised by any shipped
+        // card (both are null for Weaponmaster), but left intentionally general. See
+        // ExpandChoiceRepeat's own doc comment for a known gap around HasValidTargets lookups
+        // and rollback resolving against the wrong (authored, un-expanded) round.
+        public int ChooseCount { get; set; }
+
         // "At end of turn, promote up to 2 other cards played this turn" (Cultist of Myrkul,
         // Zuggtmoy) - marks an EffectType.Promote effect's banked end-of-turn credits as
         // voluntarily declinable, as opposed to the plain "promote a card played this turn"

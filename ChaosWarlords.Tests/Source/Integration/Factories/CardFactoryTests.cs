@@ -1,4 +1,6 @@
+using NSubstitute;
 using ChaosWarlords.Source.Core.Interfaces.Data;
+using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Tests.Integration.Factories
@@ -18,6 +20,8 @@ namespace ChaosWarlords.Tests.Integration.Factories
             ["old_card_description"] = "Old description",
             ["inf_test_name"] = "Influence Test",
             ["inf_test_description"] = "Influence test",
+            ["choose_count_card_name"] = "Choose Count Card",
+            ["choose_count_card_description"] = "Test card for ChooseCount",
         });
 
         [TestMethod]
@@ -133,6 +137,125 @@ namespace ChaosWarlords.Tests.Integration.Factories
             var card = CardFactory.CreateFromData(cardData, _localization);
 
             Assert.AreEqual(0, card.InfluenceValue);
+        }
+
+        // --- CardEffect.ChooseCount (Weaponmaster's "choose N times" primitive) load-time
+        // validation - see CardFactory.WarnIfChooseCountShapeIsUnsupported ---
+
+        [TestMethod]
+        public void CreateFromData_ChooseCountParsesOntoTheEffect()
+        {
+            var cardData = new CardData
+            {
+                Id = "choose_count_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData
+                    {
+                        Type = "GainResource", Amount = 1, TargetResource = "Troops", IsOptional = true, ChooseCount = 3,
+                        Alternative = new CardEffectData { Type = "Assassinate", Amount = 1 }
+                    }
+                }
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization);
+
+            Assert.AreEqual(3, card.Effects[0].ChooseCount);
+        }
+
+        [TestMethod]
+        public void CreateFromData_ChooseCountUnusuallyLarge_LogsAWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "choose_count_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData
+                    {
+                        Type = "GainResource", Amount = 1, TargetResource = "Troops", IsOptional = true, ChooseCount = 300,
+                        Alternative = new CardEffectData { Type = "Assassinate", Amount = 1, TargetNeutralTroopOnly = true }
+                    }
+                }
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.Received(1).Log(Arg.Is<string>(s => s.Contains("unusually large")), LogChannel.Warning);
+            Assert.AreEqual(300, card.Effects[0].ChooseCount, "The warning is advisory only - the authored value is not clamped.");
+        }
+
+        [TestMethod]
+        public void CreateFromData_ChooseCountWithoutAlternative_LogsAWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "choose_count_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "GainResource", Amount = 1, TargetResource = "Troops", IsOptional = true, ChooseCount = 3 }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.Received(1).Log(Arg.Is<string>(s => s.Contains("no Alternative")), LogChannel.Warning);
+        }
+
+        [TestMethod]
+        public void CreateFromData_ChooseCountWithAChainThatWouldBeOverridden_LogsAWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "choose_count_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData
+                    {
+                        Type = "GainResource", Amount = 1, TargetResource = "Troops", IsOptional = true, ChooseCount = 3,
+                        Alternative = new CardEffectData
+                        {
+                            Type = "Assassinate",
+                            Amount = 1,
+                            OnSuccess = new CardEffectData { Type = "GainResource", Amount = 1, TargetResource = "Power" }
+                        }
+                    }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.Received(1).Log(Arg.Is<string>(s => s.Contains("only honored on the LAST round")), LogChannel.Warning);
+        }
+
+        [TestMethod]
+        public void CreateFromData_ChooseCountWithAWellFormedChoicePair_LogsNoWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "choose_count_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData
+                    {
+                        Type = "GainResource", Amount = 1, TargetResource = "Troops", IsOptional = true, ChooseCount = 3,
+                        Alternative = new CardEffectData { Type = "Assassinate", Amount = 1, TargetNeutralTroopOnly = true }
+                    }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.DidNotReceiveWithAnyArgs().Log(default(string)!, default);
         }
     }
 }
