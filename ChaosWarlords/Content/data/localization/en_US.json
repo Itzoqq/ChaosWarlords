@@ -72,5 +72,9 @@
   "council_member_name": "Council Member",
   "council_member_description": "Move up to 2 enemy troops. At end of turn, promote another card played this turn.",
   "zuggtmoy_name": "Zuggtmoy",
-  "zuggtmoy_description": "Optional: Devour a card in your inner circle -> Gain 3 Influence and, at end of turn, promote up to 2 other cards played this turn."
+  "zuggtmoy_description": "Optional: Devour a card in your inner circle -> Gain 3 Influence and, at end of turn, promote up to 2 other cards played this turn.",
+  "underdark_ranger_name": "Underdark Ranger",
+  "underdark_ranger_description": "Assassinate 2 white troops.",
+  "masters_of_sorcere_name": "Masters of Sorcere",
+  "masters_of_sorcere_description": "Choose one: Place 2 spies. Or, return one of your spies to gain 4 Power."
 }

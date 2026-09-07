@@ -64,13 +64,15 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         {
             // Defense-in-depth against a future card mistakenly (or maliciously) setting
             // AllowPartialRepeat on an effect type whose strategy never opted into
-            // SupportsRepeat (PlaceSpyStrategy, here) - without this guard, RemainingRepeats
-            // would be stuck at its default of 1, so CurrentState == effect.EffectType would
-            // already be true at the very entry state, before any real target was ever picked.
-            var sourceEffect = new CardEffect(EffectType.PlaceSpy, 1) { AllowPartialRepeat = true };
-            var effect = new EffectContext(ActionState.TargetingPlaceSpy, _card, requiresInput: true, "Effect: PlaceSpy", onResolved: _ => { }, sourceEffect: sourceEffect);
+            // SupportsRepeat - SupplantStrategy is used here as that example (PlaceSpyStrategy
+            // now genuinely supports repeats, see Masters of Sorcere, so it no longer fits) -
+            // without this guard, RemainingRepeats would be stuck at its default of 1, so
+            // CurrentState == effect.EffectType would already be true at the very entry state,
+            // before any real target was ever picked.
+            var sourceEffect = new CardEffect(EffectType.Supplant, 1) { AllowPartialRepeat = true };
+            var effect = new EffectContext(ActionState.TargetingSupplant, _card, requiresInput: true, "Effect: Supplant", onResolved: _ => { }, sourceEffect: sourceEffect);
             _state.ActionSystem.CurrentEffect.Returns(effect);
-            _state.ActionSystem.CurrentState.Returns(ActionState.TargetingPlaceSpy);
+            _state.ActionSystem.CurrentState.Returns(ActionState.TargetingSupplant);
             var command = new DeclineRepeatCommand(_card.Id);
 
             Assert.IsFalse(command.Validate(_state.MatchContext));

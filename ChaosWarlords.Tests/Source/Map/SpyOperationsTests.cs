@@ -94,6 +94,54 @@ namespace ChaosWarlords.Tests.Map
         }
 
         [TestMethod]
+        public void ExecuteReturnOwnSpy_RemovesSpyAndReplenishesBarracks()
+        {
+            // A returned spy must go back to the player's own barracks so it's re-placeable
+            // later, matching CombatResolver.ExecuteReturnTroop's equivalent AddTroops call for
+            // a returned troop.
+            var site = TestData.Sites.NeutralSite();
+            site.Spies.Add(PlayerColor.Red);
+            var player = TestData.Players.RedPlayer();
+            player.SpiesInBarracks = 2;
+
+            var result = _spyOps.ExecuteReturnOwnSpy(site, player);
+
+            Assert.IsTrue(result);
+            Assert.DoesNotContain(PlayerColor.Red, site.Spies);
+            Assert.AreEqual(3, player.SpiesInBarracks, "The returned spy must be added back to the player's own barracks.");
+            Assert.IsTrue(_siteRecalculated);
+        }
+
+        [TestMethod]
+        public void ExecuteReturnOwnSpy_WhenNoSpyAtSite_ReturnsFalseAndDoesNotChangeBarracks()
+        {
+            var site = TestData.Sites.NeutralSite();
+            var player = TestData.Players.RedPlayer();
+            player.SpiesInBarracks = 2;
+
+            var result = _spyOps.ExecuteReturnOwnSpy(site, player);
+
+            Assert.IsFalse(result);
+            Assert.AreEqual(2, player.SpiesInBarracks);
+            Assert.IsFalse(_siteRecalculated);
+        }
+
+        [TestMethod]
+        public void ExecuteReturnOwnSpy_CannotReturnAnEnemysSpy()
+        {
+            var site = TestData.Sites.NeutralSite();
+            site.Spies.Add(PlayerColor.Blue);
+            var player = TestData.Players.RedPlayer();
+            player.SpiesInBarracks = 2;
+
+            var result = _spyOps.ExecuteReturnOwnSpy(site, player);
+
+            Assert.IsFalse(result);
+            Assert.Contains(PlayerColor.Blue, site.Spies);
+            Assert.AreEqual(2, player.SpiesInBarracks);
+        }
+
+        [TestMethod]
         public void GetEnemySpiesAtSite_ReturnsOnlyEnemySpies()
         {
             // Arrange

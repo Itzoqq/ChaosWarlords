@@ -142,15 +142,20 @@ namespace ChaosWarlords.Source.Rendering.UI
 
         private static string FormatPrompt(Card card, CardEffect effect)
         {
+            // "a troop"/"1 troop(s)" reads oddly for Amount == 1 (the common case for every
+            // effect below except Masters of Sorcere's "Place 2 spies"), so only pluralize the
+            // noun when Amount is actually greater than 1.
+            string Count(string singular, string plural) => effect.Amount > 1 ? $"{effect.Amount} {plural}" : $"a {singular}";
+
             string action = effect.Type switch
             {
                 EffectType.Devour => "devour a card",
-                EffectType.PlaceSpy => "place a spy",
+                EffectType.PlaceSpy => $"place {Count("spy", "spies")}",
                 EffectType.Promote => "promote a card",
                 EffectType.PromoteFromPile => "promote a card",
-                EffectType.Assassinate => "assassinate a troop",
-                EffectType.MoveUnit => "move a unit",
-                EffectType.ReturnUnit => "return a unit",
+                EffectType.Assassinate => $"assassinate {Count("troop", "troops")}",
+                EffectType.MoveUnit => $"move {Count("unit", "units")}",
+                EffectType.ReturnUnit => $"return {Count("unit", "units")}",
                 _ => effect.Type.ToString().ToLowerInvariant()
             };
 

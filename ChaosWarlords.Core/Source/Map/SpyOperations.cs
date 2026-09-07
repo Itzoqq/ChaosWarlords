@@ -77,6 +77,9 @@ namespace ChaosWarlords.Source.Map
         /// rejects targetSpyColor == activePlayer.Color by design (that's the enemy-spy
         /// action) - no Presence check either, matching CanReturnTroop's precedent that
         /// returning your own unit needs no Presence, only returning an enemy's does.
+        /// Replenishes the player's own barracks (SpiesInBarracks), matching
+        /// CombatResolver.ExecuteReturnTroop's equivalent AddTroops call for a returned troop -
+        /// the spy must be re-placeable later, not permanently lost.
         /// </summary>
         public bool ExecuteReturnOwnSpy(Site site, Player activePlayer)
         {
@@ -90,6 +93,7 @@ namespace ChaosWarlords.Source.Map
             }
 
             site.Spies.Remove(activePlayer.Color);
+            _stateManager.AddSpies(activePlayer, 1);
 
             _logger.Log($"Returned own ({activePlayer.Color}) Spy from {site.Name}.", LogChannel.Combat);
             _recalculateSiteState(site, activePlayer);

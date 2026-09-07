@@ -645,7 +645,7 @@
   {
     "Id": "zuggtmoy",
     "Cost": 6,
-    "Aspect": "Warlord",
+    "Aspect": "Blasphemy",
     "DeckVP": 3,
     "InnerCircleVP": 6,
     "Effects": [
@@ -661,6 +661,43 @@
             "Type": "Promote",
             "Amount": 2,
             "PromotionCreditIsOptional": true
+          }
+        }
+      }
+    ]
+  },
+  {
+    "Id": "underdark_ranger",
+    "Cost": 4,
+    "Aspect": "Warlord",
+    "DeckVP": 2,
+    "InnerCircleVP": 4,
+    "Effects": [
+      {
+        "Type": "Assassinate",
+        "Amount": 2,
+        "TargetNeutralTroopOnly": true
+      }
+    ]
+  },
+  {
+    "Id": "masters_of_sorcere",
+    "Cost": 5,
+    "Aspect": "Shadow",
+    "DeckVP": 2,
+    "InnerCircleVP": 5,
+    "Effects": [
+      {
+        "Type": "PlaceSpy",
+        "Amount": 2,
+        "IsOptional": true,
+        "Alternative": {
+          "Type": "ReturnOwnSpy",
+          "Amount": 1,
+          "OnSuccess": {
+            "Type": "GainResource",
+            "Amount": 4,
+            "TargetResource": "Power"
           }
         }
       }
