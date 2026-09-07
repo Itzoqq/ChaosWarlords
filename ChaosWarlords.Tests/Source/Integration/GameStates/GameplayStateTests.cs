@@ -18,6 +18,8 @@ using NSubstitute;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Input.Controllers;
 using ChaosWarlords.Source.Core.Composition;
+using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Entities.Map;
 
 namespace ChaosWarlords.Tests.Integration.GameStates
 {
@@ -206,6 +208,52 @@ namespace ChaosWarlords.Tests.Integration.GameStates
 
             state.Update(new GameTime());
 
+            _actionSystem.DidNotReceive().CancelTargeting();
+        }
+
+        [TestMethod]
+        public void Update_LeftClick_OnSpyReturnButton_WhileSelectingSpyToReturn_FinalizesTheReturn()
+        {
+            // GameplayInputCoordinator and PlayerController are 2 independent subscribers on
+            // the same InputManager.OnInputEvent stream, with GameplayInputCoordinator
+            // constructed (and so subscribed) FIRST in the real composition root - a click
+            // during SelectingSpyToReturn must correctly reach PlayerController's own
+            // FinalizeSpyReturn/RecordAndExecuteCommand dispatch, not get intercepted by
+            // TargetingInputMode along the way. Only a test wiring BOTH real subscribers
+            // against ONE real InputManager, in the same construction order as production, can
+            // exercise this - neither PlayerControllerTests.cs (never constructs
+            // GameplayInputCoordinator) nor TargetingInputModeTests.cs (never constructs
+            // PlayerController) does. See planning.txt.
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            var mockDispatcher = Substitute.For<ICommandDispatcher>();
+            state.SetCommandDispatcher(mockDispatcher);
+
+            var site = TestData.Sites.CitySite();
+            site.AddSpy(PlayerColor.Blue);
+            site.AddSpy(PlayerColor.Black);
+
+            _actionSystem.CurrentState.Returns(ActionState.SelectingSpyToReturn);
+            _actionSystem.PendingSite.Returns(site);
+            var resolveCommand = new ResolveSpyCommand(site.Id, PlayerColor.Blue);
+            _actionSystem.FinalizeSpyReturn(PlayerColor.Blue).Returns(resolveCommand);
+
+            state.SwitchToTargetingMode();
+            Assert.IsInstanceOfType(state.InputMode, typeof(TargetingInputMode));
+            state.UIManager.ScreenWidth.Returns(800);
+
+            // Real InteractionMapper geometry (see GetClickedSpyReturnButton): for
+            // screenWidth=800, the first spy's button rect is (300, 240, 200, 30) - click its
+            // center.
+            _inputProvider.GetMouseState().Returns(new MouseState(400, 255, 0, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
+            state.Update(new GameTime());
+            _inputProvider.GetMouseState().Returns(new MouseState(400, 255, 0, ButtonState.Pressed, ButtonState.Released, ButtonState.Released, ButtonState.Released, ButtonState.Released));
+
+            state.Update(new GameTime());
+
+            _actionSystem.Received(1).FinalizeSpyReturn(PlayerColor.Blue);
+            mockDispatcher.Received(1).Dispatch(resolveCommand, state.MatchContext);
             _actionSystem.DidNotReceive().CancelTargeting();
         }
 

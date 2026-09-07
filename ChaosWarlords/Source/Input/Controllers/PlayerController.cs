@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Core.Interfaces.Input;
+using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Core.Events;
 using ChaosWarlords.Source.Entities.Cards;
@@ -84,7 +85,16 @@ namespace ChaosWarlords.Source.Input.Controllers
 
             if (clickedSpy.HasValue)
             {
-                _gameState.ActionSystem.FinalizeSpyReturn(clickedSpy.Value);
+                // FinalizeSpyReturn only constructs the ResolveSpyCommand - it doesn't mutate
+                // state or dispatch it itself (same split as every other "resolve a pending
+                // targeting click" path in this codebase), so it must go through
+                // RecordAndExecuteCommand like any other player-initiated command, for the same
+                // replay/rollback guarantees.
+                IGameCommand? command = _gameState.ActionSystem.FinalizeSpyReturn(clickedSpy.Value);
+                if (command != null)
+                {
+                    _gameState.RecordAndExecuteCommand(command);
+                }
                 return true;
             }
             return false;

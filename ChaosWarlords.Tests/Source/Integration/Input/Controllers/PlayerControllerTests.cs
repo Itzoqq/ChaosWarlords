@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Input.Controllers;
+using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.State; 
 using ChaosWarlords.Source.Core.Interfaces.Logic;
@@ -168,13 +169,18 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
         }
 
         [TestMethod]
-        public void HandleSpySelectionInput_FinalizesSpyReturn()
+        public void HandleSpySelectionInput_RecordsAndExecutesTheResolveSpyCommand()
         {
-            // Arrange
+            // FinalizeSpyReturn only constructs the ResolveSpyCommand - it never mutates state
+            // or dispatches it itself, so a valid spy-return-button click must actually end up
+            // in ExecutedCommands, not just call FinalizeSpyReturn and stop there.
             var mockActionSystem = Substitute.For<IActionSystem>();
             mockActionSystem.CurrentState.Returns(ActionState.SelectingSpyToReturn);
             var mockSite = TestData.Sites.CitySite();
             mockActionSystem.PendingSite.Returns(mockSite);
+
+            var resolveCommand = new ResolveSpyCommand(mockSite.Id, PlayerColor.Blue);
+            mockActionSystem.FinalizeSpyReturn(PlayerColor.Blue).Returns(resolveCommand);
 
             _stateFake.ActionSystem = mockActionSystem;
             _stateFake.InitializeMatchContext();
@@ -193,6 +199,73 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
 
             // Assert
             mockActionSystem.Received(1).FinalizeSpyReturn(PlayerColor.Blue);
+            CollectionAssert.Contains(_stateFake.ExecutedCommands, resolveCommand);
+        }
+
+        [TestMethod]
+        public void HandleSpySelectionInput_WhenFinalizeSpyReturnReturnsNull_DoesNotDispatchAnything()
+        {
+            // FinalizeSpyReturn returns null when its own internal validation fails (e.g.
+            // PendingSite is null by the time the click resolves) - RecordAndExecuteCommand
+            // must never be called with a null command in that case.
+            var mockActionSystem = Substitute.For<IActionSystem>();
+            mockActionSystem.CurrentState.Returns(ActionState.SelectingSpyToReturn);
+            var mockSite = TestData.Sites.CitySite();
+            mockActionSystem.PendingSite.Returns(mockSite);
+            mockActionSystem.FinalizeSpyReturn(PlayerColor.Blue).Returns((IGameCommand?)null);
+
+            _stateFake.ActionSystem = mockActionSystem;
+            _stateFake.InitializeMatchContext();
+
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(100, 100));
+
+            var mockUIManager = Substitute.For<IUIManager>();
+            mockUIManager.ScreenWidth.Returns(800);
+            _stateFake.UIManager = mockUIManager;
+
+            _mockMapper.GetClickedSpyReturnButton(Arg.Any<Point>(), mockSite, 800)
+                .Returns(PlayerColor.Blue);
+
+            // Act
+            _mockInputManager.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(_mockInputManager, evt);
+
+            // Assert
+            Assert.IsEmpty(_stateFake.ExecutedCommands);
+        }
+
+        [TestMethod]
+        public void HandleSpySelectionInput_WhenClickMissesEveryButton_DoesNothing()
+        {
+            // A click during SelectingSpyToReturn that doesn't land on any spy-color button
+            // (GetClickedSpyReturnButton returns null) is a plain no-op here - it does NOT
+            // cancel the targeting sequence. Right-click/Escape remain the only way to abandon
+            // the return-spy action; TargetingInputMode itself never reacts to LeftClick during
+            // this state at all (see TargetingInputModeTests.cs), so this is the sole real
+            // click-handling path for it.
+            var mockActionSystem = Substitute.For<IActionSystem>();
+            mockActionSystem.CurrentState.Returns(ActionState.SelectingSpyToReturn);
+            var mockSite = TestData.Sites.CitySite();
+            mockActionSystem.PendingSite.Returns(mockSite);
+
+            _stateFake.ActionSystem = mockActionSystem;
+            _stateFake.InitializeMatchContext();
+
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(0, 0));
+
+            var mockUIManager = Substitute.For<IUIManager>();
+            mockUIManager.ScreenWidth.Returns(800);
+            _stateFake.UIManager = mockUIManager;
+
+            _mockMapper.GetClickedSpyReturnButton(Arg.Any<Point>(), mockSite, 800)
+                .Returns((PlayerColor?)null);
+
+            // Act
+            _mockInputManager.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(_mockInputManager, evt);
+
+            // Assert
+            mockActionSystem.DidNotReceive().FinalizeSpyReturn(Arg.Any<PlayerColor>());
+            mockActionSystem.DidNotReceive().CancelTargeting();
+            Assert.IsEmpty(_stateFake.ExecutedCommands);
         }
 
         [TestMethod]

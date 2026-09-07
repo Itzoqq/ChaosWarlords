@@ -67,7 +67,7 @@ namespace ChaosWarlords.Source.Input.Modes
 
             // 2. Delegate to ActionSystem to validate the Clicked Target
             // We pass the Event Position
-            return ConvertClickToCommand(evt.Position, mapManager, activePlayer, actionSystem);
+            return ConvertClickToCommand(evt.Position, mapManager, actionSystem);
         }
 
         public void HandleUpdate(IInputManager inputManager, IMapManager mapManager, Player activePlayer)
@@ -75,12 +75,19 @@ namespace ChaosWarlords.Source.Input.Modes
             // Helper text or hover highlights could be managed here
         }
 
-        private static IGameCommand? ConvertClickToCommand(Vector2 clickPos, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
+        private static IGameCommand? ConvertClickToCommand(Vector2 clickPos, IMapManager mapManager, IActionSystem actionSystem)
         {
+            // SelectingSpyToReturn (picking WHICH of 2+ differently-colored enemy spies at a
+            // site to return) is PlayerController's sole responsibility - it has the
+            // InteractionMapper-based hit-testing this class doesn't. This class and
+            // PlayerController are 2 independent subscribers on the same InputManager.
+            // OnInputEvent stream, with no "handled" flag shared between them, so this method
+            // must stay a pure no-op for this state regardless of where the click lands -
+            // reacting to it here at all would race with PlayerController's own handling of
+            // the exact same click. See planning.txt.
             if (actionSystem.CurrentState == ActionState.SelectingSpyToReturn)
             {
-                // Return the command from spy selection (ResolveSpyCommand usually)
-                return HandleSpySelection(clickPos, mapManager, activePlayer, actionSystem);
+                return null;
             }
 
             var clickLogicPos = clickPos.ToLogicVector2();
@@ -151,39 +158,6 @@ namespace ChaosWarlords.Source.Input.Modes
         private static bool IsAtADeclinableRepeatBoundary(ChaosWarlords.Source.Core.Contexts.EffectContext? effect, IActionSystem actionSystem)
         {
             return effect?.SourceEffect?.AllowPartialRepeat == true && actionSystem.CurrentState == effect.EffectType;
-        }
-
-        private static SwitchToNormalModeCommand? HandleSpySelection(Vector2 mousePos, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
-        {
-            Site? site = actionSystem.PendingSite;
-            if (site is null)
-            {
-                actionSystem.CancelTargeting();
-                return null;
-            }
-
-            // Note: This logic seems redundant if PlayerController handles Spy Selection now?
-            // But if we are in Targeting Mode, maybe we still want to handle valid clicks?
-            // Actually, PlayerController handles it via HandleSpySelectionInput which returns TRUE (consumes).
-            // So this might never be reached if PlayerController consumes it first.
-            // BUT, TargetingInputMode is called by Coordinator. PlayerController calls Coordinator if it didn't consume.
-            // So if PlayerController consumes, Coordinate isn't called.
-            
-            // However, let's keep it robust.
-            
-            // Wait, HandleSpySelection logic in original code used "Rectangles" and hovering.
-            // PlayerController uses InteractionMapper.
-            // We should use InteractionMapper here too if possible, OR just rely on PlayerController to have handled it.
-            // If we are here, PlayerController arguably FAILED to handle it or passed it through?
-            // But PlayerController handles specifically "SelectingSpyToReturn" state.
-            
-            // Let's assume for now we just return null because PlayerController handles UI clicks for spies.
-            // Or we keep the map-logic backup.
-            
-            // If we reached here, PlayerController did not handle the click (clicked outside buttons).
-            // So we cancel the targeting.
-            actionSystem.CancelTargeting();
-            return new SwitchToNormalModeCommand();
         }
 
         private static IGameCommand? HandleTargetingClick(IActionSystem actionSystem, MapNode? targetNode, Site? targetSite)

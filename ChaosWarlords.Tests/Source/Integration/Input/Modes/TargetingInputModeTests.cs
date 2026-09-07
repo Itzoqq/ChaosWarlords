@@ -241,31 +241,32 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
         }
 
         [TestMethod]
-        public void HandleInteraction_ClickingOutsideSpySelection_CancelsTargeting()
+        public void HandleInteraction_LeftClick_WhileSelectingSpyToReturn_NeverTouchesActionSystem()
         {
-            // 1. Arrange
+            // SelectingSpyToReturn (picking WHICH of 2+ enemy spies at a site to return) is
+            // PlayerController's sole responsibility - it has the InteractionMapper-based hit-
+            // testing this class doesn't, and it's a separate, independent subscriber on the
+            // same InputManager.OnInputEvent stream (no shared "handled" flag - see
+            // planning.txt), so this class must do nothing at all for this state, regardless of
+            // where the click lands. The end-to-end test proving PlayerController actually
+            // finalizes the return lives in GameplayStateTests.cs, since that's the only
+            // harness wiring both real subscribers against one real InputManager (this class's
+            // own test fixture doesn't construct PlayerController at all).
             _actionSub.CurrentState.Returns(ActionState.SelectingSpyToReturn);
 
             var site = TestData.Sites.NeutralSite();
-            // Use Reflection to set bounds if needed, or rely on defaults
-            typeof(Site).GetProperty("Bounds")?.SetValue(site, new LogicRectangle(
-                100 * LogicVector2.ScaleFactor, 100 * LogicVector2.ScaleFactor,
-                100 * LogicVector2.ScaleFactor, 100 * LogicVector2.ScaleFactor));
-
             _actionSub.PendingSite.Returns(site);
 
-            // Use method call instead of property
-            _mapSub.GetEnemySpiesAtSite(site, _activePlayer).Returns(new List<PlayerColor> { PlayerColor.Blue });
+            // Click anywhere - even a position that would have hit a genuinely valid spy
+            // button under PlayerController's own hit-test - must be a no-op here.
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(400, 255));
 
-            // Click FAR AWAY at (800, 600)
-            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(800, 600));
+            var command = _inputMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
 
-            // 2. Act
-            _inputMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
-
-            // 3. Assert
-            _actionSub.Received(1).CancelTargeting();
+            Assert.IsNull(command);
+            _actionSub.DidNotReceive().CancelTargeting();
             _actionSub.DidNotReceive().FinalizeSpyReturn(Arg.Any<PlayerColor>());
+            _actionSub.DidNotReceive().HandleTargetClick(Arg.Any<MapNode>(), Arg.Any<Site>());
         }
 
         [TestMethod]
