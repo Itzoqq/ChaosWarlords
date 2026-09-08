@@ -588,6 +588,25 @@
     ]
   },
   {
+    "Id": "death_knight",
+    "Cost": 6,
+    "Aspect": "Sorcery",
+    "DeckVP": 3,
+    "InnerCircleVP": 7,
+    "Effects": [
+      {
+        "Type": "Supplant",
+        "Amount": 1
+      },
+      {
+        "Type": "GainResource",
+        "TargetResource": "VictoryPoints",
+        "DynamicAmountSource": "PlayerTrophyHallCount",
+        "DynamicAmountDivisor": 5
+      }
+    ]
+  },
+  {
     "Id": "white_dragon",
     "Cost": 6,
     "Aspect": "Warlord",

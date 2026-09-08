@@ -477,8 +477,9 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// default) - this is a no-op for every card that predates the dynamic-amount
         /// primitive. Otherwise computes the amount fresh from live game state at resolution
         /// time (e.g. White Dragon: "Gain 1 VP for every 2 sites you control", Beholder: "Gain
-        /// Influence for every 3 troops in your trophy hall" - DynamicAmountDivisor is the
-        /// "every N" part, integer division/floor).
+        /// Influence for every 3 troops in your trophy hall", Death Knight: "Gain 1 VP for every
+        /// 5 player troops in your trophy hall" - DynamicAmountDivisor is the "every N" part,
+        /// integer division/floor).
         /// </summary>
         private static int ResolveAmount(CardEffect effect, MatchContext context, IGameLogger logger)
         {
@@ -493,6 +494,11 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                     break;
                 case DynamicAmountSource.TrophyHallCount:
                     count = context.ActivePlayer.TrophyHall;
+                    break;
+                case DynamicAmountSource.PlayerTrophyHallCount:
+                    count = context.ActivePlayer.TrophyHallByColor
+                        .Where(kv => kv.Key != PlayerColor.Neutral && kv.Key != PlayerColor.None)
+                        .Sum(kv => kv.Value);
                     break;
                 default:
                     // A new DynamicAmountSource enum value added without its matching case

@@ -650,6 +650,46 @@ namespace ChaosWarlords.Tests.Source.Systems
             Assert.AreEqual(influenceBefore + 6, _player.Influence, "A non-positive divisor must clamp to 1, not divide by zero or silently no-op.");
         }
 
+        [TestMethod]
+        public void ApplyEffect_GainResource_PlayerTrophyHallCountSource_ExcludesNeutralTroopsAndFloors()
+        {
+            // Death Knight: "Gain 1 VP for every 5 PLAYER troops in your trophy hall" - the
+            // printed wording explicitly excludes captured white/unaligned troops, unlike
+            // Beholder's TrophyHallCount (every troop, any color). 11 Blue + 7 Neutral must
+            // count only the 11 Blue ones: 11 / 5 = 2, not 18 / 5 = 3.
+            _player.SetTrophyHall(new Dictionary<PlayerColor, int> { [PlayerColor.Neutral] = 7, [PlayerColor.Blue] = 11 });
+            var card = new Card("test-dynamic", "Test Dynamic", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.GainResource, 0, ResourceType.VictoryPoints)
+            {
+                DynamicAmountSource = DynamicAmountSource.PlayerTrophyHallCount,
+                DynamicAmountDivisor = 5
+            };
+            card.AddEffect(effect);
+            int vpBefore = _player.VictoryPoints;
+
+            CardEffectProcessor.ApplyEffect(effect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            Assert.AreEqual(vpBefore + 2, _player.VictoryPoints, "Only the 11 Blue (non-Neutral) troops should count: 11 / 5 = 2 VP.");
+        }
+
+        [TestMethod]
+        public void ApplyEffect_GainResource_PlayerTrophyHallCountSource_OnlyNeutralTroopsGrantsZero()
+        {
+            _player.SetTrophyHall(20, PlayerColor.Neutral); // Plenty of trophies, but none from a player.
+            var card = new Card("test-dynamic", "Test Dynamic", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.GainResource, 0, ResourceType.VictoryPoints)
+            {
+                DynamicAmountSource = DynamicAmountSource.PlayerTrophyHallCount,
+                DynamicAmountDivisor = 5
+            };
+            card.AddEffect(effect);
+            int vpBefore = _player.VictoryPoints;
+
+            CardEffectProcessor.ApplyEffect(effect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            Assert.AreEqual(vpBefore, _player.VictoryPoints, "A trophy hall made up entirely of Neutral troops must grant 0 VP for PlayerTrophyHallCount.");
+        }
+
         #endregion
     }
 }

@@ -199,9 +199,14 @@ namespace ChaosWarlords.Source.Utilities
                          // (White Dragon). Distinct from sites under TOTAL control or site
                          // control MARKERS - see planning.txt for the other dynamic-amount
                          // cards keying off those different counts, not yet wired.
-        TrophyHallCount  // Player.TrophyHall (total troops of any color in the active
+        TrophyHallCount, // Player.TrophyHall (total troops of any color in the active
                          // player's trophy hall) at resolution time (Beholder: "Gain
                          // Influence for every 3 troops in your trophy hall").
+        PlayerTrophyHallCount // Sum of Player.TrophyHallByColor EXCLUDING PlayerColor.Neutral/
+                         // None - i.e. only actual opposing players' troops, not captured white/
+                         // unaligned ones (Death Knight: "Gain 1 VP for every 5 player troops in
+                         // your trophy hall" - the printed card's own wording, distinct from
+                         // TrophyHallCount's "any troop" total).
     }
 
     public enum PlayerColor
