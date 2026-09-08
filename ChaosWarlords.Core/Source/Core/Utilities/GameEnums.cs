@@ -202,11 +202,15 @@ namespace ChaosWarlords.Source.Utilities
         TrophyHallCount, // Player.TrophyHall (total troops of any color in the active
                          // player's trophy hall) at resolution time (Beholder: "Gain
                          // Influence for every 3 troops in your trophy hall").
-        PlayerTrophyHallCount // Sum of Player.TrophyHallByColor EXCLUDING PlayerColor.Neutral/
+        PlayerTrophyHallCount, // Sum of Player.TrophyHallByColor EXCLUDING PlayerColor.Neutral/
                          // None - i.e. only actual opposing players' troops, not captured white/
                          // unaligned ones (Death Knight: "Gain 1 VP for every 5 player troops in
                          // your trophy hall" - the printed card's own wording, distinct from
                          // TrophyHallCount's "any troop" total).
+        InnerCircleCount // Player.InnerCircle.Count at resolution time (Vampire: "Promote a
+                         // card from your discard pile, then gain 1 VP for every 3 cards in your
+                         // inner circle" - counted AFTER that same card's own Promote has added
+                         // to it, since GainResource is chained via OnSuccess off PromoteFromPile).
     }
 
     public enum PlayerColor

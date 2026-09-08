@@ -67,6 +67,8 @@
   "beholder_description": "Assassinate a troop. Gain Influence for every 3 troops in your trophy hall.",
   "death_knight_name": "Death Knight",
   "death_knight_description": "Supplant a troop. Gain 1 VP for every 5 player troops in your trophy hall.",
+  "vampire_name": "Vampire",
+  "vampire_description": "Choose one: Supplant a troop. Or, promote a card from your discard pile, then gain 1 VP for every 3 cards in your inner circle.",
   "white_dragon_name": "White Dragon",
   "white_dragon_description": "Deploy 3 troops. Gain 1 VP for every 2 sites you control.",
   "grimlock_name": "Grimlock",

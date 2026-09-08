@@ -690,6 +690,46 @@ namespace ChaosWarlords.Tests.Source.Systems
             Assert.AreEqual(vpBefore, _player.VictoryPoints, "A trophy hall made up entirely of Neutral troops must grant 0 VP for PlayerTrophyHallCount.");
         }
 
+        [TestMethod]
+        public void ApplyEffect_GainResource_InnerCircleCountSource_FloorsDivisionAgainstCurrentInnerCircle()
+        {
+            // Vampire: "...promote a card, then gain 1 VP for every 3 cards in your inner
+            // circle" - 7 cards / 3 must floor to 2 VP, not round to 3.
+            for (int i = 0; i < 7; i++)
+            {
+                _player.AddToInnerCircle(new Card($"test-inner-{i}", $"Test Inner {i}", 1, CardAspect.Neutral, 0, 0, 0));
+            }
+            var card = new Card("test-dynamic", "Test Dynamic", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.GainResource, 0, ResourceType.VictoryPoints)
+            {
+                DynamicAmountSource = DynamicAmountSource.InnerCircleCount,
+                DynamicAmountDivisor = 3
+            };
+            card.AddEffect(effect);
+            int vpBefore = _player.VictoryPoints;
+
+            CardEffectProcessor.ApplyEffect(effect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            Assert.AreEqual(vpBefore + 2, _player.VictoryPoints, "7 inner circle cards / 3 must floor to 2 VP.");
+        }
+
+        [TestMethod]
+        public void ApplyEffect_GainResource_InnerCircleCountSource_EmptyInnerCircleGrantsZero()
+        {
+            var card = new Card("test-dynamic", "Test Dynamic", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.GainResource, 0, ResourceType.VictoryPoints)
+            {
+                DynamicAmountSource = DynamicAmountSource.InnerCircleCount,
+                DynamicAmountDivisor = 3
+            };
+            card.AddEffect(effect);
+            int vpBefore = _player.VictoryPoints;
+
+            CardEffectProcessor.ApplyEffect(effect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            Assert.AreEqual(vpBefore, _player.VictoryPoints, "An empty inner circle must resolve to 0 VP, not throw or fall back to a default amount.");
+        }
+
         #endregion
     }
 }
