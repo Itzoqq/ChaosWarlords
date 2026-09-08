@@ -569,6 +569,25 @@
     ]
   },
   {
+    "Id": "beholder",
+    "Cost": 5,
+    "Aspect": "Sorcery",
+    "DeckVP": 3,
+    "InnerCircleVP": 6,
+    "Effects": [
+      {
+        "Type": "Assassinate",
+        "Amount": 1
+      },
+      {
+        "Type": "GainResource",
+        "TargetResource": "Influence",
+        "DynamicAmountSource": "TrophyHallCount",
+        "DynamicAmountDivisor": 3
+      }
+    ]
+  },
+  {
     "Id": "white_dragon",
     "Cost": 6,
     "Aspect": "Warlord",

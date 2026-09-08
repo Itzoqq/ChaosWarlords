@@ -63,6 +63,8 @@
   "olhydra_description": "Supplant a white troop anywhere on the board. Focus - Deploy 2 troops.",
   "deathblade_name": "Deathblade",
   "deathblade_description": "Assassinate 2 troops.",
+  "beholder_name": "Beholder",
+  "beholder_description": "Assassinate a troop. Gain Influence for every 3 troops in your trophy hall.",
   "white_dragon_name": "White Dragon",
   "white_dragon_description": "Deploy 3 troops. Gain 1 VP for every 2 sites you control.",
   "grimlock_name": "Grimlock",

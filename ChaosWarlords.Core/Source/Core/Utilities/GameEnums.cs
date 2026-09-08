@@ -195,10 +195,13 @@ namespace ChaosWarlords.Source.Utilities
     public enum DynamicAmountSource
     {
         None = 0,
-        SitesControlled  // Count of Sites where Site.Owner == the active player's color
+        SitesControlled, // Count of Sites where Site.Owner == the active player's color
                          // (White Dragon). Distinct from sites under TOTAL control or site
                          // control MARKERS - see planning.txt for the other dynamic-amount
                          // cards keying off those different counts, not yet wired.
+        TrophyHallCount  // Player.TrophyHall (total troops of any color in the active
+                         // player's trophy hall) at resolution time (Beholder: "Gain
+                         // Influence for every 3 troops in your trophy hall").
     }
 
     public enum PlayerColor

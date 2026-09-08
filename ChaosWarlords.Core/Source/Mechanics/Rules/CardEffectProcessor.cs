@@ -476,8 +476,9 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// Returns effect.Amount unchanged for every effect (DynamicAmountSource.None, the
         /// default) - this is a no-op for every card that predates the dynamic-amount
         /// primitive. Otherwise computes the amount fresh from live game state at resolution
-        /// time (e.g. White Dragon: "Gain 1 VP for every 2 sites you control" - DynamicAmountDivisor
-        /// is the "every N" part, integer division/floor).
+        /// time (e.g. White Dragon: "Gain 1 VP for every 2 sites you control", Beholder: "Gain
+        /// Influence for every 3 troops in your trophy hall" - DynamicAmountDivisor is the
+        /// "every N" part, integer division/floor).
         /// </summary>
         private static int ResolveAmount(CardEffect effect, MatchContext context, IGameLogger logger)
         {
@@ -490,6 +491,9 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 case DynamicAmountSource.SitesControlled:
                     count = context.MapManager.Sites.Count(s => s.Owner == context.ActivePlayer.Color);
                     break;
+                case DynamicAmountSource.TrophyHallCount:
+                    count = context.ActivePlayer.TrophyHall;
+                    break;
                 default:
                     // A new DynamicAmountSource enum value added without its matching case
                     // here yet (e.g. mid-way through wiring up the next Dragon card) must not
@@ -498,6 +502,16 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                     logger.Log($"CardEffectProcessor.ResolveAmount: no case wired for DynamicAmountSource.{effect.DynamicAmountSource} - resolving to 0.", LogChannel.Warning);
                     count = 0;
                     break;
+            }
+
+            if (effect.DynamicAmountDivisor <= 0)
+            {
+                // A non-positive divisor (e.g. a "0" typo in cards.json instead of the intended
+                // "5") would otherwise be silently clamped to 1 below, granting up to N times
+                // the intended amount with nothing in the log to distinguish it from a
+                // legitimate divisor-1 card - just as easy to miss in playtesting as the unwired
+                // DynamicAmountSource case above, so it gets the same loud warning treatment.
+                logger.Log($"CardEffectProcessor.ResolveAmount: DynamicAmountDivisor {effect.DynamicAmountDivisor} is not positive - clamping to 1.", LogChannel.Warning);
             }
 
             int divisor = Math.Max(1, effect.DynamicAmountDivisor);

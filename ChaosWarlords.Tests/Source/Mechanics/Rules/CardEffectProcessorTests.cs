@@ -6,6 +6,7 @@ using ChaosWarlords.Source.Mechanics.Rules;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using System;
+using System.Collections.Generic;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Managers;
@@ -586,6 +587,67 @@ namespace ChaosWarlords.Tests.Source.Systems
 
             mockLogger.Received().Log(Arg.Is<string>(s => s.Contains("no case wired for DynamicAmountSource")), LogChannel.Warning);
             Assert.AreEqual(0, _player.VictoryPoints, "An unwired dynamic amount source must resolve to 0, not throw or grant an arbitrary amount.");
+        }
+
+        [TestMethod]
+        public void ApplyEffect_GainResource_TrophyHallCountSource_FloorsDivisionAgainstTotalTrophyHall()
+        {
+            // Beholder: "Gain Influence for every 3 troops in your trophy hall" - 7 troops / 3
+            // must floor to 2 Influence, not round to 3, and must count ALL colors (not just
+            // one), matching Player.TrophyHall's own definition (sum across TrophyHallByColor).
+            _player.SetTrophyHall(new Dictionary<PlayerColor, int> { [PlayerColor.Neutral] = 4, [PlayerColor.Blue] = 3 });
+            var card = new Card("test-dynamic", "Test Dynamic", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.GainResource, 0, ResourceType.Influence)
+            {
+                DynamicAmountSource = DynamicAmountSource.TrophyHallCount,
+                DynamicAmountDivisor = 3
+            };
+            card.AddEffect(effect);
+            int influenceBefore = _player.Influence;
+
+            CardEffectProcessor.ApplyEffect(effect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            Assert.AreEqual(influenceBefore + 2, _player.Influence, "7 total troops / 3 must floor to 2 Influence.");
+        }
+
+        [TestMethod]
+        public void ApplyEffect_GainResource_TrophyHallCountSource_EmptyTrophyHallGrantsZero()
+        {
+            var card = new Card("test-dynamic", "Test Dynamic", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.GainResource, 0, ResourceType.Influence)
+            {
+                DynamicAmountSource = DynamicAmountSource.TrophyHallCount,
+                DynamicAmountDivisor = 3
+            };
+            card.AddEffect(effect);
+            int influenceBefore = _player.Influence;
+
+            CardEffectProcessor.ApplyEffect(effect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            Assert.AreEqual(influenceBefore, _player.Influence, "An empty trophy hall must resolve to 0 Influence, not throw or fall back to a default amount.");
+        }
+
+        [TestMethod]
+        public void ApplyEffect_GainResource_NonPositiveDynamicAmountDivisor_LogsWarningAndClampsToOne()
+        {
+            // A "0" (or negative) DynamicAmountDivisor - e.g. a cards.json typo for the intended
+            // divisor - must not silently grant the full un-divided count with no trace in the
+            // log, the same reasoning as the unwired-DynamicAmountSource warning above.
+            _player.SetTrophyHall(6, PlayerColor.Neutral);
+            var card = new Card("test-dynamic", "Test Dynamic", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.GainResource, 0, ResourceType.Influence)
+            {
+                DynamicAmountSource = DynamicAmountSource.TrophyHallCount,
+                DynamicAmountDivisor = 0
+            };
+            card.AddEffect(effect);
+            int influenceBefore = _player.Influence;
+            var mockLogger = Substitute.For<IGameLogger>();
+
+            CardEffectProcessor.ApplyEffect(effect, card, _context, mockLogger);
+
+            mockLogger.Received().Log(Arg.Is<string>(s => s.Contains("DynamicAmountDivisor") && s.Contains("not positive")), LogChannel.Warning);
+            Assert.AreEqual(influenceBefore + 6, _player.Influence, "A non-positive divisor must clamp to 1, not divide by zero or silently no-op.");
         }
 
         #endregion
