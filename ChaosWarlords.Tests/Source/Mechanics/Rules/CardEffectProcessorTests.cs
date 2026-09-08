@@ -844,6 +844,60 @@ namespace ChaosWarlords.Tests.Source.Systems
         }
 
         #endregion
+
+        #region ApplyPromote PromotionCompletionEffect Tests (Blue Dragon)
+
+        [TestMethod]
+        public void ApplyEffect_Promote_WithPromotionCompletionEffect_RegistersItOnTurnContextWithoutApplyingItImmediately()
+        {
+            // Blue Dragon: "...then gain 1 VP for every 3 cards in your inner circle" - must be
+            // registered for MatchManager.EndTurn to apply LATER (after the deferred redemption
+            // actually happens), not applied the moment this Promote node itself resolves
+            // (which happens at PLAY time - see CardEffect.PromotionCompletionEffect's own doc
+            // comment for why).
+            var card = new Card("test-blue-dragon", "Test Blue Dragon", 1, CardAspect.Neutral, 0, 0, 0);
+            var completionEffect = new CardEffect(EffectType.GainResource, 0, ResourceType.VictoryPoints)
+            {
+                DynamicAmountSource = DynamicAmountSource.InnerCircleCount,
+                DynamicAmountDivisor = 3
+            };
+            var effect = new CardEffect(EffectType.Promote, 2, ResourceType.None)
+            {
+                PromotionCreditIsOptional = true,
+                PromotionCompletionEffect = completionEffect
+            };
+            card.AddEffect(effect);
+            for (int i = 0; i < 6; i++)
+            {
+                _player.AddToInnerCircle(new Card($"test-inner-{i}", $"Test Inner {i}", 1, CardAspect.Neutral, 0, 0, 0));
+            }
+            int vpBefore = _player.VictoryPoints;
+
+            CardEffectProcessor.ApplyEffect(effect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            Assert.AreEqual(vpBefore, _player.VictoryPoints, "The completion effect must NOT fire immediately when Promote itself resolves.");
+            var drained = _context.TurnManager.CurrentTurnContext.DrainPromotionCompletionEffects();
+            Assert.HasCount(1, drained, "The completion effect must have been registered exactly once.");
+            Assert.AreSame(card, drained[0].Source);
+            Assert.AreSame(completionEffect, drained[0].Effect);
+        }
+
+        [TestMethod]
+        public void ApplyEffect_Promote_WithoutPromotionCompletionEffect_RegistersNothing()
+        {
+            // core_noble/Cultist of Myrkul/Zuggtmoy - a plain Promote effect (no
+            // PromotionCompletionEffect authored) must not register anything for
+            // MatchManager.EndTurn to apply - every existing Promote card is unaffected by this
+            // primitive.
+            var card = TestData.Cards.NobleCard();
+            var effect = card.Effects[0];
+
+            CardEffectProcessor.ApplyEffect(effect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            Assert.IsEmpty(_context.TurnManager.CurrentTurnContext.DrainPromotionCompletionEffects());
+        }
+
+        #endregion
     }
 }
 

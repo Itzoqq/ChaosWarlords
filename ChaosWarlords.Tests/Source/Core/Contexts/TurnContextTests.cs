@@ -1,6 +1,7 @@
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Tests.Contexts
 {
@@ -139,6 +140,53 @@ namespace ChaosWarlords.Tests.Contexts
 
             Assert.AreEqual(2, _turnContext.PendingPromotionsCount, "Setup check: 2 optional credits should remain.");
             Assert.IsTrue(_turnContext.CanDeclineRemainingPromotions, "Only optional credits remain now - declining should be allowed.");
+        }
+
+        // --- Promotion completion effects (Blue Dragon: "...then gain 1 VP for every 3 cards
+        // in your inner circle") ---
+
+        [TestMethod]
+        public void DrainPromotionCompletionEffects_NothingRegistered_ReturnsEmpty()
+        {
+            Assert.IsEmpty(_turnContext.DrainPromotionCompletionEffects());
+        }
+
+        [TestMethod]
+        public void RegisterPromotionCompletionEffect_ThenDrain_ReturnsItExactlyOnce()
+        {
+            var completionEffect = new CardEffect(EffectType.GainResource, 1, ResourceType.VictoryPoints);
+
+            _turnContext.RegisterPromotionCompletionEffect(_cardA, completionEffect);
+
+            var drained = _turnContext.DrainPromotionCompletionEffects();
+            Assert.HasCount(1, drained);
+            Assert.AreSame(_cardA, drained[0].Source);
+            Assert.AreSame(completionEffect, drained[0].Effect);
+        }
+
+        [TestMethod]
+        public void DrainPromotionCompletionEffects_CalledTwiceAfterOneRegistration_SecondCallReturnsEmpty()
+        {
+            var completionEffect = new CardEffect(EffectType.GainResource, 1, ResourceType.VictoryPoints);
+            _turnContext.RegisterPromotionCompletionEffect(_cardA, completionEffect);
+
+            _turnContext.DrainPromotionCompletionEffects();
+            var secondDrain = _turnContext.DrainPromotionCompletionEffects();
+
+            Assert.IsEmpty(secondDrain, "A completion effect must only ever be applied once - draining must clear the registration.");
+        }
+
+        [TestMethod]
+        public void RegisterPromotionCompletionEffect_TwoDistinctSources_BothDrainIndependently()
+        {
+            var effectA = new CardEffect(EffectType.GainResource, 1, ResourceType.VictoryPoints);
+            var effectB = new CardEffect(EffectType.GainResource, 2, ResourceType.Influence);
+
+            _turnContext.RegisterPromotionCompletionEffect(_cardA, effectA);
+            _turnContext.RegisterPromotionCompletionEffect(_cardB, effectB);
+
+            var drained = _turnContext.DrainPromotionCompletionEffects();
+            Assert.HasCount(2, drained, "2 distinct sources (e.g. 2 physical Blue Dragon copies played the same turn) must each register and drain independently.");
         }
 
         [TestMethod]

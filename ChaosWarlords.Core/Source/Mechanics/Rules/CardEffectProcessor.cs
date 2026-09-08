@@ -570,6 +570,11 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         {
             context.TurnManager.CurrentTurnContext.AddPromotionCredit(sourceCard, effect.Amount, effect.PromotionCreditIsOptional);
             logger.Log($"Promotion pending! Added {effect.Amount} point(s) from {sourceCard.Name}.", LogChannel.Info);
+
+            if (effect.PromotionCompletionEffect != null)
+            {
+                context.TurnManager.CurrentTurnContext.RegisterPromotionCompletionEffect(sourceCard, effect.PromotionCompletionEffect);
+            }
         }
 
         /// <summary>

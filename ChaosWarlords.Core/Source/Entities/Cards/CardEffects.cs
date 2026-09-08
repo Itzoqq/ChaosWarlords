@@ -174,6 +174,22 @@ namespace ChaosWarlords.Source.Entities.Cards
         // for Assassinate today - no shipped card needs this on Supplant/MoveUnit yet.
         public ResourceType GainResourcePerRepeat { get; set; }
 
+        // "At end of turn, promote up to 2 other cards played this turn, THEN gain 1 VP for
+        // every 3 cards in your inner circle" (Blue Dragon) - a nested effect applied once the
+        // deferred end-of-turn promotion-credit redemption THIS EffectType.Promote node granted
+        // has actually concluded (every credit either redeemed via a real PromoteCommand or
+        // explicitly declined - see TurnContext.RegisterPromotionCompletionEffect/
+        // DrainPromotionCompletionEffects and MatchManager.EndTurn). Deliberately NOT modeled as
+        // this node's own OnSuccess: PushEffectContext/PushEffectNode would chain that in
+        // immediately once THIS Promote node's own EffectContext auto-resolves, which - because
+        // EffectType.Promote is a non-targeting/automatic effect - happens the moment the card
+        // is PLAYED, long before the deferred redemption itself (possibly many other actions
+        // later, or declined outright). Counting "cards in your inner circle" at that earlier
+        // moment would silently exclude whatever THIS card's own redemption is about to promote.
+        // Only meaningful on EffectType.Promote; null (no completion effect) for every other
+        // Promote card today (core_noble, Cultist of Myrkul, Zuggtmoy).
+        public CardEffect? PromotionCompletionEffect { get; set; }
+
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {
             Type = type;

@@ -202,6 +202,11 @@ namespace ChaosWarlords.Source.Entities.Cards
                 newEffect.Alternative = CloneEffect(effect.Alternative);
             }
 
+            if (effect.PromotionCompletionEffect != null)
+            {
+                newEffect.PromotionCompletionEffect = CloneEffect(effect.PromotionCompletionEffect);
+            }
+
             return newEffect;
         }
     }

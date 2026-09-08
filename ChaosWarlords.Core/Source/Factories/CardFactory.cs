@@ -97,9 +97,11 @@ namespace ChaosWarlords.Source.Utilities
             ParseOptionalFlags(data, effect);
             ParseDynamicAmount(data, effect, logger);
             ParseGainResourcePerRepeat(data, effect, logger);
+            ParsePromotionCompletionEffect(data, effect, logger);
             WarnIfChooseCountShapeIsUnsupported(data, effect, logger);
             WarnIfChainedRepeatCountShapeIsUnsupported(data, effect, logger);
             WarnIfGainResourcePerRepeatShapeIsUnsupported(data, effect, logger);
+            WarnIfPromotionCompletionEffectShapeIsUnsupported(data, effect, logger);
 
             return effect;
         }
@@ -309,6 +311,39 @@ namespace ChaosWarlords.Source.Utilities
             if (effect.Type != EffectType.Assassinate)
             {
                 logger?.Log($"[CardFactory] {data.Type}: GainResourcePerRepeat={effect.GainResourcePerRepeat} is only wired for EffectType.Assassinate - it will parse and clone but never actually fire on this effect type.", LogChannel.Warning);
+            }
+        }
+
+        private static void ParsePromotionCompletionEffect(CardEffectData data, CardEffect effect, IGameLogger? logger)
+        {
+            if (data.PromotionCompletionEffect != null)
+            {
+                effect.PromotionCompletionEffect = CreateEffect(data.PromotionCompletionEffect, logger);
+            }
+        }
+
+        // CardEffect.PromotionCompletionEffect is only ever read by ApplyPromote (registered
+        // into TurnContext, applied later by MatchManager.EndTurn) - authoring it on any other
+        // EffectType would parse and clone fine but silently never fire. Also warns if the
+        // completion effect itself chains further (OnSuccess/Alternative) - MatchManager.EndTurn
+        // applies it via a direct CardEffectProcessor.ApplyEffect call with no EffectContext ever
+        // built for it, the same "chain not propagated" limitation ParseReactiveDiscardEffect's
+        // own warning already flags for Grimlock's mechanism.
+        private static void WarnIfPromotionCompletionEffectShapeIsUnsupported(CardEffectData data, CardEffect effect, IGameLogger? logger)
+        {
+            if (effect.PromotionCompletionEffect == null)
+            {
+                return;
+            }
+
+            if (effect.Type != EffectType.Promote)
+            {
+                logger?.Log($"[CardFactory] {data.Type}: PromotionCompletionEffect is only wired for EffectType.Promote - it will parse and clone but never actually fire on this effect type.", LogChannel.Warning);
+            }
+
+            if (effect.PromotionCompletionEffect.OnSuccess != null || effect.PromotionCompletionEffect.Alternative != null)
+            {
+                logger?.Log($"[CardFactory] {data.Type}: PromotionCompletionEffect has an OnSuccess/Alternative chain, which MatchManager.EndTurn does not resolve - it will be silently dropped in play. Not supported yet.", LogChannel.Warning);
             }
         }
     }

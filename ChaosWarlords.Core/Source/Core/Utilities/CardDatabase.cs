@@ -81,6 +81,10 @@ namespace ChaosWarlords.Source.Utilities
         // "For each troop removed, gain Influence" (Death Tyrant) - see
         // CardEffect.GainResourcePerRepeat.
         public string? GainResourcePerRepeat { get; set; }
+
+        // "...THEN gain 1 VP for every 3 cards in your inner circle" (Blue Dragon) - see
+        // CardEffect.PromotionCompletionEffect.
+        public CardEffectData? PromotionCompletionEffect { get; set; }
     }
 
     public class CardDatabase : ICardDatabase

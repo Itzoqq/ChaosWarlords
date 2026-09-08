@@ -343,6 +343,17 @@ namespace ChaosWarlords.Source.Managers
             }
             _context.CardsMarkedForTurnEndPromote.Clear();
 
+            // 1d. Process deferred Promote-effect completions (e.g. Blue Dragon: "...then gain 1
+            // VP for every 3 cards in your inner circle") - see CardEffect.
+            // PromotionCompletionEffect/TurnContext.DrainPromotionCompletionEffects for why this
+            // (the always-recorded, always-replayed EndTurnCommand) is the only safe firing
+            // point. Runs after 1c above so a Revenant-style self-promote sharing this same turn
+            // is already reflected too, though no shipped card combines the two.
+            foreach (var (source, completionEffect) in _context.TurnManager.CurrentTurnContext.DrainPromotionCompletionEffects())
+            {
+                CardEffectProcessor.ApplyEffect(completionEffect, source, _context, _logger);
+            }
+
             // 2. Cleanup: Move Hand + Played -> Discard
             _context.PlayerStateManager.CleanUpTurn(_context.ActivePlayer);
 

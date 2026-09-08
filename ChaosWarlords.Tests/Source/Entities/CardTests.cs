@@ -153,14 +153,18 @@ namespace ChaosWarlords.Tests.Source.Entities
 
             var properties = typeof(CardEffect).GetProperties()
                 .Where(p => p.CanRead && p.CanWrite)
-                // OnSuccess/Alternative are self-referential chain nodes, not a flat data field
-                // this shallow-equality check can compare directly (the clone is a structurally
-                // equal but reference-different deep copy). No separate nested-node test is
-                // needed for THIS check's purpose though: Card.CloneEffect recurses into
-                // OnSuccess/Alternative via this exact same method, at every depth - so the
-                // completeness guarantee below already applies to a nested node's own
+                // OnSuccess/Alternative/PromotionCompletionEffect are self-referential chain
+                // nodes, not a flat data field this shallow-equality check can compare directly
+                // (the clone is a structurally equal but reference-different deep copy). No
+                // separate nested-node test is needed for THIS check's purpose though: Card.
+                // CloneEffect recurses into all three via this exact same method, at every depth
+                // - so the completeness guarantee below already applies to a nested node's own
                 // properties too, for free, the next time this test runs against one.
-                .Where(p => p.Name != nameof(CardEffect.OnSuccess) && p.Name != nameof(CardEffect.Alternative))
+                // PromotionCompletionEffect specifically also has its own dedicated deep-copy
+                // test below (Clone_EffectWithPromotionCompletionEffect_DeepCopiesTheNestedEffect)
+                // since - unlike OnSuccess/Alternative - nothing else in the suite exercises
+                // Card.Clone() (as opposed to CardFactory.CreateFromData) for it.
+                .Where(p => p.Name != nameof(CardEffect.OnSuccess) && p.Name != nameof(CardEffect.Alternative) && p.Name != nameof(CardEffect.PromotionCompletionEffect))
                 .ToList();
 
             Assert.IsNotEmpty(properties, "Sanity check: CardEffect should have cloneable properties to test.");
@@ -214,6 +218,41 @@ namespace ChaosWarlords.Tests.Source.Entities
                 $"CardTests.BuildSentinel doesn't know how to build a sentinel value for CardEffect.{prop.Name} " +
                 $"(type {type.Name}) - extend this method so Clone_EveryCardEffectProperty_IsPreservedAutomatically " +
                 "can actually exercise the new field.");
+        }
+
+        /// <summary>
+        /// Dedicated deep-copy check for CardEffect.PromotionCompletionEffect (Blue Dragon) -
+        /// deliberately excluded from the generic reflection sweep above (see its own comment),
+        /// so this closes the gap directly: nothing else in the suite exercises Card.Clone()
+        /// (as opposed to CardFactory.CreateFromData, which CardFactoryTests.cs already covers)
+        /// for this specific field.
+        /// </summary>
+        [TestMethod]
+        public void Clone_EffectWithPromotionCompletionEffect_DeepCopiesTheNestedEffect()
+        {
+            var completionEffect = new CardEffect(EffectType.GainResource, 1, ResourceType.VictoryPoints);
+            var effect = new CardEffect(EffectType.Promote, 2) { PromotionCompletionEffect = completionEffect };
+            _card.AddEffect(effect);
+
+            var clone = _card.Clone();
+            var clonedCompletionEffect = clone.Effects[0].PromotionCompletionEffect;
+
+            Assert.IsNotNull(clonedCompletionEffect, "Card.CloneEffect must copy PromotionCompletionEffect - it came back null.");
+            Assert.AreNotSame(completionEffect, clonedCompletionEffect, "Must be a deep copy (Card.CloneEffect's own recursion), not a shared reference.");
+            Assert.AreEqual(EffectType.GainResource, clonedCompletionEffect!.Type);
+            Assert.AreEqual(ResourceType.VictoryPoints, clonedCompletionEffect.TargetResource);
+            Assert.AreEqual(1, clonedCompletionEffect.Amount);
+        }
+
+        [TestMethod]
+        public void Clone_EffectWithNoPromotionCompletionEffect_StaysNull()
+        {
+            var effect = new CardEffect(EffectType.Promote, 1);
+            _card.AddEffect(effect);
+
+            var clone = _card.Clone();
+
+            Assert.IsNull(clone.Effects[0].PromotionCompletionEffect);
         }
 
         [TestMethod]

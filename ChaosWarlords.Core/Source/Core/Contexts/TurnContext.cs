@@ -18,6 +18,24 @@ namespace ChaosWarlords.Source.Contexts
         private readonly record struct PromotionCredit(Card Source, bool IsOptional);
         private readonly List<PromotionCredit> _promotionCredits;
 
+        // "...THEN gain 1 VP for every 3 cards in your inner circle" (Blue Dragon) - effects
+        // registered by AddPromotionCredit (when a Promote effect authored a
+        // CardEffect.PromotionCompletionEffect) and drained/applied once by MatchManager.EndTurn,
+        // once this turn's whole deferred promotion-credit redemption has concluded (every
+        // credit either consumed via a real PromoteCommand or explicitly declined) - never
+        // sooner, so a dynamic amount like "cards in your inner circle" is computed AFTER the
+        // redemption's own promotions have actually happened. A list, not a dictionary keyed by
+        // source: 2 distinct physical copies of the same completion-effect-bearing card played
+        // the same turn (unusual, but not prevented by anything) each register and each fire
+        // independently. Not tied to per-credit-unit consumption tracking at all - unlike
+        // Vampire's OnSuccess-off-PromoteFromPile chain, this deferred flow has no reliable
+        // "this specific credit was just resolved" signal that also fires correctly during
+        // replay (PromoteInputMode, which calls ConsumeCreditFor/ForfeitRemainingPromotions,
+        // deliberately never runs during replay - see GameplayState.SwitchToTargetingMode) - only
+        // EndTurn() itself (driven by the always-recorded, always-replayed EndTurnCommand) fires
+        // identically in both live play and replay.
+        private readonly List<(Card Source, CardEffect Effect)> _promotionCompletionEffects = new();
+
         // --- Action Sequencing ---
         private int _actionSequence;
         private readonly List<ExecutedAction> _actionHistory = new();
@@ -57,6 +75,34 @@ namespace ChaosWarlords.Source.Contexts
             {
                 _promotionCredits.Add(new PromotionCredit(source, isOptional));
             }
+        }
+
+        /// <summary>
+        /// Registers a nested effect (Blue Dragon's "...then gain 1 VP for every 3 cards in your
+        /// inner circle") to be applied once, later, by MatchManager.EndTurn - see
+        /// _promotionCompletionEffects' own doc comment for why EndTurn is the correct/only
+        /// safe firing point.
+        /// </summary>
+        public void RegisterPromotionCompletionEffect(Card source, CardEffect effect)
+        {
+            _promotionCompletionEffects.Add((source, effect));
+        }
+
+        /// <summary>
+        /// Returns every completion effect registered this turn and clears the list - called
+        /// exactly once per turn, by MatchManager.EndTurn, so a given registration is never
+        /// applied twice.
+        /// </summary>
+        public IReadOnlyList<(Card Source, CardEffect Effect)> DrainPromotionCompletionEffects()
+        {
+            if (_promotionCompletionEffects.Count == 0)
+            {
+                return Array.Empty<(Card Source, CardEffect Effect)>();
+            }
+
+            var drained = _promotionCompletionEffects.ToArray();
+            _promotionCompletionEffects.Clear();
+            return drained;
         }
 
         /// <summary>

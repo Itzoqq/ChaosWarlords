@@ -706,6 +706,26 @@
     ]
   },
   {
+    "Id": "blue_dragon",
+    "Cost": 8,
+    "Aspect": "Blasphemy",
+    "DeckVP": 4,
+    "InnerCircleVP": 8,
+    "Effects": [
+      {
+        "Type": "Promote",
+        "Amount": 2,
+        "PromotionCreditIsOptional": true,
+        "PromotionCompletionEffect": {
+          "Type": "GainResource",
+          "TargetResource": "VictoryPoints",
+          "DynamicAmountSource": "InnerCircleCount",
+          "DynamicAmountDivisor": 3
+        }
+      }
+    ]
+  },
+  {
     "Id": "grimlock",
     "Cost": 1,
     "Aspect": "Warlord",

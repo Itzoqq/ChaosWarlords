@@ -26,6 +26,8 @@ namespace ChaosWarlords.Tests.Integration.Factories
             ["chained_repeat_card_description"] = "Test card for ChainedRepeatCount",
             ["gain_resource_per_repeat_card_name"] = "Gain Resource Per Repeat Card",
             ["gain_resource_per_repeat_card_description"] = "Test card for GainResourcePerRepeat",
+            ["promotion_completion_effect_card_name"] = "Promotion Completion Effect Card",
+            ["promotion_completion_effect_card_description"] = "Test card for PromotionCompletionEffect",
         });
 
         [TestMethod]
@@ -459,6 +461,148 @@ namespace ChaosWarlords.Tests.Integration.Factories
 
             logger.Received(1).Log(Arg.Is<string>(s => s.Contains("only wired for EffectType.Assassinate")), LogChannel.Warning);
         }
+
+        // --- CardEffect.PromotionCompletionEffect (Blue Dragon's "...then gain 1 VP for every
+        // 3 cards in your inner circle" primitive) load-time parsing/validation - see
+        // CardFactory.ParsePromotionCompletionEffect/WarnIfPromotionCompletionEffectShapeIsUnsupported ---
+
+        [TestMethod]
+        public void CreateFromData_PromotionCompletionEffectParsesOntoTheEffect()
+        {
+            var cardData = new CardData
+            {
+                Id = "promotion_completion_effect_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData
+                    {
+                        Type = "Promote",
+                        Amount = 2,
+                        PromotionCreditIsOptional = true,
+                        PromotionCompletionEffect = new CardEffectData
+                        {
+                            Type = "GainResource",
+                            TargetResource = "VictoryPoints",
+                            DynamicAmountSource = "InnerCircleCount",
+                            DynamicAmountDivisor = 3
+                        }
+                    }
+                }
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization);
+
+            var completionEffect = card.Effects[0].PromotionCompletionEffect;
+            Assert.IsNotNull(completionEffect);
+            Assert.AreEqual(EffectType.GainResource, completionEffect!.Type);
+            Assert.AreEqual(ResourceType.VictoryPoints, completionEffect.TargetResource);
+            Assert.AreEqual(DynamicAmountSource.InnerCircleCount, completionEffect.DynamicAmountSource);
+            Assert.AreEqual(3, completionEffect.DynamicAmountDivisor);
+        }
+
+        [TestMethod]
+        public void CreateFromData_NoPromotionCompletionEffectAuthored_LeavesItNull()
+        {
+            // core_noble/Cultist of Myrkul/Zuggtmoy - every existing Promote card is unaffected.
+            var cardData = new CardData
+            {
+                Id = "promotion_completion_effect_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "Promote", Amount = 1 }
+                }
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization);
+
+            Assert.IsNull(card.Effects[0].PromotionCompletionEffect);
+        }
+
+        [TestMethod]
+        public void CreateFromData_PromotionCompletionEffectOnPromote_LogsNoWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "promotion_completion_effect_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData
+                    {
+                        Type = "Promote",
+                        Amount = 2,
+                        PromotionCompletionEffect = new CardEffectData { Type = "GainResource", TargetResource = "VictoryPoints" }
+                    }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.DidNotReceiveWithAnyArgs().Log(default(string)!, default);
+        }
+
+        [TestMethod]
+        public void CreateFromData_PromotionCompletionEffectOnANonPromoteEffect_LogsAWarning()
+        {
+            // PromotionCompletionEffect is only ever read by ApplyPromote (registered into
+            // TurnContext, applied later by MatchManager.EndTurn) - authoring it on any other
+            // effect type would parse and clone fine but silently never fire.
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "promotion_completion_effect_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData
+                    {
+                        Type = "Supplant",
+                        Amount = 1,
+                        PromotionCompletionEffect = new CardEffectData { Type = "GainResource", TargetResource = "VictoryPoints" }
+                    }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.Received(1).Log(Arg.Is<string>(s => s.Contains("only wired for EffectType.Promote")), LogChannel.Warning);
+        }
+
+        [TestMethod]
+        public void CreateFromData_PromotionCompletionEffectWithItsOwnOnSuccessChain_LogsAWarning()
+        {
+            // MatchManager.EndTurn applies the completion effect via a direct
+            // CardEffectProcessor.ApplyEffect call with no EffectContext ever built for it - a
+            // chain authored on the completion effect itself would be silently dropped.
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "promotion_completion_effect_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData
+                    {
+                        Type = "Promote",
+                        Amount = 2,
+                        PromotionCompletionEffect = new CardEffectData
+                        {
+                            Type = "GainResource",
+                            TargetResource = "VictoryPoints",
+                            OnSuccess = new CardEffectData { Type = "GainResource", TargetResource = "Influence" }
+                        }
+                    }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.Received(1).Log(Arg.Is<string>(s => s.Contains("PromotionCompletionEffect has an OnSuccess/Alternative chain")), LogChannel.Warning);
+        }
+
     }
 }
 
