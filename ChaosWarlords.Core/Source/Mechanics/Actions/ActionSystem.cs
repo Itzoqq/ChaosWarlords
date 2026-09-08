@@ -530,12 +530,55 @@ namespace ChaosWarlords.Source.Managers
             }
 
             _mapManager.Assassinate(node, CurrentPlayer);
+
+            // Death Tyrant: "Assassinate up to 3 troops at a single site. For each troop
+            // removed, gain Influence" - read CurrentSourceEffect BEFORE CompleteAction() below
+            // (same timing reasoning as RestrictRepeatsToFirstTargetSite above), and grant it
+            // on EVERY repeat, not just the first: the EffectContext this reads stays the same
+            // object across the whole repeat sequence (ResolveCurrentEffect's repeat branch
+            // re-enters targeting without popping the stack), so this fires once per successful
+            // removal - unlike DynamicAmountSource, which computes a single amount from live
+            // board state, generally read only once after a whole effect tree finishes.
+            if (CurrentSourceEffect?.GainResourcePerRepeat is ResourceType resource && resource != ResourceType.None)
+            {
+                GrantResourcePerRepeat(resource);
+            }
+
             CompleteAction();
         }
 
         private void SpendAssassinateCost()
         {
             _playerStateManager.TrySpendPower(CurrentPlayer, GameConstants.AssassinatePowerCost);
+        }
+
+        /// <summary>
+        /// Grants 1 of <paramref name="resource"/> to CurrentPlayer - the per-repeat side effect
+        /// CardEffect.GainResourcePerRepeat describes, called once for each successful
+        /// individual repeat of a SupportsRepeat effect (currently only wired for Assassinate,
+        /// via PerformAssassinate). Deliberately supports only the resources that make sense to
+        /// grant repeatedly and immediately (Power/Influence/VictoryPoints) - Troops (which
+        /// CardEffectProcessor.ApplyGainResource instead credits to PendingFreeTroops, a
+        /// deferred pool spent later through the normal Deploy flow) has no shipped card
+        /// wanting it here yet, so it's treated as unsupported rather than silently guessed at.
+        /// </summary>
+        private void GrantResourcePerRepeat(ResourceType resource)
+        {
+            switch (resource)
+            {
+                case ResourceType.Power:
+                    _playerStateManager.AddPower(CurrentPlayer, 1);
+                    break;
+                case ResourceType.Influence:
+                    _playerStateManager.AddInfluence(CurrentPlayer, 1);
+                    break;
+                case ResourceType.VictoryPoints:
+                    _playerStateManager.AddVictoryPoints(CurrentPlayer, 1);
+                    break;
+                default:
+                    _logger.Log($"ActionSystem.GrantResourcePerRepeat: no case wired for ResourceType.{resource} - no resource granted.", LogChannel.Warning);
+                    break;
+            }
         }
 
         public void PerformReturnTroop(MapNode node, string? cardId)

@@ -165,6 +165,15 @@ namespace ChaosWarlords.Source.Entities.Cards
         // lookahead exactly as before.
         public bool SkipUnreachableOnSuccessCheck { get; set; }
 
+        // "Assassinate up to 3 troops at a single site. For each troop removed, gain
+        // Influence" (Death Tyrant) - grants 1 of this resource EACH TIME a repeat of THIS
+        // effect actually succeeds, as it happens (ActionSystem.PerformAssassinate), unlike
+        // DynamicAmountSource (a single amount computed from live board state, generally AFTER
+        // all repeats of a whole effect tree have finished). Defaults to None, meaning "no
+        // per-repeat grant" - every existing repeat-capable effect is unaffected. Only wired
+        // for Assassinate today - no shipped card needs this on Supplant/MoveUnit yet.
+        public ResourceType GainResourcePerRepeat { get; set; }
+
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {
             Type = type;

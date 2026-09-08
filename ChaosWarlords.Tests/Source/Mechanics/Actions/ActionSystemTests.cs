@@ -1071,6 +1071,96 @@ namespace ChaosWarlords.Tests.Systems
 
         #endregion
 
+        #region PerformAssassinate GainResourcePerRepeat Tests (Death Tyrant)
+
+        private void PushAssassinateEffectContext(Card card, CardEffect sourceEffect, int remainingRepeats = 1)
+        {
+            var ctx = new EffectContext(ActionState.TargetingAssassinate, card, requiresInput: true, "Effect: Assassinate", onResolved: _ => { }, sourceEffect: sourceEffect)
+            {
+                RemainingRepeats = remainingRepeats
+            };
+            _actionSystem.PushEffect(ctx);
+        }
+
+        [TestMethod]
+        public void PerformAssassinate_WithGainResourcePerRepeatInfluence_GrantsOneInfluence()
+        {
+            var card = TestData.Cards.AssassinCard();
+            var sourceEffect = new CardEffect(EffectType.Assassinate, 3) { GainResourcePerRepeat = ResourceType.Influence };
+            PushAssassinateEffectContext(card, sourceEffect);
+            _node2.Occupant = PlayerColor.Blue;
+
+            _actionSystem.PerformAssassinate(_node2, cardId: card.Id, devourCardId: null);
+
+            _playerStateManager.Received(1).AddInfluence(_player1, 1);
+        }
+
+        [TestMethod]
+        public void PerformAssassinate_WithGainResourcePerRepeatPower_GrantsOnePower()
+        {
+            var card = TestData.Cards.AssassinCard();
+            var sourceEffect = new CardEffect(EffectType.Assassinate, 3) { GainResourcePerRepeat = ResourceType.Power };
+            PushAssassinateEffectContext(card, sourceEffect);
+            _node2.Occupant = PlayerColor.Blue;
+
+            _actionSystem.PerformAssassinate(_node2, cardId: card.Id, devourCardId: null);
+
+            _playerStateManager.Received(1).AddPower(_player1, 1);
+        }
+
+        [TestMethod]
+        public void PerformAssassinate_WithGainResourcePerRepeatVictoryPoints_GrantsOneVictoryPoint()
+        {
+            var card = TestData.Cards.AssassinCard();
+            var sourceEffect = new CardEffect(EffectType.Assassinate, 3) { GainResourcePerRepeat = ResourceType.VictoryPoints };
+            PushAssassinateEffectContext(card, sourceEffect);
+            _node2.Occupant = PlayerColor.Blue;
+
+            _actionSystem.PerformAssassinate(_node2, cardId: card.Id, devourCardId: null);
+
+            _playerStateManager.Received(1).AddVictoryPoints(_player1, 1);
+        }
+
+        [TestMethod]
+        public void PerformAssassinate_WithoutGainResourcePerRepeat_GrantsNoResource()
+        {
+            // Regression guard: an ordinary Assassinate effect (GainResourcePerRepeat defaults
+            // to ResourceType.None) must not grant anything - every existing Assassinate card is
+            // unaffected by this new hook.
+            var card = TestData.Cards.AssassinCard();
+            var sourceEffect = new CardEffect(EffectType.Assassinate, 1);
+            PushAssassinateEffectContext(card, sourceEffect);
+            _node2.Occupant = PlayerColor.Blue;
+
+            _actionSystem.PerformAssassinate(_node2, cardId: card.Id, devourCardId: null);
+
+            _playerStateManager.DidNotReceive().AddInfluence(Arg.Any<Player>(), Arg.Any<int>());
+            _playerStateManager.DidNotReceive().AddPower(Arg.Any<Player>(), Arg.Any<int>());
+            _playerStateManager.DidNotReceive().AddVictoryPoints(Arg.Any<Player>(), Arg.Any<int>());
+        }
+
+        [TestMethod]
+        public void PerformAssassinate_WithGainResourcePerRepeat_GrantsOncePerCallNotJustOnce()
+        {
+            // Death Tyrant's whole point: repeated calls to PerformAssassinate (one per
+            // successful target click of the SAME repeat sequence) must each grant their own
+            // Influence - not just the first, and not only once for the whole sequence.
+            var card = TestData.Cards.AssassinCard();
+            var sourceEffect = new CardEffect(EffectType.Assassinate, 3) { GainResourcePerRepeat = ResourceType.Influence };
+            PushAssassinateEffectContext(card, sourceEffect, remainingRepeats: 2);
+            _node1.Occupant = PlayerColor.Blue;
+            _node2.Occupant = PlayerColor.Blue;
+
+            _actionSystem.PerformAssassinate(_node1, cardId: card.Id, devourCardId: null);
+            Assert.AreEqual(ActionState.TargetingAssassinate, _actionSystem.CurrentState, "Setup check: 1 more repeat should still be owed after the first call.");
+
+            _actionSystem.PerformAssassinate(_node2, cardId: card.Id, devourCardId: null);
+
+            _playerStateManager.Received(2).AddInfluence(_player1, 1);
+        }
+
+        #endregion
+
         #region PerformDeployFromTrophyHall Tests (Mummy Lord)
 
         [TestMethod]

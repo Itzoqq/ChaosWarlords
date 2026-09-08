@@ -77,6 +77,10 @@ namespace ChaosWarlords.Source.Utilities
         // "Return any number of your spies -> Supplant a troop at each of the returned
         // spies' sites" (Graz'zt) - see CardEffect.ChainedRepeatCount.
         public int ChainedRepeatCount { get; set; }
+
+        // "For each troop removed, gain Influence" (Death Tyrant) - see
+        // CardEffect.GainResourcePerRepeat.
+        public string? GainResourcePerRepeat { get; set; }
     }
 
     public class CardDatabase : ICardDatabase

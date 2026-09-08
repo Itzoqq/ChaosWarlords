@@ -96,8 +96,10 @@ namespace ChaosWarlords.Source.Utilities
             ParseCondition(data, effect);
             ParseOptionalFlags(data, effect);
             ParseDynamicAmount(data, effect, logger);
+            ParseGainResourcePerRepeat(data, effect, logger);
             WarnIfChooseCountShapeIsUnsupported(data, effect, logger);
             WarnIfChainedRepeatCountShapeIsUnsupported(data, effect, logger);
+            WarnIfGainResourcePerRepeatShapeIsUnsupported(data, effect, logger);
 
             return effect;
         }
@@ -275,6 +277,38 @@ namespace ChaosWarlords.Source.Utilities
             else
             {
                 logger?.Log($"[CardFactory] FAILED to parse DynamicAmountSource: {data.DynamicAmountSource}", LogChannel.Warning);
+            }
+        }
+
+        private static void ParseGainResourcePerRepeat(CardEffectData data, CardEffect effect, IGameLogger? logger)
+        {
+            if (string.IsNullOrEmpty(data.GainResourcePerRepeat))
+                return;
+
+            if (Enum.TryParse(data.GainResourcePerRepeat, true, out ResourceType resource))
+            {
+                effect.GainResourcePerRepeat = resource;
+            }
+            else
+            {
+                logger?.Log($"[CardFactory] FAILED to parse GainResourcePerRepeat: {data.GainResourcePerRepeat}", LogChannel.Warning);
+            }
+        }
+
+        // CardEffect.GainResourcePerRepeat is only ever read by ActionSystem.PerformAssassinate -
+        // authoring it on any other EffectType would parse and clone fine but silently never
+        // fire, exactly the "catch it before it ships" gap ChooseCount/ChainedRepeatCount's own
+        // warnings above exist to close.
+        private static void WarnIfGainResourcePerRepeatShapeIsUnsupported(CardEffectData data, CardEffect effect, IGameLogger? logger)
+        {
+            if (effect.GainResourcePerRepeat == ResourceType.None)
+            {
+                return;
+            }
+
+            if (effect.Type != EffectType.Assassinate)
+            {
+                logger?.Log($"[CardFactory] {data.Type}: GainResourcePerRepeat={effect.GainResourcePerRepeat} is only wired for EffectType.Assassinate - it will parse and clone but never actually fire on this effect type.", LogChannel.Warning);
             }
         }
     }

@@ -188,6 +188,7 @@ namespace ChaosWarlords.Source.Entities.Cards
                 ChooseCount = effect.ChooseCount,
                 ChainedRepeatCount = effect.ChainedRepeatCount,
                 SkipUnreachableOnSuccessCheck = effect.SkipUnreachableOnSuccessCheck,
+                GainResourcePerRepeat = effect.GainResourcePerRepeat,
                 Condition = effect.Condition // Reference copy for condition (usually shared/immutable)
             };
 

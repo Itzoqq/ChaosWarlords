@@ -607,6 +607,22 @@
     ]
   },
   {
+    "Id": "death_tyrant",
+    "Cost": 7,
+    "Aspect": "Sorcery",
+    "DeckVP": 3,
+    "InnerCircleVP": 6,
+    "Effects": [
+      {
+        "Type": "Assassinate",
+        "Amount": 3,
+        "AllowPartialRepeat": true,
+        "RestrictRepeatsToFirstTargetSite": true,
+        "GainResourcePerRepeat": "Influence"
+      }
+    ]
+  },
+  {
     "Id": "vampire",
     "Cost": 7,
     "Aspect": "Blasphemy",

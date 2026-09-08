@@ -24,6 +24,8 @@ namespace ChaosWarlords.Tests.Integration.Factories
             ["choose_count_card_description"] = "Test card for ChooseCount",
             ["chained_repeat_card_name"] = "Chained Repeat Card",
             ["chained_repeat_card_description"] = "Test card for ChainedRepeatCount",
+            ["gain_resource_per_repeat_card_name"] = "Gain Resource Per Repeat Card",
+            ["gain_resource_per_repeat_card_description"] = "Test card for GainResourcePerRepeat",
         });
 
         [TestMethod]
@@ -373,6 +375,89 @@ namespace ChaosWarlords.Tests.Integration.Factories
             CardFactory.CreateFromData(cardData, _localization, logger: logger);
 
             logger.DidNotReceiveWithAnyArgs().Log(default(string)!, default);
+        }
+
+        // --- CardEffect.GainResourcePerRepeat (Death Tyrant's "for each troop removed, gain
+        // Influence" primitive) load-time validation - see
+        // CardFactory.WarnIfGainResourcePerRepeatShapeIsUnsupported ---
+
+        [TestMethod]
+        public void CreateFromData_GainResourcePerRepeatParsesOntoTheEffect()
+        {
+            var cardData = new CardData
+            {
+                Id = "gain_resource_per_repeat_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "Assassinate", Amount = 3, GainResourcePerRepeat = "Influence" }
+                }
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization);
+
+            Assert.AreEqual(ResourceType.Influence, card.Effects[0].GainResourcePerRepeat);
+        }
+
+        [TestMethod]
+        public void CreateFromData_GainResourcePerRepeatWithUnparseableValue_LogsAWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "gain_resource_per_repeat_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "Assassinate", Amount = 3, GainResourcePerRepeat = "NotARealResource" }
+                }
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.Received(1).Log(Arg.Is<string>(s => s.Contains("FAILED to parse GainResourcePerRepeat")), LogChannel.Warning);
+            Assert.AreEqual(ResourceType.None, card.Effects[0].GainResourcePerRepeat);
+        }
+
+        [TestMethod]
+        public void CreateFromData_GainResourcePerRepeatOnAssassinate_LogsNoWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "gain_resource_per_repeat_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "Assassinate", Amount = 3, GainResourcePerRepeat = "Influence" }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.DidNotReceiveWithAnyArgs().Log(default(string)!, default);
+        }
+
+        [TestMethod]
+        public void CreateFromData_GainResourcePerRepeatOnANonAssassinateEffect_LogsAWarning()
+        {
+            // GainResourcePerRepeat is only ever read by ActionSystem.PerformAssassinate -
+            // authoring it on any other effect type would parse and clone fine but silently
+            // never fire.
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "gain_resource_per_repeat_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "Supplant", Amount = 1, GainResourcePerRepeat = "Influence" }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.Received(1).Log(Arg.Is<string>(s => s.Contains("only wired for EffectType.Assassinate")), LogChannel.Warning);
         }
     }
 }
