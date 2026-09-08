@@ -758,6 +758,20 @@
     ]
   },
   {
+    "Id": "quaggoth",
+    "Cost": 5,
+    "Aspect": "Warlord",
+    "DeckVP": 2,
+    "InnerCircleVP": 4,
+    "Effects": [
+      {
+        "Type": "Assassinate",
+        "TargetNeutralTroopOnly": true,
+        "DynamicAmountSource": "SitesControlled"
+      }
+    ]
+  },
+  {
     "Id": "grimlock",
     "Cost": 1,
     "Aspect": "Warlord",

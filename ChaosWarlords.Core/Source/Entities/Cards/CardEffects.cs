@@ -39,9 +39,12 @@ namespace ChaosWarlords.Source.Entities.Cards
         // None, CardEffectProcessor.ResolveAmount computes the actual amount from live game
         // state instead of using Amount as a fixed literal. DynamicAmountDivisor is the "every
         // N" part (integer division, floor - 3 sites at divisor 2 is 1 VP, not 1.5); defaults to
-        // 1 (Amount == the raw count, no division) for a source like Green/Red Dragon's "for
-        // each" - not yet wired, since neither has a shipped card, but the field already
-        // supports that ratio once one is.
+        // 1 (Amount == the raw count, no division) for a plain "for each" (e.g. Green Dragon's
+        // "1 VP for each site you control"). Effect-type-agnostic: normally resolves a
+        // GainResource/DrawCard AMOUNT, but on a repeat-capable effect type (IEffectStrategy.
+        // SupportsRepeat) it instead resolves the REPEAT COUNT (Quaggoth: "Assassinate one white
+        // troop for each site you control") - see PushEffectContext's own dynamic-repeat-count
+        // gate, which also skips the whole effect entirely when that count resolves to 0.
         public DynamicAmountSource DynamicAmountSource { get; set; }
         public int DynamicAmountDivisor { get; set; } = 1;
 

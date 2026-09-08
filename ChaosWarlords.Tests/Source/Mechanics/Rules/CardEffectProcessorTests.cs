@@ -898,6 +898,96 @@ namespace ChaosWarlords.Tests.Source.Systems
         }
 
         #endregion
+
+        #region PushEffectContext Dynamic Repeat Count Tests (Quaggoth, tested via ResolveEffects)
+
+        [TestMethod]
+        public void ResolveEffects_Assassinate_DynamicAmountSourceSitesControlled_SetsRemainingRepeatsToSiteCount()
+        {
+            // Quaggoth: "Assassinate one white troop for each site you control" - the repeat
+            // COUNT itself (not a resource amount) comes from DynamicAmountSource this time.
+            var siteA = MakeSite("A");
+            siteA.Owner = _player.Color;
+            var siteB = MakeSite("B");
+            siteB.Owner = _player.Color;
+            var siteC = MakeSite("C"); // Not controlled by _player - must not count.
+            _context.MapManager.Sites.Returns(new List<Site> { siteA, siteB, siteC });
+            _context.MapManager.HasValidAssassinationTarget(Arg.Any<Player>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<Site>()).Returns(true);
+
+            var card = new Card("test-quaggoth", "Test Quaggoth", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.Assassinate, 0, ResourceType.None)
+            {
+                TargetNeutralTroopOnly = true,
+                DynamicAmountSource = DynamicAmountSource.SitesControlled
+            };
+            card.AddEffect(effect);
+
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
+
+            _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.RemainingRepeats == 2));
+        }
+
+        [TestMethod]
+        public void ResolveEffects_Assassinate_DynamicAmountSourceResolvesToZero_SkipsTheWholeEffectEntirely()
+        {
+            // Controlling 0 sites must skip Assassinate entirely - NOT fall back to the
+            // Math.Max(1, ...) floor every other repeat-capable effect gets, which would force a
+            // phantom single Assassinate despite the card's own "for each" text meaning zero.
+            _context.MapManager.Sites.Returns(new List<Site>());
+            _context.MapManager.HasValidAssassinationTarget(Arg.Any<Player>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<Site>()).Returns(true);
+
+            var card = new Card("test-quaggoth", "Test Quaggoth", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.Assassinate, 0, ResourceType.None)
+            {
+                TargetNeutralTroopOnly = true,
+                DynamicAmountSource = DynamicAmountSource.SitesControlled
+            };
+            card.AddEffect(effect);
+
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
+
+            _context.ActionSystem.DidNotReceive().PushEffect(Arg.Any<ChaosWarlords.Source.Core.Contexts.EffectContext>());
+        }
+
+        [TestMethod]
+        public void ResolveEffects_Assassinate_DynamicAmountSourceResolvesToZeroWithAlternative_PushesTheAlternativeInstead()
+        {
+            _context.MapManager.Sites.Returns(new List<Site>());
+            _context.MapManager.HasValidAssassinationTarget(Arg.Any<Player>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<Site>()).Returns(true);
+
+            var card = new Card("test-quaggoth", "Test Quaggoth", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.Assassinate, 0, ResourceType.None)
+            {
+                TargetNeutralTroopOnly = true,
+                DynamicAmountSource = DynamicAmountSource.SitesControlled,
+                Alternative = new CardEffect(EffectType.GainResource, 1, ResourceType.Influence)
+            };
+            card.AddEffect(effect);
+
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
+
+            _context.ActionSystem.DidNotReceive().PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.SourceEffect != null && c.SourceEffect.Type == EffectType.Assassinate));
+            _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.SourceEffect != null && c.SourceEffect.Type == EffectType.GainResource));
+        }
+
+        [TestMethod]
+        public void ResolveEffects_Assassinate_WithoutDynamicAmountSource_StillUsesTheFixedAmountFloor()
+        {
+            // Regression guard: a plain repeat-capable effect (no DynamicAmountSource at all,
+            // e.g. Deathblade's "Assassinate 2 troops") must be completely unaffected by this
+            // new gate.
+            _context.MapManager.HasValidAssassinationTarget(Arg.Any<Player>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<Site>()).Returns(true);
+
+            var card = new Card("test-deathblade", "Test Deathblade", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.Assassinate, 2, ResourceType.None);
+            card.AddEffect(effect);
+
+            CardEffectProcessor.ResolveEffects(card, _context, hasFocus: false, Tests.Utilities.TestLogger.Instance);
+
+            _context.ActionSystem.Received(1).PushEffect(Arg.Is<ChaosWarlords.Source.Core.Contexts.EffectContext>(c => c.RemainingRepeats == 2));
+        }
+
+        #endregion
     }
 }
 

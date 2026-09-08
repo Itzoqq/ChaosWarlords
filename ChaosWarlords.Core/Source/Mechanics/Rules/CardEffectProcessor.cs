@@ -4,6 +4,7 @@ using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Mechanics.Rules.Interfaces;
 
 namespace ChaosWarlords.Source.Mechanics.Rules
 {
@@ -107,6 +108,21 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             var state = strategy.GetTargetingState(effect);
             bool requiresInput = strategy.IsTargetingEffect || effect.IsOptional;
 
+            // "Assassinate one white troop for each site you control" (Quaggoth) - a repeat
+            // COUNT computed from live game state, unlike DynamicAmountSource's usual role of
+            // computing a resource/draw AMOUNT. Resolved and gated here, BEFORE TryResolveActor,
+            // because a resolved count of 0 must skip the whole effect entirely (0 sites
+            // controlled -> no Assassinate at all) rather than the Math.Max(1, ...) floor every
+            // other repeat-capable effect gets below - the same "no valid target" path
+            // TryResolveActor's own failure takes. See ResolveDynamicRepeatCount's own doc
+            // comment for why this is a no-op for every DynamicAmountSource card shipped so far.
+            int? dynamicRepeatCount = ResolveDynamicRepeatCount(effect, strategy, context, logger);
+            if (dynamicRepeatCount == 0)
+            {
+                PushEffectNode(effect.Alternative, card, context, logger);
+                return;
+            }
+
             if (!TryResolveActor(effect, card, context, requiresInput, logger, out var actor))
             {
                 PushEffectNode(effect.Alternative, card, context, logger);
@@ -121,6 +137,18 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 context.TurnManager.BeginForcedActingPlayer(actor);
             }
 
+            BuildAndPushEffectContext(effect, card, context, descriptionPrefix, logger, strategy, state, requiresInput, dynamicRepeatCount);
+        }
+
+        /// <summary>
+        /// Builds the actual EffectContext (OnResolved/onCancelled wiring back through
+        /// PushEffectNode) and pushes it - split out from PushEffectContext purely to keep that
+        /// method's own cyclomatic complexity down; every gate that can still say "don't push
+        /// anything at all" (TryResolveActor, the dynamic-repeat-count zero case) has already
+        /// run by the time this is called.
+        /// </summary>
+        private static void BuildAndPushEffectContext(CardEffect effect, Card card, MatchContext context, string descriptionPrefix, IGameLogger logger, IEffectStrategy strategy, ActionState state, bool requiresInput, int? dynamicRepeatCount)
+        {
             var ctx = new EffectContext(
                 state,
                 card,
@@ -148,10 +176,28 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             // opting in, not applied to every effect unconditionally.
             if (strategy.SupportsRepeat)
             {
-                ctx.RemainingRepeats = Math.Max(1, effect.Amount);
+                ctx.RemainingRepeats = dynamicRepeatCount ?? Math.Max(1, effect.Amount);
             }
 
             context.ActionSystem.PushEffect(ctx);
+        }
+
+        /// <summary>
+        /// Returns null (meaning "use the plain, fixed effect.Amount instead") unless
+        /// <paramref name="effect"/> is BOTH repeat-capable (IEffectStrategy.SupportsRepeat) AND
+        /// carries a DynamicAmountSource - the combination Quaggoth introduces ("Assassinate one
+        /// white troop for each site you control"). Every DynamicAmountSource card shipped
+        /// before Quaggoth targets GainResource/DrawCard, neither of which supports repeats, so
+        /// this is structurally a no-op for all of them - this method exists only to keep
+        /// PushEffectContext's own cyclomatic complexity down, not to gate anything by card.
+        /// </summary>
+        private static int? ResolveDynamicRepeatCount(CardEffect effect, IEffectStrategy strategy, MatchContext context, IGameLogger logger)
+        {
+            if (!strategy.SupportsRepeat || effect.DynamicAmountSource == DynamicAmountSource.None)
+            {
+                return null;
+            }
+            return ResolveAmount(effect, context, logger);
         }
 
         /// <summary>
@@ -482,7 +528,9 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// inner circle", Aboleth: "Draw a card for each spy you have on the board", Black
         /// Dragon: "Gain 1 VP for every 3 white troops in your trophy hall" - DynamicAmountDivisor
         /// is the "every N" part, integer division/floor. Effect-type-agnostic - consumed by
-        /// both GainResource and DrawCard today.
+        /// GainResource/DrawCard as a resource/draw AMOUNT, and (see PushEffectContext's own
+        /// dynamic-repeat-count gate) by any SupportsRepeat effect as a repeat COUNT instead
+        /// (Quaggoth: "Assassinate one white troop for each site you control").
         /// </summary>
         private static int ResolveAmount(CardEffect effect, MatchContext context, IGameLogger logger)
         {
