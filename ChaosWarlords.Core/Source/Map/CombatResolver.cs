@@ -65,6 +65,27 @@ namespace ChaosWarlords.Source.Map
         }
 
         /// <summary>
+        /// Deploys player's OWN troop to an empty node, funded by a trophy hall reservoir
+        /// instead of the normal barracks/PendingFreeTroops supply (Mummy Lord: "take a white
+        /// troop from any trophy hall and deploy it anywhere on the board" -
+        /// TROPHY-HALL-AS-TROOP-RESERVOIR, planning.txt). Removing the trophy-hall troop is the
+        /// caller's responsibility (IPlayerStateManager.RemoveTrophy) - this method only ever
+        /// performs the board-side half, matching ExecuteAssassinate/ExecuteSupplant's own
+        /// "CombatResolver owns every node.Occupant mutation" convention. Unlike ExecuteDeploy,
+        /// this is unconditionally free - it never touches PendingFreeTroops, TroopsInBarracks,
+        /// or Power, since the troop's source is neither of those pools.
+        /// </summary>
+        public void ExecuteDeployFromTrophyHall(MapNode node, Player player)
+        {
+            ArgumentNullException.ThrowIfNull(node);
+            ArgumentNullException.ThrowIfNull(player);
+
+            node.Occupant = player.Color;
+            _logger.Log($"Deployed troop from a trophy hall reservoir to Node {node.Id}.", LogChannel.Combat);
+            _recalculateSiteState(_getSiteForNode(node), player);
+        }
+
+        /// <summary>
         /// Assassinates an enemy troop at the target node.
         /// </summary>
         public void ExecuteAssassinate(MapNode node, Player attacker)
@@ -73,8 +94,10 @@ namespace ChaosWarlords.Source.Map
             ArgumentNullException.ThrowIfNull(attacker);
             if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
 
+            // Captured BEFORE the mutation below erases it - see Player.TrophyHallByColor.
+            PlayerColor removedColor = node.Occupant;
             node.Occupant = PlayerColor.None;
-            _stateManager.AddTrophy(attacker);
+            _stateManager.AddTrophy(attacker, removedColor);
 
             _logger.Log($"Assassinated enemy at Node {node.Id}. Trophy Hall: {attacker.TrophyHall}", LogChannel.Combat);
             _recalculateSiteState(_getSiteForNode(node), attacker);
@@ -139,8 +162,10 @@ namespace ChaosWarlords.Source.Map
             if (node.Occupant == PlayerColor.None || node.Occupant == attacker.Color) return;
 
             // Atomic: Assassinate + Deploy
+            // Captured BEFORE the mutation below erases it - see Player.TrophyHallByColor.
+            PlayerColor removedColor = node.Occupant;
             node.Occupant = PlayerColor.None;
-            _stateManager.AddTrophy(attacker);
+            _stateManager.AddTrophy(attacker, removedColor);
 
             // Supplant deployment is ALWAYS FREE (it's part of the Supplant action)
             // Priority 1: Use PendingFreeTroops (from cards this turn)

@@ -90,10 +90,24 @@ namespace ChaosWarlords.Source.Managers
             _logger.Log($"[State] {player.DisplayName} lost {amount} Spies. Remaining: {player.SpiesInBarracks}", LogChannel.Info);
         }
 
-        public void AddTrophy(Player player)
+        public void AddTrophy(Player player, PlayerColor troopColor)
         {
-            player.TrophyHall++;
-            _logger.Log($"[State] {player.DisplayName} obtained a Trophy! Total: {player.TrophyHall}", LogChannel.Info);
+            player.AddTrophy(troopColor);
+            _logger.Log($"[State] {player.DisplayName} obtained a {troopColor} Trophy! Total: {player.TrophyHall}", LogChannel.Info);
+        }
+
+        public bool RemoveTrophy(Player player, PlayerColor troopColor)
+        {
+            bool removed = player.RemoveTrophy(troopColor);
+            if (removed)
+            {
+                _logger.Log($"[State] {player.DisplayName} lost a {troopColor} Trophy. Total: {player.TrophyHall}", LogChannel.Info);
+            }
+            else
+            {
+                _logger.Log($"[State] {player.DisplayName} has no {troopColor} Trophy to remove.", LogChannel.Warning);
+            }
+            return removed;
         }
 
         // --- Card Management ---

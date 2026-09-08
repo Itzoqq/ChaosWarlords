@@ -25,6 +25,7 @@ namespace ChaosWarlords.Tests.Systems
 
         private MapNode _node1 = null!, _node2 = null!;
         private Site _siteA = null!;
+        private IPlayerStateManager _playerStateManager = null!; // Mocked dependency
 
         // Helper to capture events
         private bool _eventCompletedFired;
@@ -66,8 +67,8 @@ namespace ChaosWarlords.Tests.Systems
                 .Returns(ci => _mapManager.Nodes.FirstOrDefault(n => n.Id == (int)ci[0]));
 
             // Inject the mock
-            var playerStateManager = Substitute.For<IPlayerStateManager>();
-            playerStateManager.TrySpendPower(Arg.Any<Player>(), Arg.Any<int>())
+            _playerStateManager = Substitute.For<IPlayerStateManager>();
+            _playerStateManager.TrySpendPower(Arg.Any<Player>(), Arg.Any<int>())
                 .Returns(x =>
                 {
                     Player p = (Player)x[0];
@@ -79,7 +80,7 @@ namespace ChaosWarlords.Tests.Systems
                     }
                     return false;
                 });
-            _actionSystem = new ActionSystem(_turnManager, _mapManager, Utilities.TestLogger.Instance, playerStateManager, Substitute.For<IMarketManager>());
+            _actionSystem = new ActionSystem(_turnManager, _mapManager, Utilities.TestLogger.Instance, _playerStateManager, Substitute.For<IMarketManager>());
 
             // Subscribe to events for every test
             _eventCompletedFired = false;
@@ -1066,6 +1067,48 @@ namespace ChaosWarlords.Tests.Systems
             // Assert
             Assert.IsTrue(_eventCompletedFired, "Should fire OnActionCompleted event");
             Assert.AreEqual(ActionState.Normal, _actionSystem.CurrentState, "Should return to Normal state");
+        }
+
+        #endregion
+
+        #region PerformDeployFromTrophyHall Tests (Mummy Lord)
+
+        [TestMethod]
+        public void PerformDeployFromTrophyHall_WhenRemoveTrophySucceeds_DeploysAndCompletesAction()
+        {
+            _turnManager.GetPlayerByColor(PlayerColor.Blue).Returns(_player2);
+            _playerStateManager.RemoveTrophy(_player2, PlayerColor.Neutral).Returns(true);
+
+            _actionSystem.PerformDeployFromTrophyHall(_node2, PlayerColor.Blue, PlayerColor.Neutral, cardId: null);
+
+            _mapManager.Received(1).DeployFromTrophyHall(_node2, _player1);
+            Assert.IsTrue(_eventCompletedFired);
+        }
+
+        [TestMethod]
+        public void PerformDeployFromTrophyHall_WhenRemoveTrophyFails_DoesNotDeployButStillCompletesAction()
+        {
+            // Defense-in-depth: a stale/forged command bypassing Validate() must never let a
+            // troop materialize on the board without its reservoir cost actually being paid -
+            // but the action must still resolve rather than leaving the sequence stuck.
+            _turnManager.GetPlayerByColor(PlayerColor.Blue).Returns(_player2);
+            _playerStateManager.RemoveTrophy(_player2, PlayerColor.Neutral).Returns(false);
+
+            _actionSystem.PerformDeployFromTrophyHall(_node2, PlayerColor.Blue, PlayerColor.Neutral, cardId: null);
+
+            _mapManager.DidNotReceive().DeployFromTrophyHall(Arg.Any<MapNode>(), Arg.Any<Player>());
+            Assert.IsTrue(_eventCompletedFired);
+        }
+
+        [TestMethod]
+        public void PerformDeployFromTrophyHall_WhenSourcePlayerColorDoesNotResolve_DoesNotDeployButStillCompletesAction()
+        {
+            // GetPlayerByColor unconfigured for this color -> returns null by default.
+            _actionSystem.PerformDeployFromTrophyHall(_node2, PlayerColor.Orange, PlayerColor.Neutral, cardId: null);
+
+            _playerStateManager.DidNotReceiveWithAnyArgs().RemoveTrophy(Arg.Any<Player>(), Arg.Any<PlayerColor>());
+            _mapManager.DidNotReceive().DeployFromTrophyHall(Arg.Any<MapNode>(), Arg.Any<Player>());
+            Assert.IsTrue(_eventCompletedFired);
         }
 
         #endregion

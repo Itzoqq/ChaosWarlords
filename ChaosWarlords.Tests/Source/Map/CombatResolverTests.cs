@@ -78,7 +78,7 @@ namespace ChaosWarlords.Tests.Map
             var node = TestData.MapNodes.Node1();
             node.Occupant = PlayerColor.Blue;
             var attacker = TestData.Players.RedPlayer();
-            attacker.TrophyHall = 0;
+            attacker.SetTrophyHall(0);
 
             // Act
             _resolver.ExecuteAssassinate(node, attacker);
@@ -117,7 +117,7 @@ namespace ChaosWarlords.Tests.Map
             var attacker = TestData.Players.RedPlayer();
             attacker.TroopsInBarracks = 5;
             attacker.AddPower(10);
-            attacker.TrophyHall = 0;
+            attacker.SetTrophyHall(0);
 
             // Act
             _resolver.ExecuteSupplant(node, attacker);

@@ -74,7 +74,7 @@ namespace ChaosWarlords.Source.Managers
             var pendingSite = dto.PendingSiteId is int siteId ? context.MapManager.Sites.FirstOrDefault(s => s.Id == siteId) : null;
             var pendingMoveSource = dto.PendingMoveSourceNodeId is int nodeId ? context.MapManager.GetNodeById(nodeId) : null;
             var pendingDevourCard = dto.PendingDevourCardId != null ? context.CardDatabase.GetCardById(dto.PendingDevourCardId) : null;
-            context.ActionSystem.RestorePendingState(dto.ActionSystemState, pendingCard, pendingSite, pendingMoveSource, pendingDevourCard, dto.PendingAffectedPlayerColor);
+            context.ActionSystem.RestorePendingState(dto.ActionSystemState, pendingCard, pendingSite, pendingMoveSource, pendingDevourCard, dto.PendingAffectedPlayerColor, dto.PendingTrophyHallSourceColor);
         }
 
         /// <summary>
@@ -203,6 +203,31 @@ namespace ChaosWarlords.Source.Managers
             }
         }
 
+        /// <summary>
+        /// Clears a player's trophy hall and repopulates it from the DTO's string-keyed
+        /// composition, skipping any color that doesn't parse - same "clear then repopulate,
+        /// tolerating bad entries" shape RestoreSiteSpies uses for Site.Spies.
+        /// </summary>
+        private static void RestoreTrophyHall(Player player, Dictionary<string, int>? trophyHallByColor)
+        {
+            if (trophyHallByColor == null)
+            {
+                player.SetTrophyHall(null);
+                return;
+            }
+
+            var parsed = new Dictionary<PlayerColor, int>();
+            foreach (var (colorStr, count) in trophyHallByColor)
+            {
+                if (Enum.TryParse<PlayerColor>(colorStr, out var color))
+                {
+                    parsed[color] = count;
+                }
+            }
+
+            player.SetTrophyHall(parsed);
+        }
+
         private static void RestorePlayers(MatchContext context, List<PlayerDto> playerDtos)
         {
             foreach (var pDto in playerDtos)
@@ -216,7 +241,7 @@ namespace ChaosWarlords.Source.Managers
                     player.TroopsInBarracks = pDto.Troops;
                     player.SpiesInBarracks = pDto.Spies;
                     player.PendingFreeTroops = pDto.PendingFreeTroops;
-                    player.TrophyHall = pDto.TrophyHall;
+                    RestoreTrophyHall(player, pDto.TrophyHallByColor);
 
                     // Card Lists
                     RestorePlayerCollection(player, pDto.Hand, context.CardDatabase, (p, c) => p.AddToHand(c), p => p.ClearHand());

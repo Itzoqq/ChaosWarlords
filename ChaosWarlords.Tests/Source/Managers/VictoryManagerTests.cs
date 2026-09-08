@@ -102,7 +102,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             _p1.VictoryPoints = 10; // Base VP Tokens
-            _p1.TrophyHall = 3; // 3 VP
+            _p1.SetTrophyHall(3); // 3 VP
 
             // Setup Sites
             // Site 1: Controlled by P1 (5 VP - City of Gold)
@@ -209,7 +209,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             _p1.VictoryPoints = 10;
-            _p1.TrophyHall = 3;
+            _p1.SetTrophyHall(3);
             // Mock other sources as 0 for simplicity
             _mapManager.Sites.Returns(new List<Site>());
 

@@ -261,13 +261,25 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
         /// inline branches here - found via Carrion Crawler's Devour(Market), which was
         /// completely unplayable without this (the market never opened; every existing test
         /// bypassed PlayCardCommand and called ActionSystem.TryStartDevourMarket directly, so
-        /// nothing caught it - see planning.txt RESOLVED). ANY NEW EffectType with this same
-        /// shape needs its own case added here too (the optional case reaches the identical
-        /// DevourStrategyFactory call via HandleOptionalEffectAccepted below independently).
+        /// nothing caught it - see planning.txt RESOLVED). DeployFromTrophyHall (Mummy Lord)
+        /// needs a THIRD, narrower shape - resolving and storing WHICH player's trophy hall to
+        /// draw from (ActionSystem.PendingTrophyHallSourceColor) before targeting opens, since
+        /// there is no earlier chain step whose Execute() could set it reactively the way
+        /// PendingSite is set by ReturnOwnSpyCommand - but it still needs the GENERIC
+        /// EnterTargetingState below to actually run afterward, unlike Devour/PlayFromMarket,
+        /// which fully own their own targeting entry. ANY NEW EffectType needing setup like
+        /// this - whether it fully replaces the generic path (return true) or only needs to run
+        /// something extra before it (return false) - gets its own case added here too (the
+        /// optional-effect case reaches the identical DevourStrategyFactory call via
+        /// HandleOptionalEffectAccepted below independently). This is also why
+        /// CardEffectProcessor's own ApplyDeployFromTrophyHall handler is NOT where that
+        /// resolution lives, despite looking like the natural place for it: mandatory targeting
+        /// effects never actually run through CardEffectProcessor.ApplyEffect at all (see that
+        /// handler's own doc comment).
         /// </summary>
         /// <returns>True if this effect was fully handled by a special case (the caller should
         /// stop processing it); false if it should fall through to the generic targeting
-        /// path.</returns>
+        /// path (whether or not this method already did some setup first).</returns>
         private bool TryHandleSpecialMandatoryEffect(Core.Contexts.EffectContext nextEffect)
         {
             switch (nextEffect.SourceEffect?.Type)
@@ -289,8 +301,30 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
                     _actionSystem.TryStartPlayFromMarket(nextEffect.SourceCard, nextEffect.SourceEffect.Amount);
                     return true;
 
+                case EffectType.DeployFromTrophyHall:
+                    ResolvePendingTrophyHallSource(nextEffect);
+                    return false;
+
                 default:
                     return false;
+            }
+        }
+
+        /// <summary>
+        /// Resolves and stores WHICH player's trophy hall EffectType.DeployFromTrophyHall (Mummy
+        /// Lord) will draw from, via TrophyHallRuleEngine.TryGetSoleEligibleSource - guaranteed
+        /// to succeed here, since PushEffectContext's own TryResolveActor gate already required
+        /// DeployFromTrophyHallStrategy.HasValidTargets (which runs the identical check) to pass
+        /// before this effect was ever pushed onto the stack at all.
+        /// </summary>
+        private void ResolvePendingTrophyHallSource(Core.Contexts.EffectContext nextEffect)
+        {
+            if (_matchContext == null) return;
+
+            bool requireNeutralOnly = nextEffect.SourceEffect?.TargetNeutralTroopOnly ?? false;
+            if (Mechanics.Rules.TrophyHallRuleEngine.TryGetSoleEligibleSource(_matchContext.TurnManager.Players, requireNeutralOnly, out var sourceColor))
+            {
+                _actionSystem.SetPendingTrophyHallSource(sourceColor);
             }
         }
 

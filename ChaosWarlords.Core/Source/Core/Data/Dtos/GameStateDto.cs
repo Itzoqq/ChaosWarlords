@@ -77,6 +77,13 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         /// </summary>
         public PlayerColor? PendingAffectedPlayerColor { get; set; }
 
+        /// <summary>
+        /// See IActionSystem.PendingTrophyHallSourceColor's doc comment - EffectType.
+        /// DeployFromTrophyHall (Mummy Lord). Same "plain value, no re-resolution needed" shape
+        /// as PendingAffectedPlayerColor.
+        /// </summary>
+        public PlayerColor? PendingTrophyHallSourceColor { get; set; }
+
         public long SequenceNumber { get; set; }
 
         /// <summary>

@@ -430,6 +430,7 @@ namespace ChaosWarlords.Tests.Source.Managers
                 ["pendingMoveSource"] = _node,
                 ["pendingDevourCard"] = pendingDevourCardSentinel,
                 ["pendingAffectedPlayerColor"] = PlayerColor.Blue,
+                ["pendingTrophyHallSourceColor"] = PlayerColor.Red,
             };
 
             var restoreMethod = typeof(IActionSystem).GetMethod(nameof(IActionSystem.RestorePendingState))

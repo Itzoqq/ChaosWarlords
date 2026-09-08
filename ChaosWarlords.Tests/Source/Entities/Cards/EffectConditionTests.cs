@@ -104,7 +104,7 @@ namespace ChaosWarlords.Tests.Source.Entities.Cards
         [TestMethod]
         public void Evaluate_TrophyHallCount_ReturnsTrueWhenAtOrAboveThreshold()
         {
-            _player.TrophyHall = 8;
+            _player.SetTrophyHall(8);
 
             var condition = new EffectCondition(ConditionType.TrophyHallCount, 8);
 
@@ -114,7 +114,7 @@ namespace ChaosWarlords.Tests.Source.Entities.Cards
         [TestMethod]
         public void Evaluate_TrophyHallCount_ReturnsFalseWhenBelowThreshold()
         {
-            _player.TrophyHall = 7;
+            _player.SetTrophyHall(7);
 
             var condition = new EffectCondition(ConditionType.TrophyHallCount, 8);
 

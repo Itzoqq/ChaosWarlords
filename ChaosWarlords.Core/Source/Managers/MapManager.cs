@@ -242,6 +242,11 @@ namespace ChaosWarlords.Source.Managers
             _combat.ExecuteMove(source, destination, activePlayer);
         }
 
+        public void DeployFromTrophyHall(MapNode node, Player player)
+        {
+            _combat.ExecuteDeployFromTrophyHall(node, player);
+        }
+
         public bool CanReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor)
         {
             if (site is null) return false;

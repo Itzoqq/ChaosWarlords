@@ -70,7 +70,15 @@ namespace ChaosWarlords.Source.Core.Utilities
                             : null;
                     }
                 },
-                { typeof(DeclineRepeatCommandDto), (d, s) => new DeclineRepeatCommand(((DeclineRepeatCommandDto)d).CardId) }
+                { typeof(DeclineRepeatCommandDto), (d, s) => new DeclineRepeatCommand(((DeclineRepeatCommandDto)d).CardId) },
+                { typeof(DeployFromTrophyHallCommandDto), (d, s) =>
+                    {
+                        var dto = (DeployFromTrophyHallCommandDto)d;
+                        return Enum.TryParse<PlayerColor>(dto.SourcePlayerColor, out var sourceColor) && Enum.TryParse<PlayerColor>(dto.TroopColor, out var troopColor)
+                            ? new DeployFromTrophyHallCommand(dto.NodeId, sourceColor, troopColor, dto.CardId)
+                            : null;
+                    }
+                }
             };
         }
 
@@ -425,6 +433,7 @@ namespace ChaosWarlords.Source.Core.Utilities
             dto.PendingMoveSourceNodeId = context.ActionSystem.PendingMoveSource?.Id;
             dto.PendingDevourCardId = context.ActionSystem.PendingDevourCard?.DefinitionId;
             dto.PendingAffectedPlayerColor = context.ActionSystem.PendingAffectedPlayerColor;
+            dto.PendingTrophyHallSourceColor = context.ActionSystem.PendingTrophyHallSourceColor;
 
             // Computed from the live context, not recomputed independently on the DTO later -
             // see GameStateDto.StateHash's doc comment for why.

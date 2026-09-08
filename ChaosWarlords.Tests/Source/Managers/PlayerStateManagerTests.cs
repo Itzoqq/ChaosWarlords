@@ -134,8 +134,66 @@ namespace ChaosWarlords.Tests.Managers
         public void AddTrophy_IncreasesTrophyHall()
         {
             Assert.AreEqual(0, _player.TrophyHall);
-            _manager.AddTrophy(_player);
+            _manager.AddTrophy(_player, PlayerColor.Blue);
             Assert.AreEqual(1, _player.TrophyHall);
+            Assert.AreEqual(1, _player.TrophyHallByColor[PlayerColor.Blue]);
+        }
+
+        [TestMethod]
+        public void AddTrophy_CalledTwiceWithTheSameColor_AccumulatesUnderThatColor()
+        {
+            _manager.AddTrophy(_player, PlayerColor.Neutral);
+            _manager.AddTrophy(_player, PlayerColor.Neutral);
+
+            Assert.AreEqual(2, _player.TrophyHall);
+            Assert.AreEqual(2, _player.TrophyHallByColor[PlayerColor.Neutral]);
+        }
+
+        [TestMethod]
+        public void AddTrophy_CalledWithDifferentColors_TracksEachSeparately()
+        {
+            _manager.AddTrophy(_player, PlayerColor.Blue);
+            _manager.AddTrophy(_player, PlayerColor.Neutral);
+
+            Assert.AreEqual(2, _player.TrophyHall);
+            Assert.AreEqual(1, _player.TrophyHallByColor[PlayerColor.Blue]);
+            Assert.AreEqual(1, _player.TrophyHallByColor[PlayerColor.Neutral]);
+        }
+
+        [TestMethod]
+        public void RemoveTrophy_WhenThatColorIsPresent_RemovesOneAndReturnsTrue()
+        {
+            _manager.AddTrophy(_player, PlayerColor.Neutral);
+            _manager.AddTrophy(_player, PlayerColor.Neutral);
+
+            bool removed = _manager.RemoveTrophy(_player, PlayerColor.Neutral);
+
+            Assert.IsTrue(removed);
+            Assert.AreEqual(1, _player.TrophyHall);
+            Assert.AreEqual(1, _player.TrophyHallByColor[PlayerColor.Neutral]);
+        }
+
+        [TestMethod]
+        public void RemoveTrophy_WhenTheLastOfThatColorIsRemoved_DropsTheColorEntryEntirely()
+        {
+            _manager.AddTrophy(_player, PlayerColor.Neutral);
+
+            _manager.RemoveTrophy(_player, PlayerColor.Neutral);
+
+            Assert.AreEqual(0, _player.TrophyHall);
+            Assert.IsFalse(_player.TrophyHallByColor.ContainsKey(PlayerColor.Neutral));
+        }
+
+        [TestMethod]
+        public void RemoveTrophy_WhenThatColorIsAbsent_ReturnsFalseAndChangesNothing()
+        {
+            _manager.AddTrophy(_player, PlayerColor.Blue);
+
+            bool removed = _manager.RemoveTrophy(_player, PlayerColor.Neutral);
+
+            Assert.IsFalse(removed);
+            Assert.AreEqual(1, _player.TrophyHall);
+            Assert.AreEqual(1, _player.TrophyHallByColor[PlayerColor.Blue]);
         }
 
         [TestMethod]

@@ -135,10 +135,98 @@ namespace ChaosWarlords.Source.Entities.Actors
         /// </summary>
         public int PendingFreeTroops { get; internal set; }
 
+        // Composition of the trophy hall (which PlayerColor - Neutral/"white" included - each
+        // captured troop was) as well as the total count - e.g. Mummy Lord's "take a white
+        // troop from any trophy hall," Black Dragon's "1 VP per 3 white troops in trophy hall"
+        // (planning.txt's TROPHY-HALL-AS-TROOP-RESERVOIR). Never touched directly - always via
+        // AddTrophy/RemoveTrophy/SetTrophyHall below (same internal-mutation-method convention
+        // as Hand/Deck/InnerCircle: AddToHand/RemoveFromHand/etc.).
+        private readonly Dictionary<PlayerColor, int> _trophyHallByColor = new();
+
         /// <summary>
-        /// Count of trophies collected (e.g. from assassinations).
+        /// Read-only view of the trophy hall's composition by captured troop color.
         /// </summary>
-        public int TrophyHall { get; internal set; }
+        public IReadOnlyDictionary<PlayerColor, int> TrophyHallByColor => _trophyHallByColor;
+
+        /// <summary>
+        /// Total trophy count across all colors - every existing reader (VictoryManager's VP
+        /// scoring, EffectCondition.TrophyHallCount, UI display) keeps working against this
+        /// exact same int contract, computed fresh from TrophyHallByColor rather than tracked
+        /// as a separately-settable field.
+        /// </summary>
+        public int TrophyHall => _trophyHallByColor.Values.Sum();
+
+        /// <summary>
+        /// Records one captured troop of troopColor into the trophy hall. Called by
+        /// IPlayerStateManager.AddTrophy for every Assassinate/Supplant (see CombatResolver) -
+        /// the color must be captured by the caller BEFORE the map node's Occupant is cleared.
+        /// </summary>
+        internal void AddTrophy(PlayerColor troopColor)
+        {
+            _trophyHallByColor[troopColor] = _trophyHallByColor.GetValueOrDefault(troopColor) + 1;
+        }
+
+        /// <summary>
+        /// Removes one captured troop of troopColor from the trophy hall, if present - e.g.
+        /// Mummy Lord's "take a white troop from any trophy hall." Returns false (no-op) if none
+        /// of that color remain; the caller (TrophyHallRuleEngine) is expected to have already
+        /// confirmed eligibility before calling this, so a false here indicates a stale/forged
+        /// command rather than an expected outcome.
+        /// </summary>
+        internal bool RemoveTrophy(PlayerColor troopColor)
+        {
+            if (!_trophyHallByColor.TryGetValue(troopColor, out var count) || count <= 0)
+            {
+                return false;
+            }
+
+            if (count == 1)
+            {
+                _trophyHallByColor.Remove(troopColor);
+            }
+            else
+            {
+                _trophyHallByColor[troopColor] = count - 1;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Replaces the ENTIRE trophy hall composition with snapshot (clear then repopulate,
+        /// same "clear then repopulate, tolerate whatever's given" shape as ClearHand()+
+        /// AddToHand()) - used by StateRestorer (rollback/replay) and directly by tests that
+        /// need a specific composition set up without dispatching real commands. Passing an
+        /// empty/null snapshot just clears.
+        /// </summary>
+        internal void SetTrophyHall(IReadOnlyDictionary<PlayerColor, int>? snapshot)
+        {
+            _trophyHallByColor.Clear();
+            if (snapshot == null)
+            {
+                return;
+            }
+
+            foreach (var (color, count) in snapshot)
+            {
+                if (count > 0)
+                {
+                    _trophyHallByColor[color] = count;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Convenience single-color overload of SetTrophyHall, for tests that only care about
+        /// the TOTAL count (e.g. VictoryManager VP-scoring/EffectCondition.TrophyHallCount
+        /// threshold tests) and don't need a specific composition - defaults to Neutral since
+        /// that's this project's most common trophy-hall-composition test scenario ("white"
+        /// troops).
+        /// </summary>
+        internal void SetTrophyHall(int count, PlayerColor color = PlayerColor.Neutral)
+        {
+            SetTrophyHall(count > 0 ? new Dictionary<PlayerColor, int> { [color] = count } : null);
+        }
 
         // --- Card Piles ---
 

@@ -67,6 +67,15 @@ namespace ChaosWarlords.Source.Managers
         // targeting's read side (e.g. Mindwitness).
         public PlayerColor? PendingAffectedPlayerColor { get; private set; }
 
+        // See IActionSystem.PendingTrophyHallSourceColor's doc comment - EffectType.
+        // DeployFromTrophyHall (Mummy Lord).
+        public PlayerColor? PendingTrophyHallSourceColor { get; private set; }
+
+        public void SetPendingTrophyHallSource(PlayerColor sourcePlayerColor)
+        {
+            PendingTrophyHallSourceColor = sourcePlayerColor;
+        }
+
 
 
         public Card? PendingDevourCard => _devourSubsystem.PendingDevourCard;
@@ -282,6 +291,7 @@ namespace ChaosWarlords.Source.Managers
             PendingCard = null;
             PendingSite = null;
             PendingAffectedPlayerColor = null;
+            PendingTrophyHallSourceColor = null;
             PendingMoveSource = null;
             // Note: PendingDevourCard is NOT cleared here to allow transactional persistence across chained actions.
 
@@ -564,6 +574,33 @@ namespace ChaosWarlords.Source.Managers
             // would resurface and force Supplant targeting on the next unrelated card played
             // (see planning.txt RESOLVED). For a direct, non-chained Supplant (stack already
             // empty), CompleteAction()'s fallback branch does exactly what this used to do.
+            CompleteAction();
+        }
+
+        /// <summary>
+        /// Mummy Lord's "take a white troop from any trophy hall and deploy it anywhere on the
+        /// board" - removes one troopColor troop from sourcePlayerColor's trophy hall (the
+        /// player TrophyHallRuleEngine resolved as the sole eligible source, before targeting
+        /// even opened - see PendingTrophyHallSourceColor), then deploys CurrentPlayer's OWN
+        /// troop at node, funded by that reservoir instead of the normal barracks/
+        /// PendingFreeTroops supply. DeployFromTrophyHallCommand.Validate() has already
+        /// re-confirmed both the removal is still legal and sourcePlayerColor still matches
+        /// PendingTrophyHallSourceColor by the time this runs.
+        /// </summary>
+        public void PerformDeployFromTrophyHall(MapNode node, PlayerColor sourcePlayerColor, PlayerColor troopColor, string? cardId)
+        {
+            // Only deploy if the trophy was actually removed - a troop must never materialize
+            // on the board without its reservoir cost actually being paid. Validate() has
+            // already confirmed this will succeed, so this is defense-in-depth (a stale/forged
+            // command bypassing Validate() entirely), not an expected path - CompleteAction()
+            // still runs regardless, matching ExecuteAssassinate/ExecuteSupplant's own
+            // no-op-but-still-complete precedent for an unreachable-in-practice guard.
+            var sourcePlayer = _turnManager.GetPlayerByColor(sourcePlayerColor);
+            if (sourcePlayer != null && _playerStateManager.RemoveTrophy(sourcePlayer, troopColor))
+            {
+                _mapManager.DeployFromTrophyHall(node, CurrentPlayer);
+            }
+
             CompleteAction();
         }
 
@@ -934,13 +971,14 @@ namespace ChaosWarlords.Source.Managers
         /// for tracking "the start of the sequence that WAS in progress" is stale regardless of
         /// which path got here or what state is being restored to.
         /// </summary>
-        public void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard, PlayerColor? pendingAffectedPlayerColor = null)
+        public void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard, PlayerColor? pendingAffectedPlayerColor = null, PlayerColor? pendingTrophyHallSourceColor = null)
         {
             bool stateActuallyChanged = _currentState != state;
             _currentState = state;
             PendingCard = pendingCard;
             PendingSite = pendingSite;
             PendingAffectedPlayerColor = pendingAffectedPlayerColor;
+            PendingTrophyHallSourceColor = pendingTrophyHallSourceColor;
             PendingMoveSource = pendingMoveSource;
             _devourSubsystem.RestorePendingDevourCard(pendingDevourCard);
             _targetingSequenceSnapshot = null;

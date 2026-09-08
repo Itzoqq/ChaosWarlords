@@ -385,7 +385,8 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             [EffectType.MoveDeckToDiscard] = (effect, card, ctx, log) => ctx.PlayerStateManager.MoveDeckToDiscard(ctx.ActivePlayer),
             [EffectType.PromoteFromPile] = (effect, card, ctx, log) => ApplyPromoteFromPile(card, ctx, log),
             [EffectType.PromoteSelf] = (effect, card, ctx, log) => ApplyPromoteSelf(card, ctx, log),
-            [EffectType.ReturnUnitOrSpy] = (effect, card, ctx, log) => ApplyReturnUnitOrSpy(card, ctx, log)
+            [EffectType.ReturnUnitOrSpy] = (effect, card, ctx, log) => ApplyReturnUnitOrSpy(card, ctx, log),
+            [EffectType.DeployFromTrophyHall] = (effect, card, ctx, log) => ApplyDeployFromTrophyHall(effect, card, ctx, log)
         };
 
         private static void ApplyReturnOwnSpy(Card sourceCard, MatchContext context, IGameLogger logger)
@@ -411,6 +412,28 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             else
             {
                 logger.Log($"{sourceCard.Name}: No valid troops or spies to return.", LogChannel.Warning);
+            }
+        }
+
+        // Like ApplyAssassinate/ApplyReturnOwnSpy/ApplyReturnUnitOrSpy/every other mandatory
+        // targeting-effect handler in this dictionary, this is structurally unreachable via the
+        // normal per-effect resolution flow (ActionExecutionEngine.HandleInputRequiredEffect
+        // routes a mandatory targeting effect straight to SetupTargetingForRequiredEffect/
+        // EnterTargetingState, never through ApplyEffect) - kept anyway for consistency with
+        // those siblings, per the same call made for EffectType.ReturnUnitOrSpy (see
+        // planning.txt/RESOLVED.txt). The REAL resolution of WHICH trophy hall to draw from
+        // lives in ActionExecutionEngine.ResolvePendingTrophyHallSource instead - see that
+        // method's own doc comment for why this handler isn't it.
+        private static void ApplyDeployFromTrophyHall(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
+        {
+            if (context.CardRuleEngine.HasValidTargets(context.ActivePlayer, EffectType.DeployFromTrophyHall, sourceCard))
+            {
+                context.ActionSystem.StartTargeting(ActionState.TargetingDeployFromTrophyHall, sourceCard);
+                logger.Log($"{sourceCard.Name}: Select an empty space to deploy the trophy hall troop.", LogChannel.Input);
+            }
+            else
+            {
+                logger.Log($"{sourceCard.Name}: No valid trophy hall troop to take.", LogChannel.Warning);
             }
         }
 

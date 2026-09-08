@@ -26,6 +26,7 @@ namespace ChaosWarlords.Source.Core.Data.Enums
         PlayFromMarket,
         SelectOpponent,
         DeclineRepeat,
-        ReturnAnySpy
+        ReturnAnySpy,
+        DeployFromTrophyHall
     }
 }

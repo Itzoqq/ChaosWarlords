@@ -38,6 +38,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 { EffectType.SelectOpponent, new Strategies.SelectOpponentStrategy() },
                 { EffectType.PromoteFromPile, new Strategies.PromoteFromPileStrategy() },
                 { EffectType.ReturnUnitOrSpy, new Strategies.ReturnUnitOrSpyStrategy() },
+                { EffectType.DeployFromTrophyHall, new Strategies.DeployFromTrophyHallStrategy() },
                 // Add new strategies here
             };
         }

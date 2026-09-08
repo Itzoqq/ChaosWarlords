@@ -108,6 +108,16 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         bool CanMoveDestination(MapNode node);
         void MoveTroop(MapNode source, MapNode destination, Player activePlayer);
 
+        /// <summary>
+        /// Deploys player's OWN troop to node, funded by a trophy hall reservoir instead of the
+        /// normal barracks/PendingFreeTroops supply (EffectType.DeployFromTrophyHall - Mummy
+        /// Lord). Destination validity is the SAME "any empty space" rule as CanMoveDestination
+        /// (reuse it directly - no separate CanDeployFromTrophyHall wrapper). Removing the
+        /// trophy-hall troop itself is the caller's responsibility (IPlayerStateManager.
+        /// RemoveTrophy) - this only ever performs the board-side half.
+        /// </summary>
+        void DeployFromTrophyHall(MapNode node, Player player);
+
         // Game State / Rewards
         void DistributeStartOfTurnRewards(Player activePlayer);
         void RecalculateSiteState(Site site, Player activePlayer);

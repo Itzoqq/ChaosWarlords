@@ -86,5 +86,7 @@
   "intellect_devourer_name": "Intellect Devourer",
   "intellect_devourer_description": "Choose one: +3 Power. Or, return up to two troops or spies.",
   "grazzt_name": "Graz'zt",
-  "grazzt_description": "Choose one: Place 2 spies. Or, return any number of your spies, then Supplant a troop at each of the returned spies' sites."
+  "grazzt_description": "Choose one: Place 2 spies. Or, return any number of your spies, then Supplant a troop at each of the returned spies' sites.",
+  "mummy_lord_name": "Mummy Lord",
+  "mummy_lord_description": "Choose 2 times: Assassinate a white troop. Or, take a white troop from any trophy hall and deploy it anywhere on the board."
 }

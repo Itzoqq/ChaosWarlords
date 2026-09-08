@@ -27,7 +27,7 @@ namespace ChaosWarlords.Source.Utilities
                                  // from SelectingCardToPromote, which is the legacy deferred
                                  // end-of-turn promotion-credit flow (Noble/Cultist of Myrkul)
                                  // wired to PromoteInputMode; do not conflate the two.
-        TargetingReturnUnitOrSpy // A single targeting step that accepts EITHER a node click
+        TargetingReturnUnitOrSpy, // A single targeting step that accepts EITHER a node click
                                  // (return the troop there, via the existing ReturnTroopCommand/
                                  // CanReturnTroop - already symmetric own/enemy) OR a site click
                                  // (return a spy there, via the new ReturnAnySpyCommand) -
@@ -35,6 +35,14 @@ namespace ChaosWarlords.Source.Utilities
                                  // Devourer: "Return up to two troops or spies"). Deliberately a
                                  // single flat state, not 2 sub-states like MoveUnit's source/
                                  // destination pair - both target types resolve in one click.
+        TargetingDeployFromTrophyHall // A single node-click destination step (mirrors
+                                 // TargetingMoveDestination: "any empty troop space, no Presence
+                                 // needed") for EffectType.DeployFromTrophyHall (Mummy Lord:
+                                 // "take a white troop from any trophy hall and deploy it
+                                 // anywhere on the board"). WHICH player's trophy hall to draw
+                                 // from is resolved automatically before this state is entered
+                                 // (ActionSystem.PendingTrophyHallSourceColor) - not a separate
+                                 // click, see that property's own doc comment for why.
     }
 
     // Replaces the "Suits" (Conquest, Malice, Guile, Obedience)
@@ -133,6 +141,19 @@ namespace ChaosWarlords.Source.Utilities
         // choice at all). See ActionState.TargetingReturnUnitOrSpy and
         // ReturnUnitOrSpyStrategy.
         ReturnUnitOrSpy,
+
+        // "Take a white troop from any trophy hall and deploy it anywhere on the board" (Mummy
+        // Lord) - the first TROPHY-HALL-AS-TROOP-RESERVOIR card (planning.txt): sources a Deploy
+        // from a trophy hall's captured-troop composition (Player.TrophyHallByColor) instead of
+        // the normal barracks/PendingFreeTroops supply, then places it as the ACTIVE player's
+        // OWN troop (matching the rulebook's "Deploy" always means placing one of YOUR troops -
+        // this effect only changes WHERE that troop is funded from, same as Supplant's deploy
+        // half is always free regardless of barracks state). CardEffect.TargetNeutralTroopOnly
+        // filters which trophy-hall composition color is eligible (true for Mummy Lord's "white"
+        // troop; false would mean "any color," not yet needed by a shipped card - see
+        // TrophyHallRuleEngine's own doc comment for why that shape isn't built yet). See
+        // ActionState.TargetingDeployFromTrophyHall and DeployFromTrophyHallStrategy.
+        DeployFromTrophyHall,
     }
 
     /// <summary>

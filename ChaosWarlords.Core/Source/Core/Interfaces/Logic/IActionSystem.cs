@@ -83,6 +83,26 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         PlayerColor? PendingAffectedPlayerColor { get; }
 
         /// <summary>
+        /// The color of the player whose trophy hall EffectType.DeployFromTrophyHall will draw a
+        /// troop from (Mummy Lord) - resolved by TrophyHallRuleEngine and set via
+        /// SetPendingTrophyHallSource BEFORE targeting opens (see CardEffectProcessor.
+        /// ApplyDeployFromTrophyHall), unlike PendingSite/PendingAffectedPlayerColor, which are
+        /// both set reactively AFTER an earlier step resolves - there is no click that could
+        /// name a player mid-targeting the way a site click updates PendingSite, so this has to
+        /// be decided up front instead. Null once no DeployFromTrophyHall sequence is pending.
+        /// Cleared by ClearState() alongside PendingSite/PendingAffectedPlayerColor.
+        /// </summary>
+        PlayerColor? PendingTrophyHallSourceColor { get; }
+
+        /// <summary>
+        /// Sets PendingTrophyHallSourceColor - called by CardEffectProcessor.
+        /// ApplyDeployFromTrophyHall right after TrophyHallRuleEngine.TryGetSoleEligibleSource
+        /// resolves the sole eligible source, before StartTargeting opens
+        /// ActionState.TargetingDeployFromTrophyHall.
+        /// </summary>
+        void SetPendingTrophyHallSource(PlayerColor sourcePlayerColor);
+
+        /// <summary>
         /// Initiates the Assassination action flow.
         /// </summary>
         void TryStartAssassinate();
@@ -275,6 +295,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         void PerformPlaceSpy(Site site, string? cardId);
         bool PerformSpyReturn(Site site, PlayerColor selectedSpyColor, string? cardId);
         void PerformMoveTroop(MapNode source, MapNode dest, string? cardId);
+        void PerformDeployFromTrophyHall(MapNode node, PlayerColor sourcePlayerColor, PlayerColor troopColor, string? cardId);
 
 
         /// <summary>
@@ -369,7 +390,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// input-mode selector has no other way to learn a rollback moved it, forward-progression
         /// or not.
         /// </summary>
-        void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard, PlayerColor? pendingAffectedPlayerColor = null);
+        void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard, PlayerColor? pendingAffectedPlayerColor = null, PlayerColor? pendingTrophyHallSourceColor = null);
 
         // --- Engine-only methods (ActionExecutionEngine's exclusive callers) ---
         // Narrow, single-purpose targeting-state mutators that stack-processing needs to

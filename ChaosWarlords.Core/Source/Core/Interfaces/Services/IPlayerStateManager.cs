@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Core.Interfaces.Services
 {
@@ -84,7 +85,23 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// successful Supplant.
         /// </summary>
         /// <param name="player">The player whose trophy hall receives the troop.</param>
-        void AddTrophy(Player player);
+        /// <param name="troopColor">The removed troop's PlayerColor (Neutral/"white" included) -
+        /// captured by the caller BEFORE the map node's Occupant is cleared. See
+        /// Player.TrophyHallByColor.</param>
+        void AddTrophy(Player player, PlayerColor troopColor);
+
+        /// <summary>
+        /// Removes one troop of troopColor from the player's trophy hall, if present - e.g.
+        /// Mummy Lord's "take a white troop from any trophy hall and deploy it anywhere on the
+        /// board" (TROPHY-HALL-AS-TROOP-RESERVOIR, planning.txt).
+        /// </summary>
+        /// <param name="player">The player whose trophy hall loses the troop.</param>
+        /// <param name="troopColor">Which color to remove.</param>
+        /// <returns>False if that player's trophy hall has none of that color - the caller
+        /// (DeployFromTrophyHallCommand) should treat this as a stale/forged command, since
+        /// TrophyHallRuleEngine's own eligibility check is expected to have already confirmed
+        /// this would succeed.</returns>
+        bool RemoveTrophy(Player player, PlayerColor troopColor);
 
         // --- Card Management ---
 

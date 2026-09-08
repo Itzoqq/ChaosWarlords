@@ -60,7 +60,8 @@ namespace ChaosWarlords.Source.Managers
             ActionState.TargetingSupplant or
             ActionState.TargetingMoveSource or
             ActionState.TargetingMoveDestination or
-            ActionState.TargetingReturnUnitOrSpy;
+            ActionState.TargetingReturnUnitOrSpy or
+            ActionState.TargetingDeployFromTrophyHall;
 
         private static bool IsSiteTargetingState(ActionState state) => state is
             ActionState.TargetingPlaceSpy or
@@ -86,6 +87,7 @@ namespace ChaosWarlords.Source.Managers
             [ActionState.TargetingSupplant] = (self, node, cardId, devourCardId) => self.HandleSupplant(node, cardId, devourCardId),
             [ActionState.TargetingMoveSource] = (self, node, _, _) => self.HandleMoveSource(node),
             [ActionState.TargetingMoveDestination] = (self, node, cardId, _) => self.HandleMoveDestination(node, cardId),
+            [ActionState.TargetingDeployFromTrophyHall] = (self, node, cardId, _) => self.HandleDeployFromTrophyHall(node, cardId),
         };
 
         private IGameCommand? HandleNodeTarget(ActionState state, MapNode targetNode)
@@ -205,6 +207,27 @@ namespace ChaosWarlords.Source.Managers
             }
 
             return new MoveTroopCommand(source.Id, targetNode.Id, cardId);
+        }
+
+        private DeployFromTrophyHallCommand? HandleDeployFromTrophyHall(MapNode targetNode, string? cardId)
+        {
+            if (!_mapManager.CanMoveDestination(targetNode))
+            {
+                _actionSystem.RaiseActionFailed("Invalid Destination: Space must be empty.");
+                return null;
+            }
+
+            var sourcePlayerColor = _actionSystem.PendingTrophyHallSourceColor;
+            if (sourcePlayerColor == null) return null;
+
+            var pendingEffect = _actionSystem.CurrentSourceEffect;
+            bool requireNeutral = pendingEffect != null && pendingEffect.Type == EffectType.DeployFromTrophyHall && pendingEffect.TargetNeutralTroopOnly;
+
+            // "Any color" sourcing isn't built yet - see TrophyHallRuleEngine's own doc
+            // comment. Every shipped card using this effect sets TargetNeutralTroopOnly.
+            if (!requireNeutral) return null;
+
+            return new DeployFromTrophyHallCommand(targetNode.Id, sourcePlayerColor.Value, PlayerColor.Neutral, cardId);
         }
     }
 }

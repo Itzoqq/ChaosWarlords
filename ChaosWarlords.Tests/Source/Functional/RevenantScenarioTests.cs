@@ -51,7 +51,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         {
             var scenario = MatchScenario.Build();
             var (red, target1, target2) = SetupRedWithTwoAdjacentEnemyTroops(scenario);
-            red.TrophyHall = 6; // +2 from this card's own assassinations reaches the 8 threshold.
+            red.SetTrophyHall(6); // +2 from this card's own assassinations reaches the 8 threshold.
             var card = scenario.GiveCard(PlayerColor.Red, "revenant");
 
             scenario.PlayCard(card);
@@ -78,7 +78,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         {
             var scenario = MatchScenario.Build();
             var (red, target1, target2) = SetupRedWithTwoAdjacentEnemyTroops(scenario);
-            red.TrophyHall = 5; // +2 reaches only 7 - below the 8 threshold.
+            red.SetTrophyHall(5); // +2 reaches only 7 - below the 8 threshold.
             var card = scenario.GiveCard(PlayerColor.Red, "revenant");
 
             scenario.PlayCard(card);
@@ -101,7 +101,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         {
             var scenario = MatchScenario.Build();
             var red = scenario.AsActivePlayer(PlayerColor.Red);
-            red.TrophyHall = 20; // Would easily meet the threshold, if the chain ever got there.
+            red.SetTrophyHall(20); // Would easily meet the threshold, if the chain ever got there.
             var redNode = scenario.Context.MapManager.Nodes.First(n => scenario.Context.MapManager.CanDeployAt(n, red.Color));
             scenario.Dispatch(new DeployTroopCommand(redNode.Id));
             var onlyTarget = redNode.Neighbors.First(n => n.Occupant == PlayerColor.None);
@@ -122,7 +122,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         {
             var scenario = MatchScenario.Build();
             var red = scenario.AsActivePlayer(PlayerColor.Red);
-            red.TrophyHall = 20;
+            red.SetTrophyHall(20);
             var card = scenario.GiveCard(PlayerColor.Red, "revenant");
 
             scenario.PlayCard(card);
@@ -208,7 +208,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         {
             var scenario = MatchScenario.Build();
             var (red, target1, _) = SetupRedWithTwoAdjacentEnemyTroops(scenario);
-            red.TrophyHall = 20;
+            red.SetTrophyHall(20);
             var card = scenario.GiveCard(PlayerColor.Red, "revenant");
             scenario.PlayCard(card);
 

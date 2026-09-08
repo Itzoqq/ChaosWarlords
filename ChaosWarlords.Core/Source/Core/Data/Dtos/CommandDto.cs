@@ -27,6 +27,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     [JsonDerivedType(typeof(SelectOpponentCommandDto), typeDiscriminator: "select_opponent")]
     [JsonDerivedType(typeof(DeclineRepeatCommandDto), typeDiscriminator: "decline_repeat")]
     [JsonDerivedType(typeof(ReturnAnySpyCommandDto), typeDiscriminator: "ret_any_spy")]
+    [JsonDerivedType(typeof(DeployFromTrophyHallCommandDto), typeDiscriminator: "deploy_trophy")]
     public abstract class GameCommandDto
     {
         public int Seq { get; set; }
@@ -148,6 +149,17 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     {
         public int SiteId { get; set; }
         public string? Color { get; set; }
+        public string? CardId { get; set; }
+    }
+
+    // EffectType.DeployFromTrophyHall (Mummy Lord) - SourcePlayerColor/TroopColor are explicit,
+    // not re-derived on hydration, matching ReturnAnySpyCommandDto's own "Color" field
+    // convention for a PlayerColor value in a DTO.
+    public class DeployFromTrophyHallCommandDto : GameCommandDto
+    {
+        public int NodeId { get; set; }
+        public string? SourcePlayerColor { get; set; }
+        public string? TroopColor { get; set; }
         public string? CardId { get; set; }
     }
 

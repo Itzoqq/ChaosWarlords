@@ -271,6 +271,103 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules.Strategies
 
         #endregion
 
+        #region DeployFromTrophyHallStrategy
+
+        private static Card BuildMummyLordLikeCard(bool targetNeutralTroopOnly = true)
+        {
+            var card = new Card("test_mummy_lord", "Test Mummy Lord", 0, CardAspect.Neutral, 0, 0, 0);
+            card.AddEffect(new CardEffect(EffectType.DeployFromTrophyHall, 0) { TargetNeutralTroopOnly = targetNeutralTroopOnly });
+            return card;
+        }
+
+        [TestMethod]
+        public void DeployFromTrophyHallStrategy_EffectType_IsDeployFromTrophyHall()
+        {
+            Assert.AreEqual(EffectType.DeployFromTrophyHall, new DeployFromTrophyHallStrategy().EffectType);
+        }
+
+        [TestMethod]
+        public void DeployFromTrophyHallStrategy_IsTargetingEffect_IsTrue()
+        {
+            Assert.IsTrue(new DeployFromTrophyHallStrategy().IsTargetingEffect);
+        }
+
+        [TestMethod]
+        public void DeployFromTrophyHallStrategy_GetTargetingState_ReturnsTargetingDeployFromTrophyHall()
+        {
+            var state = new DeployFromTrophyHallStrategy().GetTargetingState(new CardEffect(EffectType.DeployFromTrophyHall, 0));
+            Assert.AreEqual(ActionState.TargetingDeployFromTrophyHall, state);
+        }
+
+        [TestMethod]
+        public void DeployFromTrophyHallStrategy_HasValidTargets_TrueWhenExactlyOneEligiblePlayerAndAnEmptyNodeExist()
+        {
+            var red = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var blue = new PlayerBuilder().WithColor(PlayerColor.Blue).Build();
+            blue.SetTrophyHall(1, PlayerColor.Neutral);
+            var turnManager = Substitute.For<ITurnManager>();
+            turnManager.Players.Returns(new List<Player> { red, blue });
+            var mapManager = Substitute.For<IMapManager>();
+            var node = new MapNodeBuilder().WithId(1).Build();
+            mapManager.Nodes.Returns(new List<MapNode> { node });
+            mapManager.CanMoveDestination(node).Returns(true);
+            var context = new MatchContextBuilder().WithTurnManager(turnManager).WithMapManager(mapManager).Build();
+
+            Assert.IsTrue(new DeployFromTrophyHallStrategy().HasValidTargets(context, red, BuildMummyLordLikeCard()));
+        }
+
+        [TestMethod]
+        public void DeployFromTrophyHallStrategy_HasValidTargets_FalseWhenNoPlayerIsEligible()
+        {
+            var red = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var turnManager = Substitute.For<ITurnManager>();
+            turnManager.Players.Returns(new List<Player> { red });
+            var mapManager = Substitute.For<IMapManager>();
+            var node = new MapNodeBuilder().WithId(1).Build();
+            mapManager.Nodes.Returns(new List<MapNode> { node });
+            mapManager.CanMoveDestination(node).Returns(true);
+            var context = new MatchContextBuilder().WithTurnManager(turnManager).WithMapManager(mapManager).Build();
+
+            Assert.IsFalse(new DeployFromTrophyHallStrategy().HasValidTargets(context, red, BuildMummyLordLikeCard()));
+        }
+
+        [TestMethod]
+        public void DeployFromTrophyHallStrategy_HasValidTargets_FalseWhenTwoPlayersAreAmbiguouslyEligible()
+        {
+            var red = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var blue = new PlayerBuilder().WithColor(PlayerColor.Blue).Build();
+            red.SetTrophyHall(1, PlayerColor.Neutral);
+            blue.SetTrophyHall(1, PlayerColor.Neutral);
+            var turnManager = Substitute.For<ITurnManager>();
+            turnManager.Players.Returns(new List<Player> { red, blue });
+            var mapManager = Substitute.For<IMapManager>();
+            var node = new MapNodeBuilder().WithId(1).Build();
+            mapManager.Nodes.Returns(new List<MapNode> { node });
+            mapManager.CanMoveDestination(node).Returns(true);
+            var context = new MatchContextBuilder().WithTurnManager(turnManager).WithMapManager(mapManager).Build();
+
+            Assert.IsFalse(new DeployFromTrophyHallStrategy().HasValidTargets(context, red, BuildMummyLordLikeCard()));
+        }
+
+        [TestMethod]
+        public void DeployFromTrophyHallStrategy_HasValidTargets_FalseWhenNoEmptyNodeExists()
+        {
+            var red = new PlayerBuilder().WithColor(PlayerColor.Red).Build();
+            var blue = new PlayerBuilder().WithColor(PlayerColor.Blue).Build();
+            blue.SetTrophyHall(1, PlayerColor.Neutral);
+            var turnManager = Substitute.For<ITurnManager>();
+            turnManager.Players.Returns(new List<Player> { red, blue });
+            var mapManager = Substitute.For<IMapManager>();
+            var node = new MapNodeBuilder().WithId(1).Build();
+            mapManager.Nodes.Returns(new List<MapNode> { node });
+            mapManager.CanMoveDestination(node).Returns(false); // The board is fully saturated.
+            var context = new MatchContextBuilder().WithTurnManager(turnManager).WithMapManager(mapManager).Build();
+
+            Assert.IsFalse(new DeployFromTrophyHallStrategy().HasValidTargets(context, red, BuildMummyLordLikeCard()));
+        }
+
+        #endregion
+
         #region SupplantStrategy
 
         [TestMethod]
