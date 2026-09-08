@@ -149,20 +149,25 @@ namespace ChaosWarlords.Source.Entities.Cards
         // accidental side effect of reusing the PendingSite chain-link mechanism.
         public int ChainedRepeatCount { get; set; }
 
-        // Set (and, unlike ChainedRepeatCount, left set on EVERY round including the final one)
-        // by CardEffectProcessor.ExpandChainedRepeat - never authored directly in cards.json.
-        // ActionExecutionEngine.HasUnreachableOnSuccess's "don't even ask if accepting would
-        // chain into an OnSuccess with no valid target" lookahead is correct for a card like
-        // Wight (Devour's only purpose IS enabling the chained Supplant - no point devouring
-        // for nothing) but wrong for Graz'zt: "return a spy" has value on its own (repositioning
-        // it to your barracks) independent of whether THIS round's Supplant happens to find a
-        // troop at that exact site. Without this, a round where global Supplant validity is
-        // currently false would be silently skipped entirely (not even offered), which - unlike
-        // a per-round decline, which still lets the NEXT round be reached via the Alternative
-        // convergence - has no Alternative of its own on the round's OWN top node, so it would
-        // silently end the WHOLE "any number" sequence instead of just skipping this one round's
-        // Supplant. Defaults to false so every existing optional+OnSuccess card keeps the
-        // lookahead exactly as before.
+        // Set either by CardEffectProcessor.ExpandChainedRepeat (left set on EVERY round
+        // including the final one - Graz'zt's ChainedRepeatCount rounds) or authored directly in
+        // cards.json (Green Dragon's PlaceSpy -> OnSuccess:Supplant branch). ActionExecutionEngine.
+        // HasUnreachableOnSuccess's "don't even ask if accepting would chain into an OnSuccess
+        // with no valid target" lookahead is correct for a card like Wight (Devour's only purpose
+        // IS enabling the chained Supplant - no point devouring for nothing) but wrong whenever
+        // ACCEPTING the top effect is what CREATES the very presence/precondition the chained
+        // step needs - the lookahead only ever sees CURRENT board state, before that acceptance
+        // happens. Two known cases: Graz'zt ("return a spy" has value on its own - repositioning
+        // it to your barracks - independent of whether THIS round's Supplant happens to find a
+        // troop at that exact site; without this, a round where global Supplant validity is
+        // currently false would be silently skipped entirely, not even offered, which unlike a
+        // per-round decline has no Alternative of its own on the round's OWN top node, silently
+        // ending the WHOLE "any number" sequence instead of just skipping this one round's
+        // Supplant); Green Dragon ("place a spy, THEN supplant a troop at that spy's site" - the
+        // spy being placed is what grants Presence there, so a global "is Supplant valid
+        // anywhere right now" check can be false purely because that presence doesn't exist YET,
+        // even though placing the spy would immediately make it valid). Defaults to false so
+        // every existing optional+OnSuccess card keeps the lookahead exactly as before.
         public bool SkipUnreachableOnSuccessCheck { get; set; }
 
         // "Assassinate up to 3 troops at a single site. For each troop removed, gain

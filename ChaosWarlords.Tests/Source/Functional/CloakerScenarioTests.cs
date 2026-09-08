@@ -64,6 +64,47 @@ namespace ChaosWarlords.Tests.Source.Functional
         }
 
         [TestMethod]
+        public void PlayCloaker_ReturnSpyFromASiteWithNoTroopWhileTheBoardHasOneElsewhere_ResolvesCleanlyInsteadOfStalling()
+        {
+            // Regression test for a real, reproducible soft-lock found while reviewing Green
+            // Dragon (a card that chains a targeting OnSuccess off PlaceSpy the same way Cloaker
+            // chains one off ReturnOwnSpy): AssassinateStrategy.HasValidTargets used to only
+            // consult ActionSystem.PendingSite when RestrictRepeatsToFirstTargetSite was set,
+            // so the "any valid Assassinate target ANYWHERE on the board" lookahead could say
+            // yes (siteB's troop) even though the chain is actually scoped to siteA (which has
+            // no troop at all) - AssassinateCommand.Validate()'s own IsAtRequiredSite check
+            // would then reject every click (both the real target at siteB, and any click at
+            // the empty siteA), leaving the player stuck in TargetingAssassinate with no way
+            // out except a full CancelTargeting() (undoing the whole card play). Fixed by making
+            // AssassinateStrategy.HasValidTargets always honor PendingSite, matching Validate()'s
+            // own unconditional behavior - so this must now resolve cleanly to Normal instead.
+            var scenario = MatchScenario.Build();
+            var red = scenario.AsActivePlayer(PlayerColor.Red);
+            var blue = scenario.Player(PlayerColor.Blue);
+
+            var siteA = scenario.Context.MapManager.Sites.First(s => s.NodesInternal.Count > 0);
+            siteA.AddSpy(red.Color); // Red's spy at siteA - no troop here at all.
+            var siteB = scenario.Context.MapManager.Sites.First(s => s.NodesInternal.Count > 0 && s != siteA);
+            var nodeB = siteB.NodesInternal[0];
+            nodeB.Occupant = blue.Color; // A globally-valid Assassinate target, but at the WRONG site.
+            // Red needs genuine Presence here too, or this wouldn't be a globally-valid target
+            // in the first place regardless of the site-scoping bug under test.
+            nodeB.Neighbors.First(n => n.Occupant == PlayerColor.None).Occupant = red.Color;
+
+            var cloaker = scenario.GiveCard(PlayerColor.Red, "cloaker");
+            scenario.PlayCard(cloaker);
+            scenario.RespondToLatestInteraction(accept: false); // Decline Place a Spy - use the Alternative.
+            Assert.AreEqual(ActionState.TargetingReturnOwnSpy, scenario.Context.ActionSystem.CurrentState);
+
+            scenario.ClickTarget(null, siteA);
+
+            Assert.DoesNotContain(red.Color, siteA.Spies, "The spy should still have been returned from siteA.");
+            Assert.AreEqual(ActionState.Normal, scenario.Context.ActionSystem.CurrentState, "siteA has no troop to Assassinate - the chain must resolve cleanly, not stall in TargetingAssassinate.");
+            Assert.IsEmpty(scenario.Context.ActionSystem.ExecutionStack);
+            Assert.AreEqual(blue.Color, siteB.NodesInternal[0].Occupant, "siteB's troop was never a legal target for this chain - must survive untouched.");
+        }
+
+        [TestMethod]
         public void ReturnOwnSpyCommand_ForASiteWithNoSpyThere_IsRejectedWithNoStateChange()
         {
             // Adversarial scenario: a forged/stale ReturnOwnSpyCommand naming a site the

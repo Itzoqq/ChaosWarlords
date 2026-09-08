@@ -726,6 +726,38 @@
     ]
   },
   {
+    "Id": "green_dragon",
+    "Cost": 7,
+    "Aspect": "Shadow",
+    "DeckVP": 3,
+    "InnerCircleVP": 7,
+    "Effects": [
+      {
+        "Type": "PlaceSpy",
+        "Amount": 1,
+        "IsOptional": true,
+        "SkipUnreachableOnSuccessCheck": true,
+        "OnSuccess": {
+          "Type": "Supplant",
+          "Amount": 1
+        },
+        "Alternative": {
+          "Type": "ReturnOwnSpy",
+          "Amount": 1,
+          "OnSuccess": {
+            "Type": "Supplant",
+            "Amount": 1,
+            "OnSuccess": {
+              "Type": "GainResource",
+              "TargetResource": "VictoryPoints",
+              "DynamicAmountSource": "SitesControlled"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
     "Id": "grimlock",
     "Cost": 1,
     "Aspect": "Warlord",

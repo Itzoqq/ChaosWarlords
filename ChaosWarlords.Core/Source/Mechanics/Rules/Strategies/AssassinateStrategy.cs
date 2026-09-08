@@ -26,14 +26,19 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Strategies
         {
             var effect = sourceCard != null ? EffectTreeSearch.FindFirstEffect(sourceCard.Effects, EffectType.Assassinate) : null;
 
-            // Minotaur Skeleton: once RestrictRepeatsToFirstTargetSite has bound
-            // ActionSystem.PendingSite to the first repeat's site, "no more valid targets"
-            // (ActionExecutionEngine.ShouldRepeatCurrentEffect's early-resolve fallback) must
-            // mean "at that site", not "anywhere on the board" - see CardEffect.
-            // RestrictRepeatsToFirstTargetSite's doc comment.
-            var restrictToSite = (effect?.RestrictRepeatsToFirstTargetSite ?? false) ? context.ActionSystem.PendingSite : null;
-
-            return context.MapManager.HasValidAssassinationTarget(player, effect?.TargetNeutralTroopOnly ?? false, restrictToSite: restrictToSite);
+            // ActionSystem.PendingSite must restrict this lookahead exactly the way
+            // AssassinateCommand.Validate()'s own IsAtRequiredSite check already unconditionally
+            // restricts the actual click - regardless of WHICH mechanism set it: Minotaur
+            // Skeleton's own RestrictRepeatsToFirstTargetSite binding (after the first repeat),
+            // or an earlier chain-link step like ReturnOwnSpyCommand (Cloaker). Previously only
+            // honored for the RestrictRepeatsToFirstTargetSite case, which meant a chain-linked
+            // (not self-repeat-bound) PendingSite could pass this global check yet still get
+            // rejected by Validate(), stranding the player in an unclickable targeting state
+            // with nothing to auto-resolve the effect as a clean "no valid target" instead (a
+            // real, reproducible soft-lock, not just a theoretical gap - see RESOLVED.txt).
+            // PendingSite is null whenever no chain scoping is active (cleared on every return
+            // to Normal), so this is a no-op for every plain, unchained Assassinate effect.
+            return context.MapManager.HasValidAssassinationTarget(player, effect?.TargetNeutralTroopOnly ?? false, restrictToSite: context.ActionSystem.PendingSite);
         }
     }
 }

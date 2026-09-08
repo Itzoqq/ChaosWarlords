@@ -73,6 +73,8 @@
   "vampire_description": "Choose one: Supplant a troop. Or, promote a card from your discard pile, then gain 1 VP for every 3 cards in your inner circle.",
   "aboleth_name": "Aboleth",
   "aboleth_description": "Choose one: Place 2 spies. Or, draw a card for each spy you have on the board.",
+  "green_dragon_name": "Green Dragon",
+  "green_dragon_description": "Choose one: Place a spy, then supplant a troop at that spy's site. Or, return one of your spies, then supplant a troop at that spy's site and gain 1 VP for each site you control.",
   "blue_dragon_name": "Blue Dragon",
   "blue_dragon_description": "At end of turn, promote up to 2 other cards played this turn, then gain 1 VP for every 3 cards in your inner circle.",
   "black_dragon_name": "Black Dragon",

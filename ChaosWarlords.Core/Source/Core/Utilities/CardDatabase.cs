@@ -85,6 +85,10 @@ namespace ChaosWarlords.Source.Utilities
         // "...THEN gain 1 VP for every 3 cards in your inner circle" (Blue Dragon) - see
         // CardEffect.PromotionCompletionEffect.
         public CardEffectData? PromotionCompletionEffect { get; set; }
+
+        // "Place a spy, then supplant a troop at that spy's site" (Green Dragon) - see
+        // CardEffect.SkipUnreachableOnSuccessCheck.
+        public bool SkipUnreachableOnSuccessCheck { get; set; }
     }
 
     public class CardDatabase : ICardDatabase

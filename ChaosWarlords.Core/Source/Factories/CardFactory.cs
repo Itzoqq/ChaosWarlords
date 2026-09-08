@@ -263,6 +263,7 @@ namespace ChaosWarlords.Source.Utilities
             effect.PromotionCreditIsOptional = data.PromotionCreditIsOptional;
             effect.ChooseCount = data.ChooseCount;
             effect.ChainedRepeatCount = data.ChainedRepeatCount;
+            effect.SkipUnreachableOnSuccessCheck = data.SkipUnreachableOnSuccessCheck;
         }
 
         private static void ParseDynamicAmount(CardEffectData data, CardEffect effect, IGameLogger? logger)

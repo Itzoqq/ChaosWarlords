@@ -603,6 +603,52 @@ namespace ChaosWarlords.Tests.Integration.Factories
             logger.Received(1).Log(Arg.Is<string>(s => s.Contains("PromotionCompletionEffect has an OnSuccess/Alternative chain")), LogChannel.Warning);
         }
 
+        // --- CardEffect.SkipUnreachableOnSuccessCheck as a direct JSON author-able flag (Green
+        // Dragon's "place a spy, then supplant a troop at that spy's site") - previously only
+        // ever set programmatically by CardEffectProcessor.ExpandChainedRepeat (Graz'zt) ---
+
+        [TestMethod]
+        public void CreateFromData_SkipUnreachableOnSuccessCheckParsesOntoTheEffect()
+        {
+            var cardData = new CardData
+            {
+                Id = "skip_unreachable_on_success_check_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData
+                    {
+                        Type = "PlaceSpy",
+                        Amount = 1,
+                        IsOptional = true,
+                        SkipUnreachableOnSuccessCheck = true,
+                        OnSuccess = new CardEffectData { Type = "Supplant", Amount = 1 }
+                    }
+                }
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization);
+
+            Assert.IsTrue(card.Effects[0].SkipUnreachableOnSuccessCheck);
+        }
+
+        [TestMethod]
+        public void CreateFromData_SkipUnreachableOnSuccessCheckNotAuthored_DefaultsToFalse()
+        {
+            var cardData = new CardData
+            {
+                Id = "skip_unreachable_on_success_check_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "PlaceSpy", Amount = 1, IsOptional = true }
+                }
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization);
+
+            Assert.IsFalse(card.Effects[0].SkipUnreachableOnSuccessCheck);
+        }
     }
 }
 

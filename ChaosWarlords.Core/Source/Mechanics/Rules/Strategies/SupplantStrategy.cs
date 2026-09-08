@@ -24,7 +24,17 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Strategies
             // deploy half grants 1 VP instead (rulebook p.12/22, same as the plain Deploy
             // action), so only the assassinate half's target requirement gates this.
             var effect = sourceCard != null ? EffectTreeSearch.FindFirstEffect(sourceCard.Effects, EffectType.Supplant) : null;
-            return context.MapManager.HasValidAssassinationTarget(player, effect?.TargetNeutralTroopOnly ?? false, effect?.IgnoresPresenceRequirement ?? false);
+
+            // ActionSystem.PendingSite - set by an earlier chain-link step (ReturnOwnSpyCommand:
+            // Cloaker/Graz'zt, or PlaceSpyCommand: Green Dragon) - must restrict this lookahead
+            // exactly the way SupplantCommand.Validate()'s own IsAtRequiredSite check already
+            // unconditionally restricts the actual click. Without this, a site that has NO
+            // supplantable troop could still pass this check purely because the board globally
+            // has one elsewhere, pushing a TargetingSupplant state where every click - at the
+            // real target OR at PendingSite - is rejected, with nothing to auto-resolve the
+            // effect as a clean "no valid target" instead (a real, reproducible soft-lock, not
+            // just a theoretical gap - see RESOLVED.txt).
+            return context.MapManager.HasValidAssassinationTarget(player, effect?.TargetNeutralTroopOnly ?? false, effect?.IgnoresPresenceRequirement ?? false, context.ActionSystem.PendingSite);
         }
     }
 }
