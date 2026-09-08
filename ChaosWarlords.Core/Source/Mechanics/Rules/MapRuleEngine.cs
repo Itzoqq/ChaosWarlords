@@ -167,6 +167,29 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 s.NodesInternal.Any(n => HasPresence(n, activePlayer.Color))) ?? false;
         }
 
+        // EffectType.ReturnUnitOrSpy's spy-side "no more legal targets" check - see
+        // IMapManager.HasValidReturnAnySpyTarget's own doc comment for why this deliberately
+        // requires EXACTLY ONE eligible spy per site, not "at least one eligible spy somewhere".
+        public bool HasValidReturnAnySpyTarget(Player activePlayer)
+        {
+            return _sites?.Any(s => HasExactlyOneReturnableSpyAt(s, activePlayer)) ?? false;
+        }
+
+        private bool HasExactlyOneReturnableSpyAt(Site site, Player activePlayer)
+        {
+            int eligibleCount = 0;
+            foreach (var color in site.Spies)
+            {
+                bool eligible = color == activePlayer.Color || site.NodesInternal.Any(n => HasPresence(n, activePlayer.Color));
+                if (eligible)
+                {
+                    eligibleCount++;
+                    if (eligibleCount > 1) return false;
+                }
+            }
+            return eligibleCount == 1;
+        }
+
         public bool HasValidReturnTroopTarget(Player activePlayer)
         {
             // See MapManager.CanReturnTroop's comment: Presence is only required to return

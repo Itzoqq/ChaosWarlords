@@ -190,5 +190,72 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
         }
 
         #endregion
+
+        #region HandleReturnUnitOrSpySite (EffectType.ReturnUnitOrSpy - Intellect Devourer)
+
+        [TestMethod]
+        public void HandleReturnUnitOrSpySite_NullSite_ReturnsNull()
+        {
+            var cmd = _subsystem.HandleReturnUnitOrSpySite(null!, null);
+
+            Assert.IsNull(cmd);
+        }
+
+        [TestMethod]
+        public void HandleReturnUnitOrSpySite_NoEligibleSpies_NotifiesFailureAndReturnsNull()
+        {
+            _mapManager.GetAllSpiesAtSite(_site).Returns(new List<PlayerColor>());
+
+            var cmd = _subsystem.HandleReturnUnitOrSpySite(_site, null);
+
+            Assert.IsNull(cmd);
+            _actionSystem.Received(1).NotifyFailure(Arg.Any<string>());
+        }
+
+        [TestMethod]
+        public void HandleReturnUnitOrSpySite_ExactlyOneEligibleSpy_ReturnsReturnAnySpyCommand()
+        {
+            _mapManager.GetAllSpiesAtSite(_site).Returns(new List<PlayerColor> { PlayerColor.Blue });
+            _mapManager.CanReturnAnySpy(_site, _activePlayer, PlayerColor.Blue).Returns(true);
+
+            var cmd = _subsystem.HandleReturnUnitOrSpySite(_site, "intellect_devourer_abc");
+
+            Assert.IsInstanceOfType(cmd, typeof(ChaosWarlords.Source.Commands.ReturnAnySpyCommand));
+            var typed = (ChaosWarlords.Source.Commands.ReturnAnySpyCommand)cmd!;
+            Assert.AreEqual(PlayerColor.Blue, typed.SpyColor);
+            Assert.AreEqual("intellect_devourer_abc", typed.CardId);
+        }
+
+        [TestMethod]
+        public void HandleReturnUnitOrSpySite_OneEligibleAndOneIneligibleSpy_ResolvesToTheEligibleOne()
+        {
+            // The site physically has 2 spies, but only Blue is actually returnable right now
+            // (e.g. Red has no Presence to return the other enemy's) - not ambiguous.
+            _mapManager.GetAllSpiesAtSite(_site).Returns(new List<PlayerColor> { PlayerColor.Blue, PlayerColor.Orange });
+            _mapManager.CanReturnAnySpy(_site, _activePlayer, PlayerColor.Blue).Returns(true);
+            _mapManager.CanReturnAnySpy(_site, _activePlayer, PlayerColor.Orange).Returns(false);
+
+            var cmd = _subsystem.HandleReturnUnitOrSpySite(_site, null);
+
+            Assert.IsInstanceOfType(cmd, typeof(ChaosWarlords.Source.Commands.ReturnAnySpyCommand));
+            Assert.AreEqual(PlayerColor.Blue, ((ChaosWarlords.Source.Commands.ReturnAnySpyCommand)cmd!).SpyColor);
+        }
+
+        [TestMethod]
+        public void HandleReturnUnitOrSpySite_TwoEligibleSpies_NotifiesFailureAndReturnsNull()
+        {
+            // The known, documented ambiguous-site gap - see HandleReturnUnitOrSpySite's own doc
+            // comment. Neither candidate is silently guessed.
+            _mapManager.GetAllSpiesAtSite(_site).Returns(new List<PlayerColor> { PlayerColor.Blue, PlayerColor.Orange });
+            _mapManager.CanReturnAnySpy(_site, _activePlayer, PlayerColor.Blue).Returns(true);
+            _mapManager.CanReturnAnySpy(_site, _activePlayer, PlayerColor.Orange).Returns(true);
+
+            var cmd = _subsystem.HandleReturnUnitOrSpySite(_site, null);
+
+            Assert.IsNull(cmd);
+            _actionSystem.Received(1).NotifyFailure(Arg.Any<string>());
+        }
+
+        #endregion
     }
 }

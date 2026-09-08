@@ -32,6 +32,19 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         bool HasValidReturnSpyTarget(Player activePlayer);
         bool HasValidReturnTroopTarget(Player activePlayer);
         bool HasValidPlaceSpyTarget(Player activePlayer);
+
+        /// <summary>
+        /// True if there's a site with EXACTLY ONE spy the active player could legally return
+        /// right now (their own, anywhere - or an enemy's, only where they have Presence) - see
+        /// EffectType.ReturnUnitOrSpy. Deliberately narrower than "any returnable spy exists
+        /// somewhere": a site with 2+ simultaneously-eligible spies can't be resolved by a single
+        /// site click today (see SpySubsystem.HandleReturnUnitOrSpySite's own doc comment for why
+        /// this isn't rare, and isn't fixed here) - counting it here would let this "no more
+        /// legal targets" check report true while the player has no way to actually complete
+        /// that repeat, risking a soft-lock. Not reachable via multiple isolated single-spy
+        /// sites; only excludes a genuinely ambiguous one.
+        /// </summary>
+        bool HasValidReturnAnySpyTarget(Player activePlayer);
         // ---------------------------------------
 
         // Navigation / Queries
@@ -63,6 +76,30 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         bool ReturnSpecificSpy(Site site, Player activePlayer, PlayerColor targetSpyColor);
         bool CanReturnOwnSpy(Site site, Player activePlayer);
         bool ReturnOwnSpy(Site site, Player activePlayer);
+
+        /// <summary>
+        /// All spy colors currently at a site, regardless of ownership (unlike
+        /// GetEnemySpiesAtSite, which excludes activePlayer's own color) - EffectType.
+        /// ReturnUnitOrSpy's candidate list for a site click.
+        /// </summary>
+        List<PlayerColor> GetAllSpiesAtSite(Site site);
+
+        /// <summary>
+        /// Can spyColor's spy be returned from this site by activePlayer right now? Own spy
+        /// (spyColor == activePlayer.Color): no Presence needed, matching CanReturnTroop's own-
+        /// unit precedent. Enemy spy: Presence needed at the site, matching
+        /// CanReturnSpecificSpy's existing enemy-only check. EffectType.ReturnUnitOrSpy's
+        /// (Intellect Devourer) target-type union - unlike CanReturnSpecificSpy, does not reject
+        /// spyColor == activePlayer.Color.
+        /// </summary>
+        bool CanReturnAnySpy(Site site, Player activePlayer, PlayerColor spyColor);
+
+        /// <summary>
+        /// Returns spyColor's spy from the site to ITS OWNER'S barracks (own or enemy - see
+        /// CanReturnAnySpy). Delegates to the existing, already-fixed ExecuteReturnOwnSpy/
+        /// ExecuteReturnSpy rather than a 3rd parallel implementation.
+        /// </summary>
+        bool ReturnAnySpy(Site site, Player activePlayer, PlayerColor spyColor);
 
 
         // Move troop action

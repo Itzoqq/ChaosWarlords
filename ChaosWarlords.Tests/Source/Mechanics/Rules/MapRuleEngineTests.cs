@@ -455,6 +455,56 @@ namespace ChaosWarlords.Tests.Systems
             Assert.IsFalse(_engine.HasValidReturnSpyTarget(_player1));
         }
 
+        // --- HasValidReturnAnySpyTarget (EffectType.ReturnUnitOrSpy - Intellect Devourer) ---
+
+        [TestMethod]
+        public void HasValidReturnAnySpyTarget_True_IfOwnSpyExists_EvenWithoutPresence()
+        {
+            // Own spy: no Presence needed at all, matching CanReturnAnySpy's own-unit rule.
+            _siteA.Spies.Add(_player1.Color);
+
+            Assert.IsTrue(_engine.HasValidReturnAnySpyTarget(_player1));
+        }
+
+        [TestMethod]
+        public void HasValidReturnAnySpyTarget_True_IfEnemySpyAndPresence()
+        {
+            _siteA.Spies.Add(_player2.Color);
+            _node3.Occupant = _player1.Color; // P1 presence via occupation
+
+            Assert.IsTrue(_engine.HasValidReturnAnySpyTarget(_player1));
+        }
+
+        [TestMethod]
+        public void HasValidReturnAnySpyTarget_False_IfEnemySpyButNoPresence()
+        {
+            _siteA.Spies.Add(_player2.Color);
+
+            Assert.IsFalse(_engine.HasValidReturnAnySpyTarget(_player1));
+        }
+
+        [TestMethod]
+        public void HasValidReturnAnySpyTarget_False_IfNoSpiesAnywhere()
+        {
+            _node3.Occupant = _player1.Color;
+
+            Assert.IsFalse(_engine.HasValidReturnAnySpyTarget(_player1));
+        }
+
+        [TestMethod]
+        public void HasValidReturnAnySpyTarget_False_WhenTheOnlySiteHasTwoSimultaneouslyEligibleSpies()
+        {
+            // Ambiguous site (own spy + a Presence-reachable enemy spy, both eligible at once) -
+            // deliberately excluded, matching HandleReturnUnitOrSpySite's own click-resolution
+            // gap, so this never reports a target the player has no way to actually complete via
+            // a single click. See IMapManager.HasValidReturnAnySpyTarget's own doc comment.
+            _siteA.Spies.Add(_player1.Color);
+            _siteA.Spies.Add(_player2.Color);
+            _node3.Occupant = _player1.Color; // Presence, so the enemy spy is ALSO eligible.
+
+            Assert.IsFalse(_engine.HasValidReturnAnySpyTarget(_player1));
+        }
+
         [TestMethod]
         public void HasValidReturnTroopTarget_True_IfEnemyTroopAndPresence()
         {

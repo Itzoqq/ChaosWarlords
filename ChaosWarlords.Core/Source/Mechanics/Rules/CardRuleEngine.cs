@@ -37,6 +37,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 { EffectType.PlayFromMarket, new Strategies.PlayFromMarketStrategy() },
                 { EffectType.SelectOpponent, new Strategies.SelectOpponentStrategy() },
                 { EffectType.PromoteFromPile, new Strategies.PromoteFromPileStrategy() },
+                { EffectType.ReturnUnitOrSpy, new Strategies.ReturnUnitOrSpyStrategy() },
                 // Add new strategies here
             };
         }

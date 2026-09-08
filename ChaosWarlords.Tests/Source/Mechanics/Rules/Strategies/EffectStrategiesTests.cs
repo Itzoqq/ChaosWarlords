@@ -205,6 +205,72 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules.Strategies
 
         #endregion
 
+        #region ReturnUnitOrSpyStrategy
+
+        [TestMethod]
+        public void ReturnUnitOrSpyStrategy_EffectType_IsReturnUnitOrSpy()
+        {
+            Assert.AreEqual(EffectType.ReturnUnitOrSpy, new ReturnUnitOrSpyStrategy().EffectType);
+        }
+
+        [TestMethod]
+        public void ReturnUnitOrSpyStrategy_IsTargetingEffect_IsTrue()
+        {
+            Assert.IsTrue(new ReturnUnitOrSpyStrategy().IsTargetingEffect);
+        }
+
+        [TestMethod]
+        public void ReturnUnitOrSpyStrategy_SupportsRepeat_IsTrue()
+        {
+            // "Return up to two troops or spies" (Intellect Devourer).
+            Assert.IsTrue(new ReturnUnitOrSpyStrategy().SupportsRepeat);
+        }
+
+        [TestMethod]
+        public void ReturnUnitOrSpyStrategy_GetTargetingState_ReturnsTargetingReturnUnitOrSpy()
+        {
+            var state = new ReturnUnitOrSpyStrategy().GetTargetingState(new CardEffect(EffectType.ReturnUnitOrSpy, 2));
+            Assert.AreEqual(ActionState.TargetingReturnUnitOrSpy, state);
+        }
+
+        [TestMethod]
+        public void ReturnUnitOrSpyStrategy_HasValidTargets_TrueWhenOnlyTroopTargetExists()
+        {
+            var mapManager = Substitute.For<IMapManager>();
+            var player = new PlayerBuilder().Build();
+            mapManager.HasValidReturnTroopTarget(player).Returns(true);
+            mapManager.HasValidReturnAnySpyTarget(player).Returns(false);
+            var context = new MatchContextBuilder().WithMapManager(mapManager).Build();
+
+            Assert.IsTrue(new ReturnUnitOrSpyStrategy().HasValidTargets(context, player, null));
+        }
+
+        [TestMethod]
+        public void ReturnUnitOrSpyStrategy_HasValidTargets_TrueWhenOnlySpyTargetExists()
+        {
+            var mapManager = Substitute.For<IMapManager>();
+            var player = new PlayerBuilder().Build();
+            mapManager.HasValidReturnTroopTarget(player).Returns(false);
+            mapManager.HasValidReturnAnySpyTarget(player).Returns(true);
+            var context = new MatchContextBuilder().WithMapManager(mapManager).Build();
+
+            Assert.IsTrue(new ReturnUnitOrSpyStrategy().HasValidTargets(context, player, null));
+        }
+
+        [TestMethod]
+        public void ReturnUnitOrSpyStrategy_HasValidTargets_FalseWhenNeitherExists()
+        {
+            var mapManager = Substitute.For<IMapManager>();
+            var player = new PlayerBuilder().Build();
+            mapManager.HasValidReturnTroopTarget(player).Returns(false);
+            mapManager.HasValidReturnAnySpyTarget(player).Returns(false);
+            var context = new MatchContextBuilder().WithMapManager(mapManager).Build();
+
+            Assert.IsFalse(new ReturnUnitOrSpyStrategy().HasValidTargets(context, player, null));
+        }
+
+        #endregion
+
         #region SupplantStrategy
 
         [TestMethod]

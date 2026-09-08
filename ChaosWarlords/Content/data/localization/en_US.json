@@ -82,5 +82,7 @@
   "minotaur_skeleton_name": "Minotaur Skeleton",
   "minotaur_skeleton_description": "Choose one: Deploy 3 troops. Or, devour this card to assassinate up to 3 white troops at a single site.",
   "weaponmaster_name": "Weaponmaster",
-  "weaponmaster_description": "Choose three times: Deploy a troop. Or, assassinate a white troop."
+  "weaponmaster_description": "Choose three times: Deploy a troop. Or, assassinate a white troop.",
+  "intellect_devourer_name": "Intellect Devourer",
+  "intellect_devourer_description": "Choose one: +3 Power. Or, return up to two troops or spies."
 }

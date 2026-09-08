@@ -59,27 +59,43 @@ namespace ChaosWarlords.Source.Managers
             ActionState.TargetingReturn or
             ActionState.TargetingSupplant or
             ActionState.TargetingMoveSource or
-            ActionState.TargetingMoveDestination;
+            ActionState.TargetingMoveDestination or
+            ActionState.TargetingReturnUnitOrSpy;
 
         private static bool IsSiteTargetingState(ActionState state) => state is
             ActionState.TargetingPlaceSpy or
             ActionState.TargetingReturnSpy or
-            ActionState.TargetingReturnOwnSpy;
+            ActionState.TargetingReturnOwnSpy or
+            ActionState.TargetingReturnUnitOrSpy;
+
+        // Lookup-table dispatch (mirroring CardRuleEngine's own Dictionary<EffectType,
+        // IEffectStrategy> convention) rather than a switch over ActionState - each recognized
+        // ActionState added to a switch/pattern-match over this enum costs the risk-hotspot
+        // check 2 branches apiece regardless of how arms are grouped (confirmed empirically
+        // while adding TargetingReturnUnitOrSpy, which tipped the old switch-based
+        // HandleNodeTarget over the complexity threshold no matter how the new case was
+        // written), where a dictionary lookup does not.
+        private static readonly Dictionary<ActionState, Func<ActionInputController, MapNode, string?, string?, IGameCommand?>> _nodeTargetHandlers = new()
+        {
+            [ActionState.TargetingAssassinate] = (self, node, cardId, devourCardId) => self.HandleAssassinate(node, cardId, devourCardId),
+            // TargetingReturnUnitOrSpy's node-click half (EffectType.ReturnUnitOrSpy's
+            // target-type union, Intellect Devourer) shares this exact handler - identical
+            // command/validation to the plain ReturnUnit effect type.
+            [ActionState.TargetingReturn] = (self, node, cardId, _) => self.HandleReturn(node, cardId),
+            [ActionState.TargetingReturnUnitOrSpy] = (self, node, cardId, _) => self.HandleReturn(node, cardId),
+            [ActionState.TargetingSupplant] = (self, node, cardId, devourCardId) => self.HandleSupplant(node, cardId, devourCardId),
+            [ActionState.TargetingMoveSource] = (self, node, _, _) => self.HandleMoveSource(node),
+            [ActionState.TargetingMoveDestination] = (self, node, cardId, _) => self.HandleMoveDestination(node, cardId),
+        };
 
         private IGameCommand? HandleNodeTarget(ActionState state, MapNode targetNode)
         {
             var pendingCardId = _actionSystem.PendingCard?.Id;
             var devourCardId = _actionSystem.PendingDevourCard?.Id;
 
-            return state switch
-            {
-                ActionState.TargetingAssassinate => HandleAssassinate(targetNode, pendingCardId, devourCardId),
-                ActionState.TargetingReturn => HandleReturn(targetNode, pendingCardId),
-                ActionState.TargetingSupplant => HandleSupplant(targetNode, pendingCardId, devourCardId),
-                ActionState.TargetingMoveSource => HandleMoveSource(targetNode),
-                ActionState.TargetingMoveDestination => HandleMoveDestination(targetNode, pendingCardId),
-                _ => null,
-            };
+            return _nodeTargetHandlers.TryGetValue(state, out var handler)
+                ? handler(this, targetNode, pendingCardId, devourCardId)
+                : null;
         }
 
         private IGameCommand? HandleSiteTarget(ActionState state, Site targetSite)
@@ -91,6 +107,8 @@ namespace ChaosWarlords.Source.Managers
                 ActionState.TargetingPlaceSpy => _spySubsystem.HandlePlaceSpy(targetSite, pendingCardId),
                 ActionState.TargetingReturnSpy => _spySubsystem.HandleReturnSpyInitialClick(targetSite, pendingCardId),
                 ActionState.TargetingReturnOwnSpy => _spySubsystem.HandleReturnOwnSpy(targetSite, pendingCardId),
+                // Site-click half of EffectType.ReturnUnitOrSpy's target-type union.
+                ActionState.TargetingReturnUnitOrSpy => _spySubsystem.HandleReturnUnitOrSpySite(targetSite, pendingCardId),
                 _ => null,
             };
         }

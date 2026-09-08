@@ -55,6 +55,12 @@ namespace ChaosWarlords.Source.Core.Utilities
                     }
                 },
                 { typeof(ReturnOwnSpyCommandDto), (d, s) => new ReturnOwnSpyCommand(((ReturnOwnSpyCommandDto)d).SiteId, ((ReturnOwnSpyCommandDto)d).CardId) },
+                { typeof(ReturnAnySpyCommandDto), (d, s) =>
+                    {
+                        var dto = (ReturnAnySpyCommandDto)d;
+                        return Enum.TryParse<PlayerColor>(dto.Color, out var c) ? new ReturnAnySpyCommand(dto.SiteId, c, dto.CardId) : null;
+                    }
+                },
                 { typeof(PlayFromMarketCommandDto), (d, s) => new PlayFromMarketCommand(((PlayFromMarketCommandDto)d).MarketCardRuntimeId, ((PlayFromMarketCommandDto)d).MarketCardId!) },
                 { typeof(SelectOpponentCommandDto), (d, s) =>
                     {

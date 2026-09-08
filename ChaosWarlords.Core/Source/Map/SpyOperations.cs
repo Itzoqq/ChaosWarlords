@@ -12,12 +12,14 @@ namespace ChaosWarlords.Source.Map
     public class SpyOperations
     {
         private readonly Action<Site, Player> _recalculateSiteState;
+        private readonly Func<PlayerColor, Player?> _getPlayerByColor;
         private readonly IPlayerStateManager _stateManager;
         private readonly IGameLogger _logger;
 
-        public SpyOperations(Action<Site, Player> recalculateSiteState, IPlayerStateManager stateManager, IGameLogger logger)
+        public SpyOperations(Action<Site, Player> recalculateSiteState, Func<PlayerColor, Player?> getPlayerByColor, IPlayerStateManager stateManager, IGameLogger logger)
         {
             _recalculateSiteState = recalculateSiteState;
+            _getPlayerByColor = getPlayerByColor;
             _stateManager = stateManager;
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
@@ -51,7 +53,11 @@ namespace ChaosWarlords.Source.Map
         }
 
         /// <summary>
-        /// Returns a specific enemy spy from a site.
+        /// Returns a specific enemy spy from a site, replenishing that spy's OWNER's
+        /// SpiesInBarracks (via the injected getPlayerByColor lookup - mirrors
+        /// CombatResolver.ExecuteReturnTroop's identical enemy-troop-owner-credit pattern) -
+        /// not the acting player's, unless they happen to be the same. The spy must be
+        /// re-placeable later, not permanently lost from its owner's supply.
         /// </summary>
         public bool ExecuteReturnSpy(Site site, Player activePlayer, PlayerColor targetSpyColor)
         {
@@ -65,6 +71,12 @@ namespace ChaosWarlords.Source.Map
             }
 
             site.Spies.Remove(targetSpyColor);
+
+            var owner = _getPlayerByColor(targetSpyColor);
+            if (owner != null)
+            {
+                _stateManager.AddSpies(owner, 1);
+            }
 
             _logger.Log($"Returned {targetSpyColor} Spy from {site.Name} to barracks.", LogChannel.Combat);
             _recalculateSiteState(site, activePlayer);

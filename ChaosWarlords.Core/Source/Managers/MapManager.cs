@@ -72,7 +72,7 @@ namespace ChaosWarlords.Source.Managers
                 _playerStateManager!,
                 _logger
             );
-            _spyOps = new SpyOperations((site, player) => RecalculateSiteState(site, player), _playerStateManager!, _logger);
+            _spyOps = new SpyOperations((site, player) => RecalculateSiteState(site, player), color => turnManager?.GetPlayerByColor(color), _playerStateManager!, _logger);
         }
 
         // REMOVED: SetPlayerStateManager. Dependency is now immutable.
@@ -89,6 +89,7 @@ namespace ChaosWarlords.Source.Managers
 
         public bool HasValidAssassinationTarget(Player activePlayer, bool requireNeutralTroop = false, bool ignoresPresence = false, Site? restrictToSite = null) => _ruleEngine.HasValidAssassinationTarget(activePlayer, requireNeutralTroop, ignoresPresence, restrictToSite);
         public bool HasValidReturnSpyTarget(Player activePlayer) => _ruleEngine.HasValidReturnSpyTarget(activePlayer);
+        public bool HasValidReturnAnySpyTarget(Player activePlayer) => _ruleEngine.HasValidReturnAnySpyTarget(activePlayer);
         public bool HasValidReturnTroopTarget(Player activePlayer) => _ruleEngine.HasValidReturnTroopTarget(activePlayer);
         public bool HasValidPlaceSpyTarget(Player activePlayer) => _ruleEngine.HasValidPlaceSpyTarget(activePlayer);
         public bool HasValidMoveSource(Player activePlayer) => _ruleEngine.HasValidMoveSource(activePlayer);
@@ -290,6 +291,33 @@ namespace ChaosWarlords.Source.Managers
             }
 
             return _spyOps.ExecuteReturnOwnSpy(site, activePlayer);
+        }
+
+        public List<PlayerColor> GetAllSpiesAtSite(Site site)
+        {
+            if (site is null) return new List<PlayerColor>();
+            return site.Spies.Where(s => s != PlayerColor.None).ToList();
+        }
+
+        public bool CanReturnAnySpy(Site site, Player activePlayer, PlayerColor spyColor)
+        {
+            if (site is null) return false;
+            if (!site.Spies.Contains(spyColor)) return false;
+            if (spyColor == activePlayer.Color) return true; // Own spy: no Presence needed.
+            return site.NodesInternal.Any(n => HasPresence(n, activePlayer.Color));
+        }
+
+        public bool ReturnAnySpy(Site site, Player activePlayer, PlayerColor spyColor)
+        {
+            if (!CanReturnAnySpy(site, activePlayer, spyColor))
+            {
+                _logger.Log($"Cannot return {spyColor} spy: Invalid Target or No Presence.", LogChannel.Error);
+                return false;
+            }
+
+            return spyColor == activePlayer.Color
+                ? _spyOps.ExecuteReturnOwnSpy(site, activePlayer)
+                : _spyOps.ExecuteReturnSpy(site, activePlayer, spyColor);
         }
 
     }

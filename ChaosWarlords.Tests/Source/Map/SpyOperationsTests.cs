@@ -1,3 +1,4 @@
+using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Map;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Managers;
@@ -12,6 +13,7 @@ namespace ChaosWarlords.Tests.Map
         private SpyOperations _spyOps = null!;
         private bool _siteRecalculated = false;
         private PlayerStateManager _playerState = null!;
+        private Dictionary<PlayerColor, Player> _playersByColor = null!;
 
         [TestInitialize]
         public void Setup()
@@ -19,8 +21,10 @@ namespace ChaosWarlords.Tests.Map
             Utilities.TestLogger.Initialize();
             _siteRecalculated = false;
             _playerState = new PlayerStateManager(Utilities.TestLogger.Instance);
+            _playersByColor = new Dictionary<PlayerColor, Player>();
             _spyOps = new SpyOperations(
                 (site, player) => { _siteRecalculated = true; },
+                color => _playersByColor.TryGetValue(color, out var p) ? p : null,
                 _playerState,
                 Utilities.TestLogger.Instance
             );
@@ -61,12 +65,18 @@ namespace ChaosWarlords.Tests.Map
         }
 
         [TestMethod]
-        public void ExecuteReturnSpy_RemovesEnemySpy()
+        public void ExecuteReturnSpy_RemovesEnemySpyAndReplenishesTheOwnersBarracks()
         {
-            // Arrange
+            // A returned enemy spy must go back to ITS OWNER'S barracks (not the acting
+            // player's) so it's re-placeable later, matching ExecuteReturnOwnSpy's own behavior
+            // and CombatResolver.ExecuteReturnTroop's identical enemy-troop-owner-credit pattern.
             var site = TestData.Sites.NeutralSite();
             site.Spies.Add(PlayerColor.Blue);
             var player = TestData.Players.RedPlayer();
+            player.SpiesInBarracks = 3;
+            var blue = TestData.Players.BluePlayer();
+            blue.SpiesInBarracks = 1;
+            _playersByColor[PlayerColor.Blue] = blue;
 
             // Act
             var result = _spyOps.ExecuteReturnSpy(site, player, PlayerColor.Blue);
@@ -75,6 +85,25 @@ namespace ChaosWarlords.Tests.Map
             Assert.IsTrue(result);
             Assert.DoesNotContain(PlayerColor.Blue, site.Spies);
             Assert.IsTrue(_siteRecalculated);
+            Assert.AreEqual(2, blue.SpiesInBarracks);
+            Assert.AreEqual(3, player.SpiesInBarracks, "The ACTING player's own barracks must be untouched - it wasn't their spy.");
+        }
+
+        [TestMethod]
+        public void ExecuteReturnSpy_WhenOwnerLookupReturnsNull_StillRemovesTheSpyWithoutThrowing()
+        {
+            // Defensive guard (matches CombatResolver.ExecuteReturnTroop's identical null-check)
+            // in case getPlayerByColor can't resolve the color for some reason - the spy removal
+            // itself must still succeed, just without a barracks credit going anywhere.
+            var site = TestData.Sites.NeutralSite();
+            site.Spies.Add(PlayerColor.Blue);
+            var player = TestData.Players.RedPlayer();
+            // Deliberately NOT registered in _playersByColor.
+
+            var result = _spyOps.ExecuteReturnSpy(site, player, PlayerColor.Blue);
+
+            Assert.IsTrue(result);
+            Assert.DoesNotContain(PlayerColor.Blue, site.Spies);
         }
 
         [TestMethod]

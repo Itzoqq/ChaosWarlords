@@ -3,6 +3,7 @@ using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
+using System.Linq;
 
 namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
 {
@@ -93,6 +94,62 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             }
 
             return new Commands.ReturnOwnSpyCommand(clickedSite.Id, cardId);
+        }
+
+        /// <summary>
+        /// Site-click half of EffectType.ReturnUnitOrSpy's target-type union (Intellect
+        /// Devourer). Considers EVERY spy at the site as a candidate (own or enemy - unlike
+        /// HandleReturnSpyInitialClick's enemy-only GetEnemySpiesAtSite), pre-filtered to only
+        /// those actually returnable right now (own: always; enemy: needs Presence).
+        ///
+        /// Known, documented gap - NOT rare: unlike the base "Return an enemy spy" action (which
+        /// disambiguates 2+ enemy candidates via ActionSystem.TransitionToSpySelection/
+        /// SelectingSpyToReturn), a site with 2+ SIMULTANEOUSLY ELIGIBLE spies (the active
+        /// player's own plus a Presence-reachable enemy's, or 2+ different enemies all
+        /// Presence-reachable) can't be resolved by a single click here - rejected with
+        /// NotifyFailure rather than guessing which one was meant. Site.Spies is a plain
+        /// List&lt;PlayerColor&gt; that routinely accumulates multiple colors over a game (the
+        /// entire reason the base action's own disambiguation sub-state exists) - this is an
+        /// ordinary mid/late-game board state in a 3-4 player match, not a corner case: for as
+        /// long as it holds, this card's site-click path is unusable at that specific site.
+        /// Reusing the base action's disambiguation UI for this case isn't done here to avoid
+        /// touching that already-well-tested shared flow for an ownership branch it never
+        /// exercises today - deliberately deferred (a real design decision, not an oversight),
+        /// not a rules violation in the sense of ever mutating state incorrectly: nothing is
+        /// silently returned wrong, the click is just not resolvable through this path yet, and
+        /// no repeat can ever get stuck waiting on it (see the next paragraph). A forged
+        /// ReturnAnySpyCommand naming ONE specific color explicitly still works correctly via
+        /// Validate() regardless of how many OTHER candidates were at that site - only this
+        /// click-to-command convenience layer has the gap. See planning.txt.
+        /// IMapManager.HasValidReturnAnySpyTarget is defined to exclude such an ambiguous site
+        /// from "a valid target exists" too, so the repeat correctly resolves early instead of
+        /// ever opening targeting with no way to complete it via a single click.
+        /// </summary>
+        public IGameCommand? HandleReturnUnitOrSpySite(Site clickedSite, string? cardId)
+        {
+            if (clickedSite is null)
+            {
+                _logger.Log("Invalid Target: You must click a Site.", LogChannel.Warning);
+                return null;
+            }
+
+            var eligibleSpies = _mapManager.GetAllSpiesAtSite(clickedSite)
+                .Where(color => _mapManager.CanReturnAnySpy(clickedSite, CurrentPlayer, color))
+                .ToList();
+
+            if (eligibleSpies.Count == 0)
+            {
+                _actionSystem.NotifyFailure("No spy here can be returned.");
+                return null;
+            }
+
+            if (eligibleSpies.Count > 1)
+            {
+                _actionSystem.NotifyFailure("Multiple spies here - pick a site with only one returnable spy, or return a troop instead.");
+                return null;
+            }
+
+            return new Commands.ReturnAnySpyCommand(clickedSite.Id, eligibleSpies[0], cardId);
         }
 
         private bool IsValidSpyReturnTarget(Site site, List<PlayerColor> enemySpies, string? cardId, out string reason)

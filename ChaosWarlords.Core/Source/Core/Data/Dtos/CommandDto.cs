@@ -26,6 +26,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     [JsonDerivedType(typeof(PlayFromMarketCommandDto), typeDiscriminator: "play_market")]
     [JsonDerivedType(typeof(SelectOpponentCommandDto), typeDiscriminator: "select_opponent")]
     [JsonDerivedType(typeof(DeclineRepeatCommandDto), typeDiscriminator: "decline_repeat")]
+    [JsonDerivedType(typeof(ReturnAnySpyCommandDto), typeDiscriminator: "ret_any_spy")]
     public abstract class GameCommandDto
     {
         public int Seq { get; set; }
@@ -137,6 +138,16 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     public class ReturnOwnSpyCommandDto : GameCommandDto
     {
         public int SiteId { get; set; }
+        public string? CardId { get; set; }
+    }
+
+    // EffectType.ReturnUnitOrSpy's spy-return half (Intellect Devourer) - unlike
+    // ResolveSpyCommandDto (always the enemy-only 3-Power basic action) or
+    // ReturnOwnSpyCommandDto (always the active player's own spy), Color can be EITHER.
+    public class ReturnAnySpyCommandDto : GameCommandDto
+    {
+        public int SiteId { get; set; }
+        public string? Color { get; set; }
         public string? CardId { get; set; }
     }
 

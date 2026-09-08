@@ -21,12 +21,20 @@ namespace ChaosWarlords.Source.Utilities
         TargetingReturnOwnSpy, // Return one of the active player's OWN spies (e.g. Cloaker), as opposed to TargetingReturnSpy (enemy spy)
         TargetingPlayFromMarket, // Picking a market card to play "as if in hand" (e.g. Ulitharid) - see ActionSystem.TryStartPlayFromMarket
         TargetingOpponentSelect, // Choosing which opponent to target with EffectType.SelectOpponent (e.g. Cranium Rats' "choose one opponent... to discard")
-        TargetingPromoteFromPile // Picking a card to promote RIGHT NOW from an expanded pool
+        TargetingPromoteFromPile, // Picking a card to promote RIGHT NOW from an expanded pool
                                  // (discard pile, or hand+discard+self) via EffectType.
                                  // PromoteFromPile (e.g. Matron Mother, Necromancer) - distinct
                                  // from SelectingCardToPromote, which is the legacy deferred
                                  // end-of-turn promotion-credit flow (Noble/Cultist of Myrkul)
                                  // wired to PromoteInputMode; do not conflate the two.
+        TargetingReturnUnitOrSpy // A single targeting step that accepts EITHER a node click
+                                 // (return the troop there, via the existing ReturnTroopCommand/
+                                 // CanReturnTroop - already symmetric own/enemy) OR a site click
+                                 // (return a spy there, via the new ReturnAnySpyCommand) -
+                                 // EffectType.ReturnUnitOrSpy's "target-type union" (Intellect
+                                 // Devourer: "Return up to two troops or spies"). Deliberately a
+                                 // single flat state, not 2 sub-states like MoveUnit's source/
+                                 // destination pair - both target types resolve in one click.
     }
 
     // Replaces the "Suits" (Conquest, Malice, Guile, Obedience)
@@ -115,6 +123,16 @@ namespace ChaosWarlords.Source.Utilities
         // to DefaultStrategy) - CardEffect.Condition is what makes this conditional. See
         // MatchContext.CardsMarkedForTurnEndPromote.
         PromoteSelf,
+
+        // "Return up to two troops or spies" (Intellect Devourer) - a target-type UNION: each
+        // repeat can independently be a node click (return the troop there - reuses
+        // ReturnTroopCommand/MapManager.CanReturnTroop as-is, already own/enemy-symmetric) or a
+        // site click (return a spy there - the new ReturnAnySpyCommand/MapManager.
+        // CanReturnAnySpy, same own/enemy symmetry). Distinct from EffectType.ReturnUnit (troops
+        // only) and EffectType.ReturnOwnSpy (the active player's own spy only, no target-type
+        // choice at all). See ActionState.TargetingReturnUnitOrSpy and
+        // ReturnUnitOrSpyStrategy.
+        ReturnUnitOrSpy,
     }
 
     /// <summary>

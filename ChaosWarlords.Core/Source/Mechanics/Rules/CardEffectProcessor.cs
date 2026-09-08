@@ -322,7 +322,8 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             [EffectType.PlayFromMarket] = (effect, card, ctx, log) => ctx.ActionSystem.TryStartPlayFromMarket(card, effect.Amount),
             [EffectType.MoveDeckToDiscard] = (effect, card, ctx, log) => ctx.PlayerStateManager.MoveDeckToDiscard(ctx.ActivePlayer),
             [EffectType.PromoteFromPile] = (effect, card, ctx, log) => ApplyPromoteFromPile(card, ctx, log),
-            [EffectType.PromoteSelf] = (effect, card, ctx, log) => ApplyPromoteSelf(card, ctx, log)
+            [EffectType.PromoteSelf] = (effect, card, ctx, log) => ApplyPromoteSelf(card, ctx, log),
+            [EffectType.ReturnUnitOrSpy] = (effect, card, ctx, log) => ApplyReturnUnitOrSpy(card, ctx, log)
         };
 
         private static void ApplyReturnOwnSpy(Card sourceCard, MatchContext context, IGameLogger logger)
@@ -335,6 +336,19 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             else
             {
                 logger.Log($"{sourceCard.Name}: No spies to return.", LogChannel.Warning);
+            }
+        }
+
+        private static void ApplyReturnUnitOrSpy(Card sourceCard, MatchContext context, IGameLogger logger)
+        {
+            if (context.CardRuleEngine.HasValidTargets(context.ActivePlayer, EffectType.ReturnUnitOrSpy, sourceCard))
+            {
+                context.ActionSystem.StartTargeting(ActionState.TargetingReturnUnitOrSpy, sourceCard);
+                logger.Log($"{sourceCard.Name}: Select a troop or spy to return.", LogChannel.Input);
+            }
+            else
+            {
+                logger.Log($"{sourceCard.Name}: No valid troops or spies to return.", LogChannel.Warning);
             }
         }
 
