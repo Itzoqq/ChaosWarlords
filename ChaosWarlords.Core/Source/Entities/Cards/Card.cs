@@ -186,6 +186,8 @@ namespace ChaosWarlords.Source.Entities.Cards
                 RestrictRepeatsToFirstTargetSite = effect.RestrictRepeatsToFirstTargetSite,
                 PromotionCreditIsOptional = effect.PromotionCreditIsOptional,
                 ChooseCount = effect.ChooseCount,
+                ChainedRepeatCount = effect.ChainedRepeatCount,
+                SkipUnreachableOnSuccessCheck = effect.SkipUnreachableOnSuccessCheck,
                 Condition = effect.Condition // Reference copy for condition (usually shared/immutable)
             };
 

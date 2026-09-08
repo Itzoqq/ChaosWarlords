@@ -22,6 +22,8 @@ namespace ChaosWarlords.Tests.Integration.Factories
             ["inf_test_description"] = "Influence test",
             ["choose_count_card_name"] = "Choose Count Card",
             ["choose_count_card_description"] = "Test card for ChooseCount",
+            ["chained_repeat_card_name"] = "Chained Repeat Card",
+            ["chained_repeat_card_description"] = "Test card for ChainedRepeatCount",
         });
 
         [TestMethod]
@@ -249,6 +251,121 @@ namespace ChaosWarlords.Tests.Integration.Factories
                     {
                         Type = "GainResource", Amount = 1, TargetResource = "Troops", IsOptional = true, ChooseCount = 3,
                         Alternative = new CardEffectData { Type = "Assassinate", Amount = 1, TargetNeutralTroopOnly = true }
+                    }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.DidNotReceiveWithAnyArgs().Log(default(string)!, default);
+        }
+
+        // --- CardEffect.ChainedRepeatCount (Graz'zt's "return any number, Supplant at each
+        // site" primitive) load-time validation - see
+        // CardFactory.WarnIfChainedRepeatCountShapeIsUnsupported ---
+
+        [TestMethod]
+        public void CreateFromData_ChainedRepeatCountParsesOntoTheEffect()
+        {
+            var cardData = new CardData
+            {
+                Id = "chained_repeat_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData
+                    {
+                        Type = "ReturnOwnSpy", Amount = 1, IsOptional = true, ChainedRepeatCount = 5,
+                        OnSuccess = new CardEffectData { Type = "Supplant", Amount = 1 }
+                    }
+                }
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization);
+
+            Assert.AreEqual(5, card.Effects[0].ChainedRepeatCount);
+        }
+
+        [TestMethod]
+        public void CreateFromData_ChainedRepeatCountUnusuallyLarge_LogsAWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "chained_repeat_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData
+                    {
+                        Type = "ReturnOwnSpy", Amount = 1, IsOptional = true, ChainedRepeatCount = 300,
+                        OnSuccess = new CardEffectData { Type = "Supplant", Amount = 1 }
+                    }
+                }
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.Received(1).Log(Arg.Is<string>(s => s.Contains("unusually large")), LogChannel.Warning);
+            Assert.AreEqual(300, card.Effects[0].ChainedRepeatCount, "The warning is advisory only - the authored value is not clamped.");
+        }
+
+        [TestMethod]
+        public void CreateFromData_ChainedRepeatCountWithoutOnSuccess_LogsAWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "chained_repeat_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "ReturnOwnSpy", Amount = 1, IsOptional = true, ChainedRepeatCount = 5 }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.Received(1).Log(Arg.Is<string>(s => s.Contains("no OnSuccess")), LogChannel.Warning);
+        }
+
+        [TestMethod]
+        public void CreateFromData_ChainedRepeatCountWithoutIsOptional_LogsAWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "chained_repeat_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData
+                    {
+                        Type = "ReturnOwnSpy", Amount = 1, ChainedRepeatCount = 5,
+                        OnSuccess = new CardEffectData { Type = "Supplant", Amount = 1 }
+                    }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.Received(1).Log(Arg.Is<string>(s => s.Contains("not IsOptional")), LogChannel.Warning);
+        }
+
+        [TestMethod]
+        public void CreateFromData_ChainedRepeatCountWithAWellFormedPair_LogsNoWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "chained_repeat_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData
+                    {
+                        Type = "ReturnOwnSpy", Amount = 1, IsOptional = true, ChainedRepeatCount = 5,
+                        OnSuccess = new CardEffectData { Type = "Supplant", Amount = 1 }
                     }
                 }
             };

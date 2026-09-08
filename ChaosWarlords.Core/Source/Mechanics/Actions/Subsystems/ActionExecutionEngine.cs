@@ -338,9 +338,15 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
         /// effect that itself has no valid targets, there's no point asking the player at all -
         /// ProcessOptionalEffect skips straight to the decline path (and its own Alternative,
         /// if any) instead of raising a confirmation prompt for something that can't complete.
+        /// Bypassed entirely by CardEffect.SkipUnreachableOnSuccessCheck (Graz'zt's
+        /// ChainedRepeatCount rounds) - accepting THOSE has value even when the chained step
+        /// can't currently fire, unlike every other optional+OnSuccess card, where the chained
+        /// step IS the entire point of accepting.
         /// </summary>
         private bool HasUnreachableOnSuccess(Core.Contexts.EffectContext effect)
         {
+            if (effect.SourceEffect?.SkipUnreachableOnSuccessCheck == true) return false;
+
             var onSuccessEffect = effect.SourceEffect?.OnSuccess;
             if (onSuccessEffect == null || _matchContext == null) return false;
 
@@ -382,10 +388,21 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             // For other optional effects that ARE targeting effects, continue to normal targeting flow
         }
 
-        /// <summary>User accepted - set state to Targeting, if this effect actually needs it.</summary>
+        /// <summary>
+        /// User accepted - set state to Targeting, if this effect actually needs it
+        /// (effect.EffectType == ActionState.Normal, DefaultStrategy's sentinel, means it
+        /// doesn't). Unconditional otherwise - EnterTargetingState is explicitly documented as
+        /// idempotent/safe to call redundantly (EnsureTargetingSnapshot only ever snapshots
+        /// once, on the FIRST transition away from Normal), so an accepted optional targeting
+        /// effect mid-chain (e.g. Graz'zt's CardEffect.ChainedRepeatCount: round 2+'s own
+        /// "return a spy?" prompt, accepted while ActionSystem.CurrentState is still whatever
+        /// the PREVIOUS round's targeting state was) must still transition into ITS OWN
+        /// targeting state here - the only place an accepted optional targeting effect's state
+        /// gets set at all (SetupTargetingForRequiredEffect only runs for non-optional effects).
+        /// </summary>
         private void EnterTargetingStateIfNeeded(Core.Contexts.EffectContext effect)
         {
-            if (_actionSystem.CurrentState != ActionState.Normal || effect.EffectType == ActionState.Normal) return;
+            if (effect.EffectType == ActionState.Normal) return;
 
             _actionSystem.EnterTargetingState(effect.EffectType);
             _logger.Log($"ActionExecutionEngine: [PROCESS] Optional Accepted -> State set to: {_actionSystem.CurrentState}", LogChannel.Debug);

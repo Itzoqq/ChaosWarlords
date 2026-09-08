@@ -84,5 +84,7 @@
   "weaponmaster_name": "Weaponmaster",
   "weaponmaster_description": "Choose three times: Deploy a troop. Or, assassinate a white troop.",
   "intellect_devourer_name": "Intellect Devourer",
-  "intellect_devourer_description": "Choose one: +3 Power. Or, return up to two troops or spies."
+  "intellect_devourer_description": "Choose one: +3 Power. Or, return up to two troops or spies.",
+  "grazzt_name": "Graz'zt",
+  "grazzt_description": "Choose one: Place 2 spies. Or, return any number of your spies, then Supplant a troop at each of the returned spies' sites."
 }

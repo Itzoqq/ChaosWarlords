@@ -787,5 +787,29 @@
         }
       }
     ]
+  },
+  {
+    "Id": "grazzt",
+    "Cost": 6,
+    "Aspect": "Shadow",
+    "DeckVP": 2,
+    "InnerCircleVP": 5,
+    "Effects": [
+      {
+        "Type": "PlaceSpy",
+        "Amount": 2,
+        "IsOptional": true,
+        "Alternative": {
+          "Type": "ReturnOwnSpy",
+          "Amount": 1,
+          "IsOptional": true,
+          "ChainedRepeatCount": 5,
+          "OnSuccess": {
+            "Type": "Supplant",
+            "Amount": 1
+          }
+        }
+      }
+    ]
   }
 ]

@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Commands
@@ -53,7 +54,27 @@ namespace ChaosWarlords.Source.Commands
             {
                 return context.RejectValidation(nameof(SupplantCommand), $"MapManager rejected node {TargetNodeId} (presence/ownership/neutral-only check).");
             }
+
+            if (!IsAtRequiredSite(context, node, out var requiredSiteName))
+            {
+                return context.RejectValidation(nameof(SupplantCommand), $"node {TargetNodeId} is not at the required site ({requiredSiteName}).");
+            }
+
             return true;
+        }
+
+        // Site-scoped Supplant (Graz'zt's chain-in from ReturnOwnSpy: "Supplant a troop at
+        // [the just-returned spy's] site") - ActionInputController.HandleSupplant already
+        // enforces this for a click-built command, but Validate() is the only real defense
+        // against a directly-dispatched, forged command bypassing that UI-layer check entirely
+        // (untrusted client, once one exists - see docs/testing.md's STANDING TEST MATRIX row
+        // 5). Mirrors AssassinateCommand.IsAtRequiredSite exactly (same ActionSystem.PendingSite
+        // field, same Minotaur-Skeleton-and-Cloaker precedent).
+        private static bool IsAtRequiredSite(MatchContext context, MapNode node, out string requiredSiteName)
+        {
+            var pendingSite = context.ActionSystem.PendingSite;
+            requiredSiteName = pendingSite?.Name ?? string.Empty;
+            return pendingSite == null || pendingSite.NodesInternal.Contains(node);
         }
 
         public void Execute(MatchContext context)

@@ -97,9 +97,15 @@ namespace ChaosWarlords.Source.Utilities
             ParseOptionalFlags(data, effect);
             ParseDynamicAmount(data, effect, logger);
             WarnIfChooseCountShapeIsUnsupported(data, effect, logger);
+            WarnIfChainedRepeatCountShapeIsUnsupported(data, effect, logger);
 
             return effect;
         }
+
+        // Shared between ChooseCount and ChainedRepeatCount's own sanity warnings below - both
+        // are runtime tree-expansion recursion depths (ExpandChoiceRepeat/ExpandChainedRepeat),
+        // so an unreasonably large authored value is equally likely a typo either way.
+        private const int RepeatChainSanityCeiling = 10;
 
         // CardEffect.ChooseCount > 1 needs a real 2nd branch to alternate with (Alternative), and
         // CardEffectProcessor.ExpandChoiceRepeat OVERWRITES this node's and its Alternative's own
@@ -111,8 +117,6 @@ namespace ChaosWarlords.Source.Utilities
         // actually offer a real per-round choice (Alternative only reached via "no valid
         // target"); left unflagged since no card needs this shape and it's unclear whether it's
         // ever intentional.
-        private const int ChooseCountSanityCeiling = 10;
-
         private static void WarnIfChooseCountShapeIsUnsupported(CardEffectData data, CardEffect effect, IGameLogger? logger)
         {
             if (effect.ChooseCount <= 1)
@@ -120,7 +124,10 @@ namespace ChaosWarlords.Source.Utilities
                 return;
             }
 
-            WarnIfChooseCountIsUnusuallyLarge(data, effect, logger);
+            if (effect.ChooseCount > RepeatChainSanityCeiling)
+            {
+                logger?.Log($"[CardFactory] {data.Type}: ChooseCount={effect.ChooseCount} is unusually large (>{RepeatChainSanityCeiling}) - likely a typo (ExpandChoiceRepeat recurses this deep on every play); proceeding anyway.", LogChannel.Warning);
+            }
 
             if (effect.Alternative == null)
             {
@@ -129,16 +136,6 @@ namespace ChaosWarlords.Source.Utilities
             }
 
             WarnIfChooseCountChainWouldBeOverridden(data, effect, logger);
-        }
-
-        private static void WarnIfChooseCountIsUnusuallyLarge(CardEffectData data, CardEffect effect, IGameLogger? logger)
-        {
-            if (effect.ChooseCount <= ChooseCountSanityCeiling)
-            {
-                return;
-            }
-
-            logger?.Log($"[CardFactory] {data.Type}: ChooseCount={effect.ChooseCount} is unusually large (>{ChooseCountSanityCeiling}) - likely a typo (ExpandChoiceRepeat recurses this deep on every play); proceeding anyway.", LogChannel.Warning);
         }
 
         private static void WarnIfChooseCountChainWouldBeOverridden(CardEffectData data, CardEffect effect, IGameLogger? logger)
@@ -150,6 +147,39 @@ namespace ChaosWarlords.Source.Utilities
             }
 
             logger?.Log($"[CardFactory] {data.Type}: ChooseCount={effect.ChooseCount}'s own OnSuccess/Alternative chain is only honored on the LAST round - every earlier round overrides it with the next round's continuation.", LogChannel.Warning);
+        }
+
+        // CardEffect.ChainedRepeatCount > 1 needs a real OnSuccess child to repeat as a pair
+        // (Graz'zt: ReturnOwnSpy.OnSuccess = Supplant) - without one, ExpandChainedRepeat just
+        // repeats a single-step node N times with nothing to converge, which is likely not what
+        // was intended. Same "catch it before it ships" precedent as ChooseCount's warning above.
+        private static void WarnIfChainedRepeatCountShapeIsUnsupported(CardEffectData data, CardEffect effect, IGameLogger? logger)
+        {
+            if (effect.ChainedRepeatCount <= 1)
+            {
+                return;
+            }
+
+            if (effect.ChainedRepeatCount > RepeatChainSanityCeiling)
+            {
+                logger?.Log($"[CardFactory] {data.Type}: ChainedRepeatCount={effect.ChainedRepeatCount} is unusually large (>{RepeatChainSanityCeiling}) - likely a typo (ExpandChainedRepeat recurses this deep on every play); proceeding anyway.", LogChannel.Warning);
+            }
+
+            if (effect.OnSuccess == null)
+            {
+                logger?.Log($"[CardFactory] {data.Type}: ChainedRepeatCount={effect.ChainedRepeatCount} has no OnSuccess to repeat as a pair - each round would just re-offer the same single step with nothing chained after it.", LogChannel.Warning);
+            }
+
+            // Without IsOptional, HandleInputRequiredEffect never reaches ProcessOptionalEffect/
+            // HasUnreachableOnSuccess for this node at all (see SetupTargetingForRequiredEffect's
+            // own branch) - CardEffect.SkipUnreachableOnSuccessCheck (also set by
+            // ExpandChainedRepeat) would then have nothing to bypass, and "return any number,
+            // including zero" becomes a MANDATORY forced repeat for as many rounds as valid
+            // targets exist instead.
+            if (!effect.IsOptional)
+            {
+                logger?.Log($"[CardFactory] {data.Type}: ChainedRepeatCount={effect.ChainedRepeatCount} is not IsOptional - each round would be a MANDATORY repeat, not a voluntary 'any number, including zero' sequence.", LogChannel.Warning);
+            }
         }
 
         private static CardEffect CreateBaseEffect(CardEffectData data, EffectType type)
@@ -228,6 +258,7 @@ namespace ChaosWarlords.Source.Utilities
             effect.RestrictRepeatsToFirstTargetSite = data.RestrictRepeatsToFirstTargetSite;
             effect.PromotionCreditIsOptional = data.PromotionCreditIsOptional;
             effect.ChooseCount = data.ChooseCount;
+            effect.ChainedRepeatCount = data.ChainedRepeatCount;
         }
 
         private static void ParseDynamicAmount(CardEffectData data, CardEffect effect, IGameLogger? logger)

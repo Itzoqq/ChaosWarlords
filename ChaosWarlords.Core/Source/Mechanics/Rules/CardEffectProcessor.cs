@@ -64,6 +64,30 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         }
 
         /// <summary>
+        /// Transparently swaps <paramref name="effect"/> for an equivalent, purely transient
+        /// expanded chain before any of PushEffectContext's normal logic ever sees it, if it
+        /// authored one of the 2 runtime tree-expansion repeat primitives: CardEffect.
+        /// ChooseCount ("Choose N times: Deploy a troop. Or, Assassinate a white troop." -
+        /// Weaponmaster) or CardEffect.ChainedRepeatCount ("Return any number of your spies ->
+        /// Supplant a troop at each of the returned spies' sites" - Graz'zt). Every existing card
+        /// (both default to 0) is unaffected and returns <paramref name="effect"/> unchanged.
+        /// </summary>
+        private static CardEffect ExpandRepeatPrimitivesIfNeeded(CardEffect effect)
+        {
+            if (effect.ChooseCount > 1)
+            {
+                return ExpandChoiceRepeat(effect, effect.ChooseCount);
+            }
+
+            if (effect.ChainedRepeatCount > 1)
+            {
+                return ExpandChainedRepeat(effect, effect.ChainedRepeatCount);
+            }
+
+            return effect;
+        }
+
+        /// <summary>
         /// Computes the targeting state, resolves WHO this effect actually acts as (normally
         /// context.ActivePlayer, but see the TargetsAffectedPlayer branch below), checks the
         /// effect's own Condition and HasValidTargets against that resolved actor (falling back
@@ -77,14 +101,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// </summary>
         private static void PushEffectContext(CardEffect effect, Card card, MatchContext context, string descriptionPrefix, IGameLogger logger)
         {
-            // "Choose N times: Deploy a troop. Or, Assassinate a white troop." (Weaponmaster) -
-            // see CardEffect.ChooseCount's doc comment. Transparently swaps in an equivalent,
-            // purely transient OnSuccess/Alternative chain before any of the normal logic below
-            // ever sees it - every existing card (ChooseCount defaults to 0) is unaffected.
-            if (effect.ChooseCount > 1)
-            {
-                effect = ExpandChoiceRepeat(effect, effect.ChooseCount);
-            }
+            effect = ExpandRepeatPrimitivesIfNeeded(effect);
 
             var strategy = context.CardRuleEngine.GetStrategy(effect.Type);
             var state = strategy.GetTargetingState(effect);
@@ -208,6 +225,51 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 expanded.Alternative.ChooseCount = 0;
                 expanded.Alternative.OnSuccess = continuation;
                 expanded.Alternative.Alternative = continuation;
+            }
+
+            return expanded;
+        }
+
+        /// <summary>
+        /// Builds an equivalent, purely transient OnSuccess chain for a CardEffect.
+        /// ChainedRepeatCount > 1 node (Graz'zt: "Return any number of your spies -> Supplant a
+        /// troop at each of the returned spies' sites") - see CardEffect.ChainedRepeatCount's
+        /// doc comment for how this differs from ChooseCount/SupportsRepeat. Each round is a
+        /// clone of <paramref name="effect"/> itself (preserving IsOptional, so the player can
+        /// decline any round and end the sequence there - "any number" includes zero); a round's
+        /// OWN OnSuccess (Graz'zt: Supplant) has BOTH its OnSuccess and Alternative pointed at
+        /// the SAME next-round continuation, so a round whose chained step turns out to have no
+        /// valid target (e.g. no troop at the site the just-returned spy vacated) still lets the
+        /// player attempt another round, rather than silently ending the whole "any number"
+        /// sequence early - the identical convergence trick ExpandChoiceRepeat uses. The FINAL
+        /// round (remainingRounds &lt;= 1) is a clone with ChainedRepeatCount forced to 0 (so
+        /// PushEffectContext's entry guard never re-expands it) whose own OnSuccess is left
+        /// exactly as authored, un-overridden, since there is no round after it to converge into.
+        /// </summary>
+        private static CardEffect ExpandChainedRepeat(CardEffect effect, int remainingRounds)
+        {
+            if (remainingRounds <= 1)
+            {
+                var final = Card.CloneEffect(effect);
+                final.ChainedRepeatCount = 0;
+                final.SkipUnreachableOnSuccessCheck = true;
+                return final;
+            }
+
+            var continuation = ExpandChainedRepeat(effect, remainingRounds - 1);
+
+            var expanded = Card.CloneEffect(effect);
+            expanded.ChainedRepeatCount = 0;
+            expanded.SkipUnreachableOnSuccessCheck = true;
+
+            if (expanded.OnSuccess != null)
+            {
+                expanded.OnSuccess.OnSuccess = continuation;
+                expanded.OnSuccess.Alternative = continuation;
+            }
+            else
+            {
+                expanded.OnSuccess = continuation;
             }
 
             return expanded;

@@ -165,6 +165,17 @@ namespace ChaosWarlords.Source.Managers
             // (rulebook p.12/22). See SupplantCommand.Validate/ActionSystem.CanStartSupplant.
             if (!_mapManager.CanAssassinate(targetNode, ActivePlayer(), requireNeutral, ignoresPresence)) return null;
 
+            // Site-scoped Supplant (Graz'zt: "Supplant a troop AT [the just-returned spy's]
+            // site") - PendingSite is set by ReturnOwnSpyCommand right before this chains in,
+            // and is null for every other Supplant flow (cleared on every return to Normal), so
+            // this never affects the normal, unscoped case. Mirrors HandleAssassinate's
+            // identical guard (Cloaker/Minotaur Skeleton).
+            if (_actionSystem.PendingSite != null && !_actionSystem.PendingSite.NodesInternal.Contains(targetNode))
+            {
+                _actionSystem.RaiseActionFailed("Must supplant at the site you returned your spy from.");
+                return null;
+            }
+
             return new SupplantCommand(targetNode.Id, cardId, devourCardId);
         }
 

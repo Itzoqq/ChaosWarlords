@@ -112,6 +112,59 @@ namespace ChaosWarlords.Source.Entities.Cards
         // PromoteInputMode). Defaults to false so every existing Promote effect is unaffected.
         public bool PromotionCreditIsOptional { get; set; }
 
+        // "Return any number of your spies -> Supplant a troop at each of the returned
+        // spies' sites" (Graz'zt) - marks THIS node (an IsOptional effect with an OnSuccess
+        // child, e.g. ReturnOwnSpy.OnSuccess = Supplant) as a repeated PAIR, resolved
+        // ChainedRepeatCount times in a row, where EACH round's OnSuccess fires
+        // independently right after that round's own step succeeds - a genuinely different
+        // primitive from CardEffect.ChooseCount (which repeats a CHOICE between 2 sibling
+        // effects, converging into ONE shared OnSuccess only reachable on the final round)
+        // and from IEffectStrategy.SupportsRepeat (which repeats the SAME single targeting
+        // step N times, converging into its OnSuccess only ONCE at the very end - wrong here,
+        // since Graz'zt needs a fresh Supplant, scoped to THAT round's own returned spy's
+        // site via the existing ActionSystem.PendingSite chain-link mechanism (see
+        // ReturnOwnSpyCommand's doc comment), after every single return - not one shared
+        // Supplant after all of them). Defaults to 0, meaning "not a repeated pair" - every
+        // existing card is unaffected. See CardEffectProcessor.ExpandChainedRepeat for how
+        // this is realized: a purely transient OnSuccess chain built fresh each time this
+        // node is pushed (mirroring ExpandChoiceRepeat's exact technique), never written back
+        // onto Card.Effects, so the existing resolution engine needs no changes to support it.
+        // Only this node's OWN OnSuccess is treated as the per-round repeated step; any
+        // Alternative authored on THIS node is preserved as-is (declining it ends the whole
+        // sequence early, matching "return any number, including zero"). The per-round step's
+        // own Alternative (e.g. Supplant finding no valid target at that specific site) is
+        // overridden to also continue to the next round, EXCEPT on the final round, where
+        // whatever was authored is preserved - same convergence trick and same known
+        // "authored, un-expanded node" StateRestorer/HasValidTargets lookup gap ChooseCount
+        // already has (harmless today: neither Graz'zt round varies its own targeting
+        // constraints).
+        //
+        // Interpretive note on Graz'zt's own wording specifically ("return any number of your
+        // spies, THEN Supplant a troop at each... site"): read literally this could let a
+        // player return several spies first and choose the SUPPLANT order independently of the
+        // RETURN order. This strict return-then-immediate-supplant pairing pins supplant order
+        // to return order instead. Treated as an equivalent, deliberate reading - the player can
+        // already reach any such ordering by choosing which site to return from in which round,
+        // and nothing in this game has hidden state an interleaved reveal could expose - not an
+        // accidental side effect of reusing the PendingSite chain-link mechanism.
+        public int ChainedRepeatCount { get; set; }
+
+        // Set (and, unlike ChainedRepeatCount, left set on EVERY round including the final one)
+        // by CardEffectProcessor.ExpandChainedRepeat - never authored directly in cards.json.
+        // ActionExecutionEngine.HasUnreachableOnSuccess's "don't even ask if accepting would
+        // chain into an OnSuccess with no valid target" lookahead is correct for a card like
+        // Wight (Devour's only purpose IS enabling the chained Supplant - no point devouring
+        // for nothing) but wrong for Graz'zt: "return a spy" has value on its own (repositioning
+        // it to your barracks) independent of whether THIS round's Supplant happens to find a
+        // troop at that exact site. Without this, a round where global Supplant validity is
+        // currently false would be silently skipped entirely (not even offered), which - unlike
+        // a per-round decline, which still lets the NEXT round be reached via the Alternative
+        // convergence - has no Alternative of its own on the round's OWN top node, so it would
+        // silently end the WHOLE "any number" sequence instead of just skipping this one round's
+        // Supplant. Defaults to false so every existing optional+OnSuccess card keeps the
+        // lookahead exactly as before.
+        public bool SkipUnreachableOnSuccessCheck { get; set; }
+
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {
             Type = type;

@@ -7,8 +7,11 @@ namespace ChaosWarlords.Source.Commands
     /// <summary>
     /// Returns one of the active player's OWN spies from a site (e.g. Cloaker's "return one
     /// of your spies" half). Sets ActionSystem.PendingSite on success so a chained effect
-    /// (Assassinate, scoped to "at that spy's site") can read it back - see
-    /// ActionInputController.HandleAssassinate's PendingSite guard.
+    /// (Assassinate or Supplant, scoped to "at that spy's site") can read it back - see
+    /// ActionInputController.HandleAssassinate/HandleSupplant's PendingSite guards. Overwrites
+    /// PendingSite unconditionally on every call, which is exactly what Graz'zt's
+    /// CardEffect.ChainedRepeatCount needs: each round's own return freshly scopes THAT
+    /// round's chained Supplant, with no leftover state from an earlier round.
     /// </summary>
     public class ReturnOwnSpyCommand : IGameCommand
     {

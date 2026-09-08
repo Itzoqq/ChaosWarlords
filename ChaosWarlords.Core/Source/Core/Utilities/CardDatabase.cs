@@ -73,6 +73,10 @@ namespace ChaosWarlords.Source.Utilities
         // "At end of turn, promote up to 2 other cards played this turn" - see
         // CardEffect.PromotionCreditIsOptional.
         public bool PromotionCreditIsOptional { get; set; }
+
+        // "Return any number of your spies -> Supplant a troop at each of the returned
+        // spies' sites" (Graz'zt) - see CardEffect.ChainedRepeatCount.
+        public int ChainedRepeatCount { get; set; }
     }
 
     public class CardDatabase : ICardDatabase
