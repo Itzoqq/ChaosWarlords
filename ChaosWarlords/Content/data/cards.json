@@ -1035,5 +1035,27 @@
         }
       }
     ]
+  },
+  {
+    "Id": "spellspinner",
+    "Cost": 3,
+    "Aspect": "Shadow",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "Effects": [
+      {
+        "Type": "PlaceSpy",
+        "Amount": 1,
+        "IsOptional": true,
+        "Alternative": {
+          "Type": "ReturnOwnSpy",
+          "Amount": 1,
+          "OnSuccess": {
+            "Type": "Supplant",
+            "Amount": 1
+          }
+        }
+      }
+    ]
   }
 ]
