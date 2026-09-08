@@ -649,6 +649,27 @@
     ]
   },
   {
+    "Id": "black_dragon",
+    "Cost": 7,
+    "Aspect": "Warlord",
+    "DeckVP": 3,
+    "InnerCircleVP": 7,
+    "Effects": [
+      {
+        "Type": "Supplant",
+        "Amount": 1,
+        "TargetNeutralTroopOnly": true,
+        "IgnoresPresenceRequirement": true
+      },
+      {
+        "Type": "GainResource",
+        "TargetResource": "VictoryPoints",
+        "DynamicAmountSource": "NeutralTrophyHallCount",
+        "DynamicAmountDivisor": 3
+      }
+    ]
+  },
+  {
     "Id": "white_dragon",
     "Cost": 6,
     "Aspect": "Warlord",

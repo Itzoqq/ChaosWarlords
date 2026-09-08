@@ -479,9 +479,10 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// time (e.g. White Dragon: "Gain 1 VP for every 2 sites you control", Beholder: "Gain
         /// Influence for every 3 troops in your trophy hall", Death Knight: "Gain 1 VP for every
         /// 5 player troops in your trophy hall", Vampire: "...gain 1 VP for every 3 cards in your
-        /// inner circle", Aboleth: "Draw a card for each spy you have on the board" -
-        /// DynamicAmountDivisor is the "every N" part, integer division/floor. Effect-type-
-        /// agnostic - consumed by both GainResource and DrawCard today.
+        /// inner circle", Aboleth: "Draw a card for each spy you have on the board", Black
+        /// Dragon: "Gain 1 VP for every 3 white troops in your trophy hall" - DynamicAmountDivisor
+        /// is the "every N" part, integer division/floor. Effect-type-agnostic - consumed by
+        /// both GainResource and DrawCard today.
         /// </summary>
         private static int ResolveAmount(CardEffect effect, MatchContext context, IGameLogger logger)
         {
@@ -507,6 +508,9 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                     break;
                 case DynamicAmountSource.SpiesOnBoard:
                     count = context.MapManager.Sites.Count(s => s.HasSpy(context.ActivePlayer.Color));
+                    break;
+                case DynamicAmountSource.NeutralTrophyHallCount:
+                    count = context.ActivePlayer.TrophyHallByColor.GetValueOrDefault(PlayerColor.Neutral);
                     break;
                 default:
                     // A new DynamicAmountSource enum value added without its matching case

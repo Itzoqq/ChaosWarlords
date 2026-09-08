@@ -71,6 +71,8 @@
   "vampire_description": "Choose one: Supplant a troop. Or, promote a card from your discard pile, then gain 1 VP for every 3 cards in your inner circle.",
   "aboleth_name": "Aboleth",
   "aboleth_description": "Choose one: Place 2 spies. Or, draw a card for each spy you have on the board.",
+  "black_dragon_name": "Black Dragon",
+  "black_dragon_description": "Supplant a white troop anywhere on the board. Gain 1 VP for every 3 white troops in your trophy hall.",
   "white_dragon_name": "White Dragon",
   "white_dragon_description": "Deploy 3 troops. Gain 1 VP for every 2 sites you control.",
   "grimlock_name": "Grimlock",

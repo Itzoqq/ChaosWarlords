@@ -211,10 +211,16 @@ namespace ChaosWarlords.Source.Utilities
                          // card from your discard pile, then gain 1 VP for every 3 cards in your
                          // inner circle" - counted AFTER that same card's own Promote has added
                          // to it, since GainResource is chained via OnSuccess off PromoteFromPile).
-        SpiesOnBoard     // Count of Sites where Site.HasSpy(activePlayerColor) is true (Aboleth:
+        SpiesOnBoard,    // Count of Sites where Site.HasSpy(activePlayerColor) is true (Aboleth:
                          // "Draw a card for each spy you have on the board") - the first
                          // DynamicAmountSource consumed by EffectType.DrawCard rather than
                          // GainResource; ResolveAmount itself is effect-type-agnostic already.
+        NeutralTrophyHallCount // Player.TrophyHallByColor[PlayerColor.Neutral] ONLY - i.e. just
+                         // captured white/unaligned troops, the mirror image of
+                         // PlayerTrophyHallCount's "everyone EXCEPT Neutral" (Black Dragon:
+                         // "Gain 1 VP for every 3 WHITE troops in your trophy hall" - the
+                         // printed card's own wording, distinct from TrophyHallCount's "any
+                         // troop" total).
     }
 
     public enum PlayerColor
