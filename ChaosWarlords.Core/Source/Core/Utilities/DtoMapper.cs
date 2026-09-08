@@ -45,7 +45,12 @@ namespace ChaosWarlords.Source.Core.Utilities
                 { typeof(PlaceSpyCommandDto), (d, s) => new PlaceSpyCommand(((PlaceSpyCommandDto)d).SiteId, ((PlaceSpyCommandDto)d).CardId) },
                 { typeof(MoveTroopCommandDto), (d, s) => new MoveTroopCommand(((MoveTroopCommandDto)d).SrcId, ((MoveTroopCommandDto)d).DestId, ((MoveTroopCommandDto)d).CardId) },
                 { typeof(ActionCompletedCommandDto), (d, s) => new ActionCompletedCommand() },
-                { typeof(PromoteCommandDto), (d, s) => new PromoteCommand(((PromoteCommandDto)d).CardId, ((PromoteCommandDto)d).IsChainedEffect) },
+                { typeof(PromoteCommandDto), (d, s) =>
+                    {
+                        var dto = (PromoteCommandDto)d;
+                        return new PromoteCommand(dto.CardId, dto.IsChainedEffect, dto.CardRuntimeId);
+                    }
+                },
                 { typeof(DiscardCardCommandDto), (d, s) =>
                     {
                         var dto = (DiscardCardCommandDto)d;

@@ -203,5 +203,37 @@ namespace ChaosWarlords.Tests.Source.Functional
             Assert.AreEqual(0, red.VictoryPoints, "1 inner circle card / 3 = 0 VP, granted exactly once regardless.");
             Assert.AreEqual(ActionState.Normal, scenario.Context.ActionSystem.CurrentState);
         }
+
+        // --- Regression: PromoteCommand must disambiguate 2 copies of the same card id by
+        // RuntimeId, not silently promote whichever copy Hand happens to contain (see
+        // planning.txt section 1 / bug-log.md - found while reviewing this exact card). Real
+        // CardFactory-created copies normally get DISTINCT Card.Id values (a random per-instance
+        // suffix - see CardFactory.GenerateUniqueId), so this forces the rare suffix collision
+        // this guards against rather than relying on one occurring naturally. ---
+
+        [TestMethod]
+        public void PlayVampire_DeclineWithTwoCopiesOfSameCardIdInHandAndDiscard_PromotesOnlyTheClickedDiscardCopy()
+        {
+            var scenario = MatchScenario.Build();
+            var red = scenario.AsActivePlayer(PlayerColor.Red);
+            var handCopy = scenario.GiveCard(PlayerColor.Red, "core_house_guard");
+            var discardCopy = scenario.CardDatabase.GetCardById("core_house_guard", scenario.Context.Random)!;
+            discardCopy.Id = handCopy.Id; // Force the rare Card.Id suffix collision this guards against.
+            red.DeckManager.AddToDiscard(discardCopy);
+            Assert.AreEqual(handCopy.Id, discardCopy.Id, "Setup check: both copies share the same (forced-collision) id.");
+            Assert.AreNotEqual(handCopy.RuntimeId, discardCopy.RuntimeId, "Setup check: distinct physical copies have distinct RuntimeIds.");
+            var card = scenario.GiveCard(PlayerColor.Red, "vampire");
+
+            // No troops anywhere - straight to TargetingPromoteFromPile, no popup involved.
+            scenario.PlayCard(card);
+            Assert.AreEqual(ActionState.TargetingPromoteFromPile, scenario.Context.ActionSystem.CurrentState);
+
+            scenario.SelectPromoteFromPileCard(discardCopy); // Click the Discard copy specifically.
+
+            Assert.Contains(discardCopy, red.InnerCircle.ToList(), "The clicked (Discard) copy should have been promoted.");
+            Assert.DoesNotContain(handCopy, red.InnerCircle.ToList(), "The untouched Hand copy must NOT have been promoted instead.");
+            Assert.Contains(handCopy, red.Hand.ToList(), "The Hand copy must remain exactly where it was.");
+            Assert.DoesNotContain(discardCopy, red.DiscardPile.ToList());
+        }
     }
 }

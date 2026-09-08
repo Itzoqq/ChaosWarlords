@@ -316,5 +316,115 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             Assert.AreEqual("card1", hydrated!.CardId);
             Assert.IsFalse(hydrated.IsChainedEffect, "A missing key must deserialize to the old (only) behavior, not throw or default to true.");
         }
+
+        // --- CardRuntimeId: disambiguating 2 copies of the same card definition ---
+
+        [TestMethod]
+        public void Execute_WithTwoCopiesOfSameCardId_PromotesOnlyTheOneMatchingCardRuntimeId()
+        {
+            // Regression test for the bug this constructor overload fixes: before
+            // CardRuntimeId existed, ResolveCard's Id-only lookup checked Hand before Discard,
+            // so clicking the Discard copy in a PromoteFromPile browser would have silently
+            // promoted the Hand copy instead.
+            var handCopy = new CardBuilder().WithName("card1").InHand().Build();
+            var discardCopy = new CardBuilder().WithName("card1").InDiscard().Build();
+            Assert.AreEqual(handCopy.Id, discardCopy.Id, "Setup check: both copies share the same definitional id.");
+            Assert.AreNotEqual(handCopy.RuntimeId, discardCopy.RuntimeId, "Setup check: distinct physical copies have distinct RuntimeIds.");
+            var player = new PlayerBuilder().WithColor(PlayerColor.Red).WithCardsInHand(handCopy).WithCardsInDiscard(discardCopy).Build();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            var command = new PromoteCommand(discardCopy, isChainedEffect: true); // Simulates clicking the Discard copy.
+
+            command.Execute(_state.MatchContext);
+
+            CollectionAssert.Contains(player.InnerCircle.ToList(), discardCopy, "The clicked (Discard) copy should have been promoted.");
+            CollectionAssert.DoesNotContain(player.InnerCircle.ToList(), handCopy, "The untouched Hand copy must NOT have been promoted instead.");
+            CollectionAssert.Contains(player.Hand.ToList(), handCopy, "The Hand copy must remain exactly where it was.");
+            CollectionAssert.DoesNotContain(player.DiscardPile.ToList(), discardCopy);
+        }
+
+        [TestMethod]
+        public void Execute_ReplayedAfterItsOwnRuntimeIdTargetAlreadyPromoted_DoesNotFallBackToASameIdSibling()
+        {
+            // Compound-scenario regression: when CardRuntimeId is set, ResolveCard must resolve
+            // BY RUNTIMEID ONLY - it must NOT fall back to a CardId match once that exact
+            // physical copy is gone (e.g. a replayed/double-dispatched command after the first
+            // dispatch already promoted it). Falling back there would silently re-target a
+            // different, same-Id sibling instead of correctly finding nothing left to do -
+            // exactly the ambiguity CardRuntimeId exists to prevent.
+            var promotedCopy = new CardBuilder().WithName("card1").InHand().Build();
+            var siblingCopy = new CardBuilder().WithName("card1").InDiscard().Build();
+            var player = new PlayerBuilder().WithColor(PlayerColor.Red).WithCardsInHand(promotedCopy).WithCardsInDiscard(siblingCopy).Build();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            var command = new PromoteCommand(promotedCopy, isChainedEffect: true);
+
+            command.Execute(_state.MatchContext); // First dispatch: promotes promotedCopy.
+            Assert.Contains(promotedCopy, player.InnerCircle.ToList(), "Setup check: the first dispatch should have promoted promotedCopy.");
+
+            command.Execute(_state.MatchContext); // Replayed/double-dispatched second call of the SAME command.
+
+            CollectionAssert.DoesNotContain(player.InnerCircle.ToList(), siblingCopy, "A same-Id sibling elsewhere must NOT be silently promoted once the RuntimeId target is already gone.");
+            Assert.HasCount(1, player.InnerCircle, "Exactly one promotion total, not two.");
+            CollectionAssert.Contains(player.DiscardPile.ToList(), siblingCopy, "The untouched sibling must remain exactly where it was.");
+        }
+
+        [TestMethod]
+        public void CardBasedConstructor_CapturesBothCardIdAndCardRuntimeId()
+        {
+            var card = new CardBuilder().WithName("card1").InHand().Build();
+
+            var command = new PromoteCommand(card, isChainedEffect: true);
+
+            Assert.AreEqual(card.Id, command.CardId);
+            Assert.AreEqual(card.RuntimeId, command.CardRuntimeId);
+        }
+
+        [TestMethod]
+        public void StringConstructor_LeavesCardRuntimeIdNull()
+        {
+            // The legacy/string-only construction path (every pre-existing call site) must be
+            // completely unaffected - CardRuntimeId defaults to null, and ResolveCard falls
+            // back to the plain CardId lookup exactly as it always did.
+            var command = new PromoteCommand("card1");
+
+            Assert.IsNull(command.CardRuntimeId);
+        }
+
+        [TestMethod]
+        public void ToDto_ThenHydrate_RoundTripsCardRuntimeId()
+        {
+            var card = new CardBuilder().WithName("card1").InHand().Build();
+            var original = new PromoteCommand(card, isChainedEffect: true);
+
+            var dto = original.ToDto();
+            var hydrated = DtoMapper.HydrateCommand(dto, _state.MatchContext) as PromoteCommand;
+
+            Assert.IsNotNull(hydrated);
+            Assert.AreEqual(original.CardRuntimeId, hydrated!.CardRuntimeId);
+        }
+
+        [TestMethod]
+        public void PromoteCommandDto_DeserializedFromJsonMissingCardRuntimeIdKey_HydratesWithNullCardRuntimeId()
+        {
+            // A real old replay/network JSON payload recorded before CardRuntimeId existed -
+            // the key is entirely absent, not just null. Must still hydrate and resolve by
+            // CardId alone, not throw or reject the command.
+            var json = "{\"t\":\"promote\",\"Seq\":1,\"Seat\":0,\"CardId\":\"card1\",\"IsChainedEffect\":true}";
+            var dto = JsonSerializer.Deserialize<GameCommandDto>(json);
+            Assert.IsInstanceOfType(dto, typeof(PromoteCommandDto));
+
+            var hydrated = DtoMapper.HydrateCommand(dto!, _state.MatchContext) as PromoteCommand;
+
+            Assert.IsNotNull(hydrated);
+            Assert.IsNull(hydrated!.CardRuntimeId, "A missing key must deserialize to null, not throw or default to some other value.");
+
+            // And the fallback-to-CardId resolution must still actually work end-to-end.
+            var card = new CardBuilder().WithName("card1").InDiscard().Build();
+            var player = new PlayerBuilder().WithColor(PlayerColor.Red).WithCardsInDiscard(card).Build();
+            _state.TurnManager.ActivePlayer.Returns(player);
+
+            hydrated.Execute(_state.MatchContext);
+
+            CollectionAssert.Contains(player.InnerCircle.ToList(), card);
+        }
     }
 }

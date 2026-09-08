@@ -124,6 +124,14 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     {
         public string? CardId { get; set; }
 
+        // Identifies the specific card copy (Card.RuntimeId), disambiguating duplicate copies
+        // of the same card definition - CardId alone can't (see PromoteCommand.CardRuntimeId).
+        // Additive alongside CardId, matching PlayCardCommandDto.CardRuntimeId's own
+        // conventions - null/missing on older replay JSON recorded before this field existed
+        // deserializes to null, and ResolveCard falls back to the plain CardId lookup exactly
+        // as it always did.
+        public Guid? CardRuntimeId { get; set; }
+
         // Defaults to false, matching PromoteCommand.IsChainedEffect's default - old replay
         // JSON files recorded before this field existed deserialize with this missing and
         // System.Text.Json defaults it to false, which is exactly the old (only) behavior.

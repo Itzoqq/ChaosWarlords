@@ -872,7 +872,10 @@ namespace ChaosWarlords.Source.Managers
         public Commands.PromoteCommand? HandlePromoteFromPileSelection(Card? targetCard)
         {
             if (targetCard == null) return null;
-            return new Commands.PromoteCommand(targetCard.Id, isChainedEffect: true);
+            // Card-based constructor: captures CardRuntimeId too, so Execute() promotes the
+            // exact physical copy that was clicked even if the player holds another copy of the
+            // same card definition elsewhere (see PromoteCommand.ResolveCard).
+            return new Commands.PromoteCommand(targetCard, isChainedEffect: true);
         }
 
         public void CompleteAction()
