@@ -370,7 +370,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         private static readonly Dictionary<EffectType, Action<CardEffect, Card, MatchContext, IGameLogger>> _effectHandlers = new()
         {
             [EffectType.GainResource] = (effect, card, ctx, log) => ApplyGainResource(effect, card, ctx, log),
-            [EffectType.DrawCard] = (effect, card, ctx, log) => ApplyDrawCard(effect, ctx),
+            [EffectType.DrawCard] = (effect, card, ctx, log) => ApplyDrawCard(effect, ctx, log),
             [EffectType.Promote] = (effect, card, ctx, log) => ApplyPromote(effect, card, ctx, log),
             [EffectType.MoveUnit] = (effect, card, ctx, log) => ApplyMoveUnit(card, ctx, log),
             [EffectType.Assassinate] = (effect, card, ctx, log) => ApplyAssassinate(card, ctx, log),
@@ -479,7 +479,9 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// time (e.g. White Dragon: "Gain 1 VP for every 2 sites you control", Beholder: "Gain
         /// Influence for every 3 troops in your trophy hall", Death Knight: "Gain 1 VP for every
         /// 5 player troops in your trophy hall", Vampire: "...gain 1 VP for every 3 cards in your
-        /// inner circle" - DynamicAmountDivisor is the "every N" part, integer division/floor).
+        /// inner circle", Aboleth: "Draw a card for each spy you have on the board" -
+        /// DynamicAmountDivisor is the "every N" part, integer division/floor. Effect-type-
+        /// agnostic - consumed by both GainResource and DrawCard today.
         /// </summary>
         private static int ResolveAmount(CardEffect effect, MatchContext context, IGameLogger logger)
         {
@@ -502,6 +504,9 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                     break;
                 case DynamicAmountSource.InnerCircleCount:
                     count = context.ActivePlayer.InnerCircle.Count;
+                    break;
+                case DynamicAmountSource.SpiesOnBoard:
+                    count = context.MapManager.Sites.Count(s => s.HasSpy(context.ActivePlayer.Color));
                     break;
                 default:
                     // A new DynamicAmountSource enum value added without its matching case
@@ -551,9 +556,10 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             // two-level-deep chain's second level twice.
         }
 
-        private static void ApplyDrawCard(CardEffect effect, MatchContext context)
+        private static void ApplyDrawCard(CardEffect effect, MatchContext context, IGameLogger logger)
         {
-            context.PlayerStateManager.DrawCards(context.ActivePlayer, effect.Amount, context.Random);
+            int amount = ResolveAmount(effect, context, logger);
+            context.PlayerStateManager.DrawCards(context.ActivePlayer, amount, context.Random);
         }
 
         private static void ApplyPromote(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)

@@ -207,10 +207,14 @@ namespace ChaosWarlords.Source.Utilities
                          // unaligned ones (Death Knight: "Gain 1 VP for every 5 player troops in
                          // your trophy hall" - the printed card's own wording, distinct from
                          // TrophyHallCount's "any troop" total).
-        InnerCircleCount // Player.InnerCircle.Count at resolution time (Vampire: "Promote a
+        InnerCircleCount, // Player.InnerCircle.Count at resolution time (Vampire: "Promote a
                          // card from your discard pile, then gain 1 VP for every 3 cards in your
                          // inner circle" - counted AFTER that same card's own Promote has added
                          // to it, since GainResource is chained via OnSuccess off PromoteFromPile).
+        SpiesOnBoard     // Count of Sites where Site.HasSpy(activePlayerColor) is true (Aboleth:
+                         // "Draw a card for each spy you have on the board") - the first
+                         // DynamicAmountSource consumed by EffectType.DrawCard rather than
+                         // GainResource; ResolveAmount itself is effect-type-agnostic already.
     }
 
     public enum PlayerColor

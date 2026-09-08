@@ -8,6 +8,7 @@ using ChaosWarlords.Source.Entities.Actors;
 using System;
 using System.Collections.Generic;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Managers;
 
@@ -728,6 +729,78 @@ namespace ChaosWarlords.Tests.Source.Systems
             CardEffectProcessor.ApplyEffect(effect, card, _context, Tests.Utilities.TestLogger.Instance);
 
             Assert.AreEqual(vpBefore, _player.VictoryPoints, "An empty inner circle must resolve to 0 VP, not throw or fall back to a default amount.");
+        }
+
+        private static Site MakeSite(string name) => new NonCitySite(name, ResourceType.Power, 1, ResourceType.Power, 1);
+
+        [TestMethod]
+        public void ApplyEffect_DrawCard_SpiesOnBoardSource_DrawsOneCardPerSiteWithActivePlayersSpy()
+        {
+            // Aboleth: "Draw a card for each spy you have on the board" - a 1:1 count, not a
+            // divided one (DynamicAmountDivisor defaults to 1). Only sites carrying the ACTIVE
+            // player's own spy should count - a site with no spy, or only an opponent's, must not.
+            var siteWithSpy1 = MakeSite("A");
+            siteWithSpy1.AddSpy(_player.Color);
+            var siteWithSpy2 = MakeSite("B");
+            siteWithSpy2.AddSpy(_player.Color);
+            var siteWithOpponentSpy = MakeSite("C");
+            siteWithOpponentSpy.AddSpy(PlayerColor.Blue);
+            var siteWithNoSpy = MakeSite("D");
+            _context.MapManager.Sites.Returns(new List<Site> { siteWithSpy1, siteWithSpy2, siteWithOpponentSpy, siteWithNoSpy });
+
+            for (int i = 0; i < 5; i++)
+            {
+                _player.DeckManager.AddToTop(new Card($"deck-{i}", $"Deck {i}", 1, CardAspect.Neutral, 0, 0, 0));
+            }
+            var card = new Card("test-dynamic", "Test Dynamic", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.DrawCard, 0)
+            {
+                DynamicAmountSource = DynamicAmountSource.SpiesOnBoard
+            };
+            card.AddEffect(effect);
+            int handSizeBefore = _player.Hand.Count;
+
+            CardEffectProcessor.ApplyEffect(effect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            Assert.HasCount(handSizeBefore + 2, _player.Hand, "Only the 2 sites carrying the active player's own spy should count - the opponent's spy and the empty site must not.");
+        }
+
+        [TestMethod]
+        public void ApplyEffect_DrawCard_SpiesOnBoardSource_NoSpiesAnywhereDrawsZero()
+        {
+            _context.MapManager.Sites.Returns(new List<Site> { MakeSite("A"), MakeSite("B") });
+            _player.DeckManager.AddToTop(new Card("deck-0", "Deck 0", 1, CardAspect.Neutral, 0, 0, 0));
+            var card = new Card("test-dynamic", "Test Dynamic", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.DrawCard, 0)
+            {
+                DynamicAmountSource = DynamicAmountSource.SpiesOnBoard
+            };
+            card.AddEffect(effect);
+            int handSizeBefore = _player.Hand.Count;
+
+            CardEffectProcessor.ApplyEffect(effect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            Assert.HasCount(handSizeBefore, _player.Hand, "No spies on the board anywhere must draw 0 cards, not throw or fall back to a default amount.");
+        }
+
+        [TestMethod]
+        public void ApplyEffect_DrawCard_WithoutDynamicAmountSource_StillUsesFixedAmount()
+        {
+            // Regression guard: generalizing ApplyDrawCard to route through ResolveAmount must
+            // not change behavior for a plain, non-dynamic DrawCard effect (DynamicAmountSource
+            // defaults to None, which ResolveAmount short-circuits back to effect.Amount as-is).
+            for (int i = 0; i < 3; i++)
+            {
+                _player.DeckManager.AddToTop(new Card($"deck-{i}", $"Deck {i}", 1, CardAspect.Neutral, 0, 0, 0));
+            }
+            var card = new Card("test-dynamic", "Test Dynamic", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.DrawCard, 2);
+            card.AddEffect(effect);
+            int handSizeBefore = _player.Hand.Count;
+
+            CardEffectProcessor.ApplyEffect(effect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            Assert.HasCount(handSizeBefore + 2, _player.Hand, "A fixed Amount (no DynamicAmountSource) must still draw exactly that many cards.");
         }
 
         #endregion

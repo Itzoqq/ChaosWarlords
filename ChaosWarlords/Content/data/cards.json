@@ -631,6 +631,24 @@
     ]
   },
   {
+    "Id": "aboleth",
+    "Cost": 7,
+    "Aspect": "Shadow",
+    "DeckVP": 4,
+    "InnerCircleVP": 7,
+    "Effects": [
+      {
+        "Type": "PlaceSpy",
+        "Amount": 2,
+        "IsOptional": true,
+        "Alternative": {
+          "Type": "DrawCard",
+          "DynamicAmountSource": "SpiesOnBoard"
+        }
+      }
+    ]
+  },
+  {
     "Id": "white_dragon",
     "Cost": 6,
     "Aspect": "Warlord",
