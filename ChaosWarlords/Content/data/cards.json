@@ -772,6 +772,27 @@
     ]
   },
   {
+    "Id": "red_dragon",
+    "Cost": 8,
+    "Aspect": "Sorcery",
+    "DeckVP": 4,
+    "InnerCircleVP": 8,
+    "Effects": [
+      {
+        "Type": "Supplant",
+        "Amount": 1
+      },
+      {
+        "Type": "ReturnEnemySpy"
+      },
+      {
+        "Type": "GainResource",
+        "TargetResource": "VictoryPoints",
+        "DynamicAmountSource": "SitesUnderTotalControl"
+      }
+    ]
+  },
+  {
     "Id": "grimlock",
     "Cost": 1,
     "Aspect": "Warlord",

@@ -455,6 +455,46 @@ namespace ChaosWarlords.Tests.Systems
             Assert.IsFalse(_engine.HasValidReturnSpyTarget(_player1));
         }
 
+        // --- HasValidReturnEnemySpyTarget (EffectType.ReturnEnemySpy - Red Dragon) ---
+
+        [TestMethod]
+        public void HasValidReturnEnemySpyTarget_True_IfEnemySpyAndPresence()
+        {
+            _siteA.Spies.Add(_player2.Color);
+            _node3.Occupant = _player1.Color;
+
+            Assert.IsTrue(_engine.HasValidReturnEnemySpyTarget(_player1));
+        }
+
+        [TestMethod]
+        public void HasValidReturnEnemySpyTarget_False_IfNoSpiesAtAll()
+        {
+            _node3.Occupant = _player1.Color;
+
+            Assert.IsFalse(_engine.HasValidReturnEnemySpyTarget(_player1));
+        }
+
+        [TestMethod]
+        public void HasValidReturnEnemySpyTarget_False_IfOnlyTheActivePlayersOwnSpyIsPresent()
+        {
+            // Unlike the loose HasValidReturnSpyTarget (any color counts, fine for its one
+            // caller), this must NOT count a site with only the active player's own spy -
+            // otherwise TryResolveActor would open targeting with no actual enemy to click.
+            _siteA.Spies.Add(_player1.Color);
+            _node3.Occupant = _player1.Color;
+
+            Assert.IsFalse(_engine.HasValidReturnEnemySpyTarget(_player1));
+        }
+
+        [TestMethod]
+        public void HasValidReturnEnemySpyTarget_False_IfEnemySpyExistsButNoPresence()
+        {
+            _siteA.Spies.Add(_player2.Color);
+            // Deliberately no Presence anywhere for _player1.
+
+            Assert.IsFalse(_engine.HasValidReturnEnemySpyTarget(_player1));
+        }
+
         // --- HasValidReturnAnySpyTarget (EffectType.ReturnUnitOrSpy - Intellect Devourer) ---
 
         [TestMethod]

@@ -167,6 +167,19 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 s.NodesInternal.Any(n => HasPresence(n, activePlayer.Color))) ?? false;
         }
 
+        // EffectType.ReturnEnemySpy (Red Dragon) - unlike HasValidReturnSpyTarget above (which
+        // accepts ANY spy present, including the active player's own - fine for its one caller,
+        // the base action's coarse pre-click gate, since the actual click handler re-filters to
+        // enemy-only anyway), this must positively confirm an ENEMY spy is present before
+        // TryResolveActor opens targeting, or a site with only the active player's own spy there
+        // would incorrectly look like a valid target and then reject every click.
+        public bool HasValidReturnEnemySpyTarget(Player activePlayer)
+        {
+            return _sites?.Any(s =>
+                s.Spies.Any(c => c != activePlayer.Color) &&
+                s.NodesInternal.Any(n => HasPresence(n, activePlayer.Color))) ?? false;
+        }
+
         // EffectType.ReturnUnitOrSpy's spy-side "no more legal targets" check - see
         // IMapManager.HasValidReturnAnySpyTarget's own doc comment for why this deliberately
         // requires EXACTLY ONE eligible spy per site, not "at least one eligible spy somewhere".

@@ -38,6 +38,18 @@ namespace ChaosWarlords.Source.Commands
             {
                 return context.RejectValidation(nameof(ResolveSpyCommand), $"{SpyColor} has no spy at site '{site.Name}'.");
             }
+
+            // This command only ever reaches an ENEMY spy via the real click path
+            // (SpySubsystem.HandleReturnSpyInitialClick pre-filters candidates through
+            // MapManager.GetEnemySpiesAtSite before ever constructing this command) - re-derived
+            // here too, rather than trusting the caller, since Validate() is the real defense
+            // once a client can send commands directly. Without this, a forged command naming
+            // the active player's own spy color would have succeeded (their own spy is always
+            // "present" at HasSpy, with no further ownership check below this point).
+            if (SpyColor == context.TurnManager.ActivePlayer.Color)
+            {
+                return context.RejectValidation(nameof(ResolveSpyCommand), "cannot target your own spy - use ReturnOwnSpyCommand instead.");
+            }
             return true;
         }
 

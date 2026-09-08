@@ -39,6 +39,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 { EffectType.PromoteFromPile, new Strategies.PromoteFromPileStrategy() },
                 { EffectType.ReturnUnitOrSpy, new Strategies.ReturnUnitOrSpyStrategy() },
                 { EffectType.DeployFromTrophyHall, new Strategies.DeployFromTrophyHallStrategy() },
+                { EffectType.ReturnEnemySpy, new Strategies.ReturnEnemySpyStrategy() },
                 // Add new strategies here
             };
         }

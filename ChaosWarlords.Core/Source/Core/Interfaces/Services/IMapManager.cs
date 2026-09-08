@@ -30,6 +30,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         // These check if a valid target exists AND is reachable by the player
         bool HasValidAssassinationTarget(Player activePlayer, bool requireNeutralTroop = false, bool ignoresPresence = false, Site? restrictToSite = null);
         bool HasValidReturnSpyTarget(Player activePlayer);
+        bool HasValidReturnEnemySpyTarget(Player activePlayer);
         bool HasValidReturnTroopTarget(Player activePlayer);
         bool HasValidPlaceSpyTarget(Player activePlayer);
 

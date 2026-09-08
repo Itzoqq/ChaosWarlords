@@ -154,6 +154,18 @@ namespace ChaosWarlords.Source.Utilities
         // TrophyHallRuleEngine's own doc comment for why that shape isn't built yet). See
         // ActionState.TargetingDeployFromTrophyHall and DeployFromTrophyHallStrategy.
         DeployFromTrophyHall,
+
+        // "Return an enemy spy" (Red Dragon) - reuses the SAME ActionState.TargetingReturnSpy/
+        // SpySubsystem.HandleReturnSpyInitialClick/ResolveSpyCommand machinery the paid basic
+        // action already uses (ResolveSpyCommand already waives its Power cost whenever CardId
+        // is set, so it was already card-effect-ready), including that flow's own multi-enemy-
+        // spy disambiguation (ActionSystem.TransitionToSpySelection) - unlike
+        // EffectType.ReturnUnitOrSpy's simpler site-click path, a site with 2+ enemy spies is
+        // still a fully resolvable target here. Distinct from ReturnOwnSpy (the active player's
+        // OWN spy only) and ReturnUnitOrSpy (troop-or-spy, own-or-enemy - too broad for "an
+        // enemy spy" specifically). See ReturnEnemySpyStrategy and MapRuleEngine.
+        // HasValidReturnEnemySpyTarget.
+        ReturnEnemySpy,
     }
 
     /// <summary>
@@ -196,9 +208,9 @@ namespace ChaosWarlords.Source.Utilities
     {
         None = 0,
         SitesControlled, // Count of Sites where Site.Owner == the active player's color
-                         // (White Dragon). Distinct from sites under TOTAL control or site
-                         // control MARKERS - see planning.txt for the other dynamic-amount
-                         // cards keying off those different counts, not yet wired.
+                         // (White Dragon: "for every 2"; Green Dragon: a plain "for each," same
+                         // source, DynamicAmountDivisor simply omitted). Distinct from
+                         // SitesUnderTotalControl below (a stricter subset).
         TrophyHallCount, // Player.TrophyHall (total troops of any color in the active
                          // player's trophy hall) at resolution time (Beholder: "Gain
                          // Influence for every 3 troops in your trophy hall").
@@ -215,12 +227,16 @@ namespace ChaosWarlords.Source.Utilities
                          // "Draw a card for each spy you have on the board") - the first
                          // DynamicAmountSource consumed by EffectType.DrawCard rather than
                          // GainResource; ResolveAmount itself is effect-type-agnostic already.
-        NeutralTrophyHallCount // Player.TrophyHallByColor[PlayerColor.Neutral] ONLY - i.e. just
+        NeutralTrophyHallCount, // Player.TrophyHallByColor[PlayerColor.Neutral] ONLY - i.e. just
                          // captured white/unaligned troops, the mirror image of
                          // PlayerTrophyHallCount's "everyone EXCEPT Neutral" (Black Dragon:
                          // "Gain 1 VP for every 3 WHITE troops in your trophy hall" - the
                          // printed card's own wording, distinct from TrophyHallCount's "any
                          // troop" total).
+        SitesUnderTotalControl // Count of Sites where Site.Owner == the active player's color
+                         // AND Site.HasTotalControl is true (Red Dragon: "Gain 1 VP for each
+                         // site under your total control") - a stricter subset of
+                         // SitesControlled above (mere control, majority troops only).
     }
 
     public enum PlayerColor

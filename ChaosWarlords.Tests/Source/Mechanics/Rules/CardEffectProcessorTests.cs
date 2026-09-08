@@ -988,6 +988,58 @@ namespace ChaosWarlords.Tests.Source.Systems
         }
 
         #endregion
+
+        #region ApplyGainResource SitesUnderTotalControl Tests (Red Dragon)
+
+        [TestMethod]
+        public void ApplyEffect_GainResource_SitesUnderTotalControlSource_OnlyCountsSitesWithBothControlAndTotalControl()
+        {
+            // Red Dragon: "Gain 1 VP for each site under your total control" - a stricter subset
+            // of plain SitesControlled (mere majority-troop control).
+            var controlledAndTotal = MakeSite("A");
+            controlledAndTotal.Owner = _player.Color;
+            controlledAndTotal.HasTotalControl = true;
+            var controlledOnly = MakeSite("B"); // Controlled, but NOT total control - must not count.
+            controlledOnly.Owner = _player.Color;
+            controlledOnly.HasTotalControl = false;
+            var neitherA = MakeSite("C"); // Not even controlled - must not count.
+            _context.MapManager.Sites.Returns(new List<Site> { controlledAndTotal, controlledOnly, neitherA });
+
+            var card = new Card("test-dynamic", "Test Dynamic", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.GainResource, 0, ResourceType.VictoryPoints)
+            {
+                DynamicAmountSource = DynamicAmountSource.SitesUnderTotalControl
+            };
+            card.AddEffect(effect);
+            int vpBefore = _player.VictoryPoints;
+
+            CardEffectProcessor.ApplyEffect(effect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            Assert.AreEqual(vpBefore + 1, _player.VictoryPoints, "Only the 1 site with BOTH Owner == player AND HasTotalControl should count.");
+        }
+
+        [TestMethod]
+        public void ApplyEffect_GainResource_SitesUnderTotalControlSource_NoTotalControlAnywhereGrantsZero()
+        {
+            var controlledOnly = MakeSite("A");
+            controlledOnly.Owner = _player.Color;
+            controlledOnly.HasTotalControl = false;
+            _context.MapManager.Sites.Returns(new List<Site> { controlledOnly });
+
+            var card = new Card("test-dynamic", "Test Dynamic", 1, CardAspect.Neutral, 0, 0, 0);
+            var effect = new CardEffect(EffectType.GainResource, 0, ResourceType.VictoryPoints)
+            {
+                DynamicAmountSource = DynamicAmountSource.SitesUnderTotalControl
+            };
+            card.AddEffect(effect);
+            int vpBefore = _player.VictoryPoints;
+
+            CardEffectProcessor.ApplyEffect(effect, card, _context, Tests.Utilities.TestLogger.Instance);
+
+            Assert.AreEqual(vpBefore, _player.VictoryPoints, "Plain control without total control must grant 0 VP, not throw or fall back to a default amount.");
+        }
+
+        #endregion
     }
 }
 

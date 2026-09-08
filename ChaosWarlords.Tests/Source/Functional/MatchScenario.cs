@@ -271,6 +271,22 @@ namespace ChaosWarlords.Tests.Source.Functional
         }
 
         /// <summary>
+        /// Routes a spy-color swatch click through the REAL ActionSystem.FinalizeSpyReturn (the
+        /// "which spy to return" disambiguation click, reached only when 2+ eligible spies exist
+        /// at the same site - e.g. Red Dragon's EffectType.ReturnEnemySpy, or the base "Return an
+        /// enemy spy" action) and dispatches the resulting command.
+        /// </summary>
+        public IGameCommand? SelectSpyColorToReturn(PlayerColor color)
+        {
+            var command = Context.ActionSystem.FinalizeSpyReturn(color);
+            if (command != null)
+            {
+                Dispatch(command);
+            }
+            return command;
+        }
+
+        /// <summary>
         /// Responds to the MOST RECENTLY raised OnInteractionRequested popup.
         /// </summary>
         public void RespondToLatestInteraction(bool accept)

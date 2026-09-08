@@ -432,7 +432,8 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             [EffectType.PromoteFromPile] = (effect, card, ctx, log) => ApplyPromoteFromPile(card, ctx, log),
             [EffectType.PromoteSelf] = (effect, card, ctx, log) => ApplyPromoteSelf(card, ctx, log),
             [EffectType.ReturnUnitOrSpy] = (effect, card, ctx, log) => ApplyReturnUnitOrSpy(card, ctx, log),
-            [EffectType.DeployFromTrophyHall] = (effect, card, ctx, log) => ApplyDeployFromTrophyHall(effect, card, ctx, log)
+            [EffectType.DeployFromTrophyHall] = (effect, card, ctx, log) => ApplyDeployFromTrophyHall(effect, card, ctx, log),
+            [EffectType.ReturnEnemySpy] = (effect, card, ctx, log) => ApplyReturnEnemySpy(card, ctx, log)
         };
 
         private static void ApplyReturnOwnSpy(Card sourceCard, MatchContext context, IGameLogger logger)
@@ -445,6 +446,24 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             else
             {
                 logger.Log($"{sourceCard.Name}: No spies to return.", LogChannel.Warning);
+            }
+        }
+
+        // Like ApplyReturnOwnSpy/ApplyReturnUnitOrSpy/every other mandatory targeting-effect
+        // handler in this dictionary, this is structurally unreachable via the normal per-effect
+        // resolution flow (ActionExecutionEngine.HandleInputRequiredEffect routes a mandatory
+        // targeting effect straight to SetupTargetingForRequiredEffect/EnterTargetingState, never
+        // through ApplyEffect) - kept anyway for consistency with those siblings.
+        private static void ApplyReturnEnemySpy(Card sourceCard, MatchContext context, IGameLogger logger)
+        {
+            if (context.CardRuleEngine.HasValidTargets(context.ActivePlayer, EffectType.ReturnEnemySpy, sourceCard))
+            {
+                context.ActionSystem.StartTargeting(ActionState.TargetingReturnSpy, sourceCard);
+                logger.Log($"{sourceCard.Name}: Select a site to return an enemy spy from.", LogChannel.Input);
+            }
+            else
+            {
+                logger.Log($"{sourceCard.Name}: No enemy spies to return.", LogChannel.Warning);
             }
         }
 
@@ -526,49 +545,46 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// Influence for every 3 troops in your trophy hall", Death Knight: "Gain 1 VP for every
         /// 5 player troops in your trophy hall", Vampire: "...gain 1 VP for every 3 cards in your
         /// inner circle", Aboleth: "Draw a card for each spy you have on the board", Black
-        /// Dragon: "Gain 1 VP for every 3 white troops in your trophy hall" - DynamicAmountDivisor
-        /// is the "every N" part, integer division/floor. Effect-type-agnostic - consumed by
-        /// GainResource/DrawCard as a resource/draw AMOUNT, and (see PushEffectContext's own
-        /// dynamic-repeat-count gate) by any SupportsRepeat effect as a repeat COUNT instead
-        /// (Quaggoth: "Assassinate one white troop for each site you control").
+        /// Dragon: "Gain 1 VP for every 3 white troops in your trophy hall", Red Dragon: "Gain 1
+        /// VP for each site under your total control" - DynamicAmountDivisor is the "every N"
+        /// part, integer division/floor. Effect-type-agnostic - consumed by GainResource/DrawCard
+        /// as a resource/draw AMOUNT, and (see PushEffectContext's own dynamic-repeat-count gate)
+        /// by any SupportsRepeat effect as a repeat COUNT instead (Quaggoth: "Assassinate one
+        /// white troop for each site you control").
         /// </summary>
+        // Lookup-table dispatch (mirroring _effectHandlers'/ActionInputController's own
+        // Dictionary<TKey, Func<...>> convention) rather than a switch over DynamicAmountSource -
+        // each additional DynamicAmountSource case costs a switch's own cyclomatic complexity
+        // another branch regardless of how it's written, where a dictionary lookup does not.
+        private static readonly Dictionary<DynamicAmountSource, Func<MatchContext, int>> _dynamicAmountResolvers = new()
+        {
+            [DynamicAmountSource.SitesControlled] = ctx => ctx.MapManager.Sites.Count(s => s.Owner == ctx.ActivePlayer.Color),
+            [DynamicAmountSource.TrophyHallCount] = ctx => ctx.ActivePlayer.TrophyHall,
+            [DynamicAmountSource.PlayerTrophyHallCount] = ctx => ctx.ActivePlayer.TrophyHallByColor
+                .Where(kv => kv.Key != PlayerColor.Neutral && kv.Key != PlayerColor.None)
+                .Sum(kv => kv.Value),
+            [DynamicAmountSource.InnerCircleCount] = ctx => ctx.ActivePlayer.InnerCircle.Count,
+            [DynamicAmountSource.SpiesOnBoard] = ctx => ctx.MapManager.Sites.Count(s => s.HasSpy(ctx.ActivePlayer.Color)),
+            [DynamicAmountSource.NeutralTrophyHallCount] = ctx => ctx.ActivePlayer.TrophyHallByColor.GetValueOrDefault(PlayerColor.Neutral),
+            [DynamicAmountSource.SitesUnderTotalControl] = ctx => ctx.MapManager.Sites.Count(s => s.Owner == ctx.ActivePlayer.Color && s.HasTotalControl),
+        };
+
         private static int ResolveAmount(CardEffect effect, MatchContext context, IGameLogger logger)
         {
             if (effect.DynamicAmountSource == DynamicAmountSource.None)
                 return effect.Amount;
 
-            int count;
-            switch (effect.DynamicAmountSource)
+            if (!_dynamicAmountResolvers.TryGetValue(effect.DynamicAmountSource, out var resolver))
             {
-                case DynamicAmountSource.SitesControlled:
-                    count = context.MapManager.Sites.Count(s => s.Owner == context.ActivePlayer.Color);
-                    break;
-                case DynamicAmountSource.TrophyHallCount:
-                    count = context.ActivePlayer.TrophyHall;
-                    break;
-                case DynamicAmountSource.PlayerTrophyHallCount:
-                    count = context.ActivePlayer.TrophyHallByColor
-                        .Where(kv => kv.Key != PlayerColor.Neutral && kv.Key != PlayerColor.None)
-                        .Sum(kv => kv.Value);
-                    break;
-                case DynamicAmountSource.InnerCircleCount:
-                    count = context.ActivePlayer.InnerCircle.Count;
-                    break;
-                case DynamicAmountSource.SpiesOnBoard:
-                    count = context.MapManager.Sites.Count(s => s.HasSpy(context.ActivePlayer.Color));
-                    break;
-                case DynamicAmountSource.NeutralTrophyHallCount:
-                    count = context.ActivePlayer.TrophyHallByColor.GetValueOrDefault(PlayerColor.Neutral);
-                    break;
-                default:
-                    // A new DynamicAmountSource enum value added without its matching case
-                    // here yet (e.g. mid-way through wiring up the next Dragon card) must not
-                    // silently resolve to a permanent, unexplained 0 - that's much harder to
-                    // spot than a loud warning in the log.
-                    logger.Log($"CardEffectProcessor.ResolveAmount: no case wired for DynamicAmountSource.{effect.DynamicAmountSource} - resolving to 0.", LogChannel.Warning);
-                    count = 0;
-                    break;
+                // A new DynamicAmountSource enum value added without its matching resolver here
+                // yet (e.g. mid-way through wiring up the next Dragon card) must not silently
+                // resolve to a permanent, unexplained 0 - that's much harder to spot than a loud
+                // warning in the log.
+                logger.Log($"CardEffectProcessor.ResolveAmount: no case wired for DynamicAmountSource.{effect.DynamicAmountSource} - resolving to 0.", LogChannel.Warning);
+                return 0;
             }
+
+            int count = resolver(context);
 
             if (effect.DynamicAmountDivisor <= 0)
             {
