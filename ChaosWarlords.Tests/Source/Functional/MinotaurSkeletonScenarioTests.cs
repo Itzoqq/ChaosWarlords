@@ -215,6 +215,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         public void PlayMinotaurSkeleton_DeclineWithNoNeutralTroopsAnywhere_StillDevoursButSkipsAssassinateEntirely()
         {
             var scenario = MatchScenario.Build();
+            scenario.ClearNeutralTroopsFromBoard(); // Establish the "no Neutral troop anywhere" precondition this test is actually about.
             scenario.AsActivePlayer(PlayerColor.Red);
             var card = scenario.GiveCard(PlayerColor.Red, "minotaur_skeleton");
 

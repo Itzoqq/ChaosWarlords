@@ -122,6 +122,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         public void PlayOgreZombie_NoNeutralTroopAnywhereOnTheBoard_SkipsSupplantEntirely()
         {
             var scenario = MatchScenario.Build();
+            scenario.ClearNeutralTroopsFromBoard(); // Establish the "no Neutral troop anywhere" precondition this test is actually about.
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var card = scenario.GiveCard(PlayerColor.Red, "ogre_zombie");
 

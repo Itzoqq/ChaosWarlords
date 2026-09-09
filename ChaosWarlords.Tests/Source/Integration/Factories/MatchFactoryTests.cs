@@ -132,6 +132,26 @@ namespace ChaosWarlords.Tests.Integration.Factories
         }
 
         [TestMethod]
+        public void Build_SeedsNeutralTroopsOnTheRealMap_SoWhiteTroopTargetingCardsHaveAValidTarget()
+        {
+            // Rulebook p.4 setup step 6: "Put white (unaligned) troop pieces in all troop spaces
+            // marked..." - MapFactory.CreateScenarioMap pre-seeds Neutral troops via
+            // SiteConfig.NeutralTroopSpaceCount so "Assassinate/Supplant a white troop" cards
+            // (Wight, Ogre Zombie, Black Dragon, Mummy Lord, ...) have a real target the moment a
+            // match starts, not just when some other effect happens to create one first.
+            var mockDb = Substitute.For<ICardDatabase>();
+            mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
+
+            var factory = new MatchFactory(mockDb, Utilities.TestLogger.Instance);
+            var replayManagerMock = Substitute.For<IReplayManager>();
+
+            var world = factory.Build(replayManagerMock, seed: 555);
+            var activePlayer = world.TurnManager.ActivePlayer;
+
+            Assert.IsTrue(world.MapManager.HasValidAssassinationTarget(activePlayer, requireNeutralTroop: true, ignoresPresence: true));
+        }
+
+        [TestMethod]
         public void ApplyScenarioRules_AddsSpies_ToCityOfGold()
         {
             // Arrange

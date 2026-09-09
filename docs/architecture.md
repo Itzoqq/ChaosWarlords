@@ -425,6 +425,21 @@ This separation enables:
 - ✅ Clean testing (mock `MatchContext` for logic tests, mock `IGameplayState` for UI tests)
 - ✅ Single Responsibility Principle (each handles one concern)
 
+### 8. Map Generation: Neutral Troop Pre-Seeding
+`SiteConfig.NeutralTroopSpaceCount` (`MapGenerationConfig.cs`) implements rulebook p.4 setup
+step 6 ("put white/unaligned troop pieces in all troop spaces marked with a [symbol]") -
+`MapLayoutEngine.GenerateSites` deterministically marks the first N of a site's generated
+nodes `Occupant = PlayerColor.Neutral` once, at map-generation time, no RNG involved. A
+`StartingSite` refuses any non-zero count (logs a warning and skips instead) - the setup-phase
+"first free troop" check (`MapRuleEngine.CanDeployDuringSetup`/`SiteOccupiedByOtherPlayer`) is
+site-wide, not per-node, so a pre-seeded Neutral troop there would permanently block every
+player's initial deploy at that site. `MapFactory.CreateScenarioMap` seeds Void Portal and City
+of Gold with 1 each; Obsidian Fortress is deliberately left at 0 because several scenario tests
+(e.g. `GibberingMoutherScenarioTests`) rely on it staying a fully empty scratch site. Every
+existing map/control/total-control/trophy-hall code path already treated `PlayerColor.Neutral`
+correctly (it was simply never placed anywhere) - this is a pure data-seeding fix, not a new
+rules primitive.
+
 ---
 
 ## Design Patterns Used

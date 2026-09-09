@@ -113,6 +113,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         public void PlayWeaponmaster_DeclineWithNoNeutralTroopsAnywhere_StillOffersAllThreeRounds()
         {
             var scenario = MatchScenario.Build();
+            scenario.ClearNeutralTroopsFromBoard(); // Establish the "no Neutral troop anywhere" precondition this test is actually about.
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             int pendingBefore = red.PendingFreeTroops;
             var card = scenario.GiveCard(PlayerColor.Red, "weaponmaster");

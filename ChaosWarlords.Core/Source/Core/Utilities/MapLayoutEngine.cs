@@ -1,3 +1,4 @@
+using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Map;
 
 namespace ChaosWarlords.Source.Utilities
@@ -6,19 +7,19 @@ namespace ChaosWarlords.Source.Utilities
     {
         private int _nodeIdCounter = 1;
 
-        public (List<MapNode> Nodes, List<Site> Sites, List<Route> Routes) GenerateMap(MapGenerationConfig config)
+        public (List<MapNode> Nodes, List<Site> Sites, List<Route> Routes) GenerateMap(MapGenerationConfig config, IGameLogger? logger = null)
         {
             List<MapNode> nodes = [];
             List<Site> sites = [];
             List<Route> routes = [];
 
-            GenerateSites(config, nodes, sites);
+            GenerateSites(config, nodes, sites, logger);
             GenerateRoutes(config, nodes, sites, routes);
 
             return (nodes, sites, routes);
         }
 
-        private void GenerateSites(MapGenerationConfig config, List<MapNode> nodes, List<Site> sites)
+        private void GenerateSites(MapGenerationConfig config, List<MapNode> nodes, List<Site> sites, IGameLogger? logger)
         {
             foreach (var siteConfig in config.Sites)
             {
@@ -32,6 +33,8 @@ namespace ChaosWarlords.Source.Utilities
                 // Interconnect all site nodes (Fully Connected Mesh)
                 ConnectSiteNodes(siteNodes);
 
+                SeedNeutralTroops(siteConfig, siteNodes, logger);
+
                 foreach (var node in siteNodes)
                 {
                     site.AddNode(node);
@@ -40,6 +43,28 @@ namespace ChaosWarlords.Source.Utilities
 
                 site.Id = sites.Count + 1;
                 sites.Add(site);
+            }
+        }
+
+        // Rulebook p.4 setup step 6 - see SiteConfig.NeutralTroopSpaceCount's own doc comment
+        // for why StartingSite is refused. Deterministic (first N nodes in generation order),
+        // no RNG - matches every other generation-time decision in this class.
+        private static void SeedNeutralTroops(SiteConfig siteConfig, List<MapNode> siteNodes, IGameLogger? logger)
+        {
+            if (siteConfig.NeutralTroopSpaceCount <= 0) return;
+
+            if (siteConfig.IsStartingSite)
+            {
+                logger?.Log($"MapLayoutEngine: '{siteConfig.Name}' is a StartingSite but requested " +
+                    $"{siteConfig.NeutralTroopSpaceCount} Neutral troop space(s) - skipped, a Neutral " +
+                    "troop there would block every player's initial deploy at this site.", LogChannel.Warning);
+                return;
+            }
+
+            int count = Math.Min(siteConfig.NeutralTroopSpaceCount, siteNodes.Count);
+            for (int i = 0; i < count; i++)
+            {
+                siteNodes[i].Occupant = PlayerColor.Neutral;
             }
         }
 

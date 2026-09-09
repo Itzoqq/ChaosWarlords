@@ -151,6 +151,21 @@ namespace ChaosWarlords.Tests.Source.Functional
             Context.TurnManager.Players.First(p => p.Color == color);
 
         /// <summary>
+        /// Removes every Neutral (white/unaligned) troop MapFactory.CreateScenarioMap pre-seeds
+        /// at match creation (see SiteConfig.NeutralTroopSpaceCount) - for scenarios whose own
+        /// precondition is "no Neutral troop anywhere on the board" (e.g. Black Dragon/Ogre
+        /// Zombie's no-valid-target Supplant fallback), which the default match no longer
+        /// satisfies on its own.
+        /// </summary>
+        public void ClearNeutralTroopsFromBoard()
+        {
+            foreach (var node in Context.MapManager.Nodes.Where(n => n.Occupant == PlayerColor.Neutral))
+            {
+                node.Occupant = PlayerColor.None;
+            }
+        }
+
+        /// <summary>
         /// Pulls the REAL card instance for <paramref name="cardId"/> out of the REAL database
         /// (not a hand-typed stand-in) and adds it to <paramref name="color"/>'s hand.
         /// </summary>

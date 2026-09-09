@@ -8,7 +8,12 @@ namespace ChaosWarlords.Source.Utilities
         /// <summary>
         /// Builds the map used for every match today: 5 sites (2 Starting Sites, 1 City,
         /// City of Gold, Obsidian Fortress), connected by 4 routes, generated via
-        /// MapLayoutEngine's data-driven MapGenerationConfig pipeline. See planning.txt
+        /// MapLayoutEngine's data-driven MapGenerationConfig pipeline. Void Portal and City of
+        /// Gold are pre-seeded with 1 Neutral (white/unaligned) troop apiece per rulebook p.4
+        /// setup step 6 (SiteConfig.NeutralTroopSpaceCount) - the two Starting Sites
+        /// deliberately get none (see that field's own doc comment), and Obsidian Fortress
+        /// deliberately gets none either (see its own NeutralTroopSpaceCount comment below -
+        /// an established test convention relies on it staying fully empty). See planning.txt
         /// section 3 for the real Underdark board this stands in for until that gets built.
         /// </summary>
         public static (List<MapNode>, List<Site>, List<Route>) CreateScenarioMap(IGameLogger logger)
@@ -42,7 +47,8 @@ namespace ChaosWarlords.Source.Utilities
                 ControlAmount = 0,
                 TotalControlResource = ResourceType.Power,
                 TotalControlAmount = 0,
-                EndGameVP = 1
+                EndGameVP = 1,
+                NeutralTroopSpaceCount = 1
             });
 
             // 3. Shadow Market (Starting Site)
@@ -71,7 +77,8 @@ namespace ChaosWarlords.Source.Utilities
                 ControlAmount = 1,
                 TotalControlResource = ResourceType.VictoryPoints,
                 TotalControlAmount = 1,
-                EndGameVP = 5 // User Request: 5 VP for control (+2 for Total Control)
+                EndGameVP = 5, // User Request: 5 VP for control (+2 for Total Control)
+                NeutralTroopSpaceCount = 1
             });
 
             // 5. Obsidian Fortress
@@ -86,6 +93,12 @@ namespace ChaosWarlords.Source.Utilities
                 TotalControlResource = ResourceType.VictoryPoints,
                 TotalControlAmount = 2,
                 EndGameVP = 9 // User Request: 9 VP for control (+2 for Total Control)
+                // NeutralTroopSpaceCount deliberately 0 here - Obsidian Fortress is the
+                // established "guaranteed-empty scratch site" convention used by several
+                // scenario tests (e.g. GibberingMoutherScenarioTests' ObsidianFortress()
+                // helper, "6 nodes, room for 3 mutually-adjacent empty nodes") that hardcode
+                // NodesInternal[0]/[1]/[2] - seeding Neutral troops here would silently break
+                // that convention across every test built on it.
             });
 
             // -- Define Routes --
@@ -96,7 +109,7 @@ namespace ChaosWarlords.Source.Utilities
 
             // Generate
             var layoutEngine = new MapLayoutEngine();
-            return layoutEngine.GenerateMap(config);
+            return layoutEngine.GenerateMap(config, logger);
         }
     }
 }
