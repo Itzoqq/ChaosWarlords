@@ -110,5 +110,7 @@
   "mummy_lord_name": "Mummy Lord",
   "mummy_lord_description": "Choose 2 times: Assassinate a white troop. Or, take a white troop from any trophy hall and deploy it anywhere on the board.",
   "spellspinner_name": "Spellspinner",
-  "spellspinner_description": "Choose one: Place a spy. Or, return one of your spies to supplant a troop at that spy's site."
+  "spellspinner_description": "Choose one: Place a spy. Or, return one of your spies to supplant a troop at that spy's site.",
+  "yan_c_bin_name": "Yan-C-Bin",
+  "yan_c_bin_description": "Place a spy, then assassinate a troop at that spy's site. Focus - Place another spy."
 }

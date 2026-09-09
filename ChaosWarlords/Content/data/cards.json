@@ -1057,5 +1057,27 @@
         }
       }
     ]
+  },
+  {
+    "Id": "yan_c_bin",
+    "Cost": 6,
+    "Aspect": "Shadow",
+    "DeckVP": 3,
+    "InnerCircleVP": 6,
+    "Effects": [
+      {
+        "Type": "PlaceSpy",
+        "Amount": 1,
+        "OnSuccess": {
+          "Type": "Assassinate",
+          "Amount": 1
+        }
+      },
+      {
+        "Type": "PlaceSpy",
+        "Amount": 1,
+        "RequiresFocus": true
+      }
+    ]
   }
 ]

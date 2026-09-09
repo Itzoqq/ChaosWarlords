@@ -224,18 +224,14 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             _actionSystem.SetPendingCard(nextEffect.SourceCard);
             bool isOptional = nextEffect.SourceEffect?.IsOptional == true;
 
-            if (!isOptional && TryHandleSpecialMandatoryEffect(nextEffect))
-            {
-                return;
-            }
-
             if (!isOptional)
             {
-                SetupTargetingForRequiredEffect(nextEffect);
+                if (TryHandleMandatoryEffect(nextEffect))
+                {
+                    return;
+                }
             }
-
-            // Handle optional effects with UI confirmation
-            if (isOptional && ProcessOptionalEffect(nextEffect))
+            else if (ProcessOptionalEffect(nextEffect))
             {
                 return; // Wait for user choice
             }
@@ -247,6 +243,28 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             }
 
             _logger.Log($"ActionExecutionEngine: Waiting for input for {nextEffect.EffectType}...", LogChannel.Input);
+        }
+
+        /// <summary>
+        /// Handles a MANDATORY (non-optional) targeting effect at the top of the stack: the
+        /// special-cased EffectTypes first (Devour/PlayFromMarket/DeployFromTrophyHall - see
+        /// TryHandleSpecialMandatoryEffect), then the generic re-validate-then-enter-targeting
+        /// path (see TryEnterTargetingForRequiredEffect) - split out of
+        /// HandleInputRequiredEffect purely to keep that method's own cyclomatic complexity
+        /// down, not because either path is reusable elsewhere.
+        /// </summary>
+        /// <returns>True if this effect was fully handled (the caller should stop processing it
+        /// and not fall through to the pre-target path) - either because a special case owns its
+        /// own targeting entry, or because it turned out to have no valid target and was already
+        /// resolved as a clean no-op.</returns>
+        private bool TryHandleMandatoryEffect(Core.Contexts.EffectContext nextEffect)
+        {
+            if (TryHandleSpecialMandatoryEffect(nextEffect))
+            {
+                return true;
+            }
+
+            return !TryEnterTargetingForRequiredEffect(nextEffect);
         }
 
         /// <summary>
@@ -329,13 +347,44 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
         }
 
         /// <summary>
-        /// Sets up the action state for a required (non-optional) targeting effect.
+        /// Re-validates a MANDATORY (non-optional) targeting effect's own HasValidTargets right
+        /// before actually activating it - not just once, back when CardEffectProcessor.
+        /// PushEffectContext originally decided to push it onto the stack. Every TOP-LEVEL
+        /// effect in a card's Effects list is pushed up front, in one batch, before any of them
+        /// actually run (see CardEffectProcessor.ResolveEffects's loop) - unlike a chained
+        /// OnSuccess/Alternative node, which is only ever pushed reactively from its
+        /// predecessor's own OnResolved/onCancelled callback (so its own validity check is
+        /// always computed at the moment it's about to be used), an EARLIER sibling top-level
+        /// effect can change the board before a LATER sibling's pre-computed validity is ever
+        /// acted on - e.g. a card with two independent, mandatory PlaceSpy effects (one gated by
+        /// Focus) where the first effect's own site-selection consumes the last remaining valid
+        /// site the second effect was originally pre-validated against. Left unresolved, this is
+        /// a reachable-in-normal-play soft-lock: every subsequent click gets rejected by that
+        /// effect's own Validate(), with no clean way out except a full CancelTargeting()
+        /// discarding the whole card play. Resolving as a clean "no target" here (the same path
+        /// TryResolveActor's original failure takes, since ResolveCurrentEffect(false) invokes
+        /// this EffectContext's own onCancelled callback, which pushes effect.Alternative if one
+        /// exists) is a no-op for every effect whose validity hasn't changed since it was queued
+        /// - the overwhelmingly common case, and the only case for a single-top-level-effect
+        /// card, since nothing runs between push and this check.
         /// </summary>
-        private void SetupTargetingForRequiredEffect(Core.Contexts.EffectContext effect)
+        /// <returns>True if the effect is still valid and targeting was entered; false if it was
+        /// re-resolved as a no-op instead - the caller must not touch <paramref name="effect"/>
+        /// any further, since ResolveCurrentEffect has already advanced the stack.</returns>
+        private bool TryEnterTargetingForRequiredEffect(Core.Contexts.EffectContext effect)
         {
+            if (_matchContext != null && effect.SourceEffect != null
+                && !_matchContext.CardRuleEngine.HasValidTargets(_matchContext.ActivePlayer, effect.SourceEffect.Type, effect.SourceCard))
+            {
+                _logger.Log($"ActionExecutionEngine: [PROCESS] {effect.EffectType} no longer has a valid target (changed since it was queued) - resolving as a no-op instead of stalling.", LogChannel.Warning);
+                ResolveCurrentEffect(false);
+                return false;
+            }
+
             _logger.Log($"ActionExecutionEngine: [PROCESS] Effect requires input. Setting state to [{effect.EffectType}]", LogChannel.Debug);
             _actionSystem.EnterTargetingState(effect.EffectType);
             _logger.Log($"ActionExecutionEngine: [PROCESS] State set to: {_actionSystem.CurrentState}", LogChannel.Debug);
+            return true;
         }
 
         /// <summary>
