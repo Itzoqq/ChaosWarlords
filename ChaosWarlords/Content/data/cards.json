@@ -1079,5 +1079,28 @@
         "RequiresFocus": true
       }
     ]
+  },
+  {
+    "Id": "succubus",
+    "Cost": 5,
+    "Aspect": "Shadow",
+    "DeckVP": 2,
+    "InnerCircleVP": 5,
+    "Effects": [
+      {
+        "Type": "Devour",
+        "Amount": 1,
+        "TargetLocation": "Hand",
+        "IsOptional": true,
+        "OnSuccess": {
+          "Type": "PlaceSpy",
+          "Amount": 1,
+          "OnSuccess": {
+            "Type": "Assassinate",
+            "Amount": 1
+          }
+        }
+      }
+    ]
   }
 ]

@@ -112,5 +112,7 @@
   "spellspinner_name": "Spellspinner",
   "spellspinner_description": "Choose one: Place a spy. Or, return one of your spies to supplant a troop at that spy's site.",
   "yan_c_bin_name": "Yan-C-Bin",
-  "yan_c_bin_description": "Place a spy, then assassinate a troop at that spy's site. Focus - Place another spy."
+  "yan_c_bin_description": "Place a spy, then assassinate a troop at that spy's site. Focus - Place another spy.",
+  "succubus_name": "Succubus",
+  "succubus_description": "You may devour a card from your hand to place a spy, then assassinate a troop at that spy's site."
 }
