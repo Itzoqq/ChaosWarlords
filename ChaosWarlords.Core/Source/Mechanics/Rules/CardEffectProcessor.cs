@@ -436,7 +436,8 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             [EffectType.ReturnEnemySpy] = (effect, card, ctx, log) => ApplyReturnEnemySpy(card, ctx, log),
             [EffectType.DeployTroop] = (effect, card, ctx, log) => ApplyDeployTroop(card, ctx, log),
             [EffectType.ForceRecruit] = (effect, card, ctx, log) => ApplyForceRecruit(effect, card, ctx, log),
-            [EffectType.ForceCausingOpponentDiscard] = (effect, card, ctx, log) => ApplyForceCausingOpponentDiscard(card, ctx, log)
+            [EffectType.ForceCausingOpponentDiscard] = (effect, card, ctx, log) => ApplyForceCausingOpponentDiscard(card, ctx, log),
+            [EffectType.PromoteTopOfDeck] = (effect, card, ctx, log) => ApplyPromoteTopOfDeck(ctx, log)
         };
 
         private static void ApplyReturnOwnSpy(Card sourceCard, MatchContext context, IGameLogger logger)
@@ -741,6 +742,18 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
             context.CardsMarkedForTurnEndPromote.Add(sourceCard);
             logger.Log($"{sourceCard.Name}: Marked for self-promotion at end of turn.", LogChannel.Info);
+        }
+
+        /// <summary>
+        /// EffectType.PromoteTopOfDeck (Hezrou, Nalfeshnee, Elder Brain). No targeting, no
+        /// player choice - just resolves immediately against context.ActivePlayer's own deck.
+        /// Failure (nothing left in deck or discard to promote) is only logged, same as every
+        /// other automatic effect in this dictionary (e.g. ApplyDrawCard never checks either) -
+        /// not surfaced as a card-play failure.
+        /// </summary>
+        private static void ApplyPromoteTopOfDeck(MatchContext context, IGameLogger logger)
+        {
+            context.PlayerStateManager.TryPromoteTopOfDeck(context.ActivePlayer, context.Random, out _);
         }
 
         private static void ApplyMoveUnit(Card sourceCard, MatchContext context, IGameLogger logger)

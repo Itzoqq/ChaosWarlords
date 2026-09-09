@@ -306,6 +306,40 @@ namespace ChaosWarlords.Source.Entities.Actors
         internal void MoveDeckToDiscard() => _deckManager.MoveAllToDiscard();
 
         /// <summary>
+        /// Promotes the top card of THIS player's own deck straight to the Inner Circle (e.g.
+        /// Hezrou/Nalfeshnee/Elder Brain's "Promote the top card of your deck") - there's no
+        /// player choice at all, unlike TryPromoteCard's Hand/Played/Discard search. Reuses
+        /// _deckManager.Draw(1, ...) rather than a dedicated "peek" method - it already handles
+        /// the empty-deck-reshuffles-discard case identically to a normal draw; the drawn card
+        /// is redirected straight to the Inner Circle below instead of ever touching Hand.
+        /// </summary>
+        internal bool TryPromoteTopOfDeck(IGameRandom random, out string errorMessage)
+        {
+            var drawn = _deckManager.Draw(1, random);
+            if (drawn.Count == 0)
+            {
+                errorMessage = "No cards left in deck or discard pile to promote.";
+                return false;
+            }
+
+            var card = drawn[0];
+            if (card.RedirectsToSupplyOnDevourOrPromote)
+            {
+                // e.g. Insane Outcast: "If [this] would be devoured or promoted, return it to
+                // the supply instead." Not actually promoted - same rule TryPromoteCard applies.
+                card.Location = CardLocation.Supply;
+            }
+            else
+            {
+                card.Location = CardLocation.InnerCircle;
+                _innerCircle.Add(card);
+            }
+
+            errorMessage = string.Empty;
+            return true;
+        }
+
+        /// <summary>
         /// Attempts to promote a card from Hand, PlayedCards, or the discard pile to the Inner
         /// Circle. The discard-pile search exists for EffectType.PromoteFromPile (e.g. Matron
         /// Mother, Necromancer) - unconditional/safe to leave widened for every caller since the

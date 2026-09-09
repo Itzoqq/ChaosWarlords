@@ -179,6 +179,20 @@ namespace ChaosWarlords.Source.Managers
             return success;
         }
 
+        public bool TryPromoteTopOfDeck(Player player, IGameRandom random, out string errorMessage)
+        {
+            bool success = player.TryPromoteTopOfDeck(random, out errorMessage);
+            if (success)
+            {
+                _logger.Log($"[State] {player.DisplayName} promoted the top card of their deck.", LogChannel.Info);
+            }
+            else
+            {
+                _logger.Log($"[State] Promote-top-of-deck failed for {player.DisplayName}: {errorMessage}", LogChannel.Warning);
+            }
+            return success;
+        }
+
         public void DevourCard(Player player, Card card)
         {
             // Logic to remove card from game

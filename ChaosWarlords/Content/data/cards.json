@@ -1185,5 +1185,38 @@
         "AppliesToEachOpponent": true
       }
     ]
+  },
+  {
+    "Id": "hezrou",
+    "Cost": 3,
+    "Aspect": "Blasphemy",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "Effects": [
+      {
+        "Type": "MoveUnit",
+        "Amount": 1
+      },
+      {
+        "Type": "PromoteTopOfDeck"
+      }
+    ]
+  },
+  {
+    "Id": "nalfeshnee",
+    "Cost": 5,
+    "Aspect": "Blasphemy",
+    "DeckVP": 2,
+    "InnerCircleVP": 5,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 3,
+        "TargetResource": "Influence"
+      },
+      {
+        "Type": "PromoteTopOfDeck"
+      }
+    ]
   }
 ]

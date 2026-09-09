@@ -218,6 +218,14 @@ namespace ChaosWarlords.Source.Utilities
         // opponent discards" phase already drives. See that method's own doc comment for why
         // starting it synchronously at enqueue time isn't safe.
         ForceCausingOpponentDiscard,
+
+        // "Promote the top card of your deck" (Hezrou, Nalfeshnee, Elder Brain) - non-targeting/
+        // automatic (falls through to DefaultStrategy), no player choice at all: whatever card
+        // sits on top of the deck IS the target. Distinct from EffectType.PromoteFromPile
+        // (Hand/DiscardPile/Self, player-chosen, immediate) and EffectType.Promote (the deferred
+        // end-of-turn credit flow) - neither of those searches the deck at all. See
+        // Player.TryPromoteTopOfDeck/PlayerStateManager.TryPromoteTopOfDeck.
+        PromoteTopOfDeck,
     }
 
     /// <summary>

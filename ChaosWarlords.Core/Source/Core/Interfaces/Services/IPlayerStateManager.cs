@@ -137,6 +137,19 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         bool TryPromoteCard(Player player, Card card, out string errorMessage);
 
         /// <summary>
+        /// Promotes the top card of the player's OWN deck directly to the Inner Circle (e.g.
+        /// Hezrou, Nalfeshnee, Elder Brain's "Promote the top card of your deck") - no player
+        /// choice involved, unlike TryPromoteCard's Hand/Played/Discard search. Reshuffles the
+        /// discard pile into the deck first if the deck is empty (same as a normal draw); fails
+        /// if both are empty.
+        /// </summary>
+        /// <param name="player">The player promoting from their own deck.</param>
+        /// <param name="random">Deterministic RNG for the reshuffle-if-empty case.</param>
+        /// <param name="errorMessage">Output error if promotion fails (nothing left to promote).</param>
+        /// <returns>True if successful; otherwise, false.</returns>
+        bool TryPromoteTopOfDeck(Player player, IGameRandom random, out string errorMessage);
+
+        /// <summary>
         /// Permanently removes a card from the player's ownership.
         /// </summary>
         /// <param name="player">The owner of the card.</param>
