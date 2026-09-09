@@ -84,6 +84,15 @@ namespace ChaosWarlords.Source.Commands
             // read before either branch below can release it.
             bool forcedByOpponent = context.TurnManager.ForcedActingPlayer == player;
 
+            // Captured BEFORE applying card.ReactiveDiscardEffect below, deliberately: Umber
+            // Hulk's ReactiveDiscardEffect (EffectType.ForceCausingOpponentDiscard) can itself
+            // enqueue a NEW entry into this same MatchManager queue via EnqueueReactiveDiscard.
+            // Deciding the branch below off a POST-enqueue read would misattribute that queue
+            // becoming non-empty to THIS discard being part of an opponent-discard sequence it
+            // was never actually part of, wrongly dequeuing the just-added entry instead of
+            // completing this discard's own chain.
+            bool wasResolvingOpponentDiscard = context.MatchManager.IsResolvingOpponentDiscard;
+
             context.PlayerStateManager.DiscardCard(player, card);
             context.RecordAction("DiscardCard", $"{player.DisplayName} discarded {card.Name}.");
 
@@ -92,15 +101,16 @@ namespace ChaosWarlords.Source.Commands
                 Mechanics.Rules.CardEffectProcessor.ApplyEffect(card.ReactiveDiscardEffect, card, context, context.Logger);
             }
 
-            if (context.MatchManager.IsResolvingOpponentDiscard)
+            if (wasResolvingOpponentDiscard)
             {
-                // Neogi's cross-player forced-discard sequence is in progress - this discard
-                // has NOTHING on ActionSystem's ExecutionStack (MarkOpponentDiscardAtEndOfTurn
-                // already resolved, long ago, during Neogi's own play), so
-                // ActionSystem.CompleteAction() would hit its no-stack-context fallback and
-                // incorrectly reset CurrentState to Normal after just one opponent. Advance
-                // the sequence instead - MatchManager.ResolveOpponentDiscard moves to the next
-                // opponent or completes the deferred end-of-turn player-switch.
+                // A cross-player forced-discard sequence is in progress - Neogi's end-of-turn
+                // one, a mid-turn reactive one (Umber Hulk), or both merged into the same queue -
+                // this discard has NOTHING on ActionSystem's ExecutionStack (whatever queued it -
+                // MarkOpponentDiscardAtEndOfTurn or EnqueueReactiveDiscard - already resolved
+                // earlier), so ActionSystem.CompleteAction() would hit its no-stack-context
+                // fallback and incorrectly reset CurrentState to Normal after just one player.
+                // Advance the sequence instead - MatchManager.ResolveOpponentDiscard moves to
+                // the next player or completes/stops per _discardPhaseEndsTurn.
                 context.MatchManager.ResolveOpponentDiscard(card);
             }
             else

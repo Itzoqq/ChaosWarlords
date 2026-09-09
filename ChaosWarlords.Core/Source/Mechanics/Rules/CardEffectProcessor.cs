@@ -435,7 +435,8 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             [EffectType.DeployFromTrophyHall] = (effect, card, ctx, log) => ApplyDeployFromTrophyHall(effect, card, ctx, log),
             [EffectType.ReturnEnemySpy] = (effect, card, ctx, log) => ApplyReturnEnemySpy(card, ctx, log),
             [EffectType.DeployTroop] = (effect, card, ctx, log) => ApplyDeployTroop(card, ctx, log),
-            [EffectType.ForceRecruit] = (effect, card, ctx, log) => ApplyForceRecruit(effect, card, ctx, log)
+            [EffectType.ForceRecruit] = (effect, card, ctx, log) => ApplyForceRecruit(effect, card, ctx, log),
+            [EffectType.ForceCausingOpponentDiscard] = (effect, card, ctx, log) => ApplyForceCausingOpponentDiscard(card, ctx, log)
         };
 
         private static void ApplyReturnOwnSpy(Card sourceCard, MatchContext context, IGameLogger logger)
@@ -560,6 +561,36 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         {
             context.PendingOpponentDiscardTriggers.Add(sourceCard);
             logger.Log($"{sourceCard.Name}: Each opponent will discard a card at end of turn.", LogChannel.Info);
+        }
+
+        /// <summary>
+        /// EffectType.ForceCausingOpponentDiscard (Umber Hulk's ReactiveDiscardEffect only -
+        /// "If an opponent causes you to discard this, they must discard a card"). Only ever
+        /// invoked from DiscardCardCommand's bare-ApplyEffect dispatch, at which point
+        /// context.ActivePlayer resolves to the player who's discarding (TurnManager.
+        /// ForcedActingPlayer), NOT the opponent who caused it - the causing opponent is instead
+        /// whoever this TURN actually belongs to, context.TurnManager.CurrentTurnContext.
+        /// ActivePlayer, which stays the real turn-owner throughout a forced-discard sequence
+        /// regardless of ForcedActingPlayer overrides. Just banks the queue entry
+        /// (MatchManager.EnqueueReactiveDiscard) - see that method's own doc comment for why the
+        /// actual targeting prompt can't start synchronously from here.
+        /// </summary>
+        private static void ApplyForceCausingOpponentDiscard(Card sourceCard, MatchContext context, IGameLogger logger)
+        {
+            var causingOpponent = context.TurnManager.CurrentTurnContext.ActivePlayer;
+            if (causingOpponent == context.ActivePlayer)
+            {
+                // Defensive: this effect only makes sense when someone ELSE forced sourceCard's
+                // owner to discard it - shouldn't be reachable today (DiscardCardCommand only
+                // invokes ReactiveDiscardEffect at all while ForcedActingPlayer differs from the
+                // real turn-owner), but guards against ever queuing a player to reactively
+                // discard against themselves.
+                logger.Log($"{sourceCard.Name}: no distinct causing opponent to force a discard onto - skipped.", LogChannel.Warning);
+                return;
+            }
+
+            context.MatchManager.EnqueueReactiveDiscard(causingOpponent);
+            logger.Log($"{sourceCard.Name}: {causingOpponent.DisplayName} will be forced to discard a card.", LogChannel.Info);
         }
 
         private static void ApplyDiscardCard(Card sourceCard, MatchContext context, IGameLogger logger)

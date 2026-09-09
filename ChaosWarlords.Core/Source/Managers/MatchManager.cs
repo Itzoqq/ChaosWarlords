@@ -297,21 +297,75 @@ namespace ChaosWarlords.Source.Managers
         private bool _endGamePending;
         private string _pendingVictoryReason = string.Empty;
 
-        // Ephemeral orchestration state for Neogi's cross-player forced-discard sequencing -
-        // deliberately NOT on MatchContext/DTO-backed. It only needs to survive across frames
-        // within a single still-in-progress "end turn" gesture, not across a save/replay
-        // boundary. A mid-sequence rollback (CommandDispatcher's rollback-on-exception) would
-        // restore MatchContext.PendingOpponentDiscardTriggers and ActionSystem's own state
-        // correctly via StateRestorer, but NOT this field - the same category of gap the DTO
-        // snapshot already has for _endGamePending/_pendingVictoryReason below, both also
-        // plain private fields. Acceptable for now: nothing in this codebase rolls back
-        // mid-multi-frame-sequence today.
+        // Ephemeral orchestration state for cross-player forced-discard sequencing - Neogi's
+        // end-of-turn "each opponent discards" phase AND Umber Hulk's mid-turn reactive one
+        // (EnqueueReactiveDiscard) share this SAME queue, since the "ask this player to discard,
+        // one at a time, skipping anyone with an empty hand" mechanics are identical either way -
+        // only what happens once it fully drains differs, tracked by _discardPhaseEndsTurn.
+        // Deliberately NOT on MatchContext/DTO-backed. It only needs to survive across frames
+        // within a single still-in-progress gesture, not across a save/replay boundary. A
+        // mid-sequence rollback (CommandDispatcher's rollback-on-exception) would restore
+        // MatchContext.PendingOpponentDiscardTriggers and ActionSystem's own state correctly via
+        // StateRestorer, but NOT this field - the same category of gap the DTO snapshot already
+        // has for _endGamePending/_pendingVictoryReason below, both also plain private fields.
+        // Acceptable for now: nothing in this codebase rolls back mid-multi-frame-sequence today.
         // One entry per discard OWED - a player who owes 2 (stacking, e.g. 2 Neogis played
         // the same turn) appears twice in a row, so they're asked again immediately rather
         // than cycling through every other opponent first.
         private readonly Queue<Player> _pendingDiscardQueue = new();
 
+        // True only while the CURRENT discard phase was started from EndTurn (Neogi) - gates
+        // whether AdvanceOpponentDiscard's queue-drained branch should also complete the
+        // deferred end-of-turn player-switch, or (a mid-turn reactive-only phase, started by
+        // ResumeReactiveDiscardQueue) just stop there, since the chain that queued it has
+        // already completed on its own by the time this phase even starts.
+        private bool _discardPhaseEndsTurn;
+
         public bool IsResolvingOpponentDiscard => _pendingDiscardQueue.Count > 0;
+
+        public void EnqueueReactiveDiscard(Player player)
+        {
+            if (_pendingDiscardQueue.Count == 0)
+            {
+                // Defensive: guards against a stale _discardPhaseEndsTurn=true left over from an
+                // earlier Neogi phase that was abandoned mid-sequence (e.g. a CommandDispatcher
+                // rollback-on-exception, which does NOT restore this field - see its own doc
+                // comment above) rather than draining normally and resetting it itself. Only
+                // safe to force false here specifically because the queue being EMPTY at this
+                // point means this call is starting a genuinely NEW, reactive-only phase, not
+                // appending to an already-active one (Neogi's or an earlier reactive one) whose
+                // _discardPhaseEndsTurn must be left exactly as-is.
+                _discardPhaseEndsTurn = false;
+            }
+
+            _pendingDiscardQueue.Enqueue(player);
+            _logger.Log($"{player.DisplayName} queued for a reactive forced discard.", LogChannel.Info);
+        }
+
+        /// <summary>
+        /// Called from ActionSystem.ReleaseForcedActingPlayerIfOwnedByExecutionStack - the one
+        /// place that already distinguishes "MatchManager's discard queue owns ForcedActingPlayer
+        /// right now" from "nothing does, safe to release" (IsResolvingOpponentDiscard). Umber
+        /// Hulk's ReactiveDiscardEffect (EnqueueReactiveDiscard) resolves via DiscardCardCommand's
+        /// bare-ApplyEffect dispatch, from INSIDE the discarding chain's own resolution, BEFORE
+        /// that chain's own CompleteAction()/ResolveOpponentDiscard call - so starting a new
+        /// targeting sequence synchronously there would just have its CurrentState immediately
+        /// overwritten the instant ClearState() (which runs right after) resets CurrentState to
+        /// Normal. This method is that call's LAST step instead (after CurrentState is already
+        /// Normal, nothing runs after it), the only point that's actually safe.
+        ///
+        /// Only ever reached with a non-empty queue when a reactive entry was JUST queued during
+        /// the chain currently unwinding: this method is reachable only via an ExecutionStack-
+        /// driven ClearState() (ProcessStack's stack-drain, CompleteAction()'s no-stack fallback,
+        /// CancelTargeting()'s no-snapshot branch) - paths Neogi's own end-of-turn phase never
+        /// touches at all (it drives entirely through AdvanceOpponentDiscard/ResolveOpponentDiscard,
+        /// calling StartTargeting directly, no ExecutionStack involved) - so there's no risk of
+        /// double-resuming an already-independently-progressing Neogi phase.
+        /// </summary>
+        public void ResumeReactiveDiscardQueue()
+        {
+            AdvanceOpponentDiscard();
+        }
 
         public void EndTurn()
         {
@@ -392,6 +446,7 @@ namespace ChaosWarlords.Source.Managers
             _context.PendingOpponentDiscardTriggers.Clear();
             _logger.Log($"Opponent-discard phase starting: {_pendingDiscardQueue.Count} opponent(s) queued, {owedPerOpponent} discard(s) each.", LogChannel.Info);
 
+            _discardPhaseEndsTurn = true;
             AdvanceOpponentDiscard();
         }
 
@@ -410,7 +465,11 @@ namespace ChaosWarlords.Source.Managers
             if (_pendingDiscardQueue.Count == 0)
             {
                 _context.TurnManager.EndForcedActingPlayer();
-                CompleteEndTurnSwitch();
+                if (_discardPhaseEndsTurn)
+                {
+                    _discardPhaseEndsTurn = false;
+                    CompleteEndTurnSwitch();
+                }
                 return;
             }
 

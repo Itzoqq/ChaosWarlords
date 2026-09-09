@@ -323,20 +323,36 @@ namespace ChaosWarlords.Source.Managers
         /// any one OnSuccess shape a future SelectOpponent-based card might chain into, since the
         /// primitive itself (not whichever command happens to finish the chain) owns this.
         ///
-        /// Guarded against MatchManager's Neogi cross-player forced-discard queue
-        /// (IsResolvingOpponentDiscard), which ALSO drives ForcedActingPlayer but entirely outside
-        /// ExecutionStack (AdvanceOpponentDiscard calls StartTargeting directly, nothing is ever
-        /// pushed to the stack for it) - releasing it here too would desync
+        /// Guarded against MatchManager's cross-player forced-discard queue
+        /// (IsResolvingOpponentDiscard) - Neogi's end-of-turn phase drives ForcedActingPlayer
+        /// entirely outside ExecutionStack (AdvanceOpponentDiscard calls StartTargeting directly,
+        /// nothing is ever pushed to the stack for it), so releasing it here too would desync
         /// MatchManager._pendingDiscardQueue from ActionState/ForcedActingPlayer the moment anyone
-        /// cancels (e.g. right-click) while Neogi's queue is mid-processing: IsResolvingOpponentDiscard
+        /// cancels (e.g. right-click) while that queue is mid-processing: IsResolvingOpponentDiscard
         /// would stay true with stale queued entries while everything else looks idle, silently
         /// misrouting the next unrelated DiscardCardCommand into ResolveOpponentDiscard. Confirmed via
         /// council-review 2026-09-01 - see planning.txt/RESOLVED.txt.
+        ///
+        /// A non-empty queue reaching THIS method specifically (as opposed to Neogi's own,
+        /// entirely separate call path above) can only mean a reactive entry (Umber Hulk's
+        /// EnqueueReactiveDiscard) was just queued by the very chain that's finishing right now -
+        /// nothing has pointed ForcedActingPlayer/CurrentState at that newly-queued player yet
+        /// (EnqueueReactiveDiscard deliberately doesn't - see its own doc comment), so resume the
+        /// queue here instead of merely not-releasing. This is the only safe place to do so: it
+        /// runs from ClearState(), AFTER CurrentState has already been reset to Normal, so
+        /// MatchManager.ResumeReactiveDiscardQueue's own StartTargeting call actually sticks
+        /// instead of being immediately overwritten by ClearState()'s reset.
         /// </summary>
         private void ReleaseForcedActingPlayerIfOwnedByExecutionStack()
         {
-            bool neogiQueueOwnsIt = _matchManager != null && _matchManager.IsResolvingOpponentDiscard;
-            if (!neogiQueueOwnsIt && _turnManager.ForcedActingPlayer != null)
+            bool discardQueueOwnsIt = _matchManager != null && _matchManager.IsResolvingOpponentDiscard;
+            if (discardQueueOwnsIt)
+            {
+                _matchManager!.ResumeReactiveDiscardQueue();
+                return;
+            }
+
+            if (_turnManager.ForcedActingPlayer != null)
             {
                 _turnManager.EndForcedActingPlayer();
             }

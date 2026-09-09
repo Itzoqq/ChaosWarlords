@@ -1,3 +1,4 @@
+using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 
 namespace ChaosWarlords.Source.Core.Interfaces.Services
@@ -66,21 +67,46 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         void EndTurn();
 
         /// <summary>
-        /// True while a cross-player forced-discard sequence (Neogi) is in progress - i.e.
-        /// between EndTurn() beginning that sequence and the last opponent's discard
-        /// resolving. DiscardCardCommand checks this to route a resolved discard back into
-        /// ResolveOpponentDiscard instead of the normal ActionSystem.CompleteAction() chain-
-        /// continuation path.
+        /// True while a cross-player forced-discard sequence is in progress - either Neogi's
+        /// end-of-turn "each opponent discards" phase, or a mid-turn reactive one queued via
+        /// EnqueueReactiveDiscard (Umber Hulk) - both share the same underlying queue.
+        /// DiscardCardCommand checks this (captured BEFORE applying a discarded card's own
+        /// Card.ReactiveDiscardEffect, since that effect may itself enqueue a NEW entry into the
+        /// same queue) to route a resolved discard back into ResolveOpponentDiscard instead of
+        /// the normal ActionSystem.CompleteAction() chain-continuation path.
         /// </summary>
         bool IsResolvingOpponentDiscard { get; }
 
         /// <summary>
         /// Advances the in-progress opponent-discard sequence with the card just discarded -
-        /// dequeues, discards, and either moves to the next opponent or (queue empty)
-        /// completes the deferred end-of-turn player-switch. Only meaningful while
+        /// dequeues, discards, and either moves to the next player or (queue empty) completes
+        /// the deferred end-of-turn player-switch (only if this phase was started from EndTurn -
+        /// a mid-turn reactive-only phase just stops there instead). Only meaningful while
         /// IsResolvingOpponentDiscard is true.
         /// </summary>
         void ResolveOpponentDiscard(Card discardedCard);
+
+        /// <summary>
+        /// Queues <paramref name="player"/> to be immediately forced to discard a card, reusing
+        /// the same queue/machinery as Neogi's end-of-turn phase (see IsResolvingOpponentDiscard)
+        /// but started mid-turn instead - Umber Hulk's "if an opponent causes you to discard
+        /// this, they must discard a card" (Card.ReactiveDiscardEffect). Does NOT start the
+        /// targeting prompt synchronously - this is called from inside the CURRENT discard's own
+        /// chain resolution, so starting one here would just get its CurrentState clobbered the
+        /// instant ClearState() (which runs right after) resets it to Normal. The prompt actually
+        /// starts via ResumeReactiveDiscardQueue instead.
+        /// </summary>
+        void EnqueueReactiveDiscard(Player player);
+
+        /// <summary>
+        /// Starts (or continues) the discard queue once a reactive entry (EnqueueReactiveDiscard)
+        /// is the only thing left owning it - called from ActionSystem.
+        /// ReleaseForcedActingPlayerIfOwnedByExecutionStack, the one point already positioned
+        /// AFTER ClearState() has settled CurrentState back to Normal, so a fresh StartTargeting
+        /// call here actually sticks. See that method's own doc comment for why nothing else is
+        /// a safe place to do this.
+        /// </summary>
+        void ResumeReactiveDiscardQueue();
 
         /// <summary>
         /// Checks if the game has ended due to victory conditions.

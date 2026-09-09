@@ -202,6 +202,22 @@ namespace ChaosWarlords.Source.Utilities
         // normal paid recruit uses - "recruit" always means the same thing regardless of who
         // paid for it.
         ForceRecruit,
+
+        // "If an opponent causes you to discard this, they must discard a card" (Umber Hulk) -
+        // Card.ReactiveDiscardEffect ONLY (DiscardCardCommand's own bare-ApplyEffect dispatch,
+        // same as Grimlock's DrawCard), never a top-level Effects entry. Non-targeting/automatic
+        // at resolution time: it just resolves "the causing opponent" (TurnManager.
+        // CurrentTurnContext.ActivePlayer, which stays the real turn-owner throughout a forced-
+        // discard sequence even while TurnManager.ActivePlayer itself resolves to whoever's
+        // currently being forced to discard) and enqueues them via MatchManager.
+        // EnqueueReactiveDiscard - the actual "now go pick a card" targeting prompt only starts
+        // once the CURRENT discard's own chain resolution fully completes and CurrentState has
+        // settled back to Normal (MatchManager.ResumeReactiveDiscardQueue, called from
+        // ActionSystem.ReleaseForcedActingPlayerIfOwnedByExecutionStack), reusing the exact same
+        // _pendingDiscardQueue/AdvanceOpponentDiscard machinery Neogi's end-of-turn "each
+        // opponent discards" phase already drives. See that method's own doc comment for why
+        // starting it synchronously at enqueue time isn't safe.
+        ForceCausingOpponentDiscard,
     }
 
     /// <summary>

@@ -811,6 +811,23 @@
     }
   },
   {
+    "Id": "umber_hulk",
+    "Cost": 4,
+    "Aspect": "Warlord",
+    "DeckVP": 2,
+    "InnerCircleVP": 4,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 3,
+        "TargetResource": "Troops"
+      }
+    ],
+    "ReactiveDiscardEffect": {
+      "Type": "ForceCausingOpponentDiscard"
+    }
+  },
+  {
     "Id": "mindwitness",
     "Cost": 3,
     "Aspect": "Sorcery",
