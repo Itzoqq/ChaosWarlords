@@ -72,6 +72,16 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
     /// <param name="color">The player color to search for.</param>
     /// <returns>The player with the specified color, or null if not found.</returns>
     Player? GetPlayerByColor(PlayerColor color);
+
+    /// <summary>
+    /// Every OTHER player, in seat order starting right after the given player and wrapping
+    /// around (e.g. seats [Red, Blue, Black, Orange], given Blue -&gt; [Black, Orange, Red]).
+    /// Used for "each opponent..." card effects that need a deterministic, replay-stable
+    /// order (Neogi's forced-discard queue, Demogorgon/Ghoul's ForceRecruit) - not just
+    /// Players.Where(p =&gt; p != player), which would leave seats in raw table order rather
+    /// than turn order relative to the acting player.
+    /// </summary>
+    IEnumerable<Player> GetOpponentsInSeatOrder(Player player);
     }
 }
 

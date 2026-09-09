@@ -96,6 +96,10 @@ namespace ChaosWarlords.Source.Utilities
 
         // Which card definition EffectType.ForceRecruit gives out - see CardEffect.TargetCardId.
         public string? TargetCardId { get; set; }
+
+        // "Each opponent recruits N Insane Outcasts" (Demogorgon/Ghoul) - see
+        // CardEffect.AppliesToEachOpponent.
+        public bool AppliesToEachOpponent { get; set; }
     }
 
     public class CardDatabase : ICardDatabase

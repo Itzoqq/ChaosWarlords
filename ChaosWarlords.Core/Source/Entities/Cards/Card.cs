@@ -191,6 +191,7 @@ namespace ChaosWarlords.Source.Entities.Cards
                 GainResourcePerRepeat = effect.GainResourcePerRepeat,
                 RequiresAdjacencyToRecentDeploys = effect.RequiresAdjacencyToRecentDeploys,
                 TargetCardId = effect.TargetCardId,
+                AppliesToEachOpponent = effect.AppliesToEachOpponent,
                 Condition = effect.Condition // Reference copy for condition (usually shared/immutable)
             };
 

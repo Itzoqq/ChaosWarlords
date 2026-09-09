@@ -185,12 +185,16 @@ namespace ChaosWarlords.Source.Utilities
         // ActionSystem.PerformDeployTroop/PendingDeployedNodes.
         DeployTroop,
 
-        // Immediately gives a SPECIFIC card (CardEffect.TargetCardId, e.g. "insane_outcast") to
-        // the active player - non-targeting/automatic, falls through to DefaultStrategy. Always
-        // reached as a chained OnSuccess off EffectType.SelectOpponent (Gibbering Mouther,
-        // Demogorgon/Ghoul's "each opponent recruits an Insane Outcast"), so "the active
-        // player" at the moment this resolves is whichever opponent SelectOpponent chose
-        // (TurnManager.ForcedActingPlayer) - never the real card-playing player. Bypasses the
+        // Immediately gives a SPECIFIC card (CardEffect.TargetCardId, e.g. "insane_outcast",
+        // CardEffect.Amount copies of it, minimum 1) to one or more players - non-targeting/
+        // automatic, falls through to DefaultStrategy. Two shapes, both shipped:
+        // (1) chained as an OnSuccess off EffectType.SelectOpponent (Gibbering Mouther), where
+        // "the active player" at the moment this resolves is whichever single opponent
+        // SelectOpponent chose (TurnManager.ForcedActingPlayer), never the real card-playing
+        // player; (2) authored directly as a top-level effect with CardEffect.
+        // AppliesToEachOpponent set (Demogorgon/Ghoul's "each opponent recruits N Insane
+        // Outcasts") - no SelectOpponent step at all, every opponent of the real card-playing
+        // player is given a copy, in TurnManager.GetOpponentsInSeatOrder order. Bypasses the
         // market row entirely via ICardDatabase.GetCardById, matching CardDatabase.
         // GetAllMarketCards' own doc comment that supply-pile cards (RedirectsToSupplyOnDevour
         // OrPromote) "only ever reach a player via another card's effect." Lands in the

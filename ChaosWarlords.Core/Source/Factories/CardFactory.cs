@@ -102,6 +102,7 @@ namespace ChaosWarlords.Source.Utilities
             WarnIfChainedRepeatCountShapeIsUnsupported(data, effect, logger);
             WarnIfGainResourcePerRepeatShapeIsUnsupported(data, effect, logger);
             WarnIfPromotionCompletionEffectShapeIsUnsupported(data, effect, logger);
+            WarnIfAppliesToEachOpponentShapeIsUnsupported(data, effect, logger);
 
             return effect;
         }
@@ -266,6 +267,7 @@ namespace ChaosWarlords.Source.Utilities
             effect.SkipUnreachableOnSuccessCheck = data.SkipUnreachableOnSuccessCheck;
             effect.RequiresAdjacencyToRecentDeploys = data.RequiresAdjacencyToRecentDeploys;
             effect.TargetCardId = data.TargetCardId;
+            effect.AppliesToEachOpponent = data.AppliesToEachOpponent;
         }
 
         private static void ParseDynamicAmount(CardEffectData data, CardEffect effect, IGameLogger? logger)
@@ -315,6 +317,44 @@ namespace ChaosWarlords.Source.Utilities
             {
                 logger?.Log($"[CardFactory] {data.Type}: GainResourcePerRepeat={effect.GainResourcePerRepeat} is only wired for EffectType.Assassinate - it will parse and clone but never actually fire on this effect type.", LogChannel.Warning);
             }
+        }
+
+        // CardEffect.AppliesToEachOpponent is only ever read by ApplyForceRecruit - authoring it
+        // on any other EffectType would parse and clone fine but silently never fire, same
+        // "catch it before it ships" precedent as GainResourcePerRepeat's own warning above.
+        // Also warns on the OTHER unsupported shape (reviewer finding on the Ghoul/Demogorgon
+        // diff): a ForceRecruit(AppliesToEachOpponent) nested under EffectType.SelectOpponent's
+        // OnSuccess/Alternative. context.ActivePlayer inside that chain resolves to whichever
+        // single opponent SelectOpponent already chose (TurnManager.ForcedActingPlayer, see
+        // ApplyForceRecruit's default single-recipient mode) - GetOpponentsInSeatOrder would
+        // then compute "opponents of the chosen opponent", not "opponents of the real
+        // card-playing player", which is never what a card author means by "each opponent".
+        // Checked from the PARENT node (SelectOpponent) rather than the child, since
+        // ParseRecursiveEffect has already built data.OnSuccess/Alternative into
+        // effect.OnSuccess/Alternative by the time this runs (see CreateEffect's call order).
+        private static void WarnIfAppliesToEachOpponentShapeIsUnsupported(CardEffectData data, CardEffect effect, IGameLogger? logger)
+        {
+            if (effect.AppliesToEachOpponent && effect.Type != EffectType.ForceRecruit)
+            {
+                logger?.Log($"[CardFactory] {data.Type}: AppliesToEachOpponent is only wired for EffectType.ForceRecruit - it will parse and clone but never actually fire on this effect type.", LogChannel.Warning);
+            }
+
+            if (effect.Type == EffectType.SelectOpponent && HasNestedAppliesToEachOpponent(effect))
+            {
+                logger?.Log($"[CardFactory] {data.Type}: a chained AppliesToEachOpponent effect under SelectOpponent resolves against the SINGLE chosen opponent's opponents, not the real card-playing player's - this combination is not supported by any shipped card and is almost certainly not what was intended.", LogChannel.Warning);
+            }
+        }
+
+        // Split out of WarnIfAppliesToEachOpponentShapeIsUnsupported purely to keep that
+        // method's cyclomatic complexity down (risk-hotspot check) - same logic either way.
+        private static bool HasNestedAppliesToEachOpponent(CardEffect effect)
+        {
+            if (effect.OnSuccess != null && effect.OnSuccess.AppliesToEachOpponent)
+            {
+                return true;
+            }
+
+            return effect.Alternative != null && effect.Alternative.AppliesToEachOpponent;
         }
 
         private static void ParsePromotionCompletionEffect(CardEffectData data, CardEffect effect, IGameLogger? logger)

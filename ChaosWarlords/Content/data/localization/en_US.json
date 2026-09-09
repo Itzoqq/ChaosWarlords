@@ -116,5 +116,7 @@
   "succubus_name": "Succubus",
   "succubus_description": "You may devour a card from your hand to place a spy, then assassinate a troop at that spy's site.",
   "gibbering_mouther_name": "Gibbering Mouther",
-  "gibbering_mouther_description": "Deploy 2 troops, then choose an opponent with a troop adjacent to at least 1 of them. That opponent recruits an Insane Outcast."
+  "gibbering_mouther_description": "Deploy 2 troops, then choose an opponent with a troop adjacent to at least 1 of them. That opponent recruits an Insane Outcast.",
+  "ghoul_name": "Ghoul",
+  "ghoul_description": "Gain 2 Influence. Each opponent recruits an Insane Outcast."
 }

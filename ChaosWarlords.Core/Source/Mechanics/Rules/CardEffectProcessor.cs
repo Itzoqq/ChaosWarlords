@@ -518,10 +518,13 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         }
 
         /// <summary>
-        /// Immediately gives effect.TargetCardId to context.ActivePlayer - see
-        /// EffectType.ForceRecruit's doc comment for why "the active player" here is whoever an
-        /// earlier EffectType.SelectOpponent step chose (TurnManager.ForcedActingPlayer), not
-        /// the real card-playing player.
+        /// Immediately gives effect.TargetCardId (Math.Max(1, effect.Amount) copies) to either
+        /// context.ActivePlayer (default - see EffectType.ForceRecruit's doc comment for why
+        /// "the active player" here is whoever an earlier EffectType.SelectOpponent step chose,
+        /// TurnManager.ForcedActingPlayer, not the real card-playing player) or EVERY opponent
+        /// of the real card-playing player when effect.AppliesToEachOpponent is set
+        /// (Demogorgon/Ghoul - no SelectOpponent step involved at all, since there's no choice
+        /// to make).
         /// </summary>
         private static void ApplyForceRecruit(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
         {
@@ -531,15 +534,26 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 return;
             }
 
-            var forcedCard = context.CardDatabase.GetCardById(effect.TargetCardId, context.Random);
-            if (forcedCard == null)
-            {
-                logger.Log($"{sourceCard.Name}: ForceRecruit target card '{effect.TargetCardId}' not found in CardDatabase.", LogChannel.Warning);
-                return;
-            }
+            int copies = Math.Max(1, effect.Amount);
+            IEnumerable<Player> recipients = effect.AppliesToEachOpponent
+                ? context.TurnManager.GetOpponentsInSeatOrder(context.ActivePlayer)
+                : new[] { context.ActivePlayer };
 
-            context.PlayerStateManager.AcquireCard(context.ActivePlayer, forcedCard);
-            logger.Log($"{sourceCard.Name}: {context.ActivePlayer.DisplayName} was forced to recruit {forcedCard.Name}.", LogChannel.Info);
+            foreach (var recipient in recipients)
+            {
+                for (int i = 0; i < copies; i++)
+                {
+                    var forcedCard = context.CardDatabase.GetCardById(effect.TargetCardId, context.Random);
+                    if (forcedCard == null)
+                    {
+                        logger.Log($"{sourceCard.Name}: ForceRecruit target card '{effect.TargetCardId}' not found in CardDatabase.", LogChannel.Warning);
+                        return; // Same missing card definition every iteration - retrying is pointless.
+                    }
+
+                    context.PlayerStateManager.AcquireCard(recipient, forcedCard);
+                    logger.Log($"{sourceCard.Name}: {recipient.DisplayName} was forced to recruit {forcedCard.Name}.", LogChannel.Info);
+                }
+            }
         }
 
         private static void ApplyMarkOpponentDiscardAtEndOfTurn(Card sourceCard, MatchContext context, IGameLogger logger)

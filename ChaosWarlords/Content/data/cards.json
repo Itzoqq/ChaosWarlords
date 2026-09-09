@@ -1123,5 +1123,24 @@
         }
       }
     ]
+  },
+  {
+    "Id": "ghoul",
+    "Cost": 4,
+    "Aspect": "Sorcery",
+    "DeckVP": 2,
+    "InnerCircleVP": 4,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Influence"
+      },
+      {
+        "Type": "ForceRecruit",
+        "TargetCardId": "insane_outcast",
+        "AppliesToEachOpponent": true
+      }
+    ]
   }
 ]

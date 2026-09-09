@@ -462,6 +462,122 @@ namespace ChaosWarlords.Tests.Integration.Factories
             logger.Received(1).Log(Arg.Is<string>(s => s.Contains("only wired for EffectType.Assassinate")), LogChannel.Warning);
         }
 
+        // --- CardEffect.AppliesToEachOpponent (Ghoul/Demogorgon's "each opponent recruits..."
+        // primitive) load-time validation - see
+        // CardFactory.WarnIfAppliesToEachOpponentShapeIsUnsupported ---
+
+        [TestMethod]
+        public void CreateFromData_AppliesToEachOpponentParsesOntoTheEffect()
+        {
+            var cardData = new CardData
+            {
+                Id = "test_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "ForceRecruit", TargetCardId = "insane_outcast", AppliesToEachOpponent = true }
+                }
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization);
+
+            Assert.IsTrue(card.Effects[0].AppliesToEachOpponent);
+        }
+
+        [TestMethod]
+        public void CreateFromData_AppliesToEachOpponentOnForceRecruit_LogsNoWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "test_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "ForceRecruit", TargetCardId = "insane_outcast", AppliesToEachOpponent = true }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.DidNotReceiveWithAnyArgs().Log(default(string)!, default);
+        }
+
+        [TestMethod]
+        public void CreateFromData_AppliesToEachOpponentOnANonForceRecruitEffect_LogsAWarning()
+        {
+            // AppliesToEachOpponent is only ever read by ApplyForceRecruit - authoring it on any
+            // other effect type would parse and clone fine but silently never fire.
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "test_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "GainResource", Amount = 2, TargetResource = "Influence", AppliesToEachOpponent = true }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.Received(1).Log(Arg.Is<string>(s => s.Contains("only wired for EffectType.ForceRecruit")), LogChannel.Warning);
+        }
+
+        [TestMethod]
+        public void CreateFromData_AppliesToEachOpponentForceRecruitNestedUnderSelectOpponent_LogsAWarning()
+        {
+            // Reviewer finding (Ghoul/Demogorgon diff): context.ActivePlayer inside a
+            // SelectOpponent chain already resolves to the single chosen opponent
+            // (ForcedActingPlayer) - a nested AppliesToEachOpponent ForceRecruit would silently
+            // compute "opponents of the chosen opponent", not "opponents of the real
+            // card-playing player". No shipped card does this (Gibbering Mouther's own
+            // SelectOpponent -> ForceRecruit chain doesn't set AppliesToEachOpponent) - this is
+            // purely a load-time guard against a future authoring mistake.
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "test_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData
+                    {
+                        Type = "SelectOpponent",
+                        OnSuccess = new CardEffectData { Type = "ForceRecruit", TargetCardId = "insane_outcast", AppliesToEachOpponent = true }
+                    }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.Received(1).Log(Arg.Is<string>(s => s.Contains("resolves against the SINGLE chosen opponent")), LogChannel.Warning);
+        }
+
+        [TestMethod]
+        public void CreateFromData_ForceRecruitNestedUnderSelectOpponentWithoutAppliesToEachOpponent_LogsNoWarning()
+        {
+            // Gibbering Mouther's real shipped shape - must NOT trigger the new nesting warning.
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "test_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData
+                    {
+                        Type = "SelectOpponent",
+                        OnSuccess = new CardEffectData { Type = "ForceRecruit", TargetCardId = "insane_outcast" }
+                    }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.DidNotReceiveWithAnyArgs().Log(default(string)!, default);
+        }
+
         // --- CardEffect.PromotionCompletionEffect (Blue Dragon's "...then gain 1 VP for every
         // 3 cards in your inner circle" primitive) load-time parsing/validation - see
         // CardFactory.ParsePromotionCompletionEffect/WarnIfPromotionCompletionEffectShapeIsUnsupported ---

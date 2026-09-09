@@ -213,6 +213,16 @@ namespace ChaosWarlords.Source.Entities.Cards
         // actually using ForceRecruit; every other effect type ignores this field.
         public string? TargetCardId { get; set; }
 
+        // "Each opponent recruits N Insane Outcasts" (Demogorgon/Ghoul) - switches
+        // EffectType.ForceRecruit from its default single-recipient behavior (context.
+        // ActivePlayer, e.g. whoever EffectType.SelectOpponent chose, as with Gibbering
+        // Mouther) to looping over EVERY opponent of the real card-playing player
+        // (TurnManager.GetOpponentsInSeatOrder), giving each one a copy. Defaults to false so
+        // Gibbering Mouther's existing single-recipient ForceRecruit is unaffected. Only
+        // meaningful on a top-level ForceRecruit effect - never chained under SelectOpponent,
+        // which already names a single recipient of its own.
+        public bool AppliesToEachOpponent { get; set; }
+
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {
             Type = type;

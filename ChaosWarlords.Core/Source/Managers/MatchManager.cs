@@ -378,12 +378,8 @@ namespace ChaosWarlords.Source.Managers
         {
             int owedPerOpponent = _context.PendingOpponentDiscardTriggers.Count;
             var endingPlayer = _context.ActivePlayer;
-            var players = _context.TurnManager.Players;
 
-            // Seat order starting right after the ending player, wrapping around.
-            var opponentsInSeatOrder = players
-                .SkipWhile(p => p != endingPlayer).Skip(1)
-                .Concat(players.TakeWhile(p => p != endingPlayer));
+            var opponentsInSeatOrder = _context.TurnManager.GetOpponentsInSeatOrder(endingPlayer);
 
             foreach (var opponent in opponentsInSeatOrder)
             {

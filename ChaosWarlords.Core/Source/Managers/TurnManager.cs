@@ -112,5 +112,10 @@ namespace ChaosWarlords.Source.Managers
         {
             return Players.Find(p => p.Color == color);
         }
+
+        public IEnumerable<Player> GetOpponentsInSeatOrder(Player player)
+        {
+            return Players.SkipWhile(p => p != player).Skip(1).Concat(Players.TakeWhile(p => p != player));
+        }
     }
 }

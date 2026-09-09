@@ -87,5 +87,39 @@ namespace ChaosWarlords.Tests.Managers
             Assert.IsTrue(eventFired, "OnTurnChanged should fire when turn ends.");
             Assert.AreEqual(manager.ActivePlayer, eventPlayer, "Event should pass the NEW active player.");
         }
+
+        // --- GetOpponentsInSeatOrder (Neogi's forced-discard queue, Demogorgon/Ghoul's
+        // ForceRecruit AppliesToEachOpponent) ---
+
+        [TestMethod]
+        public void GetOpponentsInSeatOrder_ReturnsEveryOtherPlayer_StartingRightAfterTheGivenPlayerAndWrappingAround()
+        {
+            var red = TestData.Players.RedPlayer();
+            var blue = TestData.Players.BluePlayer();
+            var black = TestData.Players.BlackPlayer();
+            var orange = TestData.Players.OrangePlayer();
+            var mockRandom = Substitute.For<IGameRandom>();
+            // Shuffle is a no-op for a Substitute IGameRandom with nothing configured - seat
+            // order stays exactly the list order passed in.
+            var manager = new TurnManager(new List<Player> { red, blue, black, orange }, mockRandom, Utilities.TestLogger.Instance);
+
+            var opponents = manager.GetOpponentsInSeatOrder(blue).ToList();
+
+            CollectionAssert.AreEqual(new List<Player> { black, orange, red }, opponents);
+        }
+
+        [TestMethod]
+        public void GetOpponentsInSeatOrder_NeverIncludesTheGivenPlayerThemselves()
+        {
+            var red = TestData.Players.RedPlayer();
+            var blue = TestData.Players.BluePlayer();
+            var mockRandom = Substitute.For<IGameRandom>();
+            var manager = new TurnManager(new List<Player> { red, blue }, mockRandom, Utilities.TestLogger.Instance);
+
+            var opponents = manager.GetOpponentsInSeatOrder(red).ToList();
+
+            CollectionAssert.AreEqual(new List<Player> { blue }, opponents);
+            Assert.DoesNotContain(red, opponents);
+        }
     }
 }
