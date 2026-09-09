@@ -118,5 +118,7 @@
   "gibbering_mouther_name": "Gibbering Mouther",
   "gibbering_mouther_description": "Deploy 2 troops, then choose an opponent with a troop adjacent to at least 1 of them. That opponent recruits an Insane Outcast.",
   "ghoul_name": "Ghoul",
-  "ghoul_description": "Gain 2 Influence. Each opponent recruits an Insane Outcast."
+  "ghoul_description": "Gain 2 Influence. Each opponent recruits an Insane Outcast.",
+  "demogorgon_name": "Demogorgon",
+  "demogorgon_description": "You may devour a card from your hand to supplant 2 white troops. Each opponent recruits 2 Insane Outcasts."
 }

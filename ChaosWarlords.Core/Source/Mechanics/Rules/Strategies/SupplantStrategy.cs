@@ -13,6 +13,12 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Strategies
 
         public bool IsTargetingEffect => true;
 
+        // "Supplant 2 white troops" (Demogorgon) - see IEffectStrategy.SupportsRepeat's doc
+        // comment. Generic (RemainingRepeats/ShouldRepeatCurrentEffect live in
+        // ActionExecutionEngine, effect-type-agnostic) - flipping this on needed no other engine
+        // change, only this one bool, matching AssassinateStrategy's (Deathblade) precedent.
+        public bool SupportsRepeat => true;
+
         public ActionState GetTargetingState(CardEffect effect)
         {
             return ActionState.TargetingSupplant;

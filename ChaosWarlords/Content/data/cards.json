@@ -1142,5 +1142,31 @@
         "AppliesToEachOpponent": true
       }
     ]
+  },
+  {
+    "Id": "demogorgon",
+    "Cost": 8,
+    "Aspect": "Warlord",
+    "DeckVP": 5,
+    "InnerCircleVP": 10,
+    "Effects": [
+      {
+        "Type": "Devour",
+        "Amount": 1,
+        "TargetLocation": "Hand",
+        "IsOptional": true,
+        "OnSuccess": {
+          "Type": "Supplant",
+          "Amount": 2,
+          "TargetNeutralTroopOnly": true
+        }
+      },
+      {
+        "Type": "ForceRecruit",
+        "Amount": 2,
+        "TargetCardId": "insane_outcast",
+        "AppliesToEachOpponent": true
+      }
+    ]
   }
 ]
