@@ -21,17 +21,28 @@ namespace ChaosWarlords.Source.Commands
             return new Core.Data.Dtos.DiscardCardCommandDto
             {
                 PlayerColor = TargetPlayerColor.ToString(),
-                CardId = CardId
+                CardId = CardId,
+                PromoteInsteadOfDiscard = PromoteInsteadOfDiscard
             };
         }
 
         public PlayerColor TargetPlayerColor { get; }
         public string? CardId { get; }
 
-        public DiscardCardCommand(PlayerColor targetPlayerColor, string? cardId)
+        /// <summary>
+        /// The player's choice on an EffectType.PromoteInsteadOfDiscard card (Ambassador) - "you
+        /// may promote it instead" of the discard this command would otherwise perform. Always
+        /// false for every other card (including a plain declined choice), and rejected by
+        /// Validate() unless the card actually carries that reactive effect AND this discard is
+        /// genuinely opponent-caused - see PromoteInsteadOfDiscard's own doc comment.
+        /// </summary>
+        public bool PromoteInsteadOfDiscard { get; }
+
+        public DiscardCardCommand(PlayerColor targetPlayerColor, string? cardId, bool promoteInsteadOfDiscard = false)
         {
             TargetPlayerColor = targetPlayerColor;
             CardId = cardId;
+            PromoteInsteadOfDiscard = promoteInsteadOfDiscard;
         }
 
         public bool Validate(MatchContext context)
@@ -55,6 +66,20 @@ namespace ChaosWarlords.Source.Commands
             {
                 return context.RejectValidation(nameof(DiscardCardCommand), $"card '{CardId}' not found in {TargetPlayerColor}'s hand.");
             }
+
+            if (PromoteInsteadOfDiscard)
+            {
+                if (card.ReactiveDiscardEffect?.Type != EffectType.PromoteInsteadOfDiscard)
+                {
+                    return context.RejectValidation(nameof(DiscardCardCommand), $"'{CardId}' has no PromoteInsteadOfDiscard reactive effect - cannot promote it instead of discarding.");
+                }
+
+                if (context.TurnManager.ForcedActingPlayer != player)
+                {
+                    return context.RejectValidation(nameof(DiscardCardCommand), $"'{CardId}' can only be promoted instead of discarded when an opponent caused this discard.");
+                }
+            }
+
             return true;
         }
 
@@ -93,14 +118,51 @@ namespace ChaosWarlords.Source.Commands
             // completing this discard's own chain.
             bool wasResolvingOpponentDiscard = context.MatchManager.IsResolvingOpponentDiscard;
 
+            ApplyDiscardOrPromoteInstead(context, player, card, forcedByOpponent);
+            AdvanceSequence(context, card, wasResolvingOpponentDiscard);
+        }
+
+        /// <summary>
+        /// Either promotes <paramref name="card"/> (Ambassador's "you may promote it instead")
+        /// or discards it normally, then - only in the normal-discard branch - dispatches any
+        /// ReactiveDiscardEffect the card carries. Validate() already confirmed
+        /// PromoteInsteadOfDiscard is only ever true here when the card actually carries
+        /// EffectType.PromoteInsteadOfDiscard AND this discard is genuinely opponent-caused, so
+        /// that branch REPLACES the discard entirely rather than adding to it - there's nothing
+        /// left to apply afterward; the reactive effect WAS the promote-instead choice itself.
+        /// </summary>
+        private void ApplyDiscardOrPromoteInstead(MatchContext context, Entities.Actors.Player player, Entities.Cards.Card card, bool forcedByOpponent)
+        {
+            if (PromoteInsteadOfDiscard)
+            {
+                // Mirrors PromoteCommand.Execute's own success check - only log the action if
+                // the card was actually still there to promote (it's re-fetched from Hand
+                // immediately before this call with nothing intervening that could move it
+                // today, so failure isn't currently reachable, but a silently-false log entry
+                // claiming a promotion that didn't happen would be worse than a quiet no-op).
+                if (context.PlayerStateManager.TryPromoteCard(player, card, out _))
+                {
+                    context.RecordAction("PromoteInsteadOfDiscard", $"{player.DisplayName} promoted {card.Name} instead of discarding it.");
+                }
+                return;
+            }
+
             context.PlayerStateManager.DiscardCard(player, card);
             context.RecordAction("DiscardCard", $"{player.DisplayName} discarded {card.Name}.");
 
-            if (forcedByOpponent && card.ReactiveDiscardEffect != null)
+            if (forcedByOpponent && card.ReactiveDiscardEffect != null && card.ReactiveDiscardEffect.Type != EffectType.PromoteInsteadOfDiscard)
             {
                 Mechanics.Rules.CardEffectProcessor.ApplyEffect(card.ReactiveDiscardEffect, card, context, context.Logger);
             }
+        }
 
+        /// <summary>
+        /// Resumes whichever flow this discard belongs to - a cross-player forced-discard queue
+        /// (Neogi/Umber Hulk) or a normal ExecutionStack chain (Insane Outcast/Cranium Rats) -
+        /// see each branch's own doc comment below for why they can't be handled the same way.
+        /// </summary>
+        private static void AdvanceSequence(MatchContext context, Entities.Cards.Card card, bool wasResolvingOpponentDiscard)
+        {
             if (wasResolvingOpponentDiscard)
             {
                 // A cross-player forced-discard sequence is in progress - Neogi's end-of-turn
@@ -112,21 +174,20 @@ namespace ChaosWarlords.Source.Commands
                 // Advance the sequence instead - MatchManager.ResolveOpponentDiscard moves to
                 // the next player or completes/stops per _discardPhaseEndsTurn.
                 context.MatchManager.ResolveOpponentDiscard(card);
+                return;
             }
-            else
-            {
-                // Normal chain-continuation path (e.g. Insane Outcast's own "discard -> devour
-                // self" chain, or Cranium Rats' SelectOpponent -> DiscardCard chain) - the
-                // DiscardCard EffectContext is genuinely sitting on ExecutionStack, so
-                // CompleteAction() resolves it and pushes its OnSuccess. If this discard was
-                // part of a forced-actor mid-turn chain (e.g. Cranium Rats' chosen opponent)
-                // and the whole chain has now fully resolved back to Normal, ActionSystem's own
-                // ClearState()-driven release (see ReleaseForcedActingPlayerIfOwnedByExecutionStack)
-                // reverts ActivePlayer to the real active player - generically, for any
-                // OnSuccess shape a future SelectOpponent-based card might chain into, not just
-                // this one.
-                context.ActionSystem.CompleteAction();
-            }
+
+            // Normal chain-continuation path (e.g. Insane Outcast's own "discard -> devour
+            // self" chain, or Cranium Rats' SelectOpponent -> DiscardCard chain) - the
+            // DiscardCard EffectContext is genuinely sitting on ExecutionStack, so
+            // CompleteAction() resolves it and pushes its OnSuccess. If this discard was
+            // part of a forced-actor mid-turn chain (e.g. Cranium Rats' chosen opponent)
+            // and the whole chain has now fully resolved back to Normal, ActionSystem's own
+            // ClearState()-driven release (see ReleaseForcedActingPlayerIfOwnedByExecutionStack)
+            // reverts ActivePlayer to the real active player - generically, for any
+            // OnSuccess shape a future SelectOpponent-based card might chain into, not just
+            // this one.
+            context.ActionSystem.CompleteAction();
         }
     }
 }

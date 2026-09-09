@@ -52,6 +52,27 @@ namespace ChaosWarlords.Source.Input.Modes
                 return null;
             }
 
+            // Ambassador's "you may promote it instead" - only offered when this discard is
+            // genuinely opponent-caused (matches DiscardCardCommand.Validate()'s own gate), never
+            // for a voluntary own-hand discard (e.g. Insane Outcast paying its own cost) even if
+            // that card happened to carry this reactive effect. Raises the same generic
+            // Yes/No popup ActionSystem.OnInteractionRequested itself uses, then dispatches
+            // whichever DiscardCardCommand the player's choice calls for - the choice itself
+            // becomes part of the recorded/replayed command, not a client-only branch.
+            bool offersPromoteInstead = targetCard.ReactiveDiscardEffect?.Type == EffectType.PromoteInsteadOfDiscard
+                && _gameplayState.MatchContext.TurnManager.ForcedActingPlayer == activePlayer;
+
+            if (offersPromoteInstead)
+            {
+                string cardId = targetCard.Id;
+                _gameplayState.RequestOptionalEffect(
+                    targetCard,
+                    targetCard.ReactiveDiscardEffect!,
+                    onAccept: () => _gameplayState.RecordAndExecuteCommand(new DiscardCardCommand(activePlayer.Color, cardId, promoteInsteadOfDiscard: true)),
+                    onDecline: () => _gameplayState.RecordAndExecuteCommand(new DiscardCardCommand(activePlayer.Color, cardId, promoteInsteadOfDiscard: false)));
+                return null;
+            }
+
             return new DiscardCardCommand(activePlayer.Color, targetCard.Id);
         }
 

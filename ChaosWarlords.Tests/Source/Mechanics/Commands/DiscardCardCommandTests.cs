@@ -125,6 +125,54 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             _state.MatchManager.DidNotReceive().ResolveOpponentDiscard(Arg.Any<Card>());
         }
 
+        // --- PromoteInsteadOfDiscard (Ambassador's "you may promote it instead") ---
+
+        [TestMethod]
+        public void Validate_PromoteInsteadOfDiscardTrue_ButCardHasNoMatchingReactiveEffect_ReturnsFalse()
+        {
+            _state.TurnManager.ActivePlayer.Returns(_player);
+            _state.TurnManager.ForcedActingPlayer.Returns(_player);
+            var command = new DiscardCardCommand(PlayerColor.Red, _card.Id, promoteInsteadOfDiscard: true);
+
+            Assert.IsFalse(command.Validate(_state.MatchContext), "The card carries no PromoteInsteadOfDiscard reactive effect at all.");
+        }
+
+        [TestMethod]
+        public void Validate_PromoteInsteadOfDiscardTrue_ButNotForcedByOpponent_ReturnsFalse()
+        {
+            _card.ReactiveDiscardEffect = new CardEffect(EffectType.PromoteInsteadOfDiscard, 0);
+            _state.TurnManager.ActivePlayer.Returns(_player);
+            _state.TurnManager.ForcedActingPlayer.Returns((ChaosWarlords.Source.Entities.Actors.Player?)null);
+            var command = new DiscardCardCommand(PlayerColor.Red, _card.Id, promoteInsteadOfDiscard: true);
+
+            Assert.IsFalse(command.Validate(_state.MatchContext), "A voluntary own-hand discard (no opponent-forced override) must not allow promote-instead.");
+        }
+
+        [TestMethod]
+        public void Validate_PromoteInsteadOfDiscardTrue_ForcedByOpponentWithMatchingCard_ReturnsTrue()
+        {
+            _card.ReactiveDiscardEffect = new CardEffect(EffectType.PromoteInsteadOfDiscard, 0);
+            _state.TurnManager.ActivePlayer.Returns(_player);
+            _state.TurnManager.ForcedActingPlayer.Returns(_player);
+            var command = new DiscardCardCommand(PlayerColor.Red, _card.Id, promoteInsteadOfDiscard: true);
+
+            Assert.IsTrue(command.Validate(_state.MatchContext));
+        }
+
+        [TestMethod]
+        public void Execute_PromoteInsteadOfDiscardTrue_PromotesTheCard_InsteadOfDiscardingIt()
+        {
+            _card.ReactiveDiscardEffect = new CardEffect(EffectType.PromoteInsteadOfDiscard, 0);
+            _state.TurnManager.ForcedActingPlayer.Returns(_player);
+            var command = new DiscardCardCommand(PlayerColor.Red, _card.Id, promoteInsteadOfDiscard: true);
+
+            command.Execute(_state.MatchContext);
+
+            Assert.DoesNotContain(_card, _player.Hand);
+            Assert.DoesNotContain(_card, _player.DiscardPile, "Must not have been discarded at all - promote-instead replaces the discard.");
+            Assert.Contains(_card, _player.InnerCircle);
+        }
+
         [TestMethod]
         public void Execute_ResolvingOpponentDiscard_CallsMatchManagerResolveOpponentDiscard_NotCompleteAction()
         {

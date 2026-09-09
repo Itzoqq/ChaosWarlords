@@ -55,7 +55,7 @@ namespace ChaosWarlords.Source.Core.Utilities
                     {
                         var dto = (DiscardCardCommandDto)d;
                         return Enum.TryParse<PlayerColor>(dto.PlayerColor, out var color)
-                            ? new DiscardCardCommand(color, dto.CardId)
+                            ? new DiscardCardCommand(color, dto.CardId, dto.PromoteInsteadOfDiscard)
                             : null;
                     }
                 },

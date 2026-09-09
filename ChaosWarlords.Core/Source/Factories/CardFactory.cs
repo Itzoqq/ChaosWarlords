@@ -55,6 +55,17 @@ namespace ChaosWarlords.Source.Utilities
                     {
                         card.AddEffect(effect);
                     }
+
+                    // EffectType.PromoteInsteadOfDiscard only means anything as
+                    // Card.ReactiveDiscardEffect (DiscardCardCommand special-cases it directly -
+                    // see that EffectType's own doc comment) - it has no CardEffectProcessor
+                    // handler at all, so authored as a top-level Effects entry it would silently
+                    // no-op forever instead of erroring. Warn at load time, same "catch it before
+                    // it ships" precedent as ParseReactiveDiscardEffect's own warning.
+                    if (effect?.Type == EffectType.PromoteInsteadOfDiscard)
+                    {
+                        logger?.Log($"[CardFactory] {data.Id}: EffectType.PromoteInsteadOfDiscard is only meaningful as ReactiveDiscardEffect - authored as a top-level effect, it will parse but never actually fire.", LogChannel.Warning);
+                    }
                 }
             }
 

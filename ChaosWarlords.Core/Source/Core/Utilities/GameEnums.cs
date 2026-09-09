@@ -226,6 +226,22 @@ namespace ChaosWarlords.Source.Utilities
         // end-of-turn credit flow) - neither of those searches the deck at all. See
         // Player.TryPromoteTopOfDeck/PlayerStateManager.TryPromoteTopOfDeck.
         PromoteTopOfDeck,
+
+        // "If an opponent causes you to discard this, you may promote it instead" (Ambassador) -
+        // Card.ReactiveDiscardEffect ONLY, same restriction as ForceCausingOpponentDiscard. The
+        // first ReactiveDiscardEffect shape that REPLACES the discard rather than adding a side
+        // effect on top of it, and the first that's a genuine player choice rather than
+        // automatic - DiscardCardCommand special-cases this EffectType directly (checking
+        // DiscardCardCommand.PromoteInsteadOfDiscard, which the player chooses via the same
+        // generic IGameplayState.RequestOptionalEffect popup other optional effects use) instead
+        // of going through CardEffectProcessor's _effectHandlers dispatch table - there's no
+        // EffectContext/ExecutionStack entry for a reactive-discard effect to hang a targeting
+        // choice off of (see ForceCausingOpponentDiscard's own doc comment), and the choice here
+        // is "promote THIS card, right now, instead of discarding it," not a further target to
+        // pick. Only takes effect when the discard is opponent-caused (TurnManager.
+        // ForcedActingPlayer == the discarding player) - declining, or a voluntary own-hand
+        // discard (e.g. paying a cost), discards normally.
+        PromoteInsteadOfDiscard,
     }
 
     /// <summary>

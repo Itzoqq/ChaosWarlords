@@ -12,6 +12,8 @@ using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Tests.Source.Doubles.State;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Entities.Cards;
+using System.Linq;
 
 namespace ChaosWarlords.Tests.Integration.Input.Modes
 {
@@ -106,6 +108,80 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             Assert.AreEqual(_activePlayer.Color, discardCmd!.TargetPlayerColor,
                 "Should target whoever ActivePlayer resolves to at click time - correct for both Insane Outcast (self) and Neogi's forced-actor override (the owing opponent).");
             Assert.AreEqual(card.Id, discardCmd.CardId);
+            Assert.IsFalse(discardCmd.PromoteInsteadOfDiscard, "A card with no PromoteInsteadOfDiscard reactive effect must never set this flag.");
+        }
+
+        // --- Ambassador's "you may promote it instead" popup - only offered when the discard
+        // is genuinely opponent-caused (ForcedActingPlayer == the discarding player). ---
+
+        private Card GivePromoteInsteadCard()
+        {
+            var card = TestData.Cards.CheapCard();
+            card.ReactiveDiscardEffect = new CardEffect(EffectType.PromoteInsteadOfDiscard, 0);
+            _activePlayer.AddToHand(card);
+            _stateFake.HoveredHandCard = card;
+            return card;
+        }
+
+        [TestMethod]
+        public void HandleInteraction_OpponentForcedDiscardOfPromoteInsteadCard_OpensPopupAndReturnsNull()
+        {
+            var card = GivePromoteInsteadCard();
+            _stateFake.TurnManager.ForcedActingPlayer.Returns(_activePlayer);
+
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(100, 100));
+            var result = _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
+
+            Assert.IsNull(result, "The command must come from the popup's own accept/decline callback, not the click itself.");
+            Assert.IsNotNull(_stateFake.LastOptionalEffectRequest, "Should have raised the generic optional-effect popup.");
+            Assert.AreEqual(card, _stateFake.LastOptionalEffectRequest!.Value.Card);
+        }
+
+        [TestMethod]
+        public void HandleInteraction_PopupAccepted_DispatchesDiscardCommandWithPromoteInsteadOfDiscardTrue()
+        {
+            var card = GivePromoteInsteadCard();
+            _stateFake.TurnManager.ForcedActingPlayer.Returns(_activePlayer);
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(100, 100));
+            _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
+
+            _stateFake.LastOptionalEffectRequest!.Value.OnAccept();
+
+            var dispatched = _stateFake.ExecutedCommands.OfType<DiscardCardCommand>().Single();
+            Assert.IsTrue(dispatched.PromoteInsteadOfDiscard);
+            Assert.AreEqual(card.Id, dispatched.CardId);
+        }
+
+        [TestMethod]
+        public void HandleInteraction_PopupDeclined_DispatchesDiscardCommandWithPromoteInsteadOfDiscardFalse()
+        {
+            var card = GivePromoteInsteadCard();
+            _stateFake.TurnManager.ForcedActingPlayer.Returns(_activePlayer);
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(100, 100));
+            _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
+
+            _stateFake.LastOptionalEffectRequest!.Value.OnDecline();
+
+            var dispatched = _stateFake.ExecutedCommands.OfType<DiscardCardCommand>().Single();
+            Assert.IsFalse(dispatched.PromoteInsteadOfDiscard);
+            Assert.AreEqual(card.Id, dispatched.CardId);
+        }
+
+        [TestMethod]
+        public void HandleInteraction_SelfCausedDiscardOfPromoteInsteadCard_ReturnsPlainDiscardCommand_NoPopup()
+        {
+            // ForcedActingPlayer stays null (unconfigured substitute default) - matches a
+            // voluntary own-hand discard (e.g. Insane Outcast's own cost), NOT an opponent-
+            // caused one, even though the card carries the reactive effect.
+            var card = GivePromoteInsteadCard();
+
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(100, 100));
+            var result = _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
+
+            var discardCmd = result as DiscardCardCommand;
+            Assert.IsNotNull(discardCmd, "Must return a plain command directly - no opponent caused this discard, so no choice to offer.");
+            Assert.IsFalse(discardCmd!.PromoteInsteadOfDiscard);
+            Assert.IsNull(_stateFake.LastOptionalEffectRequest, "No popup should have been raised.");
         }
     }
 }

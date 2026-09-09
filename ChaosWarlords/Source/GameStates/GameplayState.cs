@@ -395,6 +395,9 @@ namespace ChaosWarlords.Source.GameStates
         public Card? GetHoveredPlayedCard() => _interactionMapper?.GetHoveredPlayedCard(_inputManagerBacking);
         public Card? GetHoveredMarketCard() => _interactionMapper?.GetHoveredMarketCard();
         public Card? GetHoveredBrowserCard() => _interactionMapper?.GetHoveredBrowserCard();
+
+        public void RequestOptionalEffect(Card card, CardEffect effect, Action onAccept, Action onDecline)
+            => _uiEventMediator.RequestOptionalEffect(card, effect, onAccept, onDecline);
     }
 }
 

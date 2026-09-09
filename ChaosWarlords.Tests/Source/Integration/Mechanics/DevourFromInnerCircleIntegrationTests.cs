@@ -252,6 +252,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             public Card? GetHoveredPlayedCard() => null;
             public Card? GetHoveredMarketCard() => null;
             public Card? GetHoveredBrowserCard() => null;
+            public void RequestOptionalEffect(Card card, CardEffect effect, System.Action onAccept, System.Action onDecline) { }
         }
     }
 }

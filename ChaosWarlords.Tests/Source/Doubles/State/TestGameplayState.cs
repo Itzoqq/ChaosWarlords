@@ -139,6 +139,19 @@ namespace ChaosWarlords.Tests.Source.Doubles.State
         public bool HasViableTargets(Card card) => true;
         public string GetTargetingText(ActionState state) => "Test Targeting";
 
+        /// <summary>
+        /// Records the most recent RequestOptionalEffect call so a test can simulate the
+        /// player's Yes/No choice by invoking OnAccept/OnDecline directly - mirrors how
+        /// UIEventMediator.RequestOptionalEffect's real onAccept/onDecline closures get invoked
+        /// from a popup click, without needing a real IUIEventMediator/View here.
+        /// </summary>
+        public (Card Card, CardEffect Effect, Action OnAccept, Action OnDecline)? LastOptionalEffectRequest { get; private set; }
+
+        public void RequestOptionalEffect(Card card, CardEffect effect, Action onAccept, Action onDecline)
+        {
+            LastOptionalEffectRequest = (card, effect, onAccept, onDecline);
+        }
+
         // IState Implementation
         public void UnloadContent() { }
         public void Update(GameTime gameTime) { }

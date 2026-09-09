@@ -134,5 +134,7 @@
   "water_elemental_myrmidon_name": "Water Elemental Myrmidon",
   "water_elemental_myrmidon_description": "Assassinate a white troop. At end of turn, promote an Obedience card played this turn.",
   "earth_elemental_myrmidon_name": "Earth Elemental Myrmidon",
-  "earth_elemental_myrmidon_description": "Gain 2 Influence. At end of turn, promote another card played this turn."
+  "earth_elemental_myrmidon_description": "Gain 2 Influence. At end of turn, promote another card played this turn.",
+  "ambassador_name": "Ambassador",
+  "ambassador_description": "At end of turn, promote another card played this turn. If an opponent causes you to discard this, you may promote it instead."
 }

@@ -156,6 +156,7 @@ namespace ChaosWarlords.Source.Rendering.UI
                 EffectType.Assassinate => $"assassinate {Count("troop", "troops")}",
                 EffectType.MoveUnit => $"move {Count("unit", "units")}",
                 EffectType.ReturnUnit => $"return {Count("unit", "units")}",
+                EffectType.PromoteInsteadOfDiscard => "promote this card instead of discarding it",
                 _ => effect.Type.ToString().ToLowerInvariant()
             };
 

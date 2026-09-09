@@ -143,6 +143,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     {
         public string? PlayerColor { get; set; }
         public string? CardId { get; set; }
+        public bool PromoteInsteadOfDiscard { get; set; }
     }
 
     public class ReturnOwnSpyCommandDto : GameCommandDto

@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
@@ -197,6 +198,16 @@ namespace ChaosWarlords.Source.Core.Interfaces.State
         /// </summary>
         /// <returns>The hovered card or null.</returns>
         Card? GetHoveredBrowserCard();
+
+        /// <summary>
+        /// Requests a Yes/No confirmation popup for a player choice that isn't a
+        /// CardEffectProcessor/ExecutionStack effect at all (e.g. DiscardInputMode's Ambassador
+        /// "promote instead of discard" choice) - a thin pass-through to the same generic
+        /// IUIEventMediator.RequestOptionalEffect popup ActionSystem.OnInteractionRequested
+        /// itself resolves through, exposed here so an IInputMode can raise the same popup
+        /// without needing a direct UIEventMediator reference of its own.
+        /// </summary>
+        void RequestOptionalEffect(Card card, CardEffect effect, Action onAccept, Action onDecline);
     }
 }
 
