@@ -88,6 +88,138 @@ namespace ChaosWarlords.Tests.Contexts
             Assert.IsTrue(_turnContext.HasValidCreditFor(_cardB));
         }
 
+        // --- Aspect-filtered credits (Air/Fire/Water Elemental Myrmidon: "promote an
+        // Obedience card played this turn") ---
+
+        [TestMethod]
+        public void HasValidCreditFor_AspectFilteredCredit_MatchingAspect_ReturnsTrue()
+        {
+            var orderCard = new CardBuilder().WithName("order_card").WithAspect(CardAspect.Order).Build();
+            _turnContext.AddPromotionCredit(_cardA, 1, requiredAspect: CardAspect.Order);
+
+            Assert.IsTrue(_turnContext.HasValidCreditFor(orderCard));
+        }
+
+        [TestMethod]
+        public void HasValidCreditFor_AspectFilteredCredit_MismatchedAspect_ReturnsFalse()
+        {
+            var shadowCard = new CardBuilder().WithName("shadow_card").WithAspect(CardAspect.Shadow).Build();
+            _turnContext.AddPromotionCredit(_cardA, 1, requiredAspect: CardAspect.Order);
+
+            Assert.IsFalse(_turnContext.HasValidCreditFor(shadowCard), "The credit is filtered to Order - a Shadow card must not be a valid target.");
+        }
+
+        [TestMethod]
+        public void HasValidCreditFor_AspectFilteredCredit_StillExcludesItsOwnSource_EvenIfAspectMatches()
+        {
+            // The source card itself matches its own credit's aspect filter (it granted the
+            // credit BY BEING played, its Aspect is whatever it is) - self-exclusion is a
+            // SIBLING restriction, not superseded by a matching aspect.
+            var orderSource = new CardBuilder().WithName("order_source").WithAspect(CardAspect.Order).Build();
+            _turnContext.AddPromotionCredit(orderSource, 1, requiredAspect: CardAspect.Order);
+
+            Assert.IsFalse(_turnContext.HasValidCreditFor(orderSource));
+        }
+
+        [TestMethod]
+        public void ConsumeCreditFor_AspectFilteredCredit_SkipsItForAMismatchedTarget_FallsBackToAnUnfilteredOne()
+        {
+            // A player who played BOTH an Air Elemental Myrmidon (Order-filtered) and a
+            // core_noble (unfiltered) the same turn - promoting a non-Order card must consume
+            // the UNFILTERED credit, not the Order-filtered one (which can't apply to it).
+            var shadowCard = new CardBuilder().WithName("shadow_target").WithAspect(CardAspect.Shadow).Build();
+            _turnContext.AddPromotionCredit(_cardA, 1, requiredAspect: CardAspect.Order);
+            _turnContext.AddPromotionCredit(_cardB, 1); // Unfiltered.
+
+            _turnContext.ConsumeCreditFor(shadowCard);
+
+            Assert.AreEqual(1, _turnContext.PendingPromotionsCount, "Exactly one credit should have been consumed.");
+            // The Order-filtered credit must still be the one left outstanding - it's useless
+            // against the Shadow card that was just promoted, but still valid against a future
+            // Order card played later this turn.
+            var laterOrderCard = new CardBuilder().WithName("later_order_card").WithAspect(CardAspect.Order).Build();
+            Assert.IsTrue(_turnContext.HasValidCreditFor(laterOrderCard));
+        }
+
+        [TestMethod]
+        public void ConsumeCreditFor_TargetMatchesBothAFilteredAndAnUnfilteredCredit_PrefersTheFilteredOne()
+        {
+            // Both credits can promote an Order card, but consuming the FILTERED one first
+            // preserves the UNFILTERED one's flexibility for whatever's promoted next (it can
+            // absorb ANY aspect, the filtered one can't) - reduces (without fully eliminating)
+            // how often click order strands a sibling filtered credit. See
+            // ForfeitUnsatisfiableCredits for the actual soft-lock safety net.
+            var orderCard = new CardBuilder().WithName("order_target").WithAspect(CardAspect.Order).Build();
+            var shadowCard = new CardBuilder().WithName("shadow_target").WithAspect(CardAspect.Shadow).Build();
+            _turnContext.AddPromotionCredit(_cardA, 1); // Unfiltered - added FIRST, so a naive
+                                                         // first-match search would wrongly pick
+                                                         // this one for orderCard.
+            _turnContext.AddPromotionCredit(_cardB, 1, requiredAspect: CardAspect.Order);
+
+            _turnContext.ConsumeCreditFor(orderCard);
+
+            // The unfiltered credit must be the one still outstanding - it's the only one that
+            // can still promote the Shadow card left over.
+            Assert.IsTrue(_turnContext.HasValidCreditFor(shadowCard), "The unfiltered credit should have been preserved for the Shadow card.");
+            _turnContext.ConsumeCreditFor(shadowCard);
+            Assert.AreEqual(0, _turnContext.PendingPromotionsCount, "Both credits should now be fully resolved.");
+        }
+
+        // --- ForfeitUnsatisfiableCredits (soft-lock safety net for aspect-filtered credits) ---
+
+        [TestMethod]
+        public void ForfeitUnsatisfiableCredits_CreditWithNoMatchingPlayedCard_IsForfeited()
+        {
+            // Dead on arrival: an Order-filtered credit when zero Order cards were played at all.
+            var shadowCard = new CardBuilder().WithName("shadow_card").WithAspect(CardAspect.Shadow).Build();
+            _turnContext.AddPromotionCredit(_cardA, 1, requiredAspect: CardAspect.Order);
+
+            int forfeited = _turnContext.ForfeitUnsatisfiableCredits(new[] { _cardA, shadowCard });
+
+            Assert.AreEqual(1, forfeited);
+            Assert.AreEqual(0, _turnContext.PendingPromotionsCount);
+        }
+
+        [TestMethod]
+        public void ForfeitUnsatisfiableCredits_CreditWithAMatchingPlayedCard_IsNotForfeited()
+        {
+            var orderCard = new CardBuilder().WithName("order_card").WithAspect(CardAspect.Order).Build();
+            _turnContext.AddPromotionCredit(_cardA, 1, requiredAspect: CardAspect.Order);
+
+            int forfeited = _turnContext.ForfeitUnsatisfiableCredits(new[] { _cardA, orderCard });
+
+            Assert.AreEqual(0, forfeited);
+            Assert.AreEqual(1, _turnContext.PendingPromotionsCount);
+        }
+
+        [TestMethod]
+        public void ForfeitUnsatisfiableCredits_TwoFilteredMandatoryCreditsSharingOneMatchingCard_StrandedSiblingIsForfeitedNotSoftLocked()
+        {
+            // THE core regression this exists to prevent: Air Elemental Myrmidon + Fire
+            // Elemental Myrmidon (both mandatory, both Order-filtered) played the same turn,
+            // with only ONE Order card also played. Consuming the shared card for one credit
+            // must not leave the other one stuck forever with zero possible targets.
+            var orderCard = new CardBuilder().WithName("order_card").WithAspect(CardAspect.Order).Build();
+            var airMyrmidon = new CardBuilder().WithName("air_myrmidon").WithAspect(CardAspect.Shadow).Build();
+            var fireMyrmidon = new CardBuilder().WithName("fire_myrmidon").WithAspect(CardAspect.Sorcery).Build();
+            _turnContext.AddPromotionCredit(airMyrmidon, 1, requiredAspect: CardAspect.Order);
+            _turnContext.AddPromotionCredit(fireMyrmidon, 1, requiredAspect: CardAspect.Order);
+
+            Assert.IsTrue(_turnContext.HasValidCreditFor(orderCard), "Setup check: orderCard is a legal target for at least one credit.");
+            _turnContext.ConsumeCreditFor(orderCard);
+            Assert.AreEqual(1, _turnContext.PendingPromotionsCount, "One credit consumed, one left - now stranded with zero remaining legal targets.");
+
+            // orderCard has now actually been promoted (moved out of Played, in real play) - the
+            // remaining played-cards pool passed to the real PromoteCommand-driven flow would no
+            // longer include it either.
+            var playedCardsAfterPromoting = new[] { airMyrmidon, fireMyrmidon };
+            int forfeited = _turnContext.ForfeitUnsatisfiableCredits(playedCardsAfterPromoting);
+
+            Assert.AreEqual(1, forfeited, "The stranded sibling credit must be forfeited, not left mandatory-and-unsatisfiable forever.");
+            Assert.AreEqual(0, _turnContext.PendingPromotionsCount);
+            Assert.IsTrue(_turnContext.CanDeclineRemainingPromotions, "With nothing outstanding, the redemption session must be cleanly over.");
+        }
+
         // --- CanDeclineRemainingPromotions ("up to N" vs. plain mandatory Promote credits) ---
 
         [TestMethod]

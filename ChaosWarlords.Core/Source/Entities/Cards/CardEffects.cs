@@ -223,6 +223,16 @@ namespace ChaosWarlords.Source.Entities.Cards
         // which already names a single recipient of its own.
         public bool AppliesToEachOpponent { get; set; }
 
+        // "At end of turn, promote an Obedience card played this turn" (Air/Fire/Water
+        // Elemental Myrmidon) - restricts an EffectType.Promote credit to only be redeemable
+        // against a card of THIS specific aspect, threaded onto the TurnContext.PromotionCredit
+        // this effect banks (see TurnContext.AddPromotionCredit/HasValidCreditFor/
+        // ConsumeCreditFor). Null (the default) means no filter at all - every existing Promote
+        // effect (core_noble, Cultist of Myrkul, Zuggtmoy, Blue Dragon) is unaffected. A SIBLING
+        // restriction to the credit's own self-exclusion (a card can never promote itself,
+        // filter or no filter) - not a replacement for it.
+        public CardAspect? RequiredPromotionAspect { get; set; }
+
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {
             Type = type;

@@ -126,5 +126,13 @@
   "hezrou_name": "Hezrou",
   "hezrou_description": "Move an enemy troop. Promote the top card of your deck.",
   "nalfeshnee_name": "Nalfeshnee",
-  "nalfeshnee_description": "Gain 3 Influence. Promote the top card of your deck."
+  "nalfeshnee_description": "Gain 3 Influence. Promote the top card of your deck.",
+  "air_elemental_myrmidon_name": "Air Elemental Myrmidon",
+  "air_elemental_myrmidon_description": "Place a spy. At end of turn, promote an Obedience card played this turn.",
+  "fire_elemental_myrmidon_name": "Fire Elemental Myrmidon",
+  "fire_elemental_myrmidon_description": "Gain 2 Power. At end of turn, promote an Obedience card played this turn.",
+  "water_elemental_myrmidon_name": "Water Elemental Myrmidon",
+  "water_elemental_myrmidon_description": "Assassinate a white troop. At end of turn, promote an Obedience card played this turn.",
+  "earth_elemental_myrmidon_name": "Earth Elemental Myrmidon",
+  "earth_elemental_myrmidon_description": "Gain 2 Influence. At end of turn, promote another card played this turn."
 }

@@ -212,6 +212,16 @@ namespace ChaosWarlords.Tests.Source.Entities
                 }
                 return candidate;
             }
+            var underlyingEnumType = Nullable.GetUnderlyingType(type);
+            if (underlyingEnumType != null && underlyingEnumType.IsEnum)
+            {
+                object? candidate = Enum.GetValues(underlyingEnumType).Cast<object>().FirstOrDefault(v => !v.Equals(currentValue));
+                if (candidate == null)
+                {
+                    throw new NotSupportedException($"Nullable enum {underlyingEnumType.Name} has no value distinct from its current default - extend it or this helper.");
+                }
+                return candidate;
+            }
             if (type == typeof(EffectCondition)) return new EffectCondition(ConditionType.HandSize, 4);
             if (type == typeof(string)) return $"sentinel_{(string?)currentValue}";
 

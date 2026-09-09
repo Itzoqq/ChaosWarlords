@@ -98,11 +98,13 @@ namespace ChaosWarlords.Source.Utilities
             ParseDynamicAmount(data, effect, logger);
             ParseGainResourcePerRepeat(data, effect, logger);
             ParsePromotionCompletionEffect(data, effect, logger);
+            ParseRequiredPromotionAspect(data, effect, logger);
             WarnIfChooseCountShapeIsUnsupported(data, effect, logger);
             WarnIfChainedRepeatCountShapeIsUnsupported(data, effect, logger);
             WarnIfGainResourcePerRepeatShapeIsUnsupported(data, effect, logger);
             WarnIfPromotionCompletionEffectShapeIsUnsupported(data, effect, logger);
             WarnIfAppliesToEachOpponentShapeIsUnsupported(data, effect, logger);
+            WarnIfRequiredPromotionAspectShapeIsUnsupported(data, effect, logger);
 
             return effect;
         }
@@ -299,6 +301,38 @@ namespace ChaosWarlords.Source.Utilities
             else
             {
                 logger?.Log($"[CardFactory] FAILED to parse GainResourcePerRepeat: {data.GainResourcePerRepeat}", LogChannel.Warning);
+            }
+        }
+
+        private static void ParseRequiredPromotionAspect(CardEffectData data, CardEffect effect, IGameLogger? logger)
+        {
+            if (string.IsNullOrEmpty(data.RequiredPromotionAspect))
+                return;
+
+            if (Enum.TryParse(data.RequiredPromotionAspect, true, out CardAspect aspect))
+            {
+                effect.RequiredPromotionAspect = aspect;
+            }
+            else
+            {
+                logger?.Log($"[CardFactory] FAILED to parse RequiredPromotionAspect: {data.RequiredPromotionAspect}", LogChannel.Warning);
+            }
+        }
+
+        // CardEffect.RequiredPromotionAspect is only ever read by TurnContext.AddPromotionCredit
+        // (via CardEffectProcessor.ApplyPromote) - authoring it on any other EffectType would
+        // parse and clone fine but silently never filter anything, exactly the "catch it before
+        // it ships" gap ChooseCount/ChainedRepeatCount's own warnings above exist to close.
+        private static void WarnIfRequiredPromotionAspectShapeIsUnsupported(CardEffectData data, CardEffect effect, IGameLogger? logger)
+        {
+            if (effect.RequiredPromotionAspect == null)
+            {
+                return;
+            }
+
+            if (effect.Type != EffectType.Promote)
+            {
+                logger?.Log($"[CardFactory] {data.Type}: RequiredPromotionAspect={effect.RequiredPromotionAspect} is only wired for EffectType.Promote - it will parse and clone but never actually filter anything on this effect type.", LogChannel.Warning);
             }
         }
 

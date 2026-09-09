@@ -425,16 +425,25 @@ namespace ChaosWarlords.Source.Managers
 
         private void HandleEndTurnWithPromotionCheck()
         {
-            int pending = _gameState.MatchContext.TurnManager.CurrentTurnContext.PendingPromotionsCount;
+            var turnContext = _gameState.MatchContext.TurnManager.CurrentTurnContext;
+            var activePlayer = _gameState.MatchContext.TurnManager.ActivePlayer;
+
+            // A credit can be dead on arrival (e.g. an aspect-filtered one - Air/Fire/Water
+            // Elemental Myrmidon - with zero matching cards played at all this turn); drop it
+            // BEFORE deciding whether a redemption prompt is even needed, so PendingPromotionsCount
+            // below reflects only what's actually resolvable. See TurnContext.
+            // ForfeitUnsatisfiableCredits's own doc comment for why this can't wait until
+            // PromoteInputMode is already open.
+            turnContext.ForfeitUnsatisfiableCredits(activePlayer.PlayedCards);
+
+            int pending = turnContext.PendingPromotionsCount;
             _logger.Log($"DEBUG: HandleEndTurnWithPromotionCheck. Pending: {pending}", LogChannel.Info);
 
             if (pending > 0)
             {
-                var activePlayer = _gameState.MatchContext.TurnManager.ActivePlayer;
                 _logger.Log($"DEBUG: ActivePlayer: {activePlayer.DisplayName}. PlayedCards: {activePlayer.PlayedCards.Count}", LogChannel.Info);
 
-                bool hasValidTargets = activePlayer.PlayedCards.Any(c =>
-                    _gameState.MatchContext.TurnManager.CurrentTurnContext.HasValidCreditFor(c));
+                bool hasValidTargets = activePlayer.PlayedCards.Any(c => turnContext.HasValidCreditFor(c));
 
                 _logger.Log($"DEBUG: HasValidTargets: {hasValidTargets}", LogChannel.Info);
 

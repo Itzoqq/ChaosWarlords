@@ -201,5 +201,82 @@ namespace ChaosWarlords.Tests.Integration.Input.Modes
             _actionSub.Received(1).DeclineRemainingPromotions();
             _actionSub.DidNotReceive().CancelTargeting();
         }
+
+        // --- Aspect-filtered credits (Air/Fire/Water Elemental Myrmidon) ---
+
+        [TestMethod]
+        public void HandleInteraction_ClickingAMismatchedAspectTarget_DoesNothing()
+        {
+            var sourceCard = new CardBuilder().WithName("air_myrmidon").WithAspect(CardAspect.Shadow).Build();
+            var targetCard = new CardBuilder().WithName("wrong_aspect_target").WithAspect(CardAspect.Warlord).Build();
+            _activePlayer.AddToPlayed(targetCard);
+
+            // Credit is filtered to Order - Warlord is not a valid target even though it's not
+            // the credit's own source.
+            _realTurnContext.AddPromotionCredit(sourceCard, 1, requiredAspect: CardAspect.Order);
+            _stateFake.HoveredPlayedCard = targetCard;
+
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(100, 100));
+
+            _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
+
+            CollectionAssert.Contains(_activePlayer.PlayedCards.ToList(), targetCard, "Card should remain in played pile (invalid target).");
+            Assert.AreEqual(1, _realTurnContext.PendingPromotionsCount, "Credit should not be consumed.");
+            Assert.IsFalse(_stateFake.ExecutedCommands.Any(), "No commands should be executed.");
+        }
+
+        [TestMethod]
+        public void HandleInteraction_ClickingAMatchingAspectTarget_PromotesAndEndsTurn()
+        {
+            var sourceCard = new CardBuilder().WithName("air_myrmidon").WithAspect(CardAspect.Shadow).Build();
+            var targetCard = new CardBuilder().WithName("order_target").WithAspect(CardAspect.Order).Build();
+            _activePlayer.AddToPlayed(targetCard);
+
+            _realTurnContext.AddPromotionCredit(sourceCard, 1, requiredAspect: CardAspect.Order);
+            _stateFake.HoveredPlayedCard = targetCard;
+
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(100, 100));
+
+            var resultCmd = _mode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
+
+            var promoteCmd = _stateFake.ExecutedCommands.OfType<PromoteCommand>().FirstOrDefault();
+            Assert.IsNotNull(promoteCmd, "PromoteCommand should have been executed.");
+            Assert.AreEqual(targetCard.Id, promoteCmd.CardId);
+
+            CollectionAssert.DoesNotContain(_activePlayer.PlayedCards.ToList(), targetCard, "Target should be removed from Played.");
+            CollectionAssert.Contains(_activePlayer.InnerCircle.ToList(), targetCard, "Target should be in Inner Circle.");
+            Assert.AreEqual(0, _realTurnContext.PendingPromotionsCount, "Credit should be consumed.");
+            Assert.IsInstanceOfType(resultCmd, typeof(EndTurnCommand));
+        }
+
+        [TestMethod]
+        public void HandleInteraction_TwoFilteredMandatoryCreditsSharingOneMatchingCard_DoesNotSoftLock()
+        {
+            // Regression: Air Elemental Myrmidon + Fire Elemental Myrmidon (both mandatory,
+            // both Order-filtered) played the same turn, with only ONE Order card also played.
+            // Before ForfeitUnsatisfiableCredits, consuming the shared card for one credit left
+            // the other one permanently stuck (mandatory, so CanDeclineRemainingPromotions was
+            // false, and every further click was rejected by HasValidCreditFor - no path back
+            // to Normal at all). A fresh 2-credit PromoteInputMode is built here (the
+            // class-level _mode from Setup() is built with amountToPromote=1).
+            var airMyrmidon = new CardBuilder().WithName("air_myrmidon").WithAspect(CardAspect.Shadow).Build();
+            var fireMyrmidon = new CardBuilder().WithName("fire_myrmidon").WithAspect(CardAspect.Sorcery).Build();
+            var orderCard = new CardBuilder().WithName("order_card").WithAspect(CardAspect.Order).Build();
+            _activePlayer.AddToPlayed(airMyrmidon);
+            _activePlayer.AddToPlayed(fireMyrmidon);
+            _activePlayer.AddToPlayed(orderCard);
+            _realTurnContext.AddPromotionCredit(airMyrmidon, 1, requiredAspect: CardAspect.Order);
+            _realTurnContext.AddPromotionCredit(fireMyrmidon, 1, requiredAspect: CardAspect.Order);
+
+            var twoCreditMode = new PromoteInputMode(_stateFake, _inputSub, _actionSub, 2);
+            _stateFake.HoveredPlayedCard = orderCard;
+            var evt = new InputEventArgs(InputEventType.LeftClick, new Vector2(100, 100));
+
+            var resultCmd = twoCreditMode.HandleInteraction(evt, _marketSub, _mapSub, _activePlayer, _actionSub);
+
+            CollectionAssert.Contains(_activePlayer.InnerCircle.ToList(), orderCard, "The one legal target should have been promoted.");
+            Assert.AreEqual(0, _realTurnContext.PendingPromotionsCount, "The stranded sibling credit must have been forfeited, not left outstanding forever.");
+            Assert.IsInstanceOfType(resultCmd, typeof(EndTurnCommand), "The redemption must complete and return EndTurn, not soft-lock waiting for an impossible 2nd click.");
+        }
     }
 }

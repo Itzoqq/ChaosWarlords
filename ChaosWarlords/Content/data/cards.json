@@ -1218,5 +1218,79 @@
         "Type": "PromoteTopOfDeck"
       }
     ]
+  },
+  {
+    "Id": "air_elemental_myrmidon",
+    "Cost": 4,
+    "Aspect": "Shadow",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "Effects": [
+      {
+        "Type": "PlaceSpy",
+        "Amount": 1
+      },
+      {
+        "Type": "Promote",
+        "Amount": 1,
+        "RequiredPromotionAspect": "Order"
+      }
+    ]
+  },
+  {
+    "Id": "fire_elemental_myrmidon",
+    "Cost": 4,
+    "Aspect": "Sorcery",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Power"
+      },
+      {
+        "Type": "Promote",
+        "Amount": 1,
+        "RequiredPromotionAspect": "Order"
+      }
+    ]
+  },
+  {
+    "Id": "water_elemental_myrmidon",
+    "Cost": 4,
+    "Aspect": "Warlord",
+    "DeckVP": 2,
+    "InnerCircleVP": 4,
+    "Effects": [
+      {
+        "Type": "Assassinate",
+        "Amount": 1,
+        "TargetNeutralTroopOnly": true
+      },
+      {
+        "Type": "Promote",
+        "Amount": 1,
+        "RequiredPromotionAspect": "Order"
+      }
+    ]
+  },
+  {
+    "Id": "earth_elemental_myrmidon",
+    "Cost": 4,
+    "Aspect": "Blasphemy",
+    "DeckVP": 2,
+    "InnerCircleVP": 4,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Influence"
+      },
+      {
+        "Type": "Promote",
+        "Amount": 1
+      }
+    ]
   }
 ]

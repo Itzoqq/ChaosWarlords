@@ -83,10 +83,12 @@ namespace ChaosWarlords.Source.Input.Modes
             var context = _gameplayState.MatchContext.TurnManager.CurrentTurnContext;
 
             // --- Safety Check ---
-            // Prevent a card from promoting itself if it is the only source of points
+            // Rejects a card promoting itself, or (Air/Fire/Water Elemental Myrmidon's aspect-
+            // filtered credits) a card whose Aspect doesn't match the credit's own filter - see
+            // TurnContext.HasValidCreditFor/CreditAllows.
             if (!context.HasValidCreditFor(targetCard))
             {
-                _gameplayState.Logger.Log("Invalid Target: This card cannot promote itself!", LogChannel.Warning);
+                _gameplayState.Logger.Log("Invalid Target: no outstanding promotion credit can promote this card (itself, or the wrong aspect).", LogChannel.Warning);
                 return null;
             }
 
@@ -98,6 +100,20 @@ namespace ChaosWarlords.Source.Input.Modes
             // 1. Manually execute the promote command immediately
             var promoteCmd = new Commands.PromoteCommand(targetCard.Id);
             _gameplayState.RecordAndExecuteCommand(promoteCmd);
+
+            // 1b. Consuming a credit above can strand a SIBLING one that shared the same
+            // narrow pool of matching cards (e.g. Air + Fire Elemental Myrmidon both requiring
+            // an Obedience card, with only one actually played this turn) - forfeit any credit
+            // that's now unsatisfiable so the redemption loop can't soft-lock waiting for a
+            // target that will never exist. See TurnContext.ForfeitUnsatisfiableCredits's own
+            // doc comment. _cardsLeftToPromote must shrink by the same amount, or this loop
+            // would keep waiting for clicks that can never legally happen.
+            int forfeited = context.ForfeitUnsatisfiableCredits(_gameplayState.MatchContext.TurnManager.ActivePlayer.PlayedCards);
+            if (forfeited > 0)
+            {
+                _gameplayState.Logger.Log($"{forfeited} promotion credit(s) forfeited - no remaining played card can satisfy them.", LogChannel.Warning);
+                _cardsLeftToPromote -= forfeited;
+            }
 
             // 2. Check if we are done - NOT CancelTargeting() here either (same reasoning as
             // HandleCancellation above): every credit in this redemption may have already

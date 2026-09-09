@@ -100,6 +100,10 @@ namespace ChaosWarlords.Source.Utilities
         // "Each opponent recruits N Insane Outcasts" (Demogorgon/Ghoul) - see
         // CardEffect.AppliesToEachOpponent.
         public bool AppliesToEachOpponent { get; set; }
+
+        // "At end of turn, promote an Obedience card played this turn" (Air/Fire/Water
+        // Elemental Myrmidon) - see CardEffect.RequiredPromotionAspect.
+        public string? RequiredPromotionAspect { get; set; }
     }
 
     public class CardDatabase : ICardDatabase

@@ -192,6 +192,7 @@ namespace ChaosWarlords.Source.Entities.Cards
                 RequiresAdjacencyToRecentDeploys = effect.RequiresAdjacencyToRecentDeploys,
                 TargetCardId = effect.TargetCardId,
                 AppliesToEachOpponent = effect.AppliesToEachOpponent,
+                RequiredPromotionAspect = effect.RequiredPromotionAspect,
                 Condition = effect.Condition // Reference copy for condition (usually shared/immutable)
             };
 
