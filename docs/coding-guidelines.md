@@ -332,7 +332,7 @@ if (context.CardRuleEngine.IsConditionMet(player, effect))
 - **CardRuleEngine**: The service (injected via `MatchContext`) that evaluates rules.
 - **EffectCondition**: The data object (from JSON) defining requirements (e.g., `ControlsSite`).
 - **HasValidTargets**: Checks if an effect can even initiate (e.g., prevents playing "Devour" with empty hand).
-- **IEffectStrategy** / **`CardRuleEngine.GetStrategy(EffectType)`**: the extension point for a new effect type's targeting behavior. Twelve implementations live in `Mechanics/Rules/Strategies/` (one per `EffectType` family - `AssassinateStrategy`, `DevourStrategy`, `PromoteFromPileStrategy`, etc.; `EffectTreeSearch.cs` in the same folder is a shared helper, not an `IEffectStrategy`), each answering `IsTargetingEffect`/`HasValidTargets`/`SupportsRepeat` for its effect type. Adding a new targeting-shaped `EffectType` means adding a strategy here, not a new `if`/`switch` branch in `CardEffectProcessor`.
+- **IEffectStrategy** / **`CardRuleEngine.GetStrategy(EffectType)`**: the extension point for a new effect type's targeting behavior. Sixteen implementations live in `Mechanics/Rules/Strategies/` as of 2026-09-09 (one per `EffectType` family - `AssassinateStrategy`, `DevourStrategy`, `PromoteFromPileStrategy`, etc.; `EffectTreeSearch.cs`/`SelectOpponentEligibility.cs` in the same folder are shared helpers, not `IEffectStrategy` implementations), each answering `IsTargetingEffect`/`HasValidTargets`/`SupportsRepeat` for its effect type. Adding a new targeting-shaped `EffectType` means adding a strategy here, not a new `if`/`switch` branch in `CardEffectProcessor`.
 
 **Pattern**:
 1. Check `HasValidTargets` early (in `CardPlaySystem` or UI).

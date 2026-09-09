@@ -319,9 +319,9 @@ ChaosWarlords.Core.Tests/
 
 ---
 
-## Test Counts (as of 2026-09-02)
+## Test Counts (as of 2026-09-09)
 
-**Total: 1184 tests** across both projects, all passing (19 in `ChaosWarlords.Core.Tests`, 1165 in `ChaosWarlords.Tests`).
+**Total: 1835 tests** across both projects, all passing (19 in `ChaosWarlords.Core.Tests`, 1816 in `ChaosWarlords.Tests`).
 
 Run `dotnet test` for the combined total; see the `--filter` commands above to break it down. This number drifts as tests are added - treat it as "order of magnitude and how to check", not a value to keep manually in sync here (the per-category breakdown that used to live in this table was already stale by the time it was last checked, which is exactly why it's gone now rather than just re-counted).
 
@@ -380,16 +380,18 @@ See `WightScenarioTests.cs`, `CarrionCrawlerScenarioTests.cs`, `InsaneOutcastSce
 `CloakerScenarioTests.cs`, `UlitharidScenarioTests.cs`, `CultistOfMyrkulScenarioTests.cs`,
 `NeogiScenarioTests.cs`, `CraniumRatsScenarioTests.cs`, `BansheeInfiltratorScenarioTests.cs`,
 `MatronMotherNecromancerScenarioTests.cs`, `MarketCorruptorScenarioTests.cs`, and
-`SkeletalHordeScenarioTests.cs` (same directory) for worked positive + adversarial examples. Note
-`MatchScenario.Build()` always creates exactly 2 players (Red/Blue) - a scenario needing 3+
-players (e.g. Neogi's seat-order/stacking behavior across more than one opponent) still needs
-the older hand-typed-`TurnManager` pattern for that specific case; `NeogiScenarioTests.cs`
-covers the 2-player real-path shape only, deliberately not duplicating
-`NeogiMechanicsTests.cs`'s 3-player coverage.
+`SkeletalHordeScenarioTests.cs` (same directory) for worked positive + adversarial examples.
+`MatchScenario.Build(playerColors: ...)` now supports an explicit 2-4 player roster (added for
+Cranium Rats' opponent-eligibility scenarios, reused since by Neogi/Gibbering Mouther/Ghoul/
+Demogorgon's each-opponent/multi-seat coverage) - it defaults to the original 2-player
+Red/Blue roster when omitted, so no existing test needed to change. `NeogiScenarioTests.cs`'s
+own 3-player test still coexists with `NeogiMechanicsTests.cs`'s older hand-typed-`TurnManager`
+3-player coverage rather than replacing it.
 
 **Adversarial/negative scenarios are a first-class use of this harness, not an afterthought.**
-Per the testing policy every card/mechanic added from 2026-09-01 onward must satisfy (see
-`planning.txt` section 2): both POSITIVE coverage (through the real `CommandDispatcher` path)
+Per the testing policy every card/mechanic added from 2026-09-01 onward must satisfy (see the
+`add-card` skill's Tests section for the full STANDING TEST MATRIX): both POSITIVE coverage
+(through the real `CommandDispatcher` path)
 and NEGATIVE/adversarial coverage covering, at minimum, wrong-player dispatch, an out-of-range
 or nonexistent target, insufficient resources, and a command re-dispatched against state where
 it's already resolved (double-spend/replay). Once multiplayer exists, an untrusted client can
