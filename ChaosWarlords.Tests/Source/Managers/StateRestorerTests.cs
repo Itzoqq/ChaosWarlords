@@ -375,10 +375,22 @@ namespace ChaosWarlords.Tests.Source.Managers
             foreach (var prop in pendingProperties)
             {
                 var actual = prop.GetValue(_context.ActionSystem);
-                Assert.AreEqual(sentinels[prop.Name], actual,
-                    $"IActionSystem.{prop.Name} did not survive a GameStateDto round-trip via " +
+                string message = $"IActionSystem.{prop.Name} did not survive a GameStateDto round-trip via " +
                     "StateRestorer.RestoreState - it's missing from GameStateDto/DtoMapper." +
-                    "ToGameStateDto/StateRestorer.RestoreState (see docs/coding-guidelines.md Rule #24).");
+                    "ToGameStateDto/StateRestorer.RestoreState (see docs/coding-guidelines.md Rule #24).";
+
+                // A list-typed Pending* property (PendingDeployedNodes) never round-trips as the
+                // SAME instance - RestorePendingState/StateRestorer always rebuild a fresh list
+                // from re-resolved ids - so compare contents, not reference/value equality.
+                if (sentinels[prop.Name] is System.Collections.IEnumerable expectedEnumerable and not string)
+                {
+                    var expectedList = expectedEnumerable.Cast<object>().ToList();
+                    var actualList = (actual as System.Collections.IEnumerable)?.Cast<object>().ToList() ?? new List<object>();
+                    CollectionAssert.AreEqual(expectedList, actualList, message);
+                    continue;
+                }
+
+                Assert.AreEqual(sentinels[prop.Name], actual, message);
             }
         }
 
@@ -399,6 +411,20 @@ namespace ChaosWarlords.Tests.Source.Managers
                 if (PendingPropertiesNotClearedByDesign.Contains(prop.Name)) continue;
 
                 var actual = prop.GetValue(_context.ActionSystem);
+
+                // A list-typed Pending* property (PendingDeployedNodes) is never null by design
+                // (always a real, possibly-empty list, matching ExecutionStack's own convention)
+                // - "reset" means emptied, not nulled.
+                if (actual is System.Collections.IEnumerable enumerable and not string)
+                {
+                    Assert.IsFalse(enumerable.Cast<object>().Any(),
+                        $"IActionSystem.{prop.Name} must be emptied by ActionSystem.ClearState() - it " +
+                        "still has entries afterward. If this is deliberate, add it to " +
+                        $"{nameof(PendingPropertiesNotClearedByDesign)} with a comment explaining why " +
+                        "(see docs/coding-guidelines.md Rule #24).");
+                    continue;
+                }
+
                 Assert.IsNull(actual,
                     $"IActionSystem.{prop.Name} must be reset by ActionSystem.ClearState() - it's " +
                     $"still {actual} afterward. If this is deliberate (like PendingDevourCard), add " +
@@ -431,6 +457,7 @@ namespace ChaosWarlords.Tests.Source.Managers
                 ["pendingDevourCard"] = pendingDevourCardSentinel,
                 ["pendingAffectedPlayerColor"] = PlayerColor.Blue,
                 ["pendingTrophyHallSourceColor"] = PlayerColor.Red,
+                ["pendingDeployedNodes"] = new List<MapNode> { _node },
             };
 
             var restoreMethod = typeof(IActionSystem).GetMethod(nameof(IActionSystem.RestorePendingState))

@@ -84,6 +84,15 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         /// </summary>
         public PlayerColor? PendingTrophyHallSourceColor { get; set; }
 
+        /// <summary>
+        /// See IActionSystem.PendingDeployedNodes' doc comment - EffectType.DeployTroop
+        /// (Gibbering Mouther). Node ids, re-resolved via MapManager.Nodes lookup on restore,
+        /// same as PendingMoveSourceNodeId - accumulates across repeats of the same "Deploy N
+        /// troops" effect, so this can hold more than one id, unlike every other Pending* field
+        /// here.
+        /// </summary>
+        public List<int> PendingDeployedNodeIds { get; set; } = [];
+
         public long SequenceNumber { get; set; }
 
         /// <summary>

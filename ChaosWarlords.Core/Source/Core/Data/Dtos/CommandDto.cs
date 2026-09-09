@@ -54,6 +54,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     public class DeployTroopCommandDto : GameCommandDto
     {
         public int NodeId { get; set; }
+        public string? CardId { get; set; }
     }
 
     public class DevourCardCommandDto : GameCommandDto

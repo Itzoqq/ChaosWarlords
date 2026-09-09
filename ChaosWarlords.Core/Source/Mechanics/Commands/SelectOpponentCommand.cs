@@ -1,6 +1,5 @@
 using ChaosWarlords.Source.Core.Interfaces.Logic;
 using ChaosWarlords.Source.Contexts;
-using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Commands
@@ -50,10 +49,11 @@ namespace ChaosWarlords.Source.Commands
                 return context.RejectValidation(nameof(SelectOpponentCommand), $"{TargetPlayerColor} is not a valid opponent (missing or is the active player).");
             }
 
-            int threshold = FindThreshold(context.ActionSystem.PendingCard);
-            if (target.Hand.Count <= threshold)
+            var effect = Mechanics.Rules.Strategies.SelectOpponentEligibility.FindEffect(context.ActionSystem.PendingCard);
+            if (!Mechanics.Rules.Strategies.SelectOpponentEligibility.IsEligible(context, target, effect))
             {
-                return context.RejectValidation(nameof(SelectOpponentCommand), $"{TargetPlayerColor} doesn't meet the eligibility threshold (Hand.Count={target.Hand.Count} <= {threshold}).");
+                string reason = Mechanics.Rules.Strategies.SelectOpponentEligibility.DescribeIneligibility(target, effect);
+                return context.RejectValidation(nameof(SelectOpponentCommand), $"{TargetPlayerColor} {reason}.");
             }
             return true;
         }
@@ -72,13 +72,6 @@ namespace ChaosWarlords.Source.Commands
             context.TurnManager.BeginForcedActingPlayer(target);
             context.RecordAction("SelectOpponent", $"{target.DisplayName} was chosen as the target.");
             context.ActionSystem.CompleteAction();
-        }
-
-        private static int FindThreshold(Card? sourceCard)
-        {
-            if (sourceCard == null) return 0;
-            var effect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.SelectOpponent);
-            return effect?.Amount ?? 0;
         }
     }
 }

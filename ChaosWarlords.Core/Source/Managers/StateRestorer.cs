@@ -74,7 +74,8 @@ namespace ChaosWarlords.Source.Managers
             var pendingSite = dto.PendingSiteId is int siteId ? context.MapManager.Sites.FirstOrDefault(s => s.Id == siteId) : null;
             var pendingMoveSource = dto.PendingMoveSourceNodeId is int nodeId ? context.MapManager.GetNodeById(nodeId) : null;
             var pendingDevourCard = dto.PendingDevourCardId != null ? context.CardDatabase.GetCardById(dto.PendingDevourCardId) : null;
-            context.ActionSystem.RestorePendingState(dto.ActionSystemState, pendingCard, pendingSite, pendingMoveSource, pendingDevourCard, dto.PendingAffectedPlayerColor, dto.PendingTrophyHallSourceColor);
+            var pendingDeployedNodes = dto.PendingDeployedNodeIds?.Select(id => context.MapManager.GetNodeById(id)).Where(n => n != null).Select(n => n!);
+            context.ActionSystem.RestorePendingState(dto.ActionSystemState, pendingCard, pendingSite, pendingMoveSource, pendingDevourCard, dto.PendingAffectedPlayerColor, dto.PendingTrophyHallSourceColor, pendingDeployedNodes);
         }
 
         /// <summary>

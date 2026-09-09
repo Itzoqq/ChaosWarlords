@@ -198,6 +198,21 @@ namespace ChaosWarlords.Source.Entities.Cards
         // Promote card today (core_noble, Cultist of Myrkul, Zuggtmoy).
         public CardEffect? PromotionCompletionEffect { get; set; }
 
+        // "Choose an opponent with a troop adjacent to at least 1 of them [the just-deployed
+        // troops]" (Gibbering Mouther) - switches EffectType.SelectOpponent's eligibility check
+        // from its default "hand size exceeds Amount" threshold (Cranium Rats) to "has a troop
+        // on a node adjacent to any of ActionSystem.PendingDeployedNodes" (see
+        // SelectOpponentEligibility). Defaults to false so every existing SelectOpponent effect
+        // keeps the hand-size threshold unchanged. Only meaningful directly following an
+        // EffectType.DeployTroop effect - no shipped card needs it otherwise.
+        public bool RequiresAdjacencyToRecentDeploys { get; set; }
+
+        // Which card definition EffectType.ForceRecruit gives to whoever it resolves against
+        // (e.g. "insane_outcast") - looked up via ICardDatabase.GetCardById, bypassing the
+        // market row entirely. Null is a configuration error (logged, no-op) for any card
+        // actually using ForceRecruit; every other effect type ignores this field.
+        public string? TargetCardId { get; set; }
+
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {
             Type = type;

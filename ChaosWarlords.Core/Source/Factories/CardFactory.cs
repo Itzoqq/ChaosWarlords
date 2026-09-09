@@ -264,6 +264,8 @@ namespace ChaosWarlords.Source.Utilities
             effect.ChooseCount = data.ChooseCount;
             effect.ChainedRepeatCount = data.ChainedRepeatCount;
             effect.SkipUnreachableOnSuccessCheck = data.SkipUnreachableOnSuccessCheck;
+            effect.RequiresAdjacencyToRecentDeploys = data.RequiresAdjacencyToRecentDeploys;
+            effect.TargetCardId = data.TargetCardId;
         }
 
         private static void ParseDynamicAmount(CardEffectData data, CardEffect effect, IGameLogger? logger)

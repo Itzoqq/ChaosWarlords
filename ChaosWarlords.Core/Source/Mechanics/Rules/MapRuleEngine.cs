@@ -227,6 +227,14 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         {
             return _nodes.Any(n => CanMoveSource(n, activePlayer));
         }
+
+        // EffectType.DeployTroop (Gibbering Mouther) - is there ANY empty node CanDeployAt
+        // would accept for this player right now (honoring the same "or anywhere, if you have
+        // zero Presence on the board" rule the basic Deploy action already gets)?
+        public bool HasValidDeployTarget(PlayerColor player)
+        {
+            return _nodes.Any(n => CanDeployAt(n, player));
+        }
     }
 }
 

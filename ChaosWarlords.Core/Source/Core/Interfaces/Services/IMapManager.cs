@@ -33,6 +33,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         bool HasValidReturnEnemySpyTarget(Player activePlayer);
         bool HasValidReturnTroopTarget(Player activePlayer);
         bool HasValidPlaceSpyTarget(Player activePlayer);
+        bool HasValidDeployTarget(PlayerColor player);
 
         /// <summary>
         /// True if there's a site with EXACTLY ONE spy the active player could legally return

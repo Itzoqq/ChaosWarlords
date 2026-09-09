@@ -213,6 +213,7 @@ namespace ChaosWarlords.Tests.Source.Entities
                 return candidate;
             }
             if (type == typeof(EffectCondition)) return new EffectCondition(ConditionType.HandSize, 4);
+            if (type == typeof(string)) return $"sentinel_{(string?)currentValue}";
 
             throw new NotSupportedException(
                 $"CardTests.BuildSentinel doesn't know how to build a sentinel value for CardEffect.{prop.Name} " +

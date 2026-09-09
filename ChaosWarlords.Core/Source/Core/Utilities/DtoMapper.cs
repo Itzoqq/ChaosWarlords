@@ -293,7 +293,7 @@ namespace ChaosWarlords.Source.Core.Utilities
         private static DeployTroopCommand? HydrateDeploy(DeployTroopCommandDto dto, MatchContext context)
         {
             var node = context.MapManager.GetNodeById(dto.NodeId);
-            return node != null ? new DeployTroopCommand(dto.NodeId) : null;
+            return node != null ? new DeployTroopCommand(dto.NodeId, dto.CardId) : null;
         }
 
         private static DevourCardCommand? HydrateDevour(DevourCardCommandDto dto, Player? player, MatchContext? context = null)
@@ -439,6 +439,7 @@ namespace ChaosWarlords.Source.Core.Utilities
             dto.PendingDevourCardId = context.ActionSystem.PendingDevourCard?.DefinitionId;
             dto.PendingAffectedPlayerColor = context.ActionSystem.PendingAffectedPlayerColor;
             dto.PendingTrophyHallSourceColor = context.ActionSystem.PendingTrophyHallSourceColor;
+            dto.PendingDeployedNodeIds = context.ActionSystem.PendingDeployedNodes.Select(n => n.Id).ToList();
 
             // Computed from the live context, not recomputed independently on the DTO later -
             // see GameStateDto.StateHash's doc comment for why.

@@ -12,18 +12,30 @@ namespace ChaosWarlords.Source.Commands
         {
             return new Core.Data.Dtos.DeployTroopCommandDto
             {
-                NodeId = NodeId
+                NodeId = NodeId,
+                CardId = CardId
             };
         }
 
         public int NodeId { get; }
 
-        public DeployTroopCommand(int nodeId)
+        /// <summary>
+        /// Set only when this Deploy is sourced from a card effect (EffectType.DeployTroop,
+        /// Gibbering Mouther) rather than the paid basic action - toggles Execute() between
+        /// ActionSystem.PerformDeployTroop (stack-integrated: funds the deploy for free,
+        /// records the destination node, calls CompleteAction()) and the plain
+        /// MapManager.TryDeploy fire-and-forget call the basic action has always used
+        /// (untouched for every existing caller, which never sets this).
+        /// </summary>
+        public string? CardId { get; }
+
+        public DeployTroopCommand(int nodeId, string? cardId = null)
         {
             NodeId = nodeId;
+            CardId = cardId;
         }
 
-        public DeployTroopCommand(Entities.Map.MapNode node) : this(node.Id) { }
+        public DeployTroopCommand(Entities.Map.MapNode node, string? cardId = null) : this(node.Id, cardId) { }
 
         public bool Validate(MatchContext context)
         {
@@ -37,13 +49,28 @@ namespace ChaosWarlords.Source.Commands
             {
                 return context.RejectValidation(nameof(DeployTroopCommand), $"MapManager rejected deploying at node {NodeId} (occupied or no Presence).");
             }
+
+            // Card-sourced Deploy is a stack-integrated targeting effect (see
+            // ActionState.TargetingDeployTroop) - defense-in-depth against a forged command
+            // bypassing ActionInputController's UI-layer state check, mirroring
+            // SelectOpponentCommand.Validate()'s own CurrentState guard.
+            if (!string.IsNullOrEmpty(CardId) && context.ActionSystem.CurrentState != ActionState.TargetingDeployTroop)
+            {
+                return context.RejectValidation(nameof(DeployTroopCommand), $"CurrentState is {context.ActionSystem.CurrentState}, not TargetingDeployTroop.");
+            }
             return true;
         }
 
         public void Execute(MatchContext context)
         {
             var node = context.MapManager.GetNodeById(NodeId);
-            if (node != null)
+            if (node == null) return;
+
+            if (!string.IsNullOrEmpty(CardId))
+            {
+                context.ActionSystem.PerformDeployTroop(node, CardId);
+            }
+            else
             {
                 context.MapManager.TryDeploy(context.TurnManager.ActivePlayer, node);
             }

@@ -189,6 +189,8 @@ namespace ChaosWarlords.Source.Entities.Cards
                 ChainedRepeatCount = effect.ChainedRepeatCount,
                 SkipUnreachableOnSuccessCheck = effect.SkipUnreachableOnSuccessCheck,
                 GainResourcePerRepeat = effect.GainResourcePerRepeat,
+                RequiresAdjacencyToRecentDeploys = effect.RequiresAdjacencyToRecentDeploys,
+                TargetCardId = effect.TargetCardId,
                 Condition = effect.Condition // Reference copy for condition (usually shared/immutable)
             };
 

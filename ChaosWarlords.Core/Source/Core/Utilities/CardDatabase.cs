@@ -89,6 +89,13 @@ namespace ChaosWarlords.Source.Utilities
         // "Place a spy, then supplant a troop at that spy's site" (Green Dragon) - see
         // CardEffect.SkipUnreachableOnSuccessCheck.
         public bool SkipUnreachableOnSuccessCheck { get; set; }
+
+        // "Choose an opponent with a troop adjacent to at least 1 of them" (Gibbering Mouther) -
+        // see CardEffect.RequiresAdjacencyToRecentDeploys.
+        public bool RequiresAdjacencyToRecentDeploys { get; set; }
+
+        // Which card definition EffectType.ForceRecruit gives out - see CardEffect.TargetCardId.
+        public string? TargetCardId { get; set; }
     }
 
     public class CardDatabase : ICardDatabase

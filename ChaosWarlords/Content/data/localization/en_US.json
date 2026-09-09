@@ -114,5 +114,7 @@
   "yan_c_bin_name": "Yan-C-Bin",
   "yan_c_bin_description": "Place a spy, then assassinate a troop at that spy's site. Focus - Place another spy.",
   "succubus_name": "Succubus",
-  "succubus_description": "You may devour a card from your hand to place a spy, then assassinate a troop at that spy's site."
+  "succubus_description": "You may devour a card from your hand to place a spy, then assassinate a troop at that spy's site.",
+  "gibbering_mouther_name": "Gibbering Mouther",
+  "gibbering_mouther_description": "Deploy 2 troops, then choose an opponent with a troop adjacent to at least 1 of them. That opponent recruits an Insane Outcast."
 }

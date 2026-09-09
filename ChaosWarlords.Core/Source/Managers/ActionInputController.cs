@@ -61,7 +61,8 @@ namespace ChaosWarlords.Source.Managers
             ActionState.TargetingMoveSource or
             ActionState.TargetingMoveDestination or
             ActionState.TargetingReturnUnitOrSpy or
-            ActionState.TargetingDeployFromTrophyHall;
+            ActionState.TargetingDeployFromTrophyHall or
+            ActionState.TargetingDeployTroop;
 
         private static bool IsSiteTargetingState(ActionState state) => state is
             ActionState.TargetingPlaceSpy or
@@ -88,6 +89,7 @@ namespace ChaosWarlords.Source.Managers
             [ActionState.TargetingMoveSource] = (self, node, _, _) => self.HandleMoveSource(node),
             [ActionState.TargetingMoveDestination] = (self, node, cardId, _) => self.HandleMoveDestination(node, cardId),
             [ActionState.TargetingDeployFromTrophyHall] = (self, node, cardId, _) => self.HandleDeployFromTrophyHall(node, cardId),
+            [ActionState.TargetingDeployTroop] = (self, node, cardId, _) => self.HandleDeployTroop(node, cardId),
         };
 
         private IGameCommand? HandleNodeTarget(ActionState state, MapNode targetNode)
@@ -228,6 +230,17 @@ namespace ChaosWarlords.Source.Managers
             if (!requireNeutral) return null;
 
             return new DeployFromTrophyHallCommand(targetNode.Id, sourcePlayerColor.Value, PlayerColor.Neutral, cardId);
+        }
+
+        private DeployTroopCommand? HandleDeployTroop(MapNode targetNode, string? cardId)
+        {
+            if (!_mapManager.CanDeployAt(targetNode, ActivePlayer().Color))
+            {
+                _actionSystem.RaiseActionFailed("Invalid Target: cannot deploy there.");
+                return null;
+            }
+
+            return new DeployTroopCommand(targetNode.Id, cardId);
         }
     }
 }

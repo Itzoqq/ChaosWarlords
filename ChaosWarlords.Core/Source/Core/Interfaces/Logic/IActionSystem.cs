@@ -103,6 +103,24 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         void SetPendingTrophyHallSource(PlayerColor sourcePlayerColor);
 
         /// <summary>
+        /// Nodes EffectType.DeployTroop has deployed to so far this effect (Gibbering Mouther:
+        /// "Deploy 2 troops, then choose an opponent with a troop adjacent to at least 1 of
+        /// them") - accumulates across repeats of the same effect, unlike every other Pending*
+        /// field here, which holds a single value. Cleared by ClearState() alongside PendingSite/
+        /// PendingMoveSource. Has full DTO/rollback support (GameStateDto.PendingDeployedNodeIds,
+        /// DtoMapper, StateRestorer), matching PendingSite's pattern.
+        /// </summary>
+        IReadOnlyList<MapNode> PendingDeployedNodes { get; }
+
+        /// <summary>
+        /// "Deploy 2 troops, then choose an opponent with a troop adjacent to at least 1 of
+        /// them" (Gibbering Mouther) - deploys the active player's own troop at node (funded
+        /// like GainResource(Troops), consumed immediately instead of deferred) and records it
+        /// onto PendingDeployedNodes. See ActionSystem.PerformDeployTroop.
+        /// </summary>
+        void PerformDeployTroop(MapNode node, string? cardId);
+
+        /// <summary>
         /// Initiates the Assassination action flow.
         /// </summary>
         void TryStartAssassinate();
@@ -390,7 +408,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// input-mode selector has no other way to learn a rollback moved it, forward-progression
         /// or not.
         /// </summary>
-        void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard, PlayerColor? pendingAffectedPlayerColor = null, PlayerColor? pendingTrophyHallSourceColor = null);
+        void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard, PlayerColor? pendingAffectedPlayerColor = null, PlayerColor? pendingTrophyHallSourceColor = null, IEnumerable<MapNode>? pendingDeployedNodes = null);
 
         // --- Engine-only methods (ActionExecutionEngine's exclusive callers) ---
         // Narrow, single-purpose targeting-state mutators that stack-processing needs to

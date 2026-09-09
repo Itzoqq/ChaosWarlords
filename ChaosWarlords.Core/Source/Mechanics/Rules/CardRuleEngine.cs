@@ -40,6 +40,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 { EffectType.ReturnUnitOrSpy, new Strategies.ReturnUnitOrSpyStrategy() },
                 { EffectType.DeployFromTrophyHall, new Strategies.DeployFromTrophyHallStrategy() },
                 { EffectType.ReturnEnemySpy, new Strategies.ReturnEnemySpyStrategy() },
+                { EffectType.DeployTroop, new Strategies.DeployTroopStrategy() },
                 // Add new strategies here
             };
         }

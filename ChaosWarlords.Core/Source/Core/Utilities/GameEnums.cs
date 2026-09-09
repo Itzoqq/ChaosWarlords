@@ -35,7 +35,7 @@ namespace ChaosWarlords.Source.Utilities
                                  // Devourer: "Return up to two troops or spies"). Deliberately a
                                  // single flat state, not 2 sub-states like MoveUnit's source/
                                  // destination pair - both target types resolve in one click.
-        TargetingDeployFromTrophyHall // A single node-click destination step (mirrors
+        TargetingDeployFromTrophyHall, // A single node-click destination step (mirrors
                                  // TargetingMoveDestination: "any empty troop space, no Presence
                                  // needed") for EffectType.DeployFromTrophyHall (Mummy Lord:
                                  // "take a white troop from any trophy hall and deploy it
@@ -43,6 +43,18 @@ namespace ChaosWarlords.Source.Utilities
                                  // from is resolved automatically before this state is entered
                                  // (ActionSystem.PendingTrophyHallSourceColor) - not a separate
                                  // click, see that property's own doc comment for why.
+        TargetingDeployTroop // EffectType.DeployTroop (Gibbering Mouther: "Deploy 2 troops,
+                                 // then choose an opponent with a troop adjacent to at least 1
+                                 // of them") - an IMMEDIATE, stack-integrated node-click Deploy,
+                                 // funded the same way GainResource(Troops) is (Player.
+                                 // PendingFreeTroops, credited then consumed right away instead
+                                 // of deferred) but distinct from it: GainResource(Troops) only
+                                 // ever credits a pool the player spends LATER via the plain
+                                 // basic-action DeployTroopCommand (untracked, disconnected from
+                                 // any card's own resolution), which cannot support "then..."
+                                 // follow-up chains that need to know WHERE the troops landed.
+                                 // Each repeat's destination node is recorded onto ActionSystem.
+                                 // PendingDeployedNodes for exactly that purpose.
     }
 
     // Replaces the "Suits" (Conquest, Malice, Guile, Obedience)
@@ -166,6 +178,26 @@ namespace ChaosWarlords.Source.Utilities
         // enemy spy" specifically). See ReturnEnemySpyStrategy and MapRuleEngine.
         // HasValidReturnEnemySpyTarget.
         ReturnEnemySpy,
+
+        // "Deploy 2 troops, then choose an opponent with a troop adjacent to at least 1 of
+        // them" (Gibbering Mouther) - see ActionState.TargetingDeployTroop's doc comment for why
+        // this is distinct from GainResource(Troops). See DeployTroopStrategy and
+        // ActionSystem.PerformDeployTroop/PendingDeployedNodes.
+        DeployTroop,
+
+        // Immediately gives a SPECIFIC card (CardEffect.TargetCardId, e.g. "insane_outcast") to
+        // the active player - non-targeting/automatic, falls through to DefaultStrategy. Always
+        // reached as a chained OnSuccess off EffectType.SelectOpponent (Gibbering Mouther,
+        // Demogorgon/Ghoul's "each opponent recruits an Insane Outcast"), so "the active
+        // player" at the moment this resolves is whichever opponent SelectOpponent chose
+        // (TurnManager.ForcedActingPlayer) - never the real card-playing player. Bypasses the
+        // market row entirely via ICardDatabase.GetCardById, matching CardDatabase.
+        // GetAllMarketCards' own doc comment that supply-pile cards (RedirectsToSupplyOnDevour
+        // OrPromote) "only ever reach a player via another card's effect." Lands in the
+        // player's discard pile via IPlayerStateManager.AcquireCard, the same destination a
+        // normal paid recruit uses - "recruit" always means the same thing regardless of who
+        // paid for it.
+        ForceRecruit,
     }
 
     /// <summary>

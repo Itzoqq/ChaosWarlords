@@ -76,6 +76,13 @@ namespace ChaosWarlords.Source.Managers
             PendingTrophyHallSourceColor = sourcePlayerColor;
         }
 
+        // See IActionSystem.PendingDeployedNodes' doc comment - EffectType.DeployTroop
+        // (Gibbering Mouther). Accumulates across repeats of the same effect ("Deploy 2
+        // troops" records 2 nodes) - unlike every other Pending* field, this is a list, not a
+        // single value, so it's exposed as read-only rather than a private-set auto-property.
+        private readonly List<MapNode> _pendingDeployedNodes = new();
+        public IReadOnlyList<MapNode> PendingDeployedNodes => _pendingDeployedNodes;
+
 
 
         public Card? PendingDevourCard => _devourSubsystem.PendingDevourCard;
@@ -293,6 +300,7 @@ namespace ChaosWarlords.Source.Managers
             PendingAffectedPlayerColor = null;
             PendingTrophyHallSourceColor = null;
             PendingMoveSource = null;
+            _pendingDeployedNodes.Clear();
             // Note: PendingDevourCard is NOT cleared here to allow transactional persistence across chained actions.
 
             // Whenever we return to Normal - whether the sequence completed successfully or
@@ -644,6 +652,35 @@ namespace ChaosWarlords.Source.Managers
                 _mapManager.DeployFromTrophyHall(node, CurrentPlayer);
             }
 
+            CompleteAction();
+        }
+
+        /// <summary>
+        /// "Deploy 2 troops, then choose an opponent with a troop adjacent to at least 1 of
+        /// them" (Gibbering Mouther) - deploys CurrentPlayer's OWN troop at node, funded the
+        /// same way GainResource(Troops) is (PendingFreeTroops, granted here immediately
+        /// rather than credited for later spend), then records node so a chained
+        /// EffectType.SelectOpponent(RequiresAdjacencyToRecentDeploys) can find it. See
+        /// ActionState.TargetingDeployTroop's doc comment for why this is a distinct effect
+        /// from GainResource(Troops) rather than reusing it.
+        /// </summary>
+        public void PerformDeployTroop(MapNode node, string? cardId)
+        {
+            CurrentPlayer.PendingFreeTroops++;
+
+            // Validate() already confirmed CanDeployAt(node) moments ago with nothing else
+            // mutating state in between, so TryDeploy failing here is unreachable today - but
+            // unlike PerformAssassinate/PerformSupplant's underlying MapManager calls (which
+            // are void), TryDeploy DOES report success/failure, so a silent false here would
+            // otherwise record a node as deployed-to (PendingDeployedNodes) that never actually
+            // changed the board. Logged rather than silently swallowed, same defense-in-depth
+            // reasoning as PerformDeployFromTrophyHall's own "not an expected path" guard.
+            if (!_mapManager.TryDeploy(CurrentPlayer, node))
+            {
+                _logger.Log($"ActionSystem.PerformDeployTroop: TryDeploy unexpectedly failed for node {node.Id} despite Validate() having already accepted it.", LogChannel.Warning);
+            }
+
+            _pendingDeployedNodes.Add(node);
             CompleteAction();
         }
 
@@ -1017,7 +1054,7 @@ namespace ChaosWarlords.Source.Managers
         /// for tracking "the start of the sequence that WAS in progress" is stale regardless of
         /// which path got here or what state is being restored to.
         /// </summary>
-        public void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard, PlayerColor? pendingAffectedPlayerColor = null, PlayerColor? pendingTrophyHallSourceColor = null)
+        public void RestorePendingState(ActionState state, Card? pendingCard, Site? pendingSite, MapNode? pendingMoveSource, Card? pendingDevourCard, PlayerColor? pendingAffectedPlayerColor = null, PlayerColor? pendingTrophyHallSourceColor = null, IEnumerable<MapNode>? pendingDeployedNodes = null)
         {
             bool stateActuallyChanged = _currentState != state;
             _currentState = state;
@@ -1027,6 +1064,11 @@ namespace ChaosWarlords.Source.Managers
             PendingTrophyHallSourceColor = pendingTrophyHallSourceColor;
             PendingMoveSource = pendingMoveSource;
             _devourSubsystem.RestorePendingDevourCard(pendingDevourCard);
+            _pendingDeployedNodes.Clear();
+            if (pendingDeployedNodes != null)
+            {
+                _pendingDeployedNodes.AddRange(pendingDeployedNodes);
+            }
             _targetingSequenceSnapshot = null;
 
             if (stateActuallyChanged)

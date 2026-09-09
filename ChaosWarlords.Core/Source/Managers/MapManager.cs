@@ -94,6 +94,7 @@ namespace ChaosWarlords.Source.Managers
         public bool HasValidReturnTroopTarget(Player activePlayer) => _ruleEngine.HasValidReturnTroopTarget(activePlayer);
         public bool HasValidPlaceSpyTarget(Player activePlayer) => _ruleEngine.HasValidPlaceSpyTarget(activePlayer);
         public bool HasValidMoveSource(Player activePlayer) => _ruleEngine.HasValidMoveSource(activePlayer);
+        public bool HasValidDeployTarget(PlayerColor player) => _ruleEngine.HasValidDeployTarget(player);
 
         public MapNode? GetNodeById(int id) => NodesInternal.FirstOrDefault(n => n.Id == id);
 

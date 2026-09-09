@@ -433,7 +433,9 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             [EffectType.PromoteSelf] = (effect, card, ctx, log) => ApplyPromoteSelf(card, ctx, log),
             [EffectType.ReturnUnitOrSpy] = (effect, card, ctx, log) => ApplyReturnUnitOrSpy(card, ctx, log),
             [EffectType.DeployFromTrophyHall] = (effect, card, ctx, log) => ApplyDeployFromTrophyHall(effect, card, ctx, log),
-            [EffectType.ReturnEnemySpy] = (effect, card, ctx, log) => ApplyReturnEnemySpy(card, ctx, log)
+            [EffectType.ReturnEnemySpy] = (effect, card, ctx, log) => ApplyReturnEnemySpy(card, ctx, log),
+            [EffectType.DeployTroop] = (effect, card, ctx, log) => ApplyDeployTroop(card, ctx, log),
+            [EffectType.ForceRecruit] = (effect, card, ctx, log) => ApplyForceRecruit(effect, card, ctx, log)
         };
 
         private static void ApplyReturnOwnSpy(Card sourceCard, MatchContext context, IGameLogger logger)
@@ -500,6 +502,44 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             {
                 logger.Log($"{sourceCard.Name}: No valid trophy hall troop to take.", LogChannel.Warning);
             }
+        }
+
+        private static void ApplyDeployTroop(Card sourceCard, MatchContext context, IGameLogger logger)
+        {
+            if (context.CardRuleEngine.HasValidTargets(context.ActivePlayer, EffectType.DeployTroop, sourceCard))
+            {
+                context.ActionSystem.StartTargeting(ActionState.TargetingDeployTroop, sourceCard);
+                logger.Log($"{sourceCard.Name}: Select an empty space to deploy a troop.", LogChannel.Input);
+            }
+            else
+            {
+                logger.Log($"{sourceCard.Name}: No valid space to deploy a troop.", LogChannel.Warning);
+            }
+        }
+
+        /// <summary>
+        /// Immediately gives effect.TargetCardId to context.ActivePlayer - see
+        /// EffectType.ForceRecruit's doc comment for why "the active player" here is whoever an
+        /// earlier EffectType.SelectOpponent step chose (TurnManager.ForcedActingPlayer), not
+        /// the real card-playing player.
+        /// </summary>
+        private static void ApplyForceRecruit(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
+        {
+            if (string.IsNullOrEmpty(effect.TargetCardId))
+            {
+                logger.Log($"{sourceCard.Name}: ForceRecruit effect has no TargetCardId configured.", LogChannel.Warning);
+                return;
+            }
+
+            var forcedCard = context.CardDatabase.GetCardById(effect.TargetCardId, context.Random);
+            if (forcedCard == null)
+            {
+                logger.Log($"{sourceCard.Name}: ForceRecruit target card '{effect.TargetCardId}' not found in CardDatabase.", LogChannel.Warning);
+                return;
+            }
+
+            context.PlayerStateManager.AcquireCard(context.ActivePlayer, forcedCard);
+            logger.Log($"{sourceCard.Name}: {context.ActivePlayer.DisplayName} was forced to recruit {forcedCard.Name}.", LogChannel.Info);
         }
 
         private static void ApplyMarkOpponentDiscardAtEndOfTurn(Card sourceCard, MatchContext context, IGameLogger logger)
