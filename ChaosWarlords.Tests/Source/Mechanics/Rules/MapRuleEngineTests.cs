@@ -591,6 +591,68 @@ namespace ChaosWarlords.Tests.Systems
             // Act & Assert
             Assert.IsFalse(_engine.HasValidReturnTroopTarget(_player1));
         }
+
+        // --- enemyOnly (High Priest of Myrkul: "Return another player's troop or spy") ---
+
+        [TestMethod]
+        public void HasValidReturnTroopTarget_EnemyOnly_False_IfOnlyOwnTroop()
+        {
+            _node1.Occupant = _player1.Color;
+            _node2.Occupant = PlayerColor.None;
+            _node3.Occupant = PlayerColor.None;
+
+            Assert.IsFalse(_engine.HasValidReturnTroopTarget(_player1, enemyOnly: true), "Enemy-only must exclude the active player's own troop entirely, even with no Presence restriction issue.");
+        }
+
+        [TestMethod]
+        public void HasValidReturnTroopTarget_EnemyOnly_True_IfEnemyTroopAndPresence()
+        {
+            _node1.Occupant = _player1.Color;
+            _node2.Occupant = _player2.Color;
+
+            Assert.IsTrue(_engine.HasValidReturnTroopTarget(_player1, enemyOnly: true));
+        }
+
+        [TestMethod]
+        public void HasValidReturnTroopTarget_EnemyOnly_False_IfEnemyTroopButNoPresence()
+        {
+            _node2.Occupant = _player2.Color;
+            _node1.Occupant = PlayerColor.None;
+            _node3.Occupant = PlayerColor.None;
+
+            Assert.IsFalse(_engine.HasValidReturnTroopTarget(_player1, enemyOnly: true));
+        }
+
+        [TestMethod]
+        public void HasValidReturnAnySpyTarget_EnemyOnly_False_IfOnlyOwnSpy()
+        {
+            _siteA.Spies.Add(_player1.Color);
+
+            Assert.IsFalse(_engine.HasValidReturnAnySpyTarget(_player1, enemyOnly: true), "Enemy-only must exclude the active player's own spy entirely.");
+        }
+
+        [TestMethod]
+        public void HasValidReturnAnySpyTarget_EnemyOnly_True_IfEnemySpyAndPresence()
+        {
+            _siteA.Spies.Add(_player2.Color);
+            _node3.Occupant = _player1.Color;
+
+            Assert.IsTrue(_engine.HasValidReturnAnySpyTarget(_player1, enemyOnly: true));
+        }
+
+        [TestMethod]
+        public void HasValidReturnAnySpyTarget_EnemyOnly_True_WhenOwnAndEnemySpySharesTheOnlySite()
+        {
+            // Own spy is excluded entirely under enemyOnly, so only the enemy spy is eligible
+            // here - exactly one eligible spy, not the "2+ simultaneously eligible" ambiguous
+            // case the non-enemy-only test above covers.
+            _siteA.Spies.Add(_player1.Color);
+            _siteA.Spies.Add(_player2.Color);
+            _node3.Occupant = _player1.Color;
+
+            Assert.IsTrue(_engine.HasValidReturnAnySpyTarget(_player1, enemyOnly: true), "Exactly one spy (the enemy's) is eligible once the own spy is excluded - not ambiguous.");
+        }
+
         [TestMethod]
         public void CanDeployAt_PlayingPhase_False_IfHasSpiesButNoTroops()
         {

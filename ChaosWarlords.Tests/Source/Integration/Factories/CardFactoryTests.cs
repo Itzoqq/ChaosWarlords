@@ -765,6 +765,179 @@ namespace ChaosWarlords.Tests.Integration.Factories
 
             Assert.IsFalse(card.Effects[0].SkipUnreachableOnSuccessCheck);
         }
+
+        // --- Card.CreatureType (High Priest of Myrkul's "Undead cards" filter) - see
+        // CardCreatureType's own doc comment ---
+
+        [TestMethod]
+        public void CreateFromData_CreatureTypeUndead_ParsesOntoTheCard()
+        {
+            var cardData = new CardData
+            {
+                Id = "test_card",
+                Aspect = "Neutral",
+                CreatureType = "Undead",
+                Effects = new List<CardEffectData>()
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization);
+
+            Assert.AreEqual(CardCreatureType.Undead, card.CreatureType);
+        }
+
+        [TestMethod]
+        public void CreateFromData_CreatureTypeNotAuthored_DefaultsToNone()
+        {
+            var cardData = new CardData
+            {
+                Id = "test_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>()
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization);
+
+            Assert.AreEqual(CardCreatureType.None, card.CreatureType);
+        }
+
+        [TestMethod]
+        public void CreateFromData_CreatureTypeUnparseable_LogsAWarningAndDefaultsToNone()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "test_card",
+                Aspect = "Neutral",
+                CreatureType = "NotARealCreatureType",
+                Effects = new List<CardEffectData>()
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            Assert.AreEqual(CardCreatureType.None, card.CreatureType);
+            logger.Received(1).Log(Arg.Is<string>(s => s.Contains("FAILED to parse CreatureType")), LogChannel.Warning);
+        }
+
+        // --- CardEffect.PromoteAnyNumber / RequiredPromotionCreatureType (High Priest of
+        // Myrkul's "promote ANY NUMBER of Undead cards played this turn") load-time parsing/
+        // validation - see CardFactory.WarnIfPromoteAnyNumberShapeIsUnsupported ---
+
+        [TestMethod]
+        public void CreateFromData_PromoteAnyNumberAndRequiredPromotionCreatureType_ParseOntoTheEffect()
+        {
+            var cardData = new CardData
+            {
+                Id = "test_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "Promote", PromoteAnyNumber = true, RequiredPromotionCreatureType = "Undead" }
+                }
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization);
+
+            Assert.IsTrue(card.Effects[0].PromoteAnyNumber);
+            Assert.AreEqual(CardCreatureType.Undead, card.Effects[0].RequiredPromotionCreatureType);
+        }
+
+        [TestMethod]
+        public void CreateFromData_PromoteAnyNumberOnPromote_LogsNoWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "test_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "Promote", PromoteAnyNumber = true }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.DidNotReceiveWithAnyArgs().Log(default(string)!, default);
+        }
+
+        [TestMethod]
+        public void CreateFromData_PromoteAnyNumberOnANonPromoteEffect_LogsAWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "test_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "GainResource", Amount = 2, TargetResource = "Influence", PromoteAnyNumber = true }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.Received(1).Log(Arg.Is<string>(s => s.Contains("only wired for EffectType.Promote")), LogChannel.Warning);
+        }
+
+        // --- CardEffect.ReturnEnemyOnly (High Priest of Myrkul's "Return another player's
+        // troop or spy") load-time validation - see
+        // CardFactory.WarnIfReturnEnemyOnlyShapeIsUnsupported ---
+
+        [TestMethod]
+        public void CreateFromData_ReturnEnemyOnlyParsesOntoTheEffect()
+        {
+            var cardData = new CardData
+            {
+                Id = "test_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "ReturnUnitOrSpy", Amount = 1, ReturnEnemyOnly = true }
+                }
+            };
+
+            var card = CardFactory.CreateFromData(cardData, _localization);
+
+            Assert.IsTrue(card.Effects[0].ReturnEnemyOnly);
+        }
+
+        [TestMethod]
+        public void CreateFromData_ReturnEnemyOnlyOnReturnUnitOrSpy_LogsNoWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "test_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "ReturnUnitOrSpy", Amount = 1, ReturnEnemyOnly = true }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.DidNotReceiveWithAnyArgs().Log(default(string)!, default);
+        }
+
+        [TestMethod]
+        public void CreateFromData_ReturnEnemyOnlyOnANonReturnUnitOrSpyEffect_LogsAWarning()
+        {
+            var logger = Substitute.For<IGameLogger>();
+            var cardData = new CardData
+            {
+                Id = "test_card",
+                Aspect = "Neutral",
+                Effects = new List<CardEffectData>
+                {
+                    new CardEffectData { Type = "ReturnUnit", Amount = 1, ReturnEnemyOnly = true }
+                }
+            };
+
+            CardFactory.CreateFromData(cardData, _localization, logger: logger);
+
+            logger.Received(1).Log(Arg.Is<string>(s => s.Contains("only wired for EffectType.ReturnUnitOrSpy")), LogChannel.Warning);
+        }
     }
 }
 

@@ -274,6 +274,135 @@ namespace ChaosWarlords.Tests.Contexts
             Assert.IsTrue(_turnContext.CanDeclineRemainingPromotions, "Only optional credits remain now - declining should be allowed.");
         }
 
+        // --- Unbounded credits (High Priest of Myrkul: "promote ANY NUMBER of Undead cards
+        // played this turn") ---
+
+        [TestMethod]
+        public void AddUnboundedPromotionCredit_NoMatchingPlayedCards_ExpandsToZeroCredits()
+        {
+            var highPriest = new CardBuilder().WithName("high_priest").Build();
+            _dummyPlayer.AddToPlayed(highPriest); // Not itself Undead - matches the real card.
+
+            _turnContext.AddUnboundedPromotionCredit(highPriest, CardCreatureType.Undead);
+
+            Assert.AreEqual(0, _turnContext.PendingPromotionsCount, "No Undead cards played this turn - zero credits should materialize.");
+        }
+
+        [TestMethod]
+        public void AddUnboundedPromotionCredit_ExpandsToOneCreditPerMatchingPlayedCard()
+        {
+            var highPriest = new CardBuilder().WithName("high_priest").Build();
+            var undead1 = new CardBuilder().WithName("undead1").WithCreatureType(CardCreatureType.Undead).Build();
+            var undead2 = new CardBuilder().WithName("undead2").WithCreatureType(CardCreatureType.Undead).Build();
+            var human = new CardBuilder().WithName("human").WithCreatureType(CardCreatureType.None).Build();
+            _dummyPlayer.AddToPlayed(highPriest);
+            _dummyPlayer.AddToPlayed(undead1);
+            _dummyPlayer.AddToPlayed(undead2);
+            _dummyPlayer.AddToPlayed(human);
+
+            _turnContext.AddUnboundedPromotionCredit(highPriest, CardCreatureType.Undead);
+
+            // PendingPromotionsCount deliberately does NOT itself trigger expansion (see its
+            // own doc comment) - ForfeitUnsatisfiableCredits is the real, safe trigger a
+            // genuine redemption session always calls first.
+            _turnContext.ForfeitUnsatisfiableCredits(_dummyPlayer.PlayedCards);
+
+            Assert.AreEqual(2, _turnContext.PendingPromotionsCount, "Exactly one credit per eligible Undead card played this turn.");
+            Assert.IsTrue(_turnContext.HasValidCreditFor(undead1));
+            Assert.IsTrue(_turnContext.HasValidCreditFor(undead2));
+            Assert.IsFalse(_turnContext.HasValidCreditFor(human), "The credit is filtered to Undead - a non-Undead card must not be a valid target.");
+        }
+
+        [TestMethod]
+        public void AddUnboundedPromotionCredit_ExcludesTheSourceCardItself_EvenIfItMatchesTheCreatureType()
+        {
+            // No shipped card needs this (High Priest of Myrkul is Human, not Undead), but the
+            // self-exclusion rule is unconditional - prove it holds here too.
+            var undeadSource = new CardBuilder().WithName("undead_source").WithCreatureType(CardCreatureType.Undead).Build();
+            _dummyPlayer.AddToPlayed(undeadSource);
+
+            _turnContext.AddUnboundedPromotionCredit(undeadSource, CardCreatureType.Undead);
+
+            Assert.AreEqual(0, _turnContext.PendingPromotionsCount);
+        }
+
+        [TestMethod]
+        public void AddUnboundedPromotionCredit_IsAlwaysOptional()
+        {
+            var highPriest = new CardBuilder().WithName("high_priest").Build();
+            var undead1 = new CardBuilder().WithName("undead1").WithCreatureType(CardCreatureType.Undead).Build();
+            _dummyPlayer.AddToPlayed(highPriest);
+            _dummyPlayer.AddToPlayed(undead1);
+            _turnContext.AddUnboundedPromotionCredit(highPriest, CardCreatureType.Undead);
+
+            Assert.IsTrue(_turnContext.CanDeclineRemainingPromotions, "\"Any number, including zero\" can never be mandatory.");
+        }
+
+        [TestMethod]
+        public void AddUnboundedPromotionCredit_QueriedMultipleTimesBeforeConsumption_DoesNotDoubleExpand()
+        {
+            var highPriest = new CardBuilder().WithName("high_priest").Build();
+            var undead1 = new CardBuilder().WithName("undead1").WithCreatureType(CardCreatureType.Undead).Build();
+            _dummyPlayer.AddToPlayed(highPriest);
+            _dummyPlayer.AddToPlayed(undead1);
+            _turnContext.AddUnboundedPromotionCredit(highPriest, CardCreatureType.Undead);
+
+            // Every one of these reads independently triggers expansion - it must be idempotent.
+            _ = _turnContext.HasValidCreditFor(undead1);
+            _ = _turnContext.CanDeclineRemainingPromotions;
+            _ = _turnContext.ForfeitUnsatisfiableCredits(new[] { highPriest, undead1 });
+
+            Assert.AreEqual(1, _turnContext.PendingPromotionsCount, "Repeated reads before any real consumption must not inflate the credit count.");
+        }
+
+        [TestMethod]
+        public void AddUnboundedPromotionCredit_ConsumingAllEligibleCards_LeavesNoneOutstanding()
+        {
+            var highPriest = new CardBuilder().WithName("high_priest").Build();
+            var undead1 = new CardBuilder().WithName("undead1").WithCreatureType(CardCreatureType.Undead).Build();
+            var undead2 = new CardBuilder().WithName("undead2").WithCreatureType(CardCreatureType.Undead).Build();
+            _dummyPlayer.AddToPlayed(highPriest);
+            _dummyPlayer.AddToPlayed(undead1);
+            _dummyPlayer.AddToPlayed(undead2);
+            _turnContext.AddUnboundedPromotionCredit(highPriest, CardCreatureType.Undead);
+
+            _turnContext.ConsumeCreditFor(undead1);
+            _turnContext.ConsumeCreditFor(undead2);
+
+            Assert.AreEqual(0, _turnContext.PendingPromotionsCount);
+        }
+
+        [TestMethod]
+        public void AddUnboundedPromotionCredit_TwoSourcesSharingTheSamePool_OverCreditingIsSweptOnceTargetsAreGone()
+        {
+            // 2 High Priests of Myrkul played the same turn, with only 1 real Undead card to
+            // promote - each independently expands against the SAME eligible pool (2 phantom
+            // credits total for 1 real target). Harmless: the extra credit becomes unsatisfiable
+            // the moment the real target is promoted and gets swept like any other stranded
+            // optional credit, never soft-locking (it was always optional to begin with).
+            var highPriest1 = new CardBuilder().WithName("high_priest_1").Build();
+            var highPriest2 = new CardBuilder().WithName("high_priest_2").Build();
+            var undead1 = new CardBuilder().WithName("undead1").WithCreatureType(CardCreatureType.Undead).Build();
+            _dummyPlayer.AddToPlayed(highPriest1);
+            _dummyPlayer.AddToPlayed(highPriest2);
+            _dummyPlayer.AddToPlayed(undead1);
+            _turnContext.AddUnboundedPromotionCredit(highPriest1, CardCreatureType.Undead);
+            _turnContext.AddUnboundedPromotionCredit(highPriest2, CardCreatureType.Undead);
+
+            // PendingPromotionsCount deliberately does NOT itself trigger expansion - force it
+            // via the real, safe trigger a genuine redemption session always calls first.
+            _turnContext.ForfeitUnsatisfiableCredits(_dummyPlayer.PlayedCards);
+            Assert.AreEqual(2, _turnContext.PendingPromotionsCount, "Setup check: over-credited beyond the 1 real target.");
+
+            _turnContext.ConsumeCreditFor(undead1);
+            var playedCardsAfterPromoting = new[] { highPriest1, highPriest2 };
+            int forfeited = _turnContext.ForfeitUnsatisfiableCredits(playedCardsAfterPromoting);
+
+            Assert.AreEqual(1, forfeited, "The now-unsatisfiable phantom credit must be swept.");
+            Assert.AreEqual(0, _turnContext.PendingPromotionsCount);
+            Assert.IsTrue(_turnContext.CanDeclineRemainingPromotions);
+        }
+
         // --- Promotion completion effects (Blue Dragon: "...then gain 1 VP for every 3 cards
         // in your inner circle") ---
 

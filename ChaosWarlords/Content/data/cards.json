@@ -130,6 +130,7 @@
     "Aspect": "Sorcery",
     "DeckVP": 1,
     "InnerCircleVP": 3,
+    "CreatureType": "Undead",
     "Effects": [
       {
         "Type": "Devour",
@@ -154,6 +155,7 @@
     "Aspect": "Warlord",
     "DeckVP": 1,
     "InnerCircleVP": 2,
+    "CreatureType": "Undead",
     "Effects": [
       {
         "Type": "GainResource",
@@ -213,6 +215,7 @@
     "Aspect": "Warlord",
     "DeckVP": 1,
     "InnerCircleVP": 2,
+    "CreatureType": "Undead",
     "Effects": [
       {
         "Type": "GainResource",
@@ -356,6 +359,7 @@
     "Aspect": "Shadow",
     "DeckVP": 2,
     "InnerCircleVP": 4,
+    "CreatureType": "Undead",
     "Effects": [
       {
         "Type": "PlaceSpy",
@@ -525,6 +529,7 @@
     "Aspect": "Warlord",
     "DeckVP": 2,
     "InnerCircleVP": 4,
+    "CreatureType": "Undead",
     "Effects": [
       {
         "Type": "Supplant",
@@ -593,6 +598,7 @@
     "Aspect": "Sorcery",
     "DeckVP": 3,
     "InnerCircleVP": 7,
+    "CreatureType": "Undead",
     "Effects": [
       {
         "Type": "Supplant",
@@ -628,6 +634,7 @@
     "Aspect": "Blasphemy",
     "DeckVP": 4,
     "InnerCircleVP": 7,
+    "CreatureType": "Undead",
     "Effects": [
       {
         "Type": "Supplant",
@@ -930,6 +937,7 @@
     "Aspect": "Sorcery",
     "DeckVP": 1,
     "InnerCircleVP": 4,
+    "CreatureType": "Undead",
     "Effects": [
       {
         "Type": "Assassinate",
@@ -948,6 +956,7 @@
     "Aspect": "Warlord",
     "DeckVP": 1,
     "InnerCircleVP": 3,
+    "CreatureType": "Undead",
     "Effects": [
       {
         "Type": "GainResource",
@@ -1039,6 +1048,7 @@
     "Aspect": "Warlord",
     "DeckVP": 3,
     "InnerCircleVP": 6,
+    "CreatureType": "Undead",
     "Effects": [
       {
         "Type": "Assassinate",
@@ -1147,6 +1157,7 @@
     "Aspect": "Sorcery",
     "DeckVP": 2,
     "InnerCircleVP": 4,
+    "CreatureType": "Undead",
     "Effects": [
       {
         "Type": "GainResource",
@@ -1308,5 +1319,24 @@
     "ReactiveDiscardEffect": {
       "Type": "PromoteInsteadOfDiscard"
     }
+  },
+  {
+    "Id": "high_priest_of_myrkul",
+    "Cost": 6,
+    "Aspect": "Blasphemy",
+    "DeckVP": 3,
+    "InnerCircleVP": 6,
+    "Effects": [
+      {
+        "Type": "ReturnUnitOrSpy",
+        "Amount": 1,
+        "ReturnEnemyOnly": true
+      },
+      {
+        "Type": "Promote",
+        "PromoteAnyNumber": true,
+        "RequiredPromotionCreatureType": "Undead"
+      }
+    ]
   }
 ]

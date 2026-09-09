@@ -69,6 +69,24 @@ namespace ChaosWarlords.Source.Utilities
         Oblivion        // Void/Devour themed
     }
 
+    /// <summary>
+    /// Each physical card also prints a creature-type label in its top-right corner (Human,
+    /// Undead, Aberration, Monstrosity, Illithid, ...) - a genuinely separate data dimension
+    /// from CardAspect (the colored icon/keyword top-left). Only `Undead` is modeled here,
+    /// because it's the only type any shipped mechanic reads (High Priest of Myrkul: "...promote
+    /// ANY NUMBER of Undead cards played this turn" - TurnContext.AddUnboundedPromotionCredit/
+    /// CardEffect.RequiredPromotionCreatureType). `None` (the default) does NOT mean "no
+    /// printed type" - most cards ARE some other real type (Human, Aberration, etc.) that simply
+    /// isn't tracked yet, since nothing consumes it. Extend this enum with a new value (and
+    /// retroactively tag the affected already-shipped cards) only once a mechanic actually needs
+    /// to filter on that specific type - don't speculatively fill in every card's real type.
+    /// </summary>
+    public enum CardCreatureType
+    {
+        None = 0,
+        Undead
+    }
+
     public enum ResourceType
     {
         None = 0,

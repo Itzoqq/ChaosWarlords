@@ -90,8 +90,8 @@ namespace ChaosWarlords.Source.Managers
         public bool HasValidAssassinationTarget(Player activePlayer, bool requireNeutralTroop = false, bool ignoresPresence = false, Site? restrictToSite = null) => _ruleEngine.HasValidAssassinationTarget(activePlayer, requireNeutralTroop, ignoresPresence, restrictToSite);
         public bool HasValidReturnSpyTarget(Player activePlayer) => _ruleEngine.HasValidReturnSpyTarget(activePlayer);
         public bool HasValidReturnEnemySpyTarget(Player activePlayer) => _ruleEngine.HasValidReturnEnemySpyTarget(activePlayer);
-        public bool HasValidReturnAnySpyTarget(Player activePlayer) => _ruleEngine.HasValidReturnAnySpyTarget(activePlayer);
-        public bool HasValidReturnTroopTarget(Player activePlayer) => _ruleEngine.HasValidReturnTroopTarget(activePlayer);
+        public bool HasValidReturnAnySpyTarget(Player activePlayer, bool enemyOnly = false) => _ruleEngine.HasValidReturnAnySpyTarget(activePlayer, enemyOnly);
+        public bool HasValidReturnTroopTarget(Player activePlayer, bool enemyOnly = false) => _ruleEngine.HasValidReturnTroopTarget(activePlayer, enemyOnly);
         public bool HasValidPlaceSpyTarget(Player activePlayer) => _ruleEngine.HasValidPlaceSpyTarget(activePlayer);
         public bool HasValidMoveSource(Player activePlayer) => _ruleEngine.HasValidMoveSource(activePlayer);
         public bool HasValidDeployTarget(PlayerColor player) => _ruleEngine.HasValidDeployTarget(player);
@@ -200,7 +200,10 @@ namespace ChaosWarlords.Source.Managers
             _combat.ExecuteAssassinate(node, attacker);
         }
 
-        public bool CanReturnTroop(MapNode node, Player requestingPlayer)
+        // enemyOnly (High Priest of Myrkul: "Return another player's troop or spy") excludes the
+        // requester's own troop from eligibility entirely, regardless of Presence - see
+        // CardEffect.ReturnEnemyOnly.
+        public bool CanReturnTroop(MapNode node, Player requestingPlayer, bool enemyOnly = false)
         {
             if (node is null) return false;
             // Cannot return Neutral
@@ -216,7 +219,7 @@ namespace ChaosWarlords.Source.Managers
             // under-restricting nothing shipped today caught it on (no card returns the
             // acting player's own troop yet), but was a real rules violation waiting for the
             // first one that does. See planning.txt.
-            if (node.Occupant == requestingPlayer.Color) return true;
+            if (node.Occupant == requestingPlayer.Color) return !enemyOnly;
 
             return HasPresence(node, requestingPlayer.Color);
         }
@@ -306,11 +309,13 @@ namespace ChaosWarlords.Source.Managers
             return site.Spies.Where(s => s != PlayerColor.None).ToList();
         }
 
-        public bool CanReturnAnySpy(Site site, Player activePlayer, PlayerColor spyColor)
+        // enemyOnly (High Priest of Myrkul) excludes the active player's own spy from
+        // eligibility entirely - see CardEffect.ReturnEnemyOnly.
+        public bool CanReturnAnySpy(Site site, Player activePlayer, PlayerColor spyColor, bool enemyOnly = false)
         {
             if (site is null) return false;
             if (!site.Spies.Contains(spyColor)) return false;
-            if (spyColor == activePlayer.Color) return true; // Own spy: no Presence needed.
+            if (spyColor == activePlayer.Color) return !enemyOnly; // Own spy: no Presence needed (unless excluded entirely).
             return site.NodesInternal.Any(n => HasPresence(n, activePlayer.Color));
         }
 

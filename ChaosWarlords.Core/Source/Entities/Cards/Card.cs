@@ -58,9 +58,16 @@ namespace ChaosWarlords.Source.Entities.Cards
         public int Cost { get; private set; }
 
         /// <summary>
-        /// The elemental or factional aspect of the card (e.g. Shadow, Undead).
+        /// The elemental or factional aspect of the card (e.g. Shadow, Order).
         /// </summary>
         public CardAspect Aspect { get; private set; }
+
+        /// <summary>
+        /// The creature type printed in the card's top-right corner (e.g. Undead, Human) - see
+        /// CardCreatureType's own doc comment for why only Undead is modeled today. Defaults to
+        /// None for every card not explicitly tagged in cards.json.
+        /// </summary>
+        public CardCreatureType CreatureType { get; private set; }
 
         /// <summary>
         /// Victory Points worth when in the deck at end of game.
@@ -118,7 +125,7 @@ namespace ChaosWarlords.Source.Entities.Cards
         public static int Width => GameConstants.CardRendering.CardWidth;
         public static int Height => GameConstants.CardRendering.CardHeight;
 
-        public Card(string id, string name, int cost, CardAspect aspect, int deckVp, int innerCircleVp, int influence, string? definitionId = null)
+        public Card(string id, string name, int cost, CardAspect aspect, int deckVp, int innerCircleVp, int influence, string? definitionId = null, CardCreatureType creatureType = CardCreatureType.None)
         {
             Id = id;
             DefinitionId = definitionId ?? id;
@@ -128,6 +135,7 @@ namespace ChaosWarlords.Source.Entities.Cards
             DeckVP = deckVp;
             InnerCircleVP = innerCircleVp;
             InfluenceValue = influence;
+            CreatureType = creatureType;
         }
 
         public void AddEffect(CardEffect effect)
@@ -137,7 +145,7 @@ namespace ChaosWarlords.Source.Entities.Cards
 
         public Card Clone()
         {
-            var newCard = new Card(Id, Name, Cost, Aspect, DeckVP, InnerCircleVP, InfluenceValue, DefinitionId)
+            var newCard = new Card(Id, Name, Cost, Aspect, DeckVP, InnerCircleVP, InfluenceValue, DefinitionId, CreatureType)
             {
                 Description = Description,
                 Location = Location,
@@ -193,6 +201,9 @@ namespace ChaosWarlords.Source.Entities.Cards
                 TargetCardId = effect.TargetCardId,
                 AppliesToEachOpponent = effect.AppliesToEachOpponent,
                 RequiredPromotionAspect = effect.RequiredPromotionAspect,
+                RequiredPromotionCreatureType = effect.RequiredPromotionCreatureType,
+                PromoteAnyNumber = effect.PromoteAnyNumber,
+                ReturnEnemyOnly = effect.ReturnEnemyOnly,
                 Condition = effect.Condition // Reference copy for condition (usually shared/immutable)
             };
 

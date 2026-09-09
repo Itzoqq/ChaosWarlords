@@ -233,6 +233,30 @@ namespace ChaosWarlords.Source.Entities.Cards
         // filter or no filter) - not a replacement for it.
         public CardAspect? RequiredPromotionAspect { get; set; }
 
+        // "...promote ANY NUMBER of Undead cards played this turn" (High Priest of Myrkul) - a
+        // sibling restriction to RequiredPromotionAspect, filtering on CardCreatureType instead
+        // of CardAspect. Independent of PromoteAnyNumber below (a plain fixed-Amount Promote
+        // credit could theoretically carry a creature-type filter too, though no shipped card
+        // does yet) - the two are orthogonal knobs on the same EffectType.Promote shape.
+        public CardCreatureType? RequiredPromotionCreatureType { get; set; }
+
+        // "...promote ANY NUMBER of..." (as opposed to a fixed Amount, e.g. core_noble's 1 or
+        // Cultist of Myrkul's "up to 2") - when true, ApplyPromote banks an UNBOUNDED credit
+        // (TurnContext.AddUnboundedPromotionCredit) instead of Amount discrete ones: exactly one
+        // redeemable credit per currently-eligible played card, computed once redemption
+        // actually starts (by which point no more cards can be played this turn), rather than a
+        // literal integer authored in cards.json. Always implicitly optional - "any number,
+        // including zero" can never be mandatory - so PromotionCreditIsOptional is irrelevant
+        // when this is set. Effect.Amount is ignored entirely when this is true.
+        public bool PromoteAnyNumber { get; set; }
+
+        // "Return another player's troop or spy" (High Priest of Myrkul) - restricts
+        // EffectType.ReturnUnitOrSpy's target-type union (own-or-enemy troop-or-spy, Intellect
+        // Devourer's shape) to enemy-only, filling the gap between that effect (too broad) and
+        // EffectType.ReturnEnemySpy (enemy-only but spy-only, too narrow). Defaults to false so
+        // Intellect Devourer's existing own-or-enemy behavior is unaffected.
+        public bool ReturnEnemyOnly { get; set; }
+
         public CardEffect(EffectType type, int amount, ResourceType targetResource = ResourceType.None)
         {
             Type = type;

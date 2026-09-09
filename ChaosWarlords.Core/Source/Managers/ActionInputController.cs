@@ -151,7 +151,14 @@ namespace ChaosWarlords.Source.Managers
         {
             // Delegates to MapManager.CanReturnTroop - see ReturnTroopCommand.Validate's
             // comment for why this used to reimplement the same checks independently.
-            if (!_mapManager.CanReturnTroop(targetNode, ActivePlayer()))
+            // CardEffect.ReturnEnemyOnly (High Priest of Myrkul) restricts this the same way
+            // HandleAssassinate/HandleSupplant read their own per-effect flags off
+            // CurrentSourceEffect - shared by both TargetingReturn (plain ReturnUnit, always
+            // false here) and TargetingReturnUnitOrSpy.
+            var pendingEffect = _actionSystem.CurrentSourceEffect;
+            bool enemyOnly = pendingEffect != null && pendingEffect.Type == EffectType.ReturnUnitOrSpy && pendingEffect.ReturnEnemyOnly;
+
+            if (!_mapManager.CanReturnTroop(targetNode, ActivePlayer(), enemyOnly))
             {
                 return null;
             }

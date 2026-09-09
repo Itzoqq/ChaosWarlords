@@ -34,6 +34,7 @@ namespace ChaosWarlords.Source.Utilities
         public static Card CreateFromData(CardData data, ILocalizationService localization, IGameRandom? random = null, IGameLogger? logger = null)
         {
             Enum.TryParse(data.Aspect, true, out CardAspect aspect);
+            CardCreatureType creatureType = ParseCreatureType(data, logger);
 
             // Name/Description are resolved from the localization bundle, keyed off the
             // card's definitional Id (NOT the randomized runtime Card.Id generated below) -
@@ -41,7 +42,7 @@ namespace ChaosWarlords.Source.Utilities
             string name = localization.GetString($"{data.Id}_name");
 
             // Using 0 for influence as default
-            var card = new Card(GenerateUniqueId(data.Id, random), name, data.Cost, aspect, data.DeckVP, data.InnerCircleVP, 0, definitionId: data.Id);
+            var card = new Card(GenerateUniqueId(data.Id, random), name, data.Cost, aspect, data.DeckVP, data.InnerCircleVP, 0, definitionId: data.Id, creatureType: creatureType);
 
             card.Description = localization.GetString($"{data.Id}_description");
             card.RedirectsToSupplyOnDevourOrPromote = data.RedirectsToSupplyOnDevourOrPromote;
@@ -56,22 +57,41 @@ namespace ChaosWarlords.Source.Utilities
                         card.AddEffect(effect);
                     }
 
-                    // EffectType.PromoteInsteadOfDiscard only means anything as
-                    // Card.ReactiveDiscardEffect (DiscardCardCommand special-cases it directly -
-                    // see that EffectType's own doc comment) - it has no CardEffectProcessor
-                    // handler at all, so authored as a top-level Effects entry it would silently
-                    // no-op forever instead of erroring. Warn at load time, same "catch it before
-                    // it ships" precedent as ParseReactiveDiscardEffect's own warning.
-                    if (effect?.Type == EffectType.PromoteInsteadOfDiscard)
-                    {
-                        logger?.Log($"[CardFactory] {data.Id}: EffectType.PromoteInsteadOfDiscard is only meaningful as ReactiveDiscardEffect - authored as a top-level effect, it will parse but never actually fire.", LogChannel.Warning);
-                    }
+                    WarnIfPromoteInsteadOfDiscardAuthoredAsTopLevelEffect(data, effect, logger);
                 }
             }
 
             ParseReactiveDiscardEffect(data, card, logger);
 
             return card;
+        }
+
+        private static CardCreatureType ParseCreatureType(CardData data, IGameLogger? logger)
+        {
+            if (string.IsNullOrEmpty(data.CreatureType))
+            {
+                return CardCreatureType.None;
+            }
+
+            if (!Enum.TryParse(data.CreatureType, true, out CardCreatureType creatureType))
+            {
+                logger?.Log($"[CardFactory] {data.Id}: FAILED to parse CreatureType: {data.CreatureType}", LogChannel.Warning);
+            }
+
+            return creatureType;
+        }
+
+        // EffectType.PromoteInsteadOfDiscard only means anything as Card.ReactiveDiscardEffect
+        // (DiscardCardCommand special-cases it directly - see that EffectType's own doc comment)
+        // - it has no CardEffectProcessor handler at all, so authored as a top-level Effects
+        // entry it would silently no-op forever instead of erroring. Warn at load time, same
+        // "catch it before it ships" precedent as ParseReactiveDiscardEffect's own warning.
+        private static void WarnIfPromoteInsteadOfDiscardAuthoredAsTopLevelEffect(CardData data, CardEffect? effect, IGameLogger? logger)
+        {
+            if (effect?.Type == EffectType.PromoteInsteadOfDiscard)
+            {
+                logger?.Log($"[CardFactory] {data.Id}: EffectType.PromoteInsteadOfDiscard is only meaningful as ReactiveDiscardEffect - authored as a top-level effect, it will parse but never actually fire.", LogChannel.Warning);
+            }
         }
 
         private static void ParseReactiveDiscardEffect(CardData data, Card card, IGameLogger? logger)
@@ -110,12 +130,17 @@ namespace ChaosWarlords.Source.Utilities
             ParseGainResourcePerRepeat(data, effect, logger);
             ParsePromotionCompletionEffect(data, effect, logger);
             ParseRequiredPromotionAspect(data, effect, logger);
+            ParseRequiredPromotionCreatureType(data, effect, logger);
+            effect.PromoteAnyNumber = data.PromoteAnyNumber;
+            effect.ReturnEnemyOnly = data.ReturnEnemyOnly;
             WarnIfChooseCountShapeIsUnsupported(data, effect, logger);
             WarnIfChainedRepeatCountShapeIsUnsupported(data, effect, logger);
             WarnIfGainResourcePerRepeatShapeIsUnsupported(data, effect, logger);
             WarnIfPromotionCompletionEffectShapeIsUnsupported(data, effect, logger);
             WarnIfAppliesToEachOpponentShapeIsUnsupported(data, effect, logger);
             WarnIfRequiredPromotionAspectShapeIsUnsupported(data, effect, logger);
+            WarnIfPromoteAnyNumberShapeIsUnsupported(data, effect, logger);
+            WarnIfReturnEnemyOnlyShapeIsUnsupported(data, effect, logger);
 
             return effect;
         }
@@ -344,6 +369,55 @@ namespace ChaosWarlords.Source.Utilities
             if (effect.Type != EffectType.Promote)
             {
                 logger?.Log($"[CardFactory] {data.Type}: RequiredPromotionAspect={effect.RequiredPromotionAspect} is only wired for EffectType.Promote - it will parse and clone but never actually filter anything on this effect type.", LogChannel.Warning);
+            }
+        }
+
+        private static void ParseRequiredPromotionCreatureType(CardEffectData data, CardEffect effect, IGameLogger? logger)
+        {
+            if (string.IsNullOrEmpty(data.RequiredPromotionCreatureType))
+                return;
+
+            if (Enum.TryParse(data.RequiredPromotionCreatureType, true, out CardCreatureType creatureType))
+            {
+                effect.RequiredPromotionCreatureType = creatureType;
+            }
+            else
+            {
+                logger?.Log($"[CardFactory] FAILED to parse RequiredPromotionCreatureType: {data.RequiredPromotionCreatureType}", LogChannel.Warning);
+            }
+        }
+
+        // CardEffect.PromoteAnyNumber is only ever read by CardEffectProcessor.ApplyPromote -
+        // authoring it on any other EffectType would parse and clone fine but silently never do
+        // anything, exactly the "catch it before it ships" gap ChooseCount/ChainedRepeatCount's
+        // own warnings above exist to close.
+        private static void WarnIfPromoteAnyNumberShapeIsUnsupported(CardEffectData data, CardEffect effect, IGameLogger? logger)
+        {
+            if (!effect.PromoteAnyNumber)
+            {
+                return;
+            }
+
+            if (effect.Type != EffectType.Promote)
+            {
+                logger?.Log($"[CardFactory] {data.Type}: PromoteAnyNumber is only wired for EffectType.Promote - it will parse and clone but never actually do anything on this effect type.", LogChannel.Warning);
+            }
+        }
+
+        // CardEffect.ReturnEnemyOnly is only ever read by ReturnUnitOrSpyStrategy/
+        // ReturnTroopCommand/ReturnAnySpyCommand/ActionInputController/SpySubsystem when the
+        // driving effect is EffectType.ReturnUnitOrSpy - authoring it on any other EffectType
+        // would parse and clone fine but silently never restrict anything.
+        private static void WarnIfReturnEnemyOnlyShapeIsUnsupported(CardEffectData data, CardEffect effect, IGameLogger? logger)
+        {
+            if (!effect.ReturnEnemyOnly)
+            {
+                return;
+            }
+
+            if (effect.Type != EffectType.ReturnUnitOrSpy)
+            {
+                logger?.Log($"[CardFactory] {data.Type}: ReturnEnemyOnly is only wired for EffectType.ReturnUnitOrSpy - it will parse and clone but never actually restrict anything on this effect type.", LogChannel.Warning);
             }
         }
 

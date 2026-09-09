@@ -23,6 +23,12 @@ namespace ChaosWarlords.Source.Utilities
 
         // "If an opponent causes you to discard this, [effect]" - see Card.ReactiveDiscardEffect.
         public CardEffectData? ReactiveDiscardEffect { get; set; }
+
+        // The printed creature-type label (e.g. "Undead") - see CardCreatureType's own doc
+        // comment for why only that one value is ever populated today. Null/omitted for every
+        // card whose real type isn't tracked yet (the overwhelming majority) - NOT the same as
+        // asserting the card has no type at all.
+        public string? CreatureType { get; set; }
     }
 
     [ExcludeFromCodeCoverage]
@@ -104,6 +110,15 @@ namespace ChaosWarlords.Source.Utilities
         // "At end of turn, promote an Obedience card played this turn" (Air/Fire/Water
         // Elemental Myrmidon) - see CardEffect.RequiredPromotionAspect.
         public string? RequiredPromotionAspect { get; set; }
+
+        // "At end of turn, you may promote ANY NUMBER of Undead cards played this turn" (High
+        // Priest of Myrkul) - see CardEffect.PromoteAnyNumber/RequiredPromotionCreatureType.
+        public bool PromoteAnyNumber { get; set; }
+        public string? RequiredPromotionCreatureType { get; set; }
+
+        // "Return another player's troop or spy" (High Priest of Myrkul) - see
+        // CardEffect.ReturnEnemyOnly.
+        public bool ReturnEnemyOnly { get; set; }
     }
 
     public class CardDatabase : ICardDatabase

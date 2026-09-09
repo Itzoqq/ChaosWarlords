@@ -136,5 +136,7 @@
   "earth_elemental_myrmidon_name": "Earth Elemental Myrmidon",
   "earth_elemental_myrmidon_description": "Gain 2 Influence. At end of turn, promote another card played this turn.",
   "ambassador_name": "Ambassador",
-  "ambassador_description": "At end of turn, promote another card played this turn. If an opponent causes you to discard this, you may promote it instead."
+  "ambassador_description": "At end of turn, promote another card played this turn. If an opponent causes you to discard this, you may promote it instead.",
+  "high_priest_of_myrkul_name": "High Priest of Myrkul",
+  "high_priest_of_myrkul_description": "Return another player's troop or spy. At end of turn, you may promote any number of Undead cards played this turn."
 }

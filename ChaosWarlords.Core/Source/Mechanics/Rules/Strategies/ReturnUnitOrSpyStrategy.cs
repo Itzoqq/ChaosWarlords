@@ -31,8 +31,15 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Strategies
 
         public bool HasValidTargets(MatchContext context, Player player, Card? sourceCard)
         {
-            return context.MapManager.HasValidReturnTroopTarget(player)
-                || context.MapManager.HasValidReturnAnySpyTarget(player);
+            // CardEffect.ReturnEnemyOnly (High Priest of Myrkul) restricts this lookahead the
+            // same way it restricts the actual click - see AssassinateStrategy.HasValidTargets's
+            // own doc comment for why re-deriving the effect from sourceCard is the established
+            // pattern for a per-instance CardEffect flag a strategy isn't otherwise handed.
+            var effect = sourceCard != null ? EffectTreeSearch.FindFirstEffect(sourceCard.Effects, EffectType.ReturnUnitOrSpy) : null;
+            bool enemyOnly = effect?.ReturnEnemyOnly ?? false;
+
+            return context.MapManager.HasValidReturnTroopTarget(player, enemyOnly)
+                || context.MapManager.HasValidReturnAnySpyTarget(player, enemyOnly);
         }
     }
 }

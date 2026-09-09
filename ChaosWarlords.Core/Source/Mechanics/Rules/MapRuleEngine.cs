@@ -183,27 +183,41 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         // EffectType.ReturnUnitOrSpy's spy-side "no more legal targets" check - see
         // IMapManager.HasValidReturnAnySpyTarget's own doc comment for why this deliberately
         // requires EXACTLY ONE eligible spy per site, not "at least one eligible spy somewhere".
-        public bool HasValidReturnAnySpyTarget(Player activePlayer)
+        // enemyOnly (High Priest of Myrkul: "Return ANOTHER PLAYER'S troop or spy") excludes the
+        // active player's own spies from eligibility entirely - see CardEffect.ReturnEnemyOnly.
+        public bool HasValidReturnAnySpyTarget(Player activePlayer, bool enemyOnly = false)
         {
-            return _sites?.Any(s => HasExactlyOneReturnableSpyAt(s, activePlayer)) ?? false;
+            return _sites?.Any(s => HasExactlyOneReturnableSpyAt(s, activePlayer, enemyOnly)) ?? false;
         }
 
-        private bool HasExactlyOneReturnableSpyAt(Site site, Player activePlayer)
+        private bool HasExactlyOneReturnableSpyAt(Site site, Player activePlayer, bool enemyOnly = false)
         {
             int eligibleCount = 0;
             foreach (var color in site.Spies)
             {
-                bool eligible = color == activePlayer.Color || site.NodesInternal.Any(n => HasPresence(n, activePlayer.Color));
-                if (eligible)
-                {
-                    eligibleCount++;
-                    if (eligibleCount > 1) return false;
-                }
+                if (!IsSpyReturnEligible(site, activePlayer, color, enemyOnly)) continue;
+
+                eligibleCount++;
+                if (eligibleCount > 1) return false;
             }
             return eligibleCount == 1;
         }
 
-        public bool HasValidReturnTroopTarget(Player activePlayer)
+        // enemyOnly excludes the active player's own spy from eligibility entirely; otherwise
+        // an own spy is always eligible (no Presence needed) and an enemy spy needs Presence
+        // at the site - see HasExactlyOneReturnableSpyAt's own doc comment.
+        private bool IsSpyReturnEligible(Site site, Player activePlayer, PlayerColor spyColor, bool enemyOnly)
+        {
+            bool isOwnSpy = spyColor == activePlayer.Color;
+            if (enemyOnly && isOwnSpy) return false;
+            if (!enemyOnly && isOwnSpy) return true;
+
+            return site.NodesInternal.Any(n => HasPresence(n, activePlayer.Color));
+        }
+
+        // enemyOnly (High Priest of Myrkul) excludes the active player's own troops from
+        // eligibility entirely - see CardEffect.ReturnEnemyOnly.
+        public bool HasValidReturnTroopTarget(Player activePlayer, bool enemyOnly = false)
         {
             // See MapManager.CanReturnTroop's comment: Presence is only required to return
             // an ENEMY troop, not the player's own - matching that check here too, or a
@@ -214,7 +228,9 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             return _nodes?.Any(n =>
                 n.Occupant != PlayerColor.None &&
                 n.Occupant != PlayerColor.Neutral &&
-                (n.Occupant == activePlayer.Color || HasPresence(n, activePlayer.Color))) ?? false;
+                (enemyOnly
+                    ? n.Occupant != activePlayer.Color && HasPresence(n, activePlayer.Color)
+                    : (n.Occupant == activePlayer.Color || HasPresence(n, activePlayer.Color)))) ?? false;
         }
 
         public bool HasValidPlaceSpyTarget(Player activePlayer)

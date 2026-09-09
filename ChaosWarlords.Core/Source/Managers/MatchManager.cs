@@ -282,11 +282,17 @@ namespace ChaosWarlords.Source.Managers
                 }
             }
 
-            if (_context.TurnManager.CurrentTurnContext.PendingPromotionsCount > 0)
-            {
-                // Optional: Could block here if strictly enforcing cleanup
-            }
-
+            // NOTE: deliberately does NOT read TurnContext.PendingPromotionsCount here (a past
+            // version did, in a dead branch that checked-and-did-nothing with it). That getter
+            // lazily materializes any pending "any number" unbounded credit (TurnContext.
+            // ExpandPendingUnboundedCredits, High Priest of Myrkul) against PlayedCards AS OF
+            // THE MOMENT IT'S READ - CanEndTurn is reachable speculatively (e.g. clicking "End
+            // Turn" with cards still unplayed, which opens a confirmation popup the player can
+            // cancel and keep playing), so reading it here would risk permanently freezing an
+            // unbounded credit's count before the turn's real played-card set is final. Every
+            // real redemption entry point (UIEventMediator.HandleEndTurnWithPromotionCheck)
+            // already calls TurnContext.ForfeitUnsatisfiableCredits - the actual, safe trigger
+            // for that expansion - before ever trusting PendingPromotionsCount itself.
             reason = string.Empty;
             return true;
         }

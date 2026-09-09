@@ -43,11 +43,20 @@ namespace ChaosWarlords.Source.Commands
             if (site == null) return context.RejectValidation(nameof(ReturnAnySpyCommand), $"site {TargetSiteId} not found.");
 
             var player = context.TurnManager.ActivePlayer;
-            if (!context.MapManager.CanReturnAnySpy(site, player, SpyColor))
+            if (!context.MapManager.CanReturnAnySpy(site, player, SpyColor, RequiresEnemyOnly(context)))
             {
-                return context.RejectValidation(nameof(ReturnAnySpyCommand), $"cannot return {SpyColor} spy at site '{site.Name}' (missing target, or no Presence for an enemy spy).");
+                return context.RejectValidation(nameof(ReturnAnySpyCommand), $"cannot return {SpyColor} spy at site '{site.Name}' (missing target, no Presence for an enemy spy, or own spy excluded by an enemy-only effect).");
             }
             return true;
+        }
+
+        // Re-derives the enemy-only restriction from the currently pending CardEffect (High
+        // Priest of Myrkul) rather than trusting anything the caller claims - same pattern as
+        // ReturnTroopCommand.RequiresEnemyOnly.
+        private static bool RequiresEnemyOnly(MatchContext context)
+        {
+            var pendingEffect = context.ActionSystem.CurrentSourceEffect;
+            return pendingEffect != null && pendingEffect.Type == EffectType.ReturnUnitOrSpy && pendingEffect.ReturnEnemyOnly;
         }
 
         public void Execute(MatchContext context)

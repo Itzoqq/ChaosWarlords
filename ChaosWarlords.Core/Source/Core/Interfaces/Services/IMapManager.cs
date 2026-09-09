@@ -31,7 +31,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         bool HasValidAssassinationTarget(Player activePlayer, bool requireNeutralTroop = false, bool ignoresPresence = false, Site? restrictToSite = null);
         bool HasValidReturnSpyTarget(Player activePlayer);
         bool HasValidReturnEnemySpyTarget(Player activePlayer);
-        bool HasValidReturnTroopTarget(Player activePlayer);
+        bool HasValidReturnTroopTarget(Player activePlayer, bool enemyOnly = false);
         bool HasValidPlaceSpyTarget(Player activePlayer);
         bool HasValidDeployTarget(PlayerColor player);
 
@@ -44,9 +44,11 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// this isn't rare, and isn't fixed here) - counting it here would let this "no more
         /// legal targets" check report true while the player has no way to actually complete
         /// that repeat, risking a soft-lock. Not reachable via multiple isolated single-spy
-        /// sites; only excludes a genuinely ambiguous one.
+        /// sites; only excludes a genuinely ambiguous one. enemyOnly (High Priest of Myrkul)
+        /// excludes the active player's own spies from eligibility entirely - see
+        /// CardEffect.ReturnEnemyOnly.
         /// </summary>
-        bool HasValidReturnAnySpyTarget(Player activePlayer);
+        bool HasValidReturnAnySpyTarget(Player activePlayer, bool enemyOnly = false);
         // ---------------------------------------
 
         // Navigation / Queries
@@ -70,7 +72,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         bool CanAssassinate(MapNode target, Player attacker, bool requireNeutralTroop = false, bool ignoresPresence = false);
         void Assassinate(MapNode node, Player attacker);
         void Supplant(MapNode node, Player attacker);
-        bool CanReturnTroop(MapNode node, Player requestingPlayer);
+        bool CanReturnTroop(MapNode node, Player requestingPlayer, bool enemyOnly = false);
         void ReturnTroop(MapNode node, Player requestingPlayer);
 
         // Spy Actions
@@ -92,9 +94,10 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// unit precedent. Enemy spy: Presence needed at the site, matching
         /// CanReturnSpecificSpy's existing enemy-only check. EffectType.ReturnUnitOrSpy's
         /// (Intellect Devourer) target-type union - unlike CanReturnSpecificSpy, does not reject
-        /// spyColor == activePlayer.Color.
+        /// spyColor == activePlayer.Color. enemyOnly (High Priest of Myrkul) excludes the
+        /// active player's own spy from eligibility entirely - see CardEffect.ReturnEnemyOnly.
         /// </summary>
-        bool CanReturnAnySpy(Site site, Player activePlayer, PlayerColor spyColor);
+        bool CanReturnAnySpy(Site site, Player activePlayer, PlayerColor spyColor, bool enemyOnly = false);
 
         /// <summary>
         /// Returns spyColor's spy from the site to ITS OWNER'S barracks (own or enemy - see

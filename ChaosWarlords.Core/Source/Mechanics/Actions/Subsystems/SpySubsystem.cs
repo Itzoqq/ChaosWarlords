@@ -133,8 +133,14 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
                 return null;
             }
 
+            // CardEffect.ReturnEnemyOnly (High Priest of Myrkul) excludes the active player's
+            // own spy from the eligible candidate list entirely - see ActionInputController.
+            // HandleReturn's identical read of CurrentSourceEffect for the node-click half.
+            var pendingEffect = _actionSystem.CurrentSourceEffect;
+            bool enemyOnly = pendingEffect != null && pendingEffect.Type == EffectType.ReturnUnitOrSpy && pendingEffect.ReturnEnemyOnly;
+
             var eligibleSpies = _mapManager.GetAllSpiesAtSite(clickedSite)
-                .Where(color => _mapManager.CanReturnAnySpy(clickedSite, CurrentPlayer, color))
+                .Where(color => _mapManager.CanReturnAnySpy(clickedSite, CurrentPlayer, color, enemyOnly))
                 .ToList();
 
             if (eligibleSpies.Count == 0)

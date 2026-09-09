@@ -182,6 +182,7 @@ namespace ChaosWarlords.Tests
         private int _influence = 0;
         private int _vp = 0;
         private CardLocation _location = CardLocation.None;
+        private CardCreatureType _creatureType = CardCreatureType.None;
         private List<CardEffect> _effects = new List<CardEffect>();
 
         public CardBuilder WithName(string name)
@@ -205,6 +206,12 @@ namespace ChaosWarlords.Tests
         public CardBuilder WithAspect(CardAspect aspect)
         {
             _aspect = aspect;
+            return this;
+        }
+
+        public CardBuilder WithCreatureType(CardCreatureType creatureType)
+        {
+            _creatureType = creatureType;
             return this;
         }
 
@@ -278,7 +285,7 @@ namespace ChaosWarlords.Tests
         {
             // Card constructor: (string id, string name, int cost, ...)
             // We use _name as the id and _description as the name for backwards compatibility
-            var card = new Card(_name, _description, _cost, _aspect, _power, _influence, _vp);
+            var card = new Card(_name, _description, _cost, _aspect, _power, _influence, _vp, creatureType: _creatureType);
             card.Location = _location;
             foreach (var effect in _effects)
             {

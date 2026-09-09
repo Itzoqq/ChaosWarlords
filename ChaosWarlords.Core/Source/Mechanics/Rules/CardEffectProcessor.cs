@@ -718,8 +718,16 @@ namespace ChaosWarlords.Source.Mechanics.Rules
 
         private static void ApplyPromote(CardEffect effect, Card sourceCard, MatchContext context, IGameLogger logger)
         {
-            context.TurnManager.CurrentTurnContext.AddPromotionCredit(sourceCard, effect.Amount, effect.PromotionCreditIsOptional, effect.RequiredPromotionAspect);
-            logger.Log($"Promotion pending! Added {effect.Amount} point(s) from {sourceCard.Name}.", LogChannel.Info);
+            if (effect.PromoteAnyNumber)
+            {
+                context.TurnManager.CurrentTurnContext.AddUnboundedPromotionCredit(sourceCard, effect.RequiredPromotionCreatureType);
+                logger.Log($"Promotion pending! {sourceCard.Name} may promote any number of eligible cards played this turn.", LogChannel.Info);
+            }
+            else
+            {
+                context.TurnManager.CurrentTurnContext.AddPromotionCredit(sourceCard, effect.Amount, effect.PromotionCreditIsOptional, effect.RequiredPromotionAspect, effect.RequiredPromotionCreatureType);
+                logger.Log($"Promotion pending! Added {effect.Amount} point(s) from {sourceCard.Name}.", LogChannel.Info);
+            }
 
             if (effect.PromotionCompletionEffect != null)
             {
