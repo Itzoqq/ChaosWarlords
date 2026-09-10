@@ -255,7 +255,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new PlaceSpyCommand(site.Id, card.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as PlaceSpyCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as PlaceSpyCommand;
 
             Assert.IsNotNull(hydrated, "The DTO should round-trip back into a PlaceSpyCommand.");
             Assert.AreEqual(command.TargetSiteId, hydrated!.TargetSiteId);
@@ -280,7 +280,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new ReturnOwnSpyCommand(siteWithSpy.Id, card.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as ReturnOwnSpyCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as ReturnOwnSpyCommand;
 
             Assert.IsNotNull(hydrated, "The DTO should round-trip back into a ReturnOwnSpyCommand.");
 

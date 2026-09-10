@@ -182,7 +182,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new PlayCardCommand(dragon);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as PlayCardCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as PlayCardCommand;
 
             Assert.IsNotNull(hydrated, "The DTO should round-trip back into a PlayCardCommand.");
 

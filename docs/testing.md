@@ -118,6 +118,7 @@ ChaosWarlords.Tests/
     │       ├── CachedIntTextTests.cs
     │       ├── CardDatabaseIntegrationTests.cs
     │       ├── CardDatabaseTests.cs
+    │       ├── CommandHydratorTests.cs
     │       ├── DtoMapperTests.cs
     │       ├── LocalizationManagerTests.cs
     │       ├── MapGeometryTest.cs

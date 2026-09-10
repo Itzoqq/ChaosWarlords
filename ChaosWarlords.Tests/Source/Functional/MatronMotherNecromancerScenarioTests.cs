@@ -315,7 +315,7 @@ namespace ChaosWarlords.Tests.Source.Functional
             Assert.IsTrue(command!.IsChainedEffect, "Setup check: this flow should always produce isChainedEffect=true.");
 
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as PromoteCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as PromoteCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.CardId, hydrated!.CardId);

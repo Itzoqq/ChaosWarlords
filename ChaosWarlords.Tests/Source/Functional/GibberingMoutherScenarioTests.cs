@@ -341,7 +341,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new DeployTroopCommand(nodeA.Id, gibberingMouther.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as DeployTroopCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as DeployTroopCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.NodeId, hydrated!.NodeId);
@@ -374,7 +374,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new SelectOpponentCommand(blue.Color);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as SelectOpponentCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as SelectOpponentCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.TargetPlayerColor, hydrated!.TargetPlayerColor);

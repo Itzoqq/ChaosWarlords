@@ -161,7 +161,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var original = new DeclineRepeatCommand("council_member");
             var dto = original.ToDto();
 
-            var hydrated = DtoMapper.HydrateCommand(dto, _state.MatchContext) as DeclineRepeatCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, _state.MatchContext) as DeclineRepeatCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(original.CardId, hydrated!.CardId);

@@ -19,7 +19,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Commands
     /// Serialization round-trip tests for the 3 commands added this session
     /// (DiscardCardCommand/ReturnOwnSpyCommand/PlayFromMarketCommand) - all 3 DTOs sat at 0%
     /// coverage per the 2026-09-01 coverage run (see planning.txt TIER 1 item 3): no test
-    /// exercised either ToDto() or DtoMapper.HydrateCommand for any of them, unlike every
+    /// exercised either ToDto() or CommandHydrator.HydrateCommand for any of them, unlike every
     /// other command (see CommandSerializationTests.cs's existing per-command pattern, which
     /// this mirrors).
     /// </summary>
@@ -60,7 +60,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Commands
             var dto = original.ToDto();
             var context = CreateMinimalContext();
 
-            var hydrated = DtoMapper.HydrateCommand(dto, context) as DiscardCardCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, context) as DiscardCardCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(original.TargetPlayerColor, hydrated!.TargetPlayerColor);
@@ -70,13 +70,13 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Commands
         [TestMethod]
         public void DiscardCardCommandDto_HydrateCommand_WithUnparsablePlayerColor_ReturnsNull()
         {
-            // Defensive coverage for the Enum.TryParse guard in DtoMapper's rehydration -
+            // Defensive coverage for the Enum.TryParse guard in CommandHydrator's rehydration -
             // a corrupted/forward-incompatible replay/network payload shouldn't throw or
             // silently default to some player.
             var dto = new DiscardCardCommandDto { PlayerColor = "NotARealColor", CardId = "wight" };
             var context = CreateMinimalContext();
 
-            var hydrated = DtoMapper.HydrateCommand(dto, context);
+            var hydrated = CommandHydrator.HydrateCommand(dto, context);
 
             Assert.IsNull(hydrated);
         }
@@ -102,7 +102,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Commands
             var dto = original.ToDto();
             var context = CreateMinimalContext();
 
-            var hydrated = DtoMapper.HydrateCommand(dto, context) as ReturnOwnSpyCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, context) as ReturnOwnSpyCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(original.TargetSiteId, hydrated!.TargetSiteId);
@@ -134,7 +134,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Commands
             var dto = original.ToDto();
             var context = CreateMinimalContext();
 
-            var hydrated = DtoMapper.HydrateCommand(dto, context) as PlayFromMarketCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, context) as PlayFromMarketCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(original.MarketCardRuntimeId, hydrated!.MarketCardRuntimeId);
@@ -167,7 +167,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Commands
             var dto = original.ToDto();
             var context = CreateMinimalContext();
 
-            var hydrated = DtoMapper.HydrateCommand(dto, context) as SupplantCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, context) as SupplantCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(original.TargetNodeId, hydrated!.TargetNodeId);
@@ -196,7 +196,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Commands
             var dto = original.ToDto();
             var context = CreateMinimalContext();
 
-            var hydrated = DtoMapper.HydrateCommand(dto, context) as SelectOpponentCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, context) as SelectOpponentCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(original.TargetPlayerColor, hydrated!.TargetPlayerColor);
@@ -211,7 +211,7 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Commands
             var dto = new SelectOpponentCommandDto { TargetPlayerColor = "NotARealColor" };
             var context = CreateMinimalContext();
 
-            var hydrated = DtoMapper.HydrateCommand(dto, context);
+            var hydrated = CommandHydrator.HydrateCommand(dto, context);
 
             Assert.IsNull(hydrated);
         }

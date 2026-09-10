@@ -155,7 +155,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new MoveTroopCommand(blueTarget.Id, destination.Id, card.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as MoveTroopCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as MoveTroopCommand;
 
             Assert.IsNotNull(hydrated, "The DTO should round-trip back into a MoveTroopCommand.");
 

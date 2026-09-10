@@ -267,7 +267,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new SupplantCommand(enemyNode.Id, card.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as SupplantCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as SupplantCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.TargetNodeId, hydrated!.TargetNodeId);
@@ -290,7 +290,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new ResolveSpyCommand(spySite.Id, PlayerColor.Blue, card.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as ResolveSpyCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as ResolveSpyCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.SiteId, hydrated!.SiteId);

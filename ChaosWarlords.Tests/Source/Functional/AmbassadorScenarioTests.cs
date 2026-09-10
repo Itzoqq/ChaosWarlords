@@ -217,7 +217,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new DiscardCardCommand(blue.Color, ambassador.Id, promoteInsteadOfDiscard: true);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as DiscardCardCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as DiscardCardCommand;
 
             Assert.IsNotNull(hydrated, "The DTO should round-trip back into a DiscardCardCommand.");
             Assert.IsTrue(hydrated!.PromoteInsteadOfDiscard, "PromoteInsteadOfDiscard must survive the DTO round-trip.");

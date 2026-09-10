@@ -246,7 +246,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new AssassinateCommand(node.Id, card.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as AssassinateCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as AssassinateCommand;
 
             Assert.IsNotNull(hydrated, "The DTO should round-trip back into an AssassinateCommand.");
             Assert.AreEqual(command.TargetNodeId, hydrated!.TargetNodeId);

@@ -261,7 +261,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new PlayCardCommand(demogorgon);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as PlayCardCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as PlayCardCommand;
 
             Assert.IsNotNull(hydrated, "The DTO should round-trip back into a PlayCardCommand.");
 
@@ -284,7 +284,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new SupplantCommand(target1.Id, demogorgon.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as SupplantCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as SupplantCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.TargetNodeId, hydrated!.TargetNodeId);

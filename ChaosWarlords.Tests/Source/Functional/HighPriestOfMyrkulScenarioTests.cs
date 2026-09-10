@@ -360,7 +360,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new ReturnTroopCommand(target.Id, card.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as ReturnTroopCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as ReturnTroopCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.TargetNodeId, hydrated!.TargetNodeId);
@@ -381,7 +381,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new ReturnAnySpyCommand(spySite.Id, PlayerColor.Blue, card.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as ReturnAnySpyCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as ReturnAnySpyCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.TargetSiteId, hydrated!.TargetSiteId);

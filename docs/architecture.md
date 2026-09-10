@@ -88,7 +88,8 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   └── Utilities/                       # Infrastructure & Constants
     │       ├── BufferedAsyncLogger.cs       # Async-optimized logging
     │       ├── CardDatabase.cs              # Implementation of card library - CardData has no Name/Description, see LocalizationManager
-    │       ├── DtoMapper.cs                 # Mapping logic between Entities and DTOs
+    │       ├── CommandHydrator.cs           # DTO -> live IGameCommand (replay/network deserialization)
+    │       ├── DtoMapper.cs                 # Live Entities/state -> DTO (serialization only - see CommandHydrator for the reverse direction)
     │       ├── GameConstants.cs             # Global configuration values
     │       ├── GameEnums.cs                 # Enums (PlayerColor, ResourceType, ActionState, etc.)
     │       ├── LocalizationManager.cs       # Loads Content/data/localization/en_US.json, resolves keys ("[MISSING:key]" fallback, never a crash)

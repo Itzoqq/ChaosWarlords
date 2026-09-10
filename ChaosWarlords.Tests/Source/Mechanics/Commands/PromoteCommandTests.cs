@@ -262,7 +262,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var dto = original.ToDto();
 
             // Act
-            var hydrated = DtoMapper.HydrateCommand(dto, _state.MatchContext) as PromoteCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, _state.MatchContext) as PromoteCommand;
 
             // Assert
             Assert.IsNotNull(hydrated);
@@ -278,7 +278,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var dto = original.ToDto();
 
             // Act
-            var hydrated = DtoMapper.HydrateCommand(dto, _state.MatchContext) as PromoteCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, _state.MatchContext) as PromoteCommand;
 
             // Assert
             Assert.IsNotNull(hydrated);
@@ -292,7 +292,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var dto = new PromoteCommandDto { CardId = "card1" }; // IsChainedEffect never set.
 
             // Act
-            var hydrated = DtoMapper.HydrateCommand(dto, _state.MatchContext) as PromoteCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, _state.MatchContext) as PromoteCommand;
 
             // Assert
             Assert.IsNotNull(hydrated);
@@ -309,7 +309,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             Assert.IsInstanceOfType(dto, typeof(PromoteCommandDto), "Setup check: discriminator should resolve to PromoteCommandDto.");
 
             // Act
-            var hydrated = DtoMapper.HydrateCommand(dto!, _state.MatchContext) as PromoteCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto!, _state.MatchContext) as PromoteCommand;
 
             // Assert
             Assert.IsNotNull(hydrated);
@@ -396,7 +396,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var original = new PromoteCommand(card, isChainedEffect: true);
 
             var dto = original.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, _state.MatchContext) as PromoteCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, _state.MatchContext) as PromoteCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(original.CardRuntimeId, hydrated!.CardRuntimeId);
@@ -412,7 +412,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var dto = JsonSerializer.Deserialize<GameCommandDto>(json);
             Assert.IsInstanceOfType(dto, typeof(PromoteCommandDto));
 
-            var hydrated = DtoMapper.HydrateCommand(dto!, _state.MatchContext) as PromoteCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto!, _state.MatchContext) as PromoteCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.IsNull(hydrated!.CardRuntimeId, "A missing key must deserialize to null, not throw or default to some other value.");

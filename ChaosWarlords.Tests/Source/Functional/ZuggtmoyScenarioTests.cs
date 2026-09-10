@@ -167,7 +167,7 @@ namespace ChaosWarlords.Tests.Source.Functional
             Assert.IsNotNull(command, "Setup check: selecting a real inner-circle card should produce a real DevourCardCommand.");
 
             var dto = command!.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as DevourCardCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as DevourCardCommand;
 
             Assert.IsNotNull(hydrated, "The DTO should round-trip back into a DevourCardCommand.");
             Assert.AreEqual(command.CardRuntimeId, hydrated!.CardRuntimeId);

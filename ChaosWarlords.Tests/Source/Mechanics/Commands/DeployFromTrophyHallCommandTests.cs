@@ -134,7 +134,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var command = new DeployFromTrophyHallCommand(_targetNode.Id, PlayerColor.Blue, PlayerColor.Neutral, "mummy_lord_abc123");
 
             var dto = command.ToDto();
-            var hydrated = ChaosWarlords.Source.Core.Utilities.DtoMapper.HydrateCommand(dto, _state.MatchContext) as DeployFromTrophyHallCommand;
+            var hydrated = ChaosWarlords.Source.Core.Utilities.CommandHydrator.HydrateCommand(dto, _state.MatchContext) as DeployFromTrophyHallCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.TargetNodeId, hydrated!.TargetNodeId);

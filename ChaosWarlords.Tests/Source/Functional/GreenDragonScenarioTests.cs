@@ -313,7 +313,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new PlaceSpyCommand(site.Id, card.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as PlaceSpyCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as PlaceSpyCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.TargetSiteId, hydrated!.TargetSiteId);
@@ -338,7 +338,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new SupplantCommand(troop.Id, card.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as SupplantCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as SupplantCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.TargetNodeId, hydrated!.TargetNodeId);

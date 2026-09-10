@@ -155,7 +155,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
 
             // Act
             var dto = command.ToDto();
-            var hydrated = ChaosWarlords.Source.Core.Utilities.DtoMapper.HydrateCommand(dto, _state.MatchContext) as PlaceSpyCommand;
+            var hydrated = ChaosWarlords.Source.Core.Utilities.CommandHydrator.HydrateCommand(dto, _state.MatchContext) as PlaceSpyCommand;
 
             // Assert
             Assert.IsNotNull(hydrated);

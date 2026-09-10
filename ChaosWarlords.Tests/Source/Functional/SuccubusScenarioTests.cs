@@ -330,7 +330,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new DevourCardCommand(noble) { SourceCard = succubus };
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as DevourCardCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as DevourCardCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.CardRuntimeId, hydrated!.CardRuntimeId);
@@ -356,7 +356,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new PlaceSpyCommand(siteA.Id, succubus.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as PlaceSpyCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as PlaceSpyCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.TargetSiteId, hydrated!.TargetSiteId);
@@ -385,7 +385,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new AssassinateCommand(troopA.Id, succubus.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as AssassinateCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as AssassinateCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.TargetNodeId, hydrated!.TargetNodeId);

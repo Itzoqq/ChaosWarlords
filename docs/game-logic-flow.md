@@ -709,6 +709,7 @@ flowchart LR
     end
 
     Mapper[DtoMapper]
+    Hydrator[CommandHydrator]
 
     subgraph "Serialized Data (DTOs)"
         D1[CardDto]
@@ -717,16 +718,19 @@ flowchart LR
     end
     
     E1 & E2 & E3 -->|"ToDto()"| Mapper
-    Mapper -->|"Hydrate()"| E1
+    Hydrator -->|"HydrateCommand()"| E2
     
     Mapper --> D1 & D2 & D3
     D1 & D2 & D3 -->|JSON| Storage[Disk / Network]
+    Storage -->|JSON| D2
+    D2 -->|deserialize| Hydrator
     
     style Mapper fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:black
+    style Hydrator fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:black
     style Storage fill:#eeeeee,stroke:#616161,stroke-width:2px,stroke-dasharray: 5 5,color:black
 ```
 
-> **Key Takeaway**: **DtoMapper** is the translator. It takes complex game objects like `Player` (with logic methods) and turns them into dumb data `PlayerDto` (just numbers and strings) that can be saved to a file or sent over the internet.
+> **Key Takeaway**: **DtoMapper** is the serialization-direction translator - it takes complex game objects like `Player` (with logic methods) and turns them into dumb data `PlayerDto` (just numbers and strings) that can be saved to a file or sent over the internet. The reverse direction (reconstructing a live `IGameCommand` from a recorded/received `CommandDto`, e.g. for replay playback) is **CommandHydrator**'s job instead - the two classes never call each other.
 
 ### 13.2 Replay Loop
 How the game ensures every client sees the same result by re-executing serialized commands.

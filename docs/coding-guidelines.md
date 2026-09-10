@@ -475,7 +475,7 @@ if (_cardRuleEngine.IsEffectChainValid(player, card.Effects.First(), card))
 **Pattern**: `ReplayManager.RecordCommand()`
 - Automatically hooks into `CommandDispatcher`.
 - Serializes commands to JSON DTOs.
-- `DtoMapper` acts as the translator between runtime objects (Entities) and storage objects (DTOs).
+- `DtoMapper` translates runtime objects (Entities/commands) into storage objects (DTOs); `CommandHydrator` handles the reverse direction (DTO back to a live `IGameCommand`) for replay playback - the two never call each other.
 
 ---
 

@@ -68,7 +68,7 @@ namespace ChaosWarlords.Source.Managers
             }
 
             var dto = _playbackQueue.Dequeue();
-            var cmd = DtoMapper.HydrateCommand(dto, context);
+            var cmd = CommandHydrator.HydrateCommand(dto, context);
             if (cmd == null)
             {
                 _logger.Log($"[Replay Error] Failed to Hydrate Command (Type: {dto.GetType().Name}, Seq: {dto.Seq}). It will be SKIPPED.", LogChannel.Error);

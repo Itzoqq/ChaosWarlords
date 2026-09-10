@@ -364,7 +364,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new AssassinateCommand(t1.Id, card.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as AssassinateCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as AssassinateCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.TargetNodeId, hydrated!.TargetNodeId);
@@ -391,7 +391,7 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var command = new DeployFromTrophyHallCommand(destination.Id, PlayerColor.Blue, PlayerColor.Neutral, card.Id);
             var dto = command.ToDto();
-            var hydrated = DtoMapper.HydrateCommand(dto, scenario.Context) as DeployFromTrophyHallCommand;
+            var hydrated = CommandHydrator.HydrateCommand(dto, scenario.Context) as DeployFromTrophyHallCommand;
 
             Assert.IsNotNull(hydrated);
             Assert.AreEqual(command.TargetNodeId, hydrated!.TargetNodeId);

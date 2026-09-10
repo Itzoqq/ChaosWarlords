@@ -133,7 +133,7 @@ namespace ChaosWarlords.Tests.Replay
         }
 
         [TestMethod]
-        public void DtoMapper_HydratesPolymorphicCommands()
+        public void CommandHydrator_HydratesPolymorphicCommands()
         {
             // Arrange
             var json = "{\"t\":\"end\",\"Seq\":10,\"Seat\":1}";
