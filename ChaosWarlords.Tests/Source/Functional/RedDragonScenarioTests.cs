@@ -28,13 +28,15 @@ namespace ChaosWarlords.Tests.Source.Functional
     public class RedDragonScenarioTests
     {
         /// <summary>
-        /// An enemy (Blue) troop at <paramref name="site"/>'s first node (every other node left
-        /// empty, so supplanting it gives Red sole control), and Red Presence via Red's OWN spy
-        /// AT that same site - deliberately not an adjacent troop: this test uses MULTIPLE
-        /// sites at once and checks their exact control/total-control state, so a helper that
-        /// places a troop on "the first empty neighbor node" without excluding the target
-        /// site's OWN other nodes (sites can have internal node-to-node adjacency - see the
-        /// generic Cloaker/Graz'zt helpers this pattern is normally borrowed from, which DO
+        /// An enemy (Blue) troop at <paramref name="site"/>'s first node, every OTHER node
+        /// filled with Red's own troop (not left empty - Total Control requires every troop
+        /// space at the site occupied by the owner, rulebook p.10/p.22), so supplanting the
+        /// enemy node gives Red sole control of a fully-occupied site. Red Presence comes via
+        /// Red's OWN spy AT that same site - deliberately not an adjacent troop: this test uses
+        /// MULTIPLE sites at once and checks their exact control/total-control state, so a
+        /// helper that places a troop on "the first empty neighbor node" without excluding the
+        /// target site's OWN other nodes (sites can have internal node-to-node adjacency - see
+        /// the generic Cloaker/Graz'zt helpers this pattern is normally borrowed from, which DO
         /// exclude the target site's own nodes) risks silently landing the presence troop on a
         /// sibling node of the SAME site instead, corrupting the exact count this test verifies.
         /// A spy at the target site itself grants Presence there with no such risk.
@@ -43,6 +45,10 @@ namespace ChaosWarlords.Tests.Source.Functional
         {
             var node = site.NodesInternal[0];
             node.Occupant = PlayerColor.Blue;
+            foreach (var otherNode in site.NodesInternal.Skip(1))
+            {
+                otherNode.Occupant = red.Color;
+            }
             site.AddSpy(red.Color);
             return node;
         }
@@ -82,8 +88,8 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             Assert.AreEqual(red.Color, enemyNode.Occupant);
             Assert.AreEqual(1, red.TrophyHall);
-            Assert.AreEqual(red.Color, supplantSite.Owner, "Supplanting the site's only node should immediately grant Red control.");
-            Assert.IsTrue(supplantSite.HasTotalControl, "No enemy troops or spies remain - this should be Red's TOTAL control too.");
+            Assert.AreEqual(red.Color, supplantSite.Owner, "Supplanting the site's last non-Red node should immediately grant Red control.");
+            Assert.IsTrue(supplantSite.HasTotalControl, "Every node is now Red's own troop and no enemy spy remains - this should be Red's TOTAL control too.");
             Assert.AreEqual(ActionState.TargetingReturnSpy, scenario.Context.ActionSystem.CurrentState, "Chains to the next independent top-level effect.");
 
             scenario.ClickTarget(null, spySite);

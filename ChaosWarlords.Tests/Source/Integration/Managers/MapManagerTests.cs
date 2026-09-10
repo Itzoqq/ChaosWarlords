@@ -570,9 +570,10 @@ namespace ChaosWarlords.Tests.Integration.Managers
             _mapManager.Assassinate(_node3, _player2);
 
             // Assert
-            // New Rule: Empty nodes do NOT prevent Total Control.
-            // Since P2 is not ON the site, P1 still has Total Control.
-            Assert.IsTrue(_siteA.HasTotalControl);
+            // Rulebook p.10/p.22: Total Control requires EVERY troop space filled with the
+            // owner's own troops. Assassinating node3's troop leaves it empty, so P1 still
+            // OWNS the site (1 troop vs 0) but no longer has Total Control.
+            Assert.IsFalse(_siteA.HasTotalControl);
             Assert.AreEqual(_player1.Color, _siteA.Owner, "Should still own site (1 vs 0)");
         }
 

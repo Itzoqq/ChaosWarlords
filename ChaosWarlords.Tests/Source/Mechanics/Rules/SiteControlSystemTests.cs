@@ -55,11 +55,12 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         [TestMethod]
-        public void Recalculate_GrantsTotalControl_IfNoEnemyPresence()
+        public void Recalculate_GrantsTotalControl_IfAllSpacesOwnedAndNoEnemyPresence()
         {
+            // Rulebook p.10/p.22: Total Control = every troop space filled with the
+            // owner's OWN troops, and no enemy spy present.
             _node1.Occupant = _player1.Color;
-            // Node 2 is empty. Standard Tyrants rules: Total Control = Control + No Enemies.
-            // Empty nodes do not prevent Total Control.
+            _node2.Occupant = _player1.Color;
 
             _system.RecalculateSiteState(_siteA, _player1);
 
@@ -67,9 +68,26 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         [TestMethod]
+        public void Recalculate_BlocksTotalControl_IfEmptyTroopSpaceExists()
+        {
+            // CONFIRMED rules-accuracy fix (2026-09-10): rulebook p.10 AND p.22's Quick
+            // Reference both say Total Control requires ALL troop spaces filled with the
+            // owner's troops - an empty space fails Total Control exactly like an enemy-
+            // occupied one, it is not "allowed."
+            _node1.Occupant = _player1.Color;
+            // Node 2 stays empty (PlayerColor.None).
+
+            _system.RecalculateSiteState(_siteA, _player1);
+
+            Assert.AreEqual(_player1.Color, _siteA.Owner); // Still Owner (majority)
+            Assert.IsFalse(_siteA.HasTotalControl); // But no Total Control - empty space
+        }
+
+        [TestMethod]
         public void Recalculate_BlocksTotalControl_IfEnemySpyPresent()
         {
             _node1.Occupant = _player1.Color;
+            _node2.Occupant = _player1.Color; // Every space filled by the owner.
             // Enemy Spy present
             _siteA.Spies.Add(_player2.Color);
 

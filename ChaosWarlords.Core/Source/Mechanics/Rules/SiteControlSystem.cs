@@ -74,12 +74,15 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         {
             if (owner == PlayerColor.None) return false;
 
-            // RULE: Total Control = You Control Site AND No Enemy Presence (Troops OR Spies)
-            // Empty nodes are ALLOWED.
+            // RULE: Total Control = every troop space at the site is filled with the
+            // owner's OWN troops, AND no enemy spy is present (rulebook p.10 and p.22's
+            // Quick Reference both state this identically). An empty troop space fails
+            // Total Control exactly like an enemy-occupied one - it is not "allowed."
 
-            // 1. Check for Enemy Troops
-            bool hasEnemyTroops = site.NodesInternal.Any(n => n.Occupant != owner && n.Occupant != PlayerColor.None);
-            if (hasEnemyTroops) return false;
+            // 1. Every node must be the owner's own troop - covers both "enemy troop
+            // present" and "empty space present" in one check.
+            bool allNodesOwnedByOwner = site.NodesInternal.All(n => n.Occupant == owner);
+            if (!allNodesOwnedByOwner) return false;
 
             // 2. Check for Enemy Spies
             bool hasEnemySpy = site.Spies.Any(spyColor => spyColor != owner && spyColor != PlayerColor.None);
