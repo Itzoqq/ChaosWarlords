@@ -411,7 +411,7 @@ namespace ChaosWarlords.Source.Managers
             // is already reflected too, though no shipped card combines the two.
             foreach (var (source, completionEffect) in _context.TurnManager.CurrentTurnContext.DrainPromotionCompletionEffects())
             {
-                CardEffectProcessor.ApplyEffect(completionEffect, source, _context, _logger);
+                CardEffectApplier.ApplyEffect(completionEffect, source, _context, _logger);
             }
 
             // 2. Cleanup: Move Hand + Played -> Discard

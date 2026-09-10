@@ -10,7 +10,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Strategies
     /// <summary>
     /// EffectType.PromoteFromPile - the immediate "promote a card from an expanded pool"
     /// primitive (Matron Mother, Necromancer), NOT the deferred end-of-turn promotion-credit
-    /// flow (see EffectType.Promote, handled directly by CardEffectProcessor.ApplyPromote -
+    /// flow (see EffectType.Promote, handled directly by CardEffectApplier.ApplyPromote -
     /// unrelated to this class). TargetLocation selects the pool: DiscardPile means "discard
     /// pile only" (Matron Mother), HandOrDiscard means "Hand + DiscardPile + the source card
     /// itself" (Necromancer).

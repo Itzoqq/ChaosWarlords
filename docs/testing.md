@@ -251,6 +251,7 @@ ChaosWarlords.Tests/
     │   │   ├── SwitchToNormalModeCommandTests.cs
     │   │   └── ToggleMarketCommandTests.cs
     │   └── Rules/
+    │       ├── CardEffectApplierTests.cs
     │       ├── CardEffectProcessorTests.cs
     │       ├── CardEffectTests.cs
     │       ├── CardRuleEngineLookaheadTests.cs

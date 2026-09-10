@@ -332,12 +332,12 @@ if (context.CardRuleEngine.IsConditionMet(player, effect))
 - **CardRuleEngine**: The service (injected via `MatchContext`) that evaluates rules.
 - **EffectCondition**: The data object (from JSON) defining requirements (e.g., `ControlsSite`).
 - **HasValidTargets**: Checks if an effect can even initiate (e.g., prevents playing "Devour" with empty hand).
-- **IEffectStrategy** / **`CardRuleEngine.GetStrategy(EffectType)`**: the extension point for a new effect type's targeting behavior. Sixteen implementations live in `Mechanics/Rules/Strategies/` as of 2026-09-09 (one per `EffectType` family - `AssassinateStrategy`, `DevourStrategy`, `PromoteFromPileStrategy`, etc.; `EffectTreeSearch.cs`/`SelectOpponentEligibility.cs` in the same folder are shared helpers, not `IEffectStrategy` implementations), each answering `IsTargetingEffect`/`HasValidTargets`/`SupportsRepeat` for its effect type. Adding a new targeting-shaped `EffectType` means adding a strategy here, not a new `if`/`switch` branch in `CardEffectProcessor`.
+- **IEffectStrategy** / **`CardRuleEngine.GetStrategy(EffectType)`**: the extension point for a new effect type's targeting behavior. Sixteen implementations live in `Mechanics/Rules/Strategies/` as of 2026-09-09 (one per `EffectType` family - `AssassinateStrategy`, `DevourStrategy`, `PromoteFromPileStrategy`, etc.; `EffectTreeSearch.cs`/`SelectOpponentEligibility.cs` in the same folder are shared helpers, not `IEffectStrategy` implementations), each answering `IsTargetingEffect`/`HasValidTargets`/`SupportsRepeat` for its effect type. Adding a new targeting-shaped `EffectType` means adding a strategy here, not a new `if`/`switch` branch in `CardEffectApplier`'s `_effectHandlers` dispatch table.
 
 **Pattern**:
 1. Check `HasValidTargets` early (in `CardPlaySystem` or UI).
 2. Check `IsConditionMet` before applying specific sub-effects.
-3. Keep `CardEffectProcessor` dumb (execution only) - it asks `CardRuleEngine.GetStrategy` rather than branching on `EffectType` itself.
+3. Keep `CardEffectProcessor` (effect-tree construction, `ResolveEffects`) and `CardEffectApplier` (per-`EffectType` execution, `ApplyEffect` - split 2026-09-10) dumb - both ask `CardRuleEngine.GetStrategy` rather than branching on `EffectType` themselves.
 
 ---
 

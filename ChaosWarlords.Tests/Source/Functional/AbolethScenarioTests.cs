@@ -10,7 +10,7 @@ namespace ChaosWarlords.Tests.Source.Functional
     /// for each spy you have on the board.") - the same PlaceSpy-repeat/Choose-one shape Masters
     /// of Sorcere already established, but with a plain, non-targeting DrawCard as the
     /// Alternative instead of ReturnOwnSpy - the first shipped card to combine DrawCard with the
-    /// new DynamicAmountSource.SpiesOnBoard case (CardEffectProcessor.ApplyDrawCard, generalized
+    /// new DynamicAmountSource.SpiesOnBoard case (CardEffectApplier.ApplyDrawCard, generalized
     /// to route through ResolveAmount the same way ApplyGainResource already did; DrawCard
     /// itself was already reachable in production via Grimlock's ReactiveDiscardEffect, just
     /// never with a dynamic amount before now). Loads the REAL "aboleth" entry out of the REAL

@@ -36,7 +36,7 @@ namespace ChaosWarlords.Source.Entities.Cards
         public bool IgnoresPresenceRequirement { get; set; }
 
         // "Gain 1 VP for every 2 sites you control" (White Dragon) - when set to anything but
-        // None, CardEffectProcessor.ResolveAmount computes the actual amount from live game
+        // None, DynamicAmountResolver.ResolveAmount computes the actual amount from live game
         // state instead of using Amount as a fixed literal. DynamicAmountDivisor is the "every
         // N" part (integer division, floor - 3 sites at divisor 2 is 1 VP, not 1.5); defaults to
         // 1 (Amount == the raw count, no division) for a plain "for each" (e.g. Green Dragon's

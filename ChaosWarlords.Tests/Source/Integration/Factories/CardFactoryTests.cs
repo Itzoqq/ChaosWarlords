@@ -691,7 +691,7 @@ namespace ChaosWarlords.Tests.Integration.Factories
         public void CreateFromData_PromotionCompletionEffectWithItsOwnOnSuccessChain_LogsAWarning()
         {
             // MatchManager.EndTurn applies the completion effect via a direct
-            // CardEffectProcessor.ApplyEffect call with no EffectContext ever built for it - a
+            // CardEffectApplier.ApplyEffect call with no EffectContext ever built for it - a
             // chain authored on the completion effect itself would be silently dropped.
             var logger = Substitute.For<IGameLogger>();
             var cardData = new CardData

@@ -74,7 +74,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         {
             // Red has Presence (a spy) but every node it could reach is occupied - the
             // mandatory DeployTroop effect must resolve as a clean no-op (see
-            // CardEffectProcessor.ApplyDeployTroop), not stall waiting for an impossible click.
+            // CardEffectApplier.ApplyDeployTroop), not stall waiting for an impossible click.
             var scenario = MatchScenario.Build();
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing); // Post-setup: normal 2-troop Deploy needs the Play-phase Presence rules, not Setup's "exactly 1 ever" restriction.
             var red = scenario.AsActivePlayer(PlayerColor.Red);

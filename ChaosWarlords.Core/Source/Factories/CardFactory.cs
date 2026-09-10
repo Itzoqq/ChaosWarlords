@@ -103,7 +103,7 @@ namespace ChaosWarlords.Source.Utilities
 
             card.ReactiveDiscardEffect = CreateEffect(data.ReactiveDiscardEffect, logger);
 
-            // DiscardCardCommand applies this via a bare CardEffectProcessor.ApplyEffect call
+            // DiscardCardCommand applies this via a bare CardEffectApplier.ApplyEffect call
             // with no follow-up ResolveCurrentEffect - unlike every other ApplyEffect call site,
             // nothing ever pushes OnSuccess/Alternative onto ExecutionStack for it. A card whose
             // ReactiveDiscardEffect chains would silently drop that chain in play instead of
@@ -356,7 +356,7 @@ namespace ChaosWarlords.Source.Utilities
         }
 
         // CardEffect.RequiredPromotionAspect is only ever read by TurnContext.AddPromotionCredit
-        // (via CardEffectProcessor.ApplyPromote) - authoring it on any other EffectType would
+        // (via CardEffectApplier.ApplyPromote) - authoring it on any other EffectType would
         // parse and clone fine but silently never filter anything, exactly the "catch it before
         // it ships" gap ChooseCount/ChainedRepeatCount's own warnings above exist to close.
         private static void WarnIfRequiredPromotionAspectShapeIsUnsupported(CardEffectData data, CardEffect effect, IGameLogger? logger)
@@ -387,7 +387,7 @@ namespace ChaosWarlords.Source.Utilities
             }
         }
 
-        // CardEffect.PromoteAnyNumber is only ever read by CardEffectProcessor.ApplyPromote -
+        // CardEffect.PromoteAnyNumber is only ever read by CardEffectApplier.ApplyPromote -
         // authoring it on any other EffectType would parse and clone fine but silently never do
         // anything, exactly the "catch it before it ships" gap ChooseCount/ChainedRepeatCount's
         // own warnings above exist to close.
@@ -488,7 +488,7 @@ namespace ChaosWarlords.Source.Utilities
         // into TurnContext, applied later by MatchManager.EndTurn) - authoring it on any other
         // EffectType would parse and clone fine but silently never fire. Also warns if the
         // completion effect itself chains further (OnSuccess/Alternative) - MatchManager.EndTurn
-        // applies it via a direct CardEffectProcessor.ApplyEffect call with no EffectContext ever
+        // applies it via a direct CardEffectApplier.ApplyEffect call with no EffectContext ever
         // built for it, the same "chain not propagated" limitation ParseReactiveDiscardEffect's
         // own warning already flags for Grimlock's mechanism.
         private static void WarnIfPromotionCompletionEffectShapeIsUnsupported(CardEffectData data, CardEffect effect, IGameLogger? logger)

@@ -582,7 +582,7 @@ namespace ChaosWarlords.Source.Managers
         /// individual repeat of a SupportsRepeat effect (currently only wired for Assassinate,
         /// via PerformAssassinate). Deliberately supports only the resources that make sense to
         /// grant repeatedly and immediately (Power/Influence/VictoryPoints) - Troops (which
-        /// CardEffectProcessor.ApplyGainResource instead credits to PendingFreeTroops, a
+        /// CardEffectApplier.ApplyGainResource instead credits to PendingFreeTroops, a
         /// deferred pool spent later through the normal Deploy flow) has no shipped card
         /// wanting it here yet, so it's treated as unsupported rather than silently guessed at.
         /// </summary>

@@ -152,7 +152,7 @@ namespace ChaosWarlords.Source.Commands
 
             if (forcedByOpponent && card.ReactiveDiscardEffect != null && card.ReactiveDiscardEffect.Type != EffectType.PromoteInsteadOfDiscard)
             {
-                Mechanics.Rules.CardEffectProcessor.ApplyEffect(card.ReactiveDiscardEffect, card, context, context.Logger);
+                Mechanics.Rules.CardEffectApplier.ApplyEffect(card.ReactiveDiscardEffect, card, context, context.Logger);
             }
         }
 

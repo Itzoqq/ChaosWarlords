@@ -25,7 +25,7 @@ namespace ChaosWarlords.Source.Contexts
         private readonly List<PromotionCredit> _promotionCredits;
 
         // "...promote ANY NUMBER of Undead cards played this turn" (High Priest of Myrkul) -
-        // registered by AddUnboundedPromotionCredit (via CardEffectProcessor.ApplyPromote when
+        // registered by AddUnboundedPromotionCredit (via CardEffectApplier.ApplyPromote when
         // CardEffect.PromoteAnyNumber is set) and materialized into real, redeemable
         // PromotionCredit entries by ExpandPendingUnboundedCredits the first time this turn's
         // credits are actually queried/consumed - see that method's own doc comment for why

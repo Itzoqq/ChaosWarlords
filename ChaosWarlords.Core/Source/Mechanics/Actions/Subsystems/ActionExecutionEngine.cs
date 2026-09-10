@@ -290,9 +290,9 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
         /// something extra before it (return false) - gets its own case added here too (the
         /// optional-effect case reaches the identical DevourStrategyFactory call via
         /// HandleOptionalEffectAccepted below independently). This is also why
-        /// CardEffectProcessor's own ApplyDeployFromTrophyHall handler is NOT where that
+        /// CardEffectApplier's own ApplyDeployFromTrophyHall handler is NOT where that
         /// resolution lives, despite looking like the natural place for it: mandatory targeting
-        /// effects never actually run through CardEffectProcessor.ApplyEffect at all (see that
+        /// effects never actually run through CardEffectApplier.ApplyEffect at all (see that
         /// handler's own doc comment).
         /// </summary>
         /// <returns>True if this effect was fully handled by a special case (the caller should
@@ -465,7 +465,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
                 // Non-targeting optional effect (e.g. GainResource) - no click will ever arrive
                 // to resolve it, so apply and resolve the stack immediately, same as
                 // ProcessAutomaticEffect does for the unconditional case.
-                Mechanics.Rules.CardEffectProcessor.ApplyEffect(effect.SourceEffect!, effect.SourceCard, _matchContext!, _logger);
+                Mechanics.Rules.CardEffectApplier.ApplyEffect(effect.SourceEffect!, effect.SourceCard, _matchContext!, _logger);
                 ResolveCurrentEffect(true);
             }
             // For other optional effects that ARE targeting effects, continue to normal targeting flow
@@ -545,7 +545,7 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             // Automatic Effect (e.g. GainResource, DrawCard)
             if (effect.SourceEffect != null && _matchContext != null)
             {
-                Mechanics.Rules.CardEffectProcessor.ApplyEffect(effect.SourceEffect, effect.SourceCard, _matchContext, _logger);
+                Mechanics.Rules.CardEffectApplier.ApplyEffect(effect.SourceEffect, effect.SourceCard, _matchContext, _logger);
             }
 
             ResolveCurrentEffect(true);
