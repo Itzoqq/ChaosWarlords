@@ -83,6 +83,15 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         PlayerColor? PendingAffectedPlayerColor { get; }
 
         /// <summary>
+        /// Sets PendingAffectedPlayerColor - called by MapActionSubsystem.PerformAssassinate/
+        /// PerformSupplant right before the map mutation that would otherwise erase the
+        /// removed troop/spy's owner. Not intended for external callers (UI, commands, tests
+        /// driving real gameplay) - same convention as SetPendingTrophyHallSource/
+        /// SetPendingSiteForChain.
+        /// </summary>
+        void SetPendingAffectedPlayerColor(PlayerColor? color);
+
+        /// <summary>
         /// The color of the player whose trophy hall EffectType.DeployFromTrophyHall will draw a
         /// troop from (Mummy Lord) - resolved by TrophyHallRuleEngine and set via
         /// SetPendingTrophyHallSource BEFORE targeting opens (see CardEffectProcessor.
@@ -111,6 +120,13 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// DtoMapper, StateRestorer), matching PendingSite's pattern.
         /// </summary>
         IReadOnlyList<MapNode> PendingDeployedNodes { get; }
+
+        /// <summary>
+        /// Appends to PendingDeployedNodes - called by MapActionSubsystem.PerformDeployTroop
+        /// once the deploy itself succeeds. Not intended for external callers, same convention
+        /// as SetPendingAffectedPlayerColor/SetPendingTrophyHallSource/SetPendingSiteForChain.
+        /// </summary>
+        void AddPendingDeployedNode(MapNode node);
 
         /// <summary>
         /// "Deploy 2 troops, then choose an opponent with a troop adjacent to at least 1 of
@@ -162,8 +178,11 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         /// SelectingSpyToReturn (correct for the enemy-spy flow, wrong here). Used by
         /// ReturnOwnSpyCommand so a chained effect (e.g. Cloaker's Assassinate, scoped to
         /// "at that spy's site") can read back which site the spy was just returned from.
+        /// Also used by MapActionSubsystem.PerformAssassinate (CardEffect.
+        /// RestrictRepeatsToFirstTargetSite) - nullable because IMapManager.GetSiteForNode
+        /// can legitimately find no site for a given node.
         /// </summary>
-        void SetPendingSiteForChain(Site site);
+        void SetPendingSiteForChain(Site? site);
 
         /// <summary>
         /// Notifies the system that an action has failed validation or execution,

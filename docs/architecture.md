@@ -68,6 +68,7 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   │   │   ├── IActionSystem.cs         # incl. OnInteractionRequested (Key Systems #4) + 3 engine-only methods ActionExecutionEngine calls back through
     │   │   │   ├── IDevourSubsystem.cs
     │   │   │   ├── IGameCommand.cs
+    │   │   │   ├── IMapActionSubsystem.cs   # Basic map-action executors (Assassinate/Supplant/ReturnTroop/DeployTroop/DeployFromTrophyHall/MoveTroop)
     │   │   │   └── ISpySubsystem.cs
     │   │   └── Services/
     │   │       ├── ICommandDispatcher.cs
@@ -146,6 +147,7 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
         │   ├── Subsystems/                  # Logic Sub-modules
         │   │   ├── ActionExecutionEngine.cs # Execution-stack engine (ExecutionStack/PushEffect/ResolveCurrentEffect/ProcessStack) - see Key Systems #4
         │   │   ├── DevourSubsystem.cs       # Devour mechanics
+        │   │   ├── MapActionSubsystem.cs    # Basic map-action executors (Assassinate/Supplant/ReturnTroop/DeployTroop/DeployFromTrophyHall/MoveTroop) - see Key Systems #4
         │   │   └── SpySubsystem.cs          # Spy mechanics
         │   ├── ActionSystem.cs              # Targeting state machine; delegates stack management to ActionExecutionEngine; raises OnInteractionRequested
         │   ├── CardPlaySystem.cs            # Validates and conducts card plays
@@ -311,10 +313,11 @@ All significant game actions (Move, Attack, Buy) are encapsulated in `IGameComma
 
 ### 4. ActionSystem: Targeting State Machine and Execution-Stack Engine
 
-`ActionSystem` used to be one 871-line class doing two jobs at once. As of 2026-08-31 it's split into two collaborating classes, following the same composition pattern already established for `DevourSubsystem`/`SpySubsystem`/`ActionInputController`/`PreTargetHandler`:
+`ActionSystem` is split into collaborating classes, following the same composition pattern already established for `DevourSubsystem`/`SpySubsystem`/`ActionInputController`/`PreTargetHandler`:
 
-- **`ActionSystem`** owns the **targeting state machine**: `CurrentState`, `PendingCard`/`PendingSite`/`PendingMoveSource`/`PendingDevourCard`, `StartTargeting`/`CancelTargeting`, and every `TryStart*`/`Perform*` command-facing method. This is the half external callers (input modes, commands, tests) actually query and react to, and it still implements the full `IActionSystem` interface.
+- **`ActionSystem`** owns the **targeting state machine**: `CurrentState`, `PendingCard`/`PendingSite`/`PendingMoveSource`/`PendingDevourCard`, `StartTargeting`/`CancelTargeting`. This is the half external callers (input modes, commands, tests) actually query and react to, and it still implements the full `IActionSystem` interface - every `TryStart*`/`Perform*` command-facing method stays on `ActionSystem`/`IActionSystem`, but the `Perform*` methods are now thin one-line delegations to `MapActionSubsystem` below (see that bullet) rather than owning the logic themselves.
 - **`ActionExecutionEngine`** (`Mechanics/Actions/Subsystems/`) owns the **execution-stack engine**: `ExecutionStack`, `PushEffect`, `ResolveCurrentEffect`, `ProcessStack`, and everything `ProcessStack` calls into - optional-effect confirmation, automatic-effect application, pre-target auto-execution. It takes `IActionSystem` as a collaborator (not the concrete class) and calls back into it through three narrow, engine-only interface methods (`EnterTargetingState`, `SetPendingCard`, `ResetTargetingToNormal`) for the handful of targeting-state transitions stack-processing needs to trigger.
+- **`MapActionSubsystem`** (`Mechanics/Actions/Subsystems/`) owns the **basic map-action executors**: `PerformAssassinate`/`PerformSupplant`/`PerformReturnTroop`/`PerformDeployTroop`/`PerformDeployFromTrophyHall`/`PerformMoveTroop` - real logic (resource spend via `IPlayerStateManager`, timing-sensitive `Pending*` capture, the transactional Devour-then-Assassinate/Supplant handling), not thin wrappers. Takes `IActionSystem` as a collaborator the same way `ActionExecutionEngine` does, calling back through 3 dedicated setters (`SetPendingAffectedPlayerColor`, `AddPendingDeployedNode`, and the pre-existing `SetPendingSiteForChain`, widened to accept a nullable `Site?`) since those `Pending*` fields stay `private set` on `ActionSystem` itself. `IMatchManager` is setter-injected post-construction (`SetMatchManager`), the same genuine-circular-dependency pattern `IDevourSubsystem` already established.
 
 `ActionSystem` delegates `ExecutionStack`/`PushEffect`/`CurrentEffect`/`ProcessStack`/`ResolveCurrentEffect` straight through to its own `ActionExecutionEngine` instance, so `IActionSystem`'s public contract - and every existing caller - is completely unchanged. The engine's own `OnActionCompleted`/`OnInteractionRequested`/`OnAutoExecuteCommand` events are forwarded by `ActionSystem`'s constructor as its own public events (C# events can only be raised by their declaring type, even through a shared interface reference, so this can't be a direct pass-through).
 

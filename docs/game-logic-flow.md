@@ -598,6 +598,14 @@ classDiagram
         +HandlePlaceSpy()
         +PerformSpyReturn()
     }
+    class MapActionSubsystem {
+        +PerformAssassinate()
+        +PerformSupplant()
+        +PerformReturnTroop()
+        +PerformDeployTroop()
+        +PerformDeployFromTrophyHall()
+        +PerformMoveTroop()
+    }
     class ActionInputController {
         +HandleTargetClick()
         -HandleAssassinate()
@@ -612,6 +620,8 @@ classDiagram
     ActionExecutionEngine --> PreTargetHandler : Also uses (shared instance)
     ActionSystem --> DevourSubsystem : Delegates Devour Logic
     ActionSystem --> SpySubsystem : Delegates Spy Logic
+    ActionSystem --> MapActionSubsystem : Delegates basic map-action execution
+    MapActionSubsystem --> ActionSystem : Calls back for Pending* setters (IActionSystem)
     ActionSystem --> ActionInputController : Delegates click-to-command routing
 ```
 
@@ -620,6 +630,7 @@ classDiagram
 > - **PreTargetHandler** - Handles pre-selected target execution (extracted to reduce CC 26→6); shared by both `ActionSystem` and `ActionExecutionEngine`
 > - **DevourSubsystem** - Manages devour mechanics
 > - **SpySubsystem** - Handles spy placement and removal
+> - **MapActionSubsystem** - Owns the basic map-action executors (Assassinate/Supplant/ReturnTroop/DeployTroop/DeployFromTrophyHall/MoveTroop); calls back into `ActionSystem` (via `IActionSystem`) to set the `Pending*` fields it needs to capture, since those stay `private set` on `ActionSystem` itself
 > - **ActionInputController** - Owns click-to-command routing for every targeting state; `ActionSystem.HandleTargetClick(...)` is a one-line delegation to it and remains the stable public entry point every caller/test uses
 
 ---
