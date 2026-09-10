@@ -133,6 +133,7 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   ├── PlayerStateManager.cs            # Centralized player mutations
     │   ├── ReplayManager.cs                 # Replay recording and playback
     │   ├── StateRestorer.cs                 # Rebuilds MatchContext (incl. ActionSystem's targeting state) in-place from a GameStateDto snapshot
+    │   ├── TurnLifecycleSubsystem.cs        # End-turn/reactive-discard/victory lifecycle - split from MatchManager, see Key Systems #9
     │   ├── TurnManager.cs                   # Manages Turn Order and Phase Transitions
     │   └── VictoryManager.cs                # Calculates final scores and determines the winner
     │
@@ -445,6 +446,29 @@ of Gold with 1 each; Obsidian Fortress is deliberately left at 0 because several
 existing map/control/total-control/trophy-hall code path already treated `PlayerColor.Neutral`
 correctly (it was simply never placed anywhere) - this is a pure data-seeding fix, not a new
 rules primitive.
+
+### 9. MatchManager: PlayCard/Devour Orchestration and Turn Lifecycle
+`MatchManager` is split into two collaborating classes, the same composition pattern
+`ActionSystem` uses for its own subsystems:
+
+- **`MatchManager`** owns **card-play/devour orchestration**: `PlayCard`, `DevourCard`,
+  `PlayCardFromMarket`, `DevourMarketCard`, `ResumeDevourChain`, `MoveCardToPlayed`, `VoidPile`.
+  This is the half still implementing the full `IMatchManager` interface.
+- **`TurnLifecycleSubsystem`** (`Managers/`) owns the **end-turn/reactive-discard/victory
+  lifecycle**: `CanEndTurn`, `EndTurn` (and its private `BeginOpponentDiscardPhase`/
+  `AdvanceOpponentDiscard`/`CompleteEndTurnSwitch` steps), `EnqueueReactiveDiscard`/
+  `ResumeReactiveDiscardQueue`/`IsResolvingOpponentDiscard` (Neogi/Umber Hulk's shared
+  forced-discard queue), `IsGameOver`/`TriggerGameOver`/`VictoryResult`, `RoundNumber`/
+  `TotalTurnCount`.
+
+Unlike `MapActionSubsystem`'s split off `ActionSystem` (which needed 3 new `IActionSystem`
+members because the moved methods had to mutate fields that stayed behind), this split needed
+none: the two halves never call each other or share any private field, so `TurnLifecycleSubsystem`
+takes only `MatchContext`/`IGameLogger`/`IVictoryManager` - no back-reference to `MatchManager`
+itself, and no interface of its own, since nothing outside `MatchManager` holds a reference to
+it. `MatchManager` delegates every `IMatchManager` member `TurnLifecycleSubsystem` now owns
+straight through (e.g. `public bool CanEndTurn(out string reason) => _turnLifecycle.CanEndTurn(out reason);`),
+so `IMatchManager`'s public contract - and every existing caller - is completely unchanged.
 
 ---
 

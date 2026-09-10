@@ -94,7 +94,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         public void DiscardCommand_AmbassadorForcedByCraniumRats_PromoteInsteadAccepted_AlsoPromotesInstead()
         {
             // Regression, mirroring GrimlockScenarioTests/UmberHulkScenarioTests: Neogi's
-            // MatchManager._pendingDiscardQueue is NOT the only way a shipped card forces an
+            // TurnLifecycleSubsystem._pendingDiscardQueue is NOT the only way a shipped card forces an
             // opponent to discard - Cranium Rats forces one via SelectOpponent -> OnSuccess:
             // DiscardCard, entirely on ActionSystem's ExecutionStack. The promote-instead choice
             // must work for this path too, not just Neogi's.

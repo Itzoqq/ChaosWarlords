@@ -123,7 +123,7 @@ namespace ChaosWarlords.Tests.Source.Functional
             // Regression for the council-review fix chain on f4f2de1 (Cranium Rats):
             // ActionSystem.CancelTargeting()/ClearState() used to release
             // TurnManager.ForcedActingPlayer unconditionally. Neogi's cross-player forced-
-            // discard queue (MatchManager._pendingDiscardQueue) ALSO drives ForcedActingPlayer,
+            // discard queue (TurnLifecycleSubsystem._pendingDiscardQueue) ALSO drives ForcedActingPlayer,
             // but entirely outside ActionSystem's ExecutionStack (AdvanceOpponentDiscard calls
             // StartTargeting directly - nothing is ever pushed to the stack for it) and owns
             // its own release via AdvanceOpponentDiscard/ResolveOpponentDiscard. A generic

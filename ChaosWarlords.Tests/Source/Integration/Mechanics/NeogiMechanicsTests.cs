@@ -16,7 +16,7 @@ using System.Collections.Generic;
 namespace ChaosWarlords.Tests.Source.Integration.Mechanics
 {
     // Neogi: "Deploy 4 troops. At end of turn, each opponent must discard a card." The
-    // cross-player forced-discard sequencing (MatchManager.BeginOpponentDiscardPhase/
+    // cross-player forced-discard sequencing (TurnLifecycleSubsystem.BeginOpponentDiscardPhase/
     // AdvanceOpponentDiscard/ResolveOpponentDiscard + TurnManager.ForcedActingPlayer) is the
     // largest single piece of new engine work in this batch - see planning.txt.
     [TestClass]

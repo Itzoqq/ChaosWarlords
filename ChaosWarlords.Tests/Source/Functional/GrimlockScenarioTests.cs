@@ -68,7 +68,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void DiscardCommand_GrimlockForcedByCraniumRats_AlsoDrawsTwoExtraCards()
         {
-            // Regression: Neogi's MatchManager._pendingDiscardQueue is NOT the only way a
+            // Regression: Neogi's TurnLifecycleSubsystem._pendingDiscardQueue is NOT the only way a
             // shipped card forces an opponent to discard - Cranium Rats forces one via
             // SelectOpponent -> OnSuccess: DiscardCard, entirely on ActionSystem's
             // ExecutionStack, with MatchManager.IsResolvingOpponentDiscard staying false the

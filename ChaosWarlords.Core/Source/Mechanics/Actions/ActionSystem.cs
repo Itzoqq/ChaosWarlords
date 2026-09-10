@@ -345,7 +345,7 @@ namespace ChaosWarlords.Source.Managers
         /// (IsResolvingOpponentDiscard) - Neogi's end-of-turn phase drives ForcedActingPlayer
         /// entirely outside ExecutionStack (AdvanceOpponentDiscard calls StartTargeting directly,
         /// nothing is ever pushed to the stack for it), so releasing it here too would desync
-        /// MatchManager._pendingDiscardQueue from ActionState/ForcedActingPlayer the moment anyone
+        /// TurnLifecycleSubsystem._pendingDiscardQueue from ActionState/ForcedActingPlayer the moment anyone
         /// cancels (e.g. right-click) while that queue is mid-processing: IsResolvingOpponentDiscard
         /// would stay true with stale queued entries while everything else looks idle, silently
         /// misrouting the next unrelated DiscardCardCommand into ResolveOpponentDiscard. Confirmed via

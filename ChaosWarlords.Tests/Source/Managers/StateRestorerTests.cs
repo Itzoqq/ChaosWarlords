@@ -105,7 +105,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // MapManager/MapRuleEngine hold their own independent copy of CurrentPhase (read by
             // ValidateDeployment's Setup power-cost bypass and the Setup auto-advance-turn
-            // trigger) - MatchManager.CompleteEndTurnSwitch always sets both copies together on
+            // trigger) - TurnLifecycleSubsystem.CompleteEndTurnSwitch always sets both copies together on
             // the Setup->Playing transition, so a restore must reset both too, or they can
             // permanently desync if an exception hits shortly after that flip.
             var snapshot = DtoMapper.ToGameStateDto(_context);

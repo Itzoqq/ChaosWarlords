@@ -28,7 +28,7 @@ namespace ChaosWarlords.Source.Managers
             context.SequenceNumber = dto.SequenceNumber;
             // MapManager/MapRuleEngine hold their own independent copy of the current phase
             // (read by ValidateDeployment's Setup power-cost bypass and the Setup
-            // auto-advance-turn trigger) - MatchManager.CompleteEndTurnSwitch always sets both
+            // auto-advance-turn trigger) - TurnLifecycleSubsystem.CompleteEndTurnSwitch always sets both
             // copies together on the Setup->Playing transition, so a restore must too, or the
             // two copies can permanently desync if an exception hits shortly after that flip.
             context.MapManager.SetPhase(dto.Phase);

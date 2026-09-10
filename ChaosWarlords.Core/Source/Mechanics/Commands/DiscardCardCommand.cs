@@ -99,7 +99,7 @@ namespace ChaosWarlords.Source.Commands
             // opponent causes you to discard this, draw 2 cards"). ForcedActingPlayer being
             // set to THIS discarding player is the correct, general signal for that - true for
             // BOTH of the two independent ways a shipped card can force someone else to
-            // discard: Neogi's cross-player queue (MatchManager.AdvanceOpponentDiscard calls
+            // discard: Neogi's cross-player queue (TurnLifecycleSubsystem.AdvanceOpponentDiscard calls
             // BeginForcedActingPlayer directly, no ExecutionStack involved) and Cranium Rats'
             // SelectOpponent -> OnSuccess: DiscardCard chain (BeginForcedActingPlayer via
             // SelectOpponentCommand, released later by ActionSystem's own ClearState() once the

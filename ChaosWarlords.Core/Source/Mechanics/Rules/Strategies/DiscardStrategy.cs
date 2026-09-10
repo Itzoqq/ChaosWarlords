@@ -12,7 +12,7 @@ namespace ChaosWarlords.Source.Mechanics.Rules.Strategies
     /// own cost - "discard a card from your hand"). Neogi's cross-player forced discard
     /// (each OPPONENT discards) is a separate, deferred-to-end-of-turn flow orchestrated by
     /// MatchManager, not resolved through this strategy's HasValidTargets/targeting path -
-    /// see MatchManager.AdvanceOpponentDiscard.
+    /// see TurnLifecycleSubsystem.AdvanceOpponentDiscard.
     /// </summary>
     public class DiscardStrategy : IEffectStrategy
     {
