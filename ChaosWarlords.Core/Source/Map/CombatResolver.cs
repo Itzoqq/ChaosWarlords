@@ -43,7 +43,7 @@ namespace ChaosWarlords.Source.Map
             ArgumentNullException.ThrowIfNull(node);
             ArgumentNullException.ThrowIfNull(player);
 
-            // Priority 1: Use PendingFreeTroops (from cards this turn) - always free
+            // A card credit waives Power; the physical troop still comes from barracks.
             if (player.PendingFreeTroops > 0)
             {
                 player.PendingFreeTroops--;
@@ -56,10 +56,10 @@ namespace ChaosWarlords.Source.Map
                 {
                     _stateManager.TrySpendPower(player, GameConstants.DeployPowerCost);
                 }
-                _stateManager.RemoveTroops(player, 1);
-                _logger.Log($"Deployed troop from barracks. Supply: {player.TroopsInBarracks}", LogChannel.Combat);
             }
 
+            _stateManager.RemoveTroops(player, 1);
+            _logger.Log($"Deployed troop from barracks supply. Remaining: {player.TroopsInBarracks}", LogChannel.Combat);
             node.Occupant = player.Color;
             _recalculateSiteState(_getSiteForNode(node), player);
         }
@@ -167,16 +167,8 @@ namespace ChaosWarlords.Source.Map
             node.Occupant = PlayerColor.None;
             _stateManager.AddTrophy(attacker, removedColor);
 
-            // Supplant deployment is ALWAYS FREE (it's part of the Supplant action)
-            // Priority 1: Use PendingFreeTroops (from cards this turn)
-            if (attacker.PendingFreeTroops > 0)
-            {
-                attacker.PendingFreeTroops--;
-                _logger.Log($"Supplanted with FREE troop from card effect. Remaining free: {attacker.PendingFreeTroops}", LogChannel.Combat);
-                node.Occupant = attacker.Color;
-            }
-            // Priority 2: Use barracks troops (also free for Supplant)
-            else if (attacker.TroopsInBarracks > 0)
+            // Supplant includes its own free deploy, preserving unrelated card credits.
+            if (attacker.TroopsInBarracks > 0)
             {
                 _stateManager.RemoveTroops(attacker, 1);
                 _logger.Log($"Supplanted with troop from barracks (FREE as part of Supplant action). Supply: {attacker.TroopsInBarracks}", LogChannel.Combat);

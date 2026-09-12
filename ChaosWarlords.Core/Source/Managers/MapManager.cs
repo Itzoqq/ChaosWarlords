@@ -132,15 +132,18 @@ namespace ChaosWarlords.Source.Managers
             }
 
             // Rulebook p.12/22: "Each time you take this action while you have no
-            // troops remaining in your barracks, gain 1 VP instead." Doesn't apply to
-            // card-granted free deploys (PendingFreeTroops) - those still place a troop
-            // as normal, matching CombatResolver.ExecuteDeploy's own priority order.
-            if (currentPlayer.TroopsInBarracks <= 0 && currentPlayer.PendingFreeTroops <= 0)
+            // troops remaining in your barracks, gain 1 VP instead."
+            // Card credits waive the Power cost, not the supply requirement.
+            if (currentPlayer.TroopsInBarracks <= 0)
             {
                 // Setup phase deploys are always free and can't reach an empty barracks
                 // (each player only places 1 of their 10+ starting troops), but guard it
                 // the same way CombatResolver.ExecuteDeploy's real-troop branch does.
-                if (CurrentPhase != MatchPhase.Setup)
+                if (currentPlayer.PendingFreeTroops > 0)
+                {
+                    currentPlayer.PendingFreeTroops--;
+                }
+                else if (CurrentPhase != MatchPhase.Setup)
                 {
                     _playerStateManager.TrySpendPower(currentPlayer, GameConstants.DeployPowerCost);
                 }
@@ -167,7 +170,7 @@ namespace ChaosWarlords.Source.Managers
                 return false;
             }
 
-            // NOTE: an empty barracks (with no PendingFreeTroops) is NOT a validation
+            // NOTE: an empty barracks is NOT a validation
             // failure - see TryDeploy's "gain 1 VP instead" branch above.
 
             // Power Check skipped in Setup Phase OR if we have free (pending) troops from cards

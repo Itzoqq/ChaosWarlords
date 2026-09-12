@@ -323,25 +323,34 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
         public void PerformDeployTroop_Success_CreditsPendingFreeTroopAndRecordsNode()
         {
             int pendingBefore = _activePlayer.PendingFreeTroops;
-            _mapManager.TryDeploy(_activePlayer, _node).Returns(true);
+            _mapManager.TryDeploy(_activePlayer, _node).Returns(_ =>
+            {
+                Assert.AreEqual(pendingBefore + 1, _activePlayer.PendingFreeTroops,
+                    "The temporary credit must exist while MapManager resolves the free deploy.");
+                _activePlayer.PendingFreeTroops--;
+                _node.Occupant = _activePlayer.Color;
+                return true;
+            });
 
             _subsystem.PerformDeployTroop(_node, cardId: null);
 
-            Assert.AreEqual(pendingBefore + 1, _activePlayer.PendingFreeTroops);
+            Assert.AreEqual(pendingBefore, _activePlayer.PendingFreeTroops);
             _actionSystem.Received(1).AddPendingDeployedNode(_node);
             _actionSystem.Received(1).CompleteAction();
         }
 
         [TestMethod]
-        public void PerformDeployTroop_TryDeployFails_LogsWarningButStillCompletesAction()
+        public void PerformDeployTroop_TryDeployFails_RestoresCreditAndKeepsEffectPending()
         {
+            _activePlayer.PendingFreeTroops = 2;
             _mapManager.TryDeploy(_activePlayer, _node).Returns(false);
 
             _subsystem.PerformDeployTroop(_node, cardId: null);
 
             _logger.Received(1).Log(Arg.Is<string>(s => s.Contains("TryDeploy unexpectedly failed")), LogChannel.Warning);
-            _actionSystem.Received(1).AddPendingDeployedNode(_node);
-            _actionSystem.Received(1).CompleteAction();
+            Assert.AreEqual(2, _activePlayer.PendingFreeTroops);
+            _actionSystem.DidNotReceive().AddPendingDeployedNode(Arg.Any<MapNode>());
+            _actionSystem.DidNotReceive().CompleteAction();
         }
 
         #endregion

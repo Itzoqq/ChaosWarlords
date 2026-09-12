@@ -56,7 +56,7 @@ namespace ChaosWarlords.Tests.Source.Functional
             scenario.ClickTarget(nodeB, null);
 
             Assert.AreEqual(red.Color, nodeB.Occupant);
-            Assert.AreEqual(troopsInBarracksBefore, red.TroopsInBarracks, "Card-granted Deploy is funded like GainResource(Troops) - PendingFreeTroops, not the barracks.");
+            Assert.AreEqual(troopsInBarracksBefore - 2, red.TroopsInBarracks, "Each free deployment consumes one physical barracks troop.");
             Assert.AreEqual(0, red.PendingFreeTroops, "Both credited free troops should already be fully consumed by the 2 immediate deploys.");
             Assert.AreEqual(ActionState.TargetingOpponentSelect, scenario.Context.ActionSystem.CurrentState, "Both deploys done - chains into choosing the eligible opponent.");
 

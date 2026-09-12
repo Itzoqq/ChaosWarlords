@@ -201,19 +201,19 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
         {
             CurrentPlayer.PendingFreeTroops++;
 
-            // Validate() already confirmed CanDeployAt(node) moments ago with nothing else
-            // mutating state in between, so TryDeploy failing here is unreachable today - but
-            // unlike PerformAssassinate/PerformSupplant's underlying MapManager calls (which
-            // are void), TryDeploy DOES report success/failure, so a silent false here would
-            // otherwise record a node as deployed-to (PendingDeployedNodes) that never actually
-            // changed the board. Logged rather than silently swallowed, same defense-in-depth
-            // reasoning as PerformDeployFromTrophyHall's own "not an expected path" guard.
+            // A failed attempt must not leak its temporary credit or complete the effect.
             if (!_mapManager.TryDeploy(CurrentPlayer, node))
             {
+                CurrentPlayer.PendingFreeTroops--;
                 _logger.Log($"MapActionSubsystem.PerformDeployTroop: TryDeploy unexpectedly failed for node {node.Id} despite Validate() having already accepted it.", LogChannel.Warning);
+                return;
             }
 
-            _actionSystem.AddPendingDeployedNode(node);
+            // Empty-barracks VP succeeds without placing a troop for adjacency follow-ups.
+            if (node.Occupant == CurrentPlayer.Color)
+            {
+                _actionSystem.AddPendingDeployedNode(node);
+            }
             _actionSystem.CompleteAction();
         }
 

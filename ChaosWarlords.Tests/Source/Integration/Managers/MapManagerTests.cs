@@ -163,7 +163,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             Assert.AreEqual(testPlayer.Color, testNode2.Occupant, "Node should be occupied.");
             Assert.AreEqual(0, testPlayer.PendingFreeTroops, "Free troop should be consumed.");
             Assert.AreEqual(0, testPlayer.Power, "Power should remain 0.");
-            Assert.AreEqual(5, testPlayer.TroopsInBarracks, "Barracks troops should NOT be consumed.");
+            Assert.AreEqual(4, testPlayer.TroopsInBarracks, "Free deployment still consumes a barracks troop.");
         }
 
         [TestMethod]

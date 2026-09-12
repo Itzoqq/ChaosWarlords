@@ -57,3 +57,8 @@ CLAUDE.md
 # usually you WANT to commit the .mgcb file, but ignore the temporary build folder:
 **/Content/bin/
 **/Content/obj/
+# --- Codex project config (local, like Claude) ---
+AGENTS.md
+.codex/
+.agents/
+.local-tools/
