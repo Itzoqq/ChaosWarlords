@@ -51,11 +51,12 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// Only valid after StartReplay or during recording.
         /// </summary>
         int Seed { get; }
+        Contexts.MarketDeckSelection MarketDeckSelection { get; }
 
         /// <summary>
         /// Initializes a new recording session with the specified seed.
         /// </summary>
-        void InitializeRecording(int seed);
+        void InitializeRecording(int seed, Contexts.MarketDeckSelection? marketDeckSelection = null);
 
         /// <summary>
         /// Retrieves the next command from the replay queue, if available.

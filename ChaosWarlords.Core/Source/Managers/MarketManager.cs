@@ -3,6 +3,7 @@ using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Core.Contexts;
 
 namespace ChaosWarlords.Source.Managers
 {
@@ -13,10 +14,13 @@ namespace ChaosWarlords.Source.Managers
         public List<Card> MarketRow { get; private set; }
         public List<Card> MarketDeck { get; }
 
-        public MarketManager(ICardDatabase cardDatabase, IGameRandom random)
+        public MarketManager(ICardDatabase cardDatabase, IGameRandom random, MarketDeckSelection? selection = null)
         {
             _cardDatabase = cardDatabase;
-            MarketDeck = _cardDatabase.GetAllMarketCards(random);
+            MarketDeck = selection is null
+                ? _cardDatabase.GetAllMarketCards(random)
+                : _cardDatabase.GetMarketCards(selection, random)
+                    ?? throw new InvalidOperationException("The card database returned no cards for the selected market half-decks.");
             MarketRow = new List<Card>();
 
             // Shuffle market deck using deterministic RNG
@@ -82,5 +86,3 @@ namespace ChaosWarlords.Source.Managers
 
     }
 }
-
-

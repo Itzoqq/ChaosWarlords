@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Core.Contexts;
 
 namespace ChaosWarlords.Tests.Core.Utilities
 {
@@ -6,6 +7,25 @@ namespace ChaosWarlords.Tests.Core.Utilities
     [TestCategory("Integration")]
     public class CardDatabaseIntegrationTests
     {
+        [TestMethod]
+        public void LoadRealCardsJson_GetMarketCards_ReturnsOnlyTheSelectedHalfDecks()
+        {
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
+            if (!File.Exists(path)) Assert.Inconclusive("cards.json not found at " + path);
+
+            var database = new CardDatabase(new TestLocalizationService());
+            using var stream = File.OpenRead(path);
+            database.Load(stream);
+
+            var cards = database.GetMarketCards(new MarketDeckSelection(MarketHalfDeck.Drow, MarketHalfDeck.Dragons));
+            var ids = cards.Select(card => card.DefinitionId).ToHashSet();
+
+            Assert.Contains("advance_scout", ids, "A selected Drow card should enter the market deck.");
+            Assert.Contains("black_dragon", ids, "A selected Dragon card should enter the market deck.");
+            Assert.DoesNotContain("zuggtmoy", ids, "A Demon card must not enter a Drow/Dragon market deck.");
+            Assert.DoesNotContain("olhydra", ids, "An Elemental card must not enter a Drow/Dragon market deck.");
+            Assert.DoesNotContain("wight", ids, "An unassigned expansion card must not silently enter an official half-deck selection.");
+        }
         [TestMethod]
         public void LoadRealCardsJson_EveryMarketCard_ResolvesNameAndDescriptionFromTheRealBundle()
         {

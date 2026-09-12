@@ -5,6 +5,7 @@ using ChaosWarlords.Source.Core.Utilities;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Core.Contexts;
 
 namespace ChaosWarlords.Source.Factories
 {
@@ -46,7 +47,7 @@ namespace ChaosWarlords.Source.Factories
         /// <param name="seed">Optional seed for deterministic gameplay. If null, uses Environment.TickCount.</param>
         /// <param name="playerColors">Which seats to create, in seat order. Defaults to [Red, Blue] (2 players). Must have 2-4 entries, matching the rulebook's supported player count.</param>
         /// <returns>WorldData containing all initialized managers and systems.</returns>
-        public WorldData Build(IReplayManager replayManager, int? seed = null, IReadOnlyList<PlayerColor>? playerColors = null)
+        public WorldData Build(IReplayManager replayManager, int? seed = null, IReadOnlyList<PlayerColor>? playerColors = null, MarketDeckSelection? marketDeckSelection = null)
         {
             var colors = playerColors ?? DefaultPlayerColors;
             if (colors.Count < 2 || colors.Count > 4)
@@ -62,7 +63,7 @@ namespace ChaosWarlords.Source.Factories
             var playerStateManager = new PlayerStateManager(_logger);
 
             _logger.Log($"[RNG] Pre-MarketManager: {random.CallCount}", LogChannel.Debug);
-            var marketManager = new MarketManager(_cardDatabase, random);
+            var marketManager = new MarketManager(_cardDatabase, random, marketDeckSelection ?? MarketDeckSelection.Default);
             _logger.Log($"[RNG] Post-MarketManager Checksum: {random.CallCount}", LogChannel.Info);
 
             _logger.Log($"[RNG] Pre-CreatePlayers: {random.CallCount}", LogChannel.Debug);

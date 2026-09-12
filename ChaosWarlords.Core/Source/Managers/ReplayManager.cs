@@ -2,6 +2,7 @@ using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Data.Dtos;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Utilities;
+using ChaosWarlords.Source.Core.Contexts;
 
 namespace ChaosWarlords.Source.Managers
 {
@@ -14,6 +15,7 @@ namespace ChaosWarlords.Source.Managers
         private bool _isReplaying;
         private readonly IGameLogger _logger;
         private int _seed;
+        private MarketDeckSelection _marketDeckSelection = MarketDeckSelection.Default;
 
         public ReplayManager(IGameLogger logger)
         {
@@ -22,11 +24,13 @@ namespace ChaosWarlords.Source.Managers
 
         public bool IsReplaying => _isReplaying;
         public int Seed => _seed;
+        public MarketDeckSelection MarketDeckSelection => _marketDeckSelection;
 
-        public void InitializeRecording(int seed)
+        public void InitializeRecording(int seed, MarketDeckSelection? marketDeckSelection = null)
         {
             _seed = seed;
             _recording.Clear();
+            _marketDeckSelection = marketDeckSelection ?? MarketDeckSelection.Default;
             _logger.Log($"Replay recording initialized with seed: {seed}", LogChannel.Info);
         }
 
@@ -40,6 +44,9 @@ namespace ChaosWarlords.Source.Managers
                 {
                     _isReplaying = true;
                     _seed = data.Seed;
+                    _marketDeckSelection = Enum.TryParse(data.FirstMarketHalfDeck, true, out MarketHalfDeck first)
+                        && Enum.TryParse(data.SecondMarketHalfDeck, true, out MarketHalfDeck second)
+                        && first != second ? new MarketDeckSelection(first, second) : MarketDeckSelection.Default;
                     _recording.Clear();
                     _recording.AddRange(data.Commands);
 
@@ -81,6 +88,8 @@ namespace ChaosWarlords.Source.Managers
             var data = new ReplayDataDto
             {
                 Seed = _seed,
+                FirstMarketHalfDeck = _marketDeckSelection.First.ToString(),
+                SecondMarketHalfDeck = _marketDeckSelection.Second.ToString(),
                 Commands = _recording
             };
             return System.Text.Json.JsonSerializer.Serialize(data);

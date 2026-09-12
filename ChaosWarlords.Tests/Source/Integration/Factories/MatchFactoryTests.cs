@@ -6,6 +6,7 @@ using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Core.Contexts;
 
 namespace ChaosWarlords.Tests.Integration.Factories
 {
@@ -15,10 +16,24 @@ namespace ChaosWarlords.Tests.Integration.Factories
     public class MatchFactoryTests
     {
         [TestMethod]
+        public void Build_WithMarketDeckSelection_PassesItToTheMarketDatabase()
+        {
+            var mockDb = Substitute.For<ICardDatabase>();
+            var selection = new MarketDeckSelection(MarketHalfDeck.Elementals, MarketHalfDeck.Demons);
+            mockDb.GetMarketCards(selection, Arg.Any<IGameRandom>()).Returns(new List<Card>());
+
+            var world = new MatchFactory(mockDb, Utilities.TestLogger.Instance)
+                .Build(Substitute.For<IReplayManager>(), seed: 555, marketDeckSelection: selection);
+
+            Assert.IsNotNull(world.MarketManager);
+            mockDb.Received(1).GetMarketCards(selection, Arg.Any<IGameRandom>());
+        }
+        [TestMethod]
         public void Build_CreatesValidWorldState_Headless()
         {
             var mockDb = Substitute.For<ICardDatabase>();
             mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
+            mockDb.GetMarketCards(Arg.Any<MarketDeckSelection>(), Arg.Any<IGameRandom>()).Returns(new List<Card>());
             mockDb.GetAllMarketCards().Returns(new List<Card>());
 
             var builder = new MatchFactory(mockDb, Utilities.TestLogger.Instance);
@@ -34,6 +49,7 @@ namespace ChaosWarlords.Tests.Integration.Factories
         {
             var mockDb = Substitute.For<ICardDatabase>();
             mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
+            mockDb.GetMarketCards(Arg.Any<MarketDeckSelection>(), Arg.Any<IGameRandom>()).Returns(new List<Card>());
             mockDb.GetAllMarketCards(null).Returns(new List<Card>()); // Handle optional argument
 
             var factory = new MatchFactory(mockDb, Utilities.TestLogger.Instance);
@@ -62,6 +78,7 @@ namespace ChaosWarlords.Tests.Integration.Factories
             // (rulebook p.4: 2-4 players). See planning.txt.
             var mockDb = Substitute.For<ICardDatabase>();
             mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
+            mockDb.GetMarketCards(Arg.Any<MarketDeckSelection>(), Arg.Any<IGameRandom>()).Returns(new List<Card>());
 
             var factory = new MatchFactory(mockDb, Utilities.TestLogger.Instance);
             var replayManagerMock = Substitute.For<IReplayManager>();
@@ -82,6 +99,7 @@ namespace ChaosWarlords.Tests.Integration.Factories
         {
             var mockDb = Substitute.For<ICardDatabase>();
             mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
+            mockDb.GetMarketCards(Arg.Any<MarketDeckSelection>(), Arg.Any<IGameRandom>()).Returns(new List<Card>());
 
             var factory = new MatchFactory(mockDb, Utilities.TestLogger.Instance);
             var replayManagerMock = Substitute.For<IReplayManager>();
@@ -97,6 +115,7 @@ namespace ChaosWarlords.Tests.Integration.Factories
         {
             var mockDb = Substitute.For<ICardDatabase>();
             mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
+            mockDb.GetMarketCards(Arg.Any<MarketDeckSelection>(), Arg.Any<IGameRandom>()).Returns(new List<Card>());
 
             var factory = new MatchFactory(mockDb, Utilities.TestLogger.Instance);
             var replayManagerMock = Substitute.For<IReplayManager>();
@@ -141,6 +160,7 @@ namespace ChaosWarlords.Tests.Integration.Factories
             // match starts, not just when some other effect happens to create one first.
             var mockDb = Substitute.For<ICardDatabase>();
             mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
+            mockDb.GetMarketCards(Arg.Any<MarketDeckSelection>(), Arg.Any<IGameRandom>()).Returns(new List<Card>());
 
             var factory = new MatchFactory(mockDb, Utilities.TestLogger.Instance);
             var replayManagerMock = Substitute.For<IReplayManager>();

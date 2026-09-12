@@ -1,6 +1,7 @@
 [
   {
     "Id": "core_house_guard",
+    "MarketHalfDeck": "Drow",
     "Cost": 3,
     "Aspect": "Warlord",
     "DeckVP": 1,
@@ -15,6 +16,7 @@
   },
   {
     "Id": "core_priestess",
+    "MarketHalfDeck": "Drow",
     "Cost": 3,
     "Aspect": "Sorcery",
     "DeckVP": 1,
@@ -29,6 +31,7 @@
   },
   {
     "Id": "drow_spy_master",
+    "MarketHalfDeck": "Drow",
     "Cost": 2,
     "Aspect": "Shadow",
     "DeckVP": 1,
@@ -171,6 +174,7 @@
   },
   {
     "Id": "market_corruptor",
+    "MarketHalfDeck": "Drow",
     "Cost": 3,
     "Aspect": "Sorcery",
     "DeckVP": 1,
@@ -313,6 +317,7 @@
   },
   {
     "Id": "insane_outcast",
+    "MarketHalfDeck": "Drow",
     "Cost": 0,
     "Aspect": "Neutral",
     "DeckVP": -1,
@@ -376,6 +381,7 @@
   },
   {
     "Id": "infiltrator",
+    "MarketHalfDeck": "Drow",
     "Cost": 3,
     "Aspect": "Shadow",
     "DeckVP": 1,
@@ -396,6 +402,7 @@
   },
   {
     "Id": "matron_mother",
+    "MarketHalfDeck": "Drow",
     "Cost": 6,
     "Aspect": "Blasphemy",
     "DeckVP": 3,
@@ -431,6 +438,7 @@
   },
   {
     "Id": "advance_scout",
+    "MarketHalfDeck": "Drow",
     "Cost": 3,
     "Aspect": "Warlord",
     "DeckVP": 1,
@@ -445,6 +453,7 @@
   },
   {
     "Id": "black_wyrmling",
+    "MarketHalfDeck": "Dragons",
     "Cost": 3,
     "Aspect": "Warlord",
     "DeckVP": 1,
@@ -464,6 +473,7 @@
   },
   {
     "Id": "crushing_wave_cultist",
+    "MarketHalfDeck": "Elementals",
     "Cost": 3,
     "Aspect": "Warlord",
     "DeckVP": 1,
@@ -484,6 +494,7 @@
   },
   {
     "Id": "kobold",
+    "MarketHalfDeck": "Dragons",
     "Cost": 1,
     "Aspect": "Warlord",
     "DeckVP": 1,
@@ -504,6 +515,7 @@
   },
   {
     "Id": "master_of_melee_magthere",
+    "MarketHalfDeck": "Drow",
     "Cost": 5,
     "Aspect": "Warlord",
     "DeckVP": 2,
@@ -541,6 +553,7 @@
   },
   {
     "Id": "olhydra",
+    "MarketHalfDeck": "Elementals",
     "Cost": 6,
     "Aspect": "Warlord",
     "DeckVP": 3,
@@ -562,6 +575,7 @@
   },
   {
     "Id": "deathblade",
+    "MarketHalfDeck": "Drow",
     "Cost": 6,
     "Aspect": "Sorcery",
     "DeckVP": 3,
@@ -673,6 +687,7 @@
   },
   {
     "Id": "black_dragon",
+    "MarketHalfDeck": "Dragons",
     "Cost": 7,
     "Aspect": "Warlord",
     "DeckVP": 3,
@@ -694,6 +709,7 @@
   },
   {
     "Id": "white_dragon",
+    "MarketHalfDeck": "Dragons",
     "Cost": 6,
     "Aspect": "Warlord",
     "DeckVP": 2,
@@ -714,6 +730,7 @@
   },
   {
     "Id": "blue_dragon",
+    "MarketHalfDeck": "Dragons",
     "Cost": 8,
     "Aspect": "Blasphemy",
     "DeckVP": 4,
@@ -734,6 +751,7 @@
   },
   {
     "Id": "green_dragon",
+    "MarketHalfDeck": "Dragons",
     "Cost": 7,
     "Aspect": "Shadow",
     "DeckVP": 3,
@@ -780,6 +798,7 @@
   },
   {
     "Id": "red_dragon",
+    "MarketHalfDeck": "Dragons",
     "Cost": 8,
     "Aspect": "Sorcery",
     "DeckVP": 4,
@@ -854,6 +873,7 @@
   },
   {
     "Id": "council_member",
+    "MarketHalfDeck": "Drow",
     "Cost": 6,
     "Aspect": "Blasphemy",
     "DeckVP": 3,
@@ -872,6 +892,7 @@
   },
   {
     "Id": "zuggtmoy",
+    "MarketHalfDeck": "Demons",
     "Cost": 6,
     "Aspect": "Blasphemy",
     "DeckVP": 3,
@@ -896,6 +917,7 @@
   },
   {
     "Id": "underdark_ranger",
+    "MarketHalfDeck": "Drow",
     "Cost": 4,
     "Aspect": "Warlord",
     "DeckVP": 2,
@@ -910,6 +932,7 @@
   },
   {
     "Id": "masters_of_sorcere",
+    "MarketHalfDeck": "Drow",
     "Cost": 5,
     "Aspect": "Shadow",
     "DeckVP": 2,
@@ -979,6 +1002,7 @@
   },
   {
     "Id": "weaponmaster",
+    "MarketHalfDeck": "Drow",
     "Cost": 6,
     "Aspect": "Warlord",
     "DeckVP": 3,
@@ -1020,6 +1044,7 @@
   },
   {
     "Id": "grazzt",
+    "MarketHalfDeck": "Demons",
     "Cost": 6,
     "Aspect": "Shadow",
     "DeckVP": 2,
@@ -1065,6 +1090,7 @@
   },
   {
     "Id": "spellspinner",
+    "MarketHalfDeck": "Drow",
     "Cost": 3,
     "Aspect": "Shadow",
     "DeckVP": 1,
@@ -1087,6 +1113,7 @@
   },
   {
     "Id": "yan_c_bin",
+    "MarketHalfDeck": "Elementals",
     "Cost": 6,
     "Aspect": "Shadow",
     "DeckVP": 3,
@@ -1109,6 +1136,7 @@
   },
   {
     "Id": "succubus",
+    "MarketHalfDeck": "Demons",
     "Cost": 5,
     "Aspect": "Shadow",
     "DeckVP": 2,
@@ -1132,6 +1160,7 @@
   },
   {
     "Id": "gibbering_mouther",
+    "MarketHalfDeck": "Demons",
     "Cost": 2,
     "Aspect": "Warlord",
     "DeckVP": 1,
@@ -1153,6 +1182,7 @@
   },
   {
     "Id": "ghoul",
+    "MarketHalfDeck": "Demons",
     "Cost": 4,
     "Aspect": "Sorcery",
     "DeckVP": 2,
@@ -1173,6 +1203,7 @@
   },
   {
     "Id": "demogorgon",
+    "MarketHalfDeck": "Demons",
     "Cost": 8,
     "Aspect": "Warlord",
     "DeckVP": 5,
@@ -1199,6 +1230,7 @@
   },
   {
     "Id": "hezrou",
+    "MarketHalfDeck": "Demons",
     "Cost": 3,
     "Aspect": "Blasphemy",
     "DeckVP": 1,
@@ -1215,6 +1247,7 @@
   },
   {
     "Id": "nalfeshnee",
+    "MarketHalfDeck": "Demons",
     "Cost": 5,
     "Aspect": "Blasphemy",
     "DeckVP": 2,
@@ -1232,6 +1265,7 @@
   },
   {
     "Id": "air_elemental_myrmidon",
+    "MarketHalfDeck": "Elementals",
     "Cost": 4,
     "Aspect": "Shadow",
     "DeckVP": 1,
@@ -1250,6 +1284,7 @@
   },
   {
     "Id": "fire_elemental_myrmidon",
+    "MarketHalfDeck": "Elementals",
     "Cost": 4,
     "Aspect": "Sorcery",
     "DeckVP": 1,
@@ -1288,6 +1323,7 @@
   },
   {
     "Id": "earth_elemental_myrmidon",
+    "MarketHalfDeck": "Elementals",
     "Cost": 4,
     "Aspect": "Blasphemy",
     "DeckVP": 2,

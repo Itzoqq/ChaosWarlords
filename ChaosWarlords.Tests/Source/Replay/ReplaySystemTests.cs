@@ -5,6 +5,7 @@ using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Core.Data.Dtos;
 using System.Text.Json;
+using ChaosWarlords.Source.Core.Contexts;
 
 namespace ChaosWarlords.Tests.Replay
 {
@@ -18,6 +19,18 @@ namespace ChaosWarlords.Tests.Replay
     [TestCategory("Unit")]
     public class ReplaySystemTests
     {
+        [TestMethod]
+        public void ReplayManager_RoundTripsNonDefaultMarketDeckSelection()
+        {
+            var recording = new ReplayManager(_logger);
+            recording.InitializeRecording(42, new MarketDeckSelection(MarketHalfDeck.Demons, MarketHalfDeck.Elementals));
+
+            var replay = new ReplayManager(_logger);
+            replay.StartReplay(recording.GetRecordingJson());
+
+            Assert.AreEqual(MarketHalfDeck.Demons, replay.MarketDeckSelection.First);
+            Assert.AreEqual(MarketHalfDeck.Elementals, replay.MarketDeckSelection.Second);
+        }
         private IGameLogger _logger = new NullLogger();
 
         [TestMethod]

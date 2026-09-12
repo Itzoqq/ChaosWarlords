@@ -230,6 +230,7 @@ namespace ChaosWarlords.Tests.Source.Replay
             }
             return list;
         }
+        public System.Collections.Generic.List<ChaosWarlords.Source.Entities.Cards.Card> GetMarketCards(ChaosWarlords.Source.Core.Contexts.MarketDeckSelection selection, IGameRandom? random = null) => GetAllMarketCards(random);
         public ChaosWarlords.Source.Entities.Cards.Card? GetCardById(string id, IGameRandom? random = null) => null;
         public void Load(System.IO.Stream stream) { }
     }

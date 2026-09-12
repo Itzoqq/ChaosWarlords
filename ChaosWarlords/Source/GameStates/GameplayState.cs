@@ -11,6 +11,7 @@ using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Mechanics.Actions;
 using ChaosWarlords.Source.Input;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Core.Contexts;
 using ChaosWarlords.Source.Input.Controllers;
 using ChaosWarlords.Source.Factories;
 using ChaosWarlords.Source.Core.Interfaces.Composition;
@@ -27,6 +28,7 @@ namespace ChaosWarlords.Source.GameStates
         private readonly IGameLogger _logger;
         private readonly int _viewportWidth;
         private readonly int _viewportHeight;
+        private MarketDeckSelection _marketDeckSelection;
 
         // Replay timing
         // Replay Controller
@@ -91,6 +93,7 @@ namespace ChaosWarlords.Source.GameStates
             _view = dependencies.View;
             _viewportWidth = dependencies.ViewportWidth;
             _viewportHeight = dependencies.ViewportHeight;
+            _marketDeckSelection = dependencies.MarketDeckSelection ?? throw new ArgumentNullException(nameof(dependencies));
         }
 
         public void LoadContent()
@@ -124,9 +127,10 @@ namespace ChaosWarlords.Source.GameStates
         {
             // Use seed from replay if we are replaying, otherwise generate new one
             int? seedToUse = _replayManager.IsReplaying ? _replayManager.Seed : (int?)null;
+            if (_replayManager.IsReplaying) _marketDeckSelection = _replayManager.MarketDeckSelection;
 
             var builder = new MatchFactory(_cardDatabase, _logger);
-            var worldData = builder.Build(_replayManager, seedToUse);
+            var worldData = builder.Build(_replayManager, seedToUse, marketDeckSelection: _marketDeckSelection);
 
             // Create UIEventMediator BEFORE MatchContext (needed for card effect processing)
             // Note: We create it with null gameState initially, then initialize it later
@@ -153,7 +157,7 @@ namespace ChaosWarlords.Source.GameStates
             // Initialize recording if we're NOT replaying
             if (!_replayManager.IsReplaying)
             {
-                _replayManager.InitializeRecording(_matchContext.Seed);
+                _replayManager.InitializeRecording(_matchContext.Seed, _marketDeckSelection);
             }
 
             var victoryManager = new VictoryManager(_logger);

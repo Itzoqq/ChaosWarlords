@@ -16,6 +16,8 @@ namespace ChaosWarlords.Source.Rendering.UI
 
         public bool IsHovered { get; private set; }
 
+        public void SetText(string text) => Text = text;
+
         public SimpleButton(Rectangle bounds, string text, Action onClick)
         {
             Bounds = bounds;

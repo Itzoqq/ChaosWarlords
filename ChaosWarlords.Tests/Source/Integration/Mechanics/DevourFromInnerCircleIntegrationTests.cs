@@ -28,6 +28,7 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             _logger = Substitute.For<IGameLogger>();
             var database = Substitute.For<ICardDatabase>();
             database.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new System.Collections.Generic.List<Card>());
+            database.GetMarketCards(Arg.Any<ChaosWarlords.Source.Core.Contexts.MarketDeckSelection>(), Arg.Any<IGameRandom>()).Returns(new System.Collections.Generic.List<Card>());
             var replayManager = Substitute.For<IReplayManager>();
             var factory = new MatchFactory(database, _logger);
 

@@ -3,6 +3,7 @@ using ChaosWarlords.Source.Core.Interfaces.Input;
 using ChaosWarlords.Source.Core.Interfaces.Rendering;
 using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Core.Contexts;
 using Microsoft.Xna.Framework;
 
 namespace ChaosWarlords.Source.Core.Composition
@@ -20,6 +21,7 @@ namespace ChaosWarlords.Source.Core.Composition
         public required IUIManager UIManager { get; init; }
         public IGameplayView? View { get; init; }
         public required IReplayManager ReplayManager { get; init; }
+        public MarketDeckSelection MarketDeckSelection { get; init; } = ChaosWarlords.Source.Core.Contexts.MarketDeckSelection.Default;
 
         public int ViewportWidth { get; init; } = 1920;
         public int ViewportHeight { get; init; } = 1080;

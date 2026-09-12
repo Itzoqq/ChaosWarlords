@@ -698,6 +698,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             var cardDbMock = Substitute.For<ICardDatabase>();
             // Mock Card DB to return deterministic cards
             cardDbMock.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
+            cardDbMock.GetMarketCards(Arg.Any<ChaosWarlords.Source.Core.Contexts.MarketDeckSelection>(), Arg.Any<IGameRandom>()).Returns(new List<Card>());
             cardDbMock.GetAllMarketCards(null).Returns(new List<Card>());
 
             var factory = new MatchFactory(cardDbMock, loggerMock);

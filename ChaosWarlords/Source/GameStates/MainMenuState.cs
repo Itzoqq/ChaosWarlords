@@ -10,6 +10,7 @@ using ChaosWarlords.Source.Rendering.UI;
 
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Rendering.Views;
+using ChaosWarlords.Source.Core.Contexts;
 
 namespace ChaosWarlords.Source.GameStates
 {
@@ -26,6 +27,9 @@ namespace ChaosWarlords.Source.GameStates
         private readonly IGameLogger _logger;
         private IMainMenuView _view; // Can be null for Headless Server
         private IButtonManager _buttonManager;
+        private SimpleButton? _firstDeckButton;
+        private SimpleButton? _secondDeckButton;
+        public MarketDeckSelection MarketDeckSelection { get; private set; } = ChaosWarlords.Source.Core.Contexts.MarketDeckSelection.Default;
 
         // Input state just for click detection
         private MouseState _previousMouseState;
@@ -99,8 +103,15 @@ namespace ChaosWarlords.Source.GameStates
             int centerX = viewport.Width / 2 - buttonWidth / 2;
             int centerY = viewport.Height / 2;
 
+            var firstDeckRect = new Rectangle(centerX, centerY - 140, buttonWidth, buttonHeight);
+            var secondDeckRect = new Rectangle(centerX, centerY - 70, buttonWidth, buttonHeight);
             var startBtnRect = new Rectangle(centerX, centerY, buttonWidth, buttonHeight);
             var exitBtnRect = new Rectangle(centerX, centerY + 70, buttonWidth, buttonHeight);
+
+            _firstDeckButton = new SimpleButton(firstDeckRect, $"First deck: {MarketDeckSelection.First}", CycleFirstDeck);
+            _secondDeckButton = new SimpleButton(secondDeckRect, $"Second deck: {MarketDeckSelection.Second}", CycleSecondDeck);
+            _buttonManager.AddButton(_firstDeckButton);
+            _buttonManager.AddButton(_secondDeckButton);
 
             _buttonManager.AddButton(new SimpleButton(
                 startBtnRect,
@@ -113,6 +124,18 @@ namespace ChaosWarlords.Source.GameStates
                 "Exit",
                 () => _game?.Exit()
             ));
+        }
+
+        private void CycleFirstDeck()
+        {
+            MarketDeckSelection = MarketDeckSelection.WithFirst(MarketDeckSelection.NextDistinct(MarketDeckSelection.First, MarketDeckSelection.Second));
+            _firstDeckButton?.SetText($"First deck: {MarketDeckSelection.First}");
+        }
+
+        private void CycleSecondDeck()
+        {
+            MarketDeckSelection = MarketDeckSelection.WithSecond(MarketDeckSelection.NextDistinct(MarketDeckSelection.Second, MarketDeckSelection.First));
+            _secondDeckButton?.SetText($"Second deck: {MarketDeckSelection.Second}");
         }
 
         public void UnloadContent()
@@ -206,6 +229,7 @@ namespace ChaosWarlords.Source.GameStates
                 Logger = _logger,
                 UIManager = uiManager,
                 ReplayManager = _replayManager,
+                MarketDeckSelection = MarketDeckSelection,
                 View = gameplayView,
                 ViewportWidth = width,
                 ViewportHeight = height

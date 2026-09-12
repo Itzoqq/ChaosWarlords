@@ -43,6 +43,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             _actionSystem = Substitute.For<IActionSystem>();
             _cardDatabase = Substitute.For<ICardDatabase>();
             _cardDatabase.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
+            _cardDatabase.GetMarketCards(Arg.Any<ChaosWarlords.Source.Core.Contexts.MarketDeckSelection>(), Arg.Any<IGameRandom>()).Returns(new List<Card>());
             _cardDatabase.GetAllMarketCards().Returns(new List<Card>());
         }
 

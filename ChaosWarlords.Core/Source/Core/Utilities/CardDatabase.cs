@@ -2,6 +2,7 @@ using ChaosWarlords.Source.Core.Interfaces.Data;
 using ChaosWarlords.Source.Core.Interfaces.Services;
 using System.Text.Json;
 using ChaosWarlords.Source.Entities.Cards;
+using ChaosWarlords.Source.Core.Contexts;
 using System.Diagnostics.CodeAnalysis;
 
 namespace ChaosWarlords.Source.Utilities
@@ -29,6 +30,7 @@ namespace ChaosWarlords.Source.Utilities
         // card whose real type isn't tracked yet (the overwhelming majority) - NOT the same as
         // asserting the card has no type at all.
         public string? CreatureType { get; set; }
+        public string? MarketHalfDeck { get; set; }
     }
 
     [ExcludeFromCodeCoverage]
@@ -150,6 +152,17 @@ namespace ChaosWarlords.Source.Utilities
 
         public List<Card> GetAllMarketCards(IGameRandom? random = null)
         {
+            return CreateMarketCards(_ => true, random);
+        }
+
+        public List<Card> GetMarketCards(MarketDeckSelection selection, IGameRandom? random = null)
+        {
+            ArgumentNullException.ThrowIfNull(selection);
+            return CreateMarketCards(data => IsInSelection(data, selection), random);
+        }
+
+        private List<Card> CreateMarketCards(Func<CardData, bool> isIncluded, IGameRandom? random)
+        {
             var cards = new List<Card>();
             if (_cardDataCache is null) return cards;
 
@@ -159,7 +172,7 @@ namespace ChaosWarlords.Source.Utilities
                 // market - they only ever reach a player via another card's effect. Excluded
                 // here rather than via a second flag, since RedirectsToSupplyOnDevourOrPromote
                 // is otherwise unique to exactly this kind of card.
-                if (data.RedirectsToSupplyOnDevourOrPromote)
+                if (data.RedirectsToSupplyOnDevourOrPromote || !isIncluded(data))
                 {
                     continue;
                 }
@@ -169,6 +182,12 @@ namespace ChaosWarlords.Source.Utilities
                 cards.Add(CardFactory.CreateFromData(data, _localization, random, _logger));
             }
             return cards;
+        }
+
+        private static bool IsInSelection(CardData data, MarketDeckSelection selection)
+        {
+            return Enum.TryParse(data.MarketHalfDeck, ignoreCase: true, out MarketHalfDeck halfDeck)
+                && selection.Includes(halfDeck);
         }
 
         /// <summary>

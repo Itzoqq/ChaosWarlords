@@ -70,6 +70,18 @@ namespace ChaosWarlords.Source.Utilities
     }
 
     /// <summary>
+    /// One of the four market half-decks selected during match setup. The rulebook requires
+    /// exactly two distinct half-decks to be combined for a market deck.
+    /// </summary>
+    public enum MarketHalfDeck
+    {
+        Drow,
+        Dragons,
+        Elementals,
+        Demons
+    }
+
+    /// <summary>
     /// Each physical card also prints a creature-type label in its top-right corner (Human,
     /// Undead, Aberration, Monstrosity, Illithid, ...) - a genuinely separate data dimension
     /// from CardAspect (the colored icon/keyword top-left). Only `Undead` is modeled here,
@@ -371,4 +383,3 @@ namespace ChaosWarlords.Source.Utilities
         DevourTarget
     }
 }
-
