@@ -42,6 +42,7 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   │   ├── EffectContext.cs             # Context for stack-based effect execution
     │   │   ├── ExecutedAction.cs            # Record capturing a single game event
     │   │   ├── InteractionRequest.cs        # Logic->UI interaction request (see Key Systems #4)
+    │   │   ├── MarketDeckSelection.cs       # Immutable 2-of-6 MarketHalfDeck setup choice - see Key Systems #10
     │   │   ├── MatchContext.cs              # Scoped DI container for a single match
     │   │   └── TurnContext.cs               # Transient state for current turn
     │   ├── Data/
@@ -472,6 +473,32 @@ itself, and no interface of its own, since nothing outside `MatchManager` holds 
 it. `MatchManager` delegates every `IMatchManager` member `TurnLifecycleSubsystem` now owns
 straight through (e.g. `public bool CanEndTurn(out string reason) => _turnLifecycle.CanEndTurn(out reason);`),
 so `IMatchManager`'s public contract - and every existing caller - is completely unchanged.
+
+### 10. Market Half-Deck Selection (`MarketHalfDeck`/`MarketDeckSelection`)
+Standard match setup chooses 2 of the 6 physical `MarketHalfDeck` values (`Drow`/`Dragons`/
+`Elemental`/`Demons`/`Aberrations`/`Undead` - the base game's 4 plus the "Aberrations and
+Undead" expansion's 2, which the expansion's own product info states integrate via the
+identical "choose 2, combine" rule, not a special case) and combines exactly those two
+half-decks' cards into one shuffled market deck - rulebook p.4, "Choose 2 of the market
+half-decks... First Game: use the Drow and Dragon half-decks" (`MarketDeckSelection.Default`).
+
+This is a genuinely separate axis from `CardAspect` (`Warlord`/`Sorcery`/`Shadow`/`Order`/
+`Blasphemy`) - every physical half-deck mixes cards from all 5 aspects together, so "2 aspects"
+and "2 half-decks" are not different names for the same setup choice. `CardData.HalfDeck`
+(nullable string, parsed via `Enum.TryParse<MarketHalfDeck>`) tags which half-deck a card
+belongs to; `null` means the card never belongs to a shuffled half-deck at all (the two fixed
+recruit piles, Insane Outcast's supply pile, and every `TestFixtureCards` fixture).
+`CardDatabase.GetMarketCards(MarketDeckSelection, ...)` filters by this tag; `MarketDeckSelection`
+itself (`Core/Contexts/MarketDeckSelection.cs`) is a small immutable value type (`First`/
+`Second`/`Includes`/`WithFirst`/`WithSecond`/`NextDistinct`) that `MatchSetupState`'s UI cycles
+through, `MatchFactory`/`MarketManager` pass straight to `CardDatabase`, and `ReplayManager`
+persists as two strings on `ReplayDataDto` (`FirstMarketHalfDeck`/`SecondMarketHalfDeck`) for
+replay fidelity - a malformed or pre-migration value (e.g. an old replay recorded before this
+system existed) fails closed to `MarketDeckSelection.Default` rather than throwing.
+
+An earlier, now-superseded implementation of this exact same class shape filtered by
+`CardAspect` instead of `MarketHalfDeck` - see `planning.txt` TIER 1 item 5 / `RESOLVED.txt`'s
+2026-09-13 CORRECTION entry for why that was a real rules-accuracy bug, not a rename.
 
 ---
 

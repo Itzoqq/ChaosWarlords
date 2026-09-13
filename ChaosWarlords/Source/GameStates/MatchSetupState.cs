@@ -25,8 +25,8 @@ namespace ChaosWarlords.Source.GameStates
         private readonly IGameLogger _logger;
         private readonly IButtonManager _buttonManager;
         private IMainMenuView? _view;
-        private SimpleButton? _firstAspectButton;
-        private SimpleButton? _secondAspectButton;
+        private SimpleButton? _firstHalfDeckButton;
+        private SimpleButton? _secondHalfDeckButton;
         private MouseState _previousMouseState;
         private bool _waitingForInitialRelease = true;
 
@@ -54,10 +54,10 @@ namespace ChaosWarlords.Source.GameStates
             int centerX = viewport.Width / 2 - buttonWidth / 2;
             int centerY = viewport.Height / 2;
 
-            _firstAspectButton = new SimpleButton(new Rectangle(centerX, centerY - 140, buttonWidth, buttonHeight), $"First aspect: {MarketDeckSelection.First}", CycleFirstAspect);
-            _secondAspectButton = new SimpleButton(new Rectangle(centerX, centerY - 70, buttonWidth, buttonHeight), $"Second aspect: {MarketDeckSelection.Second}", CycleSecondAspect);
-            _buttonManager.AddButton(_firstAspectButton);
-            _buttonManager.AddButton(_secondAspectButton);
+            _firstHalfDeckButton = new SimpleButton(new Rectangle(centerX, centerY - 140, buttonWidth, buttonHeight), $"First half-deck: {MarketDeckSelection.First}", CycleFirstHalfDeck);
+            _secondHalfDeckButton = new SimpleButton(new Rectangle(centerX, centerY - 70, buttonWidth, buttonHeight), $"Second half-deck: {MarketDeckSelection.Second}", CycleSecondHalfDeck);
+            _buttonManager.AddButton(_firstHalfDeckButton);
+            _buttonManager.AddButton(_secondHalfDeckButton);
             _buttonManager.AddButton(new SimpleButton(new Rectangle(centerX, centerY, buttonWidth, buttonHeight), "Start Match", StartMatch));
             _buttonManager.AddButton(new SimpleButton(new Rectangle(centerX, centerY + 70, buttonWidth, buttonHeight), "Back", Back));
 
@@ -104,16 +104,16 @@ namespace ChaosWarlords.Source.GameStates
 
         public void Draw(SpriteBatch spriteBatch) => _view?.Draw(spriteBatch);
 
-        private void CycleFirstAspect()
+        private void CycleFirstHalfDeck()
         {
             MarketDeckSelection = MarketDeckSelection.WithFirst(MarketDeckSelection.NextDistinct(MarketDeckSelection.First, MarketDeckSelection.Second));
-            _firstAspectButton?.SetText($"First aspect: {MarketDeckSelection.First}");
+            _firstHalfDeckButton?.SetText($"First half-deck: {MarketDeckSelection.First}");
         }
 
-        private void CycleSecondAspect()
+        private void CycleSecondHalfDeck()
         {
             MarketDeckSelection = MarketDeckSelection.WithSecond(MarketDeckSelection.NextDistinct(MarketDeckSelection.Second, MarketDeckSelection.First));
-            _secondAspectButton?.SetText($"Second aspect: {MarketDeckSelection.Second}");
+            _secondHalfDeckButton?.SetText($"Second half-deck: {MarketDeckSelection.Second}");
         }
 
         private void StartMatch()

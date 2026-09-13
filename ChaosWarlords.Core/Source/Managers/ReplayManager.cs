@@ -44,7 +44,7 @@ namespace ChaosWarlords.Source.Managers
                 {
                     _isReplaying = true;
                     _seed = data.Seed;
-                    _marketDeckSelection = ParseMarketSelection(data.FirstMarketAspect, data.SecondMarketAspect);
+                    _marketDeckSelection = ParseMarketSelection(data.FirstMarketHalfDeck, data.SecondMarketHalfDeck);
                     _recording.Clear();
                     _recording.AddRange(data.Commands);
 
@@ -64,7 +64,7 @@ namespace ChaosWarlords.Source.Managers
 
         private static MarketDeckSelection ParseMarketSelection(string firstValue, string secondValue)
         {
-            if (!Enum.TryParse(firstValue, true, out CardAspect first) || !Enum.TryParse(secondValue, true, out CardAspect second))
+            if (!Enum.TryParse(firstValue, true, out MarketHalfDeck first) || !Enum.TryParse(secondValue, true, out MarketHalfDeck second))
             {
                 return MarketDeckSelection.Default;
             }
@@ -103,8 +103,8 @@ namespace ChaosWarlords.Source.Managers
             var data = new ReplayDataDto
             {
                 Seed = _seed,
-                FirstMarketAspect = _marketDeckSelection.First.ToString(),
-                SecondMarketAspect = _marketDeckSelection.Second.ToString(),
+                FirstMarketHalfDeck = _marketDeckSelection.First.ToString(),
+                SecondMarketHalfDeck = _marketDeckSelection.Second.ToString(),
                 Commands = _recording
             };
             return System.Text.Json.JsonSerializer.Serialize(data);

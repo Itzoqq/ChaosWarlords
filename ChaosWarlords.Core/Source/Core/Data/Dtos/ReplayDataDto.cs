@@ -10,8 +10,8 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         /// The initial seed used for the match's random number generator.
         /// </summary>
         public int Seed { get; set; }
-        public string FirstMarketAspect { get; set; } = "Warlord";
-        public string SecondMarketAspect { get; set; } = "Sorcery";
+        public string FirstMarketHalfDeck { get; set; } = "Drow";
+        public string SecondMarketHalfDeck { get; set; } = "Dragons";
 
         /// <summary>
         /// Ordered collection of all commands executed during the session.

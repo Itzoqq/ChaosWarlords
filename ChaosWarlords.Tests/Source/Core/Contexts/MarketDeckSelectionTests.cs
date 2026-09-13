@@ -8,39 +8,55 @@ namespace ChaosWarlords.Tests.Source.Core.Contexts
     public class MarketDeckSelectionTests
     {
         [TestMethod]
-        public void Constructor_WithDuplicateAspects_Throws()
+        public void Constructor_WithDuplicateHalfDecks_Throws()
         {
-            Assert.ThrowsExactly<ArgumentException>(() => new MarketDeckSelection(CardAspect.Warlord, CardAspect.Warlord));
+            Assert.ThrowsExactly<ArgumentException>(() => new MarketDeckSelection(MarketHalfDeck.Drow, MarketHalfDeck.Drow));
         }
 
         [TestMethod]
-        public void Constructor_WithNonMarketAspect_Throws()
+        public void NextDistinct_SkipsTheOtherSelectedHalfDeck()
         {
-            Assert.ThrowsExactly<ArgumentException>(() => new MarketDeckSelection(CardAspect.Neutral, CardAspect.Warlord));
+            var next = MarketDeckSelection.NextDistinct(MarketHalfDeck.Drow, MarketHalfDeck.Dragons);
+
+            Assert.AreEqual(MarketHalfDeck.Elemental, next);
         }
 
         [TestMethod]
-        public void NextDistinct_SkipsTheOtherSelectedAspect()
+        public void NextDistinct_WrapsAroundToTheFirstEnumValue()
         {
-            var next = MarketDeckSelection.NextDistinct(CardAspect.Warlord, CardAspect.Sorcery);
+            // Undead is the last declared MarketHalfDeck value - wrapping must land back on Drow
+            // (the first), not throw or stay stuck.
+            var next = MarketDeckSelection.NextDistinct(MarketHalfDeck.Undead, MarketHalfDeck.Aberrations);
 
-            Assert.AreEqual(CardAspect.Shadow, next);
+            Assert.AreEqual(MarketHalfDeck.Drow, next);
         }
 
         [TestMethod]
-        public void WithFirst_WhenGivenTheOtherSelectedAspect_Throws()
+        public void WithFirst_WhenGivenTheOtherSelectedHalfDeck_Throws()
         {
-            var selection = new MarketDeckSelection(CardAspect.Warlord, CardAspect.Sorcery);
+            var selection = new MarketDeckSelection(MarketHalfDeck.Drow, MarketHalfDeck.Dragons);
 
-            Assert.ThrowsExactly<ArgumentException>(() => selection.WithFirst(CardAspect.Sorcery));
+            Assert.ThrowsExactly<ArgumentException>(() => selection.WithFirst(MarketHalfDeck.Dragons));
         }
 
         [TestMethod]
-        public void Default_UsesWarlordAndSorceryAspects()
+        public void WithSecond_ReplacesOnlyTheSecondHalfDeck()
         {
-            Assert.IsTrue(MarketDeckSelection.Default.Includes(CardAspect.Warlord));
-            Assert.IsTrue(MarketDeckSelection.Default.Includes(CardAspect.Sorcery));
-            Assert.IsFalse(MarketDeckSelection.Default.Includes(CardAspect.Shadow));
+            var selection = new MarketDeckSelection(MarketHalfDeck.Drow, MarketHalfDeck.Dragons);
+
+            var updated = selection.WithSecond(MarketHalfDeck.Demons);
+
+            Assert.AreEqual(MarketHalfDeck.Drow, updated.First);
+            Assert.AreEqual(MarketHalfDeck.Demons, updated.Second);
+        }
+
+        [TestMethod]
+        public void Default_UsesDrowAndDragonsHalfDecks()
+        {
+            // Rulebook p.4: "First Game. For your first game use the Drow and Dragon half-decks."
+            Assert.IsTrue(MarketDeckSelection.Default.Includes(MarketHalfDeck.Drow));
+            Assert.IsTrue(MarketDeckSelection.Default.Includes(MarketHalfDeck.Dragons));
+            Assert.IsFalse(MarketDeckSelection.Default.Includes(MarketHalfDeck.Elemental));
         }
     }
 }

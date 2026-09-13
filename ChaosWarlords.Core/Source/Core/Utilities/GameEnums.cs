@@ -61,12 +61,33 @@ namespace ChaosWarlords.Source.Utilities
     public enum CardAspect
     {
         Neutral = 0,    // Starter cards (Minions/Nobles)
-        Warlord,        // Aggressive (Conquest) - Best at taking over the Underdark 
-        Sorcery,        // Magic/Control (Malice) - Best at assassination 
-        Shadow,         // Spies/Assassination (Guile) - Best at spying 
-        Order,          // Defense/Movement (Obedience) - Day-to-day tasks 
+        Warlord,        // Aggressive (Conquest) - Best at taking over the Underdark
+        Sorcery,        // Magic/Control (Malice) - Best at assassination
+        Shadow,         // Spies/Assassination (Guile) - Best at spying
+        Order,          // Defense/Movement (Obedience) - Day-to-day tasks
         Blasphemy,       // Recruitment/Inner Circle (Ambition) - Best at recruiting & promoting
         Oblivion        // Void/Devour themed
+    }
+
+    /// <summary>
+    /// One of the 6 physical market half-decks a standard match setup chooses 2 of, per
+    /// rulebook p.4: "Choose 2 of the market half-decks (40 cards apiece) and shuffle them
+    /// together... First Game: use the Drow and Dragon half-decks." Drow/Dragons/Elemental/
+    /// Demons are the base game's 4; Aberrations/Undead are the "Aberrations and Undead"
+    /// expansion's 2 - the expansion's own product info states these "can be paired with any
+    /// of the game's existing half-decks," i.e. no different setup rule, just 2 more choices.
+    /// A genuinely SEPARATE axis from CardAspect (Warlord/Sorcery/Shadow/Order/Blasphemy) -
+    /// every physical half-deck mixes cards from all 5 aspects together, so "2 aspects" and "2
+    /// half-decks" are not different names for the same choice. See planning.txt TIER 1 item 5.
+    /// </summary>
+    public enum MarketHalfDeck
+    {
+        Drow,
+        Dragons,
+        Elemental,
+        Demons,
+        Aberrations,
+        Undead
     }
 
     /// <summary>

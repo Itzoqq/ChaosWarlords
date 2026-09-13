@@ -32,6 +32,16 @@ namespace ChaosWarlords.Source.Utilities
         public string? CreatureType { get; set; }
         public int MarketCopyCount { get; set; } = 1;
         public int FixedRecruitPileSize { get; set; }
+
+        // Which of the 6 physical market half-decks this card ships in (MarketHalfDeck) -
+        // see planning.txt TIER 1 item 5. Null for cards that never belong to a shuffled
+        // half-deck at all: the two fixed recruit piles (House Guard/Priestess of Lolth,
+        // FixedRecruitPileSize>0), Insane Outcast (RedirectsToSupplyOnDevourOrPromote - its
+        // physical supply pile is only put into play "if you're playing with the Demons
+        // half-deck," per rulebook p.4 step 4, not modeled yet), and every test-only fixture
+        // card (see TestFixtureCards.cs) - a null HalfDeck means "never selectable," not "not
+        // yet tagged."
+        public string? HalfDeck { get; set; }
     }
 
     [ExcludeFromCodeCoverage]
@@ -231,7 +241,9 @@ namespace ChaosWarlords.Source.Utilities
         }
 
         private static bool IsInSelection(CardData data, MarketDeckSelection selection) =>
-            Enum.TryParse(data.Aspect, ignoreCase: true, out CardAspect aspect) && selection.Includes(aspect);
+            data.HalfDeck is not null
+            && Enum.TryParse(data.HalfDeck, ignoreCase: true, out MarketHalfDeck halfDeck)
+            && selection.Includes(halfDeck);
 
         /// <summary>
         /// Resolves a card by its definitional/catalog id (Card.DefinitionId - NOT the

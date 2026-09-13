@@ -17,27 +17,29 @@ namespace ChaosWarlords.Tests.Integration.GameStates
     public class MatchSetupStateTests
     {
         [TestMethod]
-        public void LoadContent_CyclesSelectedAspectWithoutAllowingDuplicates()
+        public void LoadContent_CyclesSelectedHalfDeckWithoutAllowingDuplicates()
         {
             var buttons = Substitute.For<IButtonManager>();
-            SimpleButton? firstAspectButton = null;
+            SimpleButton? firstHalfDeckButton = null;
             buttons.When(manager => manager.AddButton(Arg.Any<SimpleButton>())).Do(call =>
             {
                 var button = call.Arg<SimpleButton>();
-                if (button.Text.StartsWith("First aspect:")) firstAspectButton = button;
+                if (button.Text.StartsWith("First half-deck:")) firstHalfDeckButton = button;
             });
             var state = CreateState(buttons, Substitute.For<IStateManager>());
 
             state.LoadContent();
-            firstAspectButton!.OnClick();
+            firstHalfDeckButton!.OnClick();
 
-            Assert.AreEqual(CardAspect.Shadow, state.MarketDeckSelection.First);
+            // Default is Drow+Dragons - cycling First skips Dragons (the other selected half-
+            // deck) and lands on Elemental, the next MarketHalfDeck enum value.
+            Assert.AreEqual(MarketHalfDeck.Elemental, state.MarketDeckSelection.First);
             Assert.AreNotEqual(state.MarketDeckSelection.First, state.MarketDeckSelection.Second);
-            Assert.AreEqual("First aspect: Shadow", firstAspectButton.Text);
+            Assert.AreEqual("First half-deck: Elemental", firstHalfDeckButton.Text);
         }
 
         [TestMethod]
-        public void StartMatch_UsesConfirmedAspectSelectionToCreateGameplayState()
+        public void StartMatch_UsesConfirmedHalfDeckSelectionToCreateGameplayState()
         {
             var buttons = Substitute.For<IButtonManager>();
             SimpleButton? startButton = null;

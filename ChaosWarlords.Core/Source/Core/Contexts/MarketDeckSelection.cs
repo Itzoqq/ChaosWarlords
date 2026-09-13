@@ -3,35 +3,36 @@ using ChaosWarlords.Source.Utilities;
 namespace ChaosWarlords.Source.Core.Contexts
 {
     /// <summary>
-    /// Immutable setup choice for the two market aspects used by a match.
+    /// Immutable setup choice for the two market half-decks used by a match (rulebook p.4:
+    /// "Choose 2 of the market half-decks... First Game: use the Drow and Dragon half-decks").
     /// </summary>
     public sealed class MarketDeckSelection
     {
-        public static MarketDeckSelection Default { get; } = new(CardAspect.Warlord, CardAspect.Sorcery);
+        public static MarketDeckSelection Default { get; } = new(MarketHalfDeck.Drow, MarketHalfDeck.Dragons);
 
-        public CardAspect First { get; }
-        public CardAspect Second { get; }
+        public MarketHalfDeck First { get; }
+        public MarketHalfDeck Second { get; }
 
-        public MarketDeckSelection(CardAspect first, CardAspect second)
+        public MarketDeckSelection(MarketHalfDeck first, MarketHalfDeck second)
         {
-            if (!IsSelectable(first) || !IsSelectable(second) || first == second)
+            if (first == second)
             {
-                throw new ArgumentException("A market deck must use two distinct selectable aspects.", nameof(second));
+                throw new ArgumentException("A market deck must use two distinct half-decks.", nameof(second));
             }
 
             First = first;
             Second = second;
         }
 
-        public bool Includes(CardAspect aspect) => First == aspect || Second == aspect;
+        public bool Includes(MarketHalfDeck halfDeck) => First == halfDeck || Second == halfDeck;
 
-        public MarketDeckSelection WithFirst(CardAspect aspect) => new(aspect, Second);
+        public MarketDeckSelection WithFirst(MarketHalfDeck halfDeck) => new(halfDeck, Second);
 
-        public MarketDeckSelection WithSecond(CardAspect aspect) => new(First, aspect);
+        public MarketDeckSelection WithSecond(MarketHalfDeck halfDeck) => new(First, halfDeck);
 
-        public static CardAspect NextDistinct(CardAspect current, CardAspect excluded)
+        public static MarketHalfDeck NextDistinct(MarketHalfDeck current, MarketHalfDeck excluded)
         {
-            var values = new[] { CardAspect.Warlord, CardAspect.Sorcery, CardAspect.Shadow, CardAspect.Order, CardAspect.Blasphemy };
+            var values = Enum.GetValues<MarketHalfDeck>();
             int nextIndex = (Array.IndexOf(values, current) + 1) % values.Length;
             while (values[nextIndex] == excluded)
             {
@@ -40,7 +41,5 @@ namespace ChaosWarlords.Source.Core.Contexts
 
             return values[nextIndex];
         }
-
-        private static bool IsSelectable(CardAspect aspect) => aspect is CardAspect.Warlord or CardAspect.Sorcery or CardAspect.Shadow or CardAspect.Order or CardAspect.Blasphemy;
     }
 }

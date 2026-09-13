@@ -13,11 +13,11 @@ namespace ChaosWarlords.Tests.Core.Utilities
         {
             var database = new CardDatabase(new TestLocalizationService());
             using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("""
-                [{ "id": "warlord_card", "aspect": "Warlord", "marketCopyCount": 3, "effects": [] }]
+                [{ "id": "warlord_card", "aspect": "Warlord", "halfDeck": "Drow", "marketCopyCount": 3, "effects": [] }]
                 """));
             database.Load(stream);
 
-            var cards = database.GetMarketCards(new MarketDeckSelection(CardAspect.Warlord, CardAspect.Sorcery));
+            var cards = database.GetMarketCards(new MarketDeckSelection(MarketHalfDeck.Drow, MarketHalfDeck.Dragons));
 
             Assert.HasCount(3, cards);
             Assert.IsTrue(cards.All(card => card.DefinitionId == "warlord_card"));
@@ -29,12 +29,12 @@ namespace ChaosWarlords.Tests.Core.Utilities
         {
             var database = new CardDatabase(new TestLocalizationService());
             using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("""
-                [{ "id": "invalid_card", "aspect": "Warlord", "marketCopyCount": 0, "effects": [] }]
+                [{ "id": "invalid_card", "aspect": "Warlord", "halfDeck": "Drow", "marketCopyCount": 0, "effects": [] }]
                 """));
             database.Load(stream);
 
             Assert.ThrowsExactly<InvalidDataException>(() =>
-                database.GetMarketCards(new MarketDeckSelection(CardAspect.Warlord, CardAspect.Sorcery)));
+                database.GetMarketCards(new MarketDeckSelection(MarketHalfDeck.Drow, MarketHalfDeck.Dragons)));
         }
 
         [TestMethod]
@@ -110,7 +110,7 @@ namespace ChaosWarlords.Tests.Core.Utilities
         }
 
         [TestMethod]
-        public void LoadRealCardsJson_GetMarketCards_ReturnsOnlyTheSelectedAspects()
+        public void LoadRealCardsJson_GetMarketCards_ReturnsOnlyTheSelectedHalfDecks()
         {
             var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
             if (!File.Exists(path)) Assert.Inconclusive("cards.json not found at " + path);
@@ -119,16 +119,42 @@ namespace ChaosWarlords.Tests.Core.Utilities
             using var stream = File.OpenRead(path);
             database.Load(stream);
 
-            var cards = database.GetMarketCards(new MarketDeckSelection(CardAspect.Warlord, CardAspect.Sorcery));
+            // Rulebook p.4's own first-game recommendation - also MarketDeckSelection.Default.
+            var cards = database.GetMarketCards(new MarketDeckSelection(MarketHalfDeck.Drow, MarketHalfDeck.Dragons));
             var ids = cards.Select(card => card.DefinitionId).ToHashSet();
 
-            Assert.Contains("advance_scout", ids, "A selected Warlord card should enter the market deck.");
-            Assert.Contains("deathblade", ids, "A selected Sorcery card should enter the market deck.");
-            Assert.Contains("wight", ids, "Every non-supply card with a selected aspect should enter the market deck.");
-            Assert.DoesNotContain("masters_of_sorcere", ids, "A Shadow card must not enter a Warlord/Sorcery market deck.");
-            Assert.DoesNotContain("council_member", ids, "A Blasphemy card must not enter a Warlord/Sorcery market deck.");
+            Assert.Contains("advance_scout", ids, "A selected Drow half-deck card should enter the market deck.");
+            Assert.Contains("black_dragon", ids, "A selected Dragons half-deck card should enter the market deck.");
+            Assert.Contains("masters_of_sorcere", ids, "Every Drow half-deck card should enter the market deck, regardless of its Aspect.");
+            Assert.DoesNotContain("demogorgon", ids, "A Demons half-deck card must not enter a Drow/Dragons market deck.");
+            Assert.DoesNotContain("aboleth", ids, "An Aberrations half-deck card must not enter a Drow/Dragons market deck.");
+            Assert.DoesNotContain("wight", ids, "An Undead half-deck card must not enter a Drow/Dragons market deck.");
             Assert.DoesNotContain("core_house_guard", ids, "House Guard belongs only to its fixed recruit pile, never the shuffled market deck.");
             Assert.DoesNotContain("core_priestess", ids, "Priestess belongs only to its fixed recruit pile, never the shuffled market deck.");
+            Assert.DoesNotContain("insane_outcast", ids, "Insane Outcast redirects to its own supply pile, never the shuffled market deck.");
+        }
+
+        [TestMethod]
+        public void LoadRealCardsJson_GetMarketCards_WorksForTheExpansionHalfDeckPairToo()
+        {
+            // Proves the mechanism generalizes beyond the Default/first-game combination -
+            // Aberrations+Undead is the "Aberrations and Undead" expansion's own pair, which the
+            // expansion's product info states "can be paired with any of the game's existing
+            // half-decks" (i.e. the identical rule, not a special case).
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
+            if (!File.Exists(path)) Assert.Inconclusive("cards.json not found at " + path);
+
+            var database = new CardDatabase(new TestLocalizationService());
+            using var stream = File.OpenRead(path);
+            database.Load(stream);
+
+            var cards = database.GetMarketCards(new MarketDeckSelection(MarketHalfDeck.Aberrations, MarketHalfDeck.Undead));
+            var ids = cards.Select(card => card.DefinitionId).ToHashSet();
+
+            Assert.Contains("aboleth", ids, "A selected Aberrations half-deck card should enter the market deck.");
+            Assert.Contains("wight", ids, "A selected Undead half-deck card should enter the market deck.");
+            Assert.DoesNotContain("advance_scout", ids, "A Drow half-deck card must not enter an Aberrations/Undead market deck.");
+            Assert.DoesNotContain("black_dragon", ids, "A Dragons half-deck card must not enter an Aberrations/Undead market deck.");
         }
 
         [TestMethod]
@@ -188,6 +214,36 @@ namespace ChaosWarlords.Tests.Core.Utilities
             Assert.IsNotNull(supplyOnlyCard, "insane_outcast should exist in cards.json.");
             Assert.DoesNotContain("[MISSING:", supplyOnlyCard.Name);
             Assert.DoesNotContain("[MISSING:", supplyOnlyCard.Description);
+        }
+
+        [TestMethod]
+        public void LoadRealCardsJson_EveryShuffledMarketCard_HasAValidHalfDeckTag()
+        {
+            // Regression test (planning.txt TIER 1 item 5): a card missing its HalfDeck tag (or
+            // with a mistyped one) doesn't fail loudly today - it's simply invisible to EVERY
+            // possible MarketDeckSelection, a silent "this card can never be drawn" bug. Assert
+            // every card that's neither a fixed recruit pile (FixedRecruitPileSize>0) nor a
+            // supply-redirect card (RedirectsToSupplyOnDevourOrPromote, e.g. Insane Outcast) nor
+            // a test-only fixture (TestFixtureCards) has a HalfDeck value that parses as one of
+            // the 6 real MarketHalfDeck values.
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
+            if (!File.Exists(path)) Assert.Inconclusive("cards.json not found at " + path);
+
+            using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
+            var missingOrInvalid = new List<string>();
+            foreach (var card in document.RootElement.EnumerateArray())
+            {
+                string id = card.GetProperty("Id").GetString() ?? string.Empty;
+                bool isFixedRecruitPile = card.TryGetProperty("FixedRecruitPileSize", out var pileSize) && pileSize.GetInt32() > 0;
+                bool redirectsToSupply = card.TryGetProperty("RedirectsToSupplyOnDevourOrPromote", out var redirects) && redirects.GetBoolean();
+                if (isFixedRecruitPile || redirectsToSupply) continue;
+
+                bool hasValidHalfDeck = card.TryGetProperty("HalfDeck", out var halfDeckProperty)
+                    && Enum.TryParse<MarketHalfDeck>(halfDeckProperty.GetString(), ignoreCase: true, out _);
+                if (!hasValidHalfDeck) missingOrInvalid.Add(id);
+            }
+
+            Assert.IsEmpty(missingOrInvalid, $"Every shuffled market card must have a valid HalfDeck tag. Missing/invalid: {string.Join(", ", missingOrInvalid)}");
         }
 
         [TestMethod]

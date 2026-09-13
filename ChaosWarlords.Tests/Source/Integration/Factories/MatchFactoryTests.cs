@@ -19,7 +19,7 @@ namespace ChaosWarlords.Tests.Integration.Factories
         public void Build_WithMarketDeckSelection_PassesItToTheMarketDatabase()
         {
             var mockDb = Substitute.For<ICardDatabase>();
-            var selection = new MarketDeckSelection(CardAspect.Shadow, CardAspect.Blasphemy);
+            var selection = new MarketDeckSelection(MarketHalfDeck.Aberrations, MarketHalfDeck.Undead);
             mockDb.GetMarketCards(selection, Arg.Any<IGameRandom>()).Returns(new List<Card>());
 
             var world = new MatchFactory(mockDb, Utilities.TestLogger.Instance)
