@@ -30,6 +30,7 @@ namespace ChaosWarlords.Source.GameStates
         private readonly int _viewportHeight;
         private MarketDeckSelection _marketDeckSelection;
         internal bool _sessionInitialized;
+        private bool _viewDisposed;
 
         // Replay timing
         // Replay Controller
@@ -246,6 +247,7 @@ namespace ChaosWarlords.Source.GameStates
         public void UnloadContent()
         {
             TearDownSession();
+            DisposeView();
         }
 
         private void TearDownSession()
@@ -264,8 +266,16 @@ namespace ChaosWarlords.Source.GameStates
 
         public void Dispose()
         {
-            TearDownSession();
+            UnloadContent();
             GC.SuppressFinalize(this);
+        }
+
+        private void DisposeView()
+        {
+            if (_viewDisposed) return;
+
+            _view?.Dispose();
+            _viewDisposed = true;
         }
 
         public void Update(GameTime gameTime)

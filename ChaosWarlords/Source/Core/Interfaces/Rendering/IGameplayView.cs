@@ -11,7 +11,7 @@ using ChaosWarlords.Source.Core.Interfaces.Input;
 
 namespace ChaosWarlords.Source.Core.Interfaces.Rendering
 {
-    public interface IGameplayView
+    public interface IGameplayView : IDisposable
     {
         int HandY { get; }
         int PlayedY { get; }

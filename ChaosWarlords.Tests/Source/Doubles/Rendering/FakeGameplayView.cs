@@ -55,5 +55,9 @@ namespace ChaosWarlords.Tests.Source.Doubles.Rendering
         }
 
         public bool HandleOptionalEffectAccept() => false;
+
+        public void Dispose()
+        {
+        }
     }
 }

@@ -91,7 +91,7 @@ T0.1. Fix the confirmed gameplay teardown and replay-reload leaks. COMPLETED 202
     - Tests cover UI bind/unbind/idempotence and post-disposal replay,
       player-controller, coordinator, and gameplay-state behavior.
 
-T0.2. Fix owned graphics-resource lifetime.
+T0.2. Fix owned graphics-resource lifetime. COMPLETED 2026-09-13.
     - `GameplayView` manually creates `_pixelTexture` and `_whitePixel`.
       Its `Dispose()` currently disposes only `_pixelTexture`; it does
       not dispose `_whitePixel`. More importantly, `GameplayState`
@@ -102,6 +102,14 @@ T0.2. Fix owned graphics-resource lifetime.
       state exit; do not dispose fonts/textures loaded and owned by
       `ContentManager`. Make `LoadContent()` either single-use or safely
       release/recreate its manual resources before recreating them.
+    - `IGameplayView` now expresses ownership through `IDisposable`.
+      State exit disposes the view once, while replay reload continues
+      to tear down only the match session and retains the existing view.
+      `GameplayView` disposes both manually-created textures and its
+      `UIRenderer`; it releases those resources before a reload attempt
+      and if content loading fails. ContentManager-owned fonts remain
+      untouched. The gameplay-state lifecycle test verifies idempotent
+      state-exit disposal.
 
 T0.3. Define safe failure behavior for a live match.
     - `Game1.Update()` and `Draw()` report an exception then continue

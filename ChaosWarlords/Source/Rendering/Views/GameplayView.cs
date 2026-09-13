@@ -66,44 +66,34 @@ namespace ChaosWarlords.Source.Rendering.Views
 
         public void LoadContent(ContentManager content)
         {
-            _pixelTexture = new Texture2D(_graphicsDevice, 1, 1);
-            _pixelTexture.SetData(new[] { Color.White });
+            DisposeOwnedRenderResources();
 
-            // Initialize _whitePixel
-            _whitePixel = new Texture2D(_graphicsDevice, 1, 1);
-            _whitePixel.SetData(new[] { Color.White });
+            try
+            {
+                _pixelTexture = new Texture2D(_graphicsDevice, 1, 1);
+                _pixelTexture.SetData(new[] { Color.White });
 
-            // Fail fast rather than limp forward with a null font: _defaultFont/_smallFont are
-            // used unguarded by dozens of DrawString/MeasureString call sites throughout this
-            // class, so silently continuing with a null font here would only defer the failure
-            // to an uncaught NullReferenceException inside MonoGame's own DrawString one frame
-            // later, disguised as an unrelated exception. Null-guarding every downstream call
-            // site instead isn't practical given how many there are - failing fast here, with a
-            // clear message naming which font failed to load, is the cheaper and clearer fix.
-            try { _defaultFont = content.Load<SpriteFont>("fonts/DefaultFont"); }
+                _whitePixel = new Texture2D(_graphicsDevice, 1, 1);
+                _whitePixel.SetData(new[] { Color.White });
+
+                _defaultFont = content.Load<SpriteFont>("fonts/DefaultFont");
+                _smallFont = content.Load<SpriteFont>("fonts/SmallFont");
+
+                _uiRenderer = new UIRenderer(_graphicsDevice, _defaultFont, _smallFont);
+                _mapRenderer = new MapRenderer(_pixelTexture, _pixelTexture, _defaultFont);
+                _cardRenderer = new CardRenderer(_pixelTexture, _defaultFont);
+                _optionalEffectPopup = new OptionalEffectPopup();
+
+                int screenH = _graphicsDevice.Viewport.Height;
+                HandY = screenH - Card.Height - GameConstants.CardRendering.HandBottomMargin;
+                PlayedY = HandY - Card.Height - GameConstants.CardRendering.PlayedAreaGap;
+            }
             catch (Exception ex)
             {
-                _logger.Log($"Failed to load DefaultFont - cannot continue: {ex.Message}", LogChannel.Error);
+                DisposeOwnedRenderResources();
+                _logger.Log($"Failed to load gameplay view content: {ex.Message}", LogChannel.Error);
                 throw;
             }
-
-            try { _smallFont = content.Load<SpriteFont>("fonts/SmallFont"); }
-            catch (Exception ex)
-            {
-                _logger.Log($"Failed to load SmallFont - cannot continue: {ex.Message}", LogChannel.Error);
-                throw;
-            }
-
-            _uiRenderer = new UIRenderer(_graphicsDevice, _defaultFont, _smallFont);
-            _mapRenderer = new MapRenderer(_pixelTexture, _pixelTexture, _defaultFont);
-            _cardRenderer = new CardRenderer(_pixelTexture, _defaultFont);
-
-            // Initialize optional effect popup
-            _optionalEffectPopup = new OptionalEffectPopup();
-
-            int screenH = _graphicsDevice.Viewport.Height;
-            HandY = screenH - Card.Height - GameConstants.CardRendering.HandBottomMargin;
-            PlayedY = HandY - Card.Height - GameConstants.CardRendering.PlayedAreaGap;
         }
 
         public void SubscribeToOptionalEffectEvent(UIEventMediator uiEventMediator)
@@ -508,9 +498,18 @@ namespace ChaosWarlords.Source.Rendering.Views
 
         public void Dispose()
         {
-            _pixelTexture?.Dispose();
-            _uiRenderer?.Dispose();
+            DisposeOwnedRenderResources();
             GC.SuppressFinalize(this);
+        }
+
+        private void DisposeOwnedRenderResources()
+        {
+            _pixelTexture?.Dispose();
+            _pixelTexture = null!;
+            _whitePixel?.Dispose();
+            _whitePixel = null;
+            _uiRenderer?.Dispose();
+            _uiRenderer = null!;
         }
     }
 }

@@ -490,6 +490,19 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             state.UIManager.Received(1).UnbindInputManager();
         }
 
+        [TestMethod]
+        public void UnloadContent_DisposesGameplayViewExactlyOnce()
+        {
+            var view = Substitute.For<IGameplayView>();
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance, view);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            state.UnloadContent();
+            state.UnloadContent();
+
+            view.Received(1).Dispose();
+        }
+
         // --- Helper Class ---
         // Marked Internal so we can assign internal fields directly
         internal class TestableGameplayState : GameplayState
