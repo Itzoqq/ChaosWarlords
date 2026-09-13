@@ -30,6 +30,7 @@ namespace ChaosWarlords.Source.Managers
 
         private List<InteractiveElement> _elements = null!;
         private readonly IGameLogger _logger;
+        private IInputManager? _boundInputManager;
 
         private Rectangle _marketButtonRect;
         private Rectangle _assassinateButtonRect;
@@ -280,7 +281,19 @@ namespace ChaosWarlords.Source.Managers
         public void BindInputManager(IInputManager input)
         {
             ArgumentNullException.ThrowIfNull(input);
-            input.OnInputEvent += HandleInputEvent;
+            if (ReferenceEquals(_boundInputManager, input)) return;
+
+            UnbindInputManager();
+            _boundInputManager = input;
+            _boundInputManager.OnInputEvent += HandleInputEvent;
+        }
+
+        public void UnbindInputManager()
+        {
+            if (_boundInputManager is null) return;
+
+            _boundInputManager.OnInputEvent -= HandleInputEvent;
+            _boundInputManager = null;
         }
 
         public void Update(IInputManager input)

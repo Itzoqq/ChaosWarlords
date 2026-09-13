@@ -87,6 +87,29 @@ namespace ChaosWarlords.Tests.Integration.Input.Controllers
         }
 
         [TestMethod]
+        public void Dispose_AfterSubscription_DoesNotHandleSpySelection()
+        {
+            var actionSystem = Substitute.For<IActionSystem>();
+            actionSystem.CurrentState.Returns(ActionState.SelectingSpyToReturn);
+            var site = TestData.Sites.CitySite();
+            actionSystem.PendingSite.Returns(site);
+            _stateFake.ActionSystem = actionSystem;
+            _stateFake.InitializeMatchContext();
+
+            var uiManager = Substitute.For<IUIManager>();
+            uiManager.ScreenWidth.Returns(800);
+            _stateFake.UIManager = uiManager;
+            _mockMapper.GetClickedSpyReturnButton(Arg.Any<Point>(), site, 800).Returns(PlayerColor.Blue);
+
+            _controller.Dispose();
+            _mockInputManager.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                _mockInputManager,
+                new InputEventArgs(InputEventType.LeftClick, new Vector2(100, 100)));
+
+            actionSystem.DidNotReceive().FinalizeSpyReturn(Arg.Any<PlayerColor>());
+        }
+
+        [TestMethod]
         public void HandleSpySelectionInput_WhilePauseMenuOpen_IsBlocked()
         {
             // IsInputBlocked() is the only gate left in PlayerController now (Escape/Enter/

@@ -28,6 +28,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Rendering
 
         // Input Handling
         void BindInputManager(IInputManager input);
+        void UnbindInputManager();
         void Update(IInputManager input);
 
         // Events

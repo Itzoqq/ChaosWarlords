@@ -19,7 +19,7 @@ using ChaosWarlords.Source.Core.Interfaces.Composition;
 
 namespace ChaosWarlords.Source.GameStates
 {
-    public class GameplayState : IGameplayState, IDrawableState
+    public class GameplayState : IGameplayState, IDrawableState, IDisposable
     {
         private readonly Game? _game;
 
@@ -29,6 +29,7 @@ namespace ChaosWarlords.Source.GameStates
         private readonly int _viewportWidth;
         private readonly int _viewportHeight;
         private MarketDeckSelection _marketDeckSelection;
+        internal bool _sessionInitialized;
 
         // Replay timing
         // Replay Controller
@@ -109,8 +110,14 @@ namespace ChaosWarlords.Source.GameStates
 
             // InitializeInfrastructure(); // REMOVED
             InitializeView();
+            InitializeSession();
+        }
+
+        private void InitializeSession()
+        {
             InitializeMatch();
             InitializeSystems();
+            _sessionInitialized = true;
         }
 
         private void InitializeView()
@@ -216,9 +223,8 @@ namespace ChaosWarlords.Source.GameStates
             // Initialize Replay Controller with callback to reload match
             _replayController = new ReplayController(this, _replayManager, _inputManagerBacking, _logger, () =>
             {
-                InitializeMatch();
-                // We MUST re-initialize systems that depend on MatchContext (like InputCoordinator)
-                InitializeSystems();
+                TearDownSession();
+                InitializeSession();
             });
         }
 
@@ -239,10 +245,27 @@ namespace ChaosWarlords.Source.GameStates
 
         public void UnloadContent()
         {
-            if (_matchContext?.ActionSystem != null)
-                _matchContext.ActionSystem.OnAutoExecuteCommand -= RecordAndExecuteCommand;
+            TearDownSession();
+        }
 
-            _uiEventMediator?.Cleanup();
+        private void TearDownSession()
+        {
+            if (!_sessionInitialized) return;
+
+            _matchContext.ActionSystem.OnAutoExecuteCommand -= RecordAndExecuteCommand;
+            _matchContext.MapManager.OnSetupDeploymentComplete -= HandleSetupDeploymentComplete;
+            _uiEventMediator.Cleanup();
+            _uiManagerBacking.UnbindInputManager();
+            _replayController.Dispose();
+            _playerController.Dispose();
+            _inputCoordinator.Dispose();
+            _sessionInitialized = false;
+        }
+
+        public void Dispose()
+        {
+            TearDownSession();
+            GC.SuppressFinalize(this);
         }
 
         public void Update(GameTime gameTime)

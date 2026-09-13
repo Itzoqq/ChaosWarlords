@@ -91,6 +91,18 @@ namespace ChaosWarlords.Tests.Integration.Input.Processors
             Assert.IsInstanceOfType(_coordinator.CurrentMode, typeof(DevourInputMode));
         }
 
+        [TestMethod]
+        public void Dispose_AfterSubscription_IgnoresLaterActionStateChanges()
+        {
+            Assert.IsInstanceOfType(_coordinator.CurrentMode, typeof(NormalPlayInputMode));
+            _coordinator.Dispose();
+            _actionSub.CurrentState.Returns(ActionState.TargetingAssassinate);
+
+            _actionSub.OnStateChanged += Raise.Event<EventHandler<ActionState>>(null, ActionState.TargetingAssassinate);
+
+            Assert.IsInstanceOfType(_coordinator.CurrentMode, typeof(NormalPlayInputMode));
+        }
+
         // Coverage for planning.txt TIER 1 item 3 (risk-hotspot remediation, 2026-09-01):
         // SwitchToTargetingMode grew 2 new branches this session (TargetingDiscard,
         // TargetingDevourMarket/TargetingPlayFromMarket) and a Promote zero-amount fallback,
@@ -395,5 +407,4 @@ namespace ChaosWarlords.Tests.Integration.Input.Processors
         }
     }
 }
-
 

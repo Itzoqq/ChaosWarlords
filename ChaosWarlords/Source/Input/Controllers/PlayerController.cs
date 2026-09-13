@@ -14,12 +14,13 @@ namespace ChaosWarlords.Source.Input.Controllers
     /// Handles all local player input and translates it to game commands.
     /// Event-Driven Refactor: Jan 2026
     /// </summary>
-    public class PlayerController
+    public class PlayerController : IDisposable
     {
         private readonly IGameplayState _gameState;
         private readonly IInputManager _inputManager;
         private readonly IGameplayInputCoordinator _inputCoordinator;
         private readonly IInteractionMapper? _interactionMapper;
+        private bool _disposed;
 
         public PlayerController(
             IGameplayState gameState,
@@ -132,6 +133,15 @@ namespace ChaosWarlords.Source.Input.Controllers
             if (sourceCard == null) return 0;
             var effect = sourceCard.Effects.FirstOrDefault(e => e.Type == EffectType.SelectOpponent);
             return effect?.Amount ?? 0;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+
+            _inputManager.OnInputEvent -= HandleInputEvent;
+            _disposed = true;
+            GC.SuppressFinalize(this);
         }
 
     }

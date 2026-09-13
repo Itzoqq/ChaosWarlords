@@ -1,0 +1,566 @@
+CHAOS WARLORDS - REVISITED PRIORITY PROPOSAL
+=============================================
+
+Status: proposal only, 2026-09-13
+
+This file does not replace planning.txt. It is a suggested priority
+path for discussion before any future planning-system rewrite.
+
+
+GUIDING DECISION
+----------------
+
+The next milestone should be a rules-valid Tyrants baseline, not merely
+a runnable prototype. AI-vs-AI play is valuable only after the setup,
+market, map, and scoring conditions it exercises are representative of
+the real game.
+
+The project's intentional theme renames remain valid. The physical
+rules to preserve are the rules for market construction, card copies,
+setup, board topology, turn flow, end-game timing, and scoring.
+
+Custom aspect-pair market selection is useful future product work, but
+it is not the standard rules-valid path. It should not define the
+baseline used for AI playtesting or rules verification.
+
+
+CURRENT FOUNDATION
+------------------
+
+Already in place:
+
+- Core/headless split, deterministic RNG, command dispatch, rollback,
+  replay, and a substantial test suite.
+- Starting deck, neutral troop seeding, Total Control, card-granted
+  deploy supply behavior, and fixed House Guard/Priestess recruit piles.
+- MarketCopyCount schema, deterministic physical-copy expansion, and
+  validation for invalid counts.
+- 70 of about 131 card definitions implemented; original scans exist
+  for the remaining cards.
+- A placeholder scenario map, sufficient for targeted tests but not a
+  full rules-valid board.
+- Minimal and batch AI do not yet exist.
+
+Known gaps that prevent the claimed rules-valid baseline:
+
+- The market selection currently uses project aspects, not two physical
+  40-card half-decks.
+- Scan-backed MarketCopyCount values have not been catalogued.
+- Drow and Dragons are not each fully transcribed; roughly 23 cards
+  across those two physical half-decks are still absent.
+- The map is a 5-site/17-node scenario map, not the player-scaled
+  Underdark board.
+- Insane Outcast's finite 30-card supply and simultaneous-recruit
+  tie-break are unimplemented.
+
+
+PROPOSED PRIORITY PATH
+----------------------
+
+Tier 0 - Repair lifecycle ownership before the next growth phase
+
+T0.1. Fix the confirmed gameplay teardown and replay-reload leaks. COMPLETED 2026-09-13.
+    - `GameplayState.UnloadContent()` unsubscribes
+      `ActionSystem.OnAutoExecuteCommand` and cleans the mediator, but
+      it does not unsubscribe `MapManager.OnSetupDeploymentComplete`.
+    - It also does not detach `UIManager` from `InputManager`; the
+      current UI API has `BindInputManager()` but no matching unbind.
+      Its event handler therefore remains attached for the lifetime of
+      the input manager.
+    - The replay reload callback calls `InitializeMatch()` and then
+      `InitializeSystems()` without first disposing/unsubscribing the
+      prior match, mediator, UI binding, or controller. Repeated replay
+      starts can retain old match graphs and duplicate event handling.
+    - This is broader than the UI binding: `ReplayController`,
+      `PlayerController`, and `GameplayInputCoordinator` all subscribe
+      to `InputManager.OnInputEvent`; the coordinator also subscribes to
+      market/action state events. None expose a teardown method today.
+      A replay restart makes a new instance of every one, leaving the
+      old instance subscribed to the same input stream.
+    - Introduce one idempotent match/session teardown path. Every
+      subscription must have its matching unsubscription in that path;
+      call it both from state unload and immediately before a replay
+      reload replaces the match. Prefer ownership that the compiler can
+      express (`IDisposable`/a narrowly-scoped session object) rather
+      than a growing list of ad-hoc cleanup calls.
+    - Implemented with `GameplayState.TearDownSession()`: it detaches
+      match events, cleans the mediator, unbinds UI input, and disposes
+      the replay/player/coordinator subscribers before a reload or state
+      exit. The cleanup is idempotent and only runs after full session
+      initialization.
+    - Tests cover UI bind/unbind/idempotence and post-disposal replay,
+      player-controller, coordinator, and gameplay-state behavior.
+
+T0.2. Fix owned graphics-resource lifetime.
+    - `GameplayView` manually creates `_pixelTexture` and `_whitePixel`.
+      Its `Dispose()` currently disposes only `_pixelTexture`; it does
+      not dispose `_whitePixel`. More importantly, `GameplayState`
+      never disposes its view when leaving gameplay, while every new
+      match creates a new `GameplayView`.
+    - Make the view ownership contract explicit in the interface or
+      state. Dispose each manually-created `Texture2D` exactly once on
+      state exit; do not dispose fonts/textures loaded and owned by
+      `ContentManager`. Make `LoadContent()` either single-use or safely
+      release/recreate its manual resources before recreating them.
+
+T0.3. Define safe failure behavior for a live match.
+    - `Game1.Update()` and `Draw()` report an exception then continue
+      the same possibly-corrupted state on the next frame. This can
+      produce repeated exceptions or let play continue after a failed
+      command/effect.
+    - Keep the useful crash-replay dump, but choose and test one
+      recovery boundary: return to a clean main menu after a gameplay
+      fault, or treat the session as fatal. Do not silently resume an
+      unverified match. The error screen/menu transition itself must use
+      the same teardown path as normal gameplay exit.
+
+T0.4. Add lifecycle evidence, not a misleading generic leak test.
+    - Add a deterministic headless soak test that repeatedly builds a
+      fresh match, executes a representative legal setup/turn sequence,
+      reloads or tears it down, and verifies isolation: no duplicate
+      callbacks, no retained previous context through event publishers,
+      no state contamination, and matching replay/hash results. Start
+      around 100 iterations in normal tests; make a 1,000+ iteration
+      developer/CI category available when it is fast enough.
+    - Add focused tests with fakes/spies for every bind/unbind pair and
+      for replay reload. A `WeakReference` check after forced GC may be
+      a supplementary diagnostic, never the only assertion.
+    - Do not assert that `GC.GetTotalMemory` equals a fixed value: JIT,
+      GC timing, and graphics drivers make that flaky and it cannot
+      prove a GPU-resource leak. Instead, perform a manual MonoGame
+      debug/profiler soak (many match -> menu -> match transitions),
+      monitoring managed allocations and GPU resources, after the
+      automated ownership tests are in place.
+
+T0.5. Make transactional rollback genuinely complete before adding more
+      mechanics that mutate several systems.
+    - `GameStateDto`/`StateRestorer` restore visible collections and
+      much action state, but do not snapshot or restore the deterministic
+      RNG's internal PCG state/call count. An exception after consuming
+      randomness can therefore roll back the board while permanently
+      advancing the next shuffle/draw result.
+    - The snapshot also has no active-turn index/current `TurnContext`
+      (played-aspect counts, promotion credits, action history) or
+      forced-acting-player state. A failed command which reaches a turn
+      transition or cross-player sequence can leave those authoritative
+      structures changed even though the DTO rollback reports success.
+    - Three transient marker lists serialize definition ids rather than
+      physical `CardDto`s; the existing `StateRestorer` documentation
+      correctly notes that after rollback their references/runtime ids
+      no longer match the restored card copies. Replace these lossy
+      fields with full physical-card references/DTOs.
+    - First write red tests using deliberately throwing test commands:
+      after rollback, compare a canonical full snapshot, active/forced
+      player and turn credits, and subsequent RNG outputs with an
+      untouched control match. Do not call rollback "best effort" in a
+      future authoritative path; snapshot construction failure must
+      reject the command before it executes.
+
+T0.6. Correct the desync/hash contract before trusting it in tests,
+      automated play, or future networking.
+    - `MatchContext.GetStateHash()` currently omits market-deck order,
+      void pile, card identities/content of player piles (mostly counts
+      only), discard/played piles, site owner/spies, troop/spy/trophy
+      state, action/targeting stack, current-turn credits, and RNG state.
+      It also sorts market cards rather than representing row order.
+      Distinct legal states can therefore produce the same hash.
+    - This weakens current `AssertRejected` checks as well as any future
+      replay/desync diagnosis. Define a versioned canonical state digest
+      with explicit ordering and a documented scope. Include every
+      authoritative state component, or label a cheaper digest as a
+      non-authoritative diagnostic and keep it separate.
+    - Add mutation tests for every included category and negative tests
+      proving that formerly-omitted changes now alter the authoritative
+      digest. Use a cryptographic hash only at a trust boundary; stable
+      FNV-style hashing is sufficient only as an internal checksum.
+
+T0.7. Treat replay files as untrusted persisted input, even locally.
+    - F6 reads a user-editable `last_replay.json`; `ReplayController`
+      then executes hydrated commands directly, bypassing command
+      validation and actor/sequence checks. "It came from a replay" is
+      not a trust guarantee once a file exists on disk.
+    - `StartReplay` catches deserialization errors internally but does
+      not return a success/failure result; the controller requests a
+      match reload even after a malformed file fails to load. Explicit
+      JSON `null` command lists can also throw after replay state has
+      begun changing.
+    - Make loading parse -> schema/catalog validate -> command-stream
+      validate -> atomically commit replay state. Playback may skip
+      recording, but must validate legality, expected sequence, expected
+      seat/actor, and optional per-command checkpoint before execution.
+      Abort once on mismatch; never silently skip a command and continue
+      a claimed faithful replay.
+
+Tier A - Establish a rules-valid two-half-deck baseline
+
+A0. Separate test fixtures from shipped content.
+    - `cards.json` currently contains five `test_*` definitions
+      (`test_assassin`, `test_guard`, `test_infiltrator`,
+      `test_blade_dancer`, and `test_displacer`). They have no
+      fixture-only flag and can enter the production market whenever
+      their aspect is selected.
+    - Move them to test-owned JSON fixtures or construct them through
+      test builders. Add a regression test that the production catalog
+      contains no test-prefixed definitions.
+    - This is a correctness and release-hygiene blocker before any
+      claim of a rules-valid standard market.
+
+A1. Add a strict card-catalog validation gate.
+    - At load/test time validate unique ids, known enum values, legal
+      costs/VPs, non-negative copy counts, effect-tree shape, referenced
+      target ids, localization keys, and exclusion of fixture cards.
+    - Once physical halves are catalogued, validate exactly 40 cards per
+      physical half-deck and exactly 80 in every standard two-half-deck
+      combination.
+    - Make malformed data fail a test/build gate rather than becoming a
+      runtime warning or a silently incomplete market.
+
+A2. Restore standard market composition.
+    - Standard setup selects two physical half-decks: Drow, Dragons,
+      Demons, or Elementals.
+    - Combine exactly two complete 40-card halves into an 80-card
+      market deck; default to Drow + Dragons.
+    - Reject or visibly disable a standard match when a requested half
+      deck is incomplete. Never pad it with invented cards.
+    - Keep custom aspect selection out of standard setup.
+
+A3. Finish copy-count cataloguing for the standard baseline.
+    - Read rarity dots from original scans.
+    - Populate MarketCopyCount for every shipped Drow/Dragon card.
+    - Add a data validation test: each completed physical half-deck
+      totals exactly 40 market cards.
+    - Record, but do not yet implement, dot counts for the other halves.
+
+A4. Transcribe the missing Drow and Dragons cards only.
+    - This is a narrow exception to the current content pause because
+      these cards are required to form the initial rules-valid market.
+    - Use the add-card standing test matrix for every card.
+    - If a missing card needs a new primitive, make the primitive and
+      document it before moving to the next card; do not paper over
+      text that the engine cannot represent.
+
+A5. Implement Insane Outcast's supply rule.
+    - Model the finite 30-copy supply and the rules-defined simultaneous
+      recruit ordering before long unattended games can encounter it.
+
+Exit criterion: a Drow + Dragons game starts with a verified 80-card
+market deck and the official fixed/supply piles, with no custom-mode
+assumptions.
+
+
+Tier B - Make the board rules-valid
+
+B1. Replace the placeholder scenario map with the real board data.
+    - Support the rules-defined player-count sections and marker-eligible
+      sites.
+    - Verify topology, neutral troops, setup placement, site rewards,
+      control, total control, end-game timing, and final scoring against
+      the real board.
+
+Exit criterion: a manual two-player Drow + Dragons match uses the real
+setup, market, and board rules end to end.
+
+
+Tier C - Automated rules validation
+
+C1. Minimal legal-move AI.
+    - Legal, deterministic decision policy first; no strategic strength
+      requirement.
+
+C2. Resolve unattended-run prerequisites.
+    - Root-cause test/coverage flakiness.
+    - Make explicit policy decisions for crash-safety/logging Group B.
+
+C3. Headless AI-vs-AI batch runner.
+    - Run many complete games and capture exceptions, stuck action
+      states, illegal commands, non-termination, and replay/hash drift.
+
+C4. Optional stronger AI.
+    - Add only after the legal bot is producing stability evidence;
+      use it for balance exploration, not for basic correctness.
+
+
+Tier D - Complete official content and broaden validation
+
+D1. Complete Demons and Elementals with scan-backed copy counts.
+D2. Complete Undead/Aberrations and remaining mechanics by real card
+    text and the standing test matrix.
+D3. Re-run broad AI playtests as each half-deck becomes available.
+
+
+Tier E - Custom and product features
+
+E1. Custom aspect-pair market mode.
+    - Separate mode/configuration from the standard rules-valid setup.
+    - Decide target deck sizes, balancing policy, and whether incomplete
+      aspects are allowed before implementation.
+
+E2. Custom deck authoring and validation.
+    - Validate legal sizes/copy counts and serialize an immutable deck
+      definition for replay/network use.
+
+E3. Multiplayer.
+    - Network DTO/versioning, authoritative server architecture,
+      reconnection, then latency handling.
+
+E4. Remaining UI/UX, audio, settings, rendering tests, benchmarks,
+    and other later-stage work.
+
+
+PRE-CONTENT HARDENING ADDITIONS
+-------------------------------
+
+These are the robustness items worth doing before the project grows by
+dozens of cards. They are deliberately concrete; no framework should be
+added merely for its label.
+
+H1. Reproducible builds and dependency control - promote before A4.
+    - Add an explicit SDK policy (normally global.json) after choosing
+      the supported .NET 10 feature band; this session exposed the cost
+      of relying on an incomplete machine SDK installation.
+    - Pin floating package versions such as MonoGame `3.8.*`, enable a
+      NuGet lock file, and document the supported build command.
+    - Keep the headless Core build as a required gate.
+
+H2. Continuous integration - promote before broad card transcription.
+    - A small GitHub Actions workflow should restore, build, run both
+      test projects, and publish the coverage/risk-hotspot result on
+      every push. It is not a substitute for local development, but it
+      prevents machine-specific SDK/package drift from silently landing.
+    - Do not make UI rendering, performance thresholds, or release
+      packaging part of the first CI job; keep the initial signal fast
+      and deterministic.
+
+H3. Replay/catalog compatibility contract - promote before changing
+    many card definitions.
+    - Replays currently store a seed, setup selection, and commands,
+      but no content/catalog version or checksum. A later card-data or
+      copy-count change can make an old replay diverge without a clear
+      explanation.
+    - Add a schema/catalog version or content hash, validate it on load,
+      and provide a deliberate incompatible-replay message. Test both
+      matching and mismatched catalog cases.
+
+H4. Lifecycle and allocation regression tests - promote before major
+    UI/content expansion, not as a speculative memory-leak framework.
+    - Superseded in priority by Tier 0, which records the concrete
+      subscription and graphics-lifetime defects found in the 2026-09-13
+      audit. Keep allocation-budget tests limited to measured hot paths
+      after the lifecycle contract is fixed.
+
+H5. Security architecture - plan now; implement enforcement before
+    networking, not before local card work.
+    - There is no network surface today, so authentication, encryption,
+      and transport code would be premature.
+    - Before any client/server implementation, write a threat model:
+      client is untrusted; server is authoritative; commands, targets,
+      costs, turn ownership, sequence numbers, and setup/deck data are
+      validated server-side; rate/payload limits and malformed DTO
+      handling are explicit.
+    - Promote the known direct-command ActionState bypass and all DTO/
+      rollback completeness gaps that become remotely reachable into
+      the networking-security gate. Add command/DTO fuzz and adversarial
+      authorization tests there.
+    - Treat replay and imported deck files as untrusted input too: bound
+      size/depth/counts and reject invalid versions before deserializing
+      into gameplay state.
+
+H6. Personal-project scope - explicitly keep public-release work out of
+    this plan.
+    - This repository is for personal learning, with no intended public
+      release. Do not spend core-project time on launch packaging,
+      store compliance, telemetry/privacy policy, accounts, or public
+      distribution workflows.
+    - Retain technical hygiene that improves learning and reliability:
+      reproducible local builds, tests, diagnostics, and a future
+      server-authoritative design if networking is pursued.
+
+
+CRITICAL-SYSTEMS AUDIT (2026-09-13)
+------------------------------------
+
+Scope: a mid-depth architecture and code audit of the match lifecycle,
+MonoGame resource ownership, deterministic/replay boundary, content
+data, build reproducibility, and future networking boundary. This is
+not a claim that every game rule or every renderer path was exhaustively
+tested.
+
+Confirmed issues to repair before substantial content expansion:
+
+1. Lifecycle is the highest-risk current subsystem (Tier 0).
+   The missed map-event unsubscription, no UI input unbind, replay
+   reinitialization without prior cleanup, and incomplete gameplay-view
+   disposal are concrete code paths. They can cause duplicate commands,
+   stale match retention, and GPU resource growth after repeated
+   games/replays. The exact repair and soak criteria are in T0.1-T0.4.
+
+2. Production content is not yet a safe catalog boundary (A0/A1).
+   Five `test_*` card definitions live in shipped `cards.json`, with no
+   fixture flag, and the JSON loader does not currently enforce the
+   complete standard-market contract. Remove fixtures from production
+   content and make malformed/incomplete catalogs fail deterministically
+   before relying on large card additions or AI results.
+
+3. Recovering after a gameplay exception currently risks false
+   confidence (T0.3). A crash dump is valuable, but continuing an
+   arbitrary damaged match is not robust recovery. Isolate the match,
+   preserve the repro, and transition through teardown.
+
+High-leverage architecture work, after Tier 0 and alongside the
+rules-valid baseline:
+
+- Preserve deterministic core boundaries. The Core project is already
+  headless, which is the right foundation. Keep MonoGame types, clock
+  time, filesystem access, and UI callbacks outside rules resolution.
+  Require deterministic tests and replay checkpoints when adding a new
+  mechanic with random choices or sequencing.
+- Version content for replay. Current replays record seed, setup
+  selection, and commands but not a catalog/hash version. This becomes
+  increasingly painful as card JSON changes. H3 is a high priority
+  before the next large transcription batch, not an optional polish.
+- Treat static pools as client-process infrastructure, not match state.
+  They are acceptable for the current single-process renderer, but must
+  never store match-specific state or be shared as mutable authority
+  between future server sessions. Test rent/return reset behavior for
+  pooled mutable types; do not assume pooling is a performance win
+  without profiling.
+- Keep performance tests diagnostic. Existing wall-clock thresholds are
+  useful smoke alarms but inherently machine-sensitive. For a learning
+  project, favor deterministic operation-count/allocation checks around
+  proven hot paths and use benchmarks/profilers for optimization choices.
+- Add a small CI build despite no public release (H2). Its value here is
+  reproducibility and catching SDK/package drift, not deployment. Pin
+  the SDK and replace MonoGame's floating `3.8.*` package versions as
+  specified in H1 before treating a machine-local build as durable.
+
+Future networking/security gate (do not implement transport early):
+
+- Before the first network prototype, make the server authoritative for
+  game setup and every command. Clients may request an action but never
+  decide legality, target, costs, RNG, turn ownership, sequence order,
+  or card/deck identity.
+- Validate untrusted replay/deck/network payload size, collection
+  counts, nesting, enum values, IDs, schema/catalog versions, and rate.
+  Build malformed-DTO and authorization/adversarial tests before exposing
+  a socket. This is the relevant security work for this project; local
+  card work does not need premature authentication or encryption code.
+
+Practical lesson for a deep solo-developed game:
+
+Do not attempt to imitate another game's scale or presumed internal
+process. The transferable pattern is a small, deterministic core with
+data-driven content, repeatable reproduction of bugs, migration/version
+discipline for persisted data, and vertical slices that remain playable
+as complexity grows. For Chaos Warlords that means: fix lifecycle
+ownership -> establish a real rules-valid market/map -> automate legal
+matches -> then add cards/mechanics in small scan-backed increments.
+
+
+FOUR-LENS REVIEW (2026-09-13)
+------------------------------
+
+This is a stricter follow-up audit. Findings below are separated by
+lens so a future implementation does not mistake "well-tested locally"
+for "safe under malformed data, repeated sessions, or new mechanics."
+
+1. CORRECTNESS LENS - rules/state must be true, not merely plausible.
+
+- Highest priority: T0.5 and T0.6. Rollback is currently not a full
+  transaction because RNG, turn authority, turn-scoped credits/history,
+  and several physical-card identities are outside the snapshot. The
+  state hash is materially narrower than the state it is intended to
+  represent. These are concrete code/data omissions, not hypothetical
+  scale concerns.
+- Replay card-copy identity is not durable across a fresh match:
+  `Card.RuntimeId` is `Guid.NewGuid()`, while new replay hydration first
+  tries the recorded runtime id and then falls back to `Card.Id`/index.
+  With duplicate physical copies, the fallback can resolve a different
+  copy after the match is rebuilt. Design a deterministic physical-card
+  identity derived from initial deck construction (or record a stable
+  zone/index identity with strict checkpoints); test duplicate-copy
+  play, purchase, promote, devour, rollback, and replay end-to-end.
+- The standard game still cannot be used as an official-rules oracle:
+  test cards remain in production data, custom aspect selection remains
+  the standard market path, copy totals are incomplete, and the map is
+  a scenario map. T0 is not permission to postpone A0-A5/B1; it prevents
+  those larger additions from being built on a corrupt lifecycle/state
+  base.
+
+2. SKEPTIC LENS - assume inputs, ordering, and failure paths are hostile.
+
+- T0.7 is required before replay becomes a debugging tool one can trust.
+  A malformed or edited local file must leave the active match and
+  replay manager unchanged. Add size limits and explicit failure results;
+  do not hide errors by logging and proceeding.
+- The input pipeline has multiple independent subscribers to the same
+  event (`UIManager`, coordinator, player controller, replay controller)
+  and no shared handled/cancellation contract. Code comments already
+  acknowledge a targeting-mode race. Today this is controlled by
+  scattered mode-specific no-ops; adding a new popup/card/input mode is
+  likely to reintroduce double execution. After Tier 0, introduce one
+  ordered input router or an event result that explicitly stops
+  propagation, with integration tests for overlapping UI, popup,
+  targeting, replay hotkey, and pause inputs.
+- Catalog and DTO parsers need fail-closed validation. Unknown JSON
+  members, unknown command subtypes, invalid/null collections, illegal
+  enum values, duplicates, unreasonable counts, and unexpected card
+  references should produce one clear rejected-load result. They should
+  never become defaults, skipped commands, or partially initialized
+  state. This overlaps A1 and T0.7 and should share one validation
+  vocabulary/result type rather than scatter `try/catch` fallbacks.
+
+3. PRAGMATIC LENS - keep future card work cheap and diagnosable.
+
+- Establish explicit ownership/lifetime interfaces before more UI work:
+  match session, input subscriptions, view/GPU resources, replay
+  controller, and background logger all need one owner and an idempotent
+  disposal boundary. A small `MatchSession`/`IDisposable` composition
+  object is lower-risk than adding more cleanup calls to `GameplayState`.
+- Preserve the existing headless Core boundary. Add a reusable headless
+  match-driver/soak harness rather than encoding long game sequences in
+  individual card tests. Card tests should stay narrow; the harness
+  should provide deterministic setup, legal command execution, full
+  snapshot comparison, replay, and diagnostics on divergence.
+- Split persistence concepts now: replay (event log), rollback snapshot
+  (in-memory transaction), and future save/network snapshot have
+  different completeness, versioning, and trust requirements. Sharing
+  DTO shapes is fine only after an explicit contract; a comment claiming
+  one DTO serves all three is not a guarantee.
+- Avoid framework churn. MonoGame 3.8, MSTest, and the current project
+  split are adequate for this scope. The practical improvements are SDK/
+  package pinning, a lock file, a small CI check, profiler-guided work,
+  and deterministic test helpers—not a new ECS, DI container, or engine.
+
+4. RISK-ANALYST LENS - prioritize by blast radius and cost of late repair.
+
+P0 (repair before card/mechanic expansion): T0.1-T0.7; A0/A1. These
+touch match integrity, state authority, diagnostics, and imported data.
+Their blast radius is every match and every future mechanic.
+
+P1 (complete immediately after P0): A2-A5 and B1, plus the ordered-input
+contract. This produces the first rules-valid baseline and prevents AI
+or balance results from being misleading.
+
+P2 (after rules-valid baseline): H3 replay/catalog compatibility, C1-C3
+headless legal AI/soak runner, H1/H2 reproducibility/CI. These make the
+system safe to evolve rapidly and expose long-run defects.
+
+P3 (only once a network prototype is actually scheduled): server
+authority, DTO fuzzing, adversarial authorization, reconnect/latency,
+and per-session isolation. Do not mix this with local card work, but do
+not permit networking before P0's authoritative state and replay
+contracts are repaired.
+
+
+NON-NEGOTIABLE CROSS-CUTTING RULES
+----------------------------------
+
+- Use the rulebook and original scan as authority for all card/setup
+  behavior; project renames change labels, not mechanics.
+- Each data/model change needs positive, negative, and edge-case tests.
+- Run build, full tests, coverage, and risk-hotspot checks before push.
+- Record replay/catalog compatibility when card data changes. A replay
+  does not presently snapshot or version its card catalog, so it is
+  reproducible only against matching content data.
+- Keep physical standard setup and custom modes explicit. Never let a
+  custom mode silently become the baseline used to claim rules validity.

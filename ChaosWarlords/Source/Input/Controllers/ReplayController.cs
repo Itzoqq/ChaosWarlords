@@ -17,7 +17,7 @@ namespace ChaosWarlords.Source.Input.Controllers
     /// Decouples replay logic from the main GameplayState.
     /// Event-Driven Refactor: Jan 2026
     /// </summary>
-    public class ReplayController
+    public class ReplayController : IDisposable
     {
         private readonly IGameplayState _gameState;
         private readonly IReplayManager _replayManager;
@@ -29,6 +29,7 @@ namespace ChaosWarlords.Source.Input.Controllers
         private float _replayTimer;
         private const float _replayDelay = 0.2f; // 200ms
         private bool _replayComplete;
+        private bool _disposed;
 
         public ReplayController(
             IGameplayState gameState,
@@ -164,6 +165,15 @@ namespace ChaosWarlords.Source.Input.Controllers
                     _logger.Log("=== REPLAY COMPLETE === Press F6 to restart", LogChannel.Info);
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+
+            _inputManager.OnInputEvent -= HandleInputEvent;
+            _disposed = true;
+            GC.SuppressFinalize(this);
         }
     }
 }

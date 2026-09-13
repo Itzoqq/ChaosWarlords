@@ -16,6 +16,7 @@ namespace ChaosWarlords.Source.Input
         private readonly IGameplayState _state; // Reference back to main state for context
         private readonly IInputManager _inputManager;
         private readonly MatchContext _context;
+        private bool _disposed;
 
         public IInputMode CurrentMode => _currentMode;
 
@@ -318,6 +319,17 @@ namespace ChaosWarlords.Source.Input
                     _currentMode = new MarketInputMode(_state, _inputManager, _context);
                     break;
             }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+
+            _context.ActionSystem.OnStateChanged -= HandleActionStateChanged;
+            _state.MarketStateManager.ModeChanged -= HandleMarketModeChanged;
+            _inputManager.OnInputEvent -= HandleInputEvent;
+            _disposed = true;
+            GC.SuppressFinalize(this);
         }
     }
 }

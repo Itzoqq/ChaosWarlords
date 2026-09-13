@@ -67,6 +67,36 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         [TestMethod]
+        public void UnbindInputManager_AfterBinding_DetachesClickHandler()
+        {
+            int marketToggleRequests = 0;
+            _uiManager.OnMarketToggleRequest += (_, _) => marketToggleRequests++;
+
+            _uiManager.UnbindInputManager();
+            var center = _uiManager.MarketButtonRect.Center;
+            _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                this,
+                new InputEventArgs(InputEventType.LeftClick, new Vector2(center.X, center.Y)));
+
+            Assert.AreEqual(0, marketToggleRequests);
+        }
+
+        [TestMethod]
+        public void BindInputManager_SameInputTwice_DoesNotDuplicateClickHandler()
+        {
+            int marketToggleRequests = 0;
+            _uiManager.OnMarketToggleRequest += (_, _) => marketToggleRequests++;
+            _uiManager.BindInputManager(_mockInput);
+
+            var center = _uiManager.MarketButtonRect.Center;
+            _mockInput.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                this,
+                new InputEventArgs(InputEventType.LeftClick, new Vector2(center.X, center.Y)));
+
+            Assert.AreEqual(1, marketToggleRequests);
+        }
+
+        [TestMethod]
         public void HandleInputEvent_Ignores_InactiveElement_MarketButton_WhenPaused()
         {
             // State: Paused

@@ -4,7 +4,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Input
     /// Interface for coordinating gameplay input across different input modes.
     /// Extracted to enable unit testing with NSubstitute.
     /// </summary>
-    public interface IGameplayInputCoordinator
+    public interface IGameplayInputCoordinator : IDisposable
     {
         /// <summary>
         /// Gets the current input mode.

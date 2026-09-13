@@ -479,6 +479,17 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             Assert.IsTrue(state.IsMarketOpen);
         }
 
+        [TestMethod]
+        public void UnloadContent_UnbindsUIInputManager()
+        {
+            var state = new TestableGameplayState(null!, _inputProvider, _cardDatabase, Utilities.TestLogger.Instance);
+            state.InitializeTestEnvironment(_mapManager, _marketManager, _actionSystem);
+
+            state.UnloadContent();
+
+            state.UIManager.Received(1).UnbindInputManager();
+        }
+
         // --- Helper Class ---
         // Marked Internal so we can assign internal fields directly
         internal class TestableGameplayState : GameplayState
@@ -558,6 +569,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
 
                 // F. Initialize Mediator
                 _uiEventMediator.Initialize();
+                _sessionInitialized = true;
 
                 // --- DIRECT FIELD ACCESS (No Reflection) ---
                 // Thanks to [InternalsVisibleTo] and 'internal' modifier

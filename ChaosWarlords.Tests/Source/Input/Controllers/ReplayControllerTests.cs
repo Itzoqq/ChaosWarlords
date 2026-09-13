@@ -98,6 +98,20 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
         }
 
         [TestMethod]
+        public void Dispose_AfterSubscription_StopsReplayHotkeys()
+        {
+            _matchContext.CurrentPhase = MatchPhase.Playing;
+            _replayManagerMock.IsReplaying.Returns(false);
+            _controller.Dispose();
+
+            _inputManagerMock.OnInputEvent += Raise.Event<EventHandler<InputEventArgs>>(
+                _inputManagerMock,
+                new InputEventArgs(InputEventType.KeyDown, Vector2.Zero, Keys.F5));
+
+            _replayManagerMock.DidNotReceive().GetRecordingJson();
+        }
+
+        [TestMethod]
         public void Update_F6Pressed_DuringPlaying_LoadsReplay()
         {
             // Arrange
