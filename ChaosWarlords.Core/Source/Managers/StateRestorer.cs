@@ -303,7 +303,7 @@ namespace ChaosWarlords.Source.Managers
                     .Select(cardDto => ResolveCard(cardDto, cardDatabase))
                     .Where(card => card is not null)
                     .Cast<Card>();
-                fixedPiles.Add(new FixedRecruitPile(pileDto.DefinitionId, cards));
+                fixedPiles.Add(new FixedRecruitPile(pileDto.DefinitionId, cards, pileDto.DisplayName));
             }
         }
 

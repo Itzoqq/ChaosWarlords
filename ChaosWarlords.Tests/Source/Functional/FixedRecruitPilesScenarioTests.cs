@@ -10,11 +10,13 @@ namespace ChaosWarlords.Tests.Source.Functional
     public class FixedRecruitPilesScenarioTests
     {
         [TestMethod]
-        public void BuyHouseGuard_FromFixedPile_AcquiresItAndRevealsTheNextCopy()
+        [DataRow("core_house_guard")]
+        [DataRow("core_priestess")]
+        public void BuyFixedPileCard_FromEitherPile_AddsItToDiscardAndRevealsTheNextCopy(string definitionId)
         {
             var scenario = MatchScenario.Build();
             var red = scenario.AsActivePlayer(PlayerColor.Red);
-            var pile = scenario.Context.MarketManager.FixedRecruitPiles!.Single(p => p.DefinitionId == "core_house_guard");
+            var pile = scenario.Context.MarketManager.FixedRecruitPiles!.Single(p => p.DefinitionId == definitionId);
             var purchasedCard = pile.AvailableCard!;
             red.AddInfluence(purchasedCard.Cost);
 
@@ -24,7 +26,7 @@ namespace ChaosWarlords.Tests.Source.Functional
             Assert.DoesNotContain(purchasedCard, pile.Cards);
             Assert.Contains(purchasedCard, red.DiscardPile);
             Assert.IsNotNull(pile.AvailableCard);
-            Assert.AreEqual("core_house_guard", pile.AvailableCard.DefinitionId);
+            Assert.AreEqual(definitionId, pile.AvailableCard.DefinitionId);
             Assert.AreEqual(0, red.Influence);
         }
 

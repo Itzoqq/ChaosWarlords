@@ -184,6 +184,7 @@ namespace ChaosWarlords.Source.Core.Utilities
                 .Select(pile => new FixedRecruitPileDto
                 {
                     DefinitionId = pile.DefinitionId,
+                    DisplayName = pile.DisplayName,
                     Cards = ToDtoList(pile.Cards)
                 })
                 .ToList() ?? [];

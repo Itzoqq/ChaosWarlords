@@ -124,7 +124,7 @@ namespace ChaosWarlords.Source.Rendering.Views
 
             SyncHandVisuals(context.ActivePlayer.Hand);
             SyncPlayedVisuals(context.ActivePlayer.PlayedCards);
-            SyncMarketVisuals(context.MarketManager.GetRecruitableCards().ToList());
+            SyncMarketVisuals(context.MarketManager);
 
             UpdateVisualsHover(HandViewModels, inputManager);
             if (isMarketOpen) UpdateVisualsHover(MarketViewModels, inputManager);
@@ -181,6 +181,7 @@ namespace ChaosWarlords.Source.Rendering.Views
             {
                 _uiRenderer.DrawMarketOverlay(spriteBatch, context.MarketManager, uiManager.ScreenWidth, uiManager.ScreenHeight);
                 foreach (var vm in MarketViewModels) _cardRenderer.Draw(spriteBatch, vm);
+                DrawFixedRecruitPileDetails(spriteBatch, context.MarketManager);
             }
 
             // 4. Draw UI Elements
@@ -319,8 +320,9 @@ namespace ChaosWarlords.Source.Rendering.Views
             HandViewModels = sortedVMs;
         }
 
-        private void SyncMarketVisuals(List<Card> marketCards)
+        private void SyncMarketVisuals(IMarketManager market)
         {
+            List<Card> marketCards = market.GetRecruitableCards().ToList();
             MarketViewModels.RemoveAll(vm => !marketCards.Contains(vm.Model));
             foreach (var card in marketCards)
             {
@@ -328,16 +330,42 @@ namespace ChaosWarlords.Source.Rendering.Views
                     MarketViewModels.Add(new CardViewModel(card));
             }
 
-            int startX = GameConstants.CardRendering.MarketStartX;
-            int startY = GameConstants.CardRendering.MarketStartY;
-            int gap = GameConstants.CardRendering.MarketCardGap;
-            for (int i = 0; i < marketCards.Count; i++)
+            for (int i = 0; i < market.MarketRow.Count; i++)
             {
-                var vm = MarketViewModels.FirstOrDefault(v => v.Model == marketCards[i]);
+                var vm = MarketViewModels.FirstOrDefault(v => v.Model == market.MarketRow[i]);
                 if (vm is not null)
                 {
-                    vm.Position = new Vector2(startX + (i * (Card.Width + gap)), startY);
+                    vm.Position = MarketLayout.GetMarketRowPosition(i);
                 }
+            }
+
+            var fixedPiles = market.FixedRecruitPiles;
+            if (fixedPiles is null) return;
+
+            for (int i = 0; i < fixedPiles.Count; i++)
+            {
+                var card = fixedPiles[i].AvailableCard;
+                var vm = card is null ? null : MarketViewModels.FirstOrDefault(viewModel => viewModel.Model == card);
+                if (vm is not null)
+                {
+                    vm.Position = MarketLayout.GetFixedRecruitPilePosition(i, fixedPiles.Count, _graphicsDevice.Viewport.Width);
+                }
+            }
+        }
+
+        private void DrawFixedRecruitPileDetails(SpriteBatch spriteBatch, IMarketManager market)
+        {
+            var fixedPiles = market.FixedRecruitPiles;
+            if (fixedPiles is null) return;
+
+            for (int index = 0; index < fixedPiles.Count; index++)
+            {
+                var pile = fixedPiles[index];
+                var card = pile.AvailableCard;
+                var vm = card is null ? null : MarketViewModels.FirstOrDefault(viewModel => viewModel.Model == card);
+                var position = MarketLayout.GetFixedRecruitPilePosition(index, fixedPiles.Count, _graphicsDevice.Viewport.Width);
+                var bounds = vm?.Bounds ?? new Rectangle((int)position.X, (int)position.Y, Card.Width, Card.Height);
+                _uiRenderer.DrawFixedRecruitPileDetails(spriteBatch, bounds, pile.DisplayName, pile.Cards.Count, card is null);
             }
         }
 

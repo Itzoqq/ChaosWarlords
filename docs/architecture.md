@@ -280,7 +280,8 @@ ChaosWarlords/                     # Client (Game) Project Root - references Cor
         │   ├── Popup.cs                     # Base popup class
         │   ├── PopupBuilder.cs              # Fluent builder for popups
         │   ├── SimpleButton.cs              # Basic UI button implementation
-        │   └── UIRenderer.cs                # General UI rendering
+        │   ├── UIRenderer.cs                # General UI rendering
+        │   └── MarketLayout.cs               # Separate row/fixed-pile market coordinates
         ├── ViewModels/                      # MVVM State
         │   └── CardViewModel.cs             # View-Logic wrapper for Card
         ├── Views/                           # Concrete Views

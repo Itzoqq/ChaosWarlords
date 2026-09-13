@@ -158,6 +158,32 @@ namespace ChaosWarlords.Source.Rendering.UI
             spriteBatch.DrawString(_defaultFont, title, titlePos.Value, Color.Gold);
         }
 
+        public void DrawFixedRecruitPileDetails(SpriteBatch spriteBatch, Rectangle cardBounds, string cardName, int remainingCount, bool isEmpty)
+        {
+            string label = $"{cardName} PILE";
+            if (isEmpty)
+            {
+                spriteBatch.Draw(_pixelTexture, cardBounds, Color.Black * 0.65f);
+                DrawBorder(spriteBatch, _pixelTexture, cardBounds, 2, Color.DarkGray);
+            }
+            Vector2 labelSize = _smallFont.MeasureString(label);
+            using var labelPosition = PooledVector2.Rent(
+                cardBounds.X + (cardBounds.Width - labelSize.X) / 2,
+                cardBounds.Y - _smallFont.LineSpacing);
+            spriteBatch.DrawString(_smallFont, label, labelPosition.Value, Color.Gold);
+
+            string countText = remainingCount.ToString(CultureInfo.InvariantCulture);
+            Vector2 countSize = _smallFont.MeasureString(countText);
+            int badgeSize = (int)Math.Max(countSize.X, countSize.Y) + GameConstants.UILayout.MediumPadding;
+            using var badgeBounds = PooledRectangle.Rent(cardBounds.Right - badgeSize, cardBounds.Y, badgeSize, badgeSize);
+            spriteBatch.Draw(_pixelTexture, badgeBounds.Value, Color.DarkSlateGray);
+            DrawBorder(spriteBatch, _pixelTexture, badgeBounds.Value, 2, Color.Gold);
+            using var countPosition = PooledVector2.Rent(
+                badgeBounds.Value.X + (badgeBounds.Value.Width - countSize.X) / 2,
+                badgeBounds.Value.Y + (badgeBounds.Value.Height - countSize.Y) / 2);
+            spriteBatch.DrawString(_smallFont, countText, countPosition.Value, Color.White);
+        }
+
         // --- HELPERS ---
 
         private void DrawStat(SpriteBatch sb, string label, string value, Color color, ref int x)

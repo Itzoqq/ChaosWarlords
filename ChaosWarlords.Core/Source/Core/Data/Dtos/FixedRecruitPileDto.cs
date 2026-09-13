@@ -4,6 +4,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     public class FixedRecruitPileDto
     {
         public required string DefinitionId { get; set; }
+        public required string DisplayName { get; set; }
         public List<CardDto> Cards { get; set; } = [];
     }
 }

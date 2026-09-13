@@ -8,17 +8,19 @@ namespace ChaosWarlords.Source.Entities.Cards
     public sealed class FixedRecruitPile
     {
         public string DefinitionId { get; }
+        public string DisplayName { get; }
         public List<Card> Cards { get; }
 
         public Card? AvailableCard => Cards.FirstOrDefault();
 
-        public FixedRecruitPile(string definitionId, IEnumerable<Card> cards)
+        public FixedRecruitPile(string definitionId, IEnumerable<Card> cards, string? displayName = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(definitionId);
             ArgumentNullException.ThrowIfNull(cards);
 
             DefinitionId = definitionId;
             Cards = cards.ToList();
+            DisplayName = displayName ?? Cards.FirstOrDefault()?.Name ?? definitionId;
             foreach (var card in Cards)
             {
                 card.Location = CardLocation.Market;

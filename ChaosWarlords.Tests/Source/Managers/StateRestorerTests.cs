@@ -548,7 +548,7 @@ namespace ChaosWarlords.Tests.Source.Managers
                 {
                     RegisterCard("house_guard_one", CardLocation.Market),
                     RegisterCard("house_guard_two", CardLocation.Market)
-                })
+                }, "House Guard")
             };
             _marketManager.FixedRecruitPiles.Returns(fixedPiles);
             var snapshot = DtoMapper.ToGameStateDto(_context);
@@ -560,6 +560,7 @@ namespace ChaosWarlords.Tests.Source.Managers
 
             Assert.HasCount(1, fixedPiles);
             Assert.HasCount(2, fixedPiles[0].Cards, "Rollback must restore every fixed-pile copy, including the purchased top card.");
+            Assert.AreEqual("House Guard", fixedPiles[0].DisplayName, "Rollback must preserve the label used to mark an exhausted pile.");
         }
 
         // --- RestoreEffect coverage (planning.txt TIER 1 item 1 - risk-hotspot remediation:
