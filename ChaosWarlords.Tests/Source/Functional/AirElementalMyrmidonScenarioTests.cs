@@ -52,15 +52,15 @@ namespace ChaosWarlords.Tests.Source.Functional
             // "test_guard" is Aspect.Order (Obedience) - a real eligible target.
             var orderCard = scenario.GiveCard(PlayerColor.Red, "test_guard");
             scenario.PlayCard(orderCard);
-            // core_house_guard is Aspect.Warlord (Conquest) - NOT eligible for this filtered credit.
-            var nonOrderCard = scenario.GiveCard(PlayerColor.Red, "core_house_guard");
+            // test_assassin is Aspect.Shadow (Guile) - NOT eligible for this filtered credit.
+            var nonOrderCard = scenario.GiveCard(PlayerColor.Red, "test_assassin");
             scenario.PlayCard(nonOrderCard);
 
             scenario.PlayCard(card);
             scenario.ClickTarget(null, site);
 
             var context = scenario.Context.TurnManager.CurrentTurnContext;
-            Assert.IsFalse(context.HasValidCreditFor(nonOrderCard), "A Warlord-aspect card must not be a valid target for an Order-filtered credit.");
+            Assert.IsFalse(context.HasValidCreditFor(nonOrderCard), "A Shadow-aspect card must not be a valid target for an Order-filtered credit.");
             Assert.IsTrue(context.HasValidCreditFor(orderCard), "An Order-aspect card must be a valid target.");
 
             context.ConsumeCreditFor(orderCard);

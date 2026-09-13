@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Contexts;
+using ChaosWarlords.Tests.Source.Functional;
 
 namespace ChaosWarlords.Tests.Core.Utilities
 {
@@ -192,28 +193,38 @@ namespace ChaosWarlords.Tests.Core.Utilities
         [TestMethod]
         public void LoadRealCardsJson_ContainsNoTestPrefixedFixtureCards()
         {
-            // Regression test (planning.txt TIER 1 item 3, 2026-09-13): 5 single-primitive-
-            // shape fixture cards (test_assassin/test_guard/test_infiltrator/
-            // test_blade_dancer/test_displacer) used to ship in the real market data with no
-            // fixture flag, meaning they could enter a real match's market whenever their
-            // aspect/half-deck was selected. Moved to a test-owned fixture
+            // Regression test (planning.txt TIER 1 items 3 and 5): 5 single-primitive-shape
+            // fixture cards (test_assassin/test_guard/test_infiltrator/test_blade_dancer/
+            // test_displacer, 2026-09-13) plus core_noble (2026-09-14 - doesn't correspond to
+            // any real card at all) used to ship in the real market data with no fixture flag,
+            // meaning they could enter a real match's market whenever their aspect/half-deck was
+            // selected. All 6 moved to a test-owned fixture
             // (ChaosWarlords.Tests.Source.Functional.TestFixtureCards, merged into
             // MatchScenario's CardDatabase via LoadAdditionalFromJson) - assert here that the
-            // PRODUCTION catalog never regains a "test_"-prefixed id, by any name. Parses the
-            // raw JSON directly (not through CardDatabase's GetAllMarketCards/
-            // GetFixedRecruitPiles) so this also catches a future test card that happens to be
-            // flagged FixedRecruitPileSize>0 or RedirectsToSupplyOnDevourOrPromote - either of
-            // which would make it invisible to a check built on those two accessors alone.
+            // PRODUCTION catalog never regains any of them, by any name. Checks against
+            // TestFixtureCards's own defined ids directly (not just the "test_" prefix pattern)
+            // so this list and the fixture's own list can never silently drift apart - a future
+            // fixture card added WITHOUT a "test_" prefix (exactly how core_noble slipped past
+            // this check's original, narrower form) is still caught. Parses the raw JSON
+            // directly (not through CardDatabase's GetAllMarketCards/GetFixedRecruitPiles) so
+            // this also catches a future fixture-shaped card flagged FixedRecruitPileSize>0 or
+            // RedirectsToSupplyOnDevourOrPromote - either of which would make it invisible to a
+            // check built on those two accessors alone.
             var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
             if (!File.Exists(path)) Assert.Inconclusive("cards.json not found at " + path);
 
+            using var fixtureDocument = System.Text.Json.JsonDocument.Parse(TestFixtureCards.CardsJson);
+            var fixtureIds = fixtureDocument.RootElement.EnumerateArray()
+                .Select(card => card.GetProperty("Id").GetString() ?? string.Empty)
+                .ToHashSet();
+
             using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
-            var testPrefixedIds = document.RootElement.EnumerateArray()
+            var leakedFixtureIds = document.RootElement.EnumerateArray()
                 .Select(card => card.TryGetProperty("Id", out var idProperty) ? idProperty.GetString() ?? string.Empty : string.Empty)
-                .Where(id => id.StartsWith("test_", StringComparison.Ordinal))
+                .Where(id => fixtureIds.Contains(id) || id.StartsWith("test_", StringComparison.Ordinal))
                 .ToList();
 
-            Assert.IsEmpty(testPrefixedIds, $"Production cards.json must never ship a test-prefixed fixture card. Found: {string.Join(", ", testPrefixedIds)}");
+            Assert.IsEmpty(leakedFixtureIds, $"Production cards.json must never ship a test-fixture card. Found: {string.Join(", ", leakedFixtureIds)}");
         }
 
         [TestMethod]

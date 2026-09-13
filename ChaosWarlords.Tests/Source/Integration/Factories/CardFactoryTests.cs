@@ -97,6 +97,11 @@ namespace ChaosWarlords.Tests.Integration.Factories
             StringAssert.StartsWith(card.Id, "soldier");
             Assert.AreEqual(EffectType.GainResource, card.Effects[0].Type);
             Assert.AreEqual(ResourceType.Power, card.Effects[0].TargetResource);
+            // Rules-accuracy fix (planning.txt TIER 1 item 5): the real starter "Soldier" card
+            // scores 1 Inner-Circle VP, not 0 - confirmed against extracted_og_cards/
+            // extracted_cards_drow/soldier.jpg.
+            Assert.AreEqual(0, card.DeckVP);
+            Assert.AreEqual(1, card.InnerCircleVP);
         }
 
         [TestMethod]
@@ -106,6 +111,11 @@ namespace ChaosWarlords.Tests.Integration.Factories
             StringAssert.StartsWith(card.Id, "noble");
             Assert.AreEqual(EffectType.GainResource, card.Effects[0].Type);
             Assert.AreEqual(ResourceType.Influence, card.Effects[0].TargetResource);
+            // Rules-accuracy fix (planning.txt TIER 1 item 5): the real starter "Noble" card
+            // scores 1 Inner-Circle VP, not 0 - confirmed against extracted_og_cards/
+            // extracted_cards_drow/noble.jpg.
+            Assert.AreEqual(0, card.DeckVP);
+            Assert.AreEqual(1, card.InnerCircleVP);
         }
 
         [TestMethod]

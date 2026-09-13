@@ -17,7 +17,7 @@ namespace ChaosWarlords.Source.Utilities
 
         public static Card CreateSoldier(IGameRandom? random = null)
         {
-            var card = new Card(GenerateUniqueId("soldier", random), "Soldier", 0, CardAspect.Neutral, 0, 0, 0, definitionId: "soldier");
+            var card = new Card(GenerateUniqueId("soldier", random), "Soldier", 0, CardAspect.Neutral, 0, 1, 0, definitionId: "soldier");
             card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Power));
             card.Description = "+1 Power";
             return card;
@@ -25,7 +25,7 @@ namespace ChaosWarlords.Source.Utilities
 
         public static Card CreateNoble(IGameRandom? random = null)
         {
-            var card = new Card(GenerateUniqueId("noble", random), "Noble", 0, CardAspect.Neutral, 0, 0, 0, definitionId: "noble");
+            var card = new Card(GenerateUniqueId("noble", random), "Noble", 0, CardAspect.Neutral, 0, 1, 0, definitionId: "noble");
             card.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.Influence));
             card.Description = "+1 Influence";
             return card;

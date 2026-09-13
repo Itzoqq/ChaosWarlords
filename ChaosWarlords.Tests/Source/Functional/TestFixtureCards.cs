@@ -4,12 +4,16 @@ namespace ChaosWarlords.Tests.Source.Functional
     /// The 5 single-primitive-shape test cards (test_assassin/test_guard/test_infiltrator/
     /// test_blade_dancer/test_displacer) used across the scenario-harness suite to exercise one
     /// stock EffectType (Assassinate/ReturnUnit/Supplant/MoveUnit, +GainResource for the Focus
-    /// case) in isolation, with no card-specific mechanic muddying the assertion. Moved out of
-    /// production `cards.json`/`en_US.json` (planning.txt TIER 1 item 3 - they shipped in the
-    /// real market data with no fixture flag, so they could enter a real match's market
-    /// whenever their aspect/half-deck was selected) into this test-owned fixture, merged into
-    /// MatchScenario's CardDatabase/LocalizationManager via LoadAdditionalFromJson rather than
-    /// the normal production Load path.
+    /// case) in isolation, with no card-specific mechanic muddying the assertion, plus
+    /// core_noble (a plain, mandatory "promote a card played this turn" fixture used across ~35
+    /// call sites as generic Devour/discard/inner-circle fodder). All 6 were moved out of
+    /// production `cards.json`/`en_US.json` (planning.txt TIER 1 items 3 and 5 - they shipped
+    /// in the real market data with no fixture flag; core_noble specifically doesn't correspond
+    /// to any real scanned card at all - it predates this project's scan-based transcription
+    /// discipline and was never a real card, unlike the actual "Noble" starting-deck card
+    /// CardFactory.CreateNoble already implements separately) into this test-owned fixture,
+    /// merged into MatchScenario's CardDatabase/LocalizationManager via LoadAdditionalFromJson
+    /// rather than the normal production Load path.
     /// </summary>
     internal static class TestFixtureCards
     {
@@ -23,6 +27,16 @@ namespace ChaosWarlords.Tests.Source.Functional
             "InnerCircleVP": 3,
             "Effects": [
               { "Type": "Assassinate", "Amount": 1 }
+            ]
+          },
+          {
+            "Id": "core_noble",
+            "Cost": 3,
+            "Aspect": "Blasphemy",
+            "DeckVP": 1,
+            "InnerCircleVP": 3,
+            "Effects": [
+              { "Type": "Promote", "Amount": 1 }
             ]
           },
           {
@@ -73,6 +87,8 @@ namespace ChaosWarlords.Tests.Source.Functional
         {
           "test_assassin_name": "Drow Assassin",
           "test_assassin_description": "Assassinate a troop",
+          "core_noble_name": "Drow Noble",
+          "core_noble_description": "Promote a card from your hand.",
           "test_guard_name": "City Guard",
           "test_guard_description": "Return a troop",
           "test_infiltrator_name": "Elite Infiltrator",
