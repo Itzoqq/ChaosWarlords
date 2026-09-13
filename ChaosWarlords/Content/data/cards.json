@@ -43,64 +43,6 @@
     ]
   },
   {
-    "Id": "test_assassin",
-    "Cost": 3,
-    "Aspect": "Shadow",
-    "DeckVP": 1,
-    "InnerCircleVP": 3,
-    "Effects": [
-      {
-        "Type": "Assassinate",
-        "Amount": 1
-      }
-    ]
-  },
-  {
-    "Id": "test_guard",
-    "Cost": 2,
-    "Aspect": "Order",
-    "DeckVP": 1,
-    "InnerCircleVP": 2,
-    "Effects": [
-      {
-        "Type": "ReturnUnit",
-        "Amount": 1
-      }
-    ]
-  },
-  {
-    "Id": "test_infiltrator",
-    "Cost": 5,
-    "Aspect": "Shadow",
-    "DeckVP": 2,
-    "InnerCircleVP": 4,
-    "Effects": [
-      {
-        "Type": "Supplant",
-        "Amount": 1
-      }
-    ]
-  },
-  {
-    "Id": "test_blade_dancer",
-    "Cost": 4,
-    "Aspect": "Shadow",
-    "DeckVP": 1,
-    "InnerCircleVP": 3,
-    "Effects": [
-      {
-        "Type": "Assassinate",
-        "Amount": 1
-      },
-      {
-        "Type": "GainResource",
-        "Amount": 3,
-        "TargetResource": "Power",
-        "RequiresFocus": true
-      }
-    ]
-  },
-  {
     "Id": "core_noble",
     "Cost": 3,
     "Aspect": "Blasphemy",
@@ -109,19 +51,6 @@
     "Effects": [
       {
         "Type": "Promote",
-        "Amount": 1
-      }
-    ]
-  },
-  {
-    "Id": "test_displacer",
-    "Cost": 3,
-    "Aspect": "Order",
-    "DeckVP": 1,
-    "InnerCircleVP": 3,
-    "Effects": [
-      {
-        "Type": "MoveUnit",
         "Amount": 1
       }
     ]

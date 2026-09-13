@@ -97,12 +97,14 @@ namespace ChaosWarlords.Tests.Source.Functional
             {
                 localizationService.Load(locStream);
             }
+            localizationService.LoadAdditionalFromJson(TestFixtureCards.LocalizationJson);
 
             var cardDatabase = new CardDatabase(localizationService);
             using (var stream = File.OpenRead(ResolveCardsJsonPath()))
             {
                 cardDatabase.Load(stream);
             }
+            cardDatabase.LoadAdditionalFromJson(TestFixtureCards.CardsJson);
 
             var replayManager = new ReplayManager(logger);
             var world = new MatchFactory(cardDatabase, logger).Build(replayManager, seed, playerColors);

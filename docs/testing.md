@@ -353,8 +353,16 @@ green suite before it existed:
 `MatchScenario.Build()` loads the REAL `cards.json` into a REAL `CardDatabase` and wires a
 REAL `MatchFactory`-built match through a REAL `CommandDispatcher` - the same composition
 `ChaosWarlords.Core.Tests/Source/Integration/HeadlessCompositionSmokeTests.cs` already proves
-works end to end, just with a real card database instead of an empty `Substitute`. Typical
-usage:
+works end to end, just with a real card database instead of an empty `Substitute`. It also
+merges in `TestFixtureCards` (5 single-primitive-shape cards - `test_assassin`/`test_guard`/
+`test_infiltrator`/`test_blade_dancer`/`test_displacer`, each exercising exactly one stock
+`EffectType` with no card-specific mechanic) via `CardDatabase.LoadAdditionalFromJson`/
+`LocalizationManager.LoadAdditionalFromJson` - these do NOT exist in production `cards.json`
+(moved out 2026-09-13, planning.txt TIER 1 item 3, since a test-only card shipping in the real
+market data with no fixture flag could enter a real match). `GiveCard(color, "test_guard")`
+resolves them exactly like a real card id; `LoadRealCardsJson_ContainsNoTestPrefixedFixtureCards`
+(`CardDatabaseIntegrationTests.cs`) is the regression test guarding against one drifting back
+into production data. Typical usage:
 
 ```csharp
 var scenario = MatchScenario.Build();

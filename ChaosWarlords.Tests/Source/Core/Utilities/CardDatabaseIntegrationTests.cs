@@ -37,6 +37,78 @@ namespace ChaosWarlords.Tests.Core.Utilities
         }
 
         [TestMethod]
+        public void LoadAdditionalFromJson_MergesNewCards_WithoutReplacingTheOriginalCatalog()
+        {
+            var database = new CardDatabase(new TestLocalizationService());
+            using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("""
+                [{ "id": "warlord_card", "aspect": "Warlord", "marketCopyCount": 1, "effects": [] }]
+                """)))
+            {
+                database.Load(stream);
+            }
+
+            database.LoadAdditionalFromJson("""
+                [{ "id": "test_fixture_card", "aspect": "Order", "marketCopyCount": 1, "effects": [] }]
+                """);
+
+            var ids = database.GetAllMarketCards().Select(card => card.DefinitionId).ToHashSet();
+            Assert.Contains("warlord_card", ids, "The originally-loaded catalog must survive a merge, unlike Load's replace-everything semantics.");
+            Assert.Contains("test_fixture_card", ids);
+        }
+
+        [TestMethod]
+        public void LoadAdditionalFromJson_WithAnIdAlreadyInTheCatalog_ThrowsInsteadOfSilentlyDuplicating()
+        {
+            var database = new CardDatabase(new TestLocalizationService());
+            using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("""
+                [{ "id": "warlord_card", "aspect": "Warlord", "marketCopyCount": 1, "effects": [] }]
+                """)))
+            {
+                database.Load(stream);
+            }
+
+            Assert.ThrowsExactly<InvalidDataException>(() => database.LoadAdditionalFromJson("""
+                [{ "id": "warlord_card", "aspect": "Order", "marketCopyCount": 1, "effects": [] }]
+                """));
+
+            // The original definition must survive the rejected merge attempt, unmodified.
+            var cards = database.GetAllMarketCards();
+            Assert.HasCount(1, cards);
+            Assert.AreEqual(CardAspect.Warlord, cards[0].Aspect);
+        }
+
+        [TestMethod]
+        public void LoadAdditionalFromJson_WithTwoEntriesSharingAnIdInTheSameBatch_ThrowsInsteadOfSilentlyPickingOne()
+        {
+            // Reviewer finding (2026-09-13): the original guard only checked each incoming
+            // entry against the ALREADY-loaded catalog, never against the rest of the SAME
+            // incoming batch - two fixture entries with the same id would both silently pass
+            // and CardDatabase.GetCardById's FirstOrDefault would resolve to whichever happened
+            // to be first, exactly the "silently shadow or duplicate" failure this method's own
+            // doc comment claims to prevent.
+            var database = new CardDatabase(new TestLocalizationService());
+            using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("""
+                [{ "id": "warlord_card", "aspect": "Warlord", "marketCopyCount": 1, "effects": [] }]
+                """)))
+            {
+                database.Load(stream);
+            }
+
+            Assert.ThrowsExactly<InvalidDataException>(() => database.LoadAdditionalFromJson("""
+                [
+                  { "id": "duplicate_fixture", "aspect": "Order", "marketCopyCount": 1, "effects": [] },
+                  { "id": "duplicate_fixture", "aspect": "Shadow", "marketCopyCount": 1, "effects": [] }
+                ]
+                """));
+
+            // Nothing from the rejected batch should have been merged - not even the
+            // originally-loaded catalog entry should be affected.
+            var ids = database.GetAllMarketCards().Select(card => card.DefinitionId).ToHashSet();
+            Assert.HasCount(1, ids);
+            Assert.Contains("warlord_card", ids);
+        }
+
+        [TestMethod]
         public void LoadRealCardsJson_GetMarketCards_ReturnsOnlyTheSelectedAspects()
         {
             var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
@@ -115,6 +187,33 @@ namespace ChaosWarlords.Tests.Core.Utilities
             Assert.IsNotNull(supplyOnlyCard, "insane_outcast should exist in cards.json.");
             Assert.DoesNotContain("[MISSING:", supplyOnlyCard.Name);
             Assert.DoesNotContain("[MISSING:", supplyOnlyCard.Description);
+        }
+
+        [TestMethod]
+        public void LoadRealCardsJson_ContainsNoTestPrefixedFixtureCards()
+        {
+            // Regression test (planning.txt TIER 1 item 3, 2026-09-13): 5 single-primitive-
+            // shape fixture cards (test_assassin/test_guard/test_infiltrator/
+            // test_blade_dancer/test_displacer) used to ship in the real market data with no
+            // fixture flag, meaning they could enter a real match's market whenever their
+            // aspect/half-deck was selected. Moved to a test-owned fixture
+            // (ChaosWarlords.Tests.Source.Functional.TestFixtureCards, merged into
+            // MatchScenario's CardDatabase via LoadAdditionalFromJson) - assert here that the
+            // PRODUCTION catalog never regains a "test_"-prefixed id, by any name. Parses the
+            // raw JSON directly (not through CardDatabase's GetAllMarketCards/
+            // GetFixedRecruitPiles) so this also catches a future test card that happens to be
+            // flagged FixedRecruitPileSize>0 or RedirectsToSupplyOnDevourOrPromote - either of
+            // which would make it invisible to a check built on those two accessors alone.
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
+            if (!File.Exists(path)) Assert.Inconclusive("cards.json not found at " + path);
+
+            using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
+            var testPrefixedIds = document.RootElement.EnumerateArray()
+                .Select(card => card.TryGetProperty("Id", out var idProperty) ? idProperty.GetString() ?? string.Empty : string.Empty)
+                .Where(id => id.StartsWith("test_", StringComparison.Ordinal))
+                .ToList();
+
+            Assert.IsEmpty(testPrefixedIds, $"Production cards.json must never ship a test-prefixed fixture card. Found: {string.Join(", ", testPrefixedIds)}");
         }
 
         [TestMethod]

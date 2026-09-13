@@ -30,6 +30,32 @@ namespace ChaosWarlords.Source.Utilities
             _strings = JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new Dictionary<string, string>();
         }
 
+        /// <summary>
+        /// Merges additional localization strings into an already-loaded bundle - the string-
+        /// data counterpart of CardDatabase.LoadAdditionalFromJson, for test-only fixture cards
+        /// whose name/description strings must never ship in production en_US.json. Throws if
+        /// any key in <paramref name="json"/> collides with a key already loaded.
+        /// </summary>
+        internal void LoadAdditionalFromJson(string json)
+        {
+            var additional = JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new Dictionary<string, string>();
+
+            // Validate every key BEFORE merging any of them - a mid-batch throw must never
+            // leave a partial merge behind (same reasoning as CardDatabase.LoadAdditionalFromJson).
+            foreach (var key in additional.Keys)
+            {
+                if (_strings.ContainsKey(key))
+                {
+                    throw new InvalidDataException($"Cannot merge fixture localization key '{key}' - it already exists in the bundle.");
+                }
+            }
+
+            foreach (var (key, value) in additional)
+            {
+                _strings.Add(key, value);
+            }
+        }
+
         public string GetString(string key)
         {
             if (_strings.TryGetValue(key, out var value))

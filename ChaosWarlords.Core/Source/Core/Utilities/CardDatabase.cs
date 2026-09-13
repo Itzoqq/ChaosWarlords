@@ -151,6 +151,34 @@ namespace ChaosWarlords.Source.Utilities
             _cardDataCache = JsonSerializer.Deserialize<List<CardData>>(json, s_jsonOptions) ?? new List<CardData>();
         }
 
+        /// <summary>
+        /// Merges additional card definitions into an already-loaded catalog, for test-only
+        /// fixture cards that must never ship in production cards.json (single-primitive-shape
+        /// cards like test_assassin/test_guard used to exercise one EffectType in isolation -
+        /// see planning.txt TIER 1 item 3). Throws if any id in <paramref name="json"/> collides
+        /// with an id already in the catalog OR with another id in the same batch, so a fixture
+        /// can never silently shadow or duplicate a real shipped card (nor itself).
+        /// </summary>
+        internal void LoadAdditionalFromJson(string json)
+        {
+            var additional = JsonSerializer.Deserialize<List<CardData>>(json, s_jsonOptions) ?? new List<CardData>();
+
+            var duplicateWithinBatch = additional.GroupBy(data => data.Id).FirstOrDefault(group => group.Count() > 1);
+            if (duplicateWithinBatch is not null)
+            {
+                throw new InvalidDataException($"Cannot merge fixture cards - id '{duplicateWithinBatch.Key}' appears more than once in the same batch.");
+            }
+
+            foreach (var data in additional)
+            {
+                if (_cardDataCache.Any(c => c.Id == data.Id))
+                {
+                    throw new InvalidDataException($"Cannot merge fixture card '{data.Id}' - a card with that id already exists in the catalog.");
+                }
+            }
+            _cardDataCache.AddRange(additional);
+        }
+
         public List<Card> GetAllMarketCards(IGameRandom? random = null)
         {
             return CreateMarketCards(_ => true, random);

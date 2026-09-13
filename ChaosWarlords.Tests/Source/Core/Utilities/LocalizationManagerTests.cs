@@ -93,5 +93,29 @@ namespace ChaosWarlords.Tests.Source.Utilities
       Assert.AreEqual("[MISSING:wight_name]", loc.GetString("wight_name"));
       Assert.AreEqual("Noble", loc.GetString("noble_name"));
     }
+
+    [TestMethod]
+    public void LoadAdditionalFromJson_MergesNewKeys_WithoutReplacingExistingOnes()
+    {
+      var loc = new LocalizationManager();
+      loc.LoadFromJson(MockBundleJson);
+
+      loc.LoadAdditionalFromJson(@"{ ""test_card_name"": ""Test Card"" }");
+
+      Assert.AreEqual("Wight", loc.GetString("wight_name"), "The original bundle must survive a merge, unlike Load's replace-everything semantics.");
+      Assert.AreEqual("Test Card", loc.GetString("test_card_name"));
+    }
+
+    [TestMethod]
+    public void LoadAdditionalFromJson_WithAKeyAlreadyInTheBundle_ThrowsInsteadOfSilentlyOverwriting()
+    {
+      var loc = new LocalizationManager();
+      loc.LoadFromJson(MockBundleJson);
+
+      Assert.ThrowsExactly<InvalidDataException>(() => loc.LoadAdditionalFromJson(@"{ ""wight_name"": ""Overwritten"" }"));
+
+      // The original value must survive the rejected merge attempt.
+      Assert.AreEqual("Wight", loc.GetString("wight_name"));
+    }
   }
 }
