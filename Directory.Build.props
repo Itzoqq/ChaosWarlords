@@ -1,0 +1,17 @@
+<Project>
+
+  <!--
+    Applies to every project in the solution automatically (MSBuild convention - no per-csproj
+    edit needed, and any future project added to the solution inherits this for free).
+
+    RestorePackagesWithLockFile pins every resolved package (including transitive ones) to an
+    exact version in a checked-in packages.lock.json per project - `dotnet restore`/`build`
+    then fails loudly on an unexpected version drift instead of silently picking up whatever the
+    floating range resolves to that day. See planning.txt TIER 1 item 4 (reproducible builds)
+    and global.json (SDK version pin) for the rest of this repo's build-reproducibility story.
+  -->
+  <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
+</Project>
