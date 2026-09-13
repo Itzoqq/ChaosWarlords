@@ -289,6 +289,51 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         [TestMethod]
+        [TestCategory("Integration")]
+        public void Dispatch_WhenRollbackItselfFails_SurfacesBothFailuresInsteadOfLosingTheOriginal()
+        {
+            // Reviewer finding (2026-09-13, GPT-authored rollback-completeness batch review):
+            // if StateRestorer.RestoreState throws while cleaning up after a failing command,
+            // a bare `throw;` after an unguarded RestoreState call would let the ROLLBACK
+            // exception silently replace the ORIGINAL command failure that triggered it - the
+            // real root cause would only ever appear in a log line, never in the exception the
+            // caller actually receives. Forces this exact double-fault by pre-corrupting a
+            // transient marker list (a Card present in CardsMarkedForTurnEndDevour but in NO
+            // real zone - the same "dangling reference" shape StateRestorerTests's
+            // RestoreState_TransientMarkerWithoutAPhysicalCard_FailsInsteadOfCreatingADetachedCopy
+            // already covers at the StateRestorer level) BEFORE the pre-command snapshot is even
+            // captured, so the corruption is baked into the snapshot CommandDispatcher will try
+            // to roll back to.
+            var red = new Player(PlayerColor.Red) { SeatIndex = 0 };
+            var turnManager = new TurnManager(new List<Player> { red }, new SeededGameRandom(123, _logger), _logger);
+            var mapManager = Substitute.For<IMapManager>();
+            mapManager.Nodes.Returns(new List<ChaosWarlords.Source.Entities.Map.MapNode>());
+            mapManager.Sites.Returns(new List<ChaosWarlords.Source.Entities.Map.Site>());
+            var marketManager = Substitute.For<IMarketManager>();
+            marketManager.MarketRow.Returns(new List<Card>());
+            marketManager.MarketDeck.Returns(new List<Card>());
+            var playerState = new PlayerStateManager(_logger);
+            var actionSystem = new ActionSystem(turnManager, mapManager, _logger, playerState, marketManager);
+            var context = new MatchContext(turnManager, mapManager, marketManager, actionSystem, Substitute.For<ICardDatabase>(), playerState, _logger, 123);
+            actionSystem.SetMatchContext(context);
+
+            // Dangling reference: marked for turn-end devour, but never added to Hand/Deck/
+            // Discard/Played/InnerCircle/Market/VoidPile - GetPhysicalCards() can never find it.
+            var danglingCard = new Card("dangling", "Dangling", 1, CardAspect.Sorcery, 0, 0, 0);
+            context.CardsMarkedForTurnEndDevour.Add(danglingCard);
+
+            var failingCommand = Substitute.For<IGameCommand>();
+            failingCommand.Validate(context).Returns(true);
+            failingCommand.When(c => c.Execute(context)).Do(_ => throw new InvalidOperationException("Boom"));
+
+            var thrown = Assert.ThrowsExactly<AggregateException>(() => _dispatcher.Dispatch(failingCommand, context));
+
+            Assert.HasCount(2, thrown.InnerExceptions, "Both the original command failure and the rollback failure must be preserved.");
+            Assert.IsTrue(thrown.InnerExceptions.Any(e => e is InvalidOperationException original && original.Message == "Boom"), "The original command exception must not be lost.");
+            Assert.IsTrue(thrown.InnerExceptions.Any(e => e is InvalidOperationException && e.Message != "Boom"), "The rollback's own failure must also be present, not just the original.");
+        }
+
+        [TestMethod]
         [TestCategory("Unit")]
         public void Dispatch_WhenRollbackSnapshotCannotBeCaptured_RejectsBeforeValidationOrExecution()
         {

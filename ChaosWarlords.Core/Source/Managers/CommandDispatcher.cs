@@ -72,7 +72,23 @@ namespace ChaosWarlords.Source.Managers
                 _logger.Log($"Error executing/recording command {command.GetType().Name}: {ex}", LogChannel.Error);
 
                 _logger.Log($"Rolling back MatchContext to pre-command snapshot (Seq {snapshot.SequenceNumber}).", LogChannel.Warning);
-                StateRestorer.RestoreState(context, snapshot);
+                try
+                {
+                    StateRestorer.RestoreState(context, snapshot);
+                }
+                catch (Exception rollbackEx)
+                {
+                    // The rollback snapshot itself failed to restore - MatchContext may now be
+                    // left PARTIALLY restored (RestoreState's steps mutate in place and don't
+                    // undo earlier steps if a later one throws), not just "not rolled back."
+                    // Surface BOTH failures rather than letting the rollback exception silently
+                    // replace the original command failure that triggered rollback in the first
+                    // place - a plain `throw;` here would lose ex entirely.
+                    _logger.Log($"CommandDispatcher: Rollback failed after {command.GetType().Name} threw - MatchContext integrity can no longer be guaranteed: {rollbackEx}", LogChannel.Error);
+                    throw new AggregateException(
+                        $"Command '{command.GetType().Name}' failed and its rollback also failed - MatchContext may be left partially restored.",
+                        ex, rollbackEx);
+                }
 
                 throw;
             }
