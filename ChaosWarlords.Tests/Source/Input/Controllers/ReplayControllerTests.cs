@@ -129,6 +129,7 @@ namespace ChaosWarlords.Tests.Source.Input.Controllers
 
             // Assert
             _replayManagerMock.Received(1).StartReplay(Arg.Any<string>());
+            _onRestartMock.Received(1).Invoke();
         }
 
         [TestMethod]

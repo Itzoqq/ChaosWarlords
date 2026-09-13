@@ -129,7 +129,7 @@ T0.3. Define safe failure behavior for a live match. COMPLETED 2026-09-13.
       Tests cover successful recovery, transition failure, and factory
       failure.
 
-T0.4. Add lifecycle evidence, not a misleading generic leak test.
+T0.4. Add lifecycle evidence, not a misleading generic leak test. COMPLETED 2026-09-13.
     - Add a deterministic headless soak test that repeatedly builds a
       fresh match, executes a representative legal setup/turn sequence,
       reloads or tears it down, and verifies isolation: no duplicate
@@ -146,6 +146,16 @@ T0.4. Add lifecycle evidence, not a misleading generic leak test.
       debug/profiler soak (many match -> menu -> match transitions),
       monitoring managed allocations and GPU resources, after the
       automated ownership tests are in place.
+    - `HeadlessLifecycleSoakTests` runs 100 isolated Core-only match
+      constructions. Every iteration performs the complete setup deploy
+      sequence, records it, rebuilds a separate match, replays the
+      recorded commands, and compares its final hash with the live
+      match and with the prior iterations' baseline. It asserts that
+      setup completion fires once per player and the recording contains
+      exactly one deploy plus automatic end turn per player. The replay input
+      test also verifies that a successful F6 load requests exactly one
+      state-level reload. This deliberately avoids GC-memory assertions;
+      manual MonoGame profiling remains the GPU/driver diagnostic.
 
 T0.5. Make transactional rollback genuinely complete before adding more
       mechanics that mutate several systems.
