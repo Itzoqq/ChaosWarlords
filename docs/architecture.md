@@ -128,7 +128,7 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   ├── ActionInputController.cs         # Click-to-command routing for targeting (extracted from ActionSystem)
     │   ├── CommandDispatcher.cs             # Central Command Processor - snapshots before Execute(), rolls back on exception
     │   ├── MapManager.cs                    # Facade for Board Logic (LogicVector2-based queries)
-    │   ├── MarketManager.cs                 # Manages the Card Market
+    │   ├── MarketManager.cs                 # Manages the shuffled row and finite fixed recruit piles
     │   ├── MatchManager.cs                  # Manages Match & Victory
     │   ├── PlayerStateManager.cs            # Centralized player mutations
     │   ├── ReplayManager.cs                 # Replay recording and playback
@@ -380,7 +380,7 @@ The architecture includes concrete infrastructure for network synchronization:
 - Bounded value generation uses the "Debiased Modulo (Once)" rejection scheme (the same approach OpenBSD's `arc4random_uniform` uses) to avoid modulo bias.
 
 **Snapshot / Rollback Machinery:**
-- **`DtoMapper.ToGameStateDto()`**: serializes the entire game state - map, players, market, void pile, transient marked-for-devour cards, the effect stack, and `ActionSystem`'s own targeting state (`CurrentState` + `Pending*`) - into a `GameStateDto`.
+- **`DtoMapper.ToGameStateDto()`**: serializes the entire game state - map, players, market row/deck and finite fixed recruit piles, void pile, transient marked-for-devour cards, the effect stack, and `ActionSystem`'s own targeting state (`CurrentState` + `Pending*`) - into a `GameStateDto`.
 - **`StateRestorer.RestoreState()`**: rebuilds a live `MatchContext` in-place from a `GameStateDto`, mutating existing Map/Site/Node instances (so references other code holds stay valid) while re-resolving Card references fresh via `ICardDatabase.GetCardById` (a known, documented limitation - a restored card is a new instance with the same `Id`, not the original reference).
 - Two independent callers use this machinery today: **`CommandDispatcher`** snapshots before every command's `Execute()` and rolls back on an unhandled exception (best-effort - proceeds without rollback capability if the snapshot itself can't be taken), and **`ActionSystem.CancelTargeting`** snapshots at the start of a targeting sequence and restores on cancel (see Key Systems #4). Both share the same DTO/restore code, not parallel implementations.
 

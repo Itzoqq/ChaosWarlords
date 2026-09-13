@@ -216,6 +216,11 @@ namespace ChaosWarlords.Source.Contexts
                 {
                     hash = StateHasher.Mix(hash, card.Id);
                 }
+                foreach (var pile in MarketManager.FixedRecruitPiles ?? [])
+                {
+                    hash = StateHasher.Mix(hash, pile.DefinitionId);
+                    hash = StateHasher.Mix(hash, pile.Cards.Count);
+                }
             }
             return hash;
         }

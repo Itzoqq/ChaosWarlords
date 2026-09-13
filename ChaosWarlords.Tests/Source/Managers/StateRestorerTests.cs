@@ -539,6 +539,29 @@ namespace ChaosWarlords.Tests.Source.Managers
             Assert.HasCount(2, _marketManager.MarketDeck, "Both cards must be back in the deck after rollback - the drawn one must not vanish from the game entirely.");
         }
 
+        [TestMethod]
+        public void RestoreState_RevertsFixedRecruitPiles_SoARolledBackPurchaseDoesNotConsumeSupply()
+        {
+            var fixedPiles = new List<FixedRecruitPile>
+            {
+                new("core_house_guard", new[]
+                {
+                    RegisterCard("house_guard_one", CardLocation.Market),
+                    RegisterCard("house_guard_two", CardLocation.Market)
+                })
+            };
+            _marketManager.FixedRecruitPiles.Returns(fixedPiles);
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+
+            fixedPiles[0].Cards.RemoveAt(0);
+            Assert.HasCount(1, fixedPiles[0].Cards, "Sanity check: the simulated purchase must consume one fixed-pile copy.");
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.HasCount(1, fixedPiles);
+            Assert.HasCount(2, fixedPiles[0].Cards, "Rollback must restore every fixed-pile copy, including the purchased top card.");
+        }
+
         // --- RestoreEffect coverage (planning.txt TIER 1 item 1 - risk-hotspot remediation:
         // StateRestorer.RestoreEffect was flagged with Crap 42 / cyclomatic 6, a coverage gap
         // (nothing above exercises restoring a genuinely non-empty ExecutionStack) rather than

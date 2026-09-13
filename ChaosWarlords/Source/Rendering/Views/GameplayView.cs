@@ -124,7 +124,7 @@ namespace ChaosWarlords.Source.Rendering.Views
 
             SyncHandVisuals(context.ActivePlayer.Hand);
             SyncPlayedVisuals(context.ActivePlayer.PlayedCards);
-            SyncMarketVisuals(context.MarketManager.MarketRow);
+            SyncMarketVisuals(context.MarketManager.GetRecruitableCards().ToList());
 
             UpdateVisualsHover(HandViewModels, inputManager);
             if (isMarketOpen) UpdateVisualsHover(MarketViewModels, inputManager);
@@ -319,10 +319,10 @@ namespace ChaosWarlords.Source.Rendering.Views
             HandViewModels = sortedVMs;
         }
 
-        private void SyncMarketVisuals(List<Card> marketRow)
+        private void SyncMarketVisuals(List<Card> marketCards)
         {
-            MarketViewModels.RemoveAll(vm => !marketRow.Contains(vm.Model));
-            foreach (var card in marketRow)
+            MarketViewModels.RemoveAll(vm => !marketCards.Contains(vm.Model));
+            foreach (var card in marketCards)
             {
                 if (!MarketViewModels.Any(vm => vm.Model == card))
                     MarketViewModels.Add(new CardViewModel(card));
@@ -331,9 +331,9 @@ namespace ChaosWarlords.Source.Rendering.Views
             int startX = GameConstants.CardRendering.MarketStartX;
             int startY = GameConstants.CardRendering.MarketStartY;
             int gap = GameConstants.CardRendering.MarketCardGap;
-            for (int i = 0; i < marketRow.Count; i++)
+            for (int i = 0; i < marketCards.Count; i++)
             {
-                var vm = MarketViewModels.FirstOrDefault(v => v.Model == marketRow[i]);
+                var vm = MarketViewModels.FirstOrDefault(v => v.Model == marketCards[i]);
                 if (vm is not null)
                 {
                     vm.Position = new Vector2(startX + (i * (Card.Width + gap)), startY);

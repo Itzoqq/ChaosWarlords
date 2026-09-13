@@ -13,6 +13,7 @@ namespace ChaosWarlords.Source.Managers
 
         public List<Card> MarketRow { get; private set; }
         public List<Card> MarketDeck { get; }
+        public List<FixedRecruitPile> FixedRecruitPiles { get; }
 
         public MarketManager(ICardDatabase cardDatabase, IGameRandom random, MarketDeckSelection? selection = null)
         {
@@ -22,6 +23,7 @@ namespace ChaosWarlords.Source.Managers
                 : _cardDatabase.GetMarketCards(selection, random)
                     ?? throw new InvalidOperationException("The card database returned no cards for the selected market half-decks.");
             MarketRow = new List<Card>();
+            FixedRecruitPiles = _cardDatabase.GetFixedRecruitPiles(random) ?? [];
 
             // Shuffle market deck using deterministic RNG
             random.Shuffle(MarketDeck);
@@ -31,19 +33,35 @@ namespace ChaosWarlords.Source.Managers
 
         public bool TryBuyCard(Player player, Card card, IPlayerStateManager stateManager)
         {
-            if (!MarketRow.Contains(card)) return false;
+            bool isMarketRowCard = MarketRow.Contains(card);
+            var fixedPile = FixedRecruitPiles.FirstOrDefault(pile => ReferenceEquals(pile.AvailableCard, card));
+            if (!isMarketRowCard && fixedPile is null) return false;
 
             // Use PlayerStateManager for Resource Check & Spend
             if (!stateManager.TrySpendInfluence(player, card.Cost)) return false;
 
             // Remove from Market
-            MarketRow.Remove(card);
+            if (isMarketRowCard)
+            {
+                MarketRow.Remove(card);
+            }
+            else
+            {
+                fixedPile!.Cards.RemoveAt(0);
+            }
 
             // Add to Player via StateManager
             stateManager.AcquireCard(player, card);
 
-            RefillMarket();
+            if (isMarketRowCard) RefillMarket();
             return true;
+        }
+
+        public IEnumerable<Card> GetRecruitableCards()
+        {
+            return MarketRow.Concat(FixedRecruitPiles
+                .Select(pile => pile.AvailableCard)
+                .OfType<Card>());
         }
 
         private void RefillMarket()

@@ -40,7 +40,7 @@ namespace ChaosWarlords.Source.Managers
             RestorePlayers(context, dto.Players);
 
             // 4. Market State
-            RestoreMarket(context, dto.Market, dto.MarketDeck);
+            RestoreMarket(context, dto.Market, dto.MarketDeck, dto.FixedRecruitPiles);
             
             // 5. Void / Transient State
             // VoidPile carries full CardDtos (Location/RuntimeId matter - see RestoreCardDtoList).
@@ -274,27 +274,36 @@ namespace ChaosWarlords.Source.Managers
         /// deleting that card from the game (present in neither the row, the deck, nor any
         /// player's hand/discard/void).
         /// </summary>
-        private static void RestoreMarket(MatchContext context, List<CardDto> marketDtos, List<CardDto> marketDeckDtos)
+        private static void RestoreMarket(MatchContext context, List<CardDto> marketDtos, List<CardDto> marketDeckDtos, List<FixedRecruitPileDto> fixedPileDtos)
         {
             var mgr = context.MarketManager;
-            mgr.MarketRow.Clear();
-            if (marketDtos != null)
-            {
-                 foreach (var d in marketDtos)
-                 {
-                     var card = ResolveCard(d, context.CardDatabase);
-                     if (card != null) mgr.MarketRow.Add(card);
-                 }
-            }
+            RestoreCardCollection(mgr.MarketRow, marketDtos, context.CardDatabase);
+            RestoreCardCollection(mgr.MarketDeck, marketDeckDtos, context.CardDatabase);
+            RestoreFixedRecruitPiles(mgr.FixedRecruitPiles, fixedPileDtos, context.CardDatabase);
+        }
 
-            mgr.MarketDeck.Clear();
-            if (marketDeckDtos != null)
+        private static void RestoreCardCollection(List<Card> destination, List<CardDto> cardDtos, ICardDatabase cardDatabase)
+        {
+            destination.Clear();
+            foreach (var cardDto in cardDtos ?? [])
             {
-                 foreach (var d in marketDeckDtos)
-                 {
-                     var card = ResolveCard(d, context.CardDatabase);
-                     if (card != null) mgr.MarketDeck.Add(card);
-                 }
+                var card = ResolveCard(cardDto, cardDatabase);
+                if (card is not null) destination.Add(card);
+            }
+        }
+
+        private static void RestoreFixedRecruitPiles(List<FixedRecruitPile>? fixedPiles, List<FixedRecruitPileDto> pileDtos, ICardDatabase cardDatabase)
+        {
+            if (fixedPiles is null) return;
+
+            fixedPiles.Clear();
+            foreach (var pileDto in pileDtos ?? [])
+            {
+                var cards = pileDto.Cards
+                    .Select(cardDto => ResolveCard(cardDto, cardDatabase))
+                    .Where(card => card is not null)
+                    .Cast<Card>();
+                fixedPiles.Add(new FixedRecruitPile(pileDto.DefinitionId, cards));
             }
         }
 

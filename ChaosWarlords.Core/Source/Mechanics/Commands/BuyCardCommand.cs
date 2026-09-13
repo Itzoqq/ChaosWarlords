@@ -37,8 +37,16 @@ namespace ChaosWarlords.Source.Commands
             CardId = cardId;
         }
 
-        private Card? ResolveCard(MatchContext context) =>
-            context.MarketManager.MarketRow?.FirstOrDefault(c => c.RuntimeId == CardRuntimeId);
+        private Card? ResolveCard(MatchContext context)
+        {
+            var marketCard = context.MarketManager.MarketRow?.FirstOrDefault(card => card.RuntimeId == CardRuntimeId);
+            if (marketCard is not null) return marketCard;
+
+            return context.MarketManager.FixedRecruitPiles?
+                .Select(pile => pile.AvailableCard)
+                .OfType<Card>()
+                .FirstOrDefault(card => card.RuntimeId == CardRuntimeId);
+        }
 
         public bool Validate(MatchContext context)
         {

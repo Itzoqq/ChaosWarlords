@@ -25,6 +25,26 @@ namespace ChaosWarlords.Tests.Core.Utilities
             Assert.DoesNotContain("zuggtmoy", ids, "A Demon card must not enter a Drow/Dragon market deck.");
             Assert.DoesNotContain("olhydra", ids, "An Elemental card must not enter a Drow/Dragon market deck.");
             Assert.DoesNotContain("wight", ids, "An unassigned expansion card must not silently enter an official half-deck selection.");
+            Assert.DoesNotContain("core_house_guard", ids, "House Guard belongs only to its fixed recruit pile, never the shuffled market deck.");
+            Assert.DoesNotContain("core_priestess", ids, "Priestess belongs only to its fixed recruit pile, never the shuffled market deck.");
+        }
+
+        [TestMethod]
+        public void LoadRealCardsJson_GetFixedRecruitPiles_CreatesTwoFiniteFifteenCardPiles()
+        {
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
+            if (!File.Exists(path)) Assert.Inconclusive("cards.json not found at " + path);
+
+            var database = new CardDatabase(new TestLocalizationService());
+            using var stream = File.OpenRead(path);
+            database.Load(stream);
+
+            var piles = database.GetFixedRecruitPiles();
+
+            Assert.HasCount(2, piles);
+            CollectionAssert.AreEquivalent(new[] { "core_house_guard", "core_priestess" }, piles.Select(pile => pile.DefinitionId).ToArray());
+            Assert.IsTrue(piles.All(pile => pile.Cards.Count == 15), "Each fixed recruit pile must contain its complete finite physical supply.");
+            Assert.IsTrue(piles.SelectMany(pile => pile.Cards).All(card => card.Location == CardLocation.Market));
         }
         [TestMethod]
         public void LoadRealCardsJson_EveryMarketCard_ResolvesNameAndDescriptionFromTheRealBundle()

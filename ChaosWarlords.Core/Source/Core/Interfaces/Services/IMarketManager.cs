@@ -33,6 +33,12 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// </summary>
         List<Card> MarketDeck { get; }
 
+        /// <summary>Finite, face-up recruit piles kept separate from the shuffled market row.</summary>
+        List<FixedRecruitPile>? FixedRecruitPiles => null;
+
+        /// <summary>Cards a player may recruit: the row plus the current card of each fixed pile.</summary>
+        IEnumerable<Card> GetRecruitableCards() => MarketRow;
+
         /// <summary>
         /// Removes a specific card from the market row and triggers a refill.
         /// </summary>

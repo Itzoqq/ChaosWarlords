@@ -31,6 +31,9 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         // DTO/restore gap, not the hash one.
         public List<CardDto> MarketDeck { get; set; } = [];
 
+        /// <summary>Finite face-up recruit piles, including their remaining physical copies.</summary>
+        public List<FixedRecruitPileDto> FixedRecruitPiles { get; set; } = [];
+
         // Void (Removed cards)
         public List<CardDto> VoidPile { get; set; } = [];
 

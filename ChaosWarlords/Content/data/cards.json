@@ -1,7 +1,7 @@
 [
   {
     "Id": "core_house_guard",
-    "MarketHalfDeck": "Drow",
+    "FixedRecruitPileSize": 15,
     "Cost": 3,
     "Aspect": "Warlord",
     "DeckVP": 1,
@@ -16,7 +16,7 @@
   },
   {
     "Id": "core_priestess",
-    "MarketHalfDeck": "Drow",
+    "FixedRecruitPileSize": 15,
     "Cost": 3,
     "Aspect": "Sorcery",
     "DeckVP": 1,

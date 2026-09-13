@@ -180,6 +180,13 @@ namespace ChaosWarlords.Source.Core.Utilities
             dto.Map = ToDto(context.MapManager);
             dto.Market = ToDtoList(context.MarketManager.MarketRow);
             dto.MarketDeck = ToDtoList(context.MarketManager.MarketDeck);
+            dto.FixedRecruitPiles = context.MarketManager.FixedRecruitPiles?
+                .Select(pile => new FixedRecruitPileDto
+                {
+                    DefinitionId = pile.DefinitionId,
+                    Cards = ToDtoList(pile.Cards)
+                })
+                .ToList() ?? [];
             dto.VoidPile = ToDtoList(context.VoidPile);
 
             // Stack Serialization

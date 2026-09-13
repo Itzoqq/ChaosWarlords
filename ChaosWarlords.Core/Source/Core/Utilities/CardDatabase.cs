@@ -31,6 +31,7 @@ namespace ChaosWarlords.Source.Utilities
         // asserting the card has no type at all.
         public string? CreatureType { get; set; }
         public string? MarketHalfDeck { get; set; }
+        public int FixedRecruitPileSize { get; set; }
     }
 
     [ExcludeFromCodeCoverage]
@@ -161,6 +162,18 @@ namespace ChaosWarlords.Source.Utilities
             return CreateMarketCards(data => IsInSelection(data, selection), random);
         }
 
+        public List<FixedRecruitPile> GetFixedRecruitPiles(IGameRandom? random = null)
+        {
+            return _cardDataCache
+                .Where(data => data.FixedRecruitPileSize > 0)
+                .OrderBy(data => data.Id)
+                .Select(data => new FixedRecruitPile(
+                    data.Id,
+                    Enumerable.Range(0, data.FixedRecruitPileSize)
+                        .Select(_ => CardFactory.CreateFromData(data, _localization, random, _logger))))
+                .ToList();
+        }
+
         private List<Card> CreateMarketCards(Func<CardData, bool> isIncluded, IGameRandom? random)
         {
             var cards = new List<Card>();
@@ -172,7 +185,7 @@ namespace ChaosWarlords.Source.Utilities
                 // market - they only ever reach a player via another card's effect. Excluded
                 // here rather than via a second flag, since RedirectsToSupplyOnDevourOrPromote
                 // is otherwise unique to exactly this kind of card.
-                if (data.RedirectsToSupplyOnDevourOrPromote || !isIncluded(data))
+                if (data.RedirectsToSupplyOnDevourOrPromote || data.FixedRecruitPileSize > 0 || !isIncluded(data))
                 {
                     continue;
                 }
