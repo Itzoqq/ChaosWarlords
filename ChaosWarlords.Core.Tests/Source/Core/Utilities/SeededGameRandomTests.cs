@@ -77,5 +77,22 @@ namespace ChaosWarlords.Core.Tests.Source.Core.Utilities
 
             Assert.IsFalse(matches, "Sequences from different seeds should not match.");
         }
+
+        [TestMethod]
+        public void RestoreState_AfterConsumingValues_ReplaysTheSameNextValuesAndCallCount()
+        {
+            var random = new SeededGameRandom(20260913, NullTestLogger.Instance);
+            _ = random.NextInt(1000);
+            var snapshot = random.CaptureState();
+
+            int expectedFirst = random.NextInt(1000);
+            int expectedSecond = random.NextInt(1000);
+
+            random.RestoreState(snapshot);
+
+            Assert.AreEqual(snapshot.CallCount, random.CallCount);
+            Assert.AreEqual(expectedFirst, random.NextInt(1000));
+            Assert.AreEqual(expectedSecond, random.NextInt(1000));
+        }
     }
 }

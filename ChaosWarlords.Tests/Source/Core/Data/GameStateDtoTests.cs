@@ -92,25 +92,25 @@ namespace ChaosWarlords.Tests.Source.Core.Data
         }
 
         [TestMethod]
-        public void MarkedForTurnEndDevourCardIds_InitializeAndStore_BehavesCorrectly()
+        public void MarkedForTurnEndDevourCards_InitializeAndStorePhysicalIdentity_BehavesCorrectly()
         {
             // Arrange
             var dto = new GameStateDto();
-            var cardId1 = "card_1";
-            var cardId2 = "card_2";
+            var card1 = new CardDto { DefinitionId = "card_1", Id = "card_1", RuntimeId = Guid.NewGuid() };
+            var card2 = new CardDto { DefinitionId = "card_2", Id = "card_2", RuntimeId = Guid.NewGuid() };
 
             // Assert Initial State
-            Assert.IsNotNull(dto.MarkedForTurnEndDevourCardIds);
-            Assert.IsEmpty(dto.MarkedForTurnEndDevourCardIds);
+            Assert.IsNotNull(dto.MarkedForTurnEndDevourCards);
+            Assert.IsEmpty(dto.MarkedForTurnEndDevourCards);
 
             // Act
-            dto.MarkedForTurnEndDevourCardIds.Add(cardId1);
-            dto.MarkedForTurnEndDevourCardIds.Add(cardId2);
+            dto.MarkedForTurnEndDevourCards.Add(card1);
+            dto.MarkedForTurnEndDevourCards.Add(card2);
 
             // Assert Modified State
-            Assert.HasCount(2, dto.MarkedForTurnEndDevourCardIds);
-            Assert.AreEqual("card_1", dto.MarkedForTurnEndDevourCardIds[0]);
-            Assert.AreEqual("card_2", dto.MarkedForTurnEndDevourCardIds[1]);
+            Assert.HasCount(2, dto.MarkedForTurnEndDevourCards);
+            Assert.AreEqual("card_1", dto.MarkedForTurnEndDevourCards[0].DefinitionId);
+            Assert.AreEqual(card2.RuntimeId, dto.MarkedForTurnEndDevourCards[1].RuntimeId);
         }
 
         [TestMethod]

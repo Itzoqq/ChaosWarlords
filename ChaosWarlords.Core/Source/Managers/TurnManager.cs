@@ -3,6 +3,7 @@ using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
+using ChaosWarlords.Source.Core.Data.Dtos;
 
 namespace ChaosWarlords.Source.Managers
 {
@@ -116,6 +117,40 @@ namespace ChaosWarlords.Source.Managers
         public IEnumerable<Player> GetOpponentsInSeatOrder(Player player)
         {
             return Players.SkipWhile(p => p != player).Skip(1).Concat(Players.TakeWhile(p => p != player));
+        }
+
+        public TurnManagerStateDto CaptureState()
+        {
+            return new TurnManagerStateDto
+            {
+                CurrentPlayerIndex = _currentPlayerIndex,
+                CurrentTurnPlayerColor = CurrentTurnContext.ActivePlayer.Color,
+                ForcedActingPlayerColor = ForcedActingPlayer?.Color,
+                CurrentTurn = CurrentTurnContext.CaptureState()
+            };
+        }
+
+        public void RestoreState(TurnManagerStateDto state, Func<Guid, Card?> resolveCard)
+        {
+            ArgumentNullException.ThrowIfNull(state);
+            ArgumentNullException.ThrowIfNull(resolveCard);
+            if (state.CurrentPlayerIndex < 0 || state.CurrentPlayerIndex >= Players.Count)
+            {
+                throw new InvalidOperationException("Rollback turn state contains an invalid active-player index.");
+            }
+
+            var turnPlayer = Players.FirstOrDefault(player => player.Color == state.CurrentTurnPlayerColor)
+                ?? throw new InvalidOperationException("Rollback turn state refers to a player who is no longer in the match.");
+            var forcedPlayer = state.ForcedActingPlayerColor is PlayerColor forcedColor
+                ? Players.FirstOrDefault(player => player.Color == forcedColor)
+                    ?? throw new InvalidOperationException("Rollback turn state refers to a forced actor who is no longer in the match.")
+                : null;
+            var restoredTurn = new TurnContext(turnPlayer, _logger);
+            restoredTurn.RestoreState(state.CurrentTurn, resolveCard);
+
+            _currentPlayerIndex = state.CurrentPlayerIndex;
+            CurrentTurnContext = restoredTurn;
+            ForcedActingPlayer = forcedPlayer;
         }
     }
 }

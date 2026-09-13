@@ -7,6 +7,7 @@ using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Managers;
 using System.Linq; // Required for serialization
 
 namespace ChaosWarlords.Source.Core.Utilities
@@ -168,12 +169,11 @@ namespace ChaosWarlords.Source.Core.Utilities
             dto.TurnNumber = context.CurrentTurnNumber;
             dto.Phase = context.CurrentPhase;
             dto.SequenceNumber = context.SequenceNumber;
+            CaptureRollbackState(context, dto);
 
-            // Transient - definitional ids (Card.DefinitionId, NOT the CardFactory.
-            // GenerateUniqueId-suffixed Card.Id ICardDatabase.GetCardById can't resolve).
-            dto.MarkedForTurnEndDevourCardIds = context.CardsMarkedForTurnEndDevour.Select(c => c.DefinitionId).ToList();
-            dto.MarkedForTurnEndPromoteCardIds = context.CardsMarkedForTurnEndPromote.Select(c => c.DefinitionId).ToList();
-            dto.PendingOpponentDiscardTriggerCardIds = context.PendingOpponentDiscardTriggers.Select(c => c.DefinitionId).ToList();
+            dto.MarkedForTurnEndDevourCards = ToDtoList(context.CardsMarkedForTurnEndDevour);
+            dto.MarkedForTurnEndPromoteCards = ToDtoList(context.CardsMarkedForTurnEndPromote);
+            dto.PendingOpponentDiscardTriggerCards = ToDtoList(context.PendingOpponentDiscardTriggers);
 
             // Entities
             dto.Players = context.TurnManager.Players.Select(p => ToDto(p)).Where(d => d != null).ToList()!;
@@ -209,6 +209,16 @@ namespace ChaosWarlords.Source.Core.Utilities
             dto.StateHash = context.GetStateHash();
 
             return dto;
+        }
+
+        private static void CaptureRollbackState(Source.Contexts.MatchContext context, GameStateDto dto)
+        {
+            dto.RandomState = context.Random is SeededGameRandom random
+                ? random.CaptureState()
+                : throw new InvalidOperationException("Rollback snapshots require SeededGameRandom.");
+            dto.TurnManagerState = context.TurnManager is TurnManager turnManager
+                ? turnManager.CaptureState()
+                : null;
         }
 
         private static List<EffectContextDto> SerializeEffectStack(Stack<Core.Contexts.EffectContext> executionStack)

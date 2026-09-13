@@ -50,13 +50,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             // Arrange
             _replayManager.IsReplaying.Returns(false);
             var player = new Player(PlayerColor.Red);
-            var turnManager = Substitute.For<ITurnManager>();
-            turnManager.ActivePlayer.Returns(player);
-            var matchContext = new MatchContextBuilder()
-                .WithTurnManager(turnManager)
-                .WithLogger(_logger)
-                .WithSeed(123)
-                .Build();
+            var matchContext = CreateDispatchableContext(player);
 
             // Act
             _dispatcher.Dispatch(_command, matchContext);
@@ -81,10 +75,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             // Arrange
             _replayManager.IsReplaying.Returns(true);
-            var matchContext = new MatchContextBuilder()
-                .WithLogger(_logger)
-                .WithSeed(123)
-                .Build();
+            var matchContext = CreateDispatchableContext(new Player(PlayerColor.Red));
 
             // Act
             _dispatcher.Dispatch(_command, matchContext);
@@ -102,13 +93,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             // Arrange
             _replayManager.IsReplaying.Returns(false);
             var player = new Player(PlayerColor.Red);
-            var turnManager = Substitute.For<ITurnManager>();
-            turnManager.ActivePlayer.Returns(player);
-            var matchContext = new MatchContextBuilder()
-                .WithTurnManager(turnManager)
-                .WithLogger(_logger)
-                .WithSeed(123)
-                .Build();
+            var matchContext = CreateDispatchableContext(player);
 
             // Act
             _dispatcher.Dispatch(_command, matchContext); // seq 1
@@ -127,14 +112,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             // Arrange
             _replayManager.IsReplaying.Returns(false);
             var player = new Player(PlayerColor.Red);
-            var turnManager = Substitute.For<ITurnManager>();
-            turnManager.ActivePlayer.Returns(player);
-
-            var matchContext = new MatchContextBuilder()
-                .WithTurnManager(turnManager)
-                .WithLogger(_logger)
-                .WithSeed(123)
-                .Build();
+            var matchContext = CreateDispatchableContext(player);
 
             var failingCommand = Substitute.For<IGameCommand>();
             failingCommand.Validate(matchContext).Returns(true);
@@ -213,6 +191,7 @@ namespace ChaosWarlords.Tests.Source.Managers
                 // Simulate a command that mutates state, THEN fails before finishing -
                 // exactly the scenario the pre-execution snapshot/rollback exists for.
                 playerState.AddPower(player, 5);
+                _ = matchContext.Random.NextInt(1000);
                 mutationRan = true;
                 throw new InvalidOperationException("Boom");
             });
@@ -232,6 +211,123 @@ namespace ChaosWarlords.Tests.Source.Managers
             Assert.IsTrue(mutationRan, "Setup check: the mutation must actually have run before the throw, or the assertion below would be trivially true.");
             var logCalls = string.Join(" | ", _logger.ReceivedCalls().Select(c => string.Join(",", c.GetArguments())));
             Assert.AreEqual(powerBeforeCommand, player.Power, $"Power gained before the command threw must be rolled back, not left applied. Log calls: {logCalls}");
+            var controlRandom = new SeededGameRandom(123, _logger);
+            Assert.AreEqual(controlRandom.NextInt(1000), matchContext.Random.NextInt(1000), "Rollback must restore the next deterministic RNG output after a failing command.");
+        }
+
+        [TestMethod]
+        [TestCategory("Integration")]
+        public void Dispatch_WhenExecutionFails_RestoresTurnOwnedStateAndPhysicalTransientMarkers()
+        {
+            var red = new Player(PlayerColor.Red) { SeatIndex = 0 };
+            var blue = new Player(PlayerColor.Blue) { SeatIndex = 1 };
+            var turnManager = new TurnManager(new List<Player> { red, blue }, new SeededGameRandom(123, _logger), _logger);
+            var mapManager = Substitute.For<IMapManager>();
+            mapManager.Nodes.Returns(new List<ChaosWarlords.Source.Entities.Map.MapNode>());
+            mapManager.Sites.Returns(new List<ChaosWarlords.Source.Entities.Map.Site>());
+            var marketManager = Substitute.For<IMarketManager>();
+            marketManager.MarketRow.Returns(new List<Card>());
+            marketManager.MarketDeck.Returns(new List<Card>());
+            var cardDb = Substitute.For<ICardDatabase>();
+            var source = new Card("rollback_source", "Rollback Source", 1, CardAspect.Sorcery, 0, 0, 0) { Location = CardLocation.Played };
+            var target = new Card("rollback_target", "Rollback Target", 1, CardAspect.Sorcery, 0, 0, 0) { Location = CardLocation.Played };
+            source.AddEffect(new CardEffect(EffectType.GainResource, 1, ResourceType.VictoryPoints));
+            cardDb.GetCardById(Arg.Any<string>(), Arg.Any<IGameRandom?>()).Returns(call => call.Arg<string>() switch
+            {
+                "rollback_source" => source,
+                "rollback_target" => target,
+                _ => null
+            });
+            red.AddToPlayed(source);
+            red.AddToPlayed(target);
+            var playerState = new PlayerStateManager(_logger);
+            var actionSystem = new ActionSystem(turnManager, mapManager, _logger, playerState, marketManager);
+            var context = new MatchContext(turnManager, mapManager, marketManager, actionSystem, cardDb, playerState, _logger, 123);
+            actionSystem.SetMatchContext(context);
+
+            var turn = turnManager.CurrentTurnContext;
+            var turnPlayerBeforeFailure = turn.ActivePlayer;
+            turn.RecordPlayedCard(CardAspect.Sorcery);
+            turn.AddPromotionCredit(source, 1, isOptional: true);
+            context.RecordAction("BeforeFailure", "Checkpoint action");
+            context.CardsMarkedForTurnEndDevour.Add(source);
+            context.CardsMarkedForTurnEndPromote.Add(source);
+            context.PendingOpponentDiscardTriggers.Add(source);
+            turnManager.BeginForcedActingPlayer(blue);
+
+            var failingCommand = Substitute.For<IGameCommand>();
+            failingCommand.Validate(context).Returns(true);
+            failingCommand.When(command => command.Execute(context)).Do(_callInfo =>
+            {
+                playerState.AddPower(red, 5);
+                _ = context.Random.NextInt(1000);
+                context.TurnManager.EndForcedActingPlayer();
+                context.TurnManager.EndTurn();
+                context.TurnManager.CurrentTurnContext.RecordPlayedCard(CardAspect.Shadow);
+                context.TurnManager.CurrentTurnContext.ForfeitRemainingPromotions();
+                context.RecordAction("AfterFailure", "Must disappear");
+                context.CardsMarkedForTurnEndDevour.Clear();
+                context.CardsMarkedForTurnEndPromote.Clear();
+                context.PendingOpponentDiscardTriggers.Clear();
+                throw new InvalidOperationException("Boom");
+            });
+
+            Assert.ThrowsExactly<InvalidOperationException>(() => _dispatcher.Dispatch(failingCommand, context));
+
+            var restoredSource = red.PlayedCards.Single(card => card.RuntimeId == source.RuntimeId);
+            Assert.AreEqual(0, red.Power);
+            Assert.AreEqual(1, context.TurnManager.CurrentTurnContext.GetAspectCount(CardAspect.Sorcery));
+            Assert.AreEqual(0, context.TurnManager.CurrentTurnContext.GetAspectCount(CardAspect.Shadow));
+            Assert.AreEqual(1, context.TurnManager.CurrentTurnContext.PendingPromotionsCount);
+            Assert.HasCount(1, context.TurnManager.CurrentTurnContext.ActionHistory);
+            Assert.AreSame(turnPlayerBeforeFailure, context.TurnManager.CurrentTurnContext.ActivePlayer);
+            Assert.AreSame(blue, context.TurnManager.ForcedActingPlayer);
+            Assert.AreSame(restoredSource, context.CardsMarkedForTurnEndDevour.Single());
+            Assert.AreSame(restoredSource, context.CardsMarkedForTurnEndPromote.Single());
+            Assert.AreSame(restoredSource, context.PendingOpponentDiscardTriggers.Single());
+            Assert.AreEqual(new SeededGameRandom(123, _logger).NextInt(1000), context.Random.NextInt(1000));
+        }
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void Dispatch_WhenRollbackSnapshotCannotBeCaptured_RejectsBeforeValidationOrExecution()
+        {
+            var partialContext = new MatchContextBuilder()
+                .WithLogger(_logger)
+                .WithSeed(123)
+                .Build();
+
+            Assert.ThrowsExactly<InvalidOperationException>(() => _dispatcher.Dispatch(_command, partialContext));
+
+            _command.DidNotReceive().Validate(Arg.Any<MatchContext>());
+            _command.DidNotReceive().Execute(Arg.Any<MatchContext>());
+        }
+
+        private MatchContext CreateDispatchableContext(Player player)
+        {
+            var turnManager = new TurnManager(
+                new List<Player> { player },
+                new SeededGameRandom(123, _logger),
+                _logger);
+            var mapManager = Substitute.For<IMapManager>();
+            mapManager.Nodes.Returns(new List<ChaosWarlords.Source.Entities.Map.MapNode>());
+            mapManager.Sites.Returns(new List<ChaosWarlords.Source.Entities.Map.Site>());
+            var marketManager = Substitute.For<IMarketManager>();
+            marketManager.MarketRow.Returns(new List<Card>());
+            marketManager.MarketDeck.Returns(new List<Card>());
+            var playerState = new PlayerStateManager(_logger);
+            var actionSystem = new ActionSystem(turnManager, mapManager, _logger, playerState, marketManager);
+            var context = new MatchContext(
+                turnManager,
+                mapManager,
+                marketManager,
+                actionSystem,
+                Substitute.For<ICardDatabase>(),
+                playerState,
+                _logger,
+                123);
+            actionSystem.SetMatchContext(context);
+            return context;
         }
     }
 }

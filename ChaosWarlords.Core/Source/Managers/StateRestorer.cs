@@ -23,9 +23,7 @@ namespace ChaosWarlords.Source.Managers
         public static void RestoreState(MatchContext context, GameStateDto dto)
         {
             // 1. Meta State
-            context.CurrentTurnNumber = dto.TurnNumber;
-            context.CurrentPhase = dto.Phase;
-            context.SequenceNumber = dto.SequenceNumber;
+            RestoreRollbackMetadata(context, dto);
             // MapManager/MapRuleEngine hold their own independent copy of the current phase
             // (read by ValidateDeployment's Setup power-cost bypass and the Setup
             // auto-advance-turn trigger) - TurnLifecycleSubsystem.CompleteEndTurnSwitch always sets both
@@ -43,14 +41,13 @@ namespace ChaosWarlords.Source.Managers
             RestoreMarket(context, dto.Market, dto.MarketDeck, dto.FixedRecruitPiles);
             
             // 5. Void / Transient State
-            // VoidPile carries full CardDtos (Location/RuntimeId matter - see RestoreCardDtoList).
-            // CardsMarkedForTurnEndDevour/CardsMarkedForTurnEndPromote/
-            // PendingOpponentDiscardTriggers are plain definitional-id lists instead - see
-            // RestoreCardIdList's own doc comment for the resulting known limitation.
             RestoreCardDtoList(context.VoidPile, dto.VoidPile, context.CardDatabase);
-            RestoreCardIdList(context.CardsMarkedForTurnEndDevour, dto.MarkedForTurnEndDevourCardIds, context.CardDatabase);
-            RestoreCardIdList(context.CardsMarkedForTurnEndPromote, dto.MarkedForTurnEndPromoteCardIds, context.CardDatabase);
-            RestoreCardIdList(context.PendingOpponentDiscardTriggers, dto.PendingOpponentDiscardTriggerCardIds, context.CardDatabase);
+            var physicalCards = GetPhysicalCards(context);
+            RestoreTransientCardReferences(context.CardsMarkedForTurnEndDevour, dto.MarkedForTurnEndDevourCards, physicalCards);
+            RestoreTransientCardReferences(context.CardsMarkedForTurnEndPromote, dto.MarkedForTurnEndPromoteCards, physicalCards);
+            RestoreTransientCardReferences(context.PendingOpponentDiscardTriggers, dto.PendingOpponentDiscardTriggerCards, physicalCards);
+
+            RestoreTurnManagerState(context, dto.TurnManagerState, physicalCards);
 
             // 6. Action Stack
             // EffectContext carries runtime delegates (OnResolved/OnCancelled) that can't be
@@ -78,32 +75,49 @@ namespace ChaosWarlords.Source.Managers
             context.ActionSystem.RestorePendingState(dto.ActionSystemState, pendingCard, pendingSite, pendingMoveSource, pendingDevourCard, dto.PendingAffectedPlayerColor, dto.PendingTrophyHallSourceColor, pendingDeployedNodes);
         }
 
-        /// <summary>
-        /// Clears <paramref name="target"/> and repopulates it by looking up each definitional
-        /// id in <paramref name="definitionIds"/> against the card database, skipping any that
-        /// no longer resolve. Used for CardsMarkedForTurnEndDevour/CardsMarkedForTurnEndPromote/
-        /// PendingOpponentDiscardTriggers - all 3 are transient, single-turn markers sharing the
-        /// same KNOWN LIMITATION: unlike RestoreCardDtoList (VoidPile/Hand/Played/etc.), this
-        /// helper carries only a definitional id, never RuntimeId, so `db.GetCardById` always
-        /// mints a brand-new Card with a fresh RuntimeId rather than the one already restored
-        /// into Hand/PlayedCards/DiscardPile. A rollback that happens between a card being
-        /// marked and MatchManager.EndTurn actually processing it (a narrow window) leaves this
-        /// list holding a Card that can never be found again by EITHER lookup strategy its
-        /// consumers use afterwards - List.Remove's reference equality (the Devour loop) or a
-        /// RuntimeId search (PlayerStateManager.TryPromoteCard, the Promote loop) - both fail
-        /// silently against a RuntimeId/reference that no longer matches anything real. Not
-        /// fixed by this pass; a real fix would carry a full CardDto (RuntimeId included) the
-        /// way VoidPile already does.
-        /// </summary>
-        private static void RestoreCardIdList(List<Card> target, IEnumerable<string>? definitionIds, ICardDatabase db)
+        private static void RestoreRollbackMetadata(MatchContext context, GameStateDto dto)
+        {
+            context.CurrentTurnNumber = dto.TurnNumber;
+            context.CurrentPhase = dto.Phase;
+            context.SequenceNumber = dto.SequenceNumber;
+            if (dto.RandomState is null || context.Random is not SeededGameRandom random)
+            {
+                throw new InvalidOperationException("Rollback restore requires a deterministic RNG checkpoint.");
+            }
+            random.RestoreState(dto.RandomState);
+        }
+
+        private static void RestoreTurnManagerState(MatchContext context, TurnManagerStateDto? state, Dictionary<Guid, Card> physicalCards)
+        {
+            if (state == null) return;
+            if (context.TurnManager is not TurnManager turnManager)
+            {
+                throw new InvalidOperationException("Rollback turn state requires the concrete TurnManager.");
+            }
+            turnManager.RestoreState(state, runtimeId => physicalCards.GetValueOrDefault(runtimeId));
+        }
+
+        private static Dictionary<Guid, Card> GetPhysicalCards(MatchContext context)
+        {
+            var cards = context.TurnManager.Players.SelectMany(player =>
+                    player.Hand.Concat(player.Deck).Concat(player.DiscardPile).Concat(player.PlayedCards).Concat(player.InnerCircle))
+                .Concat(context.MarketManager.MarketRow)
+                .Concat(context.MarketManager.MarketDeck)
+                .Concat(context.MarketManager.FixedRecruitPiles?.SelectMany(pile => pile.Cards) ?? [])
+                .Concat(context.VoidPile)
+                .ToDictionary(card => card.RuntimeId);
+            return cards;
+        }
+
+        private static void RestoreTransientCardReferences(List<Card> target, IEnumerable<CardDto>? dtos, Dictionary<Guid, Card> physicalCards)
         {
             target.Clear();
-            if (definitionIds == null) return;
+            if (dtos == null) return;
 
-            foreach (var definitionId in definitionIds)
+            foreach (var dto in dtos)
             {
-                var card = db.GetCardById(definitionId);
-                if (card != null) target.Add(card);
+                target.Add(physicalCards.GetValueOrDefault(dto.RuntimeId)
+                    ?? throw new InvalidOperationException($"Rollback transient marker refers to missing physical card {dto.RuntimeId}."));
             }
         }
 

@@ -53,6 +53,13 @@ namespace ChaosWarlords.Source.Core.Utilities
             return (xorShifted >> rot) | (xorShifted << ((-rot) & 31));
         }
 
+        internal ulong CaptureState() => _state;
+
+        internal void RestoreState(ulong state)
+        {
+            _state = state;
+        }
+
         /// <summary>
         /// Returns a uniformly-distributed value in [0, exclusiveBound), with no modulo bias -
         /// the "Debiased Modulo (Once) - the OpenBSD Way" rejection scheme from pcg-random.org

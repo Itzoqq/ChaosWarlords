@@ -695,5 +695,73 @@ namespace ChaosWarlords.Tests.Source.Managers
             Assert.HasCount(1, _context.ActionSystem.ExecutionStack);
             Assert.IsNull(_context.ActionSystem.ExecutionStack.Peek().SourceEffect);
         }
+
+        [TestMethod]
+        public void RestoreState_RestoresTurnStateAndBindsTransientMarkersToThePhysicalPlayedCard()
+        {
+            var source = RegisterCard("turn_source", CardLocation.Played);
+            var completionEffect = new CardEffect(EffectType.GainResource, 1, ResourceType.VictoryPoints);
+            source.AddEffect(completionEffect);
+            var target = RegisterCard("turn_target", CardLocation.Played);
+            _player.AddToPlayed(source);
+            _player.AddToPlayed(target);
+
+            var turn = _context.TurnManager.CurrentTurnContext;
+            turn.RecordPlayedCard(CardAspect.Sorcery);
+            turn.AddPromotionCredit(source, 1, isOptional: true);
+            turn.AddUnboundedPromotionCredit(source, null);
+            turn.RegisterPromotionCompletionEffect(source, completionEffect);
+            _context.RecordAction("Checkpoint", "Turn-owned state");
+            _context.CardsMarkedForTurnEndDevour.Add(source);
+            _context.CardsMarkedForTurnEndPromote.Add(source);
+            _context.PendingOpponentDiscardTriggers.Add(source);
+            _context.TurnManager.BeginForcedActingPlayer(_player);
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+
+            turn.RecordPlayedCard(CardAspect.Shadow);
+            turn.ForfeitRemainingPromotions();
+            _ = turn.DrainPromotionCompletionEffects();
+            _ = turn.GetNextSequence();
+            _context.CardsMarkedForTurnEndDevour.Clear();
+            _context.CardsMarkedForTurnEndPromote.Clear();
+            _context.PendingOpponentDiscardTriggers.Clear();
+            _context.TurnManager.EndForcedActingPlayer();
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            var restoredTurn = _context.TurnManager.CurrentTurnContext;
+            var restoredSource = _player.PlayedCards.Single(card => card.RuntimeId == source.RuntimeId);
+            Assert.AreEqual(1, restoredTurn.GetAspectCount(CardAspect.Sorcery));
+            Assert.AreEqual(0, restoredTurn.GetAspectCount(CardAspect.Shadow));
+            Assert.AreEqual(1, restoredTurn.PendingPromotionsCount);
+            Assert.IsTrue(restoredTurn.HasValidCreditFor(target), "An unbounded promotion credit must survive and expand against restored physical cards.");
+            Assert.AreEqual(2, restoredTurn.PendingPromotionsCount, "The restored unbounded credit must be available exactly once.");
+            Assert.HasCount(1, restoredTurn.ActionHistory);
+            Assert.AreEqual(1, restoredTurn.GetNextSequence(), "The turn-local action sequence must continue from its checkpoint.");
+            Assert.AreSame(_player, _context.TurnManager.ForcedActingPlayer);
+            Assert.AreSame(restoredSource, _context.CardsMarkedForTurnEndDevour.Single());
+            Assert.AreSame(restoredSource, _context.CardsMarkedForTurnEndPromote.Single());
+            Assert.AreSame(restoredSource, _context.PendingOpponentDiscardTriggers.Single());
+
+            var restoredCompletion = restoredTurn.DrainPromotionCompletionEffects();
+            Assert.HasCount(1, restoredCompletion);
+            Assert.AreSame(restoredSource, restoredCompletion[0].Source);
+            Assert.AreSame(completionEffect, restoredCompletion[0].Effect);
+        }
+
+        [TestMethod]
+        public void RestoreState_TransientMarkerWithoutAPhysicalCard_FailsInsteadOfCreatingADetachedCopy()
+        {
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+            snapshot.MarkedForTurnEndDevourCards.Add(new CardDto
+            {
+                DefinitionId = "missing_marker",
+                Id = "missing_marker",
+                RuntimeId = Guid.NewGuid(),
+                Location = CardLocation.Played
+            });
+
+            Assert.ThrowsExactly<InvalidOperationException>(() => StateRestorer.RestoreState(_context, snapshot));
+        }
     }
 }

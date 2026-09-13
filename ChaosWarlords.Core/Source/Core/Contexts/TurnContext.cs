@@ -3,6 +3,8 @@ using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Core.Data.Dtos;
+using ChaosWarlords.Source.Mechanics.Rules.Strategies;
 
 namespace ChaosWarlords.Source.Contexts
 {
@@ -320,6 +322,89 @@ namespace ChaosWarlords.Source.Contexts
             _promotionCredits.Clear();
         }
 
+        public TurnContextStateDto CaptureState()
+        {
+            return new TurnContextStateDto
+            {
+                PlayedAspectCounts = new Dictionary<CardAspect, int>(_playedAspectCounts),
+                PromotionCredits = _promotionCredits.Select(credit => new PromotionCreditStateDto
+                {
+                    SourceCardRuntimeId = credit.Source.RuntimeId,
+                    IsOptional = credit.IsOptional,
+                    RequiredAspect = credit.RequiredAspect,
+                    RequiredCreatureType = credit.RequiredCreatureType
+                }).ToList(),
+                PendingUnboundedCredits = _pendingUnboundedCredits.Select(credit => new UnboundedPromotionCreditStateDto
+                {
+                    SourceCardRuntimeId = credit.Source.RuntimeId,
+                    RequiredCreatureType = credit.RequiredCreatureType
+                }).ToList(),
+                PromotionCompletionEffects = _promotionCompletionEffects.Select(entry => new PromotionCompletionEffectStateDto
+                {
+                    SourceCardRuntimeId = entry.Source.RuntimeId,
+                    EffectType = entry.Effect.Type
+                }).ToList(),
+                ActionSequence = _actionSequence,
+                ActionHistory = _actionHistory.Select(action => new ExecutedActionStateDto
+                {
+                    Sequence = action.Sequence,
+                    ActionType = action.ActionType,
+                    PlayerId = action.PlayerId,
+                    Summary = action.Summary,
+                    Timestamp = action.Timestamp
+                }).ToList()
+            };
+        }
+
+        public void RestoreState(TurnContextStateDto state, Func<Guid, Card?> resolveCard)
+        {
+            ArgumentNullException.ThrowIfNull(state);
+            ArgumentNullException.ThrowIfNull(resolveCard);
+
+            var credits = state.PromotionCredits.Select(credit => new PromotionCredit(
+                ResolveRequiredCard(credit.SourceCardRuntimeId, resolveCard),
+                credit.IsOptional,
+                credit.RequiredAspect,
+                credit.RequiredCreatureType)).ToList();
+            var unboundedCredits = state.PendingUnboundedCredits.Select(credit => (
+                ResolveRequiredCard(credit.SourceCardRuntimeId, resolveCard),
+                credit.RequiredCreatureType)).ToList();
+            var completionEffects = state.PromotionCompletionEffects.Select(entry =>
+            {
+                var source = ResolveRequiredCard(entry.SourceCardRuntimeId, resolveCard);
+                var effect = EffectTreeSearch.FindFirstEffect(source.Effects, entry.EffectType)
+                    ?? throw new InvalidOperationException($"Could not restore promotion completion effect {entry.EffectType} for card {source.DefinitionId}.");
+                return (source, effect);
+            }).ToList();
+            var history = state.ActionHistory.Select(action => new ExecutedAction(
+                action.Sequence,
+                action.ActionType,
+                action.PlayerId,
+                action.Summary,
+                action.Timestamp)).ToList();
+
+            _playedAspectCounts.Clear();
+            foreach (var (aspect, count) in state.PlayedAspectCounts)
+            {
+                _playedAspectCounts.Add(aspect, count);
+            }
+            _promotionCredits.Clear();
+            _promotionCredits.AddRange(credits);
+            _pendingUnboundedCredits.Clear();
+            _pendingUnboundedCredits.AddRange(unboundedCredits);
+            _promotionCompletionEffects.Clear();
+            _promotionCompletionEffects.AddRange(completionEffects);
+            _actionSequence = state.ActionSequence;
+            _actionHistory.Clear();
+            _actionHistory.AddRange(history);
+        }
+
+        private static Card ResolveRequiredCard(Guid runtimeId, Func<Guid, Card?> resolveCard)
+        {
+            return resolveCard(runtimeId)
+                ?? throw new InvalidOperationException($"Could not restore turn state: card {runtimeId} is missing from the restored state.");
+        }
+
         // --- Action Sequencing ---
 
         public int GetNextSequence()
@@ -342,5 +427,4 @@ namespace ChaosWarlords.Source.Contexts
         }
     }
 }
-
 

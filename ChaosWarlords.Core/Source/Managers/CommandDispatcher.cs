@@ -19,11 +19,10 @@ namespace ChaosWarlords.Source.Managers
 
         public void Dispatch(IGameCommand command, Contexts.MatchContext context)
         {
-            // Snapshot before execution so a failure partway through can be rolled back,
-            // leaving MatchContext consistent instead of partially mutated. Best-effort:
-            // if the context can't be fully snapshotted (e.g. a partial test double), we
-            // simply proceed without rollback capability rather than failing the dispatch.
-            var snapshot = TryCreateSnapshot(context);
+            // A command is a transaction. If its precondition snapshot cannot be captured in
+            // full, refuse execution before validation or mutation rather than risking a
+            // partially-applied command with no trustworthy rollback path.
+            var snapshot = CreateRequiredSnapshot(context);
 
             try
             {
@@ -72,26 +71,28 @@ namespace ChaosWarlords.Source.Managers
             {
                 _logger.Log($"Error executing/recording command {command.GetType().Name}: {ex}", LogChannel.Error);
 
-                if (snapshot != null)
-                {
-                    _logger.Log($"Rolling back MatchContext to pre-command snapshot (Seq {snapshot.SequenceNumber}).", LogChannel.Warning);
-                    StateRestorer.RestoreState(context, snapshot);
-                }
+                _logger.Log($"Rolling back MatchContext to pre-command snapshot (Seq {snapshot.SequenceNumber}).", LogChannel.Warning);
+                StateRestorer.RestoreState(context, snapshot);
 
                 throw;
             }
         }
 
-        private GameStateDto? TryCreateSnapshot(Contexts.MatchContext context)
+        private GameStateDto CreateRequiredSnapshot(Contexts.MatchContext context)
         {
             try
             {
-                return DtoMapper.ToGameStateDto(context);
+                var snapshot = DtoMapper.ToGameStateDto(context);
+                if (snapshot.RandomState == null || snapshot.TurnManagerState == null)
+                {
+                    throw new InvalidOperationException("The match context does not expose the complete deterministic rollback state.");
+                }
+                return snapshot;
             }
             catch (Exception ex)
             {
-                _logger.Log($"CommandDispatcher: Could not snapshot state for rollback ({ex.Message}). Proceeding without rollback capability.", LogChannel.Warning);
-                return null;
+                _logger.Log($"CommandDispatcher: Refusing command because rollback snapshot creation failed ({ex.Message}).", LogChannel.Error);
+                throw new InvalidOperationException("Command dispatch requires a complete rollback snapshot.", ex);
             }
         }
     }

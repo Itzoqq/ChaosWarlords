@@ -13,6 +13,8 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         public int Seed { get; set; }
         public int TurnNumber { get; set; }
         public MatchPhase Phase { get; set; }
+        public GameRandomStateDto? RandomState { get; set; }
+        public TurnManagerStateDto? TurnManagerState { get; set; }
 
         // Entities
         public List<PlayerDto> Players { get; set; } = [];
@@ -37,15 +39,16 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         // Void (Removed cards)
         public List<CardDto> VoidPile { get; set; } = [];
 
-        // Transient State (Cards pending destruction at end of turn)
-        public List<string> MarkedForTurnEndDevourCardIds { get; set; } = [];
+        // Transient State. Full DTOs retain RuntimeId so these markers can be rebound to the
+        // same physical card restored into its owner zone.
+        public List<CardDto> MarkedForTurnEndDevourCards { get; set; } = [];
 
         // Transient State (Cards pending self-promotion at end of turn, e.g. Revenant)
-        public List<string> MarkedForTurnEndPromoteCardIds { get; set; } = [];
+        public List<CardDto> MarkedForTurnEndPromoteCards { get; set; } = [];
 
         // Transient State (Cards played this turn that force each opponent to discard at end
         // of turn, e.g. Neogi - one entry per source card, stacks)
-        public List<string> PendingOpponentDiscardTriggerCardIds { get; set; } = [];
+        public List<CardDto> PendingOpponentDiscardTriggerCards { get; set; } = [];
 
         // Stack State (For mid-action recovery)
         public List<EffectContextDto> EffectStack { get; set; } = [];

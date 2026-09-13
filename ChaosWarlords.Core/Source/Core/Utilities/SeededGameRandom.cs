@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Core.Interfaces.Services;
+using ChaosWarlords.Source.Core.Data.Dtos;
 using ChaosWarlords.Source.Utilities;
 
 namespace ChaosWarlords.Source.Core.Utilities
@@ -39,6 +40,22 @@ namespace ChaosWarlords.Source.Core.Utilities
         }
 
         public int CallCount { get; private set; }
+
+        public GameRandomStateDto CaptureState()
+        {
+            return new GameRandomStateDto
+            {
+                PcgState = _rng.CaptureState(),
+                CallCount = CallCount
+            };
+        }
+
+        public void RestoreState(GameRandomStateDto state)
+        {
+            ArgumentNullException.ThrowIfNull(state);
+            _rng.RestoreState(state.PcgState);
+            CallCount = state.CallCount;
+        }
 
         /// <inheritdoc/>
         public int NextInt(int maxValue)

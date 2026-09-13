@@ -158,28 +158,27 @@ T0.4. Add lifecycle evidence, not a misleading generic leak test. COMPLETED 2026
       manual MonoGame profiling remains the GPU/driver diagnostic.
 
 T0.5. Make transactional rollback genuinely complete before adding more
-      mechanics that mutate several systems.
-    - `GameStateDto`/`StateRestorer` restore visible collections and
-      much action state, but do not snapshot or restore the deterministic
-      RNG's internal PCG state/call count. An exception after consuming
-      randomness can therefore roll back the board while permanently
-      advancing the next shuffle/draw result.
-    - The snapshot also has no active-turn index/current `TurnContext`
-      (played-aspect counts, promotion credits, action history) or
-      forced-acting-player state. A failed command which reaches a turn
-      transition or cross-player sequence can leave those authoritative
-      structures changed even though the DTO rollback reports success.
-    - Three transient marker lists serialize definition ids rather than
-      physical `CardDto`s; the existing `StateRestorer` documentation
-      correctly notes that after rollback their references/runtime ids
-      no longer match the restored card copies. Replace these lossy
-      fields with full physical-card references/DTOs.
-    - First write red tests using deliberately throwing test commands:
-      after rollback, compare a canonical full snapshot, active/forced
-      player and turn credits, and subsequent RNG outputs with an
-      untouched control match. Do not call rollback "best effort" in a
-      future authoritative path; snapshot construction failure must
-      reject the command before it executes.
+      mechanics that mutate several systems. COMPLETED 2026-09-13.
+    - `GameRandomStateDto` captures the exact PCG state and call count;
+      `SeededGameRandom` restores both without generating a value.
+    - `TurnManagerStateDto`/`TurnContextStateDto` capture the active
+      seat, forced actor, played-aspect counts, bounded and unbounded
+      promotion credits, deferred completion effects, action sequence,
+      and action history. Restoration builds a turn context directly;
+      it does not shuffle, start a turn, reset resources, or publish a
+      turn-change event.
+    - The three end-of-turn marker lists now carry `CardDto`s and are
+      rebound by runtime id to a physical card restored in a live zone.
+      A missing card is rejected rather than silently replaced with a
+      detached catalog copy.
+    - `CommandDispatcher` requires a complete deterministic snapshot
+      before validation or execution. Snapshot failure now rejects the
+      command instead of permitting an unrollbackable mutation.
+    - Regression coverage includes deterministic RNG replay, malformed
+      marker rejection, direct state round-tripping, and a deliberately
+      throwing dispatched command that mutates player state, RNG,
+      forced actor, turn credits/history, and all marker lists. All
+      2,021 tests pass; coverage and the risk-hotspot gate are clean.
 
 T0.6. Correct the desync/hash contract before trusting it in tests,
       automated play, or future networking.
