@@ -26,10 +26,8 @@ namespace ChaosWarlords
         public ICardDatabase CardDatabase { get; private set; } = null!;
         public IReplayManager ReplayManager { get; private set; } = null!;
         public IGameLogger Logger { get; }
-        // Concrete type, not ICrashReporter: private, never reassigned/mocked (Game1 is the
-        // composition root and is excluded from coverage, same as its other `new`-constructed
-        // dependencies below) - CA1859 flags the interface as unnecessary indirection here.
         private readonly CrashReporter _crashReporter;
+        private RuntimeFaultRecovery _faultRecovery = null!;
 
         public Game1(IGameLogger logger)
         {
@@ -108,38 +106,15 @@ namespace ChaosWarlords
             var viewportHeight = GraphicsDevice.Viewport.Height;
             var uiManager = new UIManager(viewportWidth, viewportHeight, Logger);
 
-            // Restore UI Elements
-            var buttonManager = new Source.Rendering.UI.ButtonManager();
-            var mainMenuView = new Source.Rendering.Views.MainMenuView(GraphicsDevice, Content, buttonManager, Logger);
-
-
-
-
-            // State (Controller)
-            var mainMenuState = new MainMenuState(
-                this,
-                InputProvider,
-                StateManager,
-                CardDatabase,
+            _faultRecovery = new RuntimeFaultRecovery(
+                _crashReporter,
                 ReplayManager,
-                Logger,
-                mainMenuView,
-                buttonManager
-            );
+                StateManager,
+                CreateMainMenuState,
+                Exit,
+                Logger);
 
-            // We need to instantiate GameplayState differently if it is used here, 
-            // but Game1 only pushes MainMenuState initially.
-            // If GameplayState is created elsewhere, it must use the new signature.
-            // However, Game1 usually doesn't create GameplayState directly here.
-
-            // Wait, looking at the previous code, Game1 was NOT instantiating GameplayState in LoadContent.
-            // It was pushing MainMenuState. 
-            // So where is GameplayState instantiated? 
-            // Usually MainMenuState creates it when "Start Game" is clicked.
-
-            // Checking MainMenuState...
-
-            StateManager.PushState(mainMenuState);
+            StateManager.PushState(CreateMainMenuState());
         }
 
         protected override void Update(GameTime gameTime)
@@ -158,7 +133,7 @@ namespace ChaosWarlords
             }
             catch (Exception ex)
             {
-                _crashReporter.ReportCrash(ex, ReplayManager, "Update");
+                _faultRecovery.Recover(ex, "Update");
             }
             base.Update(gameTime);
         }
@@ -176,7 +151,7 @@ namespace ChaosWarlords
             }
             catch (Exception ex)
             {
-                _crashReporter.ReportCrash(ex, ReplayManager, "Draw");
+                _faultRecovery.Recover(ex, "Draw");
             }
 
             _spriteBatch.End();
@@ -188,6 +163,22 @@ namespace ChaosWarlords
         {
             Logger.Log("Session Ended. Flushing logs.", LogChannel.General);
             base.UnloadContent();
+        }
+
+        private MainMenuState CreateMainMenuState()
+        {
+            var buttonManager = new Source.Rendering.UI.ButtonManager();
+            var mainMenuView = new Source.Rendering.Views.MainMenuView(GraphicsDevice, Content, buttonManager, Logger);
+
+            return new MainMenuState(
+                this,
+                InputProvider,
+                StateManager,
+                CardDatabase,
+                ReplayManager,
+                Logger,
+                mainMenuView,
+                buttonManager);
         }
     }
 }

@@ -111,7 +111,7 @@ T0.2. Fix owned graphics-resource lifetime. COMPLETED 2026-09-13.
       untouched. The gameplay-state lifecycle test verifies idempotent
       state-exit disposal.
 
-T0.3. Define safe failure behavior for a live match.
+T0.3. Define safe failure behavior for a live match. COMPLETED 2026-09-13.
     - `Game1.Update()` and `Draw()` report an exception then continue
       the same possibly-corrupted state on the next frame. This can
       produce repeated exceptions or let play continue after a failed
@@ -121,6 +121,13 @@ T0.3. Define safe failure behavior for a live match.
       fault, or treat the session as fatal. Do not silently resume an
       unverified match. The error screen/menu transition itself must use
       the same teardown path as normal gameplay exit.
+    - `RuntimeFaultRecovery` reports the original exception and uses
+      `IStateManager.ChangeState()` to enter a new main menu, which
+      invokes the failed gameplay state's normal `UnloadContent()` path.
+      If creating or loading that menu fails, it logs the recovery
+      failure and exits rather than resuming the unverified session.
+      Tests cover successful recovery, transition failure, and factory
+      failure.
 
 T0.4. Add lifecycle evidence, not a misleading generic leak test.
     - Add a deterministic headless soak test that repeatedly builds a

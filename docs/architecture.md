@@ -242,6 +242,7 @@ ChaosWarlords/                     # Client (Game) Project Root - references Cor
     │   ├── GameplayState.cs                 # The Core Game Loop (Logic Only)
     │   ├── MainMenuState.cs                 # Entry point
     │   ├── MatchSetupState.cs               # Collects offline match configuration before gameplay construction
+    │   ├── RuntimeFaultRecovery.cs           # Reports frame faults and replaces unsafe state with main menu
     │   ├── StateManager.cs                  # Stack-based State Machine implementation
     │   └── VictoryState.cs                  # Post-game summary state
     │

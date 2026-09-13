@@ -154,6 +154,7 @@ ChaosWarlords.Tests/
     │   ├── GameStates/
     │   │   ├── GameplayStateTests.cs
     │   │   ├── MainMenuStateTests.cs
+    │   │   ├── RuntimeFaultRecoveryTests.cs
     │   │   ├── StateManagerTests.cs
     │   │   └── VictoryStateTests.cs
     │   ├── Input/
