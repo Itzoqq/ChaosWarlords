@@ -11,7 +11,7 @@ namespace ChaosWarlords.Source.Core.Interfaces.Data
         /// </summary>
         List<Card> GetAllMarketCards(IGameRandom? random = null);
 
-        /// <summary>Returns only cards belonging to the two selected market half-decks.</summary>
+        /// <summary>Returns only cards belonging to the two selected market aspects.</summary>
         List<Card> GetMarketCards(MarketDeckSelection selection, IGameRandom? random = null);
 
         /// <summary>Creates the finite face-up recruit piles configured by card data.</summary>

@@ -18,25 +18,6 @@ namespace ChaosWarlords.Tests.Integration.GameStates
     public class MainMenuStateTests
     {
         [TestMethod]
-        public void LoadContent_HalfDeckButtonsCycleWithoutAllowingADuplicateSelection()
-        {
-            var buttons = Substitute.For<IButtonManager>();
-            SimpleButton? firstDeckButton = null;
-            buttons.When(manager => manager.AddButton(Arg.Any<SimpleButton>())).Do(call =>
-            {
-                var button = call.Arg<SimpleButton>();
-                if (button.Text.StartsWith("First deck:")) firstDeckButton = button;
-            });
-
-            var state = new MainMenuState(Substitute.For<Game1>(Utilities.TestLogger.Instance), Substitute.For<IInputProvider>(),
-                Substitute.For<IStateManager>(), Substitute.For<ICardDatabase>(), Substitute.For<IReplayManager>(), Utilities.TestLogger.Instance, null!, buttons);
-            state.LoadContent();
-            firstDeckButton!.OnClick();
-
-            Assert.AreNotEqual(state.MarketDeckSelection.First, state.MarketDeckSelection.Second);
-            Assert.AreEqual(MarketHalfDeck.Elementals, state.MarketDeckSelection.First);
-            Assert.AreEqual("First deck: Elementals", firstDeckButton.Text);
-        }
         [TestInitialize]
         public void Setup()
         {
@@ -95,7 +76,7 @@ namespace ChaosWarlords.Tests.Integration.GameStates
             startButton.OnClick?.Invoke();
 
             // Assert
-            mockStateManager.Received(1).ChangeState(Arg.Any<GameplayState>());
+            mockStateManager.Received(1).ChangeState(Arg.Any<MatchSetupState>());
         }
 
         [TestMethod]

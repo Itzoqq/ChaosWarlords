@@ -35,6 +35,7 @@ namespace ChaosWarlords.Core.Tests.Source.Integration
             var logger = NullTestLogger.Instance;
             var cardDatabase = Substitute.For<ICardDatabase>();
             cardDatabase.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new System.Collections.Generic.List<Card>());
+            cardDatabase.GetMarketCards(Arg.Any<ChaosWarlords.Source.Core.Contexts.MarketDeckSelection>(), Arg.Any<IGameRandom>()).Returns(new System.Collections.Generic.List<Card>());
             var replayManager = new ReplayManager(logger);
 
             var world = new MatchFactory(cardDatabase, logger).Build(replayManager, seed: 20260901);

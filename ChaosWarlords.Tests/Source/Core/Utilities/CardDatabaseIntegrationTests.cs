@@ -8,7 +8,7 @@ namespace ChaosWarlords.Tests.Core.Utilities
     public class CardDatabaseIntegrationTests
     {
         [TestMethod]
-        public void LoadRealCardsJson_GetMarketCards_ReturnsOnlyTheSelectedHalfDecks()
+        public void LoadRealCardsJson_GetMarketCards_ReturnsOnlyTheSelectedAspects()
         {
             var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
             if (!File.Exists(path)) Assert.Inconclusive("cards.json not found at " + path);
@@ -17,14 +17,14 @@ namespace ChaosWarlords.Tests.Core.Utilities
             using var stream = File.OpenRead(path);
             database.Load(stream);
 
-            var cards = database.GetMarketCards(new MarketDeckSelection(MarketHalfDeck.Drow, MarketHalfDeck.Dragons));
+            var cards = database.GetMarketCards(new MarketDeckSelection(CardAspect.Warlord, CardAspect.Sorcery));
             var ids = cards.Select(card => card.DefinitionId).ToHashSet();
 
-            Assert.Contains("advance_scout", ids, "A selected Drow card should enter the market deck.");
-            Assert.Contains("black_dragon", ids, "A selected Dragon card should enter the market deck.");
-            Assert.DoesNotContain("zuggtmoy", ids, "A Demon card must not enter a Drow/Dragon market deck.");
-            Assert.DoesNotContain("olhydra", ids, "An Elemental card must not enter a Drow/Dragon market deck.");
-            Assert.DoesNotContain("wight", ids, "An unassigned expansion card must not silently enter an official half-deck selection.");
+            Assert.Contains("advance_scout", ids, "A selected Warlord card should enter the market deck.");
+            Assert.Contains("deathblade", ids, "A selected Sorcery card should enter the market deck.");
+            Assert.Contains("wight", ids, "Every non-supply card with a selected aspect should enter the market deck.");
+            Assert.DoesNotContain("masters_of_sorcere", ids, "A Shadow card must not enter a Warlord/Sorcery market deck.");
+            Assert.DoesNotContain("council_member", ids, "A Blasphemy card must not enter a Warlord/Sorcery market deck.");
             Assert.DoesNotContain("core_house_guard", ids, "House Guard belongs only to its fixed recruit pile, never the shuffled market deck.");
             Assert.DoesNotContain("core_priestess", ids, "Priestess belongs only to its fixed recruit pile, never the shuffled market deck.");
         }

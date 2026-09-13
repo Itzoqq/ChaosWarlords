@@ -23,13 +23,13 @@ namespace ChaosWarlords.Tests.Replay
         public void ReplayManager_RoundTripsNonDefaultMarketDeckSelection()
         {
             var recording = new ReplayManager(_logger);
-            recording.InitializeRecording(42, new MarketDeckSelection(MarketHalfDeck.Demons, MarketHalfDeck.Elementals));
+            recording.InitializeRecording(42, new MarketDeckSelection(CardAspect.Shadow, CardAspect.Blasphemy));
 
             var replay = new ReplayManager(_logger);
             replay.StartReplay(recording.GetRecordingJson());
 
-            Assert.AreEqual(MarketHalfDeck.Demons, replay.MarketDeckSelection.First);
-            Assert.AreEqual(MarketHalfDeck.Elementals, replay.MarketDeckSelection.Second);
+            Assert.AreEqual(CardAspect.Shadow, replay.MarketDeckSelection.First);
+            Assert.AreEqual(CardAspect.Blasphemy, replay.MarketDeckSelection.Second);
         }
         private IGameLogger _logger = new NullLogger();
 

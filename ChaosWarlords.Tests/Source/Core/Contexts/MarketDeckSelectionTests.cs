@@ -8,33 +8,39 @@ namespace ChaosWarlords.Tests.Source.Core.Contexts
     public class MarketDeckSelectionTests
     {
         [TestMethod]
-        public void Constructor_WithDuplicateHalfDecks_Throws()
+        public void Constructor_WithDuplicateAspects_Throws()
         {
-            Assert.ThrowsExactly<ArgumentException>(() => new MarketDeckSelection(MarketHalfDeck.Drow, MarketHalfDeck.Drow));
+            Assert.ThrowsExactly<ArgumentException>(() => new MarketDeckSelection(CardAspect.Warlord, CardAspect.Warlord));
         }
 
         [TestMethod]
-        public void NextDistinct_SkipsTheOtherSelectedHalfDeck()
+        public void Constructor_WithNonMarketAspect_Throws()
         {
-            var next = MarketDeckSelection.NextDistinct(MarketHalfDeck.Drow, MarketHalfDeck.Dragons);
-
-            Assert.AreEqual(MarketHalfDeck.Elementals, next);
+            Assert.ThrowsExactly<ArgumentException>(() => new MarketDeckSelection(CardAspect.Neutral, CardAspect.Warlord));
         }
 
         [TestMethod]
-        public void WithFirst_WhenGivenTheOtherSelectedHalfDeck_Throws()
+        public void NextDistinct_SkipsTheOtherSelectedAspect()
         {
-            var selection = new MarketDeckSelection(MarketHalfDeck.Drow, MarketHalfDeck.Dragons);
+            var next = MarketDeckSelection.NextDistinct(CardAspect.Warlord, CardAspect.Sorcery);
 
-            Assert.ThrowsExactly<ArgumentException>(() => selection.WithFirst(MarketHalfDeck.Dragons));
+            Assert.AreEqual(CardAspect.Shadow, next);
         }
 
         [TestMethod]
-        public void Default_UsesTheRulebookRecommendedDrowAndDragonDecks()
+        public void WithFirst_WhenGivenTheOtherSelectedAspect_Throws()
         {
-            Assert.IsTrue(MarketDeckSelection.Default.Includes(MarketHalfDeck.Drow));
-            Assert.IsTrue(MarketDeckSelection.Default.Includes(MarketHalfDeck.Dragons));
-            Assert.IsFalse(MarketDeckSelection.Default.Includes(MarketHalfDeck.Demons));
+            var selection = new MarketDeckSelection(CardAspect.Warlord, CardAspect.Sorcery);
+
+            Assert.ThrowsExactly<ArgumentException>(() => selection.WithFirst(CardAspect.Sorcery));
+        }
+
+        [TestMethod]
+        public void Default_UsesWarlordAndSorceryAspects()
+        {
+            Assert.IsTrue(MarketDeckSelection.Default.Includes(CardAspect.Warlord));
+            Assert.IsTrue(MarketDeckSelection.Default.Includes(CardAspect.Sorcery));
+            Assert.IsFalse(MarketDeckSelection.Default.Includes(CardAspect.Shadow));
         }
     }
 }

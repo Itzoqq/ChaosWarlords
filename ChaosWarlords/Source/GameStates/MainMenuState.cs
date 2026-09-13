@@ -27,9 +27,6 @@ namespace ChaosWarlords.Source.GameStates
         private readonly IGameLogger _logger;
         private IMainMenuView _view; // Can be null for Headless Server
         private IButtonManager _buttonManager;
-        private SimpleButton? _firstDeckButton;
-        private SimpleButton? _secondDeckButton;
-        public MarketDeckSelection MarketDeckSelection { get; private set; } = ChaosWarlords.Source.Core.Contexts.MarketDeckSelection.Default;
 
         // Input state just for click detection
         private MouseState _previousMouseState;
@@ -103,15 +100,8 @@ namespace ChaosWarlords.Source.GameStates
             int centerX = viewport.Width / 2 - buttonWidth / 2;
             int centerY = viewport.Height / 2;
 
-            var firstDeckRect = new Rectangle(centerX, centerY - 140, buttonWidth, buttonHeight);
-            var secondDeckRect = new Rectangle(centerX, centerY - 70, buttonWidth, buttonHeight);
             var startBtnRect = new Rectangle(centerX, centerY, buttonWidth, buttonHeight);
             var exitBtnRect = new Rectangle(centerX, centerY + 70, buttonWidth, buttonHeight);
-
-            _firstDeckButton = new SimpleButton(firstDeckRect, $"First deck: {MarketDeckSelection.First}", CycleFirstDeck);
-            _secondDeckButton = new SimpleButton(secondDeckRect, $"Second deck: {MarketDeckSelection.Second}", CycleSecondDeck);
-            _buttonManager.AddButton(_firstDeckButton);
-            _buttonManager.AddButton(_secondDeckButton);
 
             _buttonManager.AddButton(new SimpleButton(
                 startBtnRect,
@@ -124,18 +114,6 @@ namespace ChaosWarlords.Source.GameStates
                 "Exit",
                 () => _game?.Exit()
             ));
-        }
-
-        private void CycleFirstDeck()
-        {
-            MarketDeckSelection = MarketDeckSelection.WithFirst(MarketDeckSelection.NextDistinct(MarketDeckSelection.First, MarketDeckSelection.Second));
-            _firstDeckButton?.SetText($"First deck: {MarketDeckSelection.First}");
-        }
-
-        private void CycleSecondDeck()
-        {
-            MarketDeckSelection = MarketDeckSelection.WithSecond(MarketDeckSelection.NextDistinct(MarketDeckSelection.Second, MarketDeckSelection.First));
-            _secondDeckButton?.SetText($"Second deck: {MarketDeckSelection.Second}");
         }
 
         public void UnloadContent()
@@ -197,45 +175,7 @@ namespace ChaosWarlords.Source.GameStates
                 return;
             }
 
-            // Create View (if GraphicsDevice is available - Client Mode)
-            IGameplayView? gameplayView = null;
-            int width = 1920;
-            int height = 1080;
-
-            if (_game?.GraphicsDevice is not null)
-            {
-                gameplayView = new GameplayView(_game.GraphicsDevice, _logger);
-                width = _game.GraphicsDevice.Viewport.Width;
-                height = _game.GraphicsDevice.Viewport.Height;
-            }
-
-            // Create Dependencies (On-the-fly composition for transition)
-            // Ideally GameDependencies is passed into MainMenuState, but for now we build it here.
-            // We need to create NEW Input and UI Managers for GameplayState or reuse existing ones?
-            // GameplayState logic (previously) created its OWN infrastructure. 
-            // Now we must create it here to pass it in.
-
-            // NOTE: Currently MainMenuState shares InputProvider but has its own ButtonManager.
-            // GameplayState needs InputManager (wrapper around Provider) and UIManager.
-
-            var inputManager = new Managers.InputManager(_inputProvider);
-            var uiManager = new Managers.UIManager(width, height, _logger);
-
-            var dependencies = new Core.Composition.GameDependencies
-            {
-                Game = _game,
-                InputManager = inputManager,
-                CardDatabase = _cardDatabase,
-                Logger = _logger,
-                UIManager = uiManager,
-                ReplayManager = _replayManager,
-                MarketDeckSelection = MarketDeckSelection,
-                View = gameplayView,
-                ViewportWidth = width,
-                ViewportHeight = height
-            };
-
-            _stateManager.ChangeState(new GameplayState(dependencies));
+            _stateManager.ChangeState(new MatchSetupState(_game, _inputProvider, _stateManager, _cardDatabase, _replayManager, _logger));
         }
 
         public void Draw(SpriteBatch spriteBatch)

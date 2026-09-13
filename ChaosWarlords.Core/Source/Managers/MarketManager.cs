@@ -18,10 +18,8 @@ namespace ChaosWarlords.Source.Managers
         public MarketManager(ICardDatabase cardDatabase, IGameRandom random, MarketDeckSelection? selection = null)
         {
             _cardDatabase = cardDatabase;
-            MarketDeck = selection is null
-                ? _cardDatabase.GetAllMarketCards(random)
-                : _cardDatabase.GetMarketCards(selection, random)
-                    ?? throw new InvalidOperationException("The card database returned no cards for the selected market half-decks.");
+            MarketDeck = _cardDatabase.GetMarketCards(selection ?? MarketDeckSelection.Default, random)
+                ?? throw new InvalidOperationException("The card database returned no cards for the selected market aspects.");
             MarketRow = new List<Card>();
             FixedRecruitPiles = _cardDatabase.GetFixedRecruitPiles(random) ?? [];
 

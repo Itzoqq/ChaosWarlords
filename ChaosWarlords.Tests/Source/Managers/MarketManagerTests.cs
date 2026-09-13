@@ -4,6 +4,7 @@ using NSubstitute;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Managers;
+using ChaosWarlords.Source.Core.Contexts;
 
 namespace ChaosWarlords.Tests.Systems
 {
@@ -33,7 +34,7 @@ namespace ChaosWarlords.Tests.Systems
 
             // 2. Configure the Mock behavior
             var deck = new List<Card> { _cheapCard, _expensiveCard };
-            _mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(deck);
+            _mockDb.GetMarketCards(Arg.Any<MarketDeckSelection>(), Arg.Any<IGameRandom>()).Returns(deck);
 
             // 4. Use Real StateManager (or Mock if strictly isolating, but Real is better for logic verification)
             _stateManager = new PlayerStateManager(Utilities.TestLogger.Instance);

@@ -30,7 +30,6 @@ namespace ChaosWarlords.Source.Utilities
         // card whose real type isn't tracked yet (the overwhelming majority) - NOT the same as
         // asserting the card has no type at all.
         public string? CreatureType { get; set; }
-        public string? MarketHalfDeck { get; set; }
         public int FixedRecruitPileSize { get; set; }
     }
 
@@ -197,11 +196,8 @@ namespace ChaosWarlords.Source.Utilities
             return cards;
         }
 
-        private static bool IsInSelection(CardData data, MarketDeckSelection selection)
-        {
-            return Enum.TryParse(data.MarketHalfDeck, ignoreCase: true, out MarketHalfDeck halfDeck)
-                && selection.Includes(halfDeck);
-        }
+        private static bool IsInSelection(CardData data, MarketDeckSelection selection) =>
+            Enum.TryParse(data.Aspect, ignoreCase: true, out CardAspect aspect) && selection.Includes(aspect);
 
         /// <summary>
         /// Resolves a card by its definitional/catalog id (Card.DefinitionId - NOT the
@@ -221,5 +217,4 @@ namespace ChaosWarlords.Source.Utilities
         }
     }
 }
-
 

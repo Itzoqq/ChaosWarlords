@@ -240,7 +240,8 @@ ChaosWarlords/                     # Client (Game) Project Root - references Cor
     │       └── PooledVector2.cs             # Zero-allocation rendering wrapper (see Key Systems #1)
     ├── GameStates/                          # Application State Machine
     │   ├── GameplayState.cs                 # The Core Game Loop (Logic Only)
-    │   ├── MainMenuState.cs                 # Entry Point / Composition Root
+    │   ├── MainMenuState.cs                 # Entry point
+    │   ├── MatchSetupState.cs               # Collects offline match configuration before gameplay construction
     │   ├── StateManager.cs                  # Stack-based State Machine implementation
     │   └── VictoryState.cs                  # Post-game summary state
     │

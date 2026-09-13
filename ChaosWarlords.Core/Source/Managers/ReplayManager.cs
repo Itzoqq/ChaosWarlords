@@ -44,9 +44,7 @@ namespace ChaosWarlords.Source.Managers
                 {
                     _isReplaying = true;
                     _seed = data.Seed;
-                    _marketDeckSelection = Enum.TryParse(data.FirstMarketHalfDeck, true, out MarketHalfDeck first)
-                        && Enum.TryParse(data.SecondMarketHalfDeck, true, out MarketHalfDeck second)
-                        && first != second ? new MarketDeckSelection(first, second) : MarketDeckSelection.Default;
+                    _marketDeckSelection = ParseMarketSelection(data.FirstMarketAspect, data.SecondMarketAspect);
                     _recording.Clear();
                     _recording.AddRange(data.Commands);
 
@@ -63,6 +61,23 @@ namespace ChaosWarlords.Source.Managers
         }
 
         private Queue<GameCommandDto> _playbackQueue = new Queue<GameCommandDto>();
+
+        private static MarketDeckSelection ParseMarketSelection(string firstValue, string secondValue)
+        {
+            if (!Enum.TryParse(firstValue, true, out CardAspect first) || !Enum.TryParse(secondValue, true, out CardAspect second))
+            {
+                return MarketDeckSelection.Default;
+            }
+
+            try
+            {
+                return new MarketDeckSelection(first, second);
+            }
+            catch (ArgumentException)
+            {
+                return MarketDeckSelection.Default;
+            }
+        }
 
         public Core.Interfaces.Logic.IGameCommand? GetNextCommand(Contexts.MatchContext context)
         {
@@ -88,8 +103,8 @@ namespace ChaosWarlords.Source.Managers
             var data = new ReplayDataDto
             {
                 Seed = _seed,
-                FirstMarketHalfDeck = _marketDeckSelection.First.ToString(),
-                SecondMarketHalfDeck = _marketDeckSelection.Second.ToString(),
+                FirstMarketAspect = _marketDeckSelection.First.ToString(),
+                SecondMarketAspect = _marketDeckSelection.Second.ToString(),
                 Commands = _recording
             };
             return System.Text.Json.JsonSerializer.Serialize(data);
