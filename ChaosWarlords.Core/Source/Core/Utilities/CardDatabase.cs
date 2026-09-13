@@ -30,6 +30,7 @@ namespace ChaosWarlords.Source.Utilities
         // card whose real type isn't tracked yet (the overwhelming majority) - NOT the same as
         // asserting the card has no type at all.
         public string? CreatureType { get; set; }
+        public int MarketCopyCount { get; set; } = 1;
         public int FixedRecruitPileSize { get; set; }
     }
 
@@ -180,20 +181,25 @@ namespace ChaosWarlords.Source.Utilities
 
             foreach (var data in _cardDataCache.OrderBy(c => c.Id))
             {
-                // Supply-pile cards (e.g. Insane Outcast) are never purchasable from the
-                // market - they only ever reach a player via another card's effect. Excluded
-                // here rather than via a second flag, since RedirectsToSupplyOnDevourOrPromote
-                // is otherwise unique to exactly this kind of card.
-                if (data.RedirectsToSupplyOnDevourOrPromote || data.FixedRecruitPileSize > 0 || !isIncluded(data))
-                {
-                    continue;
-                }
-
-                // Trace for Replay Desync Debugging
-                _logger?.Log($"[CardDatabase] Processing Market Card: {data.Id}", LogChannel.Debug);
-                cards.Add(CardFactory.CreateFromData(data, _localization, random, _logger));
+                if (!IsMarketCard(data, isIncluded)) continue;
+                cards.AddRange(CreateMarketCopies(data, random));
             }
             return cards;
+        }
+
+        private static bool IsMarketCard(CardData data, Func<CardData, bool> isIncluded) =>
+            !data.RedirectsToSupplyOnDevourOrPromote && data.FixedRecruitPileSize == 0 && isIncluded(data);
+
+        private IEnumerable<Card> CreateMarketCopies(CardData data, IGameRandom? random)
+        {
+            if (data.MarketCopyCount <= 0)
+            {
+                throw new InvalidDataException($"Market card '{data.Id}' must declare at least one copy.");
+            }
+
+            _logger?.Log($"[CardDatabase] Processing Market Card: {data.Id}", LogChannel.Debug);
+            return Enumerable.Range(0, data.MarketCopyCount)
+                .Select(_ => CardFactory.CreateFromData(data, _localization, random, _logger));
         }
 
         private static bool IsInSelection(CardData data, MarketDeckSelection selection) =>

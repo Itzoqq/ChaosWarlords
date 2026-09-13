@@ -8,6 +8,35 @@ namespace ChaosWarlords.Tests.Core.Utilities
     public class CardDatabaseIntegrationTests
     {
         [TestMethod]
+        public void Load_GetMarketCards_ExpandsEachDefinitionByItsDeclaredCopyCount()
+        {
+            var database = new CardDatabase(new TestLocalizationService());
+            using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("""
+                [{ "id": "warlord_card", "aspect": "Warlord", "marketCopyCount": 3, "effects": [] }]
+                """));
+            database.Load(stream);
+
+            var cards = database.GetMarketCards(new MarketDeckSelection(CardAspect.Warlord, CardAspect.Sorcery));
+
+            Assert.HasCount(3, cards);
+            Assert.IsTrue(cards.All(card => card.DefinitionId == "warlord_card"));
+            Assert.HasCount(3, cards.Select(card => card.RuntimeId).Distinct());
+        }
+
+        [TestMethod]
+        public void Load_GetMarketCards_WithZeroCopyCount_RejectsInvalidCardData()
+        {
+            var database = new CardDatabase(new TestLocalizationService());
+            using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("""
+                [{ "id": "invalid_card", "aspect": "Warlord", "marketCopyCount": 0, "effects": [] }]
+                """));
+            database.Load(stream);
+
+            Assert.ThrowsExactly<InvalidDataException>(() =>
+                database.GetMarketCards(new MarketDeckSelection(CardAspect.Warlord, CardAspect.Sorcery)));
+        }
+
+        [TestMethod]
         public void LoadRealCardsJson_GetMarketCards_ReturnsOnlyTheSelectedAspects()
         {
             var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
