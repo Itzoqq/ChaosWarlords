@@ -179,14 +179,12 @@ namespace ChaosWarlords.Source.GameStates
             // Subscribe to Logic-Initiated Commands (Auto-Execute)
             _matchContext.ActionSystem.OnAutoExecuteCommand += RecordAndExecuteCommand;
 
-            // Don't draw cards during Setup phase
-            if (_matchContext.CurrentPhase != MatchPhase.Setup && _matchContext.TurnManager.Players is not null)
-            {
-                foreach (var player in _matchContext.TurnManager.Players)
-                {
-                    player.DrawCards(5, _matchContext.Random);
-                }
-            }
+            // Each player's real opening hand is already dealt by MatchFactory.Build itself
+            // (planning.txt TIER 1 item 12) - nothing to do here. A draw-5 loop used to live at
+            // this point, gated on "not Setup phase," but CurrentPhase is always Setup at this
+            // exact point in initialization (a match is never constructed any other way), so it
+            // could never actually run - removed rather than leaving genuinely dead code next
+            // to the real fix.
 
             _matchContext.MapManager.CenterMap(_viewportWidth, _viewportHeight);
 

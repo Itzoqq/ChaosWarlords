@@ -78,6 +78,19 @@ namespace ChaosWarlords.Source.Factories
             var players = CreatePlayers(colors, _cardDatabase, random, _logger);
             _logger.Log($"[RNG] Post-Players Checksum: {random.CallCount}", LogChannel.Info);
 
+            // Rulebook p.4 setup step 10: shuffle your starting deck, DRAW FIVE CARDS, then
+            // deploy your initial troop. Dealt here - deterministic, headless-testable, not
+            // gated behind a MonoGame state's LoadContent and not dependent on GameplayState's
+            // UI-only setup-deployment wiring ever running - so every match, headless or
+            // UI-driven, has a real opening hand the moment Build() returns. See planning.txt
+            // TIER 1 item 12.
+            _logger.Log($"[RNG] Pre-OpeningHands: {random.CallCount}", LogChannel.Debug);
+            foreach (var player in players)
+            {
+                playerStateManager.DrawCards(player, GameConstants.HandSize, random);
+            }
+            _logger.Log($"[RNG] Post-OpeningHands Checksum: {random.CallCount}", LogChannel.Info);
+
             var turnManager = new TurnManager(players, random, _logger);
 
             // Create VictoryManager

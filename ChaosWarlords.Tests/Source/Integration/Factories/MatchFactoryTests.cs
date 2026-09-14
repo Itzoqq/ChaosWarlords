@@ -7,6 +7,8 @@ using ChaosWarlords.Source.Core.Interfaces.Services;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Core.Contexts;
+using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Commands;
 
 namespace ChaosWarlords.Tests.Integration.Factories
 {
@@ -70,6 +72,81 @@ namespace ChaosWarlords.Tests.Integration.Factories
 
             Assert.IsNotNull(result.TurnManager.ActivePlayer);
             Assert.IsNotNull(result.MapManager);
+        }
+
+        [TestMethod]
+        public void Build_DealsEachPlayerAFiveCardOpeningHand()
+        {
+            // Rulebook p.4 setup step 10: shuffle, draw 5, then deploy. Dealt directly inside
+            // Build (planning.txt TIER 1 item 12) so this holds headlessly - no GameplayState,
+            // no MonoGame LoadContent, no UI event wiring involved at all.
+            var mockDb = Substitute.For<ICardDatabase>();
+            mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
+            mockDb.GetMarketCards(Arg.Any<MarketDeckSelection>(), Arg.Any<IGameRandom>()).Returns(new List<Card>());
+
+            var factory = new MatchFactory(mockDb, Utilities.TestLogger.Instance);
+            var replayManager = Substitute.For<IReplayManager>();
+
+            var world = factory.Build(replayManager, seed: 555);
+
+            foreach (var player in world.TurnManager.Players)
+            {
+                Assert.HasCount(5, player.Hand, $"{player.Color} should have a 5-card opening hand immediately after Build().");
+                Assert.HasCount(5, player.DeckManager.DrawPile, $"{player.Color}'s 10-card starting deck should have exactly 5 cards left after dealing the opening hand.");
+                Assert.IsEmpty(player.DiscardPile, $"{player.Color}'s discard pile should still be empty - dealing the opening hand isn't a discard.");
+            }
+        }
+
+        [TestMethod]
+        public void Build_OpeningHandSurvivesSetupPhaseDeployment_IntoRealPlay()
+        {
+            // The exact regression this item closed: TurnLifecycleSubsystem.EndTurn used to run
+            // its full Cleanup+Draw turn-cycle even during Setup, silently discarding the
+            // opening hand Build() just dealt and replacing it with a fresh, different one the
+            // moment each player's setup-deployment auto-EndTurn fired (see
+            // GameplayState.HandleSetupDeploymentComplete for the real UI wiring this mimics).
+            // Drives both players' setup deployment through the REAL CommandDispatcher, exactly
+            // as production does, and asserts each player's hand is IDENTICAL (same cards, not
+            // just the same count) before and after - proving the dealt hand actually survives
+            // into real Round 1 rather than being silently swapped for a different random one.
+            var mockDb = Substitute.For<ICardDatabase>();
+            mockDb.GetAllMarketCards(Arg.Any<IGameRandom>()).Returns(new List<Card>());
+            mockDb.GetMarketCards(Arg.Any<MarketDeckSelection>(), Arg.Any<IGameRandom>()).Returns(new List<Card>());
+
+            var factory = new MatchFactory(mockDb, Utilities.TestLogger.Instance);
+            var replayManager = new ChaosWarlords.Source.Managers.ReplayManager(Utilities.TestLogger.Instance);
+
+            var world = factory.Build(replayManager, seed: 555);
+            var context = new MatchContext(
+                world.TurnManager, world.MapManager, world.MarketManager, world.ActionSystem,
+                mockDb, world.PlayerStateManager, Utilities.TestLogger.Instance, world.Seed);
+            world.ActionSystem.SetMatchContext(context);
+            var matchManager = new MatchManager(context, Utilities.TestLogger.Instance, new VictoryManager(Utilities.TestLogger.Instance));
+            world.ActionSystem.SetMatchManager(matchManager);
+
+            var dispatcher = new CommandDispatcher(replayManager, Utilities.TestLogger.Instance);
+
+            var redHandBeforeDeployment = world.TurnManager.Players.First(p => p.Color == PlayerColor.Red).Hand.ToList();
+            var blueHandBeforeDeployment = world.TurnManager.Players.First(p => p.Color == PlayerColor.Blue).Hand.ToList();
+
+            // Deploy + auto-end-turn for each player, same sequence GameplayState drives via
+            // MapManager.OnSetupDeploymentComplete.
+            for (int i = 0; i < world.TurnManager.Players.Count; i++)
+            {
+                var activePlayer = context.ActivePlayer;
+                var node = context.MapManager.Nodes.First(n => context.MapManager.CanDeployAt(n, activePlayer.Color));
+                dispatcher.Dispatch(new DeployTroopCommand(node.Id), context);
+                dispatcher.Dispatch(new EndTurnCommand(), context);
+            }
+
+            Assert.AreEqual(MatchPhase.Playing, context.CurrentPhase, "Both players deploying their single setup troop should transition to Playing.");
+
+            var redAfter = world.TurnManager.Players.First(p => p.Color == PlayerColor.Red);
+            var blueAfter = world.TurnManager.Players.First(p => p.Color == PlayerColor.Blue);
+            CollectionAssert.AreEqual(redHandBeforeDeployment, redAfter.Hand.ToList(), "Red's real opening hand must survive Setup-phase deployment unchanged.");
+            CollectionAssert.AreEqual(blueHandBeforeDeployment, blueAfter.Hand.ToList(), "Blue's real opening hand must survive Setup-phase deployment unchanged.");
+            Assert.IsEmpty(redAfter.DiscardPile, "No card should ever have touched Red's discard pile during Setup.");
+            Assert.IsEmpty(blueAfter.DiscardPile, "No card should ever have touched Blue's discard pile during Setup.");
         }
 
         [TestMethod]

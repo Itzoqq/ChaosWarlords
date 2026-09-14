@@ -69,6 +69,12 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
                 123
             );
 
+            // MatchContext defaults to MatchPhase.Setup - this suite exercises normal gameplay
+            // turns (EndTurn's full turn-cycle, specifically the opponent-forced-discard phase),
+            // which TurnLifecycleSubsystem.EndTurn now skips entirely during Setup (planning.txt
+            // TIER 1 item 12), so Playing must be explicit here.
+            _context.CurrentPhase = MatchPhase.Playing;
+
             _actionSystem.SetMatchContext(_context);
 
             var victoryManager = Substitute.For<IVictoryManager>();

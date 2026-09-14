@@ -115,9 +115,38 @@ namespace ChaosWarlords.Tests.Source.Functional
             var replayManager = new ReplayManager(logger);
             var world = new MatchFactory(cardDatabase, logger).Build(replayManager, seed, playerColors, marketDeckSelection);
 
+            // MatchFactory.Build now deals each player's real rulebook-required opening hand
+            // (planning.txt TIER 1 item 12) - undo it immediately so scenario tests keep their
+            // existing "starts with an empty hand AND an empty discard pile, GiveCard adds
+            // exactly what the test needs" contract (several scenarios assert an empty discard
+            // as their own precondition, e.g. MatronMotherNecromancerScenarioTests). Pushes each
+            // dealt card back onto the TOP of the deck, in reverse-of-draw order, so the deck
+            // ends up in exactly its pre-deal order/count too - full behavioral parity with
+            // MatchScenario's state before MatchFactory dealt hands at all, not just "empty".
+            foreach (var player in world.TurnManager.Players)
+            {
+                var dealtHand = player.Hand.Reverse().ToList();
+                foreach (var card in dealtHand)
+                {
+                    player.RemoveFromHand(card);
+                    player.DeckManager.AddToTop(card);
+                }
+            }
+
             var context = new MatchContext(
                 world.TurnManager, world.MapManager, world.MarketManager, world.ActionSystem,
                 cardDatabase, world.PlayerStateManager, logger, world.Seed);
+
+            // MatchContext defaults to MatchPhase.Setup (matching a fresh real match before
+            // both players deploy) - this harness exists to test CARD MECHANICS via the real
+            // CommandDispatcher path, always past Setup, so default to Playing here rather than
+            // relying on every scenario file to set it individually (several already did, e.g.
+            // CardDeploySupplyScenarioTests/InputPipelineScenarioRegressionTests - redundant,
+            // now harmless, with this default in place). Matters concretely since
+            // TurnLifecycleSubsystem.EndTurn's entire turn-cycle (Devour/Promote/Cleanup/Draw/
+            // opponent-discard) is now skipped during Setup (planning.txt TIER 1 item 12) - a
+            // scenario left on Setup would silently no-op every EndTurn-driven assertion.
+            context.CurrentPhase = MatchPhase.Playing;
             world.ActionSystem.SetMatchContext(context);
 
             var matchManager = new MatchManager(context, logger, new VictoryManager(logger));

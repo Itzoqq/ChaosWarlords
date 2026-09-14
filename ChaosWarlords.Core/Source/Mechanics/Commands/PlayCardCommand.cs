@@ -57,6 +57,18 @@ namespace ChaosWarlords.Source.Commands
 
         public bool Validate(MatchContext context)
         {
+            // Setup phase (initial troop deployment) has no card-play step at all (rulebook
+            // p.4) - before TIER 1 item 12 dealt a real opening hand at match creation, an
+            // empty hand made this unreachable by construction; now that Setup starts with a
+            // real 5-card hand, this must be an explicit gate. TurnLifecycleSubsystem.EndTurn
+            // also skips its entire turn-cycle during Setup (no Cleanup/Draw), so a card that
+            // slipped through here would sit in Played indefinitely rather than ever being
+            // discarded - reject it outright instead.
+            if (context.CurrentPhase == MatchPhase.Setup)
+            {
+                return context.RejectValidation(nameof(PlayCardCommand), "cards cannot be played during Setup (initial troop deployment).");
+            }
+
             // Can Play if in hand
             if (ResolveCard(context) == null)
             {

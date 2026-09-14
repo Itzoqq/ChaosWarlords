@@ -116,7 +116,15 @@ namespace ChaosWarlords.Source.Rendering.Views
             SyncPlayedVisuals(context.ActivePlayer.PlayedCards);
             SyncMarketVisuals(context.MarketManager);
 
-            UpdateVisualsHover(HandViewModels, inputManager);
+            // Hand cards aren't drawn during Setup (see Draw()'s own phase check below) and
+            // PlayCardCommand.Validate() now rejects playing a card during Setup outright
+            // (TIER 1 item 12 - Setup starts with a real dealt hand, not an empty one) - but
+            // don't even mark them hoverable/clickable here, so a Setup-phase click in the
+            // hand's screen region can't generate a doomed-to-be-rejected command at all.
+            if (context.CurrentPhase != MatchPhase.Setup)
+            {
+                UpdateVisualsHover(HandViewModels, inputManager);
+            }
             if (isMarketOpen) UpdateVisualsHover(MarketViewModels, inputManager);
 
             // Update optional effect popup mouse position

@@ -63,6 +63,16 @@ namespace ChaosWarlords.Tests.Integration.Managers
                 playerState,
                 Utilities.TestLogger.Instance);
 
+            // MatchContext defaults to MatchPhase.Setup - most tests in this file exercise
+            // normal gameplay turns (PlayCard/EndTurn's full turn-cycle), so default to Playing
+            // here rather than relying on the implicit default; tests that actually want Setup
+            // behavior (CanEndTurn_*_InSetup_*, EndTurn_*InSetup*, EndTurn_TransitionsToPlaying_*)
+            // already explicitly set MatchPhase.Setup themselves, so this doesn't affect them.
+            // Matters concretely since TurnLifecycleSubsystem.EndTurn's entire turn-cycle
+            // (Devour/Promote/Cleanup/Draw/opponent-discard) is now skipped during Setup
+            // (planning.txt TIER 1 item 12) - Playing must be explicit, not assumed.
+            _context.CurrentPhase = MatchPhase.Playing;
+
             // Fix for Legacy Tests: Configure Mock ActionSystem to execute "Instant" effects immediately
             // This mimics the real ActionSystem.ProcessStack() behavior for non-blocking effects.
             // IMPORTANT: This must be done AFTER _context is initialized so the closure captures the correct reference.

@@ -35,11 +35,8 @@ namespace ChaosWarlords.Tests.Source.Replay
             var redLive = worldLive.TurnManager.Players.First(p => p.Color == PlayerColor.Red);
             var blueLive = worldLive.TurnManager.Players.First(p => p.Color == PlayerColor.Blue);
 
-            // Draw Initial Hands
-            redLive.DrawCards(5, worldLive.GameRandom);
-            blueLive.DrawCards(5, worldLive.GameRandom);
-
-            var countLiveInitAfterDraw = seededRandomLive.CallCount;
+            // Opening hands are already dealt by MatchFactory.Build itself (planning.txt TIER 1
+            // item 12) - countLiveInit above already reflects that RNG consumption.
 
             // ---------------------------------------------------------
             // RED TURN
@@ -94,11 +91,8 @@ namespace ChaosWarlords.Tests.Source.Replay
             var redReplay = worldReplay.TurnManager.Players.First(p => p.Color == PlayerColor.Red);
             var blueReplay = worldReplay.TurnManager.Players.First(p => p.Color == PlayerColor.Blue);
 
-            // Replay Initial Draw
-            redReplay.DrawCards(5, worldReplay.GameRandom);
-            blueReplay.DrawCards(5, worldReplay.GameRandom);
-
-            var countReplayInitAfterDraw = seededRandomReplay.CallCount;
+            // Opening hands are already dealt by MatchFactory.Build itself (planning.txt TIER 1
+            // item 12) - countReplayInit above already reflects that RNG consumption.
 
             // Use Fake State instead of Mock
             var fakeState = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();

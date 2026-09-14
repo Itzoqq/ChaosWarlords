@@ -49,14 +49,16 @@ namespace ChaosWarlords.Core.Tests.Source.Integration
 
             var dispatcher = new CommandDispatcher(replayManager, logger);
 
-            // Sanity: a real world actually got built. Hands aren't drawn until Setup/first
-            // turn (outside MatchFactory.Build's own responsibility), so check the starting
-            // deck instead - CreateDefaultPlayer always adds 3 Soldiers + 7 Nobles regardless
-            // of the mocked ICardDatabase (those two come from CardFactory directly, not a
-            // database lookup).
+            // Sanity: a real world actually got built. MatchFactory.Build deals each player's
+            // rulebook-required 5-card opening hand itself (planning.txt TIER 1 item 12) -
+            // CreateDefaultPlayer always adds 3 Soldiers + 7 Nobles (10 cards, regardless of the
+            // mocked ICardDatabase - those two come from CardFactory directly, not a database
+            // lookup) and Build then draws 5 of them into Hand, so Deck + Hand together should
+            // still total that same 10, headlessly, with no GameplayState/UI involved at all.
             Assert.HasCount(2, context.TurnManager.Players, "MatchFactory should create 2 players.");
             var firstPlayer = context.TurnManager.ActivePlayer;
-            Assert.IsGreaterThanOrEqualTo(10, firstPlayer.DeckManager.DrawPile.Count, "The active player should have a starting deck (3 Soldiers + 7 Nobles at minimum).");
+            Assert.HasCount(5, firstPlayer.Hand, "MatchFactory.Build should deal a real 5-card opening hand.");
+            Assert.AreEqual(10, firstPlayer.DeckManager.DrawPile.Count + firstPlayer.Hand.Count, "Deck + Hand should still total the full starting deck (3 Soldiers + 7 Nobles).");
 
             // Dispatch a real DeployTroopCommand through the real pipeline.
             var node = context.MapManager.Nodes.First(n => context.MapManager.CanDeployAt(n, firstPlayer.Color));

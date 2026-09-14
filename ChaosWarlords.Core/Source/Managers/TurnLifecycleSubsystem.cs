@@ -151,60 +151,76 @@ namespace ChaosWarlords.Source.Managers
 
         public void EndTurn()
         {
-            // 1. Map Rewards - REMOVED (Now Start of Turn)
-
-            // 1b. Process Turn End Devour (Self-Devour effects)
-            foreach (var card in _context.CardsMarkedForTurnEndDevour.ToList())
+            // Setup-phase deployment turns (each player's single initial-troop placement) run
+            // through this exact same EndTurn() - GameplayState.HandleSetupDeploymentComplete
+            // auto-dispatches an EndTurnCommand after each deployment - but Setup has no cards
+            // in play at all (no Devour/Promote markers, nothing played, no opponent-discard
+            // triggers), so none of the turn-cycle steps below apply. Skipping them here isn't
+            // just an optimization: MatchFactory.Build now deals each player's real opening
+            // hand (planning.txt TIER 1 item 12) BEFORE Setup begins, so step 2's Cleanup would
+            // otherwise immediately discard that real hand and step 3 would deal a throwaway
+            // replacement - and worse, populate a Setup-phase player's DiscardPile, which used
+            // to be impossible during Setup and is exactly what TryTransitionSetupToPlaying's
+            // own gameHasProgressed safeguard checks for, so it would flip the match to Playing
+            // after only the FIRST player deploys, before every player has had a turn. The
+            // dealt-at-Build hand instead survives untouched into the player's real Round 1.
+            if (_context.CurrentPhase != MatchPhase.Setup)
             {
-                _logger.Log($"Processing Turn End Devour: {card.Name} -> Void", LogChannel.Info);
+                // 1. Map Rewards - REMOVED (Now Start of Turn)
 
-                // Remove from wherever it is (likely Played or Hand)
-                _context.ActivePlayer.RemoveFromPlayed(card);
-                _context.ActivePlayer.RemoveFromHand(card);
+                // 1b. Process Turn End Devour (Self-Devour effects)
+                foreach (var card in _context.CardsMarkedForTurnEndDevour.ToList())
+                {
+                    _logger.Log($"Processing Turn End Devour: {card.Name} -> Void", LogChannel.Info);
 
-                // Move to Void
-                card.Location = CardLocation.Void;
-                _context.VoidPile.Add(card);
-            }
-            _context.CardsMarkedForTurnEndDevour.Clear();
+                    // Remove from wherever it is (likely Played or Hand)
+                    _context.ActivePlayer.RemoveFromPlayed(card);
+                    _context.ActivePlayer.RemoveFromHand(card);
 
-            // 1c. Process Turn End Promote (Self-Promote effects, e.g. Revenant) - before
-            // Cleanup below moves anything still in Played to the discard pile.
-            // PlayerStateManager.TryPromoteCard already finds and removes the card from
-            // wherever it currently sits (Hand/Played/Discard), unlike the Devour loop above,
-            // and already logs success/failure itself.
-            foreach (var card in _context.CardsMarkedForTurnEndPromote.ToList())
-            {
-                _context.PlayerStateManager.TryPromoteCard(_context.ActivePlayer, card, out _);
-            }
-            _context.CardsMarkedForTurnEndPromote.Clear();
+                    // Move to Void
+                    card.Location = CardLocation.Void;
+                    _context.VoidPile.Add(card);
+                }
+                _context.CardsMarkedForTurnEndDevour.Clear();
 
-            // 1d. Process deferred Promote-effect completions (e.g. Blue Dragon: "...then gain 1
-            // VP for every 3 cards in your inner circle") - see CardEffect.
-            // PromotionCompletionEffect/TurnContext.DrainPromotionCompletionEffects for why this
-            // (the always-recorded, always-replayed EndTurnCommand) is the only safe firing
-            // point. Runs after 1c above so a Revenant-style self-promote sharing this same turn
-            // is already reflected too, though no shipped card combines the two.
-            foreach (var (source, completionEffect) in _context.TurnManager.CurrentTurnContext.DrainPromotionCompletionEffects())
-            {
-                CardEffectApplier.ApplyEffect(completionEffect, source, _context, _logger);
-            }
+                // 1c. Process Turn End Promote (Self-Promote effects, e.g. Revenant) - before
+                // Cleanup below moves anything still in Played to the discard pile.
+                // PlayerStateManager.TryPromoteCard already finds and removes the card from
+                // wherever it currently sits (Hand/Played/Discard), unlike the Devour loop above,
+                // and already logs success/failure itself.
+                foreach (var card in _context.CardsMarkedForTurnEndPromote.ToList())
+                {
+                    _context.PlayerStateManager.TryPromoteCard(_context.ActivePlayer, card, out _);
+                }
+                _context.CardsMarkedForTurnEndPromote.Clear();
 
-            // 2. Cleanup: Move Hand + Played -> Discard
-            _context.PlayerStateManager.CleanUpTurn(_context.ActivePlayer);
+                // 1d. Process deferred Promote-effect completions (e.g. Blue Dragon: "...then gain 1
+                // VP for every 3 cards in your inner circle") - see CardEffect.
+                // PromotionCompletionEffect/TurnContext.DrainPromotionCompletionEffects for why this
+                // (the always-recorded, always-replayed EndTurnCommand) is the only safe firing
+                // point. Runs after 1c above so a Revenant-style self-promote sharing this same turn
+                // is already reflected too, though no shipped card combines the two.
+                foreach (var (source, completionEffect) in _context.TurnManager.CurrentTurnContext.DrainPromotionCompletionEffects())
+                {
+                    CardEffectApplier.ApplyEffect(completionEffect, source, _context, _logger);
+                }
 
-            // 3. Draw New Hand
-            _context.PlayerStateManager.DrawCards(_context.ActivePlayer, GameConstants.HandSize, _context.Random);
+                // 2. Cleanup: Move Hand + Played -> Discard
+                _context.PlayerStateManager.CleanUpTurn(_context.ActivePlayer);
 
-            // 3b. Opponent-forced-discard triggers (e.g. Neogi's "at end of turn, each
-            // opponent must discard a card") - resolved before the real player switch, since
-            // they're framed as happening at the end of THIS (still-active) player's turn.
-            // Both prior steps only ever touch the ending player, so they're unaffected by
-            // this deferral.
-            if (_context.PendingOpponentDiscardTriggers.Count > 0)
-            {
-                BeginOpponentDiscardPhase();
-                return; // Player-switch deferred - see AdvanceOpponentDiscard/ResolveOpponentDiscard.
+                // 3. Draw New Hand
+                _context.PlayerStateManager.DrawCards(_context.ActivePlayer, GameConstants.HandSize, _context.Random);
+
+                // 3b. Opponent-forced-discard triggers (e.g. Neogi's "at end of turn, each
+                // opponent must discard a card") - resolved before the real player switch, since
+                // they're framed as happening at the end of THIS (still-active) player's turn.
+                // Both prior steps only ever touch the ending player, so they're unaffected by
+                // this deferral.
+                if (_context.PendingOpponentDiscardTriggers.Count > 0)
+                {
+                    BeginOpponentDiscardPhase();
+                    return; // Player-switch deferred - see AdvanceOpponentDiscard/ResolveOpponentDiscard.
+                }
             }
 
             CompleteEndTurnSwitch();

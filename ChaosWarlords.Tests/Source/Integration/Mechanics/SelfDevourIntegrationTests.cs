@@ -52,6 +52,12 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
                 TestLogger.Instance
             );
 
+            // MatchContext defaults to MatchPhase.Setup - this suite exercises normal gameplay
+            // turns (PlayCard + EndTurn's full turn-cycle, including Devour), which
+            // TurnLifecycleSubsystem.EndTurn now skips entirely during Setup (planning.txt TIER
+            // 1 item 12), so Playing must be explicit here.
+            _context.CurrentPhase = MatchPhase.Playing;
+
             // Set MatchContext on ActionSystem for effect processing
             actionSystem.SetMatchContext(_context);
 

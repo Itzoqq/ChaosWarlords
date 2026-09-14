@@ -1,4 +1,5 @@
 using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
 using NSubstitute;
@@ -10,6 +11,43 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
     [TestCategory("Unit")]
     public class PlayCardCommandTests
     {
+        [TestMethod]
+        public void Validate_DuringSetupPhase_IsRejected()
+        {
+            // TIER 1 item 12: Setup now deals a real 5-card hand (MatchFactory.Build), so an
+            // empty hand no longer protects against this by construction - PlayCardCommand
+            // must reject it explicitly. See planning.txt.
+            var stateFake = new TestGameplayState();
+            var player = new Player(PlayerColor.Red);
+            stateFake.TurnManager.ActivePlayer.Returns(player);
+            stateFake.MatchContext.CurrentPhase = MatchPhase.Setup;
+
+            var card = TestData.Cards.AssassinCard();
+            player.AddToHand(card);
+            var command = new PlayCardCommand(card);
+
+            bool result = command.Validate(stateFake.MatchContext);
+
+            Assert.IsFalse(result, "Playing a card during Setup (initial troop deployment) must be rejected.");
+        }
+
+        [TestMethod]
+        public void Validate_DuringPlayingPhase_WithCardInHand_Succeeds()
+        {
+            var stateFake = new TestGameplayState();
+            var player = new Player(PlayerColor.Red);
+            stateFake.TurnManager.ActivePlayer.Returns(player);
+            stateFake.MatchContext.CurrentPhase = MatchPhase.Playing;
+
+            var card = TestData.Cards.AssassinCard();
+            player.AddToHand(card);
+            var command = new PlayCardCommand(card);
+
+            bool result = command.Validate(stateFake.MatchContext);
+
+            Assert.IsTrue(result, "Playing a card the active player actually holds during Playing phase must succeed.");
+        }
+
         [TestMethod]
         public void Execute_CallsPlayCardOnState()
         {
