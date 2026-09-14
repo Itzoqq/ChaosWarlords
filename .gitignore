@@ -63,3 +63,6 @@ AGENTS.md
 .codex/
 .agents/
 .local-tools/
+
+# --- Local Engineering Reviews ---
+thorough_review.md

@@ -425,6 +425,122 @@ namespace ChaosWarlords.Tests.Integration.Managers
             Assert.AreEqual(MatchPhase.Playing, _context.CurrentPhase, "Should transition to Playing if game has progressed (Discard Pile not empty).");
             _mapManager.Received(1).SetPhase(MatchPhase.Playing);
         }
+
+        [TestMethod]
+        public void EndTurn_DuringSetupDeployment_DoesNotAdvanceRoundOrTurnCounters()
+        {
+            // Each player's single Setup-phase deployment auto-ends their turn through this
+            // exact same EndTurn() path (see GameplayState.HandleSetupDeploymentComplete), but
+            // it isn't a real game turn/round - RoundNumber/TotalTurnCount must stay at their
+            // initial values until real Playing-phase turns actually happen.
+            _context.CurrentPhase = MatchPhase.Setup;
+            var node1 = TestData.MapNodes.Node1();
+            node1.Occupant = _p1.Color;
+            var node2 = TestData.MapNodes.Node2();
+            node2.Occupant = PlayerColor.None;
+            _mapManager.Nodes.Returns(new List<MapNode> { node1, node2 });
+
+            // Act: P1 (active) ends their setup deployment turn - switches to P2, still Setup.
+            _controller.EndTurn();
+
+            Assert.AreEqual(MatchPhase.Setup, _context.CurrentPhase);
+            Assert.AreEqual(1, _controller.RoundNumber, "P1's setup deployment must not advance RoundNumber.");
+            Assert.AreEqual(1, _controller.TotalTurnCount, "P1's setup deployment must not advance TotalTurnCount.");
+
+            // Arrange: P2 (now active) also deploys.
+            node2.Occupant = _p2.Color;
+
+            // Act: P2's setup deployment turn ends - the last setup turn, transitioning to Playing.
+            _controller.EndTurn();
+
+            Assert.AreEqual(MatchPhase.Playing, _context.CurrentPhase);
+            Assert.AreEqual(1, _controller.RoundNumber, "Entering Playing phase must not have already consumed a round.");
+            Assert.AreEqual(1, _controller.TotalTurnCount, "Entering Playing phase must not have already consumed a turn.");
+        }
+
+        [TestMethod]
+        public void EndTurn_DuringPlayingPhase_AdvancesTurnCounter_AndRoundOnlyOnLastPlayer()
+        {
+            // Regression guard for the Setup-phase fix above: once real play has started, the
+            // normal per-turn/per-round advancement must still work exactly as before.
+            _context.CurrentPhase = MatchPhase.Playing;
+            for (int i = 0; i < 10; i++) _p1.DeckManager.AddToTop(TestData.Cards.CheapCard());
+            for (int i = 0; i < 10; i++) _p2.DeckManager.AddToTop(TestData.Cards.CheapCard());
+
+            // Act: P1 (active, not last-in-seat-order) ends their turn.
+            _controller.EndTurn();
+
+            Assert.AreEqual(2, _controller.TotalTurnCount, "TotalTurnCount must still advance every real turn.");
+            Assert.AreEqual(1, _controller.RoundNumber, "RoundNumber must not advance until the LAST player's turn ends.");
+
+            // Act: P2 (now active, last-in-seat-order) ends their turn.
+            _controller.EndTurn();
+
+            Assert.AreEqual(3, _controller.TotalTurnCount);
+            Assert.AreEqual(2, _controller.RoundNumber, "RoundNumber must advance once the last player's turn ends.");
+        }
+
+        [TestMethod]
+        public void EndTurn_DuringSetupDeployment_WithFourPlayers_DoesNotAdvanceRoundOrTurnCounters()
+        {
+            // Generalizes the 2-player Setup-phase fix above to the rulebook's full 2-4 player
+            // range: isLastPlayerInRound is index-based (currentIndex == players.Count - 1) and
+            // wasSetupPhase is re-derived from live CurrentPhase on every call, so nothing here
+            // should special-case player count - this proves it, rather than leaving it as
+            // code-inspection-only reasoning. Builds its own local fixture (not the shared
+            // 2-player _context/_controller) since the class-level Setup() hardcodes 2 players.
+            var p1 = TestData.Players.RedPlayer();
+            var p2 = TestData.Players.BluePlayer();
+            var p3 = TestData.Players.BlackPlayer();
+            var p4 = TestData.Players.OrangePlayer();
+
+            var mapManager = Substitute.For<IMapManager>();
+            var marketManager = Substitute.For<IMarketManager>();
+            var actionSystem = Substitute.For<IActionSystem>();
+            var cardDatabase = Substitute.For<ICardDatabase>();
+            var victoryManager = Substitute.For<IVictoryManager>();
+            var mockRandom = Substitute.For<IGameRandom>();
+            var playerState = new PlayerStateManager(Utilities.TestLogger.Instance);
+            var turnManager = new TurnManager(new List<Player> { p1, p2, p3, p4 }, mockRandom, Utilities.TestLogger.Instance);
+
+            var context = new MatchContext(
+                turnManager, mapManager, marketManager, actionSystem, cardDatabase, playerState, Utilities.TestLogger.Instance)
+            {
+                CurrentPhase = MatchPhase.Setup
+            };
+            var controller = new MatchManager(context, Utilities.TestLogger.Instance, victoryManager);
+
+            var node1 = TestData.MapNodes.Node1();
+            var node2 = TestData.MapNodes.Node2();
+            var node3 = TestData.MapNodes.Node3();
+            var node4 = TestData.MapNodes.Node4();
+            node1.Occupant = PlayerColor.None;
+            node2.Occupant = PlayerColor.None;
+            node3.Occupant = PlayerColor.None;
+            node4.Occupant = PlayerColor.None;
+            mapManager.Nodes.Returns(new List<MapNode> { node1, node2, node3, node4 });
+
+            // Act: seats 0-2 (Red, Blue, Black) each deploy and end their setup turn in order.
+            node1.Occupant = p1.Color;
+            controller.EndTurn(); // Red -> Blue
+            node2.Occupant = p2.Color;
+            controller.EndTurn(); // Blue -> Black
+            node3.Occupant = p3.Color;
+            controller.EndTurn(); // Black -> Orange
+
+            Assert.AreEqual(MatchPhase.Setup, context.CurrentPhase, "3 of 4 players deployed - must stay in Setup.");
+            Assert.AreEqual(1, controller.RoundNumber, "No setup deployment turn may advance RoundNumber.");
+            Assert.AreEqual(1, controller.TotalTurnCount, "No setup deployment turn may advance TotalTurnCount.");
+
+            // Act: the 4th and last player (Orange) deploys - transitions Setup -> Playing.
+            node4.Occupant = p4.Color;
+            controller.EndTurn();
+
+            Assert.AreEqual(MatchPhase.Playing, context.CurrentPhase);
+            Assert.AreEqual(1, controller.RoundNumber, "Entering Playing phase must not have already consumed a round, regardless of player count.");
+            Assert.AreEqual(1, controller.TotalTurnCount, "Entering Playing phase must not have already consumed a turn, regardless of player count.");
+        }
+
         [TestMethod]
         public void PlayCard_Fails_IfCardNotOwnedByPlayer()
         {

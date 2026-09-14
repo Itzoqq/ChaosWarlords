@@ -277,6 +277,18 @@ namespace ChaosWarlords.Source.Managers
 
         private void CompleteEndTurnSwitch()
         {
+            // Setup-phase deployment turns (each player's single initial-troop placement) run
+            // through this exact same EndTurn path so they're replay-recorded as ordinary
+            // EndTurnCommands (see GameplayState.HandleSetupDeploymentComplete) - but they are
+            // NOT real game turns/rounds, so RoundNumber/TotalTurnCount must not advance for
+            // them; real play must start at Round 1, Turn Total 1. Captured BEFORE the
+            // Setup->Playing transition check below, which runs later in this same call and
+            // would otherwise make the transitioning call look like it already started Playing.
+            // Cosmetic-only impact today (RoundNumber/TotalTurnCount have exactly one consumer,
+            // UIRenderer's display text - no VictoryManager/rules logic reads either), but a
+            // landmine for any future round-based rule.
+            bool wasSetupPhase = _context.CurrentPhase == MatchPhase.Setup;
+
             // --- Check Round / Turn Status BEFORE switching ---
             // We need to know if the CURRENT active player is the last one in the cycle.
             // TurnManager doesn't expose Index directly, but we know the list order.
@@ -286,64 +298,82 @@ namespace ChaosWarlords.Source.Managers
 
             // 4. Switch Player
             _context.TurnManager.EndTurn();
-            TotalTurnCount++;
+            if (!wasSetupPhase)
+            {
+                TotalTurnCount++;
+            }
 
             // 4b. Log Turn Start (New)
             _logger.Log($"Turn Started for {_context.ActivePlayer.DisplayName} (Round {RoundNumber}, Turn Total {TotalTurnCount})", LogChannel.Info);
 
             // 5. START OF TURN Actions for the NEW active player
-
-            // Phase Check: Transition from Setup to Playing?
-            if (_context.CurrentPhase == MatchPhase.Setup)
-            {
-                // Check if ALL players have placed their initial troop
-                // (Assuming 1 troop per player for Setup)
-                bool allDeployed = _context.TurnManager.Players.All(p =>
-                    _context.MapManager.Nodes.Any(n => n.Occupant == p.Color));
-
-                // SAFEGUARD: If any player has cards in Discard Pile, the game has clearly started (Setup phase doesn't use cards).
-                // This prevents getting stuck in Setup if a player is wiped or deployment logic fails.
-                bool gameHasProgressed = _context.TurnManager.Players.Any(p => p.DiscardPile.Count > 0);
-
-                if (allDeployed || gameHasProgressed)
-                {
-                    _logger.Log("All armies deployed (or game in progress). The War Begins! (Entering Playing Phase)", LogChannel.General);
-                    _context.CurrentPhase = MatchPhase.Playing;
-                    _context.MapManager.SetPhase(MatchPhase.Playing);
-                }
-            }
+            TryTransitionSetupToPlaying();
 
             _context.MapManager.DistributeStartOfTurnRewards(_context.ActivePlayer);
 
-            // --- DEFERRED VICTORY CHECK ---
+            UpdateDeferredVictoryCheck();
 
-            // Check if end game conditions are met NOW (e.g. barracks empty)
-            // But do not trigger immediately if the round is not over.
-            if (!_endGamePending)
-            {
-                if (_victoryManager.CheckEndGameConditions(_context, out var reason))
-                {
-                    _endGamePending = true;
-                    _pendingVictoryReason = reason;
-                    _logger.Log($"End-Game Condition Met: {_pendingVictoryReason}. Waiting for round to finish...", LogChannel.Info);
-                }
-            }
-
-            // If we just finished the turn of the last player in the round...
             if (isLastPlayerInRound)
             {
-                // If game ends is pending, trigger it now.
-                if (_endGamePending)
-                {
-                    TriggerGameOver();
-                }
-                else
-                {
-                    // Otherwise, proceed to next round
-                    RoundNumber++;
-                    _logger.Log($"Round {RoundNumber} Started.", LogChannel.Info);
-                }
+                HandleEndOfRound(wasSetupPhase);
             }
+        }
+
+        // Phase Check: Transition from Setup to Playing?
+        private void TryTransitionSetupToPlaying()
+        {
+            if (_context.CurrentPhase != MatchPhase.Setup) return;
+
+            // Check if ALL players have placed their initial troop
+            // (Assuming 1 troop per player for Setup)
+            bool allDeployed = _context.TurnManager.Players.All(p =>
+                _context.MapManager.Nodes.Any(n => n.Occupant == p.Color));
+
+            // SAFEGUARD: If any player has cards in Discard Pile, the game has clearly started (Setup phase doesn't use cards).
+            // This prevents getting stuck in Setup if a player is wiped or deployment logic fails.
+            bool gameHasProgressed = _context.TurnManager.Players.Any(p => p.DiscardPile.Count > 0);
+
+            if (!allDeployed && !gameHasProgressed) return;
+
+            _logger.Log("All armies deployed (or game in progress). The War Begins! (Entering Playing Phase)", LogChannel.General);
+            _context.CurrentPhase = MatchPhase.Playing;
+            _context.MapManager.SetPhase(MatchPhase.Playing);
+        }
+
+        // --- DEFERRED VICTORY CHECK ---
+        // Check if end game conditions are met NOW (e.g. barracks empty), but do not trigger
+        // immediately if the round is not over.
+        private void UpdateDeferredVictoryCheck()
+        {
+            if (_endGamePending) return;
+            if (!_victoryManager.CheckEndGameConditions(_context, out var reason)) return;
+
+            _endGamePending = true;
+            _pendingVictoryReason = reason;
+            _logger.Log($"End-Game Condition Met: {_pendingVictoryReason}. Waiting for round to finish...", LogChannel.Info);
+        }
+
+        // Called only once we've just finished the turn of the last player in the round.
+        private void HandleEndOfRound(bool wasSetupPhase)
+        {
+            // If game ends is pending, trigger it now. Not gated on wasSetupPhase: in practice
+            // CheckEndGameConditions can never be true during real Setup (barracks full, market
+            // deck full), so this branch is unreachable there - left ungated rather than adding
+            // a dead-in-production check.
+            if (_endGamePending)
+            {
+                TriggerGameOver();
+                return;
+            }
+
+            // Otherwise, proceed to next round - but only for a real game round. The 2
+            // Setup-phase deployment turns (one per player) complete a "round" of their own by
+            // this same last-player-in-round check, and must NOT count as round 1 of the real
+            // game - see CompleteEndTurnSwitch's wasSetupPhase.
+            if (wasSetupPhase) return;
+
+            RoundNumber++;
+            _logger.Log($"Round {RoundNumber} Started.", LogChannel.Info);
         }
 
         public bool IsGameOver()
