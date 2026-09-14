@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities.Map;
+using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
 
@@ -26,6 +27,13 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             _targetSite = TestData.Sites.PowerCity();
             _targetSite.Id = 1;
             _state.MapManager.Sites.Returns(new List<Site> { _targetSite });
+
+            // Returning your own spy has no basic-action shape at all - only ever
+            // legitimately dispatched while a card-granted EffectType.ReturnOwnSpy is the
+            // pending targeting state (see Validate's own CurrentState gate, planning.txt
+            // TIER 1 item 15). Configured here so every other test in this file doesn't have
+            // to repeat it.
+            _state.ActionSystem.CurrentState.Returns(ActionState.TargetingReturnOwnSpy);
         }
 
         [TestMethod]
@@ -50,6 +58,20 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         {
             // e.g. the player has no spy at this site to return.
             _state.MapManager.CanReturnOwnSpy(_targetSite, _player).Returns(false);
+            var command = new ReturnOwnSpyCommand(_targetSite.Id);
+
+            Assert.IsFalse(command.Validate(_state.MatchContext));
+        }
+
+        [TestMethod]
+        public void Validate_ReturnsFalse_WhenNoReturnOwnSpyEffectIsPending()
+        {
+            // Adversarial: Return Own Spy is never a standalone basic action - a directly-
+            // dispatched attempt outside its owning targeting state must be rejected even
+            // when the underlying map state would otherwise allow it. planning.txt TIER 1
+            // item 15.
+            _state.MapManager.CanReturnOwnSpy(_targetSite, _player).Returns(true);
+            _state.ActionSystem.CurrentState.Returns(ActionState.Normal);
             var command = new ReturnOwnSpyCommand(_targetSite.Id);
 
             Assert.IsFalse(command.Validate(_state.MatchContext));

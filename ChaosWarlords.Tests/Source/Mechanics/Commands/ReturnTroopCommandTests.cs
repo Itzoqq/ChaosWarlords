@@ -16,6 +16,13 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         public void Setup()
         {
             _state = new TestGameplayState();
+
+            // Return Troop has no basic-action shape at all - only ever legitimately
+            // dispatched while a card-granted Return Unit/ReturnUnitOrSpy effect is the
+            // pending targeting state (see Validate's own CurrentState gate, planning.txt
+            // TIER 1 item 15). Configured here so every other test in this file doesn't have
+            // to repeat it.
+            _state.ActionSystem.CurrentState.Returns(ActionState.TargetingReturn);
         }
 
         private void SetNodes(params MapNode[] nodes) => _state.MapManager.Nodes.Returns(nodes.ToList());
@@ -64,6 +71,42 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var player = TestData.Players.RedPlayer();
             _state.TurnManager.ActivePlayer.Returns(player);
             _state.MapManager.CanReturnTroop(node, player).Returns(false);
+
+            var command = new ReturnTroopCommand(node.Id);
+
+            Assert.IsFalse(command.Validate(_state.MatchContext));
+        }
+
+        [TestMethod]
+        public void Validate_ReturnsTrue_WhenCurrentStateIsTargetingReturnUnitOrSpy()
+        {
+            // The Intellect Devourer target-type-union state must be accepted too, not just
+            // the plain ReturnUnit state.
+            var node = TestData.MapNodes.BlueNode();
+            SetNodes(node);
+            var player = TestData.Players.RedPlayer();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.MapManager.CanReturnTroop(node, player).Returns(true);
+            _state.ActionSystem.CurrentState.Returns(ActionState.TargetingReturnUnitOrSpy);
+
+            var command = new ReturnTroopCommand(node.Id);
+
+            Assert.IsTrue(command.Validate(_state.MatchContext));
+        }
+
+        [TestMethod]
+        public void Validate_ReturnsFalse_WhenNoReturnTroopEffectIsPending()
+        {
+            // Adversarial: Return Troop is never a standalone basic action - a directly-
+            // dispatched attempt outside its owning targeting state must be rejected even
+            // when the underlying map state would otherwise allow it. planning.txt TIER 1
+            // item 15.
+            var node = TestData.MapNodes.BlueNode();
+            SetNodes(node);
+            var player = TestData.Players.RedPlayer();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.MapManager.CanReturnTroop(node, player).Returns(true);
+            _state.ActionSystem.CurrentState.Returns(ActionState.Normal);
 
             var command = new ReturnTroopCommand(node.Id);
 

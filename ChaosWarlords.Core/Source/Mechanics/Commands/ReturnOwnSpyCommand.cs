@@ -40,6 +40,17 @@ namespace ChaosWarlords.Source.Commands
             var site = context.MapManager.Sites.FirstOrDefault(s => s.Id == TargetSiteId);
             if (site == null) return context.RejectValidation(nameof(ReturnOwnSpyCommand), $"site {TargetSiteId} not found.");
 
+            // Returning your own spy has no basic-action shape at all (it only ever happens
+            // via a card-granted EffectType.ReturnOwnSpy, e.g. Cloaker) - re-derived from
+            // ActionSystem's own trusted CurrentState rather than trusting that a command was
+            // only ever built through the real click path. Without this, a directly-dispatched
+            // command outside its owning targeting state would mutate the board AND desync/
+            // corrupt whatever the ActionSystem's execution stack was actually doing.
+            if (context.ActionSystem.CurrentState != ActionState.TargetingReturnOwnSpy)
+            {
+                return context.RejectValidation(nameof(ReturnOwnSpyCommand), "no pending Return Own Spy effect is open - this command is never a standalone basic action.");
+            }
+
             if (!context.MapManager.CanReturnOwnSpy(site, context.TurnManager.ActivePlayer))
             {
                 return context.RejectValidation(nameof(ReturnOwnSpyCommand), $"MapManager rejected returning the active player's own spy from site '{site.Name}'.");

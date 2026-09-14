@@ -30,6 +30,17 @@ namespace ChaosWarlords.Source.Commands
             var site = context.MapManager.Sites.FirstOrDefault(s => s.Id == TargetSiteId);
             if (site == null) return context.RejectValidation(nameof(PlaceSpyCommand), $"site {TargetSiteId} not found.");
 
+            // Place Spy has no basic-action shape at all (it only ever happens via a card-
+            // granted EffectType.PlaceSpy) - re-derived from ActionSystem's own trusted
+            // CurrentState rather than trusting that a command was only ever built through the
+            // real click path. Without this, a directly-dispatched command outside its owning
+            // targeting state would mutate the board AND desync/corrupt whatever the
+            // ActionSystem's execution stack was actually doing.
+            if (context.ActionSystem.CurrentState != ActionState.TargetingPlaceSpy)
+            {
+                return context.RejectValidation(nameof(PlaceSpyCommand), "no pending Place Spy effect is open - this command is never a standalone basic action.");
+            }
+
             var player = context.TurnManager.ActivePlayer;
 
             // Mirrors SpySubsystem.HandlePlaceSpy's checks: must have a spy to place, and can't

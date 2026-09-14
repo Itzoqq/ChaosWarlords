@@ -120,7 +120,43 @@ namespace ChaosWarlords.Source.Commands
             {
                 return context.RejectValidation(nameof(PromoteCommand), $"card '{CardId}' (RuntimeId {CardRuntimeId}) not found in Hand/PlayedCards{(IsChainedEffect ? "/Discard" : "")}.");
             }
+
+            if (!HasGenuinePromotionOpportunity(context, card))
+            {
+                return context.RejectValidation(nameof(PromoteCommand), $"no pending promotion effect/credit authorizes promoting '{card.Name}' right now.");
+            }
+
             return true;
+        }
+
+        /// <summary>
+        /// Re-derives whether a real promotion opportunity exists from trusted ActionSystem/
+        /// TurnContext state, rather than trusting that the card is merely resolvable at all -
+        /// without this a directly-dispatched PromoteCommand could promote any Hand/Played
+        /// card at any time regardless of whether a promotion was ever actually earned.
+        /// IsChainedEffect==true (the immediate PromoteFromPile flow - Matron Mother,
+        /// Necromancer) requires that exact blocking effect to genuinely be the one
+        /// resolving on ActionSystem's execution stack. IsChainedEffect==false (the legacy
+        /// deferred end-of-turn promotion-credit flow - Wyrmspeaker/Cultist of Myrkul/Air
+        /// Elemental Myrmidon) requires a real outstanding TurnContext credit that can promote
+        /// THIS card - deliberately independent of ActionState: that redemption can be reached
+        /// either through PromoteInputMode's SelectingCardToPromote UI mode, or resolved
+        /// automatically the instant a credit is banked with ActionState already back at
+        /// Normal (see AirElementalMyrmidonScenarioTests) - the credit ledger itself is the
+        /// only trustworthy authorization source here, not any particular ActionState.
+        /// CurrentTurnContext is defensively null-checked purely for lightly-mocked test
+        /// doubles (matches ActionSystem.TryCreateTargetingSnapshot's own precedent) - the real
+        /// implementation always provides one.
+        /// </summary>
+        private bool HasGenuinePromotionOpportunity(MatchContext context, Card card)
+        {
+            if (IsChainedEffect)
+            {
+                var pendingEffect = context.ActionSystem.CurrentSourceEffect;
+                return pendingEffect != null && pendingEffect.Type == EffectType.PromoteFromPile;
+            }
+
+            return context.TurnManager.CurrentTurnContext?.HasValidCreditFor(card) == true;
         }
 
         public void Execute(MatchContext context)
@@ -133,6 +169,22 @@ namespace ChaosWarlords.Source.Commands
                 if (context.PlayerStateManager.TryPromoteCard(player, card, out var error))
                 {
                     context.RecordAction("Promote", $"Promoted {card.Name} to Inner Circle.");
+
+                    if (!IsChainedEffect)
+                    {
+                        // Redeeming the legacy deferred end-of-turn promotion credit is this
+                        // command's own responsibility, not the caller's - PromoteInputMode
+                        // used to consume the credit itself, BEFORE dispatching this command,
+                        // which meant a replayed/directly-dispatched PromoteCommand (replay
+                        // never runs input modes - see GameplayState.SwitchToTargetingMode)
+                        // silently never consumed a credit at all. Centralizing it here fixes
+                        // that and matches HasGenuinePromotionOpportunity's own authorization
+                        // check above. Null-checked for the same lightly-mocked-test-double
+                        // reason as that check.
+                        var turnContext = context.TurnManager.CurrentTurnContext;
+                        turnContext?.ConsumeCreditFor(card);
+                        turnContext?.ForfeitUnsatisfiableCredits(player.PlayedCards);
+                    }
                 }
                 // else: card vanished from Hand/Played/Discard between Validate() and Execute()
                 // (e.g. a chained effect moved it) - nothing to promote, so this is a silent

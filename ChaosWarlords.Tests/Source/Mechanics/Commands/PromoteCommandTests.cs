@@ -1,6 +1,8 @@
 using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Core.Data.Dtos;
 using ChaosWarlords.Source.Core.Utilities;
+using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Utilities;
 using NSubstitute;
@@ -19,6 +21,23 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         public void Setup()
         {
             _state = new TestGameplayState();
+        }
+
+        /// <summary>
+        /// Builds a real TurnContext holding one outstanding promotion credit that CAN promote
+        /// <paramref name="targetCard"/>, and wires it as the active player's
+        /// CurrentTurnContext. The legacy deferred promotion-credit flow's Validate() now
+        /// requires a real, matching credit to exist (planning.txt TIER 1 item 15) - every
+        /// pre-existing "Validate()/Execute() should succeed" test using the non-chained (legacy)
+        /// constructor needs one of these, since a bare mocked ActionSystem/TurnManager has no
+        /// credit at all by default.
+        /// </summary>
+        private void GivePromotionCreditFor(Card targetCard, Player player)
+        {
+            var creditSource = new CardBuilder().WithName("credit_source").Build();
+            var turnContext = new TurnContext(player, Utilities.TestLogger.Instance);
+            turnContext.AddPromotionCredit(creditSource, 1);
+            _state.TurnManager.CurrentTurnContext.Returns(turnContext);
         }
 
         [TestMethod]
@@ -43,6 +62,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var card = new CardBuilder().WithName("card1").InHand().Build();
             var player = new PlayerBuilder().WithColor(PlayerColor.Red).WithCardsInHand(card).Build();
             _state.TurnManager.ActivePlayer.Returns(player);
+            GivePromotionCreditFor(card, player);
             var command = new PromoteCommand(card.Id);
 
             // Act
@@ -53,6 +73,22 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         }
 
         [TestMethod]
+        public void Validate_Returns_False_When_CardInHand_ButNoPromotionCreditIsOutstanding()
+        {
+            // Adversarial: a card being resolvable in Hand is not, by itself, proof a
+            // promotion was ever earned - planning.txt TIER 1 item 15.
+            var card = new CardBuilder().WithName("card1").InHand().Build();
+            var player = new PlayerBuilder().WithColor(PlayerColor.Red).WithCardsInHand(card).Build();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.TurnManager.CurrentTurnContext.Returns(new TurnContext(player, Utilities.TestLogger.Instance));
+            var command = new PromoteCommand(card.Id);
+
+            var result = command.Validate(_state.MatchContext);
+
+            Assert.IsFalse(result, "No outstanding promotion credit exists for this card - a directly-dispatched command must not promote it for free.");
+        }
+
+        [TestMethod]
         public void Validate_Returns_True_When_CardInPlayedCards()
         {
             // Arrange
@@ -60,6 +96,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var player = TestData.Players.RedPlayer();
             player.AddToPlayed(card);
             _state.TurnManager.ActivePlayer.Returns(player);
+            GivePromotionCreditFor(card, player);
             var command = new PromoteCommand(card.Id);
 
             // Act
@@ -115,6 +152,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var card = new CardBuilder().WithName("card1").InHand().Build();
             var player = new PlayerBuilder().WithColor(PlayerColor.Red).WithCardsInHand(card).Build();
             _state.TurnManager.ActivePlayer.Returns(player);
+            GivePromotionCreditFor(card, player);
             var command = new PromoteCommand(card.Id);
 
             // Act
@@ -150,6 +188,10 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var card = new CardBuilder().WithName("card1").InDiscard().Build();
             var player = new PlayerBuilder().WithColor(PlayerColor.Red).WithCardsInDiscard(card).Build();
             _state.TurnManager.ActivePlayer.Returns(player);
+            // The chained PromoteFromPile flow's own authorization check (planning.txt TIER 1
+            // item 15) - a real blocking PromoteFromPile effect must be the one currently
+            // resolving on ActionSystem's execution stack.
+            _state.ActionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.PromoteFromPile, 1));
             var command = new PromoteCommand(card.Id, isChainedEffect: true);
 
             // Act
@@ -157,6 +199,24 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
 
             // Assert
             Assert.IsTrue(result);
+        }
+
+        [TestMethod]
+        public void Validate_WithIsChainedEffectTrue_ReturnsFalse_WhenNoPromoteFromPileEffectIsPending()
+        {
+            // Adversarial: the immediate chained flow is never a standalone action - a
+            // directly-dispatched command claiming IsChainedEffect must still be rejected
+            // unless a real PromoteFromPile effect is genuinely pending. planning.txt TIER 1
+            // item 15.
+            var card = new CardBuilder().WithName("card1").InHand().Build();
+            var player = new PlayerBuilder().WithColor(PlayerColor.Red).WithCardsInHand(card).Build();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            // CurrentSourceEffect deliberately left unconfigured (null) - no pending effect at all.
+            var command = new PromoteCommand(card.Id, isChainedEffect: true);
+
+            var result = command.Validate(_state.MatchContext);
+
+            Assert.IsFalse(result);
         }
 
         [TestMethod]

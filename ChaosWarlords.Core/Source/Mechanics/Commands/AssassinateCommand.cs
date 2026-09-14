@@ -37,7 +37,7 @@ namespace ChaosWarlords.Source.Commands
 
             var player = context.TurnManager.ActivePlayer; // Assassinate is usually active player action
 
-            if (!HasSufficientPower(player))
+            if (!HasSufficientPower(context, player))
             {
                 return context.RejectValidation(nameof(AssassinateCommand), $"insufficient Power (has {player.Power}, needs {GameConstants.AssassinatePowerCost}).");
             }
@@ -56,9 +56,20 @@ namespace ChaosWarlords.Source.Commands
         }
 
         // When not fed by a card, this costs Power - enforced here (not just in the input
-        // layer) so a directly-dispatched command can't grant a free assassination.
-        private bool HasSufficientPower(Player player) =>
-            !string.IsNullOrEmpty(CardId) || player.Power >= GameConstants.AssassinatePowerCost;
+        // layer) so a directly-dispatched command can't grant a free assassination. Whether
+        // it's genuinely card-funded is re-derived from ActionSystem's own trusted
+        // CurrentSourceEffect, the same defense RequiresNeutralTarget below already uses - a
+        // bare non-empty CardId alone is never enough, so a forged command can't waive the
+        // cost by merely naming a CardId with nothing actually pending.
+        private bool HasSufficientPower(MatchContext context, Player player) =>
+            IsGenuineAssassinateEffectPending(context) || player.Power >= GameConstants.AssassinatePowerCost;
+
+        private bool IsGenuineAssassinateEffectPending(MatchContext context)
+        {
+            if (string.IsNullOrEmpty(CardId)) return false;
+            var pendingEffect = context.ActionSystem.CurrentSourceEffect;
+            return pendingEffect != null && pendingEffect.Type == EffectType.Assassinate;
+        }
 
         // Re-derives the neutral-only restriction from the currently pending CardEffect (e.g.
         // Ravenous Zombies' "Assassinate a white troop") rather than trusting anything the

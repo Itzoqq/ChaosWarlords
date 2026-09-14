@@ -22,6 +22,12 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             _targetSite = TestData.Sites.PowerCity();
             _targetSite.Id = 1;
             _state.MapManager.Sites.Returns(new List<Site> { _targetSite });
+
+            // Place Spy has no basic-action shape at all - only ever legitimately dispatched
+            // while a card-granted EffectType.PlaceSpy is the pending targeting state (see
+            // Validate's own CurrentState gate, planning.txt TIER 1 item 15). Configured here
+            // so every other test in this file doesn't have to repeat it.
+            _state.ActionSystem.CurrentState.Returns(ActionState.TargetingPlaceSpy);
         }
 
         [TestMethod]
@@ -86,6 +92,23 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
 
             // Assert
             Assert.IsTrue(result);
+        }
+
+        [TestMethod]
+        public void Validate_ReturnsFalse_WhenNoPlaceSpyEffectIsPending()
+        {
+            // Adversarial: Place Spy is never a standalone basic action - a directly-
+            // dispatched attempt outside its owning targeting state must be rejected even
+            // when every other check would otherwise pass. planning.txt TIER 1 item 15.
+            var player = TestData.Players.RedPlayer();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.ActionSystem.CurrentState.Returns(ActionState.Normal);
+
+            var command = new PlaceSpyCommand(_targetSite.Id);
+
+            var result = command.Validate(_state.MatchContext);
+
+            Assert.IsFalse(result);
         }
 
         [TestMethod]

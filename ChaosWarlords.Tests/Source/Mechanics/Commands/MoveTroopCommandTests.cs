@@ -1,5 +1,6 @@
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Entities.Map;
+using ChaosWarlords.Source.Utilities;
 using NSubstitute;
 using ChaosWarlords.Tests.Source.Doubles.State;
 
@@ -23,6 +24,12 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // Add nodes to the collection
             var nodeList =new List<MapNode> { _sourceNode, _destNode };
             _state.MapManager.Nodes.Returns(nodeList);
+
+            // Move Troop has no basic-action shape at all - only ever legitimately dispatched
+            // while a card-granted EffectType.MoveUnit is the pending targeting state (see
+            // Validate's own CurrentState gate, planning.txt TIER 1 item 15). Configured here
+            // so every other test in this file doesn't have to repeat it.
+            _state.ActionSystem.CurrentState.Returns(ActionState.TargetingMoveDestination);
         }
 
         [TestMethod]
@@ -116,6 +123,26 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
 
             // Assert
             Assert.IsTrue(result, "Should return true when all validations pass");
+        }
+
+        [TestMethod]
+        public void Validate_ReturnsFalse_WhenNoMoveTroopEffectIsPending()
+        {
+            // Adversarial: Move Troop is never a standalone basic action - a directly-
+            // dispatched attempt outside its owning targeting state must be rejected even
+            // when the underlying map state would otherwise allow it. planning.txt TIER 1
+            // item 15.
+            var player = TestData.Players.RedPlayer();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.MapManager.CanMoveSource(_sourceNode, player).Returns(true);
+            _state.MapManager.CanMoveDestination(_destNode).Returns(true);
+            _state.ActionSystem.CurrentState.Returns(ActionState.Normal);
+
+            var command = new MoveTroopCommand(_sourceNode.Id, _destNode.Id);
+
+            var result = command.Validate(_state.MatchContext);
+
+            Assert.IsFalse(result);
         }
 
         [TestMethod]

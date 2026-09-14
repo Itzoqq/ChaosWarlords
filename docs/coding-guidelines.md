@@ -901,3 +901,43 @@ private static CardEffect CloneEffect(CardEffect effect) => new(effect.Type, eff
 ```
 
 See the `tyrants-rules` skill's `reference/bug-log.md` for the full incident history behind this rule, and `reference/patterns.md` for the current list of established per-effect fields (`TargetNeutralTroopOnly`, `IgnoresPresenceRequirement`, `TargetsAffectedPlayer`, etc.) as worked examples of the checklist above already applied correctly.
+
+---
+
+## 25. Command Authorization Derives From Trusted State, Never a Caller-Supplied Flag
+
+**Rule**: `IGameCommand.Validate()` must re-derive whether an action is legal, chained, or cost-waived from `ActionSystem`'s own trusted state (`CurrentState`, `CurrentSourceEffect`, `PendingCard`, `PendingSite`, etc.) or another authoritative ledger (e.g. `TurnContext`'s promotion credits) - never from a plain field the command's own constructor was handed (a `CardId`/`bool` the caller supplies), and never by skipping the check because "the UI never builds it that way."
+
+**Why**: Every command's `Execute()` mutates real game state, and `CommandDispatcher` calls `Validate()` immediately before `Execute()` on the same instance - so `Validate()` is the *only* real defense once anything other than the shipped `IInputMode` click flow can construct and dispatch a command (a forged/replayed command, or - the concrete motivating case - TIER 2's planned AI opponent dispatching `IGameCommand`s directly rather than only through UI-mode gatekeeping). A command whose `Validate()` only checks "does the referenced entity exist" (not "is this action currently *earned*") looks correct against every test built through the real click path, yet grants a free/illegitimate action the moment something dispatches it directly. A bare non-empty `CardId` is not proof of card-funding on its own (`AssassinateCommand`, `ReturnAnySpyCommand` re-derive it from a genuinely pending matching effect instead); a card being resolvable in Hand/Played is not proof a promotion was ever earned (`PromoteCommand` requires either a genuinely pending `PromoteFromPile` effect or a real outstanding `TurnContext` credit); and an action with no basic-action shape at all (`PlaceSpyCommand`/`MoveTroopCommand`/`ReturnTroopCommand`/`ReturnOwnSpyCommand`/`SupplantCommand`) needs `ActionSystem.CurrentState` checked explicitly, since nothing else stops a directly-dispatched one of these outside its owning targeting state from mutating the board and desyncing whatever the execution stack was actually doing.
+
+```csharp
+// ❌ WRONG: trusts a caller-supplied flag as proof the action is legitimately funded/pending
+private bool HasSufficientPower(Player player) =>
+    !string.IsNullOrEmpty(CardId) || player.Power >= GameConstants.AssassinatePowerCost;
+
+// ❌ WRONG: no check at all that this command's owning targeting state is even active
+public bool Validate(MatchContext context) => context.MapManager.Sites.Any(s => s.Id == TargetSiteId);
+
+// ✅ CORRECT: re-derives "genuinely funded/pending" from ActionSystem's own trusted state
+private bool HasSufficientPower(MatchContext context, Player player) =>
+    IsGenuineAssassinateEffectPending(context) || player.Power >= GameConstants.AssassinatePowerCost;
+
+private bool IsGenuineAssassinateEffectPending(MatchContext context)
+{
+    if (string.IsNullOrEmpty(CardId)) return false;
+    var pendingEffect = context.ActionSystem.CurrentSourceEffect;
+    return pendingEffect != null && pendingEffect.Type == EffectType.Assassinate;
+}
+
+// ✅ CORRECT: a command with no basic-action shape at all requires its owning ActionState
+public bool Validate(MatchContext context)
+{
+    if (context.ActionSystem.CurrentState != ActionState.TargetingPlaceSpy)
+        return context.RejectValidation(nameof(PlaceSpyCommand), "no pending Place Spy effect is open.");
+    // ...
+}
+```
+
+**Applies to**: any new command whose action is either (a) sometimes funded by a card and sometimes a paid basic action (re-derive "funded" from `CurrentSourceEffect`/`PendingCard`, matching the cost only when a real matching effect/card is pending - not from a bare caller-supplied ID), or (b) *only ever* reachable via a card-granted effect with no standalone basic-action equivalent (gate `Validate()` on `ActionSystem.CurrentState` being exactly the state `ActionInputController` would have routed through). When in doubt, check whether `ActionInputController`/the relevant subsystem's click handler derives the same value from `ActionSystem` state before ever constructing the command - if so, `Validate()` must re-derive that exact same value the same way, not accept whatever the constructed command instance happens to carry.
+
+See `AssassinateCommand.HasSufficientPower`, `ReturnAnySpyCommand.Validate`/`Execute`, `PromoteCommand.HasGenuinePromotionOpportunity`, and `PlaceSpyCommand`/`MoveTroopCommand`/`ReturnTroopCommand`/`ReturnOwnSpyCommand`/`SupplantCommand`'s `Validate()` for the real fixes. Known residual gaps in the same family, not yet fixed: `ResolveSpyCommand` (mutates before checking `TrySpendPower`'s result, same shape `ReturnAnySpyCommand` had); `DevourCardCommand`/`DiscardCardCommand` (no check that a genuine Devour/forced-discard effect is actually pending) - see `planning.txt`'s open items before treating any command in `Source/Mechanics/Commands/` as a template without checking it against this rule first.

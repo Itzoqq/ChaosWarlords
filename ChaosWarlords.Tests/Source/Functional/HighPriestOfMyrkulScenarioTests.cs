@@ -276,7 +276,8 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             var turnContext = scenario.Context.TurnManager.CurrentTurnContext;
             Assert.IsTrue(turnContext.HasValidCreditFor(undeadCard));
-            turnContext.ConsumeCreditFor(undeadCard);
+            // PromoteCommand.Execute() itself consumes the matching credit - see its own doc
+            // comment (planning.txt TIER 1 item 15) - no manual pre-consumption needed here.
             scenario.Dispatch(new PromoteCommand(undeadCard));
 
             Assert.Contains(undeadCard, red.InnerCircle);

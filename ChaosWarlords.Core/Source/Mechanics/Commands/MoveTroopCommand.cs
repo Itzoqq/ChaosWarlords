@@ -41,6 +41,17 @@ namespace ChaosWarlords.Source.Commands
 
             var player = context.TurnManager.ActivePlayer;
 
+            // Move Troop has no basic-action shape at all (it only ever happens via a card-
+            // granted EffectType.MoveUnit) - re-derived from ActionSystem's own trusted
+            // CurrentState rather than trusting that a command was only ever built through the
+            // real click path. Without this, a directly-dispatched command outside its owning
+            // targeting state would mutate the board AND desync/corrupt whatever the
+            // ActionSystem's execution stack was actually doing.
+            if (context.ActionSystem.CurrentState != ActionState.TargetingMoveDestination)
+            {
+                return context.RejectValidation(nameof(MoveTroopCommand), "no pending Move Troop effect is open - this command is never a standalone basic action.");
+            }
+
             // 2. Delegate to MapManager logic - checked separately (not a single && expression)
             // so a rejection log can say WHICH half failed.
             if (!context.MapManager.CanMoveSource(src, player))

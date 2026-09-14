@@ -252,7 +252,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         // --- The known, documented ambiguous-site click-resolution gap ---
 
         [TestMethod]
-        public void ClickingAnAmbiguousSite_IsRejectedByTheInputLayer_ButAForgedCommandNamingOneColorStillWorks()
+        public void ClickingAnAmbiguousSite_IsRejectedByTheInputLayer_AndASubsequentForgedCommandIsAlsoRejected()
         {
             var scenario = MatchScenario.Build();
             var (red, _) = SetupRedWithOneAdjacentEnemyTroop(scenario); // Keeps HasValidTargets true via the troop path even though the spy site below is ambiguous.
@@ -270,14 +270,16 @@ namespace ChaosWarlords.Tests.Source.Functional
             Assert.Contains(red.Color, site.Spies, "Nothing should have moved.");
             Assert.Contains(PlayerColor.Blue, site.Spies);
 
-            // The command-level primitive itself is fully generic - a client naming ONE specific
-            // color explicitly still works correctly regardless of how many OTHER candidates were
-            // at that site (only the click-to-command input-layer convenience has the gap).
+            // The ambiguity rejection cancels the WHOLE targeting sequence (ActionSystem.
+            // NotifyFailure -> CancelTargeting()), so CurrentState is back to Normal here - a
+            // directly-dispatched command naming one specific color explicitly must be
+            // rejected too, not silently mutate the board outside its owning targeting state.
+            Assert.AreEqual(ActionState.Normal, scenario.Context.ActionSystem.CurrentState);
             var forgedCommand = new ReturnAnySpyCommand(site.Id, PlayerColor.Blue, card.Id);
-            scenario.Dispatch(forgedCommand);
+            scenario.AssertRejected(forgedCommand, "No ReturnUnitOrSpy effect is pending anymore - the ambiguity rejection already cancelled the sequence.");
 
             Assert.Contains(red.Color, site.Spies, "Red's own spy must be untouched.");
-            Assert.DoesNotContain(PlayerColor.Blue, site.Spies);
+            Assert.Contains(PlayerColor.Blue, site.Spies, "Blue's spy must be untouched - the forged command must not have executed.");
         }
 
         // --- Row 4: wrong-player dispatch ---

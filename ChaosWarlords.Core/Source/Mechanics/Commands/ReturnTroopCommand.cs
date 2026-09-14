@@ -30,6 +30,17 @@ namespace ChaosWarlords.Source.Commands
             var node = context.MapManager.GetNodeById(TargetNodeId);
             if (node == null) return context.RejectValidation(nameof(ReturnTroopCommand), $"node {TargetNodeId} not found.");
 
+            // Return Troop has no basic-action shape at all (it only ever happens via a card-
+            // granted EffectType.ReturnUnit or EffectType.ReturnUnitOrSpy) - re-derived from
+            // ActionSystem's own trusted CurrentState rather than trusting that a command was
+            // only ever built through the real click path. Without this, a directly-dispatched
+            // command outside its owning targeting state would mutate the board AND desync/
+            // corrupt whatever the ActionSystem's execution stack was actually doing.
+            if (context.ActionSystem.CurrentState is not (ActionState.TargetingReturn or ActionState.TargetingReturnUnitOrSpy))
+            {
+                return context.RejectValidation(nameof(ReturnTroopCommand), "no pending Return Troop effect is open - this command is never a standalone basic action.");
+            }
+
             // Delegates to MapManager.CanReturnTroop - the single authoritative check
             // (occupied, not Neutral, and Presence required only for an enemy troop, not the
             // requester's own). This used to reimplement those conditions independently,

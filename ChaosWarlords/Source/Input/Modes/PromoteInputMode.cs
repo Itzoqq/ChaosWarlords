@@ -14,16 +14,17 @@ namespace ChaosWarlords.Source.Input.Modes
         private readonly IGameplayState _gameplayState; // Changed type to concrete to access EndTurn easily
         private readonly IInputManager _inputManager;
         private readonly IActionSystem _actionSystem;
-        private int _cardsLeftToPromote;
 
+        // amountToPromote is purely informational (the initial log line below) - "when to
+        // stop" is decided live off TurnContext.PendingPromotionsCount (see HandleLeftClick),
+        // not a separately-maintained counter that could drift from the real credit ledger.
         public PromoteInputMode(IGameplayState gameplayState, IInputManager inputManager, IActionSystem actionSystem, int amountToPromote)
         {
             _gameplayState = gameplayState;
             _inputManager = inputManager;
             _actionSystem = actionSystem;
-            _cardsLeftToPromote = amountToPromote;
 
-            _gameplayState.Logger.Log($"Select {_cardsLeftToPromote} card(s) from your PLAYED pile to Promote.", LogChannel.General);
+            _gameplayState.Logger.Log($"Select {amountToPromote} card(s) from your PLAYED pile to Promote.", LogChannel.General);
         }
 
         public IGameCommand? HandleInteraction(Core.Events.InputEventArgs evt, IMarketManager marketManager, IMapManager mapManager, Player activePlayer, IActionSystem actionSystem)
@@ -85,50 +86,45 @@ namespace ChaosWarlords.Source.Input.Modes
             // --- Safety Check ---
             // Rejects a card promoting itself, or (Air/Fire/Water Elemental Myrmidon's aspect-
             // filtered credits) a card whose Aspect doesn't match the credit's own filter - see
-            // TurnContext.HasValidCreditFor/CreditAllows.
+            // TurnContext.HasValidCreditFor/CreditAllows. A friendly early rejection with a
+            // specific log message; PromoteCommand.Validate() re-derives the exact same check
+            // as the real authorization boundary (planning.txt TIER 1 item 15), so this isn't
+            // this flow's only defense.
             if (!context.HasValidCreditFor(targetCard))
             {
                 _gameplayState.Logger.Log("Invalid Target: no outstanding promotion credit can promote this card (itself, or the wrong aspect).", LogChannel.Warning);
                 return null;
             }
 
-            _cardsLeftToPromote--;
             _gameplayState.Logger.Log($"Promoted {targetCard.Name} to Inner Circle!", LogChannel.Economy);
 
-            context.ConsumeCreditFor(targetCard);
-
-            // 1. Manually execute the promote command immediately
+            // Dispatch the promote command - PromoteCommand.Execute() itself now consumes the
+            // matching credit and sweeps any now-unsatisfiable sibling (e.g. Air + Fire
+            // Elemental Myrmidon both requiring an Obedience card, with only one actually
+            // played this turn), rather than this input mode doing it BEFORE dispatch. That
+            // used to mean a replayed/directly-dispatched PromoteCommand (replay never runs
+            // input modes - see GameplayState.SwitchToTargetingMode) silently never consumed a
+            // credit at all - see PromoteCommand.Execute's own doc comment.
             var promoteCmd = new Commands.PromoteCommand(targetCard.Id);
             _gameplayState.RecordAndExecuteCommand(promoteCmd);
 
-            // 1b. Consuming a credit above can strand a SIBLING one that shared the same
-            // narrow pool of matching cards (e.g. Air + Fire Elemental Myrmidon both requiring
-            // an Obedience card, with only one actually played this turn) - forfeit any credit
-            // that's now unsatisfiable so the redemption loop can't soft-lock waiting for a
-            // target that will never exist. See TurnContext.ForfeitUnsatisfiableCredits's own
-            // doc comment. _cardsLeftToPromote must shrink by the same amount, or this loop
-            // would keep waiting for clicks that can never legally happen.
-            int forfeited = context.ForfeitUnsatisfiableCredits(_gameplayState.MatchContext.TurnManager.ActivePlayer.PlayedCards);
-            if (forfeited > 0)
-            {
-                _gameplayState.Logger.Log($"{forfeited} promotion credit(s) forfeited - no remaining played card can satisfy them.", LogChannel.Warning);
-                _cardsLeftToPromote -= forfeited;
-            }
-
-            // 2. Check if we are done - NOT CancelTargeting() here either (same reasoning as
-            // HandleCancellation above): every credit in this redemption may have already
-            // promoted a real card via an earlier left-click in this same loop, and
-            // CancelTargeting()'s full-sequence snapshot revert (taken once, before the FIRST
-            // promotion) would silently undo ALL of them, not just "finish cleanly."
-            if (_cardsLeftToPromote <= 0)
+            // Check if we are done by reading the credit ledger directly (now authoritative,
+            // since Execute() above already consumed/forfeited as needed) rather than a
+            // separately-maintained counter that could drift from it. NOT CancelTargeting()
+            // here either (same reasoning as HandleCancellation above): every credit in this
+            // redemption may have already promoted a real card via an earlier left-click in
+            // this same loop, and CancelTargeting()'s full-sequence snapshot revert (taken once,
+            // before the FIRST promotion) would silently undo ALL of them, not just "finish
+            // cleanly."
+            if (context.PendingPromotionsCount <= 0)
             {
                 actionSystem.DeclineRemainingPromotions();
 
-                // 3. Return EndTurn command to be executed by Coordinator immediately after
+                // Return EndTurn command to be executed by Coordinator immediately after
                 return new Commands.EndTurnCommand();
             }
 
-            // 4. If not done, return null (Command already executed above)
+            // If not done, return null (command already executed above)
             return null;
         }
 

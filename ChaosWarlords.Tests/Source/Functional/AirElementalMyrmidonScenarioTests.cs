@@ -18,8 +18,9 @@ namespace ChaosWarlords.Tests.Source.Functional
     /// The actual credit REDEMPTION (clicking which played card to promote) is mediated by
     /// PromoteInputMode, a client-side (non-Core) class never exercised by MatchScenario -
     /// matching CultistOfMyrkulScenarioTests.cs's own precedent, this drives that step manually
-    /// (TurnContext.HasValidCreditFor/ConsumeCreditFor + a real PromoteCommand dispatch),
-    /// mirroring exactly what PromoteInputMode.HandleLeftClick does.
+    /// (TurnContext.HasValidCreditFor + a real PromoteCommand dispatch - PromoteCommand.
+    /// Execute() itself consumes the matching credit, see its own doc comment), mirroring
+    /// exactly what PromoteInputMode.HandleLeftClick does.
     /// </summary>
     [TestClass]
     [TestCategory("Integration")]
@@ -63,7 +64,6 @@ namespace ChaosWarlords.Tests.Source.Functional
             Assert.IsFalse(context.HasValidCreditFor(nonOrderCard), "A Shadow-aspect card must not be a valid target for an Order-filtered credit.");
             Assert.IsTrue(context.HasValidCreditFor(orderCard), "An Order-aspect card must be a valid target.");
 
-            context.ConsumeCreditFor(orderCard);
             scenario.Dispatch(new PromoteCommand(orderCard));
 
             Assert.Contains(orderCard, red.InnerCircle);

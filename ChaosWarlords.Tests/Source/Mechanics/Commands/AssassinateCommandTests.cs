@@ -92,10 +92,14 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         [TestMethod]
         public void Validate_IgnoresPowerCost_When_FedByCard()
         {
-            // Arrange: a CardId means the cost is paid by devouring/feeding a card, not Power.
+            // Arrange: a CardId means the cost is paid by devouring/feeding a card, not Power -
+            // but that claim is only trusted while ActionSystem's own CurrentSourceEffect
+            // actually agrees a real Assassinate effect is pending (planning.txt TIER 1 item
+            // 15) - a bare CardId string alone is never enough.
             var player = TestData.Players.PoorPlayer(); // 0 Power
             _state.TurnManager.ActivePlayer.Returns(player);
             _state.MapManager.CanAssassinate(_targetNode, player).Returns(true);
+            _state.ActionSystem.CurrentSourceEffect.Returns(new CardEffect(EffectType.Assassinate, 1));
 
             var command = new AssassinateCommand(_targetNode.Id, cardId: "feeding_card");
 
@@ -104,6 +108,25 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
 
             // Assert
             Assert.IsTrue(result, "A card-fed assassinate shouldn't require spare Power");
+        }
+
+        [TestMethod]
+        public void Validate_StillRequiresPower_When_CardIdIsForgedWithNoGenuinePendingAssassinateEffect()
+        {
+            // Adversarial: a directly-dispatched command can't waive the Power cost just by
+            // naming a non-empty CardId when ActionSystem has no real Assassinate effect
+            // pending at all (e.g. CurrentState/CurrentSourceEffect reflects something
+            // unrelated, or nothing). See planning.txt TIER 1 item 15.
+            var player = TestData.Players.PoorPlayer(); // 0 Power
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.MapManager.CanAssassinate(_targetNode, player).Returns(true);
+            // CurrentSourceEffect deliberately left unconfigured (null) - no pending effect at all.
+
+            var command = new AssassinateCommand(_targetNode.Id, cardId: "forged_card_id");
+
+            var result = command.Validate(_state.MatchContext);
+
+            Assert.IsFalse(result, "A forged CardId with no real pending Assassinate effect must not waive the Power cost.");
         }
 
         [TestMethod]

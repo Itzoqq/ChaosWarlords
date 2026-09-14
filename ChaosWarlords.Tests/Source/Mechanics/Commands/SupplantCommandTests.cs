@@ -20,6 +20,12 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             _state = new TestGameplayState();
             _targetNode = TestData.MapNodes.Node1();
             _state.MapManager.Nodes.Returns(new List<MapNode> { _targetNode });
+
+            // Supplant has no basic-action shape at all - only ever legitimately dispatched
+            // while a card-granted EffectType.Supplant is the pending targeting state (see
+            // Validate's own CurrentState gate). Configured here so every other test in this
+            // file doesn't have to repeat it.
+            _state.ActionSystem.CurrentState.Returns(ActionState.TargetingSupplant);
         }
 
         [TestMethod]
@@ -87,6 +93,24 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
 
             // Assert
             Assert.IsTrue(result);
+        }
+
+        [TestMethod]
+        public void Validate_ReturnsFalse_WhenNoSupplantEffectIsPending()
+        {
+            // Adversarial: Supplant is never a standalone basic action - a directly-
+            // dispatched attempt outside its owning targeting state must be rejected even
+            // when the underlying map state would otherwise allow it.
+            var player = TestData.Players.RedPlayer();
+            _state.TurnManager.ActivePlayer.Returns(player);
+            _state.MapManager.CanAssassinate(_targetNode, player).Returns(true);
+            _state.ActionSystem.CurrentState.Returns(ActionState.Normal);
+
+            var command = new SupplantCommand(_targetNode.Id);
+
+            var result = command.Validate(_state.MatchContext);
+
+            Assert.IsFalse(result);
         }
 
         [TestMethod]

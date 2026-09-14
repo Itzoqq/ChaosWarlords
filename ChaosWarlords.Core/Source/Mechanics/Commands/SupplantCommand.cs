@@ -42,15 +42,18 @@ namespace ChaosWarlords.Source.Commands
 
             if (node == null) return context.RejectValidation(nameof(SupplantCommand), $"target node {TargetNodeId} not found.");
 
-            // Re-derives the neutral-only restriction from the currently pending CardEffect
-            // (e.g. Ravenous Zombies' "Assassinate a white troop") rather than trusting
-            // anything the caller claims, since Validate() is the real defense once a client
-            // can send commands directly.
-            var pendingEffect = context.ActionSystem.CurrentSourceEffect;
-            bool requireNeutral = pendingEffect != null && pendingEffect.Type == EffectType.Supplant && pendingEffect.TargetNeutralTroopOnly;
-            bool ignoresPresence = pendingEffect != null && pendingEffect.Type == EffectType.Supplant && pendingEffect.IgnoresPresenceRequirement;
+            // Supplant has no basic-action shape at all (it only ever happens via a card-
+            // granted EffectType.Supplant) - re-derived from ActionSystem's own trusted
+            // CurrentState rather than trusting that a command was only ever built through
+            // the real click path. Without this, a directly-dispatched command outside its
+            // owning targeting state would mutate the board (recall an enemy troop, deploy
+            // the active player's own) for free.
+            if (context.ActionSystem.CurrentState != ActionState.TargetingSupplant)
+            {
+                return context.RejectValidation(nameof(SupplantCommand), "no pending Supplant effect is open - this command is never a standalone basic action.");
+            }
 
-            if (!context.MapManager.CanAssassinate(node, player, requireNeutral, ignoresPresence))
+            if (!context.MapManager.CanAssassinate(node, player, RequiresNeutralTarget(context), IgnoresPresenceRequirement(context)))
             {
                 return context.RejectValidation(nameof(SupplantCommand), $"MapManager rejected node {TargetNodeId} (presence/ownership/neutral-only check).");
             }
@@ -61,6 +64,25 @@ namespace ChaosWarlords.Source.Commands
             }
 
             return true;
+        }
+
+        // Re-derives the neutral-only restriction from the currently pending CardEffect (e.g.
+        // Ravenous Zombies' "Assassinate a white troop") rather than trusting anything the
+        // caller claims, since Validate() is the real defense once a client can send commands
+        // directly. Mirrors AssassinateCommand.RequiresNeutralTarget.
+        private static bool RequiresNeutralTarget(MatchContext context)
+        {
+            var pendingEffect = context.ActionSystem.CurrentSourceEffect;
+            return pendingEffect != null && pendingEffect.Type == EffectType.Supplant && pendingEffect.TargetNeutralTroopOnly;
+        }
+
+        // Re-derives "anywhere on the board" (Ogre Zombie) the same way - see
+        // RequiresNeutralTarget's own doc comment for why this reads CurrentSourceEffect
+        // instead of trusting the caller.
+        private static bool IgnoresPresenceRequirement(MatchContext context)
+        {
+            var pendingEffect = context.ActionSystem.CurrentSourceEffect;
+            return pendingEffect != null && pendingEffect.Type == EffectType.Supplant && pendingEffect.IgnoresPresenceRequirement;
         }
 
         // Site-scoped Supplant (Graz'zt's chain-in from ReturnOwnSpy: "Supplant a troop at
