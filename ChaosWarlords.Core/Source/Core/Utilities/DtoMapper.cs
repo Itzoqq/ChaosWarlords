@@ -155,9 +155,9 @@ namespace ChaosWarlords.Source.Core.Utilities
 
             if (dto.IsGameOver)
             {
-                var winner = victoryManager.DetermineWinner(context.TurnManager.Players, context);
-                dto.WinnerSeat = winner.SeatIndex;
-                dto.WinnerName = winner.DisplayName;
+                var winners = victoryManager.DetermineWinners(context.TurnManager.Players, context);
+                dto.WinnerSeats = winners.Select(w => w.SeatIndex).ToList();
+                dto.WinnerNames = winners.Select(w => w.DisplayName).ToList();
             }
 
             return dto;

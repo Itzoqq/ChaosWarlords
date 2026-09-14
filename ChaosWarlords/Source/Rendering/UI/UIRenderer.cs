@@ -7,6 +7,7 @@ using ChaosWarlords.Source.Utilities;
 using ChaosWarlords.Source.Core.Utilities;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Linq;
 
 namespace ChaosWarlords.Source.Rendering.UI
 {
@@ -341,9 +342,20 @@ namespace ChaosWarlords.Source.Rendering.UI
             using var overlay = PooledRectangle.Rent(0, 0, screenWidth, screenHeight);
             sb.Draw(_pixelTexture, overlay.Value, Color.Black * 0.9f);
 
-            // 2. Victory Header
-            string headerText = $"VICTOR: {victoryData.WinnerName?.ToUpper(CultureInfo.InvariantCulture) ?? "UNKNOWN"}";
-            string totalVPText = "TOTAL VP: " + (victoryData.WinnerSeat.HasValue ? victoryData.FinalScores[victoryData.WinnerSeat.Value] : 0);
+            // 2. Victory Header - a tie (2+ tied seats, rulebook p.14) shares the win,
+            // so the header and score readout must be able to name more than one winner.
+            var winnerSeats = victoryData.WinnerSeats ?? new List<int>();
+            var winnerNames = victoryData.WinnerNames ?? new List<string>();
+            bool isTie = winnerSeats.Count > 1;
+
+            string headerText = winnerNames.Count == 0
+                ? "VICTOR: UNKNOWN"
+                : isTie
+                    ? $"VICTORS: {string.Join(" & ", winnerNames.Select(n => n.ToUpper(CultureInfo.InvariantCulture)))}"
+                    : $"VICTOR: {winnerNames[0].ToUpper(CultureInfo.InvariantCulture)}";
+
+            int sharedScore = winnerSeats.Count > 0 && victoryData.FinalScores.TryGetValue(winnerSeats[0], out var topScore) ? topScore : 0;
+            string totalVPText = "TOTAL VP: " + sharedScore;
 
             // Calculate positions to center header
             Vector2 headerSize = _defaultFont.MeasureString(headerText);
@@ -358,15 +370,35 @@ namespace ChaosWarlords.Source.Rendering.UI
             sb.DrawString(_defaultFont, headerText, headerPos.Value, Color.Gold);
             sb.DrawString(_defaultFont, totalVPText, totalPos.Value, Color.Gold);
 
-            // 3. Draw Winner Score Breakdown (Large)
-            if (victoryData.WinnerSeat.HasValue && victoryData.ScoreBreakdowns.TryGetValue(victoryData.WinnerSeat.Value, out var winnerBreakdown))
+            // 3. Draw Winner Score Breakdown(s) (Large)
+            float winnerRowY = topY + 100;
+            if (winnerSeats.Count == 1 && victoryData.ScoreBreakdowns.TryGetValue(winnerSeats[0], out var winnerBreakdown))
             {
-                Color winnerColor = GetPlayerColor(victoryData.PlayerColors, victoryData.WinnerSeat.Value);
-                using var winnerPos = PooledVector2.Rent(centerX, topY + 100);
+                Color winnerColor = GetPlayerColor(victoryData.PlayerColors, winnerSeats[0]);
+                using var winnerPos = PooledVector2.Rent(centerX, winnerRowY);
                 DrawScoreBreakdown(sb, winnerBreakdown, winnerPos.Value, true, "", winnerColor);
             }
+            else if (isTie)
+            {
+                float tieRowWidth = (winnerSeats.Count * 200f) + ((winnerSeats.Count - 1) * 50f);
+                float tieStartX = centerX - (tieRowWidth / 2) + 100f;
 
-            // 4. Draw Other Players (Row beneath)
+                for (int i = 0; i < winnerSeats.Count; i++)
+                {
+                    int seat = winnerSeats[i];
+                    if (!victoryData.ScoreBreakdowns.TryGetValue(seat, out var breakdown)) continue;
+
+                    Color winnerColor = GetPlayerColor(victoryData.PlayerColors, seat);
+                    string name = i < winnerNames.Count
+                        ? winnerNames[i].ToUpper(CultureInfo.InvariantCulture)
+                        : "UNKNOWN";
+
+                    using var pos = PooledVector2.Rent(tieStartX + (i * 250f), winnerRowY);
+                    DrawScoreBreakdown(sb, breakdown, pos.Value, false, name, winnerColor);
+                }
+            }
+
+            // 4. Draw Other (non-winning) Players (Row beneath)
             float otherPlayersY = topY + 300f;
             float gap = 250f;
 
@@ -375,7 +407,7 @@ namespace ChaosWarlords.Source.Rendering.UI
             // Assuming max 4 players for standard UI spacing. Iterating fixed range guarantees sorted order (0,1,2,3).
             for (int i = 0; i < 4; i++)
             {
-                if (victoryData.WinnerSeat.HasValue && i == victoryData.WinnerSeat.Value) continue;
+                if (winnerSeats.Contains(i)) continue;
                 if (victoryData.ScoreBreakdowns.ContainsKey(i)) otherCount++;
             }
 
@@ -388,9 +420,9 @@ namespace ChaosWarlords.Source.Rendering.UI
 
                 for (int seat = 0; seat < 4; seat++)
                 {
-                    // Skip Winner
-                    if (victoryData.WinnerSeat.HasValue && seat == victoryData.WinnerSeat.Value) continue;
-                    
+                    // Skip winner(s)
+                    if (winnerSeats.Contains(seat)) continue;
+
                     // Check if player exists
                     if (!victoryData.ScoreBreakdowns.TryGetValue(seat, out var breakdown)) continue;
 

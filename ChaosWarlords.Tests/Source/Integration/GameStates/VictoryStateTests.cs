@@ -36,9 +36,9 @@ namespace ChaosWarlords.Tests.Integration.GameStates
 
             _testVictoryDto = new VictoryDto
             {
-                WinnerName = "Red Player",
+                WinnerNames = new System.Collections.Generic.List<string> { "Red Player" },
                 VictoryReason = "Total Domination",
-                WinnerSeat = 0,
+                WinnerSeats = new System.Collections.Generic.List<int> { 0 },
                 FinalScores = new System.Collections.Generic.Dictionary<int, int> { { 0, 15 }, { 1, 10 } },
                 PlayerColors = new System.Collections.Generic.Dictionary<int, string> { { 0, "Red" }, { 1, "Blue" } },
                 ScoreBreakdowns = new System.Collections.Generic.Dictionary<int, ScoreBreakdownDto>

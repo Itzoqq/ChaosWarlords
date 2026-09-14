@@ -33,11 +33,15 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         Core.Data.Dtos.ScoreBreakdownDto GetScoreBreakdown(Player player, MatchContext context);
 
         /// <summary>
-        /// Determines the winner based on final scores.
+        /// Determines every player who shares the win based on final scores.
+        /// Per the rulebook (p.14), a tie for the highest score is a shared win for
+        /// every tied player - there is no tiebreaker. Returns more than one player
+        /// whenever two or more players are tied for the highest score, ordered by
+        /// seat index for a deterministic (not preferential) result order.
         /// </summary>
         /// <param name="players">All players in the match.</param>
         /// <param name="context">The match context.</param>
-        /// <returns>The player with the highest score.</returns>
-        Player DetermineWinner(List<Player> players, MatchContext context);
+        /// <returns>Every player tied for the highest score.</returns>
+        List<Player> DetermineWinners(List<Player> players, MatchContext context);
     }
 }

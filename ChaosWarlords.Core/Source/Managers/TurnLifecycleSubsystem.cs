@@ -411,7 +411,10 @@ namespace ChaosWarlords.Source.Managers
 
             if (VictoryResult != null)
             {
-                _logger.Log($"Game Over triggered! Winner: {VictoryResult.WinnerName ?? "None"} - Reason: {VictoryResult.VictoryReason}", LogChannel.General);
+                string winnerText = VictoryResult.WinnerNames.Count > 0
+                    ? string.Join(" & ", VictoryResult.WinnerNames)
+                    : "None";
+                _logger.Log($"Game Over triggered! Winner(s): {winnerText} - Reason: {VictoryResult.VictoryReason}", LogChannel.General);
             }
         }
     }

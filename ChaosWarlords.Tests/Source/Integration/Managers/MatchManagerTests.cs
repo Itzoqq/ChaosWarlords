@@ -582,7 +582,7 @@ namespace ChaosWarlords.Tests.Integration.Managers
             // Setup DTO mapper for the final trigger
             _victoryManager.CalculateFinalScore(Arg.Any<Player>(), _context).Returns(10);
             _victoryManager.GetScoreBreakdown(Arg.Any<Player>(), _context).Returns(new ChaosWarlords.Source.Core.Data.Dtos.ScoreBreakdownDto { TotalScore = 10 });
-            _victoryManager.DetermineWinner(Arg.Any<List<Player>>(), _context).Returns(_p1);
+            _victoryManager.DetermineWinners(Arg.Any<List<Player>>(), _context).Returns(new List<Player> { _p1 });
 
             // Act 1: P1 Ends Turn
             _controller.EndTurn();

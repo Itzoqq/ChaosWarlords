@@ -159,17 +159,16 @@ flowchart TD
     end
     
     S1 & S2 & S3 & S4 & S5 --> Total[Total Score]
-    Total --> TieBreaker{Tie?}
+    Total --> TieCheck{Tie for<br/>highest score?}
     
-    TieBreaker -- No --> Winner
-    TieBreaker -- Yes --> TB1[Most Troops Deployed]
-    TB1 --> Winner
+    TieCheck -- No --> Winner[Sole Winner]
+    TieCheck -- Yes --> SharedWinner[Every tied player wins]
     
     style TriggerEnd fill:#ffecb3,stroke:#ff6f00,color:black
     style Total fill:#c8e6c9,stroke:#1b5e20,color:black
 ```
 
-> **Key Takeaway**: The game ends if the **Market Deck is empty** OR if **any player runs out of Troops**. Final score is a sum of direct VPs, Site Control (with bonuses), Trophies, Deck Value, and Inner Circle Value. **Ties** are broken by "Most Troops Deployed" (aggressive play wins ties).
+> **Key Takeaway**: The game ends if the **Market Deck is empty** OR if **any player runs out of Troops**. Final score is a sum of direct VPs, Site Control (with bonuses), Trophies, Deck Value, and Inner Circle Value. Per the rulebook (p.14), **ties are never broken** - every player tied for the highest score shares the win.
 
 ---
 

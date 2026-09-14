@@ -147,7 +147,7 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         [TestMethod]
-        public void DetermineWinner_ReturnsHighestScoringPlayer()
+        public void DetermineWinners_ReturnsSoleHighestScoringPlayer()
         {
             // Arrange
             // P1 Score: 20
@@ -159,10 +159,10 @@ namespace ChaosWarlords.Tests.Source.Managers
             _mapManager.Sites.Returns(new List<Site>());
 
             // Act
-            var winner = _victoryManager.DetermineWinner(new List<Player> { _p1, _p2 }, _context);
+            var winners = _victoryManager.DetermineWinners(new List<Player> { _p1, _p2 }, _context);
 
             // Assert
-            Assert.AreEqual(_p1, winner);
+            CollectionAssert.AreEqual(new List<Player> { _p1 }, winners);
         }
 
         [TestMethod]
@@ -188,8 +188,8 @@ namespace ChaosWarlords.Tests.Source.Managers
             // Assert
             Assert.IsTrue(dto.IsGameOver);
             Assert.AreEqual("Market deck is empty!", dto.VictoryReason);
-            Assert.AreEqual(0, dto.WinnerSeat);
-            Assert.AreEqual("Player 1", dto.WinnerName);
+            CollectionAssert.AreEqual(new List<int> { 0 }, dto.WinnerSeats);
+            CollectionAssert.AreEqual(new List<string> { "Player 1" }, dto.WinnerNames);
             Assert.AreEqual(10, dto.FinalScores[0]);
             Assert.AreEqual(5, dto.FinalScores[1]);
 
@@ -202,6 +202,30 @@ namespace ChaosWarlords.Tests.Source.Managers
             Assert.IsTrue(dto.PlayerColors.ContainsKey(0));
             Assert.AreEqual("Red", dto.PlayerColors[0]);
             Assert.AreEqual("Blue", dto.PlayerColors[1]);
+        }
+
+        [TestMethod]
+        public void ToVictoryDto_TiedScores_MapsEveryTiedPlayerAsAWinner()
+        {
+            // Arrange - tied VP, and the OLD invalid tiebreak axes (troops/seat) both
+            // point at P2, to prove the DTO now shares the win instead of picking one.
+            _p1.VictoryPoints = 10;
+            _p2.VictoryPoints = 10;
+            _p1.SeatIndex = 1;
+            _p1.TroopsInBarracks = 5;
+            _p2.SeatIndex = 0;
+            _p2.TroopsInBarracks = 0;
+
+            _marketManager.MarketRow.Returns(new List<Card>());
+            _marketManager.HasCardsInDeck().Returns(false);
+
+            // Act
+            var dto = ChaosWarlords.Source.Core.Utilities.DtoMapper.ToVictoryDto(_context, _victoryManager);
+
+            // Assert - both tied players are winners, ordered by seat index only.
+            Assert.IsTrue(dto.IsGameOver);
+            CollectionAssert.AreEqual(new List<int> { 0, 1 }, dto.WinnerSeats);
+            CollectionAssert.AreEqual(new List<string> { "Player 2", "Player 1" }, dto.WinnerNames);
         }
 
         [TestMethod]
@@ -226,33 +250,58 @@ namespace ChaosWarlords.Tests.Source.Managers
         }
 
         [TestMethod]
-        public void DetermineWinner_BreaksTies_ByTroopsAndSeat()
+        public void DetermineWinners_TiedScores_SharesTheWin_RegardlessOfTroopsOrSeat()
         {
-            // Scenario 1: Equal Score, Different Troops
-            // P1 and P2 have same VP
+            // Rulebook (p.14): a tie for the highest score is a shared win for every
+            // tied player - no tiebreaker of any kind, including troops deployed or
+            // seat index. P1 and P2 tie on VP but differ on both of those axes.
             _p1.VictoryPoints = 10;
             _p2.VictoryPoints = 10;
 
-            // P1 has 0 troops in barracks (More deployed)
-            // P2 has 5 troops in barracks (Less deployed)
-            _p1.TroopsInBarracks = 0;
+            _p1.TroopsInBarracks = 0; // Would have "won" under the old troops tiebreak.
             _p2.TroopsInBarracks = 5;
+
+            _p1.SeatIndex = 1; // Would have "lost" under the old seat-index tiebreak.
+            _p2.SeatIndex = 0;
 
             _mapManager.Sites.Returns(new List<Site>());
 
-            var winner1 = _victoryManager.DetermineWinner(new List<Player> { _p1, _p2 }, _context);
-            Assert.AreEqual(_p1, winner1, "Winner should be P1 (More troops deployed)");
+            var winners = _victoryManager.DetermineWinners(new List<Player> { _p1, _p2 }, _context);
 
-            // Scenario 2: Equal Score, Equal Troops, Different Seat
-            // Both have 0 troops in barracks
-            _p2.TroopsInBarracks = 0;
+            // Deterministic result ORDER only (by seat index) - not a preferential tiebreak.
+            CollectionAssert.AreEqual(new List<Player> { _p2, _p1 }, winners);
+        }
 
-            // P1 is Seat 0, P2 is Seat 1
+        [TestMethod]
+        public void DetermineWinners_ThreeWayTie_ReturnsAllThree()
+        {
+            var p3 = new Player(PlayerColor.Black, Guid.NewGuid(), "Player 3");
+            p3.SeatIndex = 2;
             _p1.SeatIndex = 0;
             _p2.SeatIndex = 1;
 
-            var winner2 = _victoryManager.DetermineWinner(new List<Player> { _p1, _p2 }, _context);
-            Assert.AreEqual(_p1, winner2, "Winner should be P1 (Lower Seat Index)");
+            _p1.VictoryPoints = 7;
+            _p2.VictoryPoints = 7;
+            p3.VictoryPoints = 7;
+
+            _mapManager.Sites.Returns(new List<Site>());
+
+            var winners = _victoryManager.DetermineWinners(new List<Player> { _p1, _p2, p3 }, _context);
+
+            CollectionAssert.AreEqual(new List<Player> { _p1, _p2, p3 }, winners);
+        }
+
+        [TestMethod]
+        public void DetermineWinners_NoTie_ExcludesTrailingPlayer()
+        {
+            _p1.VictoryPoints = 20;
+            _p2.VictoryPoints = 19; // One point behind - must NOT share the win.
+
+            _mapManager.Sites.Returns(new List<Site>());
+
+            var winners = _victoryManager.DetermineWinners(new List<Player> { _p1, _p2 }, _context);
+
+            CollectionAssert.AreEqual(new List<Player> { _p1 }, winners);
         }
     }
 }

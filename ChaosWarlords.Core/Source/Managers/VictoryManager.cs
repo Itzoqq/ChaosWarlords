@@ -133,26 +133,32 @@ namespace ChaosWarlords.Source.Managers
             return vp;
         }
 
-        public Player DetermineWinner(List<Player> players, MatchContext context)
+        public List<Player> DetermineWinners(List<Player> players, MatchContext context)
         {
             var scores = players.ToDictionary(
                 p => p,
                 p => CalculateFinalScore(p, context)
             );
 
-            // Tie-Breaker Logic:
-            // 1. Higher Score
-            // 2. More Troops Deployed (Lower TroopsInBarracks) -> Rewards military activity
-            // 3. Lower Seat Index (Stable Sort) -> Deterministic fallback
-            var winner = scores
-                .OrderByDescending(kvp => kvp.Value) // Primary: Score
-                .ThenBy(kvp => kvp.Key.TroopsInBarracks) // Secondary: More Deployed (Lower Barracks)
-                .ThenBy(kvp => kvp.Key.SeatIndex) // Tertiary: Seat Index
-                .First().Key;
+            // Rulebook (p.14): the highest score wins, and every player tied for it
+            // shares the win - there is no tiebreaker of any kind.
+            int topScore = scores.Values.Max();
+            var winners = players
+                .Where(p => scores[p] == topScore)
+                .OrderBy(p => p.SeatIndex) // Deterministic result order only, not a tiebreak.
+                .ToList();
 
-            _logger.Log($"Winner: {winner.DisplayName} with {scores[winner]} VP!", LogChannel.General);
+            if (winners.Count == 1)
+            {
+                _logger.Log($"Winner: {winners[0].DisplayName} with {topScore} VP!", LogChannel.General);
+            }
+            else
+            {
+                string names = string.Join(", ", winners.Select(w => w.DisplayName));
+                _logger.Log($"Tied for the win at {topScore} VP each: {names}!", LogChannel.General);
+            }
 
-            return winner;
+            return winners;
         }
     }
 }
