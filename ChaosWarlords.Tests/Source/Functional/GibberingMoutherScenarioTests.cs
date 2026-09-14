@@ -1,9 +1,11 @@
 using ChaosWarlords.Source.Commands;
 using ChaosWarlords.Source.Contexts;
+using ChaosWarlords.Source.Core.Contexts;
 using ChaosWarlords.Source.Core.Utilities;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ChaosWarlords.Tests.Source.Functional
@@ -25,13 +27,21 @@ namespace ChaosWarlords.Tests.Source.Functional
     [TestCategory("Integration")]
     public class GibberingMoutherScenarioTests
     {
+        // Gibbering Mouther is a Demons half-deck card - its ForceRecruit(insane_outcast) needs
+        // a Demons-inclusive selection to have any supply to draw from (planning.txt TIER 1 item
+        // 11); MatchScenario.Build's own default (Drow+Dragons) has none.
+        private static readonly MarketDeckSelection DemonsInclusiveSelection = new(MarketHalfDeck.Demons, MarketHalfDeck.Drow);
+
+        private static MatchScenario Build(IReadOnlyList<PlayerColor>? playerColors = null) =>
+            MatchScenario.Build(playerColors: playerColors, marketDeckSelection: DemonsInclusiveSelection);
+
         private static Site ObsidianFortress(MatchScenario scenario) =>
             scenario.Context.MapManager.Sites.First(s => s.Name == "Obsidian Fortress"); // 6 nodes, room for 3 mutually-adjacent empty nodes.
 
         [TestMethod]
         public void PlayGibberingMouther_DeployBothTroopsThenChooseEligibleOpponent_ForcesTheRecruit()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing); // Post-setup: normal 2-troop Deploy needs the Play-phase Presence rules, not Setup's "exactly 1 ever" restriction.
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
@@ -75,7 +85,7 @@ namespace ChaosWarlords.Tests.Source.Functional
             // Red has Presence (a spy) but every node it could reach is occupied - the
             // mandatory DeployTroop effect must resolve as a clean no-op (see
             // CardEffectApplier.ApplyDeployTroop), not stall waiting for an impossible click.
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing); // Post-setup: normal 2-troop Deploy needs the Play-phase Presence rules, not Setup's "exactly 1 ever" restriction.
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
@@ -106,7 +116,7 @@ namespace ChaosWarlords.Tests.Source.Functional
             // - not just from the specific occupied node, so a single "isolated" empty node
             // elsewhere on the board can't be relied on to stay unreachable after the first
             // deploy; occupying literally everything else sidesteps that entirely).
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing); // Post-setup: normal 2-troop Deploy needs the Play-phase Presence rules, not Setup's "exactly 1 ever" restriction.
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var lastEmptyNode = scenario.Context.MapManager.Nodes.First();
@@ -136,7 +146,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void PlayGibberingMouther_DeploysSucceedButNoOpponentIsAdjacent_SkipsSelectOpponentCleanly()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing); // Post-setup: normal 2-troop Deploy needs the Play-phase Presence rules, not Setup's "exactly 1 ever" restriction.
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var fortress = ObsidianFortress(scenario);
@@ -162,7 +172,7 @@ namespace ChaosWarlords.Tests.Source.Functional
             // 3-seat match: Blue is eligible (adjacent troop), Orange is not - proves rejection
             // is about THIS specific target's adjacency, not "nobody is eligible" (a different,
             // already-covered fallback).
-            var scenario = MatchScenario.Build(playerColors: new[] { PlayerColor.Red, PlayerColor.Blue, PlayerColor.Orange });
+            var scenario = Build(playerColors: new[] { PlayerColor.Red, PlayerColor.Blue, PlayerColor.Orange });
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing); // Post-setup: normal 2-troop Deploy needs the Play-phase Presence rules, not Setup's "exactly 1 ever" restriction.
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
@@ -191,7 +201,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void SelectOpponentCommand_TargetingSelf_IsRejected()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing); // Post-setup: normal 2-troop Deploy needs the Play-phase Presence rules, not Setup's "exactly 1 ever" restriction.
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
@@ -216,7 +226,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void PlayGibberingMoutherCommand_DispatchedByThePlayerWhoDoesNotHoldIt_IsRejectedWithNoStateChange()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing); // Post-setup: normal 2-troop Deploy needs the Play-phase Presence rules, not Setup's "exactly 1 ever" restriction.
             scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
@@ -232,7 +242,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void DeployTroopCommand_ForAnAlreadyOccupiedNode_IsRejected()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing); // Post-setup: normal 2-troop Deploy needs the Play-phase Presence rules, not Setup's "exactly 1 ever" restriction.
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
@@ -251,7 +261,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void SelectOpponentCommand_ForAColorNotInTheMatch_IsRejected()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing); // Post-setup: normal 2-troop Deploy needs the Play-phase Presence rules, not Setup's "exactly 1 ever" restriction.
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
@@ -274,7 +284,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void PlayGibberingMoutherCommand_DispatchedTwice_SecondDispatchIsRejected()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing); // Post-setup: normal 2-troop Deploy needs the Play-phase Presence rules, not Setup's "exactly 1 ever" restriction.
             scenario.AsActivePlayer(PlayerColor.Red);
             var gibberingMouther = scenario.GiveCard(PlayerColor.Red, "gibbering_mouther");
@@ -287,7 +297,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void DeployTroopCommand_DispatchedTwice_SecondDispatchIsRejected()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing); // Post-setup: normal 2-troop Deploy needs the Play-phase Presence rules, not Setup's "exactly 1 ever" restriction.
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var fortress = ObsidianFortress(scenario);
@@ -304,7 +314,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void SelectOpponentCommand_DispatchedTwice_SecondDispatchIsRejected()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing); // Post-setup: normal 2-troop Deploy needs the Play-phase Presence rules, not Setup's "exactly 1 ever" restriction.
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
@@ -330,7 +340,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void DeployTroopCommand_DtoRoundTrip_StillDeploysThroughARealDispatch()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing); // Post-setup: normal 2-troop Deploy needs the Play-phase Presence rules, not Setup's "exactly 1 ever" restriction.
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var fortress = ObsidianFortress(scenario);
@@ -356,7 +366,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void SelectOpponentCommand_DtoRoundTrip_StillForcesTheRecruitThroughARealDispatch()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing); // Post-setup: normal 2-troop Deploy needs the Play-phase Presence rules, not Setup's "exactly 1 ever" restriction.
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);

@@ -170,10 +170,25 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 ? context.TurnManager.GetOpponentsInSeatOrder(context.ActivePlayer)
                 : new[] { context.ActivePlayer };
 
+            // Insane Outcast is the one ForceRecruit target with a finite, shared, cross-player
+            // supply (rulebook p.2/p.13: 30 total; "if multiple Insane Outcasts are recruited and
+            // would run out, they are recruited in clockwise order starting with the player whose
+            // turn it is"). recipients is already yielded in that exact clockwise order
+            // (GetOpponentsInSeatOrder), and this loop mints strictly in that order too, so
+            // stopping the instant the supply hits 0 naturally implements the tie-break rule with
+            // no extra bookkeeping.
+            bool isInsaneOutcastSupplyCapped = effect.TargetCardId == "insane_outcast";
+
             foreach (var recipient in recipients)
             {
                 for (int i = 0; i < copies; i++)
                 {
+                    if (isInsaneOutcastSupplyCapped && !context.PlayerStateManager.TryConsumeInsaneOutcastSupply())
+                    {
+                        logger.Log($"{sourceCard.Name}: Insane Outcast supply is exhausted - {recipient.DisplayName} (and any remaining recipients) recruit nothing further.", LogChannel.Info);
+                        return;
+                    }
+
                     var forcedCard = context.CardDatabase.GetCardById(effect.TargetCardId, context.Random);
                     if (forcedCard == null)
                     {

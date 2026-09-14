@@ -20,6 +20,10 @@ namespace ChaosWarlords.Source.Utilities
         public const int StartingSpies = 5;
         public const int TargetVictoryPoints = 40;
 
+        // Insane Outcast's shared, cross-player supply pile (rulebook p.2 component count: "30
+        // Insane Outcasts") - see IPlayerStateManager.InitializeInsaneOutcastSupply.
+        public const int InsaneOutcastSupplyCount = 30;
+
         // UI Layout (Site Bounds)
         public static class SiteVisuals
         {

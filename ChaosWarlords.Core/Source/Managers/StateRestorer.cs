@@ -39,7 +39,11 @@ namespace ChaosWarlords.Source.Managers
 
             // 4. Market State
             RestoreMarket(context, dto.Market, dto.MarketDeck, dto.FixedRecruitPiles);
-            
+
+            // Insane Outcast's shared supply counter - same rollback rationale as the fixed
+            // recruit piles just above (rulebook p.13's "shared supply that runs out" category).
+            context.PlayerStateManager.InitializeInsaneOutcastSupply(dto.InsaneOutcastSupplyRemaining);
+
             // 5. Void / Transient State
             RestoreCardDtoList(context.VoidPile, dto.VoidPile, context.CardDatabase);
             var physicalCards = GetPhysicalCards(context);

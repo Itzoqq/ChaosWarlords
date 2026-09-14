@@ -521,6 +521,15 @@ fixtures. Every problem found is aggregated into one `InvalidDataException` mess
 throwing on the first one, so a catalog author fixes everything in one pass instead of one
 throw-fix-reload cycle at a time.
 
+### 12. Insane Outcast Shared Supply Cap
+A single match-wide `int` counter (`GameConstants.InsaneOutcastSupplyCount` = 30) lives on `PlayerStateManager` (`InsaneOutcastSupplyRemaining` read-only property), not per-player and not on `MatchContext` - `ApplyForceRecruit` (the consumption site) and the 3 `Card.RedirectsToSupplyOnDevourOrPromote` redirect sites (`DevourCard`/`TryPromoteCard`/`TryPromoteTopOfDeck`, the return sites) are all either `PlayerStateManager` methods or only reachable through it, so this is the one class that already owns every mutation path without needing to thread a reference through 7+ other call sites. `MatchFactory.Build` calls `InitializeInsaneOutcastSupply(selection.Includes(MarketHalfDeck.Demons) ? 30 : 0)` once at setup - rulebook p.4 step 4: the pile only exists at all "if you're playing with the Demons half-deck."
+
+`CardEffectApplier.ApplyForceRecruit` calls `TryConsumeInsaneOutcastSupply()` before minting each copy whenever `effect.TargetCardId == "insane_outcast"`; a `false` return stops the entire effect immediately, including any remaining recipients. The rulebook's clockwise tie-break ("if multiple Insane Outcasts are recruited and would run out, they are recruited in clockwise order starting with the player whose turn it is") falls out for free: `recipients` is already `TurnManager.GetOpponentsInSeatOrder(activePlayer)`, and the mint loop is `foreach recipient { for each copy { consume-or-stop } }` - stopping the instant the counter hits zero distributes exactly "as many as remain, in clockwise order," no separate tie-break logic needed. The counter is credited back automatically wherever the pre-existing redirect-to-supply logic already runs, via a shared private `ReturnToSupplyIfApplicable` helper - `Player.TryPromoteTopOfDeck` gained an `out Card? promotedCard` parameter (internal-only) specifically so its `PlayerStateManager` wrapper has a card to check the flag against.
+
+`GameStateDto.InsaneOutcastSupplyRemaining`/`DtoMapper`/`StateRestorer` carry the counter through `CommandDispatcher`'s rollback snapshot - the same treatment `FixedRecruitPiles` already gets, for the identical rulebook-p.13 "shared supply that runs out" category.
+
+See `tyrants-rules` skill's `reference/patterns.md` for the full design rationale (why `PlayerStateManager` and not `MatchContext`, the `MatchScenario.Build` test-scenario gotcha for Demons half-deck cards).
+
 ---
 
 ## Design Patterns Used

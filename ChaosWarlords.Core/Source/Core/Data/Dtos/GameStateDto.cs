@@ -36,6 +36,16 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         /// <summary>Finite face-up recruit piles, including their remaining physical copies.</summary>
         public List<FixedRecruitPileDto> FixedRecruitPiles { get; set; } = [];
 
+        // Insane Outcast's shared, cross-player, finite supply pile (PlayerStateManager.
+        // InsaneOutcastSupplyRemaining) - the same category of rulebook-p.13 "shared supply that
+        // runs out" mechanic FixedRecruitPiles above already models, just represented as a bare
+        // counter (cards are minted fresh per copy) instead of a real card list. Without this, a
+        // rollback after a command whose chain included EffectType.ForceRecruit(insane_outcast)
+        // would restore every card correctly but leave the counter itself already decremented,
+        // permanently drifting the "remaining + in play" total below 30. Not currently part of
+        // MatchContext.GetStateHash, same accepted gap as MarketDeck above.
+        public int InsaneOutcastSupplyRemaining { get; set; }
+
         // Void (Removed cards)
         public List<CardDto> VoidPile { get; set; } = [];
 

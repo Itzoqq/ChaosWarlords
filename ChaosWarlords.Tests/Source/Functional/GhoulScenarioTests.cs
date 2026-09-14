@@ -1,6 +1,8 @@
 using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Core.Contexts;
 using ChaosWarlords.Source.Core.Utilities;
 using ChaosWarlords.Source.Utilities;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ChaosWarlords.Tests.Source.Functional
@@ -18,10 +20,19 @@ namespace ChaosWarlords.Tests.Source.Functional
     [TestCategory("Integration")]
     public class GhoulScenarioTests
     {
+        // Ghoul is a Demons half-deck card - its ForceRecruit(insane_outcast) needs a
+        // Demons-inclusive selection to have any supply to draw from (planning.txt TIER 1 item
+        // 11); MatchScenario.Build's own default (Drow+Dragons) has none. Shadows
+        // MatchScenario.Build with the same 2 signatures this file's tests use.
+        private static readonly MarketDeckSelection DemonsInclusiveSelection = new(MarketHalfDeck.Demons, MarketHalfDeck.Drow);
+
+        private static MatchScenario Build(IReadOnlyList<PlayerColor>? playerColors = null) =>
+            MatchScenario.Build(playerColors: playerColors, marketDeckSelection: DemonsInclusiveSelection);
+
         [TestMethod]
         public void PlayGhoul_TwoPlayerMatch_GainsInfluenceAndForcesTheSoleOpponentToRecruit()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
             int influenceBefore = red.Influence;
@@ -41,7 +52,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void PlayGhoul_ThreePlayerMatch_ForcesEveryOpponent_NotJustOne()
         {
-            var scenario = MatchScenario.Build(playerColors: new[] { PlayerColor.Red, PlayerColor.Blue, PlayerColor.Orange });
+            var scenario = Build(playerColors: new[] { PlayerColor.Red, PlayerColor.Blue, PlayerColor.Orange });
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
             var orange = scenario.Player(PlayerColor.Orange);
@@ -64,7 +75,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void PlayGhoulCommand_DispatchedByThePlayerWhoDoesNotHoldIt_IsRejectedWithNoStateChange()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
             var ghoul = scenario.GiveCard(PlayerColor.Blue, "ghoul");
@@ -79,7 +90,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void PlayGhoulCommand_DispatchedTwice_SecondDispatchIsRejected()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
             int influenceBefore = red.Influence;
@@ -97,7 +108,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void PlayCardCommand_DtoRoundTrip_StillPlaysGhoulAndForcesTheRecruit()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
             int influenceBefore = red.Influence;

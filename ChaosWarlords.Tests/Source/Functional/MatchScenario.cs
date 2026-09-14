@@ -88,7 +88,13 @@ namespace ChaosWarlords.Tests.Source.Functional
         /// where the boundary case under test requires an INELIGIBLE opponent to exist
         /// alongside an ELIGIBLE one, which 2 players alone can't express - see
         /// CraniumRatsScenarioTests).</param>
-        public static MatchScenario Build(int? seed = 20260901, IReadOnlyList<PlayerColor>? playerColors = null)
+        /// <param name="marketDeckSelection">Optional half-deck pair (defaults to MatchFactory's
+        /// own MarketDeckSelection.Default, Drow+Dragons - which does NOT include Demons, so the
+        /// Insane Outcast supply defaults to 0/never-in-play). Cards that only exist in the
+        /// Demons half-deck (Ghoul/Demogorgon/Gibbering Mouther) need this set to a
+        /// Demons-inclusive pair for their ForceRecruit(insane_outcast) effect to have any supply
+        /// to draw from - see planning.txt TIER 1 item 11.</param>
+        public static MatchScenario Build(int? seed = 20260901, IReadOnlyList<PlayerColor>? playerColors = null, MarketDeckSelection? marketDeckSelection = null)
         {
             var logger = ChaosWarlords.Tests.Utilities.TestLogger.Instance;
 
@@ -107,7 +113,7 @@ namespace ChaosWarlords.Tests.Source.Functional
             cardDatabase.LoadAdditionalFromJson(TestFixtureCards.CardsJson);
 
             var replayManager = new ReplayManager(logger);
-            var world = new MatchFactory(cardDatabase, logger).Build(replayManager, seed, playerColors);
+            var world = new MatchFactory(cardDatabase, logger).Build(replayManager, seed, playerColors, marketDeckSelection);
 
             var context = new MatchContext(
                 world.TurnManager, world.MapManager, world.MarketManager, world.ActionSystem,

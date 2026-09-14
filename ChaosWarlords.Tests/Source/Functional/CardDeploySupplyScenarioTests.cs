@@ -11,9 +11,15 @@ namespace ChaosWarlords.Tests.Source.Functional
     [TestCategory("Integration")]
     public class CardDeploySupplyScenarioTests
     {
+        // Gibbering Mouther (used by the supply-tracking tests below) is a Demons half-deck
+        // card whose ForceRecruit(insane_outcast) needs a Demons-inclusive selection to have any
+        // supply to draw from - see planning.txt TIER 1 item 11.
+        private static readonly ChaosWarlords.Source.Core.Contexts.MarketDeckSelection DemonsInclusiveSelection =
+            new(MarketHalfDeck.Demons, MarketHalfDeck.Drow);
+
         private static MatchScenario BuildPlayingScenario()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = MatchScenario.Build(marketDeckSelection: DemonsInclusiveSelection);
             scenario.Context.CurrentPhase = MatchPhase.Playing;
             scenario.Context.MapManager.SetPhase(MatchPhase.Playing);
             return scenario;

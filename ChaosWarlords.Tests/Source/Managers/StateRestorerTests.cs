@@ -563,6 +563,25 @@ namespace ChaosWarlords.Tests.Source.Managers
             Assert.AreEqual("House Guard", fixedPiles[0].DisplayName, "Rollback must preserve the label used to mark an exhausted pile.");
         }
 
+        [TestMethod]
+        public void RestoreState_RevertsInsaneOutcastSupplyRemaining_SoARolledBackForceRecruitDoesNotPermanentlyDrainTheSharedPool()
+        {
+            // Same rollback rationale as fixed recruit piles above (rulebook p.13's "shared
+            // supply that runs out" category) - planning.txt TIER 1 item 11's own reviewer pass
+            // flagged this counter as reachable by CommandDispatcher rollback (a command whose
+            // chain includes EffectType.ForceRecruit(insane_outcast) followed by further
+            // targeting that then throws) even though no shipped card exercises that shape yet.
+            _context.PlayerStateManager.InitializeInsaneOutcastSupply(30);
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+
+            _context.PlayerStateManager.TryConsumeInsaneOutcastSupply();
+            Assert.AreEqual(29, _context.PlayerStateManager.InsaneOutcastSupplyRemaining, "Sanity check: the simulated ForceRecruit must consume one copy.");
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.AreEqual(30, _context.PlayerStateManager.InsaneOutcastSupplyRemaining, "Rollback must restore the shared counter, not just the recruited card itself.");
+        }
+
         // --- RestoreEffect coverage (planning.txt TIER 1 item 1 - risk-hotspot remediation:
         // StateRestorer.RestoreEffect was flagged with Crap 42 / cyclomatic 6, a coverage gap
         // (nothing above exercises restoring a genuinely non-empty ExecutionStack) rather than

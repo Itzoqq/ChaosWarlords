@@ -1,9 +1,11 @@
 using ChaosWarlords.Source.Commands;
+using ChaosWarlords.Source.Core.Contexts;
 using ChaosWarlords.Source.Core.Utilities;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Entities.Cards;
 using ChaosWarlords.Source.Entities.Map;
 using ChaosWarlords.Source.Utilities;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ChaosWarlords.Tests.Source.Functional
@@ -25,6 +27,14 @@ namespace ChaosWarlords.Tests.Source.Functional
     [TestCategory("Integration")]
     public class DemogorgonScenarioTests
     {
+        // Demogorgon is a Demons half-deck card - its ForceRecruit(insane_outcast) needs a
+        // Demons-inclusive selection to have any supply to draw from (planning.txt TIER 1 item
+        // 11); MatchScenario.Build's own default (Drow+Dragons) has none.
+        private static readonly MarketDeckSelection DemonsInclusiveSelection = new(MarketHalfDeck.Demons, MarketHalfDeck.Drow);
+
+        private static MatchScenario Build(IReadOnlyList<PlayerColor>? playerColors = null) =>
+            MatchScenario.Build(playerColors: playerColors, marketDeckSelection: DemonsInclusiveSelection);
+
         /// <summary>
         /// Deploys Red at a node with at least 2 empty neighbors, then marks 2 of those
         /// neighbors as NEUTRAL (white) troop spaces - Red has Presence at both via the deployed
@@ -52,7 +62,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void PlayDemogorgon_AcceptDevourAndSupplantBothTroops_AlsoForcesTheOpponentToRecruitTwoOutcasts()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             var (red, target1, target2) = SetupRedWithTwoAdjacentNeutralTroops(scenario);
             var blue = scenario.Player(PlayerColor.Blue);
             var demogorgon = scenario.GiveCard(PlayerColor.Red, "demogorgon");
@@ -87,7 +97,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void PlayDemogorgon_DeclineDevour_SkipsSupplantButStillForcesTheRecruit()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             var (red, target1, target2) = SetupRedWithTwoAdjacentNeutralTroops(scenario);
             var blue = scenario.Player(PlayerColor.Blue);
             var demogorgon = scenario.GiveCard(PlayerColor.Red, "demogorgon");
@@ -107,7 +117,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void PlayDemogorgon_EmptyHand_SkipsThePopupEntirely_ButStillForcesTheRecruit()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
             var demogorgon = scenario.GiveCard(PlayerColor.Red, "demogorgon"); // Only card in hand.
@@ -123,7 +133,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void PlayDemogorgon_OnlyOneNeutralTroopReachable_ResolvesSupplantEarlyThenStillForcesTheRecruit()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
             var redNode = scenario.Context.MapManager.Nodes.First(n => scenario.Context.MapManager.CanDeployAt(n, red.Color));
@@ -152,7 +162,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void PlayDemogorgon_ThreePlayerMatch_ForcesEveryOpponentToRecruitTwoEach()
         {
-            var scenario = MatchScenario.Build(playerColors: new[] { PlayerColor.Red, PlayerColor.Blue, PlayerColor.Orange });
+            var scenario = Build(playerColors: new[] { PlayerColor.Red, PlayerColor.Blue, PlayerColor.Orange });
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
             var orange = scenario.Player(PlayerColor.Orange);
@@ -173,7 +183,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void PlayDemogorgonCommand_DispatchedByThePlayerWhoDoesNotHoldIt_IsRejectedWithNoStateChange()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
             var demogorgon = scenario.GiveCard(PlayerColor.Blue, "demogorgon");
@@ -188,7 +198,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void SupplantCommand_TargetingTheAlreadySupplantedNode_IsRejectedForTheSecondDemogorgonTarget()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             var (red, target1, _) = SetupRedWithTwoAdjacentNeutralTroops(scenario);
             var demogorgon = scenario.GiveCard(PlayerColor.Red, "demogorgon");
             var fodder = scenario.GiveCard(PlayerColor.Red, "core_noble");
@@ -212,7 +222,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void PlayDemogorgonCommand_DispatchedTwice_SecondDispatchIsRejected()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
             var demogorgon = scenario.GiveCard(PlayerColor.Red, "demogorgon"); // Only card in hand - Devour half skips.
@@ -226,7 +236,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void SupplantCommand_DispatchedTwiceAgainstTheSameFirstTarget_SecondDispatchIsRejected()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             var (red, target1, target2) = SetupRedWithTwoAdjacentNeutralTroops(scenario);
             var demogorgon = scenario.GiveCard(PlayerColor.Red, "demogorgon");
             var fodder = scenario.GiveCard(PlayerColor.Red, "core_noble");
@@ -253,7 +263,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void PlayCardCommand_DtoRoundTrip_StillPlaysDemogorgonAndForcesTheRecruit()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var blue = scenario.Player(PlayerColor.Blue);
             var demogorgon = scenario.GiveCard(PlayerColor.Red, "demogorgon"); // Only card in hand - Devour half skips.
@@ -273,7 +283,7 @@ namespace ChaosWarlords.Tests.Source.Functional
         [TestMethod]
         public void SupplantCommand_DtoRoundTrip_StillSupplantsThroughARealDispatch()
         {
-            var scenario = MatchScenario.Build();
+            var scenario = Build();
             var (red, target1, _) = SetupRedWithTwoAdjacentNeutralTroops(scenario);
             var demogorgon = scenario.GiveCard(PlayerColor.Red, "demogorgon");
             var fodder = scenario.GiveCard(PlayerColor.Red, "core_noble");

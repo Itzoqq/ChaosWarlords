@@ -313,20 +313,25 @@ namespace ChaosWarlords.Source.Entities.Actors
         /// the empty-deck-reshuffles-discard case identically to a normal draw; the drawn card
         /// is redirected straight to the Inner Circle below instead of ever touching Hand.
         /// </summary>
-        internal bool TryPromoteTopOfDeck(IGameRandom random, out string errorMessage)
+        internal bool TryPromoteTopOfDeck(IGameRandom random, out string errorMessage, out Card? promotedCard)
         {
             var drawn = _deckManager.Draw(1, random);
             if (drawn.Count == 0)
             {
                 errorMessage = "No cards left in deck or discard pile to promote.";
+                promotedCard = null;
                 return false;
             }
 
             var card = drawn[0];
+            promotedCard = card;
             if (card.RedirectsToSupplyOnDevourOrPromote)
             {
                 // e.g. Insane Outcast: "If [this] would be devoured or promoted, return it to
                 // the supply instead." Not actually promoted - same rule TryPromoteCard applies.
+                // The caller (PlayerStateManager.TryPromoteTopOfDeck) is what actually credits
+                // this back to the shared Insane Outcast supply counter - promotedCard exists so
+                // it has something to check RedirectsToSupplyOnDevourOrPromote against.
                 card.Location = CardLocation.Supply;
             }
             else

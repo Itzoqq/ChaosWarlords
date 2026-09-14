@@ -29,6 +29,34 @@ namespace ChaosWarlords.Tests.Integration.Factories
             mockDb.Received(1).GetMarketCards(selection, Arg.Any<IGameRandom>());
         }
         [TestMethod]
+        public void Build_WithDemonsInSelection_InitializesFullInsaneOutcastSupply()
+        {
+            // Rulebook p.4 setup step 4: the Insane Outcast pile is only put into play "if
+            // you're playing with the Demons half-deck" - planning.txt TIER 1 item 11.
+            var mockDb = Substitute.For<ICardDatabase>();
+            var selection = new MarketDeckSelection(MarketHalfDeck.Demons, MarketHalfDeck.Drow);
+            mockDb.GetMarketCards(selection, Arg.Any<IGameRandom>()).Returns(new List<Card>());
+
+            var world = new MatchFactory(mockDb, Utilities.TestLogger.Instance)
+                .Build(Substitute.For<IReplayManager>(), seed: 555, marketDeckSelection: selection);
+
+            Assert.AreEqual(GameConstants.InsaneOutcastSupplyCount, world.PlayerStateManager.InsaneOutcastSupplyRemaining);
+        }
+
+        [TestMethod]
+        public void Build_WithoutDemonsInSelection_InitializesZeroInsaneOutcastSupply()
+        {
+            var mockDb = Substitute.For<ICardDatabase>();
+            var selection = new MarketDeckSelection(MarketHalfDeck.Drow, MarketHalfDeck.Dragons);
+            mockDb.GetMarketCards(selection, Arg.Any<IGameRandom>()).Returns(new List<Card>());
+
+            var world = new MatchFactory(mockDb, Utilities.TestLogger.Instance)
+                .Build(Substitute.For<IReplayManager>(), seed: 555, marketDeckSelection: selection);
+
+            Assert.AreEqual(0, world.PlayerStateManager.InsaneOutcastSupplyRemaining, "Insane Outcast never exists at all in a game that didn't select the Demons half-deck.");
+        }
+
+        [TestMethod]
         public void Build_CreatesValidWorldState_Headless()
         {
             var mockDb = Substitute.For<ICardDatabase>();

@@ -62,9 +62,17 @@ namespace ChaosWarlords.Source.Factories
 
             var playerStateManager = new PlayerStateManager(_logger);
 
+            var resolvedMarketDeckSelection = marketDeckSelection ?? MarketDeckSelection.Default;
+
             _logger.Log($"[RNG] Pre-MarketManager: {random.CallCount}", LogChannel.Debug);
-            var marketManager = new MarketManager(_cardDatabase, random, marketDeckSelection ?? MarketDeckSelection.Default);
+            var marketManager = new MarketManager(_cardDatabase, random, resolvedMarketDeckSelection);
             _logger.Log($"[RNG] Post-MarketManager Checksum: {random.CallCount}", LogChannel.Info);
+
+            // Rulebook p.4 setup step 4: "If you're playing with the Demons half-deck, put the
+            // Insane Outcast cards face up in their marked space." - the shared supply only
+            // exists at all when Demons is one of the 2 selected half-decks.
+            playerStateManager.InitializeInsaneOutcastSupply(
+                resolvedMarketDeckSelection.Includes(MarketHalfDeck.Demons) ? GameConstants.InsaneOutcastSupplyCount : 0);
 
             _logger.Log($"[RNG] Pre-CreatePlayers: {random.CallCount}", LogChannel.Debug);
             var players = CreatePlayers(colors, _cardDatabase, random, _logger);

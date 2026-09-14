@@ -188,6 +188,7 @@ namespace ChaosWarlords.Source.Core.Utilities
                     Cards = ToDtoList(pile.Cards)
                 })
                 .ToList() ?? [];
+            dto.InsaneOutcastSupplyRemaining = context.PlayerStateManager.InsaneOutcastSupplyRemaining;
             dto.VoidPile = ToDtoList(context.VoidPile);
 
             // Stack Serialization

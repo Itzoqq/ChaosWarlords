@@ -8,10 +8,42 @@ namespace ChaosWarlords.Source.Managers
     public class PlayerStateManager : IPlayerStateManager
     {
         private readonly IGameLogger _logger;
+        private int _insaneOutcastSupplyRemaining;
 
         public PlayerStateManager(IGameLogger logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        // --- Insane Outcast Shared Supply ---
+
+        public int InsaneOutcastSupplyRemaining => _insaneOutcastSupplyRemaining;
+
+        public void InitializeInsaneOutcastSupply(int count)
+        {
+            _insaneOutcastSupplyRemaining = Math.Max(0, count);
+            _logger.Log($"[State] Insane Outcast supply initialized to {_insaneOutcastSupplyRemaining}.", LogChannel.Info);
+        }
+
+        public bool TryConsumeInsaneOutcastSupply()
+        {
+            if (_insaneOutcastSupplyRemaining <= 0) return false;
+
+            _insaneOutcastSupplyRemaining--;
+            return true;
+        }
+
+        // Insane Outcast's own rule ("if [this] would be devoured or promoted, return it to the
+        // supply instead" - card.RedirectsToSupplyOnDevourOrPromote) means the physical
+        // component goes back into the shared pile, available for a future ForceRecruit again -
+        // called from every place that flag's redirect actually happens (DevourCard/
+        // TryPromoteCard/TryPromoteTopOfDeck below), so no caller needs to remember to do this
+        // itself.
+        private void ReturnToSupplyIfApplicable(Card card)
+        {
+            if (!card.RedirectsToSupplyOnDevourOrPromote) return;
+
+            _insaneOutcastSupplyRemaining++;
         }
 
         // --- Resources ---
@@ -170,6 +202,7 @@ namespace ChaosWarlords.Source.Managers
             bool success = player.TryPromoteCard(card, out errorMessage);
             if (success)
             {
+                ReturnToSupplyIfApplicable(card);
                 _logger.Log($"[State] {player.DisplayName} promoted '{card.Name}'", LogChannel.Info);
             }
             else
@@ -181,9 +214,10 @@ namespace ChaosWarlords.Source.Managers
 
         public bool TryPromoteTopOfDeck(Player player, IGameRandom random, out string errorMessage)
         {
-            bool success = player.TryPromoteTopOfDeck(random, out errorMessage);
+            bool success = player.TryPromoteTopOfDeck(random, out errorMessage, out var promotedCard);
             if (success)
             {
+                if (promotedCard is not null) ReturnToSupplyIfApplicable(promotedCard);
                 _logger.Log($"[State] {player.DisplayName} promoted the top card of their deck.", LogChannel.Info);
             }
             else
@@ -211,6 +245,7 @@ namespace ChaosWarlords.Source.Managers
                     // Void, so callers (e.g. MatchManager.DevourCard's "if Void, add to
                     // VoidPile" check) correctly leave it out of the void pile.
                     card.Location = CardLocation.Supply;
+                    ReturnToSupplyIfApplicable(card);
                     _logger.Log($"[State] {player.DisplayName}'s '{card.Name}' redirected to the supply instead of being devoured.", LogChannel.Info);
                 }
                 else

@@ -144,6 +144,100 @@ namespace ChaosWarlords.Tests.Source.Integration.Mechanics
             CollectionAssert.DoesNotContain(_p1.InnerCircle.ToList(), outcast, "Should never actually enter the Inner Circle.");
         }
 
+        // --- Shared cross-player supply cap (planning.txt TIER 1 item 11) ---
+
+        [TestMethod]
+        public void InitializeInsaneOutcastSupply_SetsTheStartingCount()
+        {
+            _playerStateManager.InitializeInsaneOutcastSupply(30);
+
+            Assert.AreEqual(30, _playerStateManager.InsaneOutcastSupplyRemaining);
+        }
+
+        [TestMethod]
+        public void InitializeInsaneOutcastSupply_WithANegativeCount_ClampsToZero()
+        {
+            _playerStateManager.InitializeInsaneOutcastSupply(-5);
+
+            Assert.AreEqual(0, _playerStateManager.InsaneOutcastSupplyRemaining);
+        }
+
+        [TestMethod]
+        public void TryConsumeInsaneOutcastSupply_WithSupplyAvailable_DecrementsAndReturnsTrue()
+        {
+            _playerStateManager.InitializeInsaneOutcastSupply(2);
+
+            bool first = _playerStateManager.TryConsumeInsaneOutcastSupply();
+            Assert.IsTrue(first);
+            Assert.AreEqual(1, _playerStateManager.InsaneOutcastSupplyRemaining);
+
+            bool second = _playerStateManager.TryConsumeInsaneOutcastSupply();
+            Assert.IsTrue(second);
+            Assert.AreEqual(0, _playerStateManager.InsaneOutcastSupplyRemaining);
+        }
+
+        [TestMethod]
+        public void TryConsumeInsaneOutcastSupply_WithSupplyExhausted_ReturnsFalseAndStaysAtZero()
+        {
+            _playerStateManager.InitializeInsaneOutcastSupply(0);
+
+            bool result = _playerStateManager.TryConsumeInsaneOutcastSupply();
+
+            Assert.IsFalse(result);
+            Assert.AreEqual(0, _playerStateManager.InsaneOutcastSupplyRemaining, "Must never go negative.");
+        }
+
+        [TestMethod]
+        public void DevourCard_RedirectingToSupply_CreditsTheSharedCounter()
+        {
+            _playerStateManager.InitializeInsaneOutcastSupply(5);
+            var outcast = GetInsaneOutcastCard();
+            _p1.AddToHand(outcast);
+
+            _playerStateManager.DevourCard(_p1, outcast);
+
+            Assert.AreEqual(6, _playerStateManager.InsaneOutcastSupplyRemaining, "The physical component returns to the shared pile.");
+        }
+
+        [TestMethod]
+        public void TryPromoteCard_RedirectingToSupply_CreditsTheSharedCounter()
+        {
+            _playerStateManager.InitializeInsaneOutcastSupply(5);
+            var outcast = GetInsaneOutcastCard();
+            _p1.AddToHand(outcast);
+
+            _playerStateManager.TryPromoteCard(_p1, outcast, out _);
+
+            Assert.AreEqual(6, _playerStateManager.InsaneOutcastSupplyRemaining);
+        }
+
+        [TestMethod]
+        public void TryPromoteTopOfDeck_RedirectingToSupply_CreditsTheSharedCounter()
+        {
+            _playerStateManager.InitializeInsaneOutcastSupply(5);
+            var outcast = GetInsaneOutcastCard();
+            _p1.DeckManager.AddToTop(outcast);
+            var random = Substitute.For<IGameRandom>();
+
+            bool success = _playerStateManager.TryPromoteTopOfDeck(_p1, random, out _);
+
+            Assert.IsTrue(success, "Redirecting counts as success, not a promotion failure.");
+            Assert.AreEqual(CardLocation.Supply, outcast.Location);
+            Assert.AreEqual(6, _playerStateManager.InsaneOutcastSupplyRemaining);
+        }
+
+        [TestMethod]
+        public void TryPromoteCard_OnANormalCard_DoesNotTouchTheSharedCounter()
+        {
+            _playerStateManager.InitializeInsaneOutcastSupply(5);
+            var normalCard = TestData.Cards.CheapCard();
+            _p1.AddToHand(normalCard);
+
+            _playerStateManager.TryPromoteCard(_p1, normalCard, out _);
+
+            Assert.AreEqual(5, _playerStateManager.InsaneOutcastSupplyRemaining, "A card without RedirectsToSupplyOnDevourOrPromote must never credit the Insane Outcast pile.");
+        }
+
         [TestMethod]
         public void NegativeDeckVP_FlowsIntoVictoryManagerCalculation()
         {

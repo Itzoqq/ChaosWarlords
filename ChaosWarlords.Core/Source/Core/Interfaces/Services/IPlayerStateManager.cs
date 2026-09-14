@@ -186,5 +186,34 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         /// </summary>
         /// <param name="player">The player ending their turn.</param>
         void CleanUpTurn(Player player);
+
+        // --- Insane Outcast Shared Supply ---
+
+        /// <summary>
+        /// How many Insane Outcast copies remain in the shared, cross-player supply pile. Not
+        /// per-player - a single match-wide count, since every "recruit an Insane Outcast" card
+        /// effect (Ghoul/Demogorgon/Gibbering Mouther) draws from the same physical pile.
+        /// </summary>
+        int InsaneOutcastSupplyRemaining { get; }
+
+        /// <summary>
+        /// Sets the starting Insane Outcast supply for this match - rulebook p.4 setup step 4:
+        /// the Insane Outcast pile is only put into play "if you're playing with the Demons
+        /// half-deck," so callers pass 0 when Demons wasn't one of the 2 selected half-decks and
+        /// GameConstants.InsaneOutcastSupplyCount (30) otherwise. Called exactly once, at match
+        /// setup, before any card can consume it.
+        /// </summary>
+        /// <param name="count">The starting supply count.</param>
+        void InitializeInsaneOutcastSupply(int count);
+
+        /// <summary>
+        /// Attempts to consume one Insane Outcast from the shared supply - checked by
+        /// EffectType.ForceRecruit before minting each copy it hands out. Returns false once the
+        /// supply is exhausted (rulebook p.13: "If the supply of... Insane Outcasts runs out, the
+        /// game continues, but you'll no longer be able to recruit one") or was never in play at
+        /// all (InitializeInsaneOutcastSupply(0) - Demons wasn't selected).
+        /// </summary>
+        /// <returns>True if a copy was available and consumed; false if the supply is empty.</returns>
+        bool TryConsumeInsaneOutcastSupply();
     }
 }
