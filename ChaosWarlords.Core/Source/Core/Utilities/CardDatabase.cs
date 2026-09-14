@@ -158,7 +158,9 @@ namespace ChaosWarlords.Source.Utilities
 
         internal void LoadFromJson(string json)
         {
-            _cardDataCache = JsonSerializer.Deserialize<List<CardData>>(json, s_jsonOptions) ?? new List<CardData>();
+            var data = JsonSerializer.Deserialize<List<CardData>>(json, s_jsonOptions) ?? new List<CardData>();
+            CardCatalogValidator.Validate(data, disallowTestPrefixedIds: true);
+            _cardDataCache = data;
         }
 
         /// <summary>
@@ -186,6 +188,14 @@ namespace ChaosWarlords.Source.Utilities
                     throw new InvalidDataException($"Cannot merge fixture card '{data.Id}' - a card with that id already exists in the catalog.");
                 }
             }
+
+            // Validate the FULL merged set, not just the incoming batch - a TargetCardId in
+            // either half may legally reference a card defined in the other half, and this is
+            // also the only point that ever sees the two together. disallowTestPrefixedIds:
+            // false - unlike LoadFromJson's production path, this path exists SPECIFICALLY for
+            // test_-prefixed fixtures (see TestFixtureCards.cs).
+            CardCatalogValidator.Validate([.. _cardDataCache, .. additional], disallowTestPrefixedIds: false);
+
             _cardDataCache.AddRange(additional);
         }
 
@@ -228,13 +238,11 @@ namespace ChaosWarlords.Source.Utilities
         private static bool IsMarketCard(CardData data, Func<CardData, bool> isIncluded) =>
             !data.RedirectsToSupplyOnDevourOrPromote && data.FixedRecruitPileSize == 0 && isIncluded(data);
 
+        // MarketCopyCount > 0 for every market card is now guaranteed by CardCatalogValidator at
+        // load time (LoadFromJson/LoadAdditionalFromJson) - no card can reach _cardDataCache with
+        // an invalid count, so no defensive re-check is needed here.
         private IEnumerable<Card> CreateMarketCopies(CardData data, IGameRandom? random)
         {
-            if (data.MarketCopyCount <= 0)
-            {
-                throw new InvalidDataException($"Market card '{data.Id}' must declare at least one copy.");
-            }
-
             _logger?.Log($"[CardDatabase] Processing Market Card: {data.Id}", LogChannel.Debug);
             return Enumerable.Range(0, data.MarketCopyCount)
                 .Select(_ => CardFactory.CreateFromData(data, _localization, random, _logger));

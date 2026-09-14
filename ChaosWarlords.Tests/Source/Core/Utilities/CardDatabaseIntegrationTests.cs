@@ -25,16 +25,17 @@ namespace ChaosWarlords.Tests.Core.Utilities
         }
 
         [TestMethod]
-        public void Load_GetMarketCards_WithZeroCopyCount_RejectsInvalidCardData()
+        public void Load_WithZeroCopyCount_RejectsInvalidCardDataAtLoadTime()
         {
+            // CardCatalogValidator (planning.txt TIER 1 item 9) now catches this eagerly at
+            // Load() time, not lazily the first time a market is actually built - Load() itself
+            // must throw here, not a later GetMarketCards() call.
             var database = new CardDatabase(new TestLocalizationService());
             using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("""
                 [{ "id": "invalid_card", "aspect": "Warlord", "halfDeck": "Drow", "marketCopyCount": 0, "effects": [] }]
                 """));
-            database.Load(stream);
 
-            Assert.ThrowsExactly<InvalidDataException>(() =>
-                database.GetMarketCards(new MarketDeckSelection(MarketHalfDeck.Drow, MarketHalfDeck.Dragons)));
+            Assert.ThrowsExactly<InvalidDataException>(() => database.Load(stream));
         }
 
         [TestMethod]

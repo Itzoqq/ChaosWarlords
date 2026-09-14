@@ -144,7 +144,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
             ""name"": ""Wight"",
             ""description"": ""Recursive Test"",
             ""cost"": 3,
-            ""aspect"": ""Malice"",
+            ""aspect"": ""Sorcery"",
             ""deckVP"": 1,
             ""innerCircleVP"": 3,
             ""effects"": [

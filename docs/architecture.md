@@ -90,6 +90,7 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   └── Utilities/                       # Infrastructure & Constants
     │       ├── BufferedAsyncLogger.cs       # Async-optimized logging
     │       ├── CardDatabase.cs              # Implementation of card library - CardData has no Name/Description, see LocalizationManager
+    │       ├── CardCatalogValidator.cs      # Fail-closed structural validation, run at load time by CardDatabase - see Key Systems #11
     │       ├── CommandHydrator.cs           # DTO -> live IGameCommand (replay/network deserialization)
     │       ├── DtoMapper.cs                 # Live Entities/state -> DTO (serialization only - see CommandHydrator for the reverse direction)
     │       ├── GameConstants.cs             # Global configuration values
@@ -499,6 +500,26 @@ system existed) fails closed to `MarketDeckSelection.Default` rather than throwi
 An earlier, now-superseded implementation of this exact same class shape filtered by
 `CardAspect` instead of `MarketHalfDeck` - see `planning.txt` TIER 1 item 5 / `RESOLVED.txt`'s
 2026-09-13 CORRECTION entry for why that was a real rules-accuracy bug, not a rename.
+
+### 11. Card Catalog Validation Gate (`CardCatalogValidator`)
+`CardDatabase.LoadFromJson`/`LoadAdditionalFromJson` both run every incoming `CardData` batch
+through `CardCatalogValidator.Validate` before it ever reaches `_cardDataCache` - a fail-closed
+gate (planning.txt TIER 1 item 9) checking, across the FULL set being loaded (so a
+`TargetCardId` reference spanning an already-loaded catalog and a newly-merged fixture batch
+still resolves): unique ids; every enum-valued string field (`Aspect`, `HalfDeck`, `CreatureType`
+on `CardData`; `Type`, `TargetResource`, `TargetLocation`, `ConditionType`, `ConditionResource`,
+`ConditionPresenceType`, `DynamicAmountSource`, `RequiredPromotionAspect`,
+`RequiredPromotionCreatureType`, `GainResourcePerRepeat` on `CardEffectData`, recursively
+through `OnSuccess`/`Alternative`/`PromotionCompletionEffect`) against its real enum type;
+`MarketCopyCount >= 1` for every card that actually reaches the market-copy expansion path (not a
+fixed recruit pile or Insane Outcast's supply pile, which never go through it); every
+`CardEffectData.TargetCardId` resolving to a real card id or one of the 2 hardcoded
+starting-deck ids (`"soldier"`/`"noble"`); and, ONLY for the production `LoadFromJson` path
+(`disallowTestPrefixedIds: true`), the absence of any `test_`-prefixed id - `LoadAdditionalFromJson`
+passes `false`, since that path exists specifically to merge `TestFixtureCards`' `test_`-prefixed
+fixtures. Every problem found is aggregated into one `InvalidDataException` message rather than
+throwing on the first one, so a catalog author fixes everything in one pass instead of one
+throw-fix-reload cycle at a time.
 
 ---
 
