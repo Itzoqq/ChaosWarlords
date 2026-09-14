@@ -297,8 +297,15 @@ namespace ChaosWarlords.Source.Utilities
         HandSize,               // Player has X or more cards in hand
         OpponentPresentAtSite, // Another player has a spy/troop (see SitePresenceType) at
                                 // ActionSystem.PendingSite (e.g. Banshee, Infiltrator)
-        TrophyHallCount        // Player has X or more troops in their trophy hall (e.g.
-                                // Revenant: "if you have 8 or more troops in your trophy hall")
+        TrophyHallCount,       // Player has X or more troops in their trophy hall, ANY color
+                                // (e.g. Revenant: "if you have 8 or more troops in your trophy
+                                // hall")
+        PlayerTrophyHallCount  // Player has X or more troops in their trophy hall, EXCLUDING
+                                // Neutral/white troops (e.g. Dragonclaw: "if you have 5 or more
+                                // player troops in your trophy hall") - the gating counterpart to
+                                // DynamicAmountSource.PlayerTrophyHallCount's amount-scaling use;
+                                // same underlying Player.TrophyHallByColor computation, just
+                                // compared against a threshold instead of used as a live amount.
     }
 
     /// <summary>

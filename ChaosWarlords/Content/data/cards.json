@@ -36,6 +36,7 @@
     "Aspect": "Shadow",
     "DeckVP": 1,
     "InnerCircleVP": 3,
+    "MarketCopyCount": 2,
     "Effects": [
       {
         "Type": "PlaceSpy",
@@ -290,6 +291,7 @@
     "Aspect": "Shadow",
     "DeckVP": 1,
     "InnerCircleVP": 2,
+    "MarketCopyCount": 2,
     "Effects": [
       {
         "Type": "PlaceSpy",
@@ -311,6 +313,7 @@
     "Aspect": "Blasphemy",
     "DeckVP": 3,
     "InnerCircleVP": 6,
+    "MarketCopyCount": 1,
     "Effects": [
       {
         "Type": "MoveDeckToDiscard",
@@ -348,6 +351,7 @@
     "Aspect": "Warlord",
     "DeckVP": 1,
     "InnerCircleVP": 3,
+    "MarketCopyCount": 3,
     "Effects": [
       {
         "Type": "Supplant",
@@ -404,6 +408,7 @@
     "Aspect": "Warlord",
     "DeckVP": 1,
     "InnerCircleVP": 2,
+    "MarketCopyCount": 3,
     "Effects": [
       {
         "Type": "GainResource",
@@ -425,6 +430,7 @@
     "Aspect": "Warlord",
     "DeckVP": 2,
     "InnerCircleVP": 5,
+    "MarketCopyCount": 2,
     "Effects": [
       {
         "Type": "GainResource",
@@ -486,6 +492,7 @@
     "Aspect": "Sorcery",
     "DeckVP": 3,
     "InnerCircleVP": 6,
+    "MarketCopyCount": 1,
     "Effects": [
       {
         "Type": "Assassinate",
@@ -603,6 +610,7 @@
     "Aspect": "Warlord",
     "DeckVP": 3,
     "InnerCircleVP": 7,
+    "MarketCopyCount": 1,
     "Effects": [
       {
         "Type": "Supplant",
@@ -625,6 +633,7 @@
     "Aspect": "Warlord",
     "DeckVP": 2,
     "InnerCircleVP": 5,
+    "MarketCopyCount": 1,
     "Effects": [
       {
         "Type": "GainResource",
@@ -646,6 +655,7 @@
     "Aspect": "Blasphemy",
     "DeckVP": 4,
     "InnerCircleVP": 8,
+    "MarketCopyCount": 1,
     "Effects": [
       {
         "Type": "Promote",
@@ -667,6 +677,7 @@
     "Aspect": "Shadow",
     "DeckVP": 3,
     "InnerCircleVP": 7,
+    "MarketCopyCount": 1,
     "Effects": [
       {
         "Type": "PlaceSpy",
@@ -715,6 +726,7 @@
     "Aspect": "Sorcery",
     "DeckVP": 4,
     "InnerCircleVP": 8,
+    "MarketCopyCount": 1,
     "Effects": [
       {
         "Type": "Supplant",
@@ -793,6 +805,7 @@
     "Aspect": "Blasphemy",
     "DeckVP": 3,
     "InnerCircleVP": 6,
+    "MarketCopyCount": 1,
     "Effects": [
       {
         "Type": "MoveUnit",
@@ -837,6 +850,7 @@
     "Aspect": "Warlord",
     "DeckVP": 2,
     "InnerCircleVP": 4,
+    "MarketCopyCount": 2,
     "Effects": [
       {
         "Type": "Assassinate",
@@ -852,6 +866,7 @@
     "Aspect": "Shadow",
     "DeckVP": 2,
     "InnerCircleVP": 5,
+    "MarketCopyCount": 1,
     "Effects": [
       {
         "Type": "PlaceSpy",
@@ -924,6 +939,7 @@
     "Aspect": "Warlord",
     "DeckVP": 3,
     "InnerCircleVP": 6,
+    "MarketCopyCount": 1,
     "Effects": [
       {
         "Type": "GainResource",
@@ -1014,6 +1030,7 @@
     "Aspect": "Shadow",
     "DeckVP": 1,
     "InnerCircleVP": 3,
+    "MarketCopyCount": 3,
     "Effects": [
       {
         "Type": "PlaceSpy",
@@ -1294,6 +1311,458 @@
         "Type": "Promote",
         "PromoteAnyNumber": true,
         "RequiredPromotionCreatureType": "Undead"
+      }
+    ]
+  },
+  {
+    "Id": "advocate",
+    "HalfDeck": "Drow",
+    "Cost": 2,
+    "Aspect": "Blasphemy",
+    "DeckVP": 1,
+    "InnerCircleVP": 2,
+    "MarketCopyCount": 4,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Influence",
+        "IsOptional": true,
+        "Alternative": {
+          "Type": "Promote",
+          "Amount": 1
+        }
+      }
+    ]
+  },
+  {
+    "Id": "blackguard",
+    "HalfDeck": "Drow",
+    "Cost": 3,
+    "Aspect": "Sorcery",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "MarketCopyCount": 4,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Power",
+        "IsOptional": true,
+        "Alternative": {
+          "Type": "Assassinate",
+          "Amount": 1
+        }
+      }
+    ]
+  },
+  {
+    "Id": "bounty_hunter",
+    "HalfDeck": "Drow",
+    "Cost": 4,
+    "Aspect": "Sorcery",
+    "DeckVP": 2,
+    "InnerCircleVP": 4,
+    "MarketCopyCount": 2,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 3,
+        "TargetResource": "Power"
+      }
+    ]
+  },
+  {
+    "Id": "chosen_of_lolth",
+    "HalfDeck": "Drow",
+    "Cost": 4,
+    "Aspect": "Blasphemy",
+    "DeckVP": 2,
+    "InnerCircleVP": 4,
+    "MarketCopyCount": 2,
+    "Effects": [
+      {
+        "Type": "ReturnUnitOrSpy",
+        "Amount": 1,
+        "ReturnEnemyOnly": true
+      },
+      {
+        "Type": "Promote",
+        "Amount": 1
+      }
+    ]
+  },
+  {
+    "Id": "doppelganger",
+    "HalfDeck": "Drow",
+    "Cost": 5,
+    "Aspect": "Sorcery",
+    "DeckVP": 3,
+    "InnerCircleVP": 5,
+    "MarketCopyCount": 2,
+    "Effects": [
+      {
+        "Type": "Supplant",
+        "Amount": 1
+      }
+    ]
+  },
+  {
+    "Id": "drow_negotiator",
+    "HalfDeck": "Drow",
+    "Cost": 3,
+    "Aspect": "Blasphemy",
+    "DeckVP": 1,
+    "InnerCircleVP": 2,
+    "MarketCopyCount": 2,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 3,
+        "TargetResource": "Influence",
+        "ConditionType": "InnerCircleCount",
+        "ConditionThreshold": 4
+      },
+      {
+        "Type": "Promote",
+        "Amount": 1
+      }
+    ]
+  },
+  {
+    "Id": "information_broker",
+    "HalfDeck": "Drow",
+    "Cost": 5,
+    "Aspect": "Shadow",
+    "DeckVP": 2,
+    "InnerCircleVP": 5,
+    "MarketCopyCount": 2,
+    "Effects": [
+      {
+        "Type": "PlaceSpy",
+        "Amount": 1,
+        "IsOptional": true,
+        "Alternative": {
+          "Type": "ReturnOwnSpy",
+          "Amount": 1,
+          "OnSuccess": {
+            "Type": "DrawCard",
+            "Amount": 3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "Id": "inquisitor",
+    "HalfDeck": "Drow",
+    "Cost": 3,
+    "Aspect": "Sorcery",
+    "DeckVP": 2,
+    "InnerCircleVP": 4,
+    "MarketCopyCount": 1,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Influence",
+        "IsOptional": true,
+        "Alternative": {
+          "Type": "Assassinate",
+          "Amount": 1
+        }
+      }
+    ]
+  },
+  {
+    "Id": "mercenary_squad",
+    "HalfDeck": "Drow",
+    "Cost": 3,
+    "Aspect": "Warlord",
+    "DeckVP": 1,
+    "InnerCircleVP": 4,
+    "MarketCopyCount": 2,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 3,
+        "TargetResource": "Troops"
+      }
+    ]
+  },
+  {
+    "Id": "blue_wyrmling",
+    "HalfDeck": "Dragons",
+    "Cost": 5,
+    "Aspect": "Blasphemy",
+    "DeckVP": 2,
+    "InnerCircleVP": 4,
+    "MarketCopyCount": 2,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 3,
+        "TargetResource": "Influence"
+      },
+      {
+        "Type": "ReturnUnitOrSpy",
+        "Amount": 1,
+        "ReturnEnemyOnly": true
+      }
+    ]
+  },
+  {
+    "Id": "cleric_of_laogzed",
+    "HalfDeck": "Dragons",
+    "Cost": 4,
+    "Aspect": "Blasphemy",
+    "DeckVP": 2,
+    "InnerCircleVP": 4,
+    "MarketCopyCount": 2,
+    "Effects": [
+      {
+        "Type": "MoveUnit",
+        "Amount": 1
+      },
+      {
+        "Type": "Promote",
+        "Amount": 1
+      }
+    ]
+  },
+  {
+    "Id": "cult_fanatic",
+    "HalfDeck": "Dragons",
+    "Cost": 3,
+    "Aspect": "Blasphemy",
+    "DeckVP": 1,
+    "InnerCircleVP": 4,
+    "MarketCopyCount": 2,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Influence"
+      },
+      {
+        "Type": "Devour",
+        "Amount": 1,
+        "TargetLocation": "Market",
+        "IsOptional": true
+      }
+    ]
+  },
+  {
+    "Id": "dragon_cultist",
+    "HalfDeck": "Dragons",
+    "Cost": 3,
+    "Aspect": "Sorcery",
+    "DeckVP": 1,
+    "InnerCircleVP": 4,
+    "MarketCopyCount": 4,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Power",
+        "IsOptional": true,
+        "Alternative": {
+          "Type": "GainResource",
+          "Amount": 2,
+          "TargetResource": "Influence"
+        }
+      }
+    ]
+  },
+  {
+    "Id": "dragonclaw",
+    "HalfDeck": "Dragons",
+    "Cost": 4,
+    "Aspect": "Sorcery",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "MarketCopyCount": 2,
+    "Effects": [
+      {
+        "Type": "Assassinate",
+        "Amount": 1,
+        "OnSuccess": {
+          "Type": "GainResource",
+          "Amount": 2,
+          "TargetResource": "Power",
+          "ConditionType": "PlayerTrophyHallCount",
+          "ConditionThreshold": 5
+        }
+      }
+    ]
+  },
+  {
+    "Id": "enchanter_of_thay",
+    "HalfDeck": "Dragons",
+    "Cost": 4,
+    "Aspect": "Shadow",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "MarketCopyCount": 3,
+    "Effects": [
+      {
+        "Type": "PlaceSpy",
+        "Amount": 1,
+        "IsOptional": true,
+        "Alternative": {
+          "Type": "ReturnOwnSpy",
+          "Amount": 1,
+          "OnSuccess": {
+            "Type": "GainResource",
+            "Amount": 4,
+            "TargetResource": "Power"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "Id": "green_wyrmling",
+    "HalfDeck": "Dragons",
+    "Cost": 4,
+    "Aspect": "Shadow",
+    "DeckVP": 2,
+    "InnerCircleVP": 4,
+    "MarketCopyCount": 2,
+    "Effects": [
+      {
+        "Type": "PlaceSpy",
+        "Amount": 1,
+        "OnSuccess": {
+          "Type": "GainResource",
+          "Amount": 2,
+          "TargetResource": "Influence",
+          "ConditionType": "OpponentPresentAtSite",
+          "ConditionPresenceType": "Troop"
+        }
+      }
+    ]
+  },
+  {
+    "Id": "rath_modar",
+    "HalfDeck": "Dragons",
+    "Cost": 6,
+    "Aspect": "Shadow",
+    "DeckVP": 2,
+    "InnerCircleVP": 5,
+    "MarketCopyCount": 1,
+    "Effects": [
+      {
+        "Type": "DrawCard",
+        "Amount": 2
+      },
+      {
+        "Type": "PlaceSpy",
+        "Amount": 1
+      }
+    ]
+  },
+  {
+    "Id": "red_wyrmling",
+    "HalfDeck": "Dragons",
+    "Cost": 5,
+    "Aspect": "Sorcery",
+    "DeckVP": 3,
+    "InnerCircleVP": 5,
+    "MarketCopyCount": 2,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Power"
+      },
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Influence"
+      }
+    ]
+  },
+  {
+    "Id": "severin_silrajin",
+    "HalfDeck": "Dragons",
+    "Cost": 7,
+    "Aspect": "Sorcery",
+    "DeckVP": 4,
+    "InnerCircleVP": 8,
+    "MarketCopyCount": 1,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 5,
+        "TargetResource": "Power"
+      }
+    ]
+  },
+  {
+    "Id": "watcher_of_thay",
+    "HalfDeck": "Dragons",
+    "Cost": 3,
+    "Aspect": "Shadow",
+    "DeckVP": 2,
+    "InnerCircleVP": 3,
+    "MarketCopyCount": 3,
+    "Effects": [
+      {
+        "Type": "PlaceSpy",
+        "Amount": 1,
+        "IsOptional": true,
+        "Alternative": {
+          "Type": "ReturnOwnSpy",
+          "Amount": 1,
+          "OnSuccess": {
+            "Type": "GainResource",
+            "Amount": 3,
+            "TargetResource": "Influence"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "Id": "white_wyrmling",
+    "HalfDeck": "Dragons",
+    "Cost": 2,
+    "Aspect": "Warlord",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "MarketCopyCount": 3,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 2,
+        "TargetResource": "Troops"
+      },
+      {
+        "Type": "Devour",
+        "Amount": 1,
+        "TargetLocation": "Market",
+        "IsOptional": true
+      }
+    ]
+  },
+  {
+    "Id": "wyrmspeaker",
+    "HalfDeck": "Dragons",
+    "Cost": 3,
+    "Aspect": "Blasphemy",
+    "DeckVP": 1,
+    "InnerCircleVP": 3,
+    "MarketCopyCount": 3,
+    "Effects": [
+      {
+        "Type": "GainResource",
+        "Amount": 1,
+        "TargetResource": "Influence"
+      },
+      {
+        "Type": "Promote",
+        "Amount": 1
       }
     ]
   }

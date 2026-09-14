@@ -106,7 +106,7 @@ namespace ChaosWarlords.Source.Entities.Cards
         // "At end of turn, promote up to 2 other cards played this turn" (Cultist of Myrkul,
         // Zuggtmoy) - marks an EffectType.Promote effect's banked end-of-turn credits as
         // voluntarily declinable, as opposed to the plain "promote a card played this turn"
-        // shape (e.g. core_noble), which the rulebook's plain instruction-following rule
+        // shape (e.g. Wyrmspeaker), which the rulebook's plain instruction-following rule
         // (tyrants-rules.pdf p.9) makes mandatory once a valid target exists. Threaded onto
         // each TurnContext.PromotionCredit this effect banks (see TurnContext.
         // AddPromotionCredit) - a DIFFERENT mechanism from CardEffect.AllowPartialRepeat above
@@ -195,7 +195,7 @@ namespace ChaosWarlords.Source.Entities.Cards
         // later, or declined outright). Counting "cards in your inner circle" at that earlier
         // moment would silently exclude whatever THIS card's own redemption is about to promote.
         // Only meaningful on EffectType.Promote; null (no completion effect) for every other
-        // Promote card today (core_noble, Cultist of Myrkul, Zuggtmoy).
+        // Promote card today (Wyrmspeaker, Cultist of Myrkul, Zuggtmoy).
         public CardEffect? PromotionCompletionEffect { get; set; }
 
         // "Choose an opponent with a troop adjacent to at least 1 of them [the just-deployed
@@ -228,7 +228,7 @@ namespace ChaosWarlords.Source.Entities.Cards
         // against a card of THIS specific aspect, threaded onto the TurnContext.PromotionCredit
         // this effect banks (see TurnContext.AddPromotionCredit/HasValidCreditFor/
         // ConsumeCreditFor). Null (the default) means no filter at all - every existing Promote
-        // effect (core_noble, Cultist of Myrkul, Zuggtmoy, Blue Dragon) is unaffected. A SIBLING
+        // effect (Wyrmspeaker, Cultist of Myrkul, Zuggtmoy, Blue Dragon) is unaffected. A SIBLING
         // restriction to the credit's own self-exclusion (a card can never promote itself,
         // filter or no filter) - not a replacement for it.
         public CardAspect? RequiredPromotionAspect { get; set; }
@@ -240,7 +240,7 @@ namespace ChaosWarlords.Source.Entities.Cards
         // does yet) - the two are orthogonal knobs on the same EffectType.Promote shape.
         public CardCreatureType? RequiredPromotionCreatureType { get; set; }
 
-        // "...promote ANY NUMBER of..." (as opposed to a fixed Amount, e.g. core_noble's 1 or
+        // "...promote ANY NUMBER of..." (as opposed to a fixed Amount, e.g. Wyrmspeaker's 1 or
         // Cultist of Myrkul's "up to 2") - when true, ApplyPromote banks an UNBOUNDED credit
         // (TurnContext.AddUnboundedPromotionCredit) instead of Amount discrete ones: exactly one
         // redeemable credit per currently-eligible played card, computed once redemption

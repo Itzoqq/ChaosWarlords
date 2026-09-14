@@ -16,7 +16,7 @@ namespace ChaosWarlords.Source.Contexts
 
         // Each entry represents 1 promotion point provided by a source Card, plus whether
         // that specific point is voluntarily declinable (CardEffect.PromotionCreditIsOptional
-        // - e.g. Cultist of Myrkul/Zuggtmoy's "up to N", as opposed to core_noble's plain,
+        // - e.g. Cultist of Myrkul/Zuggtmoy's "up to N", as opposed to Wyrmspeaker's plain,
         // mandatory "promote a card played this turn"), an optional aspect filter
         // (CardEffect.RequiredPromotionAspect - "promote an Obedience card played this turn",
         // Air/Fire/Water Elemental Myrmidon), and an optional creature-type filter
@@ -296,7 +296,7 @@ namespace ChaosWarlords.Source.Contexts
         /// declinable (CardEffect.PromotionCreditIsOptional - "up to N", e.g. Cultist of
         /// Myrkul; or a High Priest of Myrkul unbounded credit, always optional by
         /// construction) - vacuously true once no credits remain at all. False if even ONE
-        /// outstanding credit is the plain, mandatory shape (e.g. core_noble's "promote a card
+        /// outstanding credit is the plain, mandatory shape (e.g. Wyrmspeaker's "promote a card
         /// played this turn"), which must still be resolved before the player can stop.
         /// PromoteInputMode reads this to decide whether a Right-click/Escape may end the
         /// redemption flow early (forfeiting whatever's left) instead of refusing outright.

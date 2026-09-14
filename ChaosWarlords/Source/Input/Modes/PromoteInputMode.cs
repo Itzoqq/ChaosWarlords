@@ -47,7 +47,7 @@ namespace ChaosWarlords.Source.Input.Modes
         /// <summary>
         /// Right-click/Escape: "at end of turn, promote up to 2 other cards played this turn"
         /// (Cultist of Myrkul, Zuggtmoy) is genuinely optional - the player may forfeit
-        /// whatever's left. A plain "promote a card played this turn" (core_noble) has no such
+        /// whatever's left. A plain "promote a card played this turn" (Wyrmspeaker) has no such
         /// wording and stays mandatory (tyrants-rules.pdf p.9's plain instruction-following
         /// rule) - only decline early when EVERY outstanding credit is declinable, never
         /// partway through a still-mandatory one. Uses ActionSystem.DeclineRemainingPromotions()

@@ -1,3 +1,4 @@
+using System.Linq;
 using ChaosWarlords.Source.Contexts;
 using ChaosWarlords.Source.Entities.Actors;
 using ChaosWarlords.Source.Utilities;
@@ -38,6 +39,7 @@ namespace ChaosWarlords.Source.Entities.Cards
                 ConditionType.HandSize => player.Hand.Count >= Threshold,
                 ConditionType.OpponentPresentAtSite => EvaluateOpponentPresentAtSite(context, player),
                 ConditionType.TrophyHallCount => player.TrophyHall >= Threshold,
+                ConditionType.PlayerTrophyHallCount => EvaluatePlayerTrophyHallCount(player),
                 _ => true
             };
         }
@@ -71,6 +73,19 @@ namespace ChaosWarlords.Source.Entities.Cards
         private static bool IsOpponentColor(PlayerColor color, Player player)
         {
             return color != PlayerColor.None && color != PlayerColor.Neutral && color != player.Color;
+        }
+
+        /// <summary>
+        /// "5 or more PLAYER troops in your trophy hall" (Dragonclaw) - same Neutral/None-
+        /// excluding sum as DynamicAmountSource.PlayerTrophyHallCount, just compared against
+        /// Threshold instead of used as a live amount.
+        /// </summary>
+        private bool EvaluatePlayerTrophyHallCount(Player player)
+        {
+            int count = player.TrophyHallByColor
+                .Where(kv => kv.Key != PlayerColor.Neutral && kv.Key != PlayerColor.None)
+                .Sum(kv => kv.Value);
+            return count >= Threshold;
         }
 
         private static bool EvaluateControlsSite(MatchContext context, Player player)
