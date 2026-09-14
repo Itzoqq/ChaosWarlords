@@ -30,16 +30,43 @@ namespace ChaosWarlords.Source.Core.Contexts
 
         public MarketDeckSelection WithSecond(MarketHalfDeck halfDeck) => new(First, halfDeck);
 
-        public static MarketHalfDeck NextDistinct(MarketHalfDeck current, MarketHalfDeck excluded)
+        /// <summary>
+        /// Walks forward from <paramref name="current"/> through <paramref name="candidates"/>
+        /// (defaulting to every declared <see cref="MarketHalfDeck"/> value), skipping
+        /// <paramref name="excluded"/>, and returns the first match. Bounded by
+        /// <paramref name="candidates"/>'s own length rather than looping unconditionally, so a
+        /// caller passing a restricted candidate list (e.g. MatchSetupState only offering
+        /// half-decks ICardDatabase.GetCompleteHalfDecks reports as real/complete) can't hang if
+        /// every candidate happens to equal <paramref name="excluded"/> - returns
+        /// <paramref name="current"/> unchanged in that case, since there's genuinely nothing else
+        /// to cycle to.
+        /// </summary>
+        public static MarketHalfDeck NextDistinct(MarketHalfDeck current, MarketHalfDeck excluded, IReadOnlyList<MarketHalfDeck>? candidates = null)
         {
-            var values = Enum.GetValues<MarketHalfDeck>();
-            int nextIndex = (Array.IndexOf(values, current) + 1) % values.Length;
-            while (values[nextIndex] == excluded)
+            var values = candidates ?? Enum.GetValues<MarketHalfDeck>();
+            if (values.Count == 0)
             {
-                nextIndex = (nextIndex + 1) % values.Length;
+                throw new ArgumentException("candidates must contain at least one half-deck to cycle through.", nameof(candidates));
             }
 
-            return values[nextIndex];
+            int startIndex = Math.Max(IndexOf(values, current), 0);
+            for (int step = 1; step <= values.Count; step++)
+            {
+                var candidate = values[(startIndex + step) % values.Count];
+                if (candidate != excluded) return candidate;
+            }
+
+            return current;
+        }
+
+        private static int IndexOf(IReadOnlyList<MarketHalfDeck> values, MarketHalfDeck value)
+        {
+            for (int i = 0; i < values.Count; i++)
+            {
+                if (values[i] == value) return i;
+            }
+
+            return -1;
         }
     }
 }

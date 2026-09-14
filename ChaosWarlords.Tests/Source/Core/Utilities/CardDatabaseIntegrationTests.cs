@@ -43,7 +43,7 @@ namespace ChaosWarlords.Tests.Core.Utilities
         {
             var database = new CardDatabase(new TestLocalizationService());
             using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("""
-                [{ "id": "warlord_card", "aspect": "Warlord", "marketCopyCount": 1, "effects": [] }]
+                [{ "id": "warlord_card", "aspect": "Warlord", "halfDeck": "Drow", "marketCopyCount": 1, "effects": [] }]
                 """)))
             {
                 database.Load(stream);
@@ -63,7 +63,7 @@ namespace ChaosWarlords.Tests.Core.Utilities
         {
             var database = new CardDatabase(new TestLocalizationService());
             using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("""
-                [{ "id": "warlord_card", "aspect": "Warlord", "marketCopyCount": 1, "effects": [] }]
+                [{ "id": "warlord_card", "aspect": "Warlord", "halfDeck": "Drow", "marketCopyCount": 1, "effects": [] }]
                 """)))
             {
                 database.Load(stream);
@@ -90,7 +90,7 @@ namespace ChaosWarlords.Tests.Core.Utilities
             // doc comment claims to prevent.
             var database = new CardDatabase(new TestLocalizationService());
             using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("""
-                [{ "id": "warlord_card", "aspect": "Warlord", "marketCopyCount": 1, "effects": [] }]
+                [{ "id": "warlord_card", "aspect": "Warlord", "halfDeck": "Drow", "marketCopyCount": 1, "effects": [] }]
                 """)))
             {
                 database.Load(stream);
@@ -175,6 +175,24 @@ namespace ChaosWarlords.Tests.Core.Utilities
             Assert.IsTrue(piles.All(pile => pile.Cards.Count == 15), "Each fixed recruit pile must contain its complete finite physical supply.");
             Assert.IsTrue(piles.SelectMany(pile => pile.Cards).All(card => card.Location == CardLocation.Market));
         }
+        [TestMethod]
+        public void LoadRealCardsJson_GetCompleteHalfDecks_ReportsOnlyDrowAndDragons()
+        {
+            // planning.txt TIER 1 item 14: Drow+Dragons are the only 2 half-decks with a real,
+            // scan-verified 40-card count today - the other 4 are still mid-transcription
+            // (TIER 4 item 28) and must not be reported as safe to select for a real match.
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../ChaosWarlords/Content/data/cards.json");
+            if (!File.Exists(path)) Assert.Inconclusive("cards.json not found at " + path);
+
+            var database = new CardDatabase(new TestLocalizationService());
+            using var stream = File.OpenRead(path);
+            database.Load(stream);
+
+            var complete = database.GetCompleteHalfDecks();
+
+            CollectionAssert.AreEquivalent(new[] { MarketHalfDeck.Drow, MarketHalfDeck.Dragons }, complete.ToArray());
+        }
+
         [TestMethod]
         public void LoadRealCardsJson_EveryMarketCard_ResolvesNameAndDescriptionFromTheRealBundle()
         {

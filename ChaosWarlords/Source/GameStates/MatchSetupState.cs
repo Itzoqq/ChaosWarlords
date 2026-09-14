@@ -8,6 +8,7 @@ using ChaosWarlords.Source.Core.Interfaces.State;
 using ChaosWarlords.Source.Managers;
 using ChaosWarlords.Source.Rendering.UI;
 using ChaosWarlords.Source.Rendering.Views;
+using ChaosWarlords.Source.Utilities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -106,18 +107,43 @@ namespace ChaosWarlords.Source.GameStates
 
         private void CycleFirstHalfDeck()
         {
-            MarketDeckSelection = MarketDeckSelection.WithFirst(MarketDeckSelection.NextDistinct(MarketDeckSelection.First, MarketDeckSelection.Second));
+            MarketDeckSelection = MarketDeckSelection.WithFirst(
+                MarketDeckSelection.NextDistinct(MarketDeckSelection.First, MarketDeckSelection.Second, SelectableHalfDecks()));
             _firstHalfDeckButton?.SetText($"First half-deck: {MarketDeckSelection.First}");
         }
 
         private void CycleSecondHalfDeck()
         {
-            MarketDeckSelection = MarketDeckSelection.WithSecond(MarketDeckSelection.NextDistinct(MarketDeckSelection.Second, MarketDeckSelection.First));
+            MarketDeckSelection = MarketDeckSelection.WithSecond(
+                MarketDeckSelection.NextDistinct(MarketDeckSelection.Second, MarketDeckSelection.First, SelectableHalfDecks()));
             _secondHalfDeckButton?.SetText($"Second half-deck: {MarketDeckSelection.Second}");
+        }
+
+        // Only the half-decks GetCompleteHalfDecks reports as a real, complete 40-card set are
+        // safe to offer here (rulebook p.4) - several are still mid-transcription (planning.txt
+        // TIER 4 item 28) and would silently build a too-small market if a player ever selected
+        // one. Trusts whatever ICardDatabase answers at face value, including an empty result -
+        // that's the correct fail-closed outcome for a genuinely broken catalog (e.g. a bad
+        // cards.json edit regressing every half-deck below 40 at once), not a signal to fall back
+        // to "anything goes." A caller with no completeness concept of its own (a test double)
+        // must say so explicitly by returning every half-deck, per ICardDatabase's own default.
+        private List<MarketHalfDeck> SelectableHalfDecks()
+        {
+            var complete = _cardDatabase.GetCompleteHalfDecks();
+            return [.. Enum.GetValues<MarketHalfDeck>().Where(complete.Contains)];
         }
 
         private void StartMatch()
         {
+            var complete = _cardDatabase.GetCompleteHalfDecks();
+            if (!complete.Contains(MarketDeckSelection.First) || !complete.Contains(MarketDeckSelection.Second))
+            {
+                _logger.Log(
+                    $"[MatchSetupState] Refusing to start a match with an incomplete half-deck selection ({MarketDeckSelection.First}+{MarketDeckSelection.Second}).",
+                    LogChannel.Warning);
+                return;
+            }
+
             IGameplayView? gameplayView = null;
             int width = 1920;
             int height = 1080;

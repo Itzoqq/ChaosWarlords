@@ -42,6 +42,16 @@ namespace ChaosWarlords.Source.Utilities
         // card (see TestFixtureCards.cs) - a null HalfDeck means "never selectable," not "not
         // yet tagged."
         public string? HalfDeck { get; set; }
+
+        /// <summary>
+        /// Whether this card ever reaches the shuffled-market-selection/copy-expansion path at
+        /// all - false for a fixed recruit pile or Insane Outcast's supply pile, which are dealt
+        /// out through their own separate mechanism instead. The single shared definition both
+        /// <see cref="CardDatabase"/> (deciding what to expand into market copies) and <see
+        /// cref="CardCatalogValidator"/> (deciding what needs a MarketCopyCount/HalfDeck) check
+        /// against, so the two can't quietly drift apart on what counts as "a real market card."
+        /// </summary>
+        public bool IsMarketEligible => !RedirectsToSupplyOnDevourOrPromote && FixedRecruitPileSize == 0;
     }
 
     [ExcludeFromCodeCoverage]
@@ -210,6 +220,16 @@ namespace ChaosWarlords.Source.Utilities
             return CreateMarketCards(data => IsInSelection(data, selection), random);
         }
 
+        /// <summary>
+        /// The data-driven completeness answer (see CardCatalogValidator.CountHalfDeckCopies) for
+        /// every half-deck actually present in the loaded catalog - a real HashSet, never null,
+        /// unlike an unconfigured test double of this interface.
+        /// </summary>
+        public IReadOnlySet<MarketHalfDeck> GetCompleteHalfDecks() =>
+            Enum.GetValues<MarketHalfDeck>()
+                .Where(halfDeck => CardCatalogValidator.CountHalfDeckCopies(_cardDataCache, halfDeck) == GameConstants.HalfDeckCopyCount)
+                .ToHashSet();
+
         public List<FixedRecruitPile> GetFixedRecruitPiles(IGameRandom? random = null)
         {
             return _cardDataCache
@@ -236,7 +256,7 @@ namespace ChaosWarlords.Source.Utilities
         }
 
         private static bool IsMarketCard(CardData data, Func<CardData, bool> isIncluded) =>
-            !data.RedirectsToSupplyOnDevourOrPromote && data.FixedRecruitPileSize == 0 && isIncluded(data);
+            data.IsMarketEligible && isIncluded(data);
 
         // MarketCopyCount > 0 for every market card is now guaranteed by CardCatalogValidator at
         // load time (LoadFromJson/LoadAdditionalFromJson) - no card can reach _cardDataCache with

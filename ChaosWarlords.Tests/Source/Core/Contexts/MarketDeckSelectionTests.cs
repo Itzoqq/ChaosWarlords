@@ -32,6 +32,34 @@ namespace ChaosWarlords.Tests.Source.Core.Contexts
         }
 
         [TestMethod]
+        public void NextDistinct_WithACandidateList_OnlyCyclesThroughThoseCandidates()
+        {
+            var candidates = new[] { MarketHalfDeck.Drow, MarketHalfDeck.Dragons };
+
+            var next = MarketDeckSelection.NextDistinct(MarketHalfDeck.Drow, MarketHalfDeck.Dragons, candidates);
+
+            Assert.AreEqual(MarketHalfDeck.Drow, next, "With only 2 candidates and the other one excluded, there's nothing else to cycle to.");
+        }
+
+        [TestMethod]
+        public void NextDistinct_WithACandidateListNotContainingCurrent_StartsScanningFromTheTop()
+        {
+            var candidates = new[] { MarketHalfDeck.Drow, MarketHalfDeck.Dragons };
+
+            // `current` (Elemental) just fell out of the candidate list (e.g. it stopped being
+            // complete) - cycling must still land on a real candidate, not throw or hang.
+            var next = MarketDeckSelection.NextDistinct(MarketHalfDeck.Elemental, MarketHalfDeck.Dragons, candidates);
+
+            Assert.AreEqual(MarketHalfDeck.Drow, next);
+        }
+
+        [TestMethod]
+        public void NextDistinct_WithAnEmptyCandidateList_Throws()
+        {
+            Assert.ThrowsExactly<ArgumentException>(() => MarketDeckSelection.NextDistinct(MarketHalfDeck.Drow, MarketHalfDeck.Dragons, []));
+        }
+
+        [TestMethod]
         public void WithFirst_WhenGivenTheOtherSelectedHalfDeck_Throws()
         {
             var selection = new MarketDeckSelection(MarketHalfDeck.Drow, MarketHalfDeck.Dragons);

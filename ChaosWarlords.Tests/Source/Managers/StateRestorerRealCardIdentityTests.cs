@@ -33,7 +33,7 @@ namespace ChaosWarlords.Tests.Source.Managers
     {
         private const string CatalogJson = @"
             [
-              { ""id"": ""wight"", ""cost"": 3, ""aspect"": ""Neutral"", ""deckVP"": 1, ""innerCircleVP"": 3, ""effects"": [] }
+              { ""id"": ""wight"", ""cost"": 3, ""aspect"": ""Neutral"", ""halfDeck"": ""Undead"", ""deckVP"": 1, ""innerCircleVP"": 3, ""effects"": [] }
             ]";
 
         private MatchContext _context = null!;

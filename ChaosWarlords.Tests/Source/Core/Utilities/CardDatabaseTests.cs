@@ -30,6 +30,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
             ""description"": ""A starting card."",
             ""cost"": 0,
             ""aspect"": ""Neutral"",
+            ""halfDeck"": ""Drow"",
             ""deckVP"": 1,
             ""innerCircleVP"": 0,
             ""effects"": [
@@ -42,6 +43,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
             ""description"": ""A starting card."",
             ""cost"": 0,
             ""aspect"": ""Neutral"",
+            ""halfDeck"": ""Drow"",
             ""deckVP"": 0,
             ""innerCircleVP"": 0,
             ""effects"": [
@@ -145,6 +147,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
             ""description"": ""Recursive Test"",
             ""cost"": 3,
             ""aspect"": ""Sorcery"",
+            ""halfDeck"": ""Undead"",
             ""deckVP"": 1,
             ""innerCircleVP"": 3,
             ""effects"": [

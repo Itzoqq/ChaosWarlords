@@ -15,6 +15,10 @@ namespace ChaosWarlords.Source.Utilities
         public const int HandSize = 5;
         public const int MarketRowSize = 6;
 
+        // Rulebook p.4: each of the 6 physical market half-decks contains exactly 40 cards -
+        // see CardCatalogValidator.CountHalfDeckCopies / ICardDatabase.GetCompleteHalfDecks.
+        public const int HalfDeckCopyCount = 40;
+
         // Starting Resources
         public const int StartingTroops = 40;
         public const int StartingSpies = 5;

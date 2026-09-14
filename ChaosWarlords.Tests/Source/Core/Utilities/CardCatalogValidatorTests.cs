@@ -17,6 +17,7 @@ namespace ChaosWarlords.Tests.Source.Utilities
         {
             Id = id,
             Aspect = "Warlord",
+            HalfDeck = "Drow",
             Effects = [new CardEffectData { Type = "GainResource", TargetResource = "Power" }]
         };
 
@@ -71,15 +72,59 @@ namespace ChaosWarlords.Tests.Source.Utilities
         }
 
         [TestMethod]
-        public void Validate_WithANullHalfDeck_DoesNotThrow()
+        public void Validate_WithANullHalfDeckOnAFixedRecruitPileCard_DoesNotThrow()
         {
-            // Fixed recruit piles / Insane Outcast / test fixtures all legitimately have no
-            // HalfDeck at all - it's an optional field, unlike Aspect.
+            // A fixed recruit pile / Insane Outcast's supply pile card never reaches the
+            // shuffled-market-selection path at all, so it has no meaningful HalfDeck - unlike a
+            // real market card (see the two tests below), it's legitimately optional.
+            var card = ValidCard();
+            card.HalfDeck = null;
+            card.FixedRecruitPileSize = 15;
+            var cards = new List<CardData> { card };
+
+            CardCatalogValidator.Validate(cards, disallowTestPrefixedIds: true);
+        }
+
+        [TestMethod]
+        public void Validate_WithANullHalfDeckOnAMarketCard_ThrowsWhenTestPrefixesAreDisallowed()
+        {
+            // A missing HalfDeck on a real market card must be rejected here -
+            // CardDatabase.IsInSelection silently excludes any card whose HalfDeck doesn't parse,
+            // so an unset field means the card silently vanishes from the market instead of
+            // failing loudly.
             var card = ValidCard();
             card.HalfDeck = null;
             var cards = new List<CardData> { card };
 
-            CardCatalogValidator.Validate(cards, disallowTestPrefixedIds: true);
+            var ex = Assert.ThrowsExactly<InvalidDataException>(() => CardCatalogValidator.Validate(cards, disallowTestPrefixedIds: true));
+            StringAssert.Contains(ex.Message, "HalfDeck is required but missing/empty");
+        }
+
+        [TestMethod]
+        public void Validate_WithANullHalfDeckOnAMarketCard_DoesNotThrowWhenTestPrefixesAreAllowed()
+        {
+            // LoadAdditionalFromJson's whole purpose is merging test-only fixtures (see
+            // TestFixtureCards.cs) that are deliberately market-shaped but never HalfDeck-tagged,
+            // since they must never enter the real shuffled market - required-HalfDeck is gated
+            // on the same disallowTestPrefixedIds flag as ValidateTestPrefixedId's own check.
+            var card = ValidCard();
+            card.HalfDeck = null;
+            var cards = new List<CardData> { card };
+
+            CardCatalogValidator.Validate(cards, disallowTestPrefixedIds: false);
+        }
+
+        [TestMethod]
+        public void Validate_WithANumericStringAspect_Throws()
+        {
+            // Enum.TryParse alone "successfully" parses a bare numeric string to that underlying
+            // integer value even when no enum member defines it - only Enum.IsDefined catches it.
+            var card = ValidCard();
+            card.Aspect = "999";
+            var cards = new List<CardData> { card };
+
+            var ex = Assert.ThrowsExactly<InvalidDataException>(() => CardCatalogValidator.Validate(cards, disallowTestPrefixedIds: true));
+            StringAssert.Contains(ex.Message, "Aspect '999' is not a known CardAspect value");
         }
 
         [TestMethod]
@@ -347,6 +392,41 @@ namespace ChaosWarlords.Tests.Source.Utilities
             var cards = new List<CardData> { ValidCard("test_fixture") };
 
             CardCatalogValidator.Validate(cards, disallowTestPrefixedIds: false);
+        }
+
+        [TestMethod]
+        public void CountHalfDeckCopies_SumsMarketCopyCountAcrossOnlyTheRequestedHalfDeck()
+        {
+            var drowOne = ValidCard("drow_one");
+            drowOne.HalfDeck = "Drow";
+            drowOne.MarketCopyCount = 3;
+            var drowTwo = ValidCard("drow_two");
+            drowTwo.HalfDeck = "Drow";
+            drowTwo.MarketCopyCount = 2;
+            var dragon = ValidCard("dragon_one");
+            dragon.HalfDeck = "Dragons";
+            dragon.MarketCopyCount = 40;
+            var cards = new List<CardData> { drowOne, drowTwo, dragon };
+
+            Assert.AreEqual(5, CardCatalogValidator.CountHalfDeckCopies(cards, MarketHalfDeck.Drow));
+            Assert.AreEqual(40, CardCatalogValidator.CountHalfDeckCopies(cards, MarketHalfDeck.Dragons));
+            Assert.AreEqual(0, CardCatalogValidator.CountHalfDeckCopies(cards, MarketHalfDeck.Undead));
+        }
+
+        [TestMethod]
+        public void CountHalfDeckCopies_ExcludesFixedRecruitPileAndSupplyCardsEvenIfHalfDeckTagged()
+        {
+            var fixedPile = ValidCard("fixed_pile_card");
+            fixedPile.HalfDeck = "Drow";
+            fixedPile.MarketCopyCount = 15;
+            fixedPile.FixedRecruitPileSize = 15;
+            var supplyCard = ValidCard("supply_card");
+            supplyCard.HalfDeck = "Drow";
+            supplyCard.MarketCopyCount = 30;
+            supplyCard.RedirectsToSupplyOnDevourOrPromote = true;
+            var cards = new List<CardData> { fixedPile, supplyCard };
+
+            Assert.AreEqual(0, CardCatalogValidator.CountHalfDeckCopies(cards, MarketHalfDeck.Drow));
         }
 
         [TestMethod]

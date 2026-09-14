@@ -488,7 +488,8 @@ This is a genuinely separate axis from `CardAspect` (`Warlord`/`Sorcery`/`Shadow
 and "2 half-decks" are not different names for the same setup choice. `CardData.HalfDeck`
 (nullable string, parsed via `Enum.TryParse<MarketHalfDeck>`) tags which half-deck a card
 belongs to; `null` means the card never belongs to a shuffled half-deck at all (the two fixed
-recruit piles, Insane Outcast's supply pile, and every `TestFixtureCards` fixture).
+recruit piles, Insane Outcast's supply pile, and every `TestFixtureCards` fixture) - and is only
+legal for a card in exactly that shape, enforced by `CardCatalogValidator` (see #11).
 `CardDatabase.GetMarketCards(MarketDeckSelection, ...)` filters by this tag; `MarketDeckSelection`
 itself (`Core/Contexts/MarketDeckSelection.cs`) is a small immutable value type (`First`/
 `Second`/`Includes`/`WithFirst`/`WithSecond`/`NextDistinct`) that `MatchSetupState`'s UI cycles
@@ -496,6 +497,21 @@ through, `MatchFactory`/`MarketManager` pass straight to `CardDatabase`, and `Re
 persists as two strings on `ReplayDataDto` (`FirstMarketHalfDeck`/`SecondMarketHalfDeck`) for
 replay fidelity - a malformed or pre-migration value (e.g. an old replay recorded before this
 system existed) fails closed to `MarketDeckSelection.Default` rather than throwing.
+
+Only Drow and Dragons currently sum to a real, physical 40-card half-deck in `cards.json` -
+Elemental/Demons/Aberrations/Undead are still mid-transcription (planning.txt TIER 4 item 28) and
+would silently build a too-small market if ever selected for a real match.
+`ICardDatabase.GetCompleteHalfDecks()` is the data-driven "which half-decks are actually safe to
+offer" answer (backed by `CardCatalogValidator.CountHalfDeckCopies`, summing
+`CardData.MarketCopyCount` per half-deck); `MatchSetupState` intersects it with `NextDistinct`'s
+now-optional `candidates` parameter so its cycle buttons can only land on a complete half-deck,
+and `StartMatch()` refuses to proceed at all if the current selection isn't fully complete. Both
+trust `GetCompleteHalfDecks()`'s result at face value, including an empty one - an empty result is
+the correct fail-closed answer for a catastrophically broken catalog, not a signal to fall back to
+"anything goes." `MatchFactory`/`CardDatabase.GetMarketCards`/`MarketManager` deliberately do NOT
+enforce this - several existing functional/scenario tests build real matches from an intentionally
+partial half-deck (e.g. Demons, for Insane-Outcast-dependent cards), so completeness gating lives
+only at the UI setup boundary, not the market-building path itself.
 
 An earlier, now-superseded implementation of this exact same class shape filtered by
 `CardAspect` instead of `MarketHalfDeck` - see `planning.txt` TIER 1 item 5 / `RESOLVED.txt`'s
@@ -510,16 +526,30 @@ still resolves): unique ids; every enum-valued string field (`Aspect`, `HalfDeck
 on `CardData`; `Type`, `TargetResource`, `TargetLocation`, `ConditionType`, `ConditionResource`,
 `ConditionPresenceType`, `DynamicAmountSource`, `RequiredPromotionAspect`,
 `RequiredPromotionCreatureType`, `GainResourcePerRepeat` on `CardEffectData`, recursively
-through `OnSuccess`/`Alternative`/`PromotionCompletionEffect`) against its real enum type;
-`MarketCopyCount >= 1` for every card that actually reaches the market-copy expansion path (not a
-fixed recruit pile or Insane Outcast's supply pile, which never go through it); every
-`CardEffectData.TargetCardId` resolving to a real card id or one of the 2 hardcoded
+through `OnSuccess`/`Alternative`/`PromotionCompletionEffect`) against its real enum type, using
+`Enum.IsDefined` on top of `Enum.TryParse` so a bare numeric string (e.g. `"999"`, which
+`TryParse` alone "successfully" converts to that underlying, undefined value) is still rejected;
+`MarketCopyCount >= 1` for every `CardData.IsMarketEligible` card (not a fixed recruit pile or
+Insane Outcast's supply pile, which never reach the market-copy expansion path); `HalfDeck`
+required for every `IsMarketEligible` card too, but ONLY on the strict production `LoadFromJson`
+path (see below) - a missing/misspelled `HalfDeck` used to pass validation and then get silently
+excluded from every `MarketDeckSelection` by `CardDatabase.IsInSelection` instead of failing
+loudly; every `CardEffectData.TargetCardId` resolving to a real card id or one of the 2 hardcoded
 starting-deck ids (`"soldier"`/`"noble"`); and, ONLY for the production `LoadFromJson` path
 (`disallowTestPrefixedIds: true`), the absence of any `test_`-prefixed id - `LoadAdditionalFromJson`
 passes `false`, since that path exists specifically to merge `TestFixtureCards`' `test_`-prefixed
-fixtures. Every problem found is aggregated into one `InvalidDataException` message rather than
+fixtures (which are deliberately market-shaped but `HalfDeck`-less, so the same flag gates both
+checks). Every problem found is aggregated into one `InvalidDataException` message rather than
 throwing on the first one, so a catalog author fixes everything in one pass instead of one
 throw-fix-reload cycle at a time.
+
+`CardCatalogValidator.CountHalfDeckCopies(cards, halfDeck)` (internal) sums `MarketCopyCount`
+across a half-deck's `IsMarketEligible` cards - the data-driven "is this half-deck actually a
+complete 40-card physical half-deck" answer (rulebook p.4), and the basis for
+`ICardDatabase.GetCompleteHalfDecks()` (see #10). Deliberately NOT wired into `Validate`'s
+automatic load-time pass: several half-decks are still mid-transcription and legitimately total
+less than 40 today, and multiple existing tests build real matches from those partial half-decks
+on purpose.
 
 ### 12. Insane Outcast Shared Supply Cap
 A single match-wide `int` counter (`GameConstants.InsaneOutcastSupplyCount` = 30) lives on `PlayerStateManager` (`InsaneOutcastSupplyRemaining` read-only property), not per-player and not on `MatchContext` - `ApplyForceRecruit` (the consumption site) and the 3 `Card.RedirectsToSupplyOnDevourOrPromote` redirect sites (`DevourCard`/`TryPromoteCard`/`TryPromoteTopOfDeck`, the return sites) are all either `PlayerStateManager` methods or only reachable through it, so this is the one class that already owns every mutation path without needing to thread a reference through 7+ other call sites. `MatchFactory.Build` calls `InitializeInsaneOutcastSupply(selection.Includes(MarketHalfDeck.Demons) ? 30 : 0)` once at setup - rulebook p.4 step 4: the pile only exists at all "if you're playing with the Demons half-deck."
