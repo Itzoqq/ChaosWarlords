@@ -74,6 +74,7 @@ ChaosWarlords/
 ## Documentation
 
 - **[Architecture Guide](docs/architecture.md)** - System design and component breakdown
+- **[Component and Interface Interaction Flow](docs/component-interaction-flow.md)** - Code-level ownership, dependency, event, command, and state-flow diagrams
 - **[Coding Guidelines](docs/coding-guidelines.md)** - Established patterns and best practices
 - **[Testing Guide](docs/testing.md)** - Test organization and patterns
 - **[Setup Guide](docs/setup.md)** - Development environment setup

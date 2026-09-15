@@ -222,6 +222,13 @@ namespace ChaosWarlords.Source.Mechanics.Rules
             return _sites.Any(s => !s.Spies.Contains(activePlayer.Color) && s.NodesInternal.Count > 0);
         }
 
+        // Place a Spy's own empty-barracks exception (p.12) - is there a site to return from at
+        // all? Mirrors ReturnOwnSpyStrategy.HasValidTargets' identical check.
+        public bool HasOwnSpyOnBoard(Player activePlayer)
+        {
+            return _sites?.Any(s => s.Spies.Contains(activePlayer.Color)) ?? false;
+        }
+
         public bool HasValidMoveSource(Player activePlayer)
         {
             return _nodes.Any(n => CanMoveSource(n, activePlayer));

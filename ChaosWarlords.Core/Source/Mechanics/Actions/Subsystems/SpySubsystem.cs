@@ -31,11 +31,31 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
 
         private Player CurrentPlayer => _turnManager.ActivePlayer;
 
+        /// <summary>
+        /// Rulebook p.12's Place-a-Spy exception: "if all your spies are already placed, you
+        /// may return one of your own first, then place - or do nothing." With an empty
+        /// barracks, a click only means something when it lands on a site already holding the
+        /// active player's own spy - that returns it (ReturnSpyToPlaceCommand), replenishing the
+        /// barracks by exactly one so the VERY NEXT click resolves as an ordinary placement
+        /// instead. PlaceSpyStrategy.HasValidTargets already confirmed at least one such site
+        /// exists before targeting opened; "do nothing" has no separate affordance here - it's
+        /// reached via the same Escape/right-click -> CancelTargeting() every targeting sequence
+        /// already offers, which (for a mandatory multi-repeat effect like Masters of Sorcere's
+        /// "Place 2 spies") reverts the WHOLE sequence back to its own start, not just this one
+        /// undecided repeat - the same "up to N" tradeoff CardEffect.AllowPartialRepeat exists to
+        /// avoid for a voluntary decline (see that primitive's own doc comment).
+        /// </summary>
         public IGameCommand? HandlePlaceSpy(Site targetSite, string? cardId)
         {
             if (targetSite is null) return null;
+
+            if (CurrentPlayer.SpiesInBarracks <= 0)
+            {
+                if (!targetSite.Spies.Contains(CurrentPlayer.Color)) return null;
+                return new Commands.ReturnSpyToPlaceCommand(targetSite.Id, cardId);
+            }
+
             if (targetSite.Spies.Contains(CurrentPlayer.Color)) return null;
-            if (CurrentPlayer.SpiesInBarracks <= 0) return null;
 
             return new Commands.PlaceSpyCommand(targetSite.Id, cardId);
         }

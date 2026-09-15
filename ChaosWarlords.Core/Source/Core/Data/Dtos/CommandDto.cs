@@ -28,6 +28,7 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     [JsonDerivedType(typeof(DeclineRepeatCommandDto), typeDiscriminator: "decline_repeat")]
     [JsonDerivedType(typeof(ReturnAnySpyCommandDto), typeDiscriminator: "ret_any_spy")]
     [JsonDerivedType(typeof(DeployFromTrophyHallCommandDto), typeDiscriminator: "deploy_trophy")]
+    [JsonDerivedType(typeof(ReturnSpyToPlaceCommandDto), typeDiscriminator: "ret_spy_to_place")]
     public abstract class GameCommandDto
     {
         public int Seq { get; set; }
@@ -186,6 +187,14 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
 
     public class DeclineRepeatCommandDto : GameCommandDto
     {
+        public string? CardId { get; set; }
+    }
+
+    // Place a Spy's empty-barracks return-then-place exception (p.12) - the return half only,
+    // see ReturnSpyToPlaceCommand's own doc comment.
+    public class ReturnSpyToPlaceCommandDto : GameCommandDto
+    {
+        public int SiteId { get; set; }
         public string? CardId { get; set; }
     }
 }

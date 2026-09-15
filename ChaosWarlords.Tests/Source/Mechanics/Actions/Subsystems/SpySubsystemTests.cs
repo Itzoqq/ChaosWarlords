@@ -60,6 +60,35 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
             Assert.IsNull(cmd);
         }
 
+        #region Empty-barracks return-then-place (rulebook p.12)
+
+        [TestMethod]
+        public void HandlePlaceSpy_EmptyBarracks_ClickOnSiteWithOwnSpy_ReturnsReturnSpyToPlaceCommand()
+        {
+            _activePlayer.SpiesInBarracks = 0;
+            _site.Spies.Add(PlayerColor.Red);
+
+            var cmd = _subsystem.HandlePlaceSpy(_site, null);
+
+            Assert.IsInstanceOfType(cmd, typeof(ChaosWarlords.Source.Commands.ReturnSpyToPlaceCommand));
+            var typed = (ChaosWarlords.Source.Commands.ReturnSpyToPlaceCommand)cmd!;
+            Assert.AreEqual(_site.Id, typed.TargetSiteId);
+        }
+
+        [TestMethod]
+        public void HandlePlaceSpy_EmptyBarracks_ClickOnSiteWithoutOwnSpy_ReturnsNull()
+        {
+            // Nothing to return here, and nothing to place either (barracks empty) - the click
+            // is simply invalid, same as any other mistargeted click.
+            _activePlayer.SpiesInBarracks = 0;
+
+            var cmd = _subsystem.HandlePlaceSpy(_site, null);
+
+            Assert.IsNull(cmd);
+        }
+
+        #endregion
+
         [TestMethod]
         public void HandleReturnSpyInitialClick_CallsNotifyFailure_IfTargetInvalid()
         {

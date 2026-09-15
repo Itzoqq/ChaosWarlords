@@ -1,6 +1,6 @@
 # Game Logic Flow Visualization
 
-This document visualizes the data flow and component interactions within the ChaosWarlords engine, ordered from high-level concepts to detailed implementation flows.
+This document visualizes the data flow and component interactions within the ChaosWarlords engine, ordered from high-level concepts to detailed implementation flows. For the companion map of concrete classes, interfaces, construction order, event subscriptions, state ownership, and serialization boundaries, see [Component and Interface Interaction Flow](component-interaction-flow.md).
 
 ## 1. High-Level Architecture
 **Concept**: The 10,000ft view. How the Headless Logic interacts with the Input and View layers.

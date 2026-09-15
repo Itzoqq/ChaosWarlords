@@ -437,7 +437,8 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void HandleTargetClick_PlaceSpy_Fails_IfNoSpiesInBarracks()
         {
-            // Arrange
+            // Arrange: barracks empty AND no own spy anywhere to return either - genuinely
+            // nothing to do (rulebook p.12's return-then-place exception doesn't apply).
             _actionSystem.StartTargeting(ActionState.TargetingPlaceSpy);
             _player1.SpiesInBarracks = 0;
 
@@ -448,6 +449,23 @@ namespace ChaosWarlords.Tests.Systems
             // Assert
             Assert.IsFalse(_eventCompletedFired);
             _mapManager.DidNotReceive().PlaceSpy(Arg.Any<Site>(), Arg.Any<Player>());
+        }
+
+        [TestMethod]
+        public void HandleTargetClick_PlaceSpy_EmptyBarracks_ClickOnOwnSpySite_ReturnsSpyInsteadOfPlacing()
+        {
+            // Rulebook p.12: with an empty barracks, clicking a site where the player already
+            // has their own spy returns it (ReturnSpyToPlaceCommand) rather than placing - the
+            // action stays open (not completed) for the follow-up placement click.
+            _actionSystem.StartTargeting(ActionState.TargetingPlaceSpy);
+            _player1.SpiesInBarracks = 0;
+            _siteA.Spies.Add(_player1.Color);
+
+            var cmd = _actionSystem.HandleTargetClick(null!, _siteA);
+
+            Assert.IsInstanceOfType(cmd, typeof(ChaosWarlords.Source.Commands.ReturnSpyToPlaceCommand));
+            Assert.IsFalse(_eventCompletedFired, "PlaceSpy is still pending - returning the spy is only the first half.");
+            Assert.AreEqual(ActionState.TargetingPlaceSpy, _actionSystem.CurrentState);
         }
 
         [TestMethod]

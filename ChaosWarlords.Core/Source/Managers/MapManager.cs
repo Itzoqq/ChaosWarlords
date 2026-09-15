@@ -92,6 +92,7 @@ namespace ChaosWarlords.Source.Managers
         public bool HasValidReturnAnySpyTarget(Player activePlayer, bool enemyOnly = false) => _ruleEngine.HasValidReturnAnySpyTarget(activePlayer, enemyOnly);
         public bool HasValidReturnTroopTarget(Player activePlayer, bool enemyOnly = false) => _ruleEngine.HasValidReturnTroopTarget(activePlayer, enemyOnly);
         public bool HasValidPlaceSpyTarget(Player activePlayer) => _ruleEngine.HasValidPlaceSpyTarget(activePlayer);
+        public bool HasOwnSpyOnBoard(Player activePlayer) => _ruleEngine.HasOwnSpyOnBoard(activePlayer);
         public bool HasValidMoveSource(Player activePlayer) => _ruleEngine.HasValidMoveSource(activePlayer);
         public bool HasValidDeployTarget(PlayerColor player) => _ruleEngine.HasValidDeployTarget(player);
 
