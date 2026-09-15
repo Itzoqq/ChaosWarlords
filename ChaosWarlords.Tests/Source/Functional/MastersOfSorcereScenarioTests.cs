@@ -101,12 +101,12 @@ namespace ChaosWarlords.Tests.Source.Functional
         }
 
         [TestMethod]
-        public void PlayMastersOfSorcere_OnlyOneSpyLeftInBarracks_PlacesOneSpyAndResolvesWithoutASecondClick()
+        public void PlayMastersOfSorcere_OnlyOneSpyLeftInBarracks_CanReturnTheJustPlacedSpyToSatisfyTheSecondRepeat()
         {
-            // The OTHER way the repeat can run out early: plenty of valid, unoccupied sites
-            // remain (unlike the test above), but the barracks itself only has 1 spy left -
-            // PlaceSpyStrategy.HasValidTargets is a compound "SpiesInBarracks > 0 AND a valid
-            // site exists" check, and this is the half that test doesn't cover.
+            // Rulebook p.12's empty-barracks return-then-place exception applies per-repeat, not
+            // just to a PlaceSpy effect's own first activation: once the 1st placement empties
+            // the barracks, the still-owed 2nd repeat isn't a dead end - Red can return the spy
+            // just placed and place it again elsewhere.
             var scenario = MatchScenario.Build();
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             red.SpiesInBarracks = 1;
@@ -119,10 +119,21 @@ namespace ChaosWarlords.Tests.Source.Functional
             Assert.AreEqual(ActionState.TargetingPlaceSpy, scenario.Context.ActionSystem.CurrentState);
 
             scenario.ClickTarget(null, sites[0]);
-
             Assert.Contains(red.Color, sites[0].Spies);
             Assert.AreEqual(0, red.SpiesInBarracks);
-            Assert.AreEqual(ActionState.Normal, scenario.Context.ActionSystem.CurrentState, "With the barracks empty, the effect must resolve instead of waiting for an impossible 2nd - even though other valid sites still exist.");
+            Assert.AreEqual(ActionState.TargetingPlaceSpy, scenario.Context.ActionSystem.CurrentState, "The 2nd repeat is still owed - the empty-barracks return exception keeps it reachable rather than dead-ending.");
+            Assert.IsNotEmpty(scenario.Context.ActionSystem.ExecutionStack);
+
+            var returnCmd = scenario.ClickTarget(null, sites[0]);
+            Assert.IsInstanceOfType(returnCmd, typeof(ReturnSpyToPlaceCommand));
+            Assert.DoesNotContain(red.Color, sites[0].Spies, "The just-placed spy should have been returned.");
+            Assert.AreEqual(1, red.SpiesInBarracks);
+
+            scenario.ClickTarget(null, sites[1]);
+
+            Assert.Contains(red.Color, sites[1].Spies);
+            Assert.AreEqual(0, red.SpiesInBarracks);
+            Assert.AreEqual(ActionState.Normal, scenario.Context.ActionSystem.CurrentState, "The 2nd repeat has now been satisfied.");
             Assert.IsEmpty(scenario.Context.ActionSystem.ExecutionStack);
         }
 

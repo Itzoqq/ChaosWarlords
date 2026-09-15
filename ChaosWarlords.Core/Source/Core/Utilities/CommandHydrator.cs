@@ -84,7 +84,8 @@ namespace ChaosWarlords.Source.Core.Utilities
                             ? new DeployFromTrophyHallCommand(dto.NodeId, sourceColor, troopColor, dto.CardId)
                             : null;
                     }
-                }
+                },
+                { typeof(ReturnSpyToPlaceCommandDto), (d, s) => new ReturnSpyToPlaceCommand(((ReturnSpyToPlaceCommandDto)d).SiteId, ((ReturnSpyToPlaceCommandDto)d).CardId) }
             };
         }
 

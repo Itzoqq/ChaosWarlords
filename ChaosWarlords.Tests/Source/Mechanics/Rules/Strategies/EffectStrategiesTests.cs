@@ -518,14 +518,31 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Rules.Strategies
         }
 
         [TestMethod]
-        public void PlaceSpyStrategy_HasValidTargets_NoSpiesInBarracks_ReturnsFalse()
+        public void PlaceSpyStrategy_HasValidTargets_NoSpiesInBarracksAndNoOwnSpyOnBoard_ReturnsFalse()
         {
+            // Rulebook p.12: with an empty barracks, the only remaining option is to return an
+            // own spy first - with none on the board either, there is genuinely nothing to do.
             var mapManager = Substitute.For<IMapManager>();
             var player = new PlayerBuilder().WithSpies(0).Build();
-            mapManager.HasValidPlaceSpyTarget(player).Returns(true);
+            mapManager.HasValidPlaceSpyTarget(player).Returns(true); // Irrelevant with 0 barracks.
+            mapManager.HasOwnSpyOnBoard(player).Returns(false);
             var context = new MatchContextBuilder().WithMapManager(mapManager).Build();
 
             Assert.IsFalse(new PlaceSpyStrategy().HasValidTargets(context, player, null));
+        }
+
+        [TestMethod]
+        public void PlaceSpyStrategy_HasValidTargets_NoSpiesInBarracksButOwnSpyOnBoard_ReturnsTrue()
+        {
+            // Rulebook p.12's own-spy-return exception: an empty barracks doesn't make PlaceSpy
+            // a dead effect as long as the player has a spy somewhere to return first.
+            var mapManager = Substitute.For<IMapManager>();
+            var player = new PlayerBuilder().WithSpies(0).Build();
+            mapManager.HasValidPlaceSpyTarget(player).Returns(false); // Irrelevant with 0 barracks.
+            mapManager.HasOwnSpyOnBoard(player).Returns(true);
+            var context = new MatchContextBuilder().WithMapManager(mapManager).Build();
+
+            Assert.IsTrue(new PlaceSpyStrategy().HasValidTargets(context, player, null));
         }
 
         [TestMethod]

@@ -35,6 +35,14 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         bool HasValidDeployTarget(PlayerColor player);
 
         /// <summary>
+        /// Is there ANY site where the active player already has one of their own spies? Place
+        /// a Spy's own empty-barracks exception (rulebook p.12: "you may return one of your own
+        /// spies first, then place") needs this to decide whether that option exists at all -
+        /// distinct from HasValidPlaceSpyTarget, which only asks about placement, not return.
+        /// </summary>
+        bool HasOwnSpyOnBoard(Player activePlayer);
+
+        /// <summary>
         /// True if there's a site with AT LEAST ONE spy the active player could legally return
         /// right now (their own, anywhere - or an enemy's, only where they have Presence) - see
         /// EffectType.ReturnUnitOrSpy. A site with 2+ simultaneously-eligible spies is resolvable
