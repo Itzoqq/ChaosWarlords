@@ -544,8 +544,20 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void HandleTargetClick_ReturnSpy_ViaCard_DoesNotSpendPower()
         {
-            // Arrange
+            // Arrange: a real EffectType.ReturnEnemySpy EffectContext on the stack (Red Dragon) -
+            // ResolveSpyCommand.Validate/Execute only waive the Power cost when CurrentSourceEffect
+            // genuinely agrees a ReturnEnemySpy effect is pending, not from a bare PendingCard
+            // alone (docs/coding-guidelines.md Rule #25, planning.txt TIER 1 item 15).
             var card = TestData.Cards.CheapCard();
+            var sourceEffect = new CardEffect(EffectType.ReturnEnemySpy, 1);
+            var ctx = new EffectContext(
+                ActionState.TargetingReturnSpy,
+                card,
+                requiresInput: true,
+                description: "test",
+                onResolved: _ => { },
+                sourceEffect: sourceEffect);
+            _actionSystem.PushEffect(ctx);
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy, card);
 
             if (_player1.Power > 0) _player1.SpendPower(_player1.Power);
@@ -565,8 +577,18 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void FinalizeSpyReturn_ViaCard_DoesNotSpendPower()
         {
-            // Arrange
+            // Arrange: same genuine ReturnEnemySpy EffectContext as
+            // HandleTargetClick_ReturnSpy_ViaCard_DoesNotSpendPower above - see its comment.
             var card = TestData.Cards.CheapCard();
+            var sourceEffect = new CardEffect(EffectType.ReturnEnemySpy, 1);
+            var ctx = new EffectContext(
+                ActionState.TargetingReturnSpy,
+                card,
+                requiresInput: true,
+                description: "test",
+                onResolved: _ => { },
+                sourceEffect: sourceEffect);
+            _actionSystem.PushEffect(ctx);
             _actionSystem.StartTargeting(ActionState.TargetingReturnSpy, card);
 
             // Setup Ambiguity to force the 'Finalize' path

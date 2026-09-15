@@ -61,23 +61,44 @@ namespace ChaosWarlords.Source.Commands
                 return context.RejectValidation(nameof(DiscardCardCommand), $"{TargetPlayerColor} is not the player currently expected to discard (ActivePlayer is {context.TurnManager.ActivePlayer.Color}).");
             }
 
+            // Re-derives "a genuine forced-discard sequence is actually in progress" from
+            // ActionSystem's own trusted CurrentState (docs/coding-guidelines.md Rule #25)
+            // rather than trusting that the target player/card resolved above is proof enough -
+            // without this, a directly-dispatched command naming the real active player's own
+            // color and any of their own hand cards would discard it for free on an ordinary
+            // turn with nothing forcing a discard. ActionState.TargetingDiscard is set by BOTH
+            // legitimate paths that ever construct this command: DiscardStrategy's normal
+            // ExecutionStack chain (Insane Outcast's own cost, Cranium Rats' SelectOpponent ->
+            // DiscardCard chain) and TurnLifecycleSubsystem.AdvanceOpponentDiscard's cross-player
+            // queue (Neogi/Umber Hulk) - see DiscardInputMode's own doc comment, which this
+            // command is only ever reachable through.
+            if (context.ActionSystem.CurrentState != ActionState.TargetingDiscard)
+            {
+                return context.RejectValidation(nameof(DiscardCardCommand), $"no pending forced-discard effect is open (ActionSystem.CurrentState is {context.ActionSystem.CurrentState}) - this command is never a standalone free action.");
+            }
+
             var card = player.Hand.FirstOrDefault(c => c.Id == CardId);
             if (card == null)
             {
                 return context.RejectValidation(nameof(DiscardCardCommand), $"card '{CardId}' not found in {TargetPlayerColor}'s hand.");
             }
 
-            if (PromoteInsteadOfDiscard)
-            {
-                if (card.ReactiveDiscardEffect?.Type != EffectType.PromoteInsteadOfDiscard)
-                {
-                    return context.RejectValidation(nameof(DiscardCardCommand), $"'{CardId}' has no PromoteInsteadOfDiscard reactive effect - cannot promote it instead of discarding.");
-                }
+            return !PromoteInsteadOfDiscard || ValidatePromoteInsteadOfDiscard(context, player, card);
+        }
 
-                if (context.TurnManager.ForcedActingPlayer != player)
-                {
-                    return context.RejectValidation(nameof(DiscardCardCommand), $"'{CardId}' can only be promoted instead of discarded when an opponent caused this discard.");
-                }
+        // Split out of Validate() to keep its own cyclomatic complexity down (risk-hotspot
+        // check) - PromoteInsteadOfDiscard's 2 extra checks only ever matter for Ambassador's
+        // "you may promote it instead" choice, not the ordinary discard path.
+        private bool ValidatePromoteInsteadOfDiscard(MatchContext context, Entities.Actors.Player player, Entities.Cards.Card card)
+        {
+            if (card.ReactiveDiscardEffect?.Type != EffectType.PromoteInsteadOfDiscard)
+            {
+                return context.RejectValidation(nameof(DiscardCardCommand), $"'{CardId}' has no PromoteInsteadOfDiscard reactive effect - cannot promote it instead of discarding.");
+            }
+
+            if (context.TurnManager.ForcedActingPlayer != player)
+            {
+                return context.RejectValidation(nameof(DiscardCardCommand), $"'{CardId}' can only be promoted instead of discarded when an opponent caused this discard.");
             }
 
             return true;

@@ -27,6 +27,13 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             _player.AddToHand(_card);
 
             _state.TurnManager.GetPlayerByColor(PlayerColor.Red).Returns(_player);
+
+            // Both legitimate paths that ever construct this command (DiscardStrategy's normal
+            // ExecutionStack chain, TurnLifecycleSubsystem.AdvanceOpponentDiscard's cross-player
+            // queue) leave ActionSystem.CurrentState at TargetingDiscard - see Validate's own
+            // CurrentState gate, planning.txt TIER 1 item 15. Configured here so every other test
+            // in this file doesn't have to repeat it.
+            _state.ActionSystem.CurrentState.Returns(ActionState.TargetingDiscard);
         }
 
         [TestMethod]
@@ -71,6 +78,21 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             // alone would pass.
             var otherActivePlayer = TestData.Players.BluePlayer();
             _state.TurnManager.ActivePlayer.Returns(otherActivePlayer);
+            var command = new DiscardCardCommand(PlayerColor.Red, _card.Id);
+
+            Assert.IsFalse(command.Validate(_state.MatchContext));
+        }
+
+        [TestMethod]
+        public void Validate_ReturnsFalse_WhenNoForcedDiscardSequenceIsPending()
+        {
+            // Adversarial: a directly-dispatched command naming the real active player's own
+            // color and their own hand card must be rejected on an ordinary turn (CurrentState
+            // still Normal), even though ownership/ActivePlayer both otherwise check out -
+            // without this, a card could be discarded for free with nothing forcing it.
+            // planning.txt TIER 1 item 15.
+            _state.TurnManager.ActivePlayer.Returns(_player);
+            _state.ActionSystem.CurrentState.Returns(ActionState.Normal);
             var command = new DiscardCardCommand(PlayerColor.Red, _card.Id);
 
             Assert.IsFalse(command.Validate(_state.MatchContext));

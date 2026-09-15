@@ -81,6 +81,13 @@ namespace ChaosWarlords.Source.Commands
                 ?? context.MarketManager.MarketRow?.FirstOrDefault(c => c.RuntimeId == runtimeId);
         }
 
+        private static readonly System.Collections.Generic.HashSet<ActionState> GenuineDevourStates = new()
+        {
+            ActionState.TargetingDevourHand,
+            ActionState.TargetingDevourMarket,
+            ActionState.TargetingDevourInnerCircle,
+        };
+
         public bool Validate(MatchContext context)
         {
             // Mirrors PlayCardCommand/BuyCardCommand's own Validate(): resolve the same way
@@ -90,6 +97,27 @@ namespace ChaosWarlords.Source.Commands
             if (ResolveCard(context, CardRuntimeId) == null)
             {
                 return context.RejectValidation(nameof(DevourCardCommand), $"no card with RuntimeId {CardRuntimeId} in Hand/InnerCircle/PlayedCards/Market.");
+            }
+
+            // Re-derives "a genuine Devour effect is actually pending" from ActionSystem's own
+            // trusted CurrentState (docs/coding-guidelines.md Rule #25) rather than trusting a
+            // caller-supplied card existing somewhere resolvable - without this, a
+            // directly-dispatched command naming any card in Hand/InnerCircle/Market could
+            // remove it from the game entirely at zero cost with nothing pending at all. This
+            // command is ONLY ever produced by DevourSubsystem.HandleDevourSelection/
+            // HandleDevourMarketSelection/HandleDevourInnerCircleSelection, each reached
+            // exclusively while ActionSystem.CurrentState is the matching
+            // TargetingDevourHand/Market/InnerCircle state (set by
+            // DevourSubsystem.StartDevourTargeting just before targeting begins, and still in
+            // effect at click/pre-target time regardless of whether IsDeferred later chains into
+            // Assassinate/Supplant - see DevourCardCommand.Execute()'s own IsDeferred branch,
+            // which only runs AFTER Validate() has already passed). The separate "Devour a card,
+            // then Assassinate/Supplant" transactional flow (AssassinateCommand/SupplantCommand's
+            // own DevourCardId field) never dispatches a DevourCardCommand at all, so it needs no
+            // carve-out here.
+            if (!GenuineDevourStates.Contains(context.ActionSystem.CurrentState))
+            {
+                return context.RejectValidation(nameof(DevourCardCommand), $"no pending Devour effect is open (ActionSystem.CurrentState is {context.ActionSystem.CurrentState}) - this command is never a standalone free action.");
             }
             return true;
         }

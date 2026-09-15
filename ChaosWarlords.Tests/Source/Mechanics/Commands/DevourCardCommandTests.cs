@@ -31,6 +31,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var stateFake = new TestGameplayState();
             var player = new Player(PlayerColor.Red);
             stateFake.TurnManager.ActivePlayer.Returns(player);
+            stateFake.ActionSystem.CurrentState.Returns(ActionState.TargetingDevourHand);
 
             var card = TestData.Cards.CheapCard();
             player.AddToHand(card);
@@ -54,6 +55,7 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
             var stateFake = new TestGameplayState();
             var player = new Player(PlayerColor.Red);
             stateFake.TurnManager.ActivePlayer.Returns(player);
+            stateFake.ActionSystem.CurrentState.Returns(ActionState.TargetingDevourHand);
 
             var card = TestData.Cards.CheapCard();
             var command = new DevourCardCommand(card); // never added anywhere
@@ -63,6 +65,46 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
 
             // Assert
             Assert.IsFalse(result);
+        }
+
+        [TestMethod]
+        public void Validate_NoGenuineDevourEffectPending_ReturnsFalse()
+        {
+            // Adversarial: a directly-dispatched command naming any resolvable card must be
+            // rejected on an ordinary turn (CurrentState still Normal) even though the card
+            // itself is genuinely findable - planning.txt TIER 1 item 15. Without this, any
+            // card in Hand/InnerCircle/Market could be removed from the game entirely at zero
+            // cost with nothing pending at all.
+            var stateFake = new TestGameplayState();
+            var player = new Player(PlayerColor.Red);
+            stateFake.TurnManager.ActivePlayer.Returns(player);
+            stateFake.ActionSystem.CurrentState.Returns(ActionState.Normal);
+
+            var card = TestData.Cards.CheapCard();
+            player.AddToHand(card);
+            var command = new DevourCardCommand(card);
+
+            bool result = command.Validate(stateFake.MatchContext);
+
+            Assert.IsFalse(result);
+        }
+
+        [TestMethod]
+        [DataRow(ActionState.TargetingDevourHand)]
+        [DataRow(ActionState.TargetingDevourMarket)]
+        [DataRow(ActionState.TargetingDevourInnerCircle)]
+        public void Validate_AnyGenuineDevourTargetingState_ReturnsTrue(ActionState state)
+        {
+            var stateFake = new TestGameplayState();
+            var player = new Player(PlayerColor.Red);
+            stateFake.TurnManager.ActivePlayer.Returns(player);
+            stateFake.ActionSystem.CurrentState.Returns(state);
+
+            var card = TestData.Cards.CheapCard();
+            player.AddToHand(card);
+            var command = new DevourCardCommand(card);
+
+            Assert.IsTrue(command.Validate(stateFake.MatchContext));
         }
 
         [TestMethod]
