@@ -102,28 +102,13 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
         /// HandleReturnSpyInitialClick's enemy-only GetEnemySpiesAtSite), pre-filtered to only
         /// those actually returnable right now (own: always; enemy: needs Presence).
         ///
-        /// Known, documented gap - NOT rare: unlike the base "Return an enemy spy" action (which
-        /// disambiguates 2+ enemy candidates via ActionSystem.TransitionToSpySelection/
-        /// SelectingSpyToReturn), a site with 2+ SIMULTANEOUSLY ELIGIBLE spies (the active
-        /// player's own plus a Presence-reachable enemy's, or 2+ different enemies all
-        /// Presence-reachable) can't be resolved by a single click here - rejected with
-        /// NotifyFailure rather than guessing which one was meant. Site.Spies is a plain
-        /// List&lt;PlayerColor&gt; that routinely accumulates multiple colors over a game (the
-        /// entire reason the base action's own disambiguation sub-state exists) - this is an
-        /// ordinary mid/late-game board state in a 3-4 player match, not a corner case: for as
-        /// long as it holds, this card's site-click path is unusable at that specific site.
-        /// Reusing the base action's disambiguation UI for this case isn't done here to avoid
-        /// touching that already-well-tested shared flow for an ownership branch it never
-        /// exercises today - deliberately deferred (a real design decision, not an oversight),
-        /// not a rules violation in the sense of ever mutating state incorrectly: nothing is
-        /// silently returned wrong, the click is just not resolvable through this path yet, and
-        /// no repeat can ever get stuck waiting on it (see the next paragraph). A forged
-        /// ReturnAnySpyCommand naming ONE specific color explicitly still works correctly via
-        /// Validate() regardless of how many OTHER candidates were at that site - only this
-        /// click-to-command convenience layer has the gap. See planning.txt.
-        /// IMapManager.HasValidReturnAnySpyTarget is defined to exclude such an ambiguous site
-        /// from "a valid target exists" too, so the repeat correctly resolves early instead of
-        /// ever opening targeting with no way to complete it via a single click.
+        /// A site with 2+ simultaneously eligible spies (the active player's own plus a
+        /// Presence-reachable enemy's, or 2+ different enemies all Presence-reachable) - an
+        /// ordinary mid/late-game board state, not a corner case - reuses the exact same
+        /// disambiguation sub-state the base "Return an enemy spy" action already has
+        /// (ActionSystem.TransitionToSpySelection/SelectingSpyToReturn): FinalizeSpyReturn
+        /// resolves the follow-up click to a ReturnAnySpyCommand instead of that flow's own
+        /// ResolveSpyCommand by checking CurrentSourceEffect. See planning.txt TIER 1 item 16.
         /// </summary>
         public IGameCommand? HandleReturnUnitOrSpySite(Site clickedSite, string? cardId)
         {
@@ -149,13 +134,54 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
                 return null;
             }
 
-            if (eligibleSpies.Count > 1)
+            if (eligibleSpies.Count == 1)
             {
-                _actionSystem.NotifyFailure("Multiple spies here - pick a site with only one returnable spy, or return a troop instead.");
+                return new Commands.ReturnAnySpyCommand(clickedSite.Id, eligibleSpies[0], cardId);
+            }
+
+            // 2+ eligible spies: buffer the site and switch ActionSystem into
+            // SelectingSpyToReturn so the next click (via the existing spy-color-button UI)
+            // picks which one - same sub-state ExecuteReturnSpy transitions into below.
+            //
+            // Minor residual gap under ReturnEnemyOnly (High Priest of Myrkul): the shared
+            // GameplayView.DrawSpySelectionUI/InteractionMapper.GetClickedSpyReturnButton render
+            // a button for EVERY color in Site.Spies, not just this method's own eligibleSpies
+            // filter - if the active player's own (ineligible) spy is also physically present at
+            // the same ambiguous site, its button is shown too. Clicking it is NOT a silent no-op
+            // though: FinalizeAnySpyReturn re-validates eligibility itself and calls
+            // NotifyFailure (real player feedback, cancels back to Normal) rather than letting an
+            // invalid pick reach ReturnAnySpyCommand.Validate() at all.
+            _logger.Log("Multiple spies detected. Select which spy to return.", LogChannel.General);
+            _actionSystem.TransitionToSpySelection(clickedSite);
+            return null;
+        }
+
+        /// <summary>
+        /// Completes EffectType.ReturnUnitOrSpy's site-click disambiguation once the player has
+        /// picked which of 2+ eligible spies at the site to return - the ReturnAnySpyCommand
+        /// counterpart to FinalizeSpyReturn's ResolveSpyCommand, both reached from
+        /// ActionSystem.FinalizeSpyReturn's CurrentSourceEffect branch. Re-validates the
+        /// selected color's eligibility itself (mirroring HandleReturnUnitOrSpySite's own check)
+        /// rather than trusting the click - the shared spy-selection UI can render a button for
+        /// an ineligible color too (see HandleReturnUnitOrSpySite's doc comment), and this must
+        /// fail loudly via NotifyFailure BEFORE ActionSystem.FinalizeSpyReturn would otherwise
+        /// restore CurrentState to TargetingReturnUnitOrSpy, not silently discard the
+        /// disambiguation sub-state with no feedback.
+        /// </summary>
+        public IGameCommand? FinalizeAnySpyReturn(PlayerColor selectedSpyColor, Site pendingSite, string? cardId)
+        {
+            if (pendingSite is null) return null;
+
+            var pendingEffect = _actionSystem.CurrentSourceEffect;
+            bool enemyOnly = pendingEffect != null && pendingEffect.Type == EffectType.ReturnUnitOrSpy && pendingEffect.ReturnEnemyOnly;
+
+            if (!_mapManager.CanReturnAnySpy(pendingSite, CurrentPlayer, selectedSpyColor, enemyOnly))
+            {
+                _actionSystem.NotifyFailure("That spy can no longer be returned.");
                 return null;
             }
 
-            return new Commands.ReturnAnySpyCommand(clickedSite.Id, eligibleSpies[0], cardId);
+            return new Commands.ReturnAnySpyCommand(pendingSite.Id, selectedSpyColor, cardId);
         }
 
         private bool IsValidSpyReturnTarget(Site site, List<PlayerColor> enemySpies, string? cardId, out string reason)

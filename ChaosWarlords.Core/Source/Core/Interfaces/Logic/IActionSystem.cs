@@ -243,7 +243,11 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         IGameCommand? HandleTargetClick(MapNode? targetNode, Site? targetSite);
 
         /// <summary>
-        /// Completes the Return Spy action for a specific selected spy color.
+        /// Completes the SelectingSpyToReturn disambiguation for a specific selected spy color -
+        /// shared by 2 distinct flows (see the implementation's own doc comment): the enemy-only
+        /// base "Return an enemy spy" action/ReturnEnemySpyStrategy (builds a ResolveSpyCommand)
+        /// and EffectType.ReturnUnitOrSpy's own-or-enemy site-click disambiguation (builds a
+        /// ReturnAnySpyCommand), distinguished via CurrentSourceEffect.
         /// </summary>
         /// <param name="selectedSpyColor">The faction color of the spy to return.</param>
         IGameCommand? FinalizeSpyReturn(PlayerColor selectedSpyColor);

@@ -163,7 +163,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         {
             // Arrange
             _player.AddPower(10); // Sufficient power
-            _mapManager.HasValidReturnSpyTarget(_player).Returns(false);
+            _mapManager.HasValidReturnEnemySpyTarget(_player).Returns(false);
 
             // Act
             _actionSystem.TryStartReturnSpy();
@@ -178,7 +178,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         {
             // Arrange
             _player.AddPower(10); // Sufficient power
-            _mapManager.HasValidReturnSpyTarget(_player).Returns(true);
+            _mapManager.HasValidReturnEnemySpyTarget(_player).Returns(true);
 
             // Act
             _actionSystem.TryStartReturnSpy();
@@ -246,7 +246,7 @@ namespace ChaosWarlords.Tests.Integration.Mechanics
         {
             // Arrange
             _player.AddPower(0); // Insufficient power
-            _mapManager.HasValidReturnSpyTarget(_player).Returns(true);
+            _mapManager.HasValidReturnEnemySpyTarget(_player).Returns(true);
 
             // Act
             _actionSystem.TryStartReturnSpy();

@@ -165,10 +165,12 @@ namespace ChaosWarlords.Tests.Systems
             _player1.AddPower(playerPower);
             _eventFailedFired = false; // Reset
 
-            // Setup map validation for Return Spy (required after bug fix)
+            // Setup map validation for Return Spy (required after bug fix). TryStartReturnSpy
+            // gates on HasValidReturnEnemySpyTarget specifically (enemy-only, matching the
+            // action's real rule), not the looser any-color HasValidReturnSpyTarget.
             if (actionName == "ReturnSpy")
             {
-                _mapManager.HasValidReturnSpyTarget(_player1).Returns(shouldSucceed);
+                _mapManager.HasValidReturnEnemySpyTarget(_player1).Returns(shouldSucceed);
             }
 
             if (actionName == "Assassinate")
@@ -566,6 +568,56 @@ namespace ChaosWarlords.Tests.Systems
             // Assert
             Assert.IsTrue(_eventCompletedFired);
             _mapManager.Received(1).ReturnSpecificSpy(_siteA, _player1, PlayerColor.Blue);
+        }
+
+        [TestMethod]
+        public void FinalizeSpyReturn_ForReturnUnitOrSpyEffect_ResolvesAsReturnAnySpyCommand()
+        {
+            // Arrange: a real EffectType.ReturnUnitOrSpy EffectContext on the stack (unlike the
+            // base ReturnSpy/ReturnEnemySpy flow above) - CurrentSourceEffect must route
+            // FinalizeSpyReturn to the ReturnAnySpyCommand branch, not ResolveSpyCommand. See
+            // planning.txt TIER 1 item 16.
+            var sourceCard = TestData.Cards.CheapCard();
+            var sourceEffect = new CardEffect(EffectType.ReturnUnitOrSpy, 1);
+            var ctx = new EffectContext(
+                ActionState.TargetingReturnUnitOrSpy,
+                sourceCard,
+                requiresInput: true,
+                description: "test",
+                onResolved: _ => { },
+                sourceEffect: sourceEffect);
+            _actionSystem.PushEffect(ctx);
+            _actionSystem.StartTargeting(ActionState.TargetingReturnUnitOrSpy, sourceCard);
+
+            // 2+ simultaneously eligible spies at the clicked site -> disambiguation sub-state.
+            _mapManager.GetAllSpiesAtSite(_siteA).Returns(new List<PlayerColor> { PlayerColor.Blue, PlayerColor.Neutral });
+            _mapManager.CanReturnAnySpy(_siteA, _player1, PlayerColor.Blue, false).Returns(true);
+            _mapManager.CanReturnAnySpy(_siteA, _player1, PlayerColor.Neutral, false).Returns(true);
+
+            var initialCmd = _actionSystem.HandleTargetClick(null!, _siteA);
+
+            Assert.IsNull(initialCmd, "Should wait for the follow-up spy-color selection.");
+            Assert.AreEqual(ActionState.SelectingSpyToReturn, _actionSystem.CurrentState);
+            Assert.AreEqual(_siteA, _actionSystem.PendingSite);
+
+            _mapManager.ReturnAnySpy(_siteA, _player1, PlayerColor.Blue).Returns(true);
+
+            // Act
+            var cmd = _actionSystem.FinalizeSpyReturn(PlayerColor.Blue);
+
+            // Assert: the command is built correctly, and CurrentState was restored to
+            // TargetingReturnUnitOrSpy (not left on the transient SelectingSpyToReturn) so
+            // ReturnAnySpyCommand.Validate's state gate accepts it.
+            Assert.IsInstanceOfType(cmd, typeof(ChaosWarlords.Source.Commands.ReturnAnySpyCommand));
+            var typed = (ChaosWarlords.Source.Commands.ReturnAnySpyCommand)cmd!;
+            Assert.AreEqual(PlayerColor.Blue, typed.SpyColor);
+            Assert.AreEqual(sourceCard.Id, typed.CardId);
+            Assert.AreEqual(ActionState.TargetingReturnUnitOrSpy, _actionSystem.CurrentState);
+
+            ExecuteIfNotNull(cmd);
+
+            Assert.IsTrue(_eventCompletedFired);
+            _mapManager.Received(1).ReturnAnySpy(_siteA, _player1, PlayerColor.Blue);
         }
 
         [TestMethod]

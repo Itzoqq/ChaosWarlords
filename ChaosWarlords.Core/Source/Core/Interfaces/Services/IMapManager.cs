@@ -29,24 +29,19 @@ namespace ChaosWarlords.Source.Core.Interfaces.Services
         // --- Deadlock Prevention Checks ---
         // These check if a valid target exists AND is reachable by the player
         bool HasValidAssassinationTarget(Player activePlayer, bool requireNeutralTroop = false, bool ignoresPresence = false, Site? restrictToSite = null);
-        bool HasValidReturnSpyTarget(Player activePlayer);
         bool HasValidReturnEnemySpyTarget(Player activePlayer);
         bool HasValidReturnTroopTarget(Player activePlayer, bool enemyOnly = false);
         bool HasValidPlaceSpyTarget(Player activePlayer);
         bool HasValidDeployTarget(PlayerColor player);
 
         /// <summary>
-        /// True if there's a site with EXACTLY ONE spy the active player could legally return
+        /// True if there's a site with AT LEAST ONE spy the active player could legally return
         /// right now (their own, anywhere - or an enemy's, only where they have Presence) - see
-        /// EffectType.ReturnUnitOrSpy. Deliberately narrower than "any returnable spy exists
-        /// somewhere": a site with 2+ simultaneously-eligible spies can't be resolved by a single
-        /// site click today (see SpySubsystem.HandleReturnUnitOrSpySite's own doc comment for why
-        /// this isn't rare, and isn't fixed here) - counting it here would let this "no more
-        /// legal targets" check report true while the player has no way to actually complete
-        /// that repeat, risking a soft-lock. Not reachable via multiple isolated single-spy
-        /// sites; only excludes a genuinely ambiguous one. enemyOnly (High Priest of Myrkul)
-        /// excludes the active player's own spies from eligibility entirely - see
-        /// CardEffect.ReturnEnemyOnly.
+        /// EffectType.ReturnUnitOrSpy. A site with 2+ simultaneously-eligible spies is resolvable
+        /// via SpySubsystem.HandleReturnUnitOrSpySite's disambiguation sub-state (reusing the
+        /// same SelectingSpyToReturn flow the base "Return an enemy spy" action already has), so
+        /// it counts here too. enemyOnly (High Priest of Myrkul) excludes the active player's own
+        /// spies from eligibility entirely - see CardEffect.ReturnEnemyOnly.
         /// </summary>
         bool HasValidReturnAnySpyTarget(Player activePlayer, bool enemyOnly = false);
         // ---------------------------------------

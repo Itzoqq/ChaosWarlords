@@ -220,15 +220,14 @@ namespace ChaosWarlords.Tests.Source.Functional
         }
 
         [TestMethod]
-        public void PlayIntellectDevourer_OnlyAnAmbiguousSiteRemains_ResolvesEarlyInsteadOfDemandingAnImpossibleClick()
+        public void PlayIntellectDevourer_SecondRepeatTargetsAnAmbiguousSite_OpensDisambiguationInsteadOfResolvingEarly()
         {
-            // HasValidReturnAnySpyTarget deliberately excludes a site with 2+ simultaneously
-            // eligible spies - proves that end-to-end: after the one clean (own-spy) target is
-            // used, the only site left is ambiguous (Red's own + Blue's, both eligible), so the
-            // repeat must resolve early rather than opening targeting with no legal way through.
-            // Uses own-spy targets specifically (not troops) so NOTHING is left deployed anywhere
-            // that MapRuleEngine.HasValidReturnTroopTarget's own "you may return your own troop
-            // too" rule (see its doc comment) would otherwise offer as a permanent fallback.
+            // HasValidReturnAnySpyTarget now counts a site with 2+ simultaneously eligible
+            // spies as a valid target - SpySubsystem.HandleReturnUnitOrSpySite can disambiguate
+            // it via the same SelectingSpyToReturn sub-state the base "Return an enemy spy"
+            // action already has (planning.txt TIER 1 item 16) - so after the one clean
+            // (own-spy) target is used, the repeat must still open targeting for the ambiguous
+            // site instead of resolving early.
             var scenario = MatchScenario.Build();
             var red = scenario.AsActivePlayer(PlayerColor.Red);
             var cleanSite = scenario.Context.MapManager.Sites.First(s => s.NodesInternal.Count > 0);
@@ -240,19 +239,30 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             scenario.PlayCard(card);
             scenario.RespondToLatestInteraction(accept: false);
-            scenario.ClickTarget(null, cleanSite); // Only 1 of the 2 requested repeats has any legal target.
+            scenario.ClickTarget(null, cleanSite); // Repeat 1: the one clean (unambiguous) target.
 
             Assert.DoesNotContain(red.Color, cleanSite.Spies);
-            Assert.AreEqual(ActionState.Normal, scenario.Context.ActionSystem.CurrentState, "No completable target remains - must resolve instead of waiting forever.");
-            Assert.IsEmpty(scenario.Context.ActionSystem.ExecutionStack);
-            Assert.Contains(red.Color, ambiguousSite.Spies, "The ambiguous site's spies must survive untouched.");
+            Assert.AreEqual(ActionState.TargetingReturnUnitOrSpy, scenario.Context.ActionSystem.CurrentState, "One more repeat still owed - the ambiguous site is now a legal target too.");
+
+            var ambiguousClick = scenario.ClickTarget(null, ambiguousSite); // Repeat 2: the ambiguous site.
+            Assert.IsNull(ambiguousClick, "A site click alone can't resolve which of 2 spies to return - a follow-up color selection is required.");
+            Assert.AreEqual(ActionState.SelectingSpyToReturn, scenario.Context.ActionSystem.CurrentState);
+            Assert.Contains(red.Color, ambiguousSite.Spies, "Nothing should have moved yet - only the disambiguation sub-state was entered.");
             Assert.Contains(PlayerColor.Blue, ambiguousSite.Spies);
+
+            scenario.SelectSpyColorToReturn(PlayerColor.Blue);
+
+            Assert.DoesNotContain(PlayerColor.Blue, ambiguousSite.Spies);
+            Assert.Contains(red.Color, ambiguousSite.Spies, "Only the selected color should have been returned.");
+            Assert.AreEqual(ActionState.Normal, scenario.Context.ActionSystem.CurrentState);
+            Assert.IsEmpty(scenario.Context.ActionSystem.ExecutionStack);
         }
 
-        // --- The known, documented ambiguous-site click-resolution gap ---
+        // --- The ambiguous-site disambiguation flow - a direct dispatch mid-selection must
+        // still be rejected, but the real FinalizeSpyReturn path completes correctly ---
 
         [TestMethod]
-        public void ClickingAnAmbiguousSite_IsRejectedByTheInputLayer_AndASubsequentForgedCommandIsAlsoRejected()
+        public void ClickingAnAmbiguousSite_OpensDisambiguation_AndADirectDispatchMidSelectionIsRejected()
         {
             var scenario = MatchScenario.Build();
             var (red, _) = SetupRedWithOneAdjacentEnemyTroop(scenario); // Keeps HasValidTargets true via the troop path even though the spy site below is ambiguous.
@@ -265,21 +275,26 @@ namespace ChaosWarlords.Tests.Source.Functional
             scenario.RespondToLatestInteraction(accept: false);
             Assert.AreEqual(ActionState.TargetingReturnUnitOrSpy, scenario.Context.ActionSystem.CurrentState);
 
-            var rejected = scenario.ClickTarget(null, site);
-            Assert.IsNull(rejected, "An ambiguous site click must be rejected by the input layer, not guess which spy was meant.");
-            Assert.Contains(red.Color, site.Spies, "Nothing should have moved.");
+            var ambiguousClick = scenario.ClickTarget(null, site);
+            Assert.IsNull(ambiguousClick, "A site click alone can't resolve which of 2 spies to return - a follow-up color selection is required.");
+            Assert.AreEqual(ActionState.SelectingSpyToReturn, scenario.Context.ActionSystem.CurrentState);
+            Assert.Contains(red.Color, site.Spies, "Nothing should have moved yet - only the disambiguation sub-state was entered.");
             Assert.Contains(PlayerColor.Blue, site.Spies);
 
-            // The ambiguity rejection cancels the WHOLE targeting sequence (ActionSystem.
-            // NotifyFailure -> CancelTargeting()), so CurrentState is back to Normal here - a
-            // directly-dispatched command naming one specific color explicitly must be
-            // rejected too, not silently mutate the board outside its owning targeting state.
-            Assert.AreEqual(ActionState.Normal, scenario.Context.ActionSystem.CurrentState);
+            // Adversarial: mid-disambiguation, a directly-dispatched ReturnAnySpyCommand
+            // (bypassing FinalizeSpyReturn's own CurrentState restore) must still be rejected -
+            // CurrentState is genuinely SelectingSpyToReturn here, not TargetingReturnUnitOrSpy,
+            // so ReturnAnySpyCommand.Validate's state gate has nothing to accept it against yet.
             var forgedCommand = new ReturnAnySpyCommand(site.Id, PlayerColor.Blue, card.Id);
-            scenario.AssertRejected(forgedCommand, "No ReturnUnitOrSpy effect is pending anymore - the ambiguity rejection already cancelled the sequence.");
-
+            scenario.AssertRejected(forgedCommand, "A directly-dispatched command must not bypass the real FinalizeSpyReturn -> CurrentState restore path.");
             Assert.Contains(red.Color, site.Spies, "Red's own spy must be untouched.");
             Assert.Contains(PlayerColor.Blue, site.Spies, "Blue's spy must be untouched - the forged command must not have executed.");
+
+            // The real path (FinalizeSpyReturn) still works correctly.
+            scenario.SelectSpyColorToReturn(PlayerColor.Blue);
+            Assert.DoesNotContain(PlayerColor.Blue, site.Spies);
+            Assert.Contains(red.Color, site.Spies);
+            Assert.AreEqual(ActionState.TargetingReturnUnitOrSpy, scenario.Context.ActionSystem.CurrentState, "1 more repeat still legally owed - the adjacent enemy troop target from setup.");
         }
 
         // --- Row 4: wrong-player dispatch ---

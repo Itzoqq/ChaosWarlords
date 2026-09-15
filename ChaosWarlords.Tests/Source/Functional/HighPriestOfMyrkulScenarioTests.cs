@@ -124,6 +124,65 @@ namespace ChaosWarlords.Tests.Source.Functional
             Assert.AreEqual(ActionState.Normal, scenario.Context.ActionSystem.CurrentState);
         }
 
+        // --- Multi-enemy-spy disambiguation under CardEffect.ReturnEnemyOnly (planning.txt
+        // TIER 1 item 16) - proves the disambiguation reuse correctly threads ReturnEnemyOnly
+        // through FinalizeAnySpyReturn's own eligibility re-check too, not just
+        // HandleReturnUnitOrSpySite's initial one. ---
+
+        [TestMethod]
+        public void PlayHighPriestOfMyrkul_TwoEnemySpiesAtOneSite_RequiresColorDisambiguation()
+        {
+            var scenario = MatchScenario.Build();
+            var red = scenario.AsActivePlayer(PlayerColor.Red);
+            var spySite = SetupCleanEnemySpySite(scenario, red); // Blue spy + Red Presence.
+            spySite.AddSpy(PlayerColor.Black); // A 2nd, simultaneously-eligible enemy spy.
+            var blue = scenario.Player(PlayerColor.Blue);
+            int blueSpiesBefore = blue.SpiesInBarracks;
+            var card = scenario.GiveCard(PlayerColor.Red, "high_priest_of_myrkul");
+
+            scenario.PlayCard(card);
+            Assert.AreEqual(ActionState.TargetingReturnUnitOrSpy, scenario.Context.ActionSystem.CurrentState);
+
+            var ambiguousClick = scenario.ClickTarget(null, spySite);
+            Assert.IsNull(ambiguousClick, "2 eligible enemy spies - a site click alone can't resolve which one.");
+            Assert.AreEqual(ActionState.SelectingSpyToReturn, scenario.Context.ActionSystem.CurrentState);
+
+            scenario.SelectSpyColorToReturn(PlayerColor.Blue);
+
+            Assert.DoesNotContain(PlayerColor.Blue, spySite.Spies);
+            Assert.Contains(PlayerColor.Black, spySite.Spies, "Only the selected color should have been returned.");
+            Assert.AreEqual(blueSpiesBefore + 1, blue.SpiesInBarracks);
+            Assert.AreEqual(ActionState.Normal, scenario.Context.ActionSystem.CurrentState);
+        }
+
+        [TestMethod]
+        public void PlayHighPriestOfMyrkul_ClickingOwnSpyButtonMidDisambiguation_FailsLoudlyInsteadOfSilentlyDiscarding()
+        {
+            // The shared spy-selection UI renders a button for every color physically at the
+            // site, including Red's own - never eligible under ReturnEnemyOnly. Clicking it must
+            // fail loudly via FinalizeAnySpyReturn's own eligibility re-check (NotifyFailure),
+            // not silently discard the disambiguation sub-state or, worse, return the active
+            // player's own spy under an enemy-only effect.
+            var scenario = MatchScenario.Build();
+            var red = scenario.AsActivePlayer(PlayerColor.Red);
+            var spySite = SetupCleanEnemySpySite(scenario, red); // Blue spy + Red Presence.
+            spySite.AddSpy(PlayerColor.Black); // 2 eligible enemy spies -> disambiguation.
+            spySite.AddSpy(red.Color); // Physically present, but never eligible here.
+            var card = scenario.GiveCard(PlayerColor.Red, "high_priest_of_myrkul");
+
+            scenario.PlayCard(card);
+            scenario.ClickTarget(null, spySite);
+            Assert.AreEqual(ActionState.SelectingSpyToReturn, scenario.Context.ActionSystem.CurrentState);
+
+            var command = scenario.SelectSpyColorToReturn(red.Color);
+
+            Assert.IsNull(command);
+            Assert.Contains(red.Color, spySite.Spies, "Red's own spy must be untouched.");
+            Assert.Contains(PlayerColor.Blue, spySite.Spies);
+            Assert.Contains(PlayerColor.Black, spySite.Spies);
+            Assert.AreEqual(ActionState.Normal, scenario.Context.ActionSystem.CurrentState, "NotifyFailure cancels the whole targeting sequence.");
+        }
+
         // --- The core new restriction: enemy-only, unlike Intellect Devourer's own-or-enemy. ---
 
         [TestMethod]

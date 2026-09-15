@@ -160,19 +160,12 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 (ignoresPresence || HasPresence(n, activePlayer.Color)));
         }
 
-        public bool HasValidReturnSpyTarget(Player activePlayer)
-        {
-            return _sites?.Any(s =>
-                s.Spies.Count > 0 &&
-                s.NodesInternal.Any(n => HasPresence(n, activePlayer.Color))) ?? false;
-        }
-
-        // EffectType.ReturnEnemySpy (Red Dragon) - unlike HasValidReturnSpyTarget above (which
-        // accepts ANY spy present, including the active player's own - fine for its one caller,
-        // the base action's coarse pre-click gate, since the actual click handler re-filters to
-        // enemy-only anyway), this must positively confirm an ENEMY spy is present before
-        // TryResolveActor opens targeting, or a site with only the active player's own spy there
-        // would incorrectly look like a valid target and then reject every click.
+        // EffectType.ReturnEnemySpy (Red Dragon); also the base "Return an enemy spy" action's
+        // own pre-check (TryStartReturnSpy) as of planning.txt TIER 1 item 16, which retired a
+        // looser HasValidReturnSpyTarget that used to accept ANY spy present, including the
+        // active player's own - this must positively confirm an ENEMY spy is present before
+        // targeting opens, or a site with only the active player's own spy there would
+        // incorrectly look like a valid target and then reject every click.
         public bool HasValidReturnEnemySpyTarget(Player activePlayer)
         {
             return _sites?.Any(s =>
@@ -180,27 +173,17 @@ namespace ChaosWarlords.Source.Mechanics.Rules
                 s.NodesInternal.Any(n => HasPresence(n, activePlayer.Color))) ?? false;
         }
 
-        // EffectType.ReturnUnitOrSpy's spy-side "no more legal targets" check - see
-        // IMapManager.HasValidReturnAnySpyTarget's own doc comment for why this deliberately
-        // requires EXACTLY ONE eligible spy per site, not "at least one eligible spy somewhere".
-        // enemyOnly (High Priest of Myrkul: "Return ANOTHER PLAYER'S troop or spy") excludes the
-        // active player's own spies from eligibility entirely - see CardEffect.ReturnEnemyOnly.
+        // EffectType.ReturnUnitOrSpy's spy-side "no more legal targets" check - true whenever
+        // AT LEAST ONE eligible spy exists at any site, matching HasValidReturnTroopTarget's own
+        // "any eligible target somewhere" shape. A site with 2+ simultaneously eligible spies is
+        // resolvable via SpySubsystem.HandleReturnUnitOrSpySite's disambiguation sub-state
+        // (reusing SelectingSpyToReturn - see planning.txt TIER 1 item 16), so it no longer needs
+        // to be excluded here to avoid a soft-lock. enemyOnly (High Priest of Myrkul: "Return
+        // ANOTHER PLAYER'S troop or spy") excludes the active player's own spies from
+        // eligibility entirely - see CardEffect.ReturnEnemyOnly.
         public bool HasValidReturnAnySpyTarget(Player activePlayer, bool enemyOnly = false)
         {
-            return _sites?.Any(s => HasExactlyOneReturnableSpyAt(s, activePlayer, enemyOnly)) ?? false;
-        }
-
-        private bool HasExactlyOneReturnableSpyAt(Site site, Player activePlayer, bool enemyOnly = false)
-        {
-            int eligibleCount = 0;
-            foreach (var color in site.Spies)
-            {
-                if (!IsSpyReturnEligible(site, activePlayer, color, enemyOnly)) continue;
-
-                eligibleCount++;
-                if (eligibleCount > 1) return false;
-            }
-            return eligibleCount == 1;
+            return _sites?.Any(s => s.Spies.Any(color => IsSpyReturnEligible(s, activePlayer, color, enemyOnly))) ?? false;
         }
 
         // enemyOnly excludes the active player's own spy from eligibility entirely; otherwise

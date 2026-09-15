@@ -242,15 +242,74 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
         }
 
         [TestMethod]
-        public void HandleReturnUnitOrSpySite_TwoEligibleSpies_NotifiesFailureAndReturnsNull()
+        public void HandleReturnUnitOrSpySite_TwoEligibleSpies_TransitionsToSpySelection()
         {
-            // The known, documented ambiguous-site gap - see HandleReturnUnitOrSpySite's own doc
-            // comment. Neither candidate is silently guessed.
+            // 2+ simultaneously eligible spies now disambiguate via the same
+            // SelectingSpyToReturn sub-state the base "Return an enemy spy" action already has,
+            // instead of silently reporting no valid target. See planning.txt TIER 1 item 16.
             _mapManager.GetAllSpiesAtSite(_site).Returns(new List<PlayerColor> { PlayerColor.Blue, PlayerColor.Orange });
             _mapManager.CanReturnAnySpy(_site, _activePlayer, PlayerColor.Blue).Returns(true);
             _mapManager.CanReturnAnySpy(_site, _activePlayer, PlayerColor.Orange).Returns(true);
 
             var cmd = _subsystem.HandleReturnUnitOrSpySite(_site, null);
+
+            Assert.IsNull(cmd, "Should return null as it transitions state");
+            _actionSystem.Received(1).TransitionToSpySelection(_site);
+            _actionSystem.DidNotReceive().NotifyFailure(Arg.Any<string>());
+        }
+
+        #endregion
+
+        #region FinalizeAnySpyReturn (EffectType.ReturnUnitOrSpy's disambiguation follow-up)
+
+        [TestMethod]
+        public void FinalizeAnySpyReturn_EligibleColor_ReturnsReturnAnySpyCommand_WithSelectedColorAndCardId()
+        {
+            _mapManager.CanReturnAnySpy(_site, _activePlayer, PlayerColor.Orange, false).Returns(true);
+
+            var cmd = _subsystem.FinalizeAnySpyReturn(PlayerColor.Orange, _site, "intellect_devourer_abc");
+
+            Assert.IsInstanceOfType(cmd, typeof(ChaosWarlords.Source.Commands.ReturnAnySpyCommand));
+            var typed = (ChaosWarlords.Source.Commands.ReturnAnySpyCommand)cmd!;
+            Assert.AreEqual(_site.Id, typed.TargetSiteId);
+            Assert.AreEqual(PlayerColor.Orange, typed.SpyColor);
+            Assert.AreEqual("intellect_devourer_abc", typed.CardId);
+        }
+
+        [TestMethod]
+        public void FinalizeAnySpyReturn_NullPendingSite_ReturnsNull()
+        {
+            var cmd = _subsystem.FinalizeAnySpyReturn(PlayerColor.Orange, null!, null);
+
+            Assert.IsNull(cmd);
+        }
+
+        [TestMethod]
+        public void FinalizeAnySpyReturn_IneligibleColor_NotifiesFailureAndReturnsNull()
+        {
+            // Adversarial/misclick: the shared spy-selection UI can render a button for a color
+            // that isn't actually eligible right now (e.g. the active player's own spy under a
+            // ReturnEnemyOnly effect) - must fail loudly via NotifyFailure, not silently build a
+            // command that would only fail later at ReturnAnySpyCommand.Validate() with no
+            // player-visible feedback. See planning.txt TIER 1 item 16.
+            _mapManager.CanReturnAnySpy(_site, _activePlayer, PlayerColor.Orange, false).Returns(false);
+
+            var cmd = _subsystem.FinalizeAnySpyReturn(PlayerColor.Orange, _site, null);
+
+            Assert.IsNull(cmd);
+            _actionSystem.Received(1).NotifyFailure(Arg.Any<string>());
+        }
+
+        [TestMethod]
+        public void FinalizeAnySpyReturn_IneligibleUnderReturnEnemyOnly_NotifiesFailureAndReturnsNull()
+        {
+            // The active player's own spy is never eligible under CardEffect.ReturnEnemyOnly
+            // (High Priest of Myrkul) - re-derived from CurrentSourceEffect, not trusted from
+            // the caller.
+            _actionSystem.CurrentSourceEffect.Returns(new ChaosWarlords.Source.Entities.Cards.CardEffect(EffectType.ReturnUnitOrSpy, 1) { ReturnEnemyOnly = true });
+            _mapManager.CanReturnAnySpy(_site, _activePlayer, _activePlayer.Color, true).Returns(false);
+
+            var cmd = _subsystem.FinalizeAnySpyReturn(_activePlayer.Color, _site, "high_priest_of_myrkul_abc");
 
             Assert.IsNull(cmd);
             _actionSystem.Received(1).NotifyFailure(Arg.Any<string>());

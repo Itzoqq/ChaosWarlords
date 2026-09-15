@@ -27,24 +27,27 @@ namespace ChaosWarlords.Source.Mechanics.Rules
         /// True if EXACTLY ONE player currently has at least one eligible troop in their trophy
         /// hall - "eligible" meaning Neutral/"white" when <paramref name="requireNeutralOnly"/>
         /// is true (the only shape built today). Deliberately excludes the "2+ players
-        /// simultaneously eligible" case, for the same underlying reason
-        /// MapRuleEngine.HasValidReturnAnySpyTarget excludes an ambiguous site: no per-player
-        /// click affordance exists in the Core input layer to ask "which player's trophy hall?"
-        /// today, so an unresolvable-by-click ambiguity has to count as "no valid target" rather
-        /// than opening a targeting state nothing can ever click into.
+        /// simultaneously eligible" case: no per-player click affordance exists in the Core
+        /// input layer to ask "which player's trophy hall?" today, so an unresolvable-by-click
+        /// ambiguity has to count as "no valid target" rather than opening a targeting state
+        /// nothing can ever click into. MapRuleEngine.HasValidReturnAnySpyTarget had this exact
+        /// shape of gap too (2+ eligible spies at one site) until planning.txt TIER 1 item 16
+        /// generalized the base "Return an enemy spy" action's own multi-color disambiguation
+        /// sub-state (SelectingSpyToReturn) to cover it - the same kind of fix (a real "choose
+        /// which one" UI step) would resolve this gap too, but hasn't been built here yet.
         ///
-        /// Unlike that precedent, though, this is NOT a narrow/rare corner case and does NOT
-        /// leave the action reachable some other way: HasValidReturnAnySpyTarget excludes
-        /// ambiguity PER SITE, so one bad site just isn't offered while every other, unambiguous
-        /// site still is - the action as a whole stays available. This check is global across
-        /// ALL players with no such fallback: 2+ eligible players makes the WHOLE "take a troop
-        /// from a trophy hall" option disappear for that round, and a single Mummy Lord play can
-        /// trigger it against itself (its own Assassinate half adds a Neutral trophy to the
-        /// active player's own hall, which can make a later round's DeployFromTrophyHall
-        /// ambiguous against ANY other player who separately holds one) - see planning.txt and
-        /// the tyrants-rules skill's bug-log.md for the full writeup and why a real fix (letting
-        /// the player choose, e.g. by generalizing EffectType.SelectOpponent's existing
-        /// "click a player" mechanism - which excludes the active player and drives a materially
+        /// Unlike that fixed precedent, this is NOT a narrow/rare corner case and does NOT leave
+        /// the action reachable some other way: the spy fix's ambiguity was PER SITE, so one bad
+        /// site just wasn't offered while every other, unambiguous site still was - the action as
+        /// a whole stayed available even before the fix. This check is global across ALL players
+        /// with no such fallback: 2+ eligible players makes the WHOLE "take a troop from a
+        /// trophy hall" option disappear for that round, and a single Mummy Lord play can trigger
+        /// it against itself (its own Assassinate half adds a Neutral trophy to the active
+        /// player's own hall, which can make a later round's DeployFromTrophyHall ambiguous
+        /// against ANY other player who separately holds one) - see planning.txt and the
+        /// tyrants-rules skill's bug-log.md for the full writeup and why a real fix (letting the
+        /// player choose, e.g. by generalizing EffectType.SelectOpponent's existing "click a
+        /// player" mechanism - which excludes the active player and drives a materially
         /// different chained-effect model, so isn't a drop-in reuse) is deferred rather than
         /// built here. See TryGetSoleEligibleSource for the same check plus the actual resolved
         /// answer.

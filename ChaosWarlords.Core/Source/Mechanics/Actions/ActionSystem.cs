@@ -205,8 +205,13 @@ namespace ChaosWarlords.Source.Managers
                 return;
             }
 
-            // BUG FIX: Validate that valid targets exist before starting targeting
-            if (!_mapManager.HasValidReturnSpyTarget(CurrentPlayer))
+            // Gates on the ENEMY-only check (HasValidReturnEnemySpyTarget), matching this
+            // action's actual rule - the looser HasValidReturnSpyTarget (any color, including
+            // the active player's own spy) would open targeting at a site whose only spy is
+            // the active player's own, which SpySubsystem.HandleReturnSpyInitialClick then
+            // rejects on the very next click (self-cancels via NotifyFailure/CancelTargeting,
+            // nothing mutates), a confusing UX for no benefit. See planning.txt TIER 1 item 16.
+            if (!_mapManager.HasValidReturnEnemySpyTarget(CurrentPlayer))
             {
                 OnActionFailed?.Invoke(this, "No enemy spies to return!");
                 _logger.Log("Return Spy failed: No valid targets.", LogChannel.Warning);
@@ -675,8 +680,36 @@ namespace ChaosWarlords.Source.Managers
         public IGameCommand? FinalizeSpyReturn(PlayerColor selectedSpyColor)
         {
             if (PendingSite is null) return null;
-            // We need to pass PendingSite to subsystem or let subsystem manage it?
-            // Subsystem stateless methods are better.
+
+            // SelectingSpyToReturn is reused by 2 distinct flows now: the enemy-only base
+            // action/ReturnEnemySpyStrategy (ResolveSpyCommand), and EffectType.ReturnUnitOrSpy's
+            // site-click disambiguation (ReturnAnySpyCommand, own-or-enemy) - see
+            // SpySubsystem.HandleReturnUnitOrSpySite. CurrentSourceEffect reads off the
+            // execution stack, not CurrentState, so it still correctly identifies the
+            // ReturnUnitOrSpy flow even though CurrentState was overwritten to
+            // SelectingSpyToReturn by TransitionToSpySelection. See planning.txt TIER 1 item 16.
+            if (CurrentSourceEffect?.Type == EffectType.ReturnUnitOrSpy)
+            {
+                // FinalizeAnySpyReturn re-validates eligibility itself (the shared spy-selection
+                // UI renders a button for every color physically at the site, not filtered to
+                // only the ones this specific effect can legally return - see
+                // SpySubsystem.HandleReturnUnitOrSpySite's own doc comment) and calls
+                // NotifyFailure with real player feedback if the click was actually illegal,
+                // rather than silently discarding the disambiguation sub-state. CurrentState is
+                // therefore only restored to TargetingReturnUnitOrSpy once a real command comes
+                // back - ReturnAnySpyCommand.Validate requires that state (its only real
+                // basic-action shape); SelectingSpyToReturn was only ever a transient
+                // disambiguation sub-step layered on top, and CompleteAction()'s stack-based
+                // resolution doesn't depend on the exact ActionState here, only on
+                // ExecutionStack, so restoring it right before returning is safe.
+                var anyCommand = _spySubsystem.FinalizeAnySpyReturn(selectedSpyColor, PendingSite, PendingCard?.Id);
+                if (anyCommand != null)
+                {
+                    CurrentState = ActionState.TargetingReturnUnitOrSpy;
+                }
+                return anyCommand;
+            }
+
             return _spySubsystem.FinalizeSpyReturn(selectedSpyColor, PendingSite, PendingCard?.Id);
         }
 

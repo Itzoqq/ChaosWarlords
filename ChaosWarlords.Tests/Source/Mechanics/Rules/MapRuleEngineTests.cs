@@ -434,28 +434,8 @@ namespace ChaosWarlords.Tests.Systems
             Assert.IsTrue(_engine.HasValidAssassinationTarget(_player1, restrictToSite: null));
         }
 
-        [TestMethod]
-        public void HasValidReturnSpyTarget_True_IfEnemySpyAndPresence()
-        {
-            // Arrange
-            _siteA.Spies.Add(_player2.Color); // Enemy spy
-            _node3.Occupant = _player1.Color; // P1 presence via occupation
-
-            // Act & Assert
-            Assert.IsTrue(_engine.HasValidReturnSpyTarget(_player1));
-        }
-
-        [TestMethod]
-        public void HasValidReturnSpyTarget_False_IfNoSpies()
-        {
-            // Arrange
-            _node3.Occupant = _player1.Color;
-
-            // Act & Assert
-            Assert.IsFalse(_engine.HasValidReturnSpyTarget(_player1));
-        }
-
-        // --- HasValidReturnEnemySpyTarget (EffectType.ReturnEnemySpy - Red Dragon) ---
+        // --- HasValidReturnEnemySpyTarget (EffectType.ReturnEnemySpy - Red Dragon; also the
+        // base "Return an enemy spy" action's own pre-check as of TIER 1 item 16) ---
 
         [TestMethod]
         public void HasValidReturnEnemySpyTarget_True_IfEnemySpyAndPresence()
@@ -477,9 +457,11 @@ namespace ChaosWarlords.Tests.Systems
         [TestMethod]
         public void HasValidReturnEnemySpyTarget_False_IfOnlyTheActivePlayersOwnSpyIsPresent()
         {
-            // Unlike the loose HasValidReturnSpyTarget (any color counts, fine for its one
-            // caller), this must NOT count a site with only the active player's own spy -
-            // otherwise TryResolveActor would open targeting with no actual enemy to click.
+            // Must NOT count a site with only the active player's own spy - otherwise
+            // TryStartReturnSpy/TryResolveActor would open targeting with no actual enemy to
+            // click (the ambiguity this check exists to prevent - see planning.txt TIER 1
+            // item 16, which retired the looser HasValidReturnSpyTarget that used to accept
+            // any color, including the active player's own).
             _siteA.Spies.Add(_player1.Color);
             _node3.Occupant = _player1.Color;
 
@@ -532,17 +514,17 @@ namespace ChaosWarlords.Tests.Systems
         }
 
         [TestMethod]
-        public void HasValidReturnAnySpyTarget_False_WhenTheOnlySiteHasTwoSimultaneouslyEligibleSpies()
+        public void HasValidReturnAnySpyTarget_True_WhenTheOnlySiteHasTwoSimultaneouslyEligibleSpies()
         {
             // Ambiguous site (own spy + a Presence-reachable enemy spy, both eligible at once) -
-            // deliberately excluded, matching HandleReturnUnitOrSpySite's own click-resolution
-            // gap, so this never reports a target the player has no way to actually complete via
-            // a single click. See IMapManager.HasValidReturnAnySpyTarget's own doc comment.
+            // counts as a valid target now that SpySubsystem.HandleReturnUnitOrSpySite can
+            // disambiguate it via SelectingSpyToReturn instead of silently dropping the option.
+            // See planning.txt TIER 1 item 16.
             _siteA.Spies.Add(_player1.Color);
             _siteA.Spies.Add(_player2.Color);
             _node3.Occupant = _player1.Color; // Presence, so the enemy spy is ALSO eligible.
 
-            Assert.IsFalse(_engine.HasValidReturnAnySpyTarget(_player1));
+            Assert.IsTrue(_engine.HasValidReturnAnySpyTarget(_player1));
         }
 
         [TestMethod]
