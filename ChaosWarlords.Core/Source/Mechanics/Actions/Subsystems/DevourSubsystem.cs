@@ -242,7 +242,8 @@ namespace ChaosWarlords.Source.Mechanics.Actions.Subsystems
             // Create command
             var cmd = new Commands.DevourCardCommand(targetCard)
             {
-                SourceCard = _actionSystem.PendingCard
+                SourceCard = _actionSystem.PendingCard,
+                IsDeferred = _deferDevourExecution
             };
 
             return cmd;

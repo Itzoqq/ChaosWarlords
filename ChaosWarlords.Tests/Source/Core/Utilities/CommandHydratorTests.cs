@@ -357,6 +357,48 @@ namespace ChaosWarlords.Tests.Source.Core.Utilities
         }
 
         [TestMethod]
+        public void HydrateCommand_Devour_PreservesIsDeferred()
+        {
+            // Regression coverage: HydrateDevour must restore IsDeferred from the DTO, or a
+            // replay of any shipped deferred-devour chain (Wight/Demogorgon/Succubus/Zuggtmoy)
+            // diverges from the live game it recorded.
+            var p = new Player(PlayerColor.Red, Guid.NewGuid()) { SeatIndex = 0 };
+            var card = new Card("hand_card", "HandCard", 0, CardAspect.Neutral, 0, 0, 0);
+            p.AddToHand(card);
+
+            var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+            stateMock.TurnManager.Players.Returns(new List<Player> { p });
+
+            var dto = new DevourCardCommandDto { CardRuntimeId = card.RuntimeId, Seat = 0, IsDeferred = true };
+
+            var result = CommandHydrator.HydrateCommand(dto, stateMock.MatchContext) as DevourCardCommand;
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.IsDeferred);
+        }
+
+        [TestMethod]
+        public void HydrateCommand_Devour_DefaultsIsDeferredFalse_WhenDtoOmitsIt()
+        {
+            // Adversarial counterpart: legacy replay data recorded before IsDeferred existed
+            // on the DTO must still hydrate to the pre-existing (non-deferred) behavior, not
+            // throw or silently flip to deferred.
+            var p = new Player(PlayerColor.Red, Guid.NewGuid()) { SeatIndex = 0 };
+            var card = new Card("hand_card", "HandCard", 0, CardAspect.Neutral, 0, 0, 0);
+            p.AddToHand(card);
+
+            var stateMock = new ChaosWarlords.Tests.Source.Doubles.State.TestGameplayState();
+            stateMock.TurnManager.Players.Returns(new List<Player> { p });
+
+            var dto = new DevourCardCommandDto { CardRuntimeId = card.RuntimeId, Seat = 0 };
+
+            var result = CommandHydrator.HydrateCommand(dto, stateMock.MatchContext) as DevourCardCommand;
+
+            Assert.IsNotNull(result);
+            Assert.IsFalse(result.IsDeferred);
+        }
+
+        [TestMethod]
         public void HydrateCommand_Devour_MarketLocation_ByCardId()
         {
             // Distinct from the RuntimeId-based Market lookup above - this is the

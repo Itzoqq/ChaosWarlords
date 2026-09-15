@@ -190,7 +190,11 @@ namespace ChaosWarlords.Source.Core.Utilities
             var sourceCard = FindDevourSourceCard(dto, player);
 
             var cmd = card != null ? new DevourCardCommand(card) : null;
-            if (cmd != null) cmd.SourceCard = sourceCard;
+            if (cmd != null)
+            {
+                cmd.SourceCard = sourceCard;
+                cmd.IsDeferred = dto.IsDeferred;
+            }
             return cmd;
         }
 

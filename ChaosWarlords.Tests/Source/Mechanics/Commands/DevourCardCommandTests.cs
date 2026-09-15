@@ -108,6 +108,33 @@ namespace ChaosWarlords.Tests.Mechanics.Commands
         }
 
         [TestMethod]
+        public void ToDto_SerializesIsDeferred()
+        {
+            // Regression coverage: a deferred devour (Wight/Demogorgon/Succubus/Zuggtmoy
+            // chains) must serialize IsDeferred, or a replay hydrates it back as false and
+            // takes the wrong branch in DevourCardCommand.Execute().
+            var card = TestData.Cards.CheapCard();
+            var command = new DevourCardCommand(card) { IsDeferred = true };
+
+            var dto = command.ToDto() as ChaosWarlords.Source.Core.Data.Dtos.DevourCardCommandDto;
+
+            Assert.IsNotNull(dto);
+            Assert.IsTrue(dto.IsDeferred);
+        }
+
+        [TestMethod]
+        public void ToDto_NotDeferred_SerializesFalse()
+        {
+            var card = TestData.Cards.CheapCard();
+            var command = new DevourCardCommand(card);
+
+            var dto = command.ToDto() as ChaosWarlords.Source.Core.Data.Dtos.DevourCardCommandDto;
+
+            Assert.IsNotNull(dto);
+            Assert.IsFalse(dto.IsDeferred);
+        }
+
+        [TestMethod]
         public void Execute_CallsMatchManagerDevour()
         {
             // Arrange

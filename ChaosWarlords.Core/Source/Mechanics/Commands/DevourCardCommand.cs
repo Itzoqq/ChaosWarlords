@@ -18,7 +18,8 @@ namespace ChaosWarlords.Source.Commands
                 CardRuntimeId = CardRuntimeId,
                 Location = LocationAtConstruction.ToString(),
                 SourceCardId = SourceCardId,
-                SourceCardRuntimeId = SourceCardRuntimeId
+                SourceCardRuntimeId = SourceCardRuntimeId,
+                IsDeferred = IsDeferred
             };
         }
 

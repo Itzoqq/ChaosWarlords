@@ -102,5 +102,47 @@ namespace ChaosWarlords.Tests.Source.Mechanics.Actions.Subsystems
             _subsystem.HandleDevourSelection(null);
             _matchManager.DidNotReceive().DevourCard(Arg.Any<Card>());
         }
+
+        [TestMethod]
+        public void HandleDevourMarketSelection_PropagatesDeferFlag()
+        {
+            // Regression coverage: HandleDevourMarketSelection must carry the deferExecution
+            // flag TryStartDevourMarket recorded into _deferDevourExecution onto IsDeferred,
+            // matching HandleDevourSelection/HandleDevourInnerCircleSelection. Arrange the
+            // same way TryStartDevourMarket does before the market's click callback fires -
+            // StartTargeting stubbed as a no-op since ActionSystem itself is mocked here.
+            var sourceCard = CreateTestCard("Source", CardLocation.Hand);
+            var marketCard = CreateTestCard("MarketTarget", CardLocation.Market);
+            _marketManager.MarketRow.Returns(new System.Collections.Generic.List<Card> { marketCard });
+            _actionSystem.GetAndClearPreTarget(sourceCard, ActionState.TargetingDevourMarket).Returns((object?)null);
+
+            _subsystem.TryStartDevourMarket(sourceCard, deferExecution: true);
+
+            // Act
+            var cmd = _subsystem.HandleDevourMarketSelection(marketCard);
+
+            // Assert
+            Assert.IsNotNull(cmd);
+            Assert.IsTrue(cmd!.IsDeferred);
+        }
+
+        [TestMethod]
+        public void HandleDevourMarketSelection_NotDeferred_WhenTriggeredWithoutDeferFlag()
+        {
+            // Adversarial counterpart: an ordinary (non-chained) Market Devour must still
+            // execute immediately rather than buffering - guards against an overcorrection
+            // that hardcodes IsDeferred = true instead of actually propagating the flag.
+            var sourceCard = CreateTestCard("Source", CardLocation.Hand);
+            var marketCard = CreateTestCard("MarketTarget", CardLocation.Market);
+            _marketManager.MarketRow.Returns(new System.Collections.Generic.List<Card> { marketCard });
+            _actionSystem.GetAndClearPreTarget(sourceCard, ActionState.TargetingDevourMarket).Returns((object?)null);
+
+            _subsystem.TryStartDevourMarket(sourceCard, deferExecution: false);
+
+            var cmd = _subsystem.HandleDevourMarketSelection(marketCard);
+
+            Assert.IsNotNull(cmd);
+            Assert.IsFalse(cmd!.IsDeferred);
+        }
     }
 }
