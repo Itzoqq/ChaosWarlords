@@ -24,7 +24,7 @@ The solution is four projects, each with a specific role in keeping the "headles
 
 `ChaosWarlords.Core` having zero MonoGame package references is what makes "headless server support" a compiled property rather than a convention enforced only by coding-guidelines.md's "no `Graphics` types" rule - if a MonoGame-dependent type ever leaked in, the project simply wouldn't build.
 
-`ChaosWarlords.Core.Tests` exists for the same reason, one layer up: `ChaosWarlords.Tests` builds and runs fine today, but only because it also happens to carry MonoGame along for the ride via its reference to the client project - nothing structurally proved the *test suite itself* could run in isolation on a machine with no graphics stack at all. `ChaosWarlords.Core.Tests` references `ChaosWarlords.Core` and nothing else, so that gap is now closed the same way: a compiler error, not an assumption. It deliberately holds a small, curated slice rather than a full migration of every Core-only test in the main suite - a handful of already-fully-headless unit tests (`Pcg32Tests`, `SeededGameRandomTests`, `LogicVector2Tests`, `LogicRectangleTests`) plus one integration-style smoke test (`HeadlessCompositionSmokeTests`) that builds a real match via `MatchFactory` and runs real commands through a real `CommandDispatcher` - proving the whole composition root works standalone, not just that individual leaf types happen to compile in isolation. `ChaosWarlords.Tests` remains the primary, much larger suite; migrating more of its Core-only tests into `ChaosWarlords.Core.Tests` is optional future cleanup, not something either project depends on.
+`ChaosWarlords.Core.Tests` exists for the same reason, one layer up: `ChaosWarlords.Tests` builds and runs fine today, but only because it also happens to carry MonoGame along for the ride via its reference to the client project - nothing structurally proved the *test suite itself* could run in isolation on a machine with no graphics stack at all. `ChaosWarlords.Core.Tests` references `ChaosWarlords.Core` and nothing else, so that gap is now closed the same way: a compiler error, not an assumption. It deliberately holds a small, curated slice rather than a full migration of every Core-only test in the main suite - a handful of already-fully-headless unit tests (`Pcg32Tests`, `SeededGameRandomTests`, `LogicVector2Tests`, `LogicRectangleTests`, `FixedRecruitPileTests`) plus two integration-style tests: `HeadlessCompositionSmokeTests` (builds a real match via `MatchFactory` and runs real commands through a real `CommandDispatcher`, proving the whole composition root works standalone, not just that individual leaf types happen to compile in isolation) and `HeadlessLifecycleSoakTests` (runs a full multi-turn/multi-player match lifecycle - setup through victory - with no UI wiring at all). `ChaosWarlords.Tests` remains the primary, much larger suite; migrating more of its Core-only tests into `ChaosWarlords.Core.Tests` is optional future cleanup, not something either project depends on.
 
 Namespaces are `ChaosWarlords.Source.*` across `Core` and the client (physical project boundary, not namespace, is what's enforced), and `ChaosWarlords.Core.Tests.*` / `ChaosWarlords.Tests.*` for the two test projects respectively.
 
@@ -50,12 +50,16 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   │   │   ├── CardDto.cs               # Serializable card data
     │   │   │   ├── CommandDto.cs            # Serializable command data
     │   │   │   ├── EffectContextDto.cs      # Serializable effect stack state
+    │   │   │   ├── FixedRecruitPileDto.cs   # Serializable finite fixed-recruit-pile state (House Guard/Priestess/Insane Outcast)
+    │   │   │   ├── GameRandomStateDto.cs    # Serializable Pcg32/SeededGameRandom stream state
     │   │   │   ├── GameStateDto.cs          # Serializable game state snapshot (incl. ActionSystem's targeting state - see Key Systems #4)
     │   │   │   ├── MapDto.cs                # Serializable map data
     │   │   │   ├── PlayerDto.cs             # Serializable player data
     │   │   │   ├── ReplayDataDto.cs         # Serializable replay container
     │   │   │   ├── ScoreBreakdownDto.cs     # Serializable victory score details
-    │   │   │   └── VictoryDto.cs            # Serializable victory state data
+    │   │   │   ├── TurnContextStateDto.cs   # Serializable per-turn transient state (promotion credits, etc.)
+    │   │   │   ├── TurnManagerStateDto.cs   # Serializable turn order/phase/round state
+    │   │   │   └── VictoryDto.cs            # Serializable victory state data - WinnerSeats/WinnerNames (plural, ties share the win - Key Systems #7-adjacent)
     │   │   ├── Enums/                       # New home for Enums
     │   │   │   └── CommandType.cs           # Enum for command identification
     │   │   ├── LogicVector2.cs              # Deterministic integer vector struct
@@ -73,6 +77,7 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   │   │   └── ISpySubsystem.cs
     │   │   └── Services/
     │   │       ├── ICommandDispatcher.cs
+    │   │       ├── ICrashReporter.cs        # Last-line-of-defense uncaught-exception reporter - see Managers/CrashReporter.cs below
     │   │       ├── IGameLogger.cs
     │   │       ├── IGameRandom.cs
     │   │       ├── IMapManager.cs
@@ -112,7 +117,8 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   │   ├── Card.cs                      # Data model for a playable card
     │   │   ├── CardEffects.cs               # Definitions for card effects
     │   │   ├── Deck.cs                      # Manages a collection of cards
-    │   │   └── EffectCondition.cs           # Condition requirements for effects
+    │   │   ├── EffectCondition.cs           # Condition requirements for effects
+    │   │   └── FixedRecruitPile.cs          # Finite non-shuffled recruit pile (House Guard/Priestess of Light/Insane Outcast) - see Key Systems #12
     │   └── Map/
     │       ├── CitySite.cs                  # Represents a Capturable City
     │       ├── MapNode.cs                   # A graph node - LogicVector2 position, not Vector2
@@ -124,11 +130,12 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     ├── Factories/                           # Object Creation Logic
     │   ├── CardFactory.cs                   # Creates Card instances from data - resolves Name/Description via ILocalizationService
     │   ├── MapFactory.cs                    # Generates the map graph and nodes
-    │   └── MatchFactory.cs                  # Assembles all dependencies for a new match
+    │   └── MatchFactory.cs                  # Assembles all dependencies for a new match, incl. dealing each player's real 5-card opening hand headlessly (rulebook p.4 step 10) - see note below
     │
     ├── Managers/                            # Business Logic Services
     │   ├── ActionInputController.cs         # Click-to-command routing for targeting (extracted from ActionSystem)
     │   ├── CommandDispatcher.cs             # Central Command Processor - snapshots before Execute(), rolls back on exception
+    │   ├── CrashReporter.cs                 # ICrashReporter impl - logs + dumps in-flight replay recording on an uncaught exception (client's RuntimeFaultRecovery is the caller)
     │   ├── MapManager.cs                    # Facade for Board Logic (LogicVector2-based queries)
     │   ├── MarketManager.cs                 # Manages the shuffled row and finite fixed recruit piles
     │   ├── MatchManager.cs                  # Manages Match & Victory
@@ -145,7 +152,7 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
     │   ├── MapTopology.cs                   # Pathfinding/hit-testing, LogicVector2-based
     │   └── SpyOperations.cs                 # Handles spy placement and removal
     │
-    └── Mechanics/                           # The "Rules" of the Game (100% MonoGame-free)
+    ├── Mechanics/                           # The "Rules" of the Game (100% MonoGame-free)
         ├── Actions/
         │   ├── Subsystems/                  # Logic Sub-modules
         │   │   ├── ActionExecutionEngine.cs # Execution-stack engine (ExecutionStack/PushEffect/ResolveCurrentEffect/ProcessStack) - see Key Systems #4
@@ -160,6 +167,8 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
         │   ├── AssassinateCommand.cs        # Execute assassination
         │   ├── BuyCardCommand.cs            # Purchase card
         │   ├── CancelActionCommand.cs       # Cancel targeting
+        │   ├── DeclineRepeatCommand.cs      # Voluntarily stop an AllowPartialRepeat effect early (e.g. Council Member) - see Key Systems #4/patterns.md Repeat-N section
+        │   ├── DeployFromTrophyHallCommand.cs # Deploy a troop funded by a trophy hall's captured-troop composition (e.g. Mummy Lord) - see Key Systems #4/#12-adjacent, TrophyHallRuleEngine
         │   ├── DeployTroopCommand.cs        # Place unit
         │   ├── DevourCardCommand.cs         # Trash card
         │   ├── DiscardCardCommand.cs        # Discard a named card from a specific player's hand
@@ -170,6 +179,7 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
         │   ├── PlayFromMarketCommand.cs     # Play a market card "as if in hand" (e.g. Ulitharid), then devour it
         │   ├── PromoteCommand.cs            # Upgrade unit/site
         │   ├── ResolveSpyCommand.cs         # Execute spy action
+        │   ├── ReturnAnySpyCommand.cs       # Resolve a disambiguated own-or-enemy spy return (EffectType.ReturnUnitOrSpy) - see Key Systems #4's disambiguation-reuse note
         │   ├── ReturnOwnSpyCommand.cs       # Return one of the active player's OWN spies (e.g. Cloaker)
         │   ├── ReturnTroopCommand.cs        # Return unit to hand
         │   ├── SelectOpponentCommand.cs     # Resolve EffectType.SelectOpponent - choose which opponent to target
@@ -184,6 +194,8 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
             ├── Strategies/                  # IEffectStrategy implementations (one per EffectType)
             │   ├── AssassinateStrategy.cs
             │   ├── DefaultStrategy.cs
+            │   ├── DeployFromTrophyHallStrategy.cs # EffectType.DeployFromTrophyHall - see Key Systems #4, TrophyHallRuleEngine below
+            │   ├── DeployTroopStrategy.cs       # EffectType.DeployTroop - see Key Systems #4
             │   ├── DevourStrategy.cs
             │   ├── DiscardStrategy.cs
             │   ├── EffectTreeSearch.cs          # Shared FindFirstEffect helper (Assassinate/Supplant/Devour/PromoteFromPile strategies) - recurses into both OnSuccess and Alternative
@@ -191,8 +203,11 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
             │   ├── PlaceSpyStrategy.cs
             │   ├── PlayFromMarketStrategy.cs
             │   ├── PromoteFromPileStrategy.cs   # EffectType.PromoteFromPile - see Key Systems #4
+            │   ├── ReturnEnemySpyStrategy.cs    # EffectType.ReturnEnemySpy - see Key Systems #4
             │   ├── ReturnOwnSpyStrategy.cs
+            │   ├── ReturnUnitOrSpyStrategy.cs   # EffectType.ReturnUnitOrSpy - see Key Systems #4's disambiguation-reuse note
             │   ├── ReturnUnitStrategy.cs
+            │   ├── SelectOpponentEligibility.cs # Shared "is this opponent eligible" helper (hand-size threshold, or RequiresAdjacencyToRecentDeploys) - not an IEffectStrategy itself
             │   ├── SelectOpponentStrategy.cs    # EffectType.SelectOpponent - see Key Systems #4
             │   └── SupplantStrategy.cs
             ├── CardEffectApplier.cs         # Applies one resolved CardEffect node (EffectType-keyed dispatch) - split from CardEffectProcessor 2026-09-10
@@ -202,7 +217,11 @@ ChaosWarlords.Core/                 # Logic Project Root (zero MonoGame package 
             ├── DynamicAmountResolver.cs     # Resolves CardEffect.DynamicAmountSource against live game state - shared by CardEffectProcessor/CardEffectApplier
             ├── MapRuleEngine.cs             # Validates map rules
             ├── SiteControlSystem.cs         # Manages site ownership, control/total-control rewards
-            └── TargetingStateEngine.cs      # Determines targeting state sequences
+            ├── TargetingStateEngine.cs      # Determines targeting state sequences
+            └── TrophyHallRuleEngine.cs      # Resolves WHICH player's trophy hall a DeployFromTrophyHall effect draws from (sibling to MapRuleEngine, player/trophy-hall domain) - see reference/patterns.md's Trophy-hall-as-troop-reservoir section
+
+    └── Utilities/                          # Cross-cutting helpers too small for their own Managers/ or Mechanics/ home
+        └── CommandValidationLogging.cs     # IGameCommand.Validate() rejection-reason logging helper - see Key Systems #4-adjacent "Command Authorization Boundary" note and coding-guidelines.md Rule #25
 
 ChaosWarlords/                     # Client (Game) Project Root - references Core, adds MonoGame
 ├── ChaosWarlords.csproj           # Project File (MonoGame.Framework.DesktopGL, Content.Builder.Task)
@@ -276,6 +295,7 @@ ChaosWarlords/                     # Client (Game) Project Root - references Cor
     │
     └── Rendering/                           # Presentation Layer (The "View")
         ├── LogicVectorExtensions.cs         # LogicVector2/LogicRectangle <-> Vector2/Rectangle
+        ├── PlayerColorExtensions.cs         # PlayerColor -> MonoGame Color, same client-only boundary-conversion role as LogicVectorExtensions
         ├── UI/                              # UI Components
         │   ├── ButtonManager.cs             # Handles button registration
         │   ├── ButtonRenderer.cs            # Renders buttons
@@ -316,6 +336,8 @@ Input is handled via a **Event-Driven** tiered approach:
 
 ### 3. Command Pattern (Mechanics/Commands/)
 All significant game actions (Move, Attack, Buy) are encapsulated in `IGameCommand` objects. This ensures traceability, enables replay systems by re-executing commands, and supports multiplayer synchronization.
+
+**Authorization derives from `ActionSystem`'s own trusted state, never a caller-supplied field (2026-09-14).** Once a networked client can send any `IGameCommand` directly, a `Validate()` that trusts data the caller itself provided (a bare `CardId`, an unchecked cost waiver) isn't a real authorization boundary - a forged command could claim a cost waiver or chained-effect status it never earned. Every command with a non-basic-action shape re-derives its legality from `ActionSystem.CurrentSourceEffect`/`CurrentState`/`TurnContext` credits instead: `AssassinateCommand`'s cost waiver confirms a matching Assassinate effect is actually pending; `PlaceSpyCommand`/`MoveTroopCommand`/`ReturnTroopCommand`/`ReturnOwnSpyCommand`/`SupplantCommand` check `ActionSystem.CurrentState` before accepting a claimed chained/free execution; `PromoteCommand.Execute` consumes its promotion credit itself instead of trusting the input mode to have already done so. `CommandValidationLogging.RejectValidation` (`Source/Utilities/`) is the shared helper every `Validate()` early-return should call instead of a bare `return false;`, so a rejected command logs *which* guard clause fired, not just that one did - see `docs/coding-guidelines.md` Rule #25 for the full pattern and its known-deferred siblings (`DevourCardCommand`/`DiscardCardCommand`/`ResolveSpyCommand`).
 
 ### 4. ActionSystem: Targeting State Machine and Execution-Stack Engine
 
@@ -363,6 +385,8 @@ popup, calling `OnResponse` when the player answers. `ActionSystem` has no refer
 - `CardEffect.ReturnEnemyOnly` - restricts `EffectType.ReturnUnitOrSpy`'s target-type union (Intellect Devourer's own-or-enemy troop-or-spy shape) to enemy-only (High Priest of Myrkul: "Return another player's troop or spy"), filling the gap between that effect (too broad) and `EffectType.ReturnEnemySpy` (enemy-only but spy-only, too narrow). Threaded through every layer that shape touches: `MapRuleEngine.HasValidReturnTroopTarget`/`HasValidReturnAnySpyTarget` (lookahead), `MapManager.CanReturnTroop`/`CanReturnAnySpy` (the authoritative check), `ReturnTroopCommand`/`ReturnAnySpyCommand.Validate()` (re-derived from `ActionSystem.CurrentSourceEffect`, the same `AssassinateCommand.RequiresNeutralTarget` pattern - never trusts the command itself), and `ActionInputController.HandleReturn`/`SpySubsystem.HandleReturnUnitOrSpySite` (the click-to-command layer). Defaults to `false` so Intellect Devourer's existing own-or-enemy behavior is completely unaffected.
 
 `IActionSystem.CurrentSourceEffect` is a related, smaller addition: a public read of "which `CardEffect` is currently driving targeting," used by `ActionInputController`/`AssassinateCommand`/`SupplantCommand` to apply the per-effect filters above (`TargetNeutralTroopOnly`, `IgnoresPresenceRequirement`) at click-validation time rather than only at resolution time.
+
+**Multi-candidate disambiguation reuse (2026-09-14).** When 2+ legal targets are simultaneously eligible at one click (rulebook p.13: the acting player chooses which specific enemy spy to return when a site holds more than one), the existing "Return an enemy spy" sub-state machine (`ActionState.SelectingSpyToReturn`, `ActionSystem.TransitionToSpySelection`/`FinalizeSpyReturn`, plus the spy-color-button UI) is reused rather than duplicated per effect: `SpySubsystem.FinalizeAnySpyReturn` branches `FinalizeSpyReturn` on `CurrentSourceEffect?.Type == EffectType.ReturnUnitOrSpy` to build a `ReturnAnySpyCommand` (own-or-enemy) instead of the base flow's `ResolveSpyCommand`, restoring `CurrentState` to `TargetingReturnUnitOrSpy` first so that command's `Validate()` state gate still accepts it. `MapRuleEngine.HasValidReturnAnySpyTarget`'s lookahead widened from "exactly one eligible spy per site" to "at least one," since an ambiguous site is a resolvable target now instead of a dead end. `TrophyHallRuleEngine.TryGetSoleEligibleSource` (`EffectType.DeployFromTrophyHall`, Key Systems #12) has the same-shaped "2+ eligible" gap one level up (per-player instead of per-spy-color) and is a candidate to follow this same template once a real "click a player" affordance exists for it - see `reference/patterns.md`'s own note on why `EffectType.SelectOpponent` isn't a drop-in reuse there.
 
 ### 5. Card Rule Engine
 Card logic is validated by a centralized `CardRuleEngine` using a Chain of Responsibility pattern. `EffectCondition` definitions allow data-driven rules (defined in JSON), separating validation logic from effect execution.
@@ -559,6 +583,9 @@ A single match-wide `int` counter (`GameConstants.InsaneOutcastSupplyCount` = 30
 `GameStateDto.InsaneOutcastSupplyRemaining`/`DtoMapper`/`StateRestorer` carry the counter through `CommandDispatcher`'s rollback snapshot - the same treatment `FixedRecruitPiles` already gets, for the identical rulebook-p.13 "shared supply that runs out" category.
 
 See `tyrants-rules` skill's `reference/patterns.md` for the full design rationale (why `PlayerStateManager` and not `MatchContext`, the `MatchScenario.Build` test-scenario gotcha for Demons half-deck cards).
+
+### 13. Headless Opening Hand Deal + Setup-Phase Turn-Cycle Skip
+`MatchFactory.Build` deals each player's real rulebook-required 5-card opening hand itself (p.4 step 10: shuffle → draw 5 → deploy), right after `CreatePlayers` - deterministic and headless, no `GameplayState`/UI wiring needed at all. This closed a real regression it surfaced: `TurnLifecycleSubsystem.EndTurn` used to run its full turn-cycle (Devour/Promote/Cleanup/Draw/opponent-discard) even during `MatchPhase.Setup`, which would have silently discarded the freshly-dealt hand and redealt a different one the moment each player's setup-deployment auto-`EndTurn` fired, and populated a Setup-phase player's `DiscardPile` - structurally impossible before this change, and exactly what `TryTransitionSetupToPlaying`'s own `gameHasProgressed` safeguard checks for, so it silently flipped Setup→Playing after only the first player deployed in a multi-player match. `EndTurn` now skips its entire turn-cycle during Setup, falling straight through to `CompleteEndTurnSwitch`. `PlayCardCommand.Validate()` explicitly rejects `MatchPhase.Setup` (an empty hand used to be the only thing stopping a Setup-phase play; a real hand needed an explicit guard once dealt this early).
 
 ---
 

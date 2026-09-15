@@ -99,6 +99,7 @@ ChaosWarlords.Tests/
     │
     ├── Core/
     │   ├── Contexts/
+    │   │   ├── MarketDeckSelectionTests.cs      # MarketDeckSelection's own First/Second/Includes/NextDistinct value-type behavior
     │   │   ├── MatchContextConstructorTests.cs
     │   │   ├── MatchContextHashingTests.cs      # GetStateHash() determinism
     │   │   └── TurnContextTests.cs
@@ -116,6 +117,7 @@ ChaosWarlords.Tests/
     │   └── Utilities/
     │       ├── BufferedAsyncLoggerTests.cs
     │       ├── CachedIntTextTests.cs
+    │       ├── CardCatalogValidatorTests.cs      # Fail-closed load-time validation gate - see architecture.md Key Systems #11
     │       ├── CardDatabaseIntegrationTests.cs
     │       ├── CardDatabaseTests.cs
     │       ├── CommandHydratorTests.cs
@@ -127,8 +129,13 @@ ChaosWarlords.Tests/
     │       ├── PooledPrimitivesTests.cs
     │       └── StateHasherTests.cs
     │
-    ├── Doubles/State/
-    │   └── TestGameplayState.cs             # Hand-rolled IGameplayState fake (auto-wires its own MatchContext)
+    ├── Doubles/
+    │   ├── Input/
+    │   │   └── FakeInputProvider.cs         # Hand-rolled IInputProvider fake for input-pipeline scenario tests
+    │   ├── Rendering/
+    │   │   └── FakeGameplayView.cs          # Hand-rolled IGameplayView fake
+    │   └── State/
+    │       └── TestGameplayState.cs         # Hand-rolled IGameplayState fake (auto-wires its own MatchContext)
     │
     ├── Entities/
     │   ├── CardTests.cs
@@ -154,6 +161,7 @@ ChaosWarlords.Tests/
     │   ├── GameStates/
     │   │   ├── GameplayStateTests.cs
     │   │   ├── MainMenuStateTests.cs
+    │   │   ├── MatchSetupStateTests.cs
     │   │   ├── RuntimeFaultRecoveryTests.cs
     │   │   ├── StateManagerTests.cs
     │   │   └── VictoryStateTests.cs
@@ -199,9 +207,11 @@ ChaosWarlords.Tests/
     ├── Managers/
     │   ├── ActionInputControllerTests.cs     # Direct branch-level coverage of all 7 targeting-state click routes
     │   ├── CommandDispatcherTests.cs
+    │   ├── CrashReporterTests.cs
     │   ├── MarketManagerTests.cs
     │   ├── MarketStateManagerTests.cs
     │   ├── PlayerStateManagerTests.cs
+    │   ├── ReplayManagerAspectSelectionTests.cs
     │   ├── ReplayManagerTests.cs
     │   ├── StateRestorerRealCardIdentityTests.cs
     │   ├── StateRestorerTests.cs             # Rollback coverage incl. ActionSystem's own Pending*/CurrentState
@@ -226,7 +236,6 @@ ChaosWarlords.Tests/
     │   │   ├── ActionSystemTests.cs
     │   │   ├── ActionSystemTransactionTests.cs
     │   │   ├── CardPlaySystemTests.cs
-    │   │   ├── ObsoleteMethodRemovalTests.cs
     │   │   └── PreTargetHandlerTests.cs
     │   ├── Commands/                        # One file per IGameCommand, plus:
     │   │   ├── ActionCompletedCommandTests.cs
@@ -234,6 +243,9 @@ ChaosWarlords.Tests/
     │   │   ├── BuyCardCommandTests.cs
     │   │   ├── CancelActionCommandTests.cs
     │   │   ├── CommandSerializationTests.cs
+    │   │   ├── CommandValidationLoggingTests.cs
+    │   │   ├── DeclineRepeatCommandTests.cs
+    │   │   ├── DeployFromTrophyHallCommandTests.cs
     │   │   ├── DeployTroopCommandTests.cs
     │   │   ├── DevourCardCommandTests.cs     # incl. Validate() rejecting an unresolvable RuntimeId
     │   │   ├── DiscardCardCommandTests.cs
@@ -245,6 +257,7 @@ ChaosWarlords.Tests/
     │   │   ├── PlayFromMarketCommandTests.cs
     │   │   ├── PromoteCommandTests.cs
     │   │   ├── ResolveSpyCommandTests.cs
+    │   │   ├── ReturnAnySpyCommandTests.cs
     │   │   ├── ReturnOwnSpyCommandTests.cs
     │   │   ├── ReturnTroopCommandTests.cs
     │   │   ├── SelectOpponentCommandTests.cs
@@ -263,20 +276,32 @@ ChaosWarlords.Tests/
     │       ├── MapRuleEngineTests.cs
     │       ├── SiteControlSystemTests.cs
     │       ├── Strategies/
-    │       │   └── EffectStrategiesTests.cs      # Direct tests for 9 of the 12 registered IEffectStrategy implementations (Assassinate/Default/Devour/MoveUnit/PlaceSpy/ReturnUnit/Supplant/SelectOpponent/PromoteFromPile) - Discard/ReturnOwnSpy/PlayFromMarket aren't covered directly here
-    │       └── TargetingStateEngineTests.cs
+    │       │   └── EffectStrategiesTests.cs      # Direct tests for a subset of the registered IEffectStrategy implementations - check the Strategies/ directory listing in architecture.md for the current full count/list rather than trusting a number here to stay in sync
+    │       ├── TargetingStateEngineTests.cs
+    │       └── TrophyHallRuleEngineTests.cs
     │
     ├── Functional/                          # One MatchScenario file per card/mechanic with real coverage
     │   │                                    # gaps to close - list below is illustrative, not exhaustive;
-    │   │                                    # see the directory itself for the current, growing full list.
+    │   │                                    # see the directory itself for the current, growing full list
+    │   │                                    # (70+ *ScenarioTests.cs files as of 2026-09-15).
     │   ├── MatchScenario.cs                  # Scenario harness - see "Functional/Scenario Test Harness" below
+    │   ├── TestFixtureCards.cs               # test_*-prefixed + legacy non-scan-backed fixture cards merged in via LoadAdditionalFromJson - see that section below
     │   ├── AlwaysLegalCommandsScenarioTests.cs   # Spam/idempotency of always-legal no-target commands, not a per-card scenario
+    │   ├── CardDeploySupplyScenarioTests.cs      # Empty-barracks "gain 1 VP instead of deploying" clause, across Deploy/Supplant
+    │   ├── CardEffectProcessorChainTests.cs      # Engine-level OnSuccess/Alternative propagation depth (not one specific card)
+    │   ├── ChainedRepeatChainTests.cs            # CardEffect.ChainedRepeatCount primitive (Graz'zt's shape) at the engine level
+    │   ├── ChooseCountChainTests.cs              # CardEffect.ChooseCount primitive (Weaponmaster's shape) at the engine level
+    │   ├── FixedRecruitPilesScenarioTests.cs     # House Guard/Priestess of Light fixed recruit piles
+    │   ├── InputPipelineScenario.cs              # Real-input-pipeline variant of MatchScenario (FakeInputProvider-driven, not direct dispatch)
+    │   ├── InputPipelineScenarioRegressionTests.cs
+    │   ├── SetupPhaseScenarioTests.cs            # MatchPhase.Setup-specific behavior (opening hand deal, PlayCardCommand rejection) - see architecture.md Key Systems #13
     │   ├── TrivialPrimitiveCardsScenarioTests.cs # Batched matrix pass across 8 no-special-mechanic cards, not one file per card
-    │   ├── WightScenarioTests.cs             # ...and 20+ further per-card scenario files (Cloaker, Neogi, Deathblade, White Dragon, etc.)
+    │   ├── WightScenarioTests.cs             # ...and 70+ further per-card scenario files (Cloaker, Neogi, Deathblade, White Dragon, Council Member, Graz'zt, Mummy Lord, Intellect Devourer, etc.)
     │
     ├── Rendering/
     │   ├── LogicVectorExtensionsTests.cs
     │   └── UI/
+    │       ├── MarketLayoutTests.cs
     │       └── PopupBuilderTests.cs
     │
     ├── Replay/
@@ -304,8 +329,12 @@ ChaosWarlords.Core.Tests/
     │   └── Utilities/
     │       ├── Pcg32Tests.cs                # The RNG algorithm itself: determinism, non-constant output, bounded range, coarse distribution check
     │       └── SeededGameRandomTests.cs
+    ├── Entities/
+    │   └── Cards/
+    │       └── FixedRecruitPileTests.cs     # FixedRecruitPile entity itself, headless
     └── Integration/
-        └── HeadlessCompositionSmokeTests.cs # Builds a real match via MatchFactory, runs real commands through a real CommandDispatcher - proves the whole composition root works with zero MonoGame in this project's dependency graph
+        ├── HeadlessCompositionSmokeTests.cs # Builds a real match via MatchFactory, runs real commands through a real CommandDispatcher - proves the whole composition root works with zero MonoGame in this project's dependency graph
+        └── HeadlessLifecycleSoakTests.cs    # Multi-turn/multi-player match lifecycle run headlessly end to end (setup -> playing -> victory), no UI wiring at all
 ```
 
 ---
@@ -323,9 +352,9 @@ ChaosWarlords.Core.Tests/
 
 ---
 
-## Test Counts (as of 2026-09-09)
+## Test Counts (as of 2026-09-15)
 
-**Total: 1835 tests** across both projects, all passing (19 in `ChaosWarlords.Core.Tests`, 1816 in `ChaosWarlords.Tests`).
+**Total: 2222 tests** across both projects, all passing (22 in `ChaosWarlords.Core.Tests`, 2200 in `ChaosWarlords.Tests`).
 
 Run `dotnet test` for the combined total; see the `--filter` commands above to break it down. This number drifts as tests are added - treat it as "order of magnitude and how to check", not a value to keep manually in sync here (the per-category breakdown that used to live in this table was already stale by the time it was last checked, which is exactly why it's gone now rather than just re-counted).
 
