@@ -131,7 +131,7 @@ sequenceDiagram
     MM->>MC: Set MatchManager property
     GS->>AS: SetMatchManager(MatchManager)
     GS->>AS: SetMarketStateManager(MarketStateManager)
-    GS->>UI: new UIEventMediator(...); Initialize()
+    GS->>UI: construct UIEventMediator then Initialize()
     GS->>GS: Create input, replay, card-play, and player controllers
 ```
 
@@ -476,19 +476,21 @@ sequenceDiagram
     CD->>DTO: ToGameStateDto(context)
     DTO-->>CD: complete pre-command snapshot
     CD->>Cmd: Validate(context)
-    alt invalid
+    alt validation fails
         Cmd-->>CD: false
-        CD-->>GS: log and stop; no mutation or recording
-    else valid
-        CD->>MC: increment SequenceNumber; capture actor + recording slot
+        CD-->>GS: log and stop, with no mutation or recording
+    else validation passes
+        CD->>MC: increment SequenceNumber, capture actor and recording slot
         CD->>Cmd: Execute(context)
-        Cmd->>MC: mutate through managers/action system
-        CD->>RM: InsertCommand(slot, command, actor, sequence)
-    else execute throws
-        Cmd-->>CD: exception
-        CD->>SR: RestoreState(context, snapshot)
-        SR-->>CD: restored or throws rollback failure
-        CD-->>GS: rethrow original / aggregate failure
+        alt execution succeeds
+            Cmd->>MC: mutate through managers/action system
+            CD->>RM: InsertCommand(slot, command, actor, sequence)
+        else execution throws
+            Cmd-->>CD: exception
+            CD->>SR: RestoreState(context, snapshot)
+            SR-->>CD: state restored or rollback failure
+            CD-->>GS: rethrow original or aggregate failure
+        end
     end
 ```
 
@@ -654,9 +656,9 @@ classDiagram
     ActionSystem *-- SpySubsystem
     ActionSystem *-- MapActionSubsystem
     ActionSystem *-- PreTargetHandler
-    ActionExecutionEngine -. callback through IActionSystem .-> IActionSystem
-    SpySubsystem -. callback through IActionSystem .-> IActionSystem
-    MapActionSubsystem -. callback through IActionSystem .-> IActionSystem
+    ActionExecutionEngine ..> IActionSystem : uses facade
+    SpySubsystem ..> IActionSystem : uses facade
+    MapActionSubsystem ..> IActionSystem : uses facade
     ActionInputController --> ISpySubsystem
 ```
 
@@ -725,12 +727,12 @@ sequenceDiagram
         SS-->>Place: new PlaceSpyCommand(site, cardId)
         Place->>Map: PlaceSpy(site, active player)
         Place->>AS: SetPendingSiteForChain + CompleteAction
-    else barracks empty; clicked own spy
+    else barracks empty and clicked own spy
         SS-->>Return: new ReturnSpyToPlaceCommand(site, cardId)
         Return->>Map: CanReturnOwnSpy + ReturnOwnSpy
-        Return-->>AS: do not complete; remain TargetingPlaceSpy
-        Note over AS: barracks now has one spy; next legal click creates PlaceSpyCommand
-    else barracks empty; not own spy
+        Return-->>AS: do not complete, remain TargetingPlaceSpy
+        Note over AS: barracks now has one spy, next legal click creates PlaceSpyCommand
+    else barracks empty and not own spy
         SS-->>Click: no command / no mutation
     end
 ```
@@ -774,7 +776,7 @@ flowchart LR
 
 ```mermaid
 sequenceDiagram
-    participant End as EndTurnCommand
+    participant ET as EndTurnCommand
     participant MM as MatchManager
     participant TL as TurnLifecycleSubsystem
     participant PSM as PlayerStateManager
@@ -784,9 +786,9 @@ sequenceDiagram
     participant VM as VictoryManager
     participant GS as GameplayState
 
-    End->>MM: EndTurn()
+    ET->>MM: EndTurn()
     MM->>TL: EndTurn()
-    TL->>PSM: resolve turn-end cards; clean up active player; draw hand
+    TL->>PSM: resolve turn-end cards, clean up active player, draw hand
     alt opponents owe discard(s)
         TL->>AS: StartTargeting(TargetingDiscard)
         AS-->>TL: each DiscardCardCommand resolves
