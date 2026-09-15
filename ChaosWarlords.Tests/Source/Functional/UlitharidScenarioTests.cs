@@ -83,5 +83,52 @@ namespace ChaosWarlords.Tests.Source.Functional
 
             Assert.AreEqual(ActionState.TargetingPlayFromMarket, scenario.Context.ActionSystem.CurrentState, "Should still be waiting for exactly the one market-card selection the first play triggered.");
         }
+
+        [TestMethod]
+        public void PlayFromMarket_CancelledMidTargeting_DoesNotCorruptALaterUnrelatedAction()
+        {
+            // Regression for planning.txt TIER 1 item 18: MatchManager.PlayCardFromMarket's
+            // onMarketCardResolved handler used to stay subscribed to ActionSystem.
+            // OnActionCompleted forever once its own targeting sequence was cancelled (only the
+            // NORMAL-completion path unsubscribed it) - it would then fire against the next,
+            // wholly unrelated action's completion instead, moving a stale pre-restore Card
+            // instance into VoidPile even though this market card was never actually devoured.
+            // Fixed by ActionSystem.OnActionCancelled, which MatchManager now also unsubscribes on.
+            var scenario = MatchScenario.Build();
+            var red = scenario.AsActivePlayer(PlayerColor.Red);
+
+            // Presence for Dragonclaw's own Assassinate step, resolving "as if in Red's hand".
+            var redNode = scenario.Context.MapManager.Nodes.First(n => scenario.Context.MapManager.CanDeployAt(n, red.Color));
+            scenario.Dispatch(new DeployTroopCommand(redNode.Id));
+            var targetNode = redNode.Neighbors.First(n => n.Occupant == PlayerColor.None);
+            targetNode.Occupant = PlayerColor.Blue; // Setup only - a real Assassinate target.
+
+            var ulitharid = scenario.GiveCard(PlayerColor.Red, "ulitharid");
+            var dragonclaw = scenario.CardDatabase.GetCardById("dragonclaw", scenario.Context.Random)!;
+            dragonclaw.Location = CardLocation.Market;
+            scenario.Context.MarketManager.MarketRow.Add(dragonclaw); // Cost 4 <= 4 - a valid target.
+
+            scenario.PlayCard(ulitharid);
+            scenario.Dispatch(new PlayFromMarketCommand(dragonclaw, ulitharid));
+
+            Assert.AreEqual(ActionState.TargetingAssassinate, scenario.Context.ActionSystem.CurrentState, "Dragonclaw's own Assassinate effect should be resolving as if it was in Red's hand.");
+
+            scenario.Dispatch(new CancelActionCommand());
+
+            Assert.AreEqual(ActionState.Normal, scenario.Context.ActionSystem.CurrentState);
+            Assert.AreEqual(PlayerColor.Blue, targetNode.Occupant, "The cancelled Assassinate must never have actually resolved.");
+            // A full-state restore mints a FRESH Card instance for the market row (see
+            // StateRestorer's own doc comments on Card identity across a restore) - match by Id,
+            // not by the pre-cancel `dragonclaw` reference.
+            Assert.IsTrue(scenario.Context.MarketManager.MarketRow.Any(c => c.Id == dragonclaw.Id), "Cancelling must put Dragonclaw back in the market, not devour it.");
+
+            // A LATER, wholly unrelated card play that completes normally - this is what the
+            // stale handler used to ambush.
+            var houseGuard = scenario.GiveCard(PlayerColor.Red, "core_house_guard");
+            scenario.PlayCard(houseGuard);
+
+            Assert.IsTrue(scenario.Context.MarketManager.MarketRow.Any(c => c.Id == dragonclaw.Id), "Dragonclaw must still be in the market after an unrelated action completes - the stale handler must not have fired.");
+            Assert.IsFalse(scenario.Context.VoidPile.Any(c => c.Id == dragonclaw.Id), "Dragonclaw must not have been silently devoured by a stale OnActionCompleted handler.");
+        }
     }
 }

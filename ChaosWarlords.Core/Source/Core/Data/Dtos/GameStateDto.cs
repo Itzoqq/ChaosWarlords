@@ -71,19 +71,20 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
         /// before this, a failed command could roll the map/players/market back to before it
         /// ran while leaving ActionSystem still pointing at Pending* state from the failed
         /// attempt (or from whatever ran just before it). Card/Site/MapNode are stored as IDs,
-        /// not embedded objects, and re-resolved on restore - cards via CardDatabase.GetCardById
-        /// (matching RestoreEffect's existing SourceCard resolution, so a restored PendingCard
-        /// is a fresh instance rather than the original reference, same known limitation as the
-        /// rest of rollback's Card handling), sites/nodes via MapManager.Sites/Nodes lookup
-        /// (matching RestoreMap, which mutates the existing Site/MapNode instances in place
-        /// rather than recreating them, so these DO resolve to the same reference other restored
-        /// state already points at). See planning.txt.
+        /// not embedded objects, and re-resolved on restore - cards via their RuntimeId, looked
+        /// up in the physical-card map StateRestorer builds from the already-restored
+        /// hand/market/void/etc (StateRestorer.GetPhysicalCards), so a restored PendingCard is
+        /// the SAME Card instance those zones now point at, not an unrelated fresh instance
+        /// minted from the catalog. Sites/nodes via MapManager.Sites/Nodes lookup (matching
+        /// RestoreMap, which mutates the existing Site/MapNode instances in place rather than
+        /// recreating them, so these DO resolve to the same reference other restored state
+        /// already points at).
         /// </summary>
         public ActionState ActionSystemState { get; set; } = ActionState.Normal;
-        public string? PendingCardId { get; set; }
+        public Guid? PendingCardId { get; set; }
         public int? PendingSiteId { get; set; }
         public int? PendingMoveSourceNodeId { get; set; }
-        public string? PendingDevourCardId { get; set; }
+        public Guid? PendingDevourCardId { get; set; }
 
         /// <summary>
         /// See IActionSystem.PendingAffectedPlayerColor's doc comment - the outcome-dependent

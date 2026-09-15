@@ -181,5 +181,85 @@ namespace ChaosWarlords.Tests.Source.Managers
 
             Assert.HasCount(2, _player.Deck);
         }
+
+        // --- planning.txt TIER 1 item 19: PendingCard/PendingDevourCard/EffectContext.SourceCard
+        // now resolve via the RuntimeId-keyed physical-card map built from the already-restored
+        // zones (StateRestorer.GetPhysicalCards), not a fresh ICardDatabase.GetCardById(
+        // DefinitionId) call that could only ever mint an unrelated new instance. Only exercised
+        // meaningfully through the REAL CardFactory pipeline (a real, suffixed Id/fresh
+        // RuntimeId on every GetCardById call) - same rationale as every other test in this
+        // file - and asserted with AreSame (reference identity), not just a matching Id/
+        // DefinitionId, since identity is exactly what this fix is about. ---
+
+        [TestMethod]
+        public void RestoreState_RestoresPendingCard_AsTheSamePhysicalInstanceTheRestoredHandPointsAt()
+        {
+            var wight = _cardDb.GetCardById("wight", _context.Random)!;
+            _player.AddToHand(wight);
+            _context.ActionSystem.RestorePendingState(ActionState.TargetingAssassinate, wight, null, null, null);
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+
+            _context.ActionSystem.RestorePendingState(ActionState.Normal, null, null, null, null);
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.AreEqual(ActionState.TargetingAssassinate, _context.ActionSystem.CurrentState);
+            Assert.HasCount(1, _player.Hand);
+            Assert.AreSame(_player.Hand[0], _context.ActionSystem.PendingCard,
+                "PendingCard must be the SAME physical Card instance the restored Hand now points at, not an unrelated fresh CardDatabase lookup.");
+        }
+
+        [TestMethod]
+        public void RestoreState_RestoresPendingDevourCard_AsTheSamePhysicalInstanceTheRestoredHandPointsAt()
+        {
+            var wight = _cardDb.GetCardById("wight", _context.Random)!;
+            _player.AddToHand(wight);
+            _context.ActionSystem.RestorePendingState(ActionState.TargetingSupplant, null, null, null, wight);
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+
+            _context.ActionSystem.RestorePendingState(ActionState.Normal, null, null, null, null);
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.HasCount(1, _player.Hand);
+            Assert.AreSame(_player.Hand[0], _context.ActionSystem.PendingDevourCard,
+                "PendingDevourCard must be the SAME physical Card instance the restored Hand now points at, not an unrelated fresh CardDatabase lookup.");
+        }
+
+        [TestMethod]
+        public void RestoreState_RestoresEffectStackSourceCard_AsTheSamePhysicalInstanceTheRestoredPlayedCardsPointsAt()
+        {
+            var wight = _cardDb.GetCardById("wight", _context.Random)!;
+            wight.Location = CardLocation.Played;
+            _player.AddToPlayed(wight);
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+            snapshot.EffectStack = new List<EffectContextDto>
+            {
+                new() { State = ActionState.Normal, SourceCardId = wight.RuntimeId, RequiresInput = false }
+            };
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.HasCount(1, _context.ActionSystem.ExecutionStack);
+            Assert.HasCount(1, _player.PlayedCards);
+            Assert.AreSame(_player.PlayedCards[0], _context.ActionSystem.ExecutionStack.Peek().SourceCard,
+                "EffectContext.SourceCard must be the SAME physical Card instance the restored PlayedCards now points at, not an unrelated fresh CardDatabase lookup.");
+        }
+
+        [TestMethod]
+        public void RestoreState_PendingCardWithNoMatchingPhysicalCardAnywhere_ResolvesToNullInsteadOfAnUnrelatedInstance()
+        {
+            // Before this fix, a stale/dangling PendingCardId would still resolve via
+            // ICardDatabase.GetCardById(DefinitionId) to SOME instance (wrong identity, but
+            // non-null). Now that resolution is RuntimeId-keyed against the restored zones, a
+            // RuntimeId with no matching physical card anywhere must resolve to null rather than
+            // silently substituting an unrelated one.
+            var snapshot = DtoMapper.ToGameStateDto(_context);
+            snapshot.PendingCardId = Guid.NewGuid();
+            snapshot.ActionSystemState = ActionState.TargetingAssassinate;
+
+            StateRestorer.RestoreState(_context, snapshot);
+
+            Assert.AreEqual(ActionState.TargetingAssassinate, _context.ActionSystem.CurrentState);
+            Assert.IsNull(_context.ActionSystem.PendingCard);
+        }
     }
 }

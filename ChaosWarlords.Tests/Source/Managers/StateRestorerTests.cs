@@ -322,7 +322,9 @@ namespace ChaosWarlords.Tests.Source.Managers
         public void RestoreState_RevertsActionSystemPendingCardAndPendingDevourCard()
         {
             var pendingCard = RegisterCard("wight", CardLocation.Hand);
+            _player.AddToHand(pendingCard);
             var devourCard = RegisterCard("victim", CardLocation.Hand);
+            _player.AddToHand(devourCard);
 
             // No side-effect-free public API sets PendingCard/PendingDevourCard in isolation
             // (they're set as part of larger targeting/devour flows) - RestorePendingState is
@@ -446,8 +448,14 @@ namespace ChaosWarlords.Tests.Source.Managers
         {
             var site = new NonCitySite("Sentinel Site", ResourceType.Power, 0, ResourceType.Power, 0) { Id = 7 };
             _mapManager.Sites.Returns(new List<Site> { site });
-            var pendingCardSentinel = RegisterCard("pending_card_sentinel");
-            var pendingDevourCardSentinel = RegisterCard("pending_devour_card_sentinel");
+            // Added to the player's Hand (not just registered with the mock CardDatabase) so
+            // StateRestorer's RuntimeId-keyed physical-card lookup can actually find them after a
+            // restore - see planning.txt TIER 1 item 19 (PendingCard/PendingDevourCard now resolve
+            // via the restored zones' physical cards, not a fresh CardDatabase.GetCardById lookup).
+            var pendingCardSentinel = RegisterCard("pending_card_sentinel", CardLocation.Hand);
+            _player.AddToHand(pendingCardSentinel);
+            var pendingDevourCardSentinel = RegisterCard("pending_devour_card_sentinel", CardLocation.Hand);
+            _player.AddToHand(pendingDevourCardSentinel);
 
             var sentinelsByParameterName = new Dictionary<string, object?>
             {
@@ -609,25 +617,26 @@ namespace ChaosWarlords.Tests.Source.Managers
             var snapshot = DtoMapper.ToGameStateDto(_context);
             snapshot.EffectStack = new List<EffectContextDto>
             {
-                new() { State = ActionState.TargetingAssassinate, SourceCardId = "card_that_does_not_exist", RequiresInput = true }
+                new() { State = ActionState.TargetingAssassinate, SourceCardId = System.Guid.NewGuid(), RequiresInput = true }
             };
 
             StateRestorer.RestoreState(_context, snapshot);
 
-            Assert.IsEmpty(_context.ActionSystem.ExecutionStack, "A SourceCardId the CardDatabase can't resolve should be dropped, not throw.");
+            Assert.IsEmpty(_context.ActionSystem.ExecutionStack, "A SourceCardId RuntimeId the physical-card map can't resolve should be dropped, not throw.");
         }
 
         [TestMethod]
         public void RestoreState_EffectStackEntry_WithTargetingState_ReattachesTheMatchingCardEffect()
         {
             var sourceCard = RegisterCard("wight", CardLocation.Played);
+            _player.AddToPlayed(sourceCard);
             var devourEffect = new CardEffect(EffectType.Devour, 1) { TargetLocation = CardLocation.Hand };
             sourceCard.AddEffect(devourEffect);
 
             var snapshot = DtoMapper.ToGameStateDto(_context);
             snapshot.EffectStack = new List<EffectContextDto>
             {
-                new() { State = ActionState.TargetingDevourHand, SourceCardId = "wight", RequiresInput = true, EffectType = EffectType.Devour }
+                new() { State = ActionState.TargetingDevourHand, SourceCardId = sourceCard.RuntimeId, RequiresInput = true, EffectType = EffectType.Devour }
             };
 
             StateRestorer.RestoreState(_context, snapshot);
@@ -648,6 +657,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             // top-level-only FirstOrDefault would silently resolve SourceEffect to null here,
             // dropping the TargetNeutralTroopOnly restriction on rollback.
             var sourceCard = RegisterCard("kobold", CardLocation.Played);
+            _player.AddToPlayed(sourceCard);
             var assassinateEffect = new CardEffect(EffectType.Assassinate, 1) { TargetNeutralTroopOnly = true };
             var gainResourceEffect = new CardEffect(EffectType.GainResource, 1, ResourceType.Power)
             {
@@ -659,7 +669,7 @@ namespace ChaosWarlords.Tests.Source.Managers
             var snapshot = DtoMapper.ToGameStateDto(_context);
             snapshot.EffectStack = new List<EffectContextDto>
             {
-                new() { State = ActionState.TargetingAssassinate, SourceCardId = "kobold", RequiresInput = true, EffectType = EffectType.Assassinate }
+                new() { State = ActionState.TargetingAssassinate, SourceCardId = sourceCard.RuntimeId, RequiresInput = true, EffectType = EffectType.Assassinate }
             };
 
             StateRestorer.RestoreState(_context, snapshot);
@@ -679,12 +689,13 @@ namespace ChaosWarlords.Tests.Source.Managers
             // rollback-on-exception mid-way through a repeat effect like Deathblade's
             // "Assassinate 2 troops"), not silently reset to the single-target default of 1.
             var sourceCard = RegisterCard("deathblade", CardLocation.Played);
+            _player.AddToPlayed(sourceCard);
             sourceCard.AddEffect(new CardEffect(EffectType.Assassinate, 3));
 
             var snapshot = DtoMapper.ToGameStateDto(_context);
             snapshot.EffectStack = new List<EffectContextDto>
             {
-                new() { State = ActionState.TargetingAssassinate, SourceCardId = "deathblade", RequiresInput = true, EffectType = EffectType.Assassinate, RemainingRepeats = 3 }
+                new() { State = ActionState.TargetingAssassinate, SourceCardId = sourceCard.RuntimeId, RequiresInput = true, EffectType = EffectType.Assassinate, RemainingRepeats = 3 }
             };
 
             StateRestorer.RestoreState(_context, snapshot);
@@ -701,12 +712,13 @@ namespace ChaosWarlords.Tests.Source.Managers
             // an EffectContext, and RestoreEffect deliberately does NOT look up a CardEffect
             // for it (there's nothing to target).
             var sourceCard = RegisterCard("wight", CardLocation.Played);
+            _player.AddToPlayed(sourceCard);
             sourceCard.AddEffect(new CardEffect(EffectType.Devour, 1) { TargetLocation = CardLocation.Hand });
 
             var snapshot = DtoMapper.ToGameStateDto(_context);
             snapshot.EffectStack = new List<EffectContextDto>
             {
-                new() { State = ActionState.Normal, SourceCardId = "wight", RequiresInput = false, EffectType = EffectType.Devour }
+                new() { State = ActionState.Normal, SourceCardId = sourceCard.RuntimeId, RequiresInput = false, EffectType = EffectType.Devour }
             };
 
             StateRestorer.RestoreState(_context, snapshot);

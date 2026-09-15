@@ -197,10 +197,10 @@ namespace ChaosWarlords.Source.Core.Utilities
             // ActionSystem's targeting state machine - see GameStateDto.ActionSystemState's
             // doc comment for why this travels alongside EffectStack.
             dto.ActionSystemState = context.ActionSystem.CurrentState;
-            dto.PendingCardId = context.ActionSystem.PendingCard?.DefinitionId;
+            dto.PendingCardId = context.ActionSystem.PendingCard?.RuntimeId;
             dto.PendingSiteId = context.ActionSystem.PendingSite?.Id;
             dto.PendingMoveSourceNodeId = context.ActionSystem.PendingMoveSource?.Id;
-            dto.PendingDevourCardId = context.ActionSystem.PendingDevourCard?.DefinitionId;
+            dto.PendingDevourCardId = context.ActionSystem.PendingDevourCard?.RuntimeId;
             dto.PendingAffectedPlayerColor = context.ActionSystem.PendingAffectedPlayerColor;
             dto.PendingTrophyHallSourceColor = context.ActionSystem.PendingTrophyHallSourceColor;
             dto.PendingDeployedNodeIds = context.ActionSystem.PendingDeployedNodes.Select(n => n.Id).ToList();
@@ -233,7 +233,7 @@ namespace ChaosWarlords.Source.Core.Utilities
                     effectStack.Add(new EffectContextDto
                     {
                         State = effect.EffectType,
-                        SourceCardId = effect.SourceCard?.DefinitionId,
+                        SourceCardId = effect.SourceCard?.RuntimeId,
                         RequiresInput = effect.RequiresInput,
                         Description = effect.Description,
                         EffectType = effect.SourceEffect?.Type ?? EffectType.None,

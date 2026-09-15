@@ -129,16 +129,32 @@ namespace ChaosWarlords.Source.Managers
             // (requires Hand.Contains(card), which a market card never satisfies - would
             // silently no-op) and never Player.PlayedCards (would make CleanUpTurn() try to
             // discard a card that's about to be devoured).
+            //
+            // Also unsubscribes on OnActionCancelled (a cancel of THIS card's targeting
+            // sequence), not just on normal completion - without this, cancelling the market
+            // card's effect left the handler subscribed forever, and it would fire against the
+            // NEXT unrelated action's completion instead, moving a stale pre-restore Card
+            // instance into VoidPile (StateRestorer's restore always mints fresh Card instances,
+            // so the closure's captured `marketCard` reference can never match the restored
+            // market row again). See planning.txt TIER 1 item 18.
             EventHandler? onMarketCardResolved = null;
+            EventHandler? onMarketCardCancelled = null;
             onMarketCardResolved = (s, e) =>
             {
                 _context.ActionSystem.OnActionCompleted -= onMarketCardResolved;
+                _context.ActionSystem.OnActionCancelled -= onMarketCardCancelled;
                 _context.MarketManager.RemoveCard(marketCard);
                 marketCard.Location = CardLocation.Void;
                 _context.VoidPile.Add(marketCard);
                 _logger.Log($"{marketCard.Name} devoured after being played from the Market by {sourceCard.Name}.", LogChannel.Info);
             };
+            onMarketCardCancelled = (s, e) =>
+            {
+                _context.ActionSystem.OnActionCompleted -= onMarketCardResolved;
+                _context.ActionSystem.OnActionCancelled -= onMarketCardCancelled;
+            };
             _context.ActionSystem.OnActionCompleted += onMarketCardResolved;
+            _context.ActionSystem.OnActionCancelled += onMarketCardCancelled;
 
             // Snapshot BEFORE resolving effects - see PlayCard's matching call and
             // EnsureTargetingSnapshot's doc comment.

@@ -64,17 +64,19 @@ namespace ChaosWarlords.Source.Managers
             {
                 foreach (var effectDto in dto.EffectStack)
                 {
-                     RestoreEffect(context, effectDto);
+                     RestoreEffect(context, effectDto, physicalCards);
                 }
             }
 
             // 7. ActionSystem's targeting state machine (CurrentState + Pending* fields) - see
             // GameStateDto.ActionSystemState's doc comment for why this travels separately
-            // from EffectStack and how Card/Site/MapNode are re-resolved here.
-            var pendingCard = dto.PendingCardId != null ? context.CardDatabase.GetCardById(dto.PendingCardId) : null;
+            // from EffectStack and how Card/Site/MapNode are re-resolved here. Cards resolve via
+            // the same physicalCards map (RuntimeId keyed) built above from the already-restored
+            // zones, not a fresh CardDatabase lookup - see planning.txt TIER 1 item 19.
+            var pendingCard = ResolvePhysicalCardOrWarn(context, physicalCards, dto.PendingCardId, nameof(GameStateDto.PendingCardId));
             var pendingSite = dto.PendingSiteId is int siteId ? context.MapManager.Sites.FirstOrDefault(s => s.Id == siteId) : null;
             var pendingMoveSource = dto.PendingMoveSourceNodeId is int nodeId ? context.MapManager.GetNodeById(nodeId) : null;
-            var pendingDevourCard = dto.PendingDevourCardId != null ? context.CardDatabase.GetCardById(dto.PendingDevourCardId) : null;
+            var pendingDevourCard = ResolvePhysicalCardOrWarn(context, physicalCards, dto.PendingDevourCardId, nameof(GameStateDto.PendingDevourCardId));
             var pendingDeployedNodes = dto.PendingDeployedNodeIds?.Select(id => context.MapManager.GetNodeById(id)).Where(n => n != null).Select(n => n!);
             context.ActionSystem.RestorePendingState(dto.ActionSystemState, pendingCard, pendingSite, pendingMoveSource, pendingDevourCard, dto.PendingAffectedPlayerColor, dto.PendingTrophyHallSourceColor, pendingDeployedNodes);
         }
@@ -99,6 +101,29 @@ namespace ChaosWarlords.Source.Managers
                 throw new InvalidOperationException("Rollback turn state requires the concrete TurnManager.");
             }
             turnManager.RestoreState(state, runtimeId => physicalCards.GetValueOrDefault(runtimeId));
+        }
+
+        /// <summary>
+        /// Looks up a RuntimeId in the physical-card map GetPhysicalCards built from the
+        /// already-restored zones, warning (not throwing) if a non-null id fails to resolve -
+        /// unlike RestoreTransientCardReferences' stricter throw-on-miss, this covers
+        /// ActionSystem.CancelTargeting()'s ordinary, everyday player-driven restore path too,
+        /// not just CommandDispatcher's exception-only rollback, so a hard failure here would be
+        /// far riskier than silently treating the field as unresolved (matching the existing
+        /// lenient convention already used for PendingSite/PendingMoveSource). The warning exists
+        /// so a future gap of this shape (a card genuinely pending outside every zone
+        /// GetPhysicalCards enumerates) surfaces in the log instead of a silent null.
+        /// </summary>
+        private static Card? ResolvePhysicalCardOrWarn(MatchContext context, Dictionary<Guid, Card> physicalCards, Guid? runtimeId, string fieldName)
+        {
+            if (runtimeId is not Guid id) return null;
+
+            var card = physicalCards.GetValueOrDefault(id);
+            if (card == null)
+            {
+                context.Logger.Log($"StateRestorer: {fieldName} RuntimeId {id} did not resolve to any physical card in the restored zones - treating as unresolved.", LogChannel.Warning);
+            }
+            return card;
         }
 
         private static Dictionary<Guid, Card> GetPhysicalCards(MatchContext context)
@@ -329,15 +354,18 @@ namespace ChaosWarlords.Source.Managers
         /// Reconstructs a single EffectContext from its DTO and pushes it back onto the stack.
         /// Note: <see cref="EffectContextDto.State"/> carries the ActionState (targeting phase), while
         /// <see cref="EffectContextDto.EffectType"/> carries the card's EffectType, used to look up the
-        /// matching CardEffect definition on the source card.
+        /// matching CardEffect definition on the source card. <paramref name="physicalCards"/> is the
+        /// same RuntimeId-keyed map GetPhysicalCards built from the already-restored hand/market/void/
+        /// etc, so SourceCard resolves to the SAME instance those zones now point at, not an unrelated
+        /// fresh Card minted from the catalog - see planning.txt TIER 1 item 19.
         /// </summary>
-        private static void RestoreEffect(MatchContext context, EffectContextDto effectDto)
+        private static void RestoreEffect(MatchContext context, EffectContextDto effectDto, Dictionary<Guid, Card> physicalCards)
         {
              // Reconstruct EffectContext. This is tricky because we need the original reference
              // to the card's Effect object, not just a serialized copy.
-             if (string.IsNullOrEmpty(effectDto.SourceCardId)) return;
+             if (effectDto.SourceCardId is not Guid sourceCardRuntimeId) return;
 
-             var sourceCard = context.CardDatabase.GetCardById(effectDto.SourceCardId);
+             var sourceCard = ResolvePhysicalCardOrWarn(context, physicalCards, sourceCardRuntimeId, nameof(EffectContextDto.SourceCardId));
              if (sourceCard == null) return;
 
              CardEffect? sourceEffect = null;
@@ -358,7 +386,17 @@ namespace ChaosWarlords.Source.Managers
                  sourceCard,
                  effectDto.RequiresInput,
                  effectDto.Description,
-                 _ => { }, // Dummy callback, state restore cannot recover runtime delegates yet
+                 _ => { }, // Dummy callback - OnResolved/OnCancelled are runtime delegates and
+                           // can't be serialized/rebuilt from the DTO. Fine for CommandDispatcher's
+                           // rollback (the stack is discarded, never resumed), but
+                           // ActionSystem.CancelTargeting() DOES resume stack processing afterward
+                           // (see ProcessStack() at the end of CancelTargeting) - a genuine
+                           // multi-step chain (Devour -> Supplant, or anything with
+                           // OnSuccess/Alternative) mid-cancel silently loses its continuation here.
+                           // Fixing this needs a serializable effect-path/continuation descriptor
+                           // to rebuild the real callback from, not just card-identity resolution
+                           // (which the RuntimeId-keyed physicalCards lookup above already fixes) -
+                           // still open, see planning.txt TIER 1 item 19.
                  sourceEffect
              )
              {

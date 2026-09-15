@@ -14,6 +14,7 @@ namespace ChaosWarlords.Source.Managers
     {
         // Event Definitions
         public event EventHandler? OnActionCompleted;
+        public event EventHandler? OnActionCancelled;
         public event EventHandler<string>? OnActionFailed;
         public event EventHandler<ActionState>? OnStateChanged;
         public event Action<IGameCommand>? OnAutoExecuteCommand;
@@ -418,6 +419,14 @@ namespace ChaosWarlords.Source.Managers
         ///    carries across a restore unchanged (see Card.RuntimeId's own doc comment), so it's
         ///    the only safe key to look up by here. Running before the restore would just have
         ///    its own fix immediately overwritten by it.
+        ///
+        /// Always raises OnActionCancelled exactly once before returning (even when nothing was
+        /// actually pending - CancelActionCommand/right-click can call this with no sequence in
+        /// flight, and unsubscribing an already-unsubscribed handler is a harmless no-op). This
+        /// exists so a caller that subscribed a one-shot OnActionCompleted handler scoped to ITS
+        /// OWN targeting sequence (e.g. MatchManager.PlayCardFromMarket's onMarketCardResolved)
+        /// has a matching signal to unsubscribe on, instead of staying subscribed forever and
+        /// firing against a LATER, unrelated action's completion - see planning.txt TIER 1 item 18.
         /// </summary>
         public void CancelTargeting()
         {
@@ -450,6 +459,8 @@ namespace ChaosWarlords.Source.Managers
             }
 
             TryRestoreCardToHand(cardToClearRuntimeId);
+
+            OnActionCancelled?.Invoke(this, EventArgs.Empty);
 
             // Resume stack processing ONLY if there are remaining effects
             if (_executionEngine.ExecutionStack.Count > 0)

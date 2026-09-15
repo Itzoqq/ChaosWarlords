@@ -18,6 +18,16 @@ namespace ChaosWarlords.Source.Core.Interfaces.Logic
         event EventHandler OnActionCompleted;
 
         /// <summary>
+        /// Fired exactly once at the end of every CancelTargeting() call, even a no-op one (no
+        /// sequence was actually in flight). Lets a caller that subscribed a one-shot
+        /// OnActionCompleted handler scoped to its own targeting sequence (e.g.
+        /// MatchManager.PlayCardFromMarket) unsubscribe on cancellation instead of staying
+        /// subscribed and firing against a later, unrelated action's completion - see
+        /// planning.txt TIER 1 item 18.
+        /// </summary>
+        event EventHandler OnActionCancelled;
+
+        /// <summary>
         /// Fired when an action fails validation or execution, providing a reason string.
         /// </summary>
         event EventHandler<string> OnActionFailed;

@@ -10,7 +10,15 @@ namespace ChaosWarlords.Source.Core.Data.Dtos
     public class EffectContextDto
     {
         public ActionState State { get; set; }
-        public string? SourceCardId { get; set; }
+
+        /// <summary>
+        /// The source card's RuntimeId (NOT DefinitionId) - resolved on restore via the
+        /// already-restored physical-card lookup (StateRestorer.GetPhysicalCards), so
+        /// RestoreEffect rebuilds the SAME Card instance that lives in the restored
+        /// hand/market/void/etc, not an unrelated fresh Card minted from the catalog. See
+        /// planning.txt TIER 1 item 19.
+        /// </summary>
+        public System.Guid? SourceCardId { get; set; }
         public bool RequiresInput { get; set; }
         public string Description { get; set; } = string.Empty;
         
